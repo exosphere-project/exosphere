@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (main)
 
 import Json.Encode as Encode
 import Html exposing (Html, button, div, text)
@@ -21,6 +21,7 @@ import IdentityTypes exposing (decodeAuth, Auth, AuthIntro)
     (,)
 
 
+main : Program Never Model Msg
 main =
     Html.program
         { init = init

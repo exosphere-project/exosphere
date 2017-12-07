@@ -1,6 +1,5 @@
-module IdentityTypes exposing (..)
+module IdentityTypes exposing (AuthIntro, Auth, decodeAuth)
 
-import Json.Encode
 import Json.Decode
 import Json.Decode.Pipeline
 
@@ -28,17 +27,17 @@ type alias AuthAccessToken =
 decodeAuth : Json.Decode.Decoder Auth
 decodeAuth =
     Json.Decode.Pipeline.decode Auth
-        |> Json.Decode.Pipeline.required "access" (decodeAuthAccess)
+        |> Json.Decode.Pipeline.required "access" decodeAuthAccess
 
 
 decodeAuthAccess : Json.Decode.Decoder AuthAccess
 decodeAuthAccess =
     Json.Decode.Pipeline.decode AuthAccess
-        |> Json.Decode.Pipeline.required "token" (decodeAuthAccessToken)
+        |> Json.Decode.Pipeline.required "token" decodeAuthAccessToken
 
 
 decodeAuthAccessToken : Json.Decode.Decoder AuthAccessToken
 decodeAuthAccessToken =
     Json.Decode.Pipeline.decode AuthAccessToken
-        |> Json.Decode.Pipeline.required "expires" (Json.Decode.string)
-        |> Json.Decode.Pipeline.required "id" (Json.Decode.string)
+        |> Json.Decode.Pipeline.required "expires" Json.Decode.string
+        |> Json.Decode.Pipeline.required "id" Json.Decode.string
