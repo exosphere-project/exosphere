@@ -27,6 +27,21 @@ type alias AuthResponse =
 
 type alias AuthAccess =
     { token : AuthAccessToken
+    , serviceCatalog : List Service
+    }
+
+
+type alias Service =
+    { serviceName : String
+    , serviceType : String
+    , endPoints : List EndPoint
+    }
+
+
+type alias EndPoint =
+    { region : String
+    , publicURL : String
+    , tenantId : String
     }
 
 
@@ -46,6 +61,23 @@ decodeAuthAccess : Json.Decode.Decoder AuthAccess
 decodeAuthAccess =
     Json.Decode.Pipeline.decode AuthAccess
         |> Json.Decode.Pipeline.required "token" decodeAuthAccessToken
+        |> Json.Decode.Pipeline.required "serviceCatalog" (Json.Decode.list decodeService)
+
+
+decodeService : Json.Decode.Decoder Service
+decodeService =
+    Json.Decode.Pipeline.decode Service
+        |> Json.Decode.Pipeline.required "name" Json.Decode.string
+        |> Json.Decode.Pipeline.required "type" Json.Decode.string
+        |> Json.Decode.Pipeline.required "endpoints" (Json.Decode.list decodeEndPoint)
+
+
+decodeEndPoint : Json.Decode.Decoder EndPoint
+decodeEndPoint =
+    Json.Decode.Pipeline.decode EndPoint
+        |> Json.Decode.Pipeline.required "region" Json.Decode.string
+        |> Json.Decode.Pipeline.required "publicURL" Json.Decode.string
+        |> Json.Decode.Pipeline.required "tenantId" Json.Decode.string
 
 
 decodeAuthAccessToken : Json.Decode.Decoder AuthAccessToken
