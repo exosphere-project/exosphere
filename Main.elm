@@ -33,7 +33,7 @@ main =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { provider = Nothing, authIntro = Nothing, auth = Nothing }
+    ( { provider = Nothing, authIntro = Nothing, authResponse = Nothing }
     , Cmd.none
     )
 
@@ -45,7 +45,7 @@ init =
 type alias Model =
     { provider : Maybe Provider
     , authIntro : Maybe AuthIntro
-    , auth : Maybe AuthResponse
+    , authResponse : Maybe AuthResponse
     }
 
 
@@ -75,7 +75,7 @@ update msg model =
 
         -- Try setting the port of auth to 8901 below to get this error
         ReceiveAuthIntro (Err _) ->
-            ( { model | authIntro = Just "Oops - something wrong with Auth intro" }
+            ( { model | authIntro = Just "Oops - something wrong with auth intro" }
             , Cmd.none
             )
 
@@ -84,8 +84,8 @@ update msg model =
             , postAuthAuthToken
             )
 
-        ReceiveAuthToken (Ok auth) ->
-            ( { model | auth = Just auth }
+        ReceiveAuthToken (Ok authResponse) ->
+            ( { model | authResponse = Just authResponse }
             , Cmd.none
             )
 
@@ -110,12 +110,12 @@ postAuthAuthToken =
                 , "apiKey" => Encode.string "12345"
                 ]
 
-        auth =
+        authResponse =
             Encode.object
                 [ "RAX-KSKEY:apiKeyCredentials" => apiKeyCredentials ]
 
         body =
-            Encode.object [ "auth" => auth ]
+            Encode.object [ "auth" => authResponse ]
                 |> Http.jsonBody
     in
         Http.post "http://localhost:8900/identity/v2.0/tokens" body decodeAuth
