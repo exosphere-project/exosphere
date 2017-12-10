@@ -1,4 +1,4 @@
-module IdentityTypes exposing (AuthIntro, Auth, decodeAuth)
+module Driver.Identity exposing (AuthIntro, Auth, decodeAuth)
 
 import Json.Decode
 import Json.Decode.Pipeline

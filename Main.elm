@@ -4,7 +4,7 @@ import Json.Encode as Encode
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Http
-import IdentityTypes exposing (decodeAuth, Auth, AuthIntro)
+import Driver.Identity exposing (decodeAuth, Auth, AuthIntro)
 
 
 -- NOTE: If served from a website (as opposed to an Electron ap) then this
