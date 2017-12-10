@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Json.Encode as Encode
 import Html exposing (Html, button, div, text)
@@ -21,24 +21,35 @@ import Types exposing (decodeAuth, AuthResponse, AuthIntro, Provider)
     (,)
 
 
-main : Program Never Model Msg
+main : Program (Maybe Model) Model Msg
 main =
-    Html.program
+    Html.programWithFlags
         { init = init
-        , update = update
+        , update = updateWithStorage
         , view = view
         , subscriptions = \_ -> Sub.none
         }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { provider = Nothing, authIntro = Nothing, authResponse = Nothing }
-    , Cmd.none
-    )
+emptyModel : Model
+emptyModel =
+    { provider = Nothing
+    , authIntro = Nothing
+    , authResponse = Nothing
+    }
+
+
+init : Maybe Model -> ( Model, Cmd Msg )
+init savedModel =
+    Maybe.withDefault emptyModel savedModel ! []
 
 
 
+--init : ( Model, Cmd Msg )
+--init =
+--    ( emptyModel
+--    , Cmd.none
+--    )
 -- MODEL
 
 
@@ -58,6 +69,23 @@ type Msg
 
 
 -- UPDATE
+
+
+port setStorage : Model -> Cmd msg
+
+
+{-| We want to `setStorage` on every update. This function adds the setStorage
+command for every step of the update function.
+-}
+updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
+updateWithStorage msg model =
+    let
+        ( newModel, cmds ) =
+            update msg model
+    in
+        ( newModel
+        , Cmd.batch [ setStorage newModel, cmds ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

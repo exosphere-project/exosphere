@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Exosphere - PoC</title>
+  <script type="text/javascript" src="elm.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+</body>
+
+<script type="text/javascript">
+var storedState = localStorage.getItem('exosphere');
+var startingState = storedState ? JSON.parse(storedState) : null;
+var main = Elm.Main.fullscreen(startingState);
+main.ports.setStorage.subscribe(function(state) {
+    localStorage.setItem('exosphere', JSON.stringify(state));
+});
+</script>
+
+</html>
