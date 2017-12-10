@@ -1,4 +1,4 @@
-module Types exposing (Auth, AuthIntro, Provider, decodeAuth)
+module Types exposing (AuthResponse, AuthIntro, Provider, decodeAuth)
 
 import Json.Decode
 import Json.Decode.Pipeline
@@ -20,7 +20,7 @@ type alias AuthIntro =
     String
 
 
-type alias Auth =
+type alias AuthResponse =
     { access : AuthAccess
     }
 
@@ -36,9 +36,9 @@ type alias AuthAccessToken =
     }
 
 
-decodeAuth : Json.Decode.Decoder Auth
+decodeAuth : Json.Decode.Decoder AuthResponse
 decodeAuth =
-    Json.Decode.Pipeline.decode Auth
+    Json.Decode.Pipeline.decode AuthResponse
         |> Json.Decode.Pipeline.required "access" decodeAuthAccess
 
 

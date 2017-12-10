@@ -4,7 +4,7 @@ import Json.Encode as Encode
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Http
-import Types exposing (decodeAuth, Auth, AuthIntro, Provider)
+import Types exposing (decodeAuth, AuthResponse, AuthIntro, Provider)
 
 
 -- NOTE: If served from a website (as opposed to an Electron ap) then this
@@ -45,7 +45,7 @@ init =
 type alias Model =
     { provider : Maybe Provider
     , authIntro : Maybe AuthIntro
-    , auth : Maybe Auth
+    , auth : Maybe AuthResponse
     }
 
 
@@ -53,7 +53,7 @@ type Msg
     = GetAuthIntro
     | ReceiveAuthIntro (Result Http.Error AuthIntro)
     | PostAuthAuthToken
-    | ReceiveAuthAuthToken (Result Http.Error Auth)
+    | ReceiveAuthToken (Result Http.Error AuthResponse)
 
 
 
@@ -84,13 +84,13 @@ update msg model =
             , postAuthAuthToken
             )
 
-        ReceiveAuthAuthToken (Ok auth) ->
+        ReceiveAuthToken (Ok auth) ->
             ( { model | auth = Just auth }
             , Cmd.none
             )
 
-        ReceiveAuthAuthToken (Err _) ->
-            ( { model | authIntro = Just "Oops - something wrong with Auth token" }
+        ReceiveAuthToken (Err _) ->
+            ( { model | authIntro = Just "Oops - something wrong with auth token" }
             , Cmd.none
             )
 
@@ -119,7 +119,7 @@ postAuthAuthToken =
                 |> Http.jsonBody
     in
         Http.post "http://localhost:8900/identity/v2.0/tokens" body decodeAuth
-            |> Http.send ReceiveAuthAuthToken
+            |> Http.send ReceiveAuthToken
 
 
 
