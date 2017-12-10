@@ -52,7 +52,7 @@ type alias Model =
 type Msg
     = GetAuthIntro
     | ReceiveAuthIntro (Result Http.Error AuthIntro)
-    | PostAuthAuthToken
+    | PostAuthToken
     | ReceiveAuthToken (Result Http.Error AuthResponse)
 
 
@@ -79,9 +79,9 @@ update msg model =
             , Cmd.none
             )
 
-        PostAuthAuthToken ->
+        PostAuthToken ->
             ( model
-            , postAuthAuthToken
+            , postAuthToken
             )
 
         ReceiveAuthToken (Ok authResponse) ->
@@ -101,8 +101,8 @@ getAuthIntro =
         |> Http.send ReceiveAuthIntro
 
 
-postAuthAuthToken : Cmd Msg
-postAuthAuthToken =
+postAuthToken : Cmd Msg
+postAuthToken =
     let
         apiKeyCredentials =
             Encode.object
@@ -131,5 +131,5 @@ view model =
     div []
         [ div [] [ text (toString model) ]
         , button [ onClick GetAuthIntro ] [ text "GetAuthIntro" ]
-        , button [ onClick PostAuthAuthToken ] [ text "PostAuthAuthToken" ]
+        , button [ onClick PostAuthToken ] [ text "PostAuthToken" ]
         ]
