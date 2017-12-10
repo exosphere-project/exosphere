@@ -1,7 +1,19 @@
-module Types exposing (AuthIntro, Auth, decodeAuth)
+module Types exposing (Auth, AuthIntro, Provider, decodeAuth)
 
 import Json.Decode
 import Json.Decode.Pipeline
+
+
+type alias Provider =
+    { name : String
+    , identity_api_version : Int
+    , auth :
+        { username : String
+        , password : String
+        , project_name : String
+        , auth_url : String
+        }
+    }
 
 
 type alias AuthIntro =

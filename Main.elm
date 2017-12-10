@@ -4,7 +4,7 @@ import Json.Encode as Encode
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Http
-import Types exposing (decodeAuth, Auth, AuthIntro)
+import Types exposing (decodeAuth, Auth, AuthIntro, Provider)
 
 
 -- NOTE: If served from a website (as opposed to an Electron ap) then this
@@ -33,7 +33,7 @@ main =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { authIntro = Nothing, auth = Nothing }
+    ( { provider = Nothing, authIntro = Nothing, auth = Nothing }
     , Cmd.none
     )
 
@@ -43,7 +43,8 @@ init =
 
 
 type alias Model =
-    { authIntro : Maybe AuthIntro
+    { provider : Maybe Provider
+    , authIntro : Maybe AuthIntro
     , auth : Maybe Auth
     }
 
