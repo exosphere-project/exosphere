@@ -1,10 +1,11 @@
 port module Main exposing (main)
 
 import Json.Encode as Encode
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, text, ul, span, h3, h4)
+import Html.Lazy exposing (lazy)
 import Html.Events exposing (onClick)
 import Http
-import Types exposing (decodeAuth, AuthResponse, AuthIntro, Provider)
+import Types exposing (decodeAuth, AuthResponse, AuthIntro, Provider, Service, EndPoint, CallApiEndPointResponse)
 
 
 -- NOTE: If served from a website (as opposed to an Electron ap) then this
@@ -60,6 +61,8 @@ type Msg
     | ReceiveAuthIntro (Result Http.Error AuthIntro)
     | PostAuthToken
     | ReceiveAuthToken (Result Http.Error AuthResponse)
+    | CallApiEndPoint EndPoint
+    | ReceiveCallApiEndPoint (Result Http.Error CallApiEndPointResponse)
 
 
 
@@ -117,6 +120,27 @@ update msg model =
             , Cmd.none
             )
 
+        CallApiEndPoint endPoint ->
+            ( model
+            , callApiEndPoint endPoint
+            )
+
+        ReceiveCallApiEndPoint (Ok callApiEndPointResponse) ->
+            ( model
+            , Cmd.none
+            )
+
+        ReceiveCallApiEndPoint (Err _) ->
+            ( { model | authIntro = Just "Oops - something wrong with endPoint" }
+            , Cmd.none
+            )
+
+
+callApiEndPoint : EndPoint -> Cmd Msg
+callApiEndPoint endPoint =
+    Http.getString endPoint.publicURL
+        |> Http.send ReceiveCallApiEndPoint
+
 
 getAuthIntro : Cmd Msg
 getAuthIntro =
@@ -152,7 +176,46 @@ postAuthToken =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [] [ text (toString model) ]
-        , button [ onClick GetAuthIntro ] [ text "GetAuthIntro" ]
+        [ button [ onClick GetAuthIntro ] [ text "GetAuthIntro" ]
         , button [ onClick PostAuthToken ] [ text "PostAuthToken" ]
+        , authResponseView model.authResponse
+
+        --, div [] [ text (toString model) ]
+        ]
+
+
+authResponseView : Maybe AuthResponse -> Html Msg
+authResponseView authResponse =
+    case authResponse of
+        Nothing ->
+            div [] [ text "No service catalog loaded yet" ]
+
+        Just x ->
+            lazy servicesView x.access.serviceCatalog
+
+
+servicesView : List Service -> Html Msg
+servicesView services =
+    --div [] [ text (toString services) ]
+    ul [] <|
+        List.map serviceView services
+
+
+serviceView : Service -> Html Msg
+serviceView service =
+    div []
+        [ h3 [] [ text service.serviceName ]
+        , h4 [] [ text service.serviceType ]
+        , ul [] <|
+            List.map endPointView service.endPoints
+        ]
+
+
+endPointView : EndPoint -> Html Msg
+endPointView endPoint =
+    div []
+        [ span [] [ text endPoint.region ]
+        , span [] [ text " - " ]
+        , span [] [ text endPoint.publicURL ]
+        , button [ onClick (CallApiEndPoint endPoint) ] [ text "Get" ]
         ]

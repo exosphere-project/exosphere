@@ -1,4 +1,4 @@
-module Types exposing (AuthResponse, AuthIntro, Provider, decodeAuth)
+module Types exposing (AuthResponse, AuthIntro, Provider, Service, EndPoint, CallApiEndPointResponse, decodeAuth)
 
 import Json.Decode
 import Json.Decode.Pipeline
@@ -49,6 +49,10 @@ type alias AuthAccessToken =
     { expires : String
     , id : String
     }
+
+
+type alias CallApiEndPointResponse =
+    String
 
 
 decodeAuth : Json.Decode.Decoder AuthResponse
