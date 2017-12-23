@@ -1,3 +1,4 @@
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -15,12 +16,13 @@ main =
     }
 
 init : ( Model, Cmd Msg)
-init = ( { authToken = Nothing, creds = Creds "" "" "" "" "" "", errors = [] } , Cmd.none )
+{- Todo remove default creds once storing this in local storage -}
+init = ( { authToken = Nothing, creds = Creds "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens" "default" "demo" "default" "demo" "", messages = [] } , Cmd.none )
 
 type alias Model =
   { authToken : Maybe String
   , creds : Creds
-  , errors : List String
+  , messages : List String
   }
 
 type alias Creds =
@@ -32,6 +34,10 @@ type alias Creds =
   , password : String
   }
 
+type alias ScopedAuthToken =
+  {
+  }
+
 type Msg
   = InputAuthURL String
   | InputProjectDomain String
@@ -40,7 +46,7 @@ type Msg
   | InputUsername String
   | InputPassword String
   | RequestToken
-  | ReceiveToken (Result Http.Error String)
+  | ReceiveAuth (Result Http.Error String)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -64,13 +70,16 @@ update msg model =
       let creds = model.creds in
       ( { model | creds = { creds | password = password } } , Cmd.none )
     RequestToken -> ( model, requestAuthToken model )
-    ReceiveToken (Ok tokenResponse) -> ( model, Cmd.none )
+    ReceiveAuth response -> receiveAuth model response
+
+{-
     ReceiveToken (Err error) ->
       let
         errorStr = toString error
         newErrors = ("Error obtaining auth token: " ++ errorStr) :: model.errors
       in
         ( { model | errors = newErrors }, Cmd.none )
+-}
 
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
@@ -102,8 +111,26 @@ requestAuthToken model =
         ]
 
   in
-    Http.post model.creds.authURL (Http.jsonBody requestBody) Decode.string
-      |> Http.send ReceiveToken
+    Http.request
+      { method = "POST"
+      , headers = []
+      , url = model.creds.authURL
+      , body = Http.jsonBody requestBody
+      , expect = Http.expectStringResponse (processTokenResponse)
+      , timeout = Nothing
+      , withCredentials = True
+    } |> Http.send ReceiveAuth
+
+processTokenResponse : Http.Response String -> Result String String
+processTokenResponse response =
+  Ok (toString (Dict.keys response.headers))
+
+receiveAuth : Model -> Result Http.Error String -> (Model, Cmd Msg)
+receiveAuth model response =
+  let
+    newMessages = (toString response) :: model.messages
+  in
+    ( { model | messages = newMessages }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.none
@@ -111,24 +138,58 @@ subscriptions model = Sub.none
 view : Model -> Html Msg
 view model =
   div []
-  [ viewErrors model
+  [ viewMessages model
   , case model.authToken of
      Nothing -> viewCollectCreds model
      Just authToken -> text ("Token is " ++ authToken)
   ]
 
-viewErrors : Model -> Html Msg
-viewErrors model =
-  div [] (List.map text model.errors)
+renderMessage : String -> Html Msg
+renderMessage message = p [] [ text message ]
+
+viewMessages : Model -> Html Msg
+viewMessages model =
+  div [] (List.map renderMessage model.messages)
+
 
 viewCollectCreds : Model -> ( Html Msg )
 viewCollectCreds model =
   div []
-    [ input [ type_ "text", placeholder "Auth URL e.g. https://mycloud.net:5000/v3", onInput InputAuthURL ] []
-    , input [ type_ "text", placeholder "Project domain", onInput InputProjectDomain ] []
-    , input [ type_ "text", placeholder "Project name", onInput InputProjectName ] []
-    , input [ type_ "text", placeholder "User domain", onInput InputUserDomain ] []
-    , input [ type_ "text", placeholder "Username", onInput InputUsername ] []
-    , input [ type_ "text", placeholder "Password", onInput InputPassword ] []
+    [ input
+      [ type_ "text"
+      , value model.creds.authURL
+      , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
+      , onInput InputAuthURL
+      ] []
+    , input
+      [ type_ "text"
+      , value model.creds.projectDomain
+      , placeholder "Project domain"
+      , onInput InputProjectDomain
+      ] []
+    , input
+      [ type_ "text"
+      , value model.creds.projectName
+      , placeholder "Project name"
+      , onInput InputProjectName
+      ] []
+    , input
+      [ type_ "text"
+      , value model.creds.userDomain
+      , placeholder "User domain"
+      , onInput InputUserDomain
+      ] []
+    , input
+      [ type_ "text"
+      , value model.creds.username
+      , placeholder "Username"
+      , onInput InputUsername
+      ] []
+    , input
+      [ type_ "text"
+      , value model.creds.password
+      , placeholder "Password"
+      , onInput InputPassword
+      ] []
     , button [ onClick RequestToken ] [ text "Log in" ]
     ]
