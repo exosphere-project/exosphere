@@ -46,7 +46,7 @@ type Msg
   | InputUsername String
   | InputPassword String
   | RequestToken
-  | ReceiveAuth (Result Http.Error String)
+  | ReceiveAuth (Result Http.Error (Http.Response String))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -116,21 +116,35 @@ requestAuthToken model =
       , headers = []
       , url = model.creds.authURL
       , body = Http.jsonBody requestBody
-      , expect = Http.expectStringResponse (processTokenResponse)
+      {- Todo handle no response? -}
+      , expect = Http.expectStringResponse (\response -> Ok response)
       , timeout = Nothing
       , withCredentials = True
     } |> Http.send ReceiveAuth
 
+{-
 processTokenResponse : Http.Response String -> Result String String
 processTokenResponse response =
-  Ok (toString (Dict.keys response.headers))
-
-receiveAuth : Model -> Result Http.Error String -> (Model, Cmd Msg)
-receiveAuth model response =
   let
-    newMessages = (toString response) :: model.messages
+    token =
+      Dict.get "X-Subject-Token" response.headers
+        |> Result.fromMaybe ("Auth token header not found")
   in
-    ( { model | messages = newMessages }, Cmd.none)
+  Ok (response)
+-}
+
+receiveAuth : Model -> Result Http.Error (Http.Response String) -> (Model, Cmd Msg)
+receiveAuth model responseResult =
+  case responseResult of
+    Err _ ->
+      {- Todo something reasonable here -}
+      ( model, Cmd.none )
+    Ok response ->
+      let
+        {- Todo handle error here -}
+        authToken = Dict.get "X-Subject-Token" response.headers
+      in
+        ( { model | authToken = authToken }, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.none
@@ -155,7 +169,8 @@ viewMessages model =
 viewCollectCreds : Model -> ( Html Msg )
 viewCollectCreds model =
   div []
-    [ input
+    [ div [] [ text "Please log in" ]
+    , input
       [ type_ "text"
       , value model.creds.authURL
       , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
