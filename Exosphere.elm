@@ -7,6 +7,7 @@ import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Filesize exposing (format)
 
 
 main : Program Never Model Msg
@@ -428,7 +429,7 @@ renderImage image =
                 ]
             , tr []
                 [ td [] [ text "Size" ]
-                , td [] [ text (toString image.size) ]
+                , td [] [ text (format image.size) ]
                 ]
             , tr []
                 [ td [] [ text "Checksum" ]
