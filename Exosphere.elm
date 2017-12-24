@@ -74,6 +74,10 @@ type alias Endpoints =
 type alias Image =
     { name : String
     , id : String
+    , size : Int
+    , checksum : String
+    , diskFormat : String
+    , containerFormat : String
     }
 
 
@@ -242,9 +246,13 @@ decodeImages =
 
 imageDecoder : Decode.Decoder Image
 imageDecoder =
-    Decode.map2 Image
+    Decode.map6 Image
         (Decode.field "name" Decode.string)
         (Decode.field "id" Decode.string)
+        (Decode.field "size" Decode.int)
+        (Decode.field "checksum" Decode.string)
+        (Decode.field "disk_format" Decode.string)
+        (Decode.field "container_format" Decode.string)
 
 
 receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
@@ -344,5 +352,37 @@ viewGlanceImages model =
                 ]
 
         Just images ->
-            div []
-                (List.map text <| List.map toString images)
+            div [] (List.map renderImage images)
+
+
+renderImage : Image -> Html Msg
+renderImage image =
+    div []
+        [ p [] [ strong [] [ text image.name ] ]
+        , table []
+            [ tr []
+                [ th [] [ text "Property" ]
+                , th [] [ text "Value" ]
+                ]
+            , tr []
+                [ td [] [ text "Size" ]
+                , td [] [ text (toString image.size) ]
+                ]
+            , tr []
+                [ td [] [ text "Checksum" ]
+                , td [] [ text image.checksum ]
+                ]
+            , tr []
+                [ td [] [ text "Disk format" ]
+                , td [] [ text image.diskFormat ]
+                ]
+            , tr []
+                [ td [] [ text "Container format" ]
+                , td [] [ text image.containerFormat ]
+                ]
+            , tr []
+                [ td [] [ text "UUID" ]
+                , td [] [ text image.id ]
+                ]
+            ]
+        ]
