@@ -45,6 +45,7 @@ init =
       , messages = []
       , images = Nothing
       , servers = Nothing
+      , viewState = Login
       }
     , Cmd.none
     )
@@ -57,7 +58,16 @@ type alias Model =
     , messages : List String
     , images : Maybe (List Image)
     , servers : Maybe (List Server)
+    , viewState : ViewState
     }
+
+
+type ViewState
+    = Login
+    | Home
+    | ListImages
+    | ListUserServers
+    | ServerDetail Server
 
 
 type alias Creds =
@@ -104,6 +114,7 @@ type Msg
     | RequestServers
     | ReceiveServers (Result Http.Error (List Server))
     | LaunchImage Image
+    | ChangeViewState ViewState
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -171,6 +182,9 @@ update msg model =
 
         ReceiveServers result ->
             receiveServers model result
+
+        ChangeViewState state ->
+            ( { model | viewState = state }, Cmd.none )
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -243,7 +257,7 @@ receiveAuth model responseResult =
                 authToken =
                     Dict.get "X-Subject-Token" response.headers
             in
-                ( { model | authToken = authToken }, Cmd.none )
+                ( { model | authToken = authToken, viewState = Home }, Cmd.none )
 
 
 requestImages : Model -> Cmd Msg
@@ -331,17 +345,29 @@ view : Model -> Html Msg
 view model =
     div []
         [ viewMessages model
-        , case model.authToken of
-            Nothing ->
+        , case model.viewState of
+            Login ->
                 viewCollectCreds model
 
-            Just authToken ->
+            Home ->
                 div []
-                    [ h2 [] [ text "Available Images" ]
+                    [ viewNav model
+                    ]
+
+            ListImages ->
+                div []
+                    [ viewNav model
                     , viewGlanceImages model
-                    , h2 [] [ text "Your Servers" ]
+                    ]
+
+            ListUserServers ->
+                div []
+                    [ viewNav model
                     , viewServers model
                     ]
+
+            _ ->
+                div [] []
         ]
 
 
@@ -468,4 +494,14 @@ renderServer server =
     div []
         [ p [] [ strong [] [ text server.name ] ]
         , text server.id
+        ]
+
+
+viewNav : Model -> Html Msg
+viewNav model =
+    div []
+        [ h2 [] [ text "Navigation" ]
+        , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
+        , button [ onClick (ChangeViewState ListImages) ] [ text "Images" ]
+        , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
         ]
