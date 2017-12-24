@@ -92,6 +92,7 @@ type Msg
     | ReceiveAuth (Result Http.Error (Http.Response String))
     | RequestImages
     | ReceiveImages (Result Http.Error (List Image))
+    | LaunchImage Image
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -150,6 +151,9 @@ update msg model =
 
         ReceiveImages images ->
             receiveImages model images
+
+        LaunchImage image ->
+            ( model, Cmd.none )
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -359,6 +363,7 @@ renderImage : Image -> Html Msg
 renderImage image =
     div []
         [ p [] [ strong [] [ text image.name ] ]
+        , button [ onClick (LaunchImage image) ] [ text "Launch" ]
         , table []
             [ tr []
                 [ th [] [ text "Property" ]
