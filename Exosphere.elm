@@ -17,12 +17,27 @@ main =
 
 init : ( Model, Cmd Msg)
 {- Todo remove default creds once storing this in local storage -}
-init = ( { authToken = Nothing, creds = Creds "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens" "default" "demo" "default" "demo" "", messages = [] } , Cmd.none )
+init =
+  ( { authToken = Nothing
+    {- Todo remove this hard coding and decode JSON in auth token response -}
+    , endpoints =
+        { glance = "https://tombstone-cloud.cyverse.org:9292"
+        , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
+        }
+
+    , creds = Creds "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens" "default" "demo" "default" "demo" ""
+    , messages = []
+    , images = Nothing
+    }
+  , Cmd.none
+  )
 
 type alias Model =
   { authToken : Maybe String
+  , endpoints : Endpoints
   , creds : Creds
   , messages : List String
+  , images : Maybe (List Image)
   }
 
 type alias Creds =
@@ -34,8 +49,11 @@ type alias Creds =
   , password : String
   }
 
-type alias ScopedAuthToken =
-  {
+type alias Endpoints = { glance: String, nova: String }
+
+type alias Image =
+  { name : String
+  , id : String
   }
 
 type Msg
@@ -45,8 +63,10 @@ type Msg
   | InputUserDomain String
   | InputUsername String
   | InputPassword String
-  | RequestToken
+  | RequestAuth
   | ReceiveAuth (Result Http.Error (Http.Response String))
+  | RequestImages
+  | ReceiveImages (Result Http.Error (List Image))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -69,17 +89,11 @@ update msg model =
     InputPassword password ->
       let creds = model.creds in
       ( { model | creds = { creds | password = password } } , Cmd.none )
-    RequestToken -> ( model, requestAuthToken model )
+    RequestAuth -> ( model, requestAuthToken model )
     ReceiveAuth response -> receiveAuth model response
+    RequestImages -> (model, requestImages model)
+    ReceiveImages images -> receiveImages model images
 
-{-
-    ReceiveToken (Err error) ->
-      let
-        errorStr = toString error
-        newErrors = ("Error obtaining auth token: " ++ errorStr) :: model.errors
-      in
-        ( { model | errors = newErrors }, Cmd.none )
--}
 
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
@@ -111,6 +125,7 @@ requestAuthToken model =
         ]
 
   in
+    {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
     Http.request
       { method = "POST"
       , headers = []
@@ -122,17 +137,6 @@ requestAuthToken model =
       , withCredentials = True
     } |> Http.send ReceiveAuth
 
-{-
-processTokenResponse : Http.Response String -> Result String String
-processTokenResponse response =
-  let
-    token =
-      Dict.get "X-Subject-Token" response.headers
-        |> Result.fromMaybe ("Auth token header not found")
-  in
-  Ok (response)
--}
-
 receiveAuth : Model -> Result Http.Error (Http.Response String) -> (Model, Cmd Msg)
 receiveAuth model responseResult =
   case responseResult of
@@ -141,10 +145,35 @@ receiveAuth model responseResult =
       ( model, Cmd.none )
     Ok response ->
       let
-        {- Todo handle error here -}
         authToken = Dict.get "X-Subject-Token" response.headers
       in
         ( { model | authToken = authToken }, Cmd.none )
+
+requestImages : Model -> Cmd Msg
+requestImages model =
+  Http.request
+    { method = "GET"
+    , headers = [ Http.header "X-Auth-Token" (Maybe.withDefault "TODO handle this maybe better" model.authToken) ]
+    , url = model.endpoints.glance ++ "/v1/images"
+    , body = Http.emptyBody
+    , expect = Http.expectJson decodeImages
+    , timeout = Nothing
+    , withCredentials = False
+    } |> Http.send ReceiveImages
+
+decodeImages : Decode.Decoder (List Image)
+decodeImages = Decode.field "images" (Decode.list imageDecoder)
+
+imageDecoder : Decode.Decoder Image
+imageDecoder = Decode.map2 Image
+  (Decode.field "name" Decode.string)
+  (Decode.field "id" Decode.string)
+
+receiveImages : Model -> Result Http.Error (List Image) -> (Model, Cmd Msg)
+receiveImages model result =
+  case result of
+    Err _ -> ( model, Cmd.none )
+    Ok images -> ( { model | images = Just images }, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.none
@@ -155,7 +184,7 @@ view model =
   [ viewMessages model
   , case model.authToken of
      Nothing -> viewCollectCreds model
-     Just authToken -> text ("Token is " ++ authToken)
+     Just authToken -> viewGlanceImages model
   ]
 
 renderMessage : String -> Html Msg
@@ -206,5 +235,16 @@ viewCollectCreds model =
       , placeholder "Password"
       , onInput InputPassword
       ] []
-    , button [ onClick RequestToken ] [ text "Log in" ]
+    , button [ onClick RequestAuth ] [ text "Log in" ]
     ]
+
+viewGlanceImages : Model -> ( Html Msg )
+viewGlanceImages model =
+  case model.images of
+    Nothing ->
+      div []
+        [ button [onClick RequestImages ] [ text "Get Images" ]
+        ]
+    Just images ->
+      div []
+      (List.map text (List.map toString images))
