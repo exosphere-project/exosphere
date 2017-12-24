@@ -25,7 +25,14 @@ init =
         , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
         }
 
-    , creds = Creds "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens" "default" "demo" "default" "demo" ""
+    , creds =
+        Creds
+          "https://tombstone-cloud.cyverse.org:8000/v3/auth/tokens"
+          "default"
+          "demo"
+          "default"
+          "demo"
+          "" {- password -}
     , messages = []
     , images = Nothing
     }
@@ -247,4 +254,4 @@ viewGlanceImages model =
         ]
     Just images ->
       div []
-      (List.map text (List.map toString images))
+      (List.map text <| List.map toString images)
