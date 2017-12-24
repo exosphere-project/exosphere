@@ -43,6 +43,7 @@ init =
             {- password -}
       , messages = []
       , images = Nothing
+      , servers = Nothing
       }
     , Cmd.none
     )
@@ -54,6 +55,7 @@ type alias Model =
     , creds : Creds
     , messages : List String
     , images : Maybe (List Image)
+    , servers : Maybe (List Server)
     }
 
 
@@ -81,6 +83,12 @@ type alias Image =
     }
 
 
+type alias Server =
+    { name : String
+    , id : String
+    }
+
+
 type Msg
     = InputAuthURL String
     | InputProjectDomain String
@@ -92,6 +100,8 @@ type Msg
     | ReceiveAuth (Result Http.Error (Http.Response String))
     | RequestImages
     | ReceiveImages (Result Http.Error (List Image))
+    | RequestServers
+    | ReceiveServers (Result Http.Error (List Server))
     | LaunchImage Image
 
 
@@ -149,11 +159,17 @@ update msg model =
         RequestImages ->
             ( model, requestImages model )
 
-        ReceiveImages images ->
-            receiveImages model images
+        ReceiveImages result ->
+            receiveImages model result
 
         LaunchImage image ->
             ( model, Cmd.none )
+
+        RequestServers ->
+            ( model, requestServers model )
+
+        ReceiveServers result ->
+            receiveServers model result
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -269,6 +285,42 @@ receiveImages model result =
             ( { model | images = Just images }, Cmd.none )
 
 
+requestServers : Model -> Cmd Msg
+requestServers model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" (Maybe.withDefault "TODO handle this better" model.authToken) ]
+        , url = model.endpoints.nova ++ "/servers"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeServers
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveServers
+
+
+decodeServers : Decode.Decoder (List Server)
+decodeServers =
+    Decode.field "servers" (Decode.list serverDecoder)
+
+
+serverDecoder : Decode.Decoder Server
+serverDecoder =
+    Decode.map2 Server
+        (Decode.field "name" Decode.string)
+        (Decode.field "id" Decode.string)
+
+
+receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
+receiveServers model result =
+    case result of
+        Err _ ->
+            ( model, Cmd.none )
+
+        Ok servers ->
+            ( { model | servers = Just servers }, Cmd.none )
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
@@ -283,7 +335,12 @@ view model =
                 viewCollectCreds model
 
             Just authToken ->
-                viewGlanceImages model
+                div []
+                    [ h2 [] [ text "Available Images" ]
+                    , viewGlanceImages model
+                    , h2 [] [ text "Your Servers" ]
+                    , viewServers model
+                    ]
         ]
 
 
@@ -390,4 +447,24 @@ renderImage image =
                 , td [] [ text image.id ]
                 ]
             ]
+        ]
+
+
+viewServers : Model -> Html Msg
+viewServers model =
+    case model.servers of
+        Nothing ->
+            div []
+                [ button [ onClick RequestServers ] [ text "Get Servers" ]
+                ]
+
+        Just servers ->
+            div [] (List.map renderServer servers)
+
+
+renderServer : Server -> Html Msg
+renderServer server =
+    div []
+        [ p [] [ strong [] [ text server.name ] ]
+        , text server.id
         ]
