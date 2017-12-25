@@ -520,7 +520,7 @@ renderServer : Server -> Html Msg
 renderServer server =
     div []
         [ p [] [ strong [] [ text server.name ] ]
-        , text server.id
+        , text ("UUID: " ++ server.id)
         ]
 
 
