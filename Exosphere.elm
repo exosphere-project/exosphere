@@ -384,49 +384,76 @@ viewMessages model =
 viewLogin : Model -> Html Msg
 viewLogin model =
     div []
-        [ div [] [ text "Please log in" ]
-        , input
-            [ type_ "text"
-            , value model.creds.authURL
-            , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-            , onInput InputAuthURL
+        [ h2 [] [ text "Please log in" ]
+        , table []
+            [ tr []
+                [ td [] [ text "Keystone auth URL" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.authURL
+                        , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
+                        , onInput InputAuthURL
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Project Domain" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.projectDomain
+                        , onInput InputProjectDomain
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Project Name" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.projectName
+                        , onInput InputProjectName
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "User Domain" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.userDomain
+                        , onInput InputUserDomain
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "User Name" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.username
+                        , onInput InputUsername
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Password" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.password
+                        , onInput InputPassword
+                        ]
+                        []
+                    ]
+                ]
             ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.projectDomain
-            , placeholder "Project domain"
-            , onInput InputProjectDomain
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.projectName
-            , placeholder "Project name"
-            , onInput InputProjectName
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.userDomain
-            , placeholder "User domain"
-            , onInput InputUserDomain
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.username
-            , placeholder "Username"
-            , onInput InputUsername
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.password
-            , placeholder "Password"
-            , onInput InputPassword
-            ]
-            []
         , button [ onClick RequestAuth ] [ text "Log in" ]
         ]
 
