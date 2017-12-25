@@ -347,7 +347,7 @@ view model =
         [ viewMessages model
         , case model.viewState of
             Login ->
-                viewCollectCreds model
+                viewLogin model
 
             Home ->
                 div []
@@ -381,8 +381,8 @@ viewMessages model =
     div [] (List.map renderMessage model.messages)
 
 
-viewCollectCreds : Model -> Html Msg
-viewCollectCreds model =
+viewLogin : Model -> Html Msg
+viewLogin model =
     div []
         [ div [] [ text "Please log in" ]
         , input
