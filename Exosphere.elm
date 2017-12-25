@@ -28,7 +28,7 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = Nothing {- Todo remove this hard coding and decode JSON in auth token response -}
+    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
             , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
@@ -43,8 +43,8 @@ init =
                 ""
             {- password -}
       , messages = []
-      , images = Nothing
-      , servers = Nothing
+      , images = []
+      , servers = []
       , viewState = Login
       }
     , Cmd.none
@@ -52,12 +52,12 @@ init =
 
 
 type alias Model =
-    { authToken : Maybe String
+    { authToken : String
     , endpoints : Endpoints
     , creds : Creds
     , messages : List String
-    , images : Maybe (List Image)
-    , servers : Maybe (List Server)
+    , images : List Image
+    , servers : List Server
     , viewState : ViewState
     }
 
@@ -255,7 +255,7 @@ receiveAuth model responseResult =
         Ok response ->
             let
                 authToken =
-                    Dict.get "X-Subject-Token" response.headers
+                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
             in
                 ( { model | authToken = authToken, viewState = Home }, Cmd.none )
 
@@ -264,7 +264,7 @@ requestImages : Model -> Cmd Msg
 requestImages model =
     Http.request
         { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" (Maybe.withDefault "TODO handle this maybe better" model.authToken) ]
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
         , url = model.endpoints.glance ++ "/v1/images"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeImages
@@ -297,14 +297,14 @@ receiveImages model result =
             ( model, Cmd.none )
 
         Ok images ->
-            ( { model | images = Just images }, Cmd.none )
+            ( { model | images = images }, Cmd.none )
 
 
 requestServers : Model -> Cmd Msg
 requestServers model =
     Http.request
         { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" (Maybe.withDefault "TODO handle this better" model.authToken) ]
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
         , url = model.endpoints.nova ++ "/servers"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServers
@@ -333,7 +333,7 @@ receiveServers model result =
             ( model, Cmd.none )
 
         Ok servers ->
-            ( { model | servers = Just servers }, Cmd.none )
+            ( { model | servers = servers }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -357,7 +357,7 @@ view model =
             ListImages ->
                 div []
                     [ viewNav model
-                    , viewGlanceImages model
+                    , viewImages model
                     ]
 
             ListUserServers ->
@@ -458,16 +458,12 @@ viewLogin model =
         ]
 
 
-viewGlanceImages : Model -> Html Msg
-viewGlanceImages model =
-    case model.images of
-        Nothing ->
-            div []
-                [ button [ onClick RequestImages ] [ text "Get Images" ]
-                ]
-
-        Just images ->
-            div [] (List.map renderImage images)
+viewImages : Model -> Html Msg
+viewImages model =
+    div []
+        (button [ onClick RequestImages ] [ text "Get Images" ]
+            :: (List.map renderImage model.images)
+        )
 
 
 renderImage : Image -> Html Msg
@@ -506,14 +502,10 @@ renderImage image =
 
 viewServers : Model -> Html Msg
 viewServers model =
-    case model.servers of
-        Nothing ->
-            div []
-                [ button [ onClick RequestServers ] [ text "Get Servers" ]
-                ]
-
-        Just servers ->
-            div [] (List.map renderServer servers)
+    div []
+        (button [ onClick RequestServers ] [ text "Get Servers" ]
+            :: (List.map renderServer model.servers)
+        )
 
 
 renderServer : Server -> Html Msg
