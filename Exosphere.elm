@@ -449,7 +449,10 @@ view model =
                     ]
 
             ServerDetail server ->
-                viewServerDetails server
+                div []
+                    [ viewNav model
+                    , viewServerDetails server
+                    ]
         ]
 
 
@@ -617,7 +620,36 @@ viewServerDetails server =
                 [ button [ onClick (RequestServerDetails server) ] [ text "Get server details" ]
                 ]
 
-        Just _ ->
+        Just details ->
             div []
-                [ text (toString server)
+                [ table []
+                    [ tr []
+                        [ th [] [ text "Property" ]
+                        , th [] [ text "Value" ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Name" ]
+                        , td [] [ text server.name ]
+                        ]
+                    , tr []
+                        [ td [] [ text "UUID" ]
+                        , td [] [ text server.uuid ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Created on" ]
+                        , td [] [ text details.created ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Status" ]
+                        , td [] [ text details.status ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Power state" ]
+                        , td [] [ text (toString details.powerState) ]
+                        ]
+                    , tr []
+                        [ td [] [ text "SSH Key Name" ]
+                        , td [] [ text details.keyName ]
+                        ]
+                    ]
                 ]
