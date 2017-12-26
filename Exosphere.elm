@@ -293,8 +293,12 @@ imageDecoder =
 receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
 receiveImages model result =
     case result of
-        Err _ ->
-            ( model, Cmd.none )
+        Err error ->
+            let
+                newMsgs =
+                    (toString error) :: model.messages
+            in
+                ( { model | messages = newMsgs }, Cmd.none )
 
         Ok images ->
             ( { model | images = images }, Cmd.none )
@@ -329,8 +333,12 @@ serverDecoder =
 receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
 receiveServers model result =
     case result of
-        Err _ ->
-            ( model, Cmd.none )
+        Err error ->
+            let
+                newMsgs =
+                    (toString error) :: model.messages
+            in
+                ( { model | messages = newMsgs }, Cmd.none )
 
         Ok servers ->
             ( { model | servers = servers }, Cmd.none )
