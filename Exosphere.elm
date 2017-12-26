@@ -97,6 +97,29 @@ type alias Image =
 type alias Server =
     { name : String
     , uuid : String
+    , details : Maybe ServerDetails
+    }
+
+
+
+{- Todo add to ServerDetails:
+   - IP addresses
+   - Flavor
+   - Image
+   - Metadata
+   - Volumes
+   - Security Groups
+   - Etc
+
+   Also, make status and powerState union types, keyName a key type, created a real date/time, etc
+-}
+
+
+type alias ServerDetails =
+    { status : String
+    , created : String
+    , powerState : Int
+    , keyName : String
     }
 
 
@@ -115,6 +138,8 @@ type Msg
     | ReceiveServers (Result Http.Error (List Server))
     | LaunchImage Image
     | ChangeViewState ViewState
+    | RequestServerDetails Server
+    | ReceiveServerDetails Server (Result Http.Error ServerDetails)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -185,6 +210,12 @@ update msg model =
 
         ChangeViewState state ->
             ( { model | viewState = state }, Cmd.none )
+
+        RequestServerDetails server ->
+            ( model, requestServerDetails model server )
+
+        ReceiveServerDetails server result ->
+            receiveServerDetails model server result
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -325,9 +356,10 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map2 Server
+    Decode.map3 Server
         (Decode.field "name" Decode.string)
         (Decode.field "id" Decode.string)
+        (Decode.succeed Nothing)
 
 
 receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
@@ -342,6 +374,48 @@ receiveServers model result =
 
         Ok servers ->
             ( { model | servers = servers }, Cmd.none )
+
+
+requestServerDetails model server =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeServerDetails
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (ReceiveServerDetails server)
+
+
+receiveServerDetails : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetails model server result =
+    case result of
+        Err _ ->
+            ( model, Cmd.none )
+
+        Ok serverDetails ->
+            let
+                newServer =
+                    { server | details = Just serverDetails }
+
+                otherServers =
+                    List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                newServers =
+                    newServer :: otherServers
+            in
+                ( { model | servers = newServers, viewState = ServerDetail newServer }, Cmd.none )
+
+
+decodeServerDetails : Decode.Decoder ServerDetails
+decodeServerDetails =
+    Decode.map4 ServerDetails
+        (Decode.at [ "server", "status" ] Decode.string)
+        (Decode.at [ "server", "created" ] Decode.string)
+        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
+        (Decode.at [ "server", "key_name" ] Decode.string)
 
 
 subscriptions : Model -> Sub Msg
@@ -374,8 +448,8 @@ view model =
                     , viewServers model
                     ]
 
-            _ ->
-                div [] []
+            ServerDetail server ->
+                viewServerDetails server
         ]
 
 
@@ -521,6 +595,7 @@ renderServer server =
     div []
         [ p [] [ strong [] [ text server.name ] ]
         , text ("UUID: " ++ server.uuid)
+        , button [ onClick (ChangeViewState (ServerDetail server)) ] [ text "Details" ]
         ]
 
 
@@ -532,3 +607,17 @@ viewNav model =
         , button [ onClick (ChangeViewState ListImages) ] [ text "Images" ]
         , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
         ]
+
+
+viewServerDetails : Server -> Html Msg
+viewServerDetails server =
+    case server.details of
+        Nothing ->
+            div []
+                [ button [ onClick (RequestServerDetails server) ] [ text "Get server details" ]
+                ]
+
+        Just _ ->
+            div []
+                [ text (toString server)
+                ]
