@@ -86,7 +86,7 @@ type alias Endpoints =
 
 type alias Image =
     { name : String
-    , id : String
+    , uuid : String
     , size : Int
     , checksum : String
     , diskFormat : String
@@ -96,7 +96,7 @@ type alias Image =
 
 type alias Server =
     { name : String
-    , id : String
+    , uuid : String
     }
 
 
@@ -502,7 +502,7 @@ renderImage image =
                 ]
             , tr []
                 [ td [] [ text "UUID" ]
-                , td [] [ text image.id ]
+                , td [] [ text image.uuid ]
                 ]
             ]
         ]
@@ -520,7 +520,7 @@ renderServer : Server -> Html Msg
 renderServer server =
     div []
         [ p [] [ strong [] [ text server.name ] ]
-        , text ("UUID: " ++ server.id)
+        , text ("UUID: " ++ server.uuid)
         ]
 
 
