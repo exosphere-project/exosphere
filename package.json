@@ -1,0 +1,32 @@
+{
+  "name": "exosphere",
+  "version": "1.0.0",
+  "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
+  "main": "index.js",
+  "scripts": {
+    "elm": "elm make exosphere.elm --output elm.js || true",
+    "elm:watch": "chokidar '**/*.elm' -c 'npm run elm'",
+    "start": "electron main.js",
+    "watch": "npm run start & npm run elm:watch & wait",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "chokidar": "^1.4.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asthenosphere/exosphere.git"
+  },
+  "keywords": [
+    "elm",
+    "openstack",
+    "cloud",
+    "electron"
+  ],
+  "bugs": {
+    "url": "https://github.com/asthenosphere/exosphere/issues"
+  },
+  "homepage": "https://github.com/asthenosphere/exosphere#readme"
+}
