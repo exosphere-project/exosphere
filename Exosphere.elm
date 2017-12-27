@@ -429,30 +429,25 @@ view model =
         [ viewMessages model
         , case model.viewState of
             Login ->
+                div [] []
+
+            _ ->
+                viewNav model
+        , case model.viewState of
+            Login ->
                 viewLogin model
 
             Home ->
-                div []
-                    [ viewNav model
-                    ]
+                div [] []
 
             ListImages ->
-                div []
-                    [ viewNav model
-                    , viewImages model
-                    ]
+                viewImages model
 
             ListUserServers ->
-                div []
-                    [ viewNav model
-                    , viewServers model
-                    ]
+                viewServers model
 
             ServerDetail server ->
-                div []
-                    [ viewNav model
-                    , viewServerDetails server
-                    ]
+                viewServerDetails server
         ]
 
 
