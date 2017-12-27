@@ -124,7 +124,8 @@ type alias ServerDetails =
 
 
 type Msg
-    = InputAuthURL String
+    = ChangeViewState ViewState
+    | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
     | InputUserDomain String
@@ -132,19 +133,36 @@ type Msg
     | InputPassword String
     | RequestAuth
     | ReceiveAuth (Result Http.Error (Http.Response String))
-    | RequestImages
     | ReceiveImages (Result Http.Error (List Image))
-    | RequestServers
     | ReceiveServers (Result Http.Error (List Server))
-    | LaunchImage Image
-    | ChangeViewState ViewState
-    | RequestServerDetails Server
     | ReceiveServerDetails Server (Result Http.Error ServerDetails)
+    | LaunchImage Image
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ChangeViewState state ->
+            let
+                newModel =
+                    { model | viewState = state }
+            in
+                case state of
+                    Login ->
+                        ( newModel, Cmd.none )
+
+                    Home ->
+                        ( newModel, Cmd.none )
+
+                    ListImages ->
+                        ( newModel, requestImages newModel )
+
+                    ListUserServers ->
+                        ( newModel, requestServers newModel )
+
+                    ServerDetail server ->
+                        ( newModel, requestServerDetails newModel server )
+
         InputAuthURL authURL ->
             let
                 creds =
@@ -193,29 +211,17 @@ update msg model =
         ReceiveAuth response ->
             receiveAuth model response
 
-        RequestImages ->
-            ( model, requestImages model )
-
         ReceiveImages result ->
             receiveImages model result
-
-        LaunchImage image ->
-            ( model, Cmd.none )
-
-        RequestServers ->
-            ( model, requestServers model )
 
         ReceiveServers result ->
             receiveServers model result
 
-        ChangeViewState state ->
-            ( { model | viewState = state }, Cmd.none )
-
-        RequestServerDetails server ->
-            ( model, requestServerDetails model server )
-
         ReceiveServerDetails server result ->
             receiveServerDetails model server result
+
+        LaunchImage image ->
+            ( model, Cmd.none )
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -367,6 +373,7 @@ receiveServers model result =
             ( { model | servers = servers }, Cmd.none )
 
 
+requestServerDetails : Model -> Server -> Cmd Msg
 requestServerDetails model server =
     Http.request
         { method = "GET"
@@ -540,10 +547,7 @@ viewLogin model =
 
 viewImages : Model -> Html Msg
 viewImages model =
-    div []
-        (button [ onClick RequestImages ] [ text "Get Images" ]
-            :: (List.map renderImage model.images)
-        )
+    div [] (List.map renderImage model.images)
 
 
 renderImage : Image -> Html Msg
@@ -582,10 +586,7 @@ renderImage image =
 
 viewServers : Model -> Html Msg
 viewServers model =
-    div []
-        (button [ onClick RequestServers ] [ text "Get Servers" ]
-            :: (List.map renderServer model.servers)
-        )
+    div [] (List.map renderServer model.servers)
 
 
 renderServer : Server -> Html Msg
@@ -611,9 +612,7 @@ viewServerDetails : Server -> Html Msg
 viewServerDetails server =
     case server.details of
         Nothing ->
-            div []
-                [ button [ onClick (RequestServerDetails server) ] [ text "Get server details" ]
-                ]
+            text "Retrieving details??"
 
         Just details ->
             div []
