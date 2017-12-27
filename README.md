@@ -7,22 +7,25 @@ A client for making things happen in the cloud. Currently targeting OpenStack.
 
 To run this Electron app you will need to install Electron. You will also need elm, npm, and node.
 
-Follow this link to get all the steps to make this work:
+Convenience commands to do this:
+
+```bash
+npm install
+```
+
+To compile and run the app:
+
+```bash
+npm run elm
+npm run start
+```
+
+To watch for changes to `*.elm` files, auto-compile when they change, and hot-reloading of the app:
+
+```bash
+npm run watch
+```
+
+Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
-
-Then use `npm` to install Electron.
-
-```
-npm i -g elm electron-prebuilt
-```
-
-If you `elm-make` you can build the code for Exosphere then run it in Electron.
-
-```
-elm-make exosphere.elm --output elm.js
-```
-
-```
-electron main.js
-```

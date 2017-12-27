@@ -4,7 +4,7 @@
   "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
   "main": "index.js",
   "scripts": {
-    "elm": "elm make exosphere.elm --output elm.js || true",
+    "elm": "elm make Exosphere.elm --output elm.js || true",
     "elm:watch": "chokidar '**/*.elm' -c 'npm run elm'",
     "start": "electron main.js",
     "watch": "npm run start & npm run elm:watch & wait",
