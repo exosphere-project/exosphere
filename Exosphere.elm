@@ -28,7 +28,7 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = Nothing {- Todo remove this hard coding and decode JSON in auth token response -}
+    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
             , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
@@ -43,8 +43,8 @@ init =
                 ""
             {- password -}
       , messages = []
-      , images = Nothing
-      , servers = Nothing
+      , images = []
+      , servers = []
       , viewState = Login
       }
     , Cmd.none
@@ -52,12 +52,12 @@ init =
 
 
 type alias Model =
-    { authToken : Maybe String
+    { authToken : String
     , endpoints : Endpoints
     , creds : Creds
     , messages : List String
-    , images : Maybe (List Image)
-    , servers : Maybe (List Server)
+    , images : List Image
+    , servers : List Server
     , viewState : ViewState
     }
 
@@ -86,7 +86,7 @@ type alias Endpoints =
 
 type alias Image =
     { name : String
-    , id : String
+    , uuid : String
     , size : Int
     , checksum : String
     , diskFormat : String
@@ -96,7 +96,30 @@ type alias Image =
 
 type alias Server =
     { name : String
-    , id : String
+    , uuid : String
+    , details : Maybe ServerDetails
+    }
+
+
+
+{- Todo add to ServerDetails:
+   - IP addresses
+   - Flavor
+   - Image
+   - Metadata
+   - Volumes
+   - Security Groups
+   - Etc
+
+   Also, make status and powerState union types, keyName a key type, created a real date/time, etc
+-}
+
+
+type alias ServerDetails =
+    { status : String
+    , created : String
+    , powerState : Int
+    , keyName : String
     }
 
 
@@ -115,6 +138,8 @@ type Msg
     | ReceiveServers (Result Http.Error (List Server))
     | LaunchImage Image
     | ChangeViewState ViewState
+    | RequestServerDetails Server
+    | ReceiveServerDetails Server (Result Http.Error ServerDetails)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -186,6 +211,12 @@ update msg model =
         ChangeViewState state ->
             ( { model | viewState = state }, Cmd.none )
 
+        RequestServerDetails server ->
+            ( model, requestServerDetails model server )
+
+        ReceiveServerDetails server result ->
+            receiveServerDetails model server result
+
 
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
@@ -255,7 +286,7 @@ receiveAuth model responseResult =
         Ok response ->
             let
                 authToken =
-                    Dict.get "X-Subject-Token" response.headers
+                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
             in
                 ( { model | authToken = authToken, viewState = Home }, Cmd.none )
 
@@ -264,7 +295,7 @@ requestImages : Model -> Cmd Msg
 requestImages model =
     Http.request
         { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" (Maybe.withDefault "TODO handle this maybe better" model.authToken) ]
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
         , url = model.endpoints.glance ++ "/v1/images"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeImages
@@ -293,18 +324,22 @@ imageDecoder =
 receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
 receiveImages model result =
     case result of
-        Err _ ->
-            ( model, Cmd.none )
+        Err error ->
+            let
+                newMsgs =
+                    (toString error) :: model.messages
+            in
+                ( { model | messages = newMsgs }, Cmd.none )
 
         Ok images ->
-            ( { model | images = Just images }, Cmd.none )
+            ( { model | images = images }, Cmd.none )
 
 
 requestServers : Model -> Cmd Msg
 requestServers model =
     Http.request
         { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" (Maybe.withDefault "TODO handle this better" model.authToken) ]
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
         , url = model.endpoints.nova ++ "/servers"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServers
@@ -321,19 +356,66 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map2 Server
+    Decode.map3 Server
         (Decode.field "name" Decode.string)
         (Decode.field "id" Decode.string)
+        (Decode.succeed Nothing)
 
 
 receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
 receiveServers model result =
     case result of
+        Err error ->
+            let
+                newMsgs =
+                    (toString error) :: model.messages
+            in
+                ( { model | messages = newMsgs }, Cmd.none )
+
+        Ok servers ->
+            ( { model | servers = servers }, Cmd.none )
+
+
+requestServerDetails model server =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeServerDetails
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (ReceiveServerDetails server)
+
+
+receiveServerDetails : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetails model server result =
+    case result of
         Err _ ->
             ( model, Cmd.none )
 
-        Ok servers ->
-            ( { model | servers = Just servers }, Cmd.none )
+        Ok serverDetails ->
+            let
+                newServer =
+                    { server | details = Just serverDetails }
+
+                otherServers =
+                    List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                newServers =
+                    newServer :: otherServers
+            in
+                ( { model | servers = newServers, viewState = ServerDetail newServer }, Cmd.none )
+
+
+decodeServerDetails : Decode.Decoder ServerDetails
+decodeServerDetails =
+    Decode.map4 ServerDetails
+        (Decode.at [ "server", "status" ] Decode.string)
+        (Decode.at [ "server", "created" ] Decode.string)
+        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
+        (Decode.at [ "server", "key_name" ] Decode.string)
 
 
 subscriptions : Model -> Sub Msg
@@ -347,7 +429,7 @@ view model =
         [ viewMessages model
         , case model.viewState of
             Login ->
-                viewCollectCreds model
+                viewLogin model
 
             Home ->
                 div []
@@ -357,7 +439,7 @@ view model =
             ListImages ->
                 div []
                     [ viewNav model
-                    , viewGlanceImages model
+                    , viewImages model
                     ]
 
             ListUserServers ->
@@ -366,8 +448,11 @@ view model =
                     , viewServers model
                     ]
 
-            _ ->
-                div [] []
+            ServerDetail server ->
+                div []
+                    [ viewNav model
+                    , viewServerDetails server
+                    ]
         ]
 
 
@@ -381,66 +466,89 @@ viewMessages model =
     div [] (List.map renderMessage model.messages)
 
 
-viewCollectCreds : Model -> Html Msg
-viewCollectCreds model =
+viewLogin : Model -> Html Msg
+viewLogin model =
     div []
-        [ div [] [ text "Please log in" ]
-        , input
-            [ type_ "text"
-            , value model.creds.authURL
-            , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-            , onInput InputAuthURL
+        [ h2 [] [ text "Please log in" ]
+        , table []
+            [ tr []
+                [ td [] [ text "Keystone auth URL" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.authURL
+                        , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
+                        , onInput InputAuthURL
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Project Domain" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.projectDomain
+                        , onInput InputProjectDomain
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Project Name" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.projectName
+                        , onInput InputProjectName
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "User Domain" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.userDomain
+                        , onInput InputUserDomain
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "User Name" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.username
+                        , onInput InputUsername
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Password" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value model.creds.password
+                        , onInput InputPassword
+                        ]
+                        []
+                    ]
+                ]
             ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.projectDomain
-            , placeholder "Project domain"
-            , onInput InputProjectDomain
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.projectName
-            , placeholder "Project name"
-            , onInput InputProjectName
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.userDomain
-            , placeholder "User domain"
-            , onInput InputUserDomain
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.username
-            , placeholder "Username"
-            , onInput InputUsername
-            ]
-            []
-        , input
-            [ type_ "text"
-            , value model.creds.password
-            , placeholder "Password"
-            , onInput InputPassword
-            ]
-            []
         , button [ onClick RequestAuth ] [ text "Log in" ]
         ]
 
 
-viewGlanceImages : Model -> Html Msg
-viewGlanceImages model =
-    case model.images of
-        Nothing ->
-            div []
-                [ button [ onClick RequestImages ] [ text "Get Images" ]
-                ]
-
-        Just images ->
-            div [] (List.map renderImage images)
+viewImages : Model -> Html Msg
+viewImages model =
+    div []
+        (button [ onClick RequestImages ] [ text "Get Images" ]
+            :: (List.map renderImage model.images)
+        )
 
 
 renderImage : Image -> Html Msg
@@ -471,7 +579,7 @@ renderImage image =
                 ]
             , tr []
                 [ td [] [ text "UUID" ]
-                , td [] [ text image.id ]
+                , td [] [ text image.uuid ]
                 ]
             ]
         ]
@@ -479,21 +587,18 @@ renderImage image =
 
 viewServers : Model -> Html Msg
 viewServers model =
-    case model.servers of
-        Nothing ->
-            div []
-                [ button [ onClick RequestServers ] [ text "Get Servers" ]
-                ]
-
-        Just servers ->
-            div [] (List.map renderServer servers)
+    div []
+        (button [ onClick RequestServers ] [ text "Get Servers" ]
+            :: (List.map renderServer model.servers)
+        )
 
 
 renderServer : Server -> Html Msg
 renderServer server =
     div []
         [ p [] [ strong [] [ text server.name ] ]
-        , text server.id
+        , text ("UUID: " ++ server.uuid)
+        , button [ onClick (ChangeViewState (ServerDetail server)) ] [ text "Details" ]
         ]
 
 
@@ -505,3 +610,46 @@ viewNav model =
         , button [ onClick (ChangeViewState ListImages) ] [ text "Images" ]
         , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
         ]
+
+
+viewServerDetails : Server -> Html Msg
+viewServerDetails server =
+    case server.details of
+        Nothing ->
+            div []
+                [ button [ onClick (RequestServerDetails server) ] [ text "Get server details" ]
+                ]
+
+        Just details ->
+            div []
+                [ table []
+                    [ tr []
+                        [ th [] [ text "Property" ]
+                        , th [] [ text "Value" ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Name" ]
+                        , td [] [ text server.name ]
+                        ]
+                    , tr []
+                        [ td [] [ text "UUID" ]
+                        , td [] [ text server.uuid ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Created on" ]
+                        , td [] [ text details.created ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Status" ]
+                        , td [] [ text details.status ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Power state" ]
+                        , td [] [ text (toString details.powerState) ]
+                        ]
+                    , tr []
+                        [ td [] [ text "SSH Key Name" ]
+                        , td [] [ text details.keyName ]
+                        ]
+                    ]
+                ]
