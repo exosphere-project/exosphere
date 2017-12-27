@@ -279,9 +279,8 @@ requestAuthToken model =
 receiveAuth : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
 receiveAuth model responseResult =
     case responseResult of
-        Err _ ->
-            {- Todo something reasonable here -}
-            ( model, Cmd.none )
+        Err error ->
+            processError model error
 
         Ok response ->
             let
@@ -325,11 +324,7 @@ receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
 receiveImages model result =
     case result of
         Err error ->
-            let
-                newMsgs =
-                    (toString error) :: model.messages
-            in
-                ( { model | messages = newMsgs }, Cmd.none )
+            processError model error
 
         Ok images ->
             ( { model | images = images }, Cmd.none )
@@ -366,11 +361,7 @@ receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
 receiveServers model result =
     case result of
         Err error ->
-            let
-                newMsgs =
-                    (toString error) :: model.messages
-            in
-                ( { model | messages = newMsgs }, Cmd.none )
+            processError model error
 
         Ok servers ->
             ( { model | servers = servers }, Cmd.none )
@@ -392,8 +383,8 @@ requestServerDetails model server =
 receiveServerDetails : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
 receiveServerDetails model server result =
     case result of
-        Err _ ->
-            ( model, Cmd.none )
+        Err error ->
+            processError model error
 
         Ok serverDetails ->
             let
@@ -416,6 +407,15 @@ decodeServerDetails =
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
+
+
+processError : Model -> a -> ( Model, Cmd Msg )
+processError model error =
+    let
+        newMsgs =
+            (toString error) :: model.messages
+    in
+        ( { model | messages = newMsgs }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
