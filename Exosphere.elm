@@ -46,6 +46,7 @@ init =
       , images = []
       , servers = []
       , viewState = Login
+      , flavors = []
       }
     , Cmd.none
     )
@@ -59,6 +60,7 @@ type alias Model =
     , images : List Image
     , servers : List Server
     , viewState : ViewState
+    , flavors : List Flavor
     }
 
 
@@ -127,8 +129,14 @@ type alias ServerDetails =
 type alias CreateServerRequest =
     { name : String
     , imageUuid : String
-    , sizeUuid : String
+    , flavorUuid : String
     , keyName : String
+    }
+
+
+type alias Flavor =
+    { uuid : String
+    , name : String
     }
 
 
@@ -141,6 +149,7 @@ type Msg
     | ReceiveServers (Result Http.Error (List Server))
     | ReceiveServerDetail Server (Result Http.Error ServerDetails)
     | ReceiveCreateServer (Result Http.Error String)
+    | ReceiveFlavors (Result Http.Error (List Flavor))
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -178,8 +187,8 @@ update msg model =
                         ( newModel, requestServerDetail newModel server )
 
                     CreateServer createServerRequest ->
-                        {- Todo grab list of flavors upon loading this view -}
-                        ( newModel, Cmd.none )
+                        {- Todo also retrieve a list of images -}
+                        ( newModel, Cmd.batch [ requestFlavors newModel ] )
 
         RequestAuth ->
             ( model, requestAuthToken model )
@@ -198,6 +207,9 @@ update msg model =
 
         ReceiveServerDetail server result ->
             receiveServerDetail model server result
+
+        ReceiveFlavors result ->
+            receiveFlavors model result
 
         ReceiveCreateServer result ->
             {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
@@ -261,10 +273,10 @@ update msg model =
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerSize createServerRequest sizeUuid ->
+        InputCreateServerSize createServerRequest flavorUuid ->
             let
                 viewState =
-                    CreateServer { createServerRequest | sizeUuid = sizeUuid }
+                    CreateServer { createServerRequest | flavorUuid = flavorUuid }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
@@ -468,6 +480,42 @@ decodeServerDetails =
         (Decode.at [ "server", "key_name" ] Decode.string)
 
 
+requestFlavors : Model -> Cmd Msg
+requestFlavors model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/flavors"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeFlavors
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (ReceiveFlavors)
+
+
+decodeFlavors : Decode.Decoder (List Flavor)
+decodeFlavors =
+    Decode.field "flavors" (Decode.list flavorDecoder)
+
+
+flavorDecoder : Decode.Decoder Flavor
+flavorDecoder =
+    Decode.map2 Flavor
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+
+
+receiveFlavors : Model -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
+receiveFlavors model result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok flavors ->
+            ( { model | flavors = flavors }, Cmd.none )
+
+
 requestCreateServer : Model -> CreateServerRequest -> Cmd Msg
 requestCreateServer model createServerRequest =
     let
@@ -476,7 +524,7 @@ requestCreateServer model createServerRequest =
                 [ ( "server"
                   , Encode.object
                         [ ( "name", Encode.string createServerRequest.name )
-                        , ( "flavorRef", Encode.string createServerRequest.sizeUuid )
+                        , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
                         , ( "imageRef", Encode.string createServerRequest.imageUuid )
                         , ( "key_name", Encode.string createServerRequest.keyName )
                         , ( "networks", Encode.string "auto" )
@@ -641,7 +689,7 @@ renderImage : Image -> Html Msg
 renderImage image =
     div []
         [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "ba4bb37d-9327-4c4e-93ce-ff70c10ec3e9" ""))) ] [ text "Launch" ]
+        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" ""))) ] [ text "Launch" ]
         , table []
             [ tr []
                 [ th [] [ text "Property" ]
@@ -769,14 +817,9 @@ viewCreateServer model createServerRequest =
                     ]
                 ]
             , tr []
-                [ td [] [ text "Size (hard-coded for now)" ]
+                [ td [] [ text "Size" ]
                 , td []
-                    [ input
-                        [ type_ "text"
-                        , value createServerRequest.sizeUuid
-                        , onInput (InputCreateServerSize createServerRequest)
-                        ]
-                        []
+                    [ viewFlavorPicker model.flavors createServerRequest
                     ]
                 ]
             , tr []
@@ -793,3 +836,15 @@ viewCreateServer model createServerRequest =
             ]
         , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
         ]
+
+
+viewFlavorPicker : List Flavor -> CreateServerRequest -> Html Msg
+viewFlavorPicker flavors createServerRequest =
+    let
+        viewFlavorPickerLabel flavor =
+            label []
+                [ input [ type_ "radio", onClick (InputCreateServerSize createServerRequest flavor.uuid) ] []
+                , text flavor.name
+                ]
+    in
+        fieldset [] (List.map viewFlavorPickerLabel flavors)
