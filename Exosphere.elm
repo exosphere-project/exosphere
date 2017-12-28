@@ -239,7 +239,7 @@ update msg model =
 
         ReceiveDeleteServer result ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ChangeViewState ListUserServers) model
+            update (ChangeViewState Home) model
 
         --( { model | viewState = ListUserServers }, Cmd.none )
         {- Form inputs -}
