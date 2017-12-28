@@ -68,6 +68,7 @@ type ViewState
     | ListImages
     | ListUserServers
     | ServerDetail Server
+    | CreateServer CreateServerRequest
 
 
 type alias Creds =
@@ -102,7 +103,7 @@ type alias Server =
 
 
 
-{- Todo add to ServerDetails:
+{- Todo add to ServerDetail:
    - IP addresses
    - Flavor
    - Image
@@ -123,20 +124,33 @@ type alias ServerDetails =
     }
 
 
+type alias CreateServerRequest =
+    { name : String
+    , imageUuid : String
+    , sizeUuid : String
+    , keyName : String
+    }
+
+
 type Msg
     = ChangeViewState ViewState
+    | RequestAuth
+    | RequestCreateServer CreateServerRequest
+    | ReceiveAuth (Result Http.Error (Http.Response String))
+    | ReceiveImages (Result Http.Error (List Image))
+    | ReceiveServers (Result Http.Error (List Server))
+    | ReceiveServerDetail Server (Result Http.Error ServerDetails)
+    | ReceiveCreateServer (Result Http.Error String)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
     | InputUserDomain String
     | InputUsername String
     | InputPassword String
-    | RequestAuth
-    | ReceiveAuth (Result Http.Error (Http.Response String))
-    | ReceiveImages (Result Http.Error (List Image))
-    | ReceiveServers (Result Http.Error (List Server))
-    | ReceiveServerDetails Server (Result Http.Error ServerDetails)
-    | LaunchImage Image
+    | InputCreateServerName CreateServerRequest String
+    | InputCreateServerImage CreateServerRequest String
+    | InputCreateServerSize CreateServerRequest String
+    | InputCreateServerKeyName CreateServerRequest String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -161,8 +175,36 @@ update msg model =
                         ( newModel, requestServers newModel )
 
                     ServerDetail server ->
-                        ( newModel, requestServerDetails newModel server )
+                        ( newModel, requestServerDetail newModel server )
 
+                    CreateServer createServerRequest ->
+                        {- Todo grab list of flavors upon loading this view -}
+                        ( newModel, Cmd.none )
+
+        RequestAuth ->
+            ( model, requestAuthToken model )
+
+        RequestCreateServer createServerRequest ->
+            ( model, requestCreateServer model createServerRequest )
+
+        ReceiveAuth response ->
+            receiveAuth model response
+
+        ReceiveImages result ->
+            receiveImages model result
+
+        ReceiveServers result ->
+            receiveServers model result
+
+        ReceiveServerDetail server result ->
+            receiveServerDetail model server result
+
+        ReceiveCreateServer result ->
+            {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
+            update (ChangeViewState ListUserServers) model
+
+        --( { model | viewState = ListUserServers }, Cmd.none )
+        {- Form inputs -}
         InputAuthURL authURL ->
             let
                 creds =
@@ -205,23 +247,33 @@ update msg model =
             in
                 ( { model | creds = { creds | password = password } }, Cmd.none )
 
-        RequestAuth ->
-            ( model, requestAuthToken model )
+        InputCreateServerName createServerRequest name ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | name = name }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
 
-        ReceiveAuth response ->
-            receiveAuth model response
+        InputCreateServerImage createServerRequest imageUuid ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | imageUuid = imageUuid }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
 
-        ReceiveImages result ->
-            receiveImages model result
+        InputCreateServerSize createServerRequest sizeUuid ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | sizeUuid = sizeUuid }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
 
-        ReceiveServers result ->
-            receiveServers model result
-
-        ReceiveServerDetails server result ->
-            receiveServerDetails model server result
-
-        LaunchImage image ->
-            ( model, Cmd.none )
+        InputCreateServerKeyName createServerRequest keyName ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | keyName = keyName }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -373,8 +425,8 @@ receiveServers model result =
             ( { model | servers = servers }, Cmd.none )
 
 
-requestServerDetails : Model -> Server -> Cmd Msg
-requestServerDetails model server =
+requestServerDetail : Model -> Server -> Cmd Msg
+requestServerDetail model server =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
@@ -384,11 +436,11 @@ requestServerDetails model server =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveServerDetails server)
+        |> Http.send (ReceiveServerDetail server)
 
 
-receiveServerDetails : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetails model server result =
+receiveServerDetail : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetail model server result =
     case result of
         Err error ->
             processError model error
@@ -414,6 +466,38 @@ decodeServerDetails =
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
+
+
+requestCreateServer : Model -> CreateServerRequest -> Cmd Msg
+requestCreateServer model createServerRequest =
+    let
+        requestBody =
+            Encode.object
+                [ ( "server"
+                  , Encode.object
+                        [ ( "name", Encode.string createServerRequest.name )
+                        , ( "flavorRef", Encode.string createServerRequest.sizeUuid )
+                        , ( "imageRef", Encode.string createServerRequest.imageUuid )
+                        , ( "key_name", Encode.string createServerRequest.keyName )
+                        , ( "networks", Encode.string "auto" )
+                        ]
+                  )
+                ]
+    in
+        Http.request
+            { method = "POST"
+            , headers =
+                [ Http.header "X-Auth-Token" model.authToken
+                  -- Microversion needed for automatic network provisioning
+                , Http.header "OpenStack-API-Version" "compute 2.38"
+                ]
+            , url = model.endpoints.nova ++ "/servers"
+            , body = Http.jsonBody requestBody
+            , expect = Http.expectString
+            , timeout = Nothing
+            , withCredentials = True
+            }
+            |> Http.send ReceiveCreateServer
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -454,7 +538,10 @@ view model =
                 viewServers model
 
             ServerDetail server ->
-                viewServerDetails server
+                viewServerDetail server
+
+            CreateServer createServerRequest ->
+                viewCreateServer model createServerRequest
         ]
 
 
@@ -554,7 +641,7 @@ renderImage : Image -> Html Msg
 renderImage image =
     div []
         [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (LaunchImage image) ] [ text "Launch" ]
+        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "ba4bb37d-9327-4c4e-93ce-ff70c10ec3e9" ""))) ] [ text "Launch" ]
         , table []
             [ tr []
                 [ th [] [ text "Property" ]
@@ -608,8 +695,8 @@ viewNav model =
         ]
 
 
-viewServerDetails : Server -> Html Msg
-viewServerDetails server =
+viewServerDetail : Server -> Html Msg
+viewServerDetail server =
     case server.details of
         Nothing ->
             text "Retrieving details??"
@@ -647,3 +734,62 @@ viewServerDetails server =
                         ]
                     ]
                 ]
+
+
+viewCreateServer : Model -> CreateServerRequest -> Html Msg
+viewCreateServer model createServerRequest =
+    div []
+        [ h2 [] [ text "Create Server" ]
+        , table []
+            [ tr []
+                [ th [] [ text "Property" ]
+                , th [] [ text "Value" ]
+                ]
+            , tr []
+                [ td [] [ text "Server Name" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , placeholder "My Server"
+                        , value createServerRequest.name
+                        , onInput (InputCreateServerName createServerRequest)
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Image" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value createServerRequest.imageUuid
+                        , onInput (InputCreateServerImage createServerRequest)
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "Size (hard-coded for now)" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value createServerRequest.sizeUuid
+                        , onInput (InputCreateServerSize createServerRequest)
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "SSH key name (todo implement a picker)" ]
+                , td []
+                    [ input
+                        [ type_ "text"
+                        , value createServerRequest.keyName
+                        , onInput (InputCreateServerKeyName createServerRequest)
+                        ]
+                        []
+                    ]
+                ]
+            ]
+        , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
+        ]
