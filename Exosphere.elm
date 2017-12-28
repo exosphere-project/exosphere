@@ -47,6 +47,7 @@ init =
       , servers = []
       , viewState = Login
       , flavors = []
+      , keypairs = []
       }
     , Cmd.none
     )
@@ -61,6 +62,7 @@ type alias Model =
     , servers : List Server
     , viewState : ViewState
     , flavors : List Flavor
+    , keypairs : List Keypair
     }
 
 
@@ -114,7 +116,7 @@ type alias Server =
    - Security Groups
    - Etc
 
-   Also, make status and powerState union types, keyName a key type, created a real date/time, etc
+   Also, make status and powerState union types, keypairName a key type, created a real date/time, etc
 -}
 
 
@@ -122,7 +124,7 @@ type alias ServerDetails =
     { status : String
     , created : String
     , powerState : Int
-    , keyName : String
+    , keypairName : String
     }
 
 
@@ -130,13 +132,20 @@ type alias CreateServerRequest =
     { name : String
     , imageUuid : String
     , flavorUuid : String
-    , keyName : String
+    , keypairName : String
     }
 
 
 type alias Flavor =
     { uuid : String
     , name : String
+    }
+
+
+type alias Keypair =
+    { name : String
+    , publicKey : String
+    , fingerprint : String
     }
 
 
@@ -150,6 +159,7 @@ type Msg
     | ReceiveServerDetail Server (Result Http.Error ServerDetails)
     | ReceiveCreateServer (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List Flavor))
+    | ReceiveKeypairs (Result Http.Error (List Keypair))
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -159,7 +169,7 @@ type Msg
     | InputCreateServerName CreateServerRequest String
     | InputCreateServerImage CreateServerRequest String
     | InputCreateServerSize CreateServerRequest String
-    | InputCreateServerKeyName CreateServerRequest String
+    | InputCreateServerKeypairName CreateServerRequest String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -188,7 +198,7 @@ update msg model =
 
                     CreateServer createServerRequest ->
                         {- Todo also retrieve a list of images -}
-                        ( newModel, Cmd.batch [ requestFlavors newModel ] )
+                        ( newModel, Cmd.batch [ requestFlavors newModel, requestKeypairs newModel ] )
 
         RequestAuth ->
             ( model, requestAuthToken model )
@@ -210,6 +220,9 @@ update msg model =
 
         ReceiveFlavors result ->
             receiveFlavors model result
+
+        ReceiveKeypairs result ->
+            receiveKeypairs model result
 
         ReceiveCreateServer result ->
             {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
@@ -280,10 +293,10 @@ update msg model =
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerKeyName createServerRequest keyName ->
+        InputCreateServerKeypairName createServerRequest keypairName ->
             let
                 viewState =
-                    CreateServer { createServerRequest | keyName = keyName }
+                    CreateServer { createServerRequest | keypairName = keypairName }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
@@ -516,6 +529,43 @@ receiveFlavors model result =
             ( { model | flavors = flavors }, Cmd.none )
 
 
+requestKeypairs : Model -> Cmd Msg
+requestKeypairs model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/os-keypairs"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeKeypairs
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (ReceiveKeypairs)
+
+
+decodeKeypairs : Decode.Decoder (List Keypair)
+decodeKeypairs =
+    Decode.field "keypairs" (Decode.list keypairDecoder)
+
+
+keypairDecoder : Decode.Decoder Keypair
+keypairDecoder =
+    Decode.map3 Keypair
+        (Decode.at [ "keypair", "name" ] Decode.string)
+        (Decode.at [ "keypair", "public_key" ] Decode.string)
+        (Decode.at [ "keypair", "fingerprint" ] Decode.string)
+
+
+receiveKeypairs : Model -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
+receiveKeypairs model result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok keypairs ->
+            ( { model | keypairs = keypairs }, Cmd.none )
+
+
 requestCreateServer : Model -> CreateServerRequest -> Cmd Msg
 requestCreateServer model createServerRequest =
     let
@@ -526,7 +576,7 @@ requestCreateServer model createServerRequest =
                         [ ( "name", Encode.string createServerRequest.name )
                         , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
                         , ( "imageRef", Encode.string createServerRequest.imageUuid )
-                        , ( "key_name", Encode.string createServerRequest.keyName )
+                        , ( "key_name", Encode.string createServerRequest.keypairName )
                         , ( "networks", Encode.string "auto" )
                         ]
                   )
@@ -778,7 +828,7 @@ viewServerDetail server =
                         ]
                     , tr []
                         [ td [] [ text "SSH Key Name" ]
-                        , td [] [ text details.keyName ]
+                        , td [] [ text details.keypairName ]
                         ]
                     ]
                 ]
@@ -823,15 +873,19 @@ viewCreateServer model createServerRequest =
                     ]
                 ]
             , tr []
-                [ td [] [ text "SSH key name (todo implement a picker)" ]
+                [ td [] [ text "SSH Keypair" ]
                 , td []
-                    [ input
-                        [ type_ "text"
-                        , value createServerRequest.keyName
-                        , onInput (InputCreateServerKeyName createServerRequest)
-                        ]
-                        []
+                    [ viewKeypairPicker model.keypairs createServerRequest
                     ]
+                  {-
+                     [ input
+                         [ type_ "text"
+                         , value createServerRequest.keypairName
+                         , onInput (InputCreateServerKeypairName createServerRequest)
+                         ]
+                         []
+                     ]
+                  -}
                 ]
             ]
         , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
@@ -848,3 +902,15 @@ viewFlavorPicker flavors createServerRequest =
                 ]
     in
         fieldset [] (List.map viewFlavorPickerLabel flavors)
+
+
+viewKeypairPicker : List Keypair -> CreateServerRequest -> Html Msg
+viewKeypairPicker keypairs createServerRequest =
+    let
+        viewKeypairPickerLabel keypair =
+            label []
+                [ input [ type_ "radio", onClick (InputCreateServerKeypairName createServerRequest keypair.name) ] []
+                , text keypair.name
+                ]
+    in
+        fieldset [] (List.map viewKeypairPickerLabel keypairs)
