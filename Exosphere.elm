@@ -28,7 +28,9 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = ""
+
+      {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
             , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
@@ -41,7 +43,8 @@ init =
                 "default"
                 "demo"
                 ""
-            {- password -}
+
+      {- password -}
       , messages = []
       , images = []
       , servers = []
@@ -211,7 +214,7 @@ update msg model =
             ( model, requestCreateServer model createServerRequest )
 
         RequestDeleteServer server ->
-            ( { model | servers = (List.filter (\s -> s /= server) model.servers) }
+            ( { model | servers = List.filter (\s -> s /= server) model.servers }
             , requestDeleteServer model server
             )
 
@@ -237,7 +240,7 @@ update msg model =
             {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
             update (ChangeViewState ListUserServers) model
 
-        ReceiveDeleteServer result ->
+        ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
             update (ChangeViewState Home) model
 
@@ -364,7 +367,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -599,7 +604,8 @@ requestCreateServer model createServerRequest =
             { method = "POST"
             , headers =
                 [ Http.header "X-Auth-Token" model.authToken
-                  -- Microversion needed for automatic network provisioning
+
+                -- Microversion needed for automatic network provisioning
                 , Http.header "OpenStack-API-Version" "compute 2.38"
                 ]
             , url = model.endpoints.nova ++ "/servers"
