@@ -1,8 +1,8 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Dict exposing (Dict)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Dict
+import Html exposing (Html, button, div, fieldset, h2, input, label, p, strong, table, td, text, th, tr)
+import Html.Attributes exposing (placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
@@ -28,7 +28,9 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = ""
+
+      {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
             , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
@@ -41,7 +43,8 @@ init =
                 "default"
                 "demo"
                 ""
-            {- password -}
+
+      {- password -}
       , messages = []
       , images = []
       , servers = []
@@ -86,7 +89,9 @@ type alias Creds =
 
 
 type alias Endpoints =
-    { glance : String, nova : String }
+    { glance : String
+    , nova : String
+    }
 
 
 type alias Image =
@@ -196,7 +201,7 @@ update msg model =
                     ServerDetail server ->
                         ( newModel, requestServerDetail newModel server )
 
-                    CreateServer createServerRequest ->
+                    CreateServer _ ->
                         {- Todo also retrieve a list of images -}
                         ( newModel, Cmd.batch [ requestFlavors newModel, requestKeypairs newModel ] )
 
@@ -224,7 +229,7 @@ update msg model =
         ReceiveKeypairs result ->
             receiveKeypairs model result
 
-        ReceiveCreateServer result ->
+        ReceiveCreateServer _ ->
             {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
             update (ChangeViewState ListUserServers) model
 
@@ -351,7 +356,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -504,7 +511,7 @@ requestFlavors model =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveFlavors)
+        |> Http.send ReceiveFlavors
 
 
 decodeFlavors : Decode.Decoder (List Flavor)
@@ -540,7 +547,7 @@ requestKeypairs model =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveKeypairs)
+        |> Http.send ReceiveKeypairs
 
 
 decodeKeypairs : Decode.Decoder (List Keypair)
@@ -586,7 +593,8 @@ requestCreateServer model createServerRequest =
             { method = "POST"
             , headers =
                 [ Http.header "X-Auth-Token" model.authToken
-                  -- Microversion needed for automatic network provisioning
+
+                -- Microversion needed for automatic network provisioning
                 , Http.header "OpenStack-API-Version" "compute 2.38"
                 ]
             , url = model.endpoints.nova ++ "/servers"
@@ -602,13 +610,13 @@ processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
         newMsgs =
-            (toString error) :: model.messages
+            toString error :: model.messages
     in
         ( { model | messages = newMsgs }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -784,7 +792,7 @@ renderServer server =
 
 
 viewNav : Model -> Html Msg
-viewNav model =
+viewNav _ =
     div []
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
@@ -877,15 +885,16 @@ viewCreateServer model createServerRequest =
                 , td []
                     [ viewKeypairPicker model.keypairs createServerRequest
                     ]
-                  {-
-                     [ input
-                         [ type_ "text"
-                         , value createServerRequest.keypairName
-                         , onInput (InputCreateServerKeypairName createServerRequest)
-                         ]
-                         []
-                     ]
-                  -}
+
+                {-
+                   [ input
+                       [ type_ "text"
+                       , value createServerRequest.keypairName
+                       , onInput (InputCreateServerKeypairName createServerRequest)
+                       ]
+                       []
+                   ]
+                -}
                 ]
             ]
         , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
