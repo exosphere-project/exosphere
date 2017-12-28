@@ -524,7 +524,7 @@ decodeServerDetails =
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
-        (Decode.maybe ((Decode.at [ "server", "addresses", "auto_allocated_network" ]) (Decode.list serverIPAddressDecoder)))
+        (Decode.maybe (Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIPAddressDecoder)))
 
 
 serverIPAddressDecoder : Decode.Decoder IPAddress
@@ -923,7 +923,7 @@ renderIPAddresses maybeIPs =
 renderIPAddress : IPAddress -> Html Msg
 renderIPAddress ipAddress =
     p []
-        [ text ((toString ipAddress.openstackType) ++ ": " ++ ipAddress.address)
+        [ text (toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
         ]
 
 
