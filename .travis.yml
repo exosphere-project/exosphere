@@ -5,6 +5,7 @@ node_js:
   - node
 before_script:
   - npm install -g elm elm-test elm-analyse
+  - elm-package install -y
 script:
     - elm-analyse
     # - elm-test
