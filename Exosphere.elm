@@ -28,9 +28,7 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = ""
-
-      {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
             , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
@@ -43,8 +41,7 @@ init =
                 "default"
                 "demo"
                 ""
-
-      {- password -}
+            {- password -}
       , messages = []
       , images = []
       , servers = []
@@ -158,11 +155,13 @@ type Msg
     = ChangeViewState ViewState
     | RequestAuth
     | RequestCreateServer CreateServerRequest
+    | RequestDeleteServer Server
     | ReceiveAuth (Result Http.Error (Http.Response String))
     | ReceiveImages (Result Http.Error (List Image))
     | ReceiveServers (Result Http.Error (List Server))
     | ReceiveServerDetail Server (Result Http.Error ServerDetails)
     | ReceiveCreateServer (Result Http.Error String)
+    | ReceiveDeleteServer (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List Flavor))
     | ReceiveKeypairs (Result Http.Error (List Keypair))
     | InputAuthURL String
@@ -211,6 +210,11 @@ update msg model =
         RequestCreateServer createServerRequest ->
             ( model, requestCreateServer model createServerRequest )
 
+        RequestDeleteServer server ->
+            ( { model | servers = (List.filter (\s -> s /= server) model.servers) }
+            , requestDeleteServer model server
+            )
+
         ReceiveAuth response ->
             receiveAuth model response
 
@@ -231,6 +235,10 @@ update msg model =
 
         ReceiveCreateServer _ ->
             {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
+            update (ChangeViewState ListUserServers) model
+
+        ReceiveDeleteServer result ->
+            {- Todo this ignores the result of server deletion API call, we should display errors to user -}
             update (ChangeViewState ListUserServers) model
 
         --( { model | viewState = ListUserServers }, Cmd.none )
@@ -356,9 +364,7 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody
-
-            {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -593,8 +599,7 @@ requestCreateServer model createServerRequest =
             { method = "POST"
             , headers =
                 [ Http.header "X-Auth-Token" model.authToken
-
-                -- Microversion needed for automatic network provisioning
+                  -- Microversion needed for automatic network provisioning
                 , Http.header "OpenStack-API-Version" "compute 2.38"
                 ]
             , url = model.endpoints.nova ++ "/servers"
@@ -604,6 +609,20 @@ requestCreateServer model createServerRequest =
             , withCredentials = True
             }
             |> Http.send ReceiveCreateServer
+
+
+requestDeleteServer : Model -> Server -> Cmd Msg
+requestDeleteServer model server =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , body = Http.emptyBody
+        , expect = Http.expectString
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveDeleteServer
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -788,6 +807,7 @@ renderServer server =
         [ p [] [ strong [] [ text server.name ] ]
         , text ("UUID: " ++ server.uuid)
         , button [ onClick (ChangeViewState (ServerDetail server)) ] [ text "Details" ]
+        , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]
         ]
 
 
@@ -885,16 +905,6 @@ viewCreateServer model createServerRequest =
                 , td []
                     [ viewKeypairPicker model.keypairs createServerRequest
                     ]
-
-                {-
-                   [ input
-                       [ type_ "text"
-                       , value createServerRequest.keypairName
-                       , onInput (InputCreateServerKeypairName createServerRequest)
-                       ]
-                       []
-                   ]
-                -}
                 ]
             ]
         , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
