@@ -4,8 +4,9 @@ language: node_js
 node_js:
   - node
 before_script:
-  - npm install -g elm elm-test elm-analyse
+  - npm install -g elm elm-test elm-format elm-analyse
   - elm-package install -y
 script:
+    - elm-format Exosphere.elm --yes
     - elm-analyse
     # - elm-test
