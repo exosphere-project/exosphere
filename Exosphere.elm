@@ -1,13 +1,14 @@
 module Main exposing (main)
 
 import Dict
-import Html exposing (Html, button, div, fieldset, h2, input, label, p, strong, table, td, text, th, tr)
-import Html.Attributes exposing (placeholder, type_, value)
+import Html exposing (Html, button, div, fieldset, h2, input, label, p, strong, table, td, text, textarea, th, tr)
+import Html.Attributes exposing (cols, placeholder, rows, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Filesize exposing (format)
+import Base64
 
 
 main : Program Never Model Msg
@@ -138,6 +139,7 @@ type alias CreateServerRequest =
     , imageUuid : String
     , flavorUuid : String
     , keypairName : String
+    , userData : String
     }
 
 
@@ -186,6 +188,7 @@ type Msg
     | InputPassword String
     | InputCreateServerName CreateServerRequest String
     | InputCreateServerImage CreateServerRequest String
+    | InputCreateServerUserData CreateServerRequest String
     | InputCreateServerSize CreateServerRequest String
     | InputCreateServerKeypairName CreateServerRequest String
 
@@ -310,6 +313,13 @@ update msg model =
             let
                 viewState =
                     CreateServer { createServerRequest | imageUuid = imageUuid }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
+
+        InputCreateServerUserData createServerRequest userData ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | userData = userData }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
@@ -634,6 +644,7 @@ requestCreateServer model createServerRequest =
                         , ( "imageRef", Encode.string createServerRequest.imageUuid )
                         , ( "key_name", Encode.string createServerRequest.keypairName )
                         , ( "networks", Encode.string "auto" )
+                        , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
                         ]
                   )
                 ]
@@ -810,7 +821,7 @@ renderImage : Image -> Html Msg
 renderImage image =
     div []
         [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" ""))) ] [ text "Launch" ]
+        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" "" ""))) ] [ text "Launch" ]
         , table []
             [ tr []
                 [ th [] [ text "Property" ]
@@ -969,6 +980,18 @@ viewCreateServer model createServerRequest =
                 [ td [] [ text "SSH Keypair" ]
                 , td []
                     [ viewKeypairPicker model.keypairs createServerRequest
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "User Data" ]
+                , td []
+                    [ textarea
+                        [ value createServerRequest.userData
+                        , rows 20
+                        , cols 80
+                        , onInput (InputCreateServerUserData createServerRequest)
+                        ]
+                        []
                     ]
                 ]
             ]
