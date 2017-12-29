@@ -129,7 +129,7 @@ type alias ServerDetails =
     , created : String
     , powerState : Int
     , keypairName : String
-    , ipAddresses : Maybe (List IPAddress)
+    , ipAddresses : Maybe (List IpAddress)
     }
 
 
@@ -154,13 +154,13 @@ type alias Keypair =
     }
 
 
-type alias IPAddress =
+type alias IpAddress =
     { address : String
-    , openstackType : IPAddressOpenstackType
+    , openstackType : IpAddressOpenstackType
     }
 
 
-type IPAddressOpenstackType
+type IpAddressOpenstackType
     = Fixed
     | Floating
 
@@ -524,19 +524,19 @@ decodeServerDetails =
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
-        (Decode.maybe ((Decode.at [ "server", "addresses", "auto_allocated_network" ]) (Decode.list serverIPAddressDecoder)))
+        (Decode.maybe (Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)))
 
 
-serverIPAddressDecoder : Decode.Decoder IPAddress
-serverIPAddressDecoder =
-    Decode.map2 IPAddress
+serverIpAddressDecoder : Decode.Decoder IpAddress
+serverIpAddressDecoder =
+    Decode.map2 IpAddress
         (Decode.field "addr" Decode.string)
         (Decode.field "OS-EXT-IPS:type" Decode.string
             |> Decode.andThen ipAddressOpenstackTypeDecoder
         )
 
 
-ipAddressOpenstackTypeDecoder : String -> Decode.Decoder IPAddressOpenstackType
+ipAddressOpenstackTypeDecoder : String -> Decode.Decoder IpAddressOpenstackType
 ipAddressOpenstackTypeDecoder string =
     case string of
         "fixed" ->
@@ -904,26 +904,26 @@ viewServerDetail server =
                         ]
                     , tr []
                         [ td [] [ text "IP addresses" ]
-                        , td [] [ renderIPAddresses details.ipAddresses ]
+                        , td [] [ renderIpAddresses details.ipAddresses ]
                         ]
                     ]
                 ]
 
 
-renderIPAddresses : Maybe (List IPAddress) -> Html Msg
-renderIPAddresses maybeIPs =
-    case maybeIPs of
+renderIpAddresses : Maybe (List IpAddress) -> Html Msg
+renderIpAddresses maybeIpAddresses =
+    case maybeIpAddresses of
         Nothing ->
             div [] []
 
         Just ipAddresses ->
-            div [] (List.map renderIPAddress ipAddresses)
+            div [] (List.map renderIpAddress ipAddresses)
 
 
-renderIPAddress : IPAddress -> Html Msg
-renderIPAddress ipAddress =
+renderIpAddress : IpAddress -> Html Msg
+renderIpAddress ipAddress =
     p []
-        [ text ((toString ipAddress.openstackType) ++ ": " ++ ipAddress.address)
+        [ text (toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
         ]
 
 
