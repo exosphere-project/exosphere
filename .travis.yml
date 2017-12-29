@@ -1,5 +1,8 @@
 ---
 
+cache:
+  directories:
+    - elm-stuff/build-artifacts
 language: node_js
 node_js:
   - node
