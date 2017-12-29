@@ -985,18 +985,39 @@ viewCreateServer model createServerRequest =
             , tr []
                 [ td [] [ text "User Data" ]
                 , td []
-                    [ textarea
-                        [ value createServerRequest.userData
-                        , rows 20
-                        , cols 80
-                        , onInput (InputCreateServerUserData createServerRequest)
+                    [ div []
+                        [ textarea
+                            [ value createServerRequest.userData
+                            , rows 20
+                            , cols 80
+                            , onInput (InputCreateServerUserData createServerRequest)
+                            ]
+                            []
                         ]
-                        []
+                    , div [] [ text (getEffectiveUserDataSize createServerRequest) ]
                     ]
                 ]
             ]
         , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
         ]
+
+
+getEffectiveUserDataSize : CreateServerRequest -> String
+getEffectiveUserDataSize createServerRequest =
+    let
+        rawLength =
+            String.length createServerRequest.userData
+
+        base64Value =
+            Base64.encode createServerRequest.userData
+
+        base64Length =
+            String.length base64Value
+    in
+        Basics.toString rawLength
+            ++ " characters,  "
+            ++ Basics.toString base64Length
+            ++ "/16384 allowed bytes (Base64 encoded)"
 
 
 viewFlavorPicker : List Flavor -> CreateServerRequest -> Html Msg
