@@ -113,7 +113,6 @@ type alias Server =
 
 
 {- Todo add to ServerDetail:
-   - IP addresses
    - Flavor
    - Image
    - Metadata
@@ -130,6 +129,7 @@ type alias ServerDetails =
     , created : String
     , powerState : Int
     , keypairName : String
+    , ipAddresses : Maybe (List IPAddress)
     }
 
 
@@ -152,6 +152,17 @@ type alias Keypair =
     , publicKey : String
     , fingerprint : String
     }
+
+
+type alias IPAddress =
+    { address : String
+    , openstackType : IPAddressOpenstackType
+    }
+
+
+type IPAddressOpenstackType
+    = Fixed
+    | Floating
 
 
 type Msg
@@ -502,13 +513,40 @@ receiveServerDetail model server result =
                 ( { model | servers = newServers, viewState = ServerDetail newServer }, Cmd.none )
 
 
+
+{- Todo for now this only handles IPs on the auto-allocated network -}
+
+
 decodeServerDetails : Decode.Decoder ServerDetails
 decodeServerDetails =
-    Decode.map4 ServerDetails
+    Decode.map5 ServerDetails
         (Decode.at [ "server", "status" ] Decode.string)
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
+        (Decode.maybe ((Decode.at [ "server", "addresses", "auto_allocated_network" ]) (Decode.list serverIPAddressDecoder)))
+
+
+serverIPAddressDecoder : Decode.Decoder IPAddress
+serverIPAddressDecoder =
+    Decode.map2 IPAddress
+        (Decode.field "addr" Decode.string)
+        (Decode.field "OS-EXT-IPS:type" Decode.string
+            |> Decode.andThen ipAddressOpenstackTypeDecoder
+        )
+
+
+ipAddressOpenstackTypeDecoder : String -> Decode.Decoder IPAddressOpenstackType
+ipAddressOpenstackTypeDecoder string =
+    case string of
+        "fixed" ->
+            Decode.succeed Fixed
+
+        "floating" ->
+            Decode.succeed Floating
+
+        _ ->
+            Decode.fail "oooooooops, unrecognised IP address type"
 
 
 requestFlavors : Model -> Cmd Msg
@@ -864,8 +902,29 @@ viewServerDetail server =
                         [ td [] [ text "SSH Key Name" ]
                         , td [] [ text details.keypairName ]
                         ]
+                    , tr []
+                        [ td [] [ text "IP addresses" ]
+                        , td [] [ renderIPAddresses details.ipAddresses ]
+                        ]
                     ]
                 ]
+
+
+renderIPAddresses : Maybe (List IPAddress) -> Html Msg
+renderIPAddresses maybeIPs =
+    case maybeIPs of
+        Nothing ->
+            div [] []
+
+        Just ipAddresses ->
+            div [] (List.map renderIPAddress ipAddresses)
+
+
+renderIPAddress : IPAddress -> Html Msg
+renderIPAddress ipAddress =
+    p []
+        [ text ((toString ipAddress.openstackType) ++ ": " ++ ipAddress.address)
+        ]
 
 
 viewCreateServer : Model -> CreateServerRequest -> Html Msg
