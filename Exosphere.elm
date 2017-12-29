@@ -29,12 +29,11 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = ""
-
-      {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
-            , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
+            , nova = "https://tombstone-cloud.cyverse.org:8774"
+            , neutron = "https://tombstone-cloud.cyverse.org:9696"
             }
       , creds =
             Creds
@@ -44,14 +43,16 @@ init =
                 "default"
                 "demo"
                 ""
-
-      {- password -}
+            {- password -}
       , messages = []
       , images = []
       , servers = []
       , viewState = Login
       , flavors = []
       , keypairs = []
+      , networks = []
+      , ports = []
+      , floatingIpsNeeded = []
       }
     , Cmd.none
     )
@@ -67,6 +68,9 @@ type alias Model =
     , viewState : ViewState
     , flavors : List Flavor
     , keypairs : List Keypair
+    , networks : List Network
+    , ports : List Port
+    , floatingIpsNeeded : List ServerUuid
     }
 
 
@@ -92,6 +96,7 @@ type alias Creds =
 type alias Endpoints =
     { glance : String
     , nova : String
+    , neutron : String
     }
 
 
@@ -167,6 +172,39 @@ type IpAddressOpenstackType
     | Floating
 
 
+type alias Network =
+    { uuid : String
+    , name : String
+    , adminStateUp : Bool
+    , status : String
+    , isExternal : Bool
+    }
+
+
+type alias Port =
+    { uuid : Uuid
+    , deviceUuid : Uuid
+    , adminStateUp : Bool
+    , status : String
+    }
+
+
+type alias ServerUuid =
+    Uuid
+
+
+type alias NetworkUuid =
+    Uuid
+
+
+type alias PortUuid =
+    Uuid
+
+
+type alias Uuid =
+    String
+
+
 type Msg
     = ChangeViewState ViewState
     | RequestAuth
@@ -176,10 +214,13 @@ type Msg
     | ReceiveImages (Result Http.Error (List Image))
     | ReceiveServers (Result Http.Error (List Server))
     | ReceiveServerDetail Server (Result Http.Error ServerDetails)
-    | ReceiveCreateServer (Result Http.Error String)
+    | ReceiveCreateServer (Result Http.Error Server)
     | ReceiveDeleteServer (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List Flavor))
     | ReceiveKeypairs (Result Http.Error (List Keypair))
+    | ReceiveNetworks (Result Http.Error (List Network))
+    | ReceivePorts (Result Http.Error (List Port))
+    | ReceiveFloatingIp (Result Http.Error String)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -250,13 +291,22 @@ update msg model =
         ReceiveKeypairs result ->
             receiveKeypairs model result
 
-        ReceiveCreateServer _ ->
-            {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
-            update (ChangeViewState ListUserServers) model
+        ReceiveCreateServer result ->
+            receiveCreateServer model result
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
             update (ChangeViewState Home) model
+
+        ReceiveNetworks result ->
+            receiveNetworks model result
+
+        ReceivePorts result ->
+            receivePorts model result
+
+        {- Todo update model automatically with new floating IP for server -}
+        ReceiveFloatingIp result ->
+            receiveFloatingIp model result
 
         --( { model | viewState = ListUserServers }, Cmd.none )
         {- Form inputs -}
@@ -388,9 +438,7 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody
-
-            {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -457,7 +505,7 @@ requestServers model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers"
+        , url = model.endpoints.nova ++ "/v2.1/servers"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServers
         , timeout = Nothing
@@ -474,7 +522,11 @@ decodeServers =
 serverDecoder : Decode.Decoder Server
 serverDecoder =
     Decode.map3 Server
-        (Decode.field "name" Decode.string)
+        (Decode.oneOf
+            [ Decode.field "name" Decode.string
+            , Decode.succeed ""
+            ]
+        )
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
 
@@ -494,7 +546,7 @@ requestServerDetail model server =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServerDetails
         , timeout = Nothing
@@ -564,7 +616,7 @@ requestFlavors model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/flavors"
+        , url = model.endpoints.nova ++ "/v2.1/flavors"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeFlavors
         , timeout = Nothing
@@ -600,7 +652,7 @@ requestKeypairs model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/os-keypairs"
+        , url = model.endpoints.nova ++ "/v2.1/os-keypairs"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeKeypairs
         , timeout = Nothing
@@ -653,17 +705,39 @@ requestCreateServer model createServerRequest =
             { method = "POST"
             , headers =
                 [ Http.header "X-Auth-Token" model.authToken
-
-                -- Microversion needed for automatic network provisioning
+                  -- Microversion needed for automatic network provisioning
                 , Http.header "OpenStack-API-Version" "compute 2.38"
                 ]
-            , url = model.endpoints.nova ++ "/servers"
+            , url = model.endpoints.nova ++ "/v2.1/servers"
             , body = Http.jsonBody requestBody
-            , expect = Http.expectString
+            , expect = Http.expectJson (Decode.field "server" serverDecoder)
             , timeout = Nothing
             , withCredentials = True
             }
             |> Http.send ReceiveCreateServer
+
+
+receiveCreateServer : Model -> Result Http.Error Server -> ( Model, Cmd Msg )
+receiveCreateServer model result =
+    case result of
+        Err error ->
+            (processError model error)
+
+        Ok newServer ->
+            let
+                newModel =
+                    { model
+                        | viewState = ListUserServers
+                        , floatingIpsNeeded = newServer.uuid :: model.floatingIpsNeeded
+                    }
+            in
+                ( newModel
+                , Cmd.batch
+                    [ requestServers model
+                    , requestNetworks model
+                    , requestPorts model
+                    ]
+                )
 
 
 requestDeleteServer : Model -> Server -> Cmd Msg
@@ -671,13 +745,160 @@ requestDeleteServer model server =
     Http.request
         { method = "DELETE"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
         , body = Http.emptyBody
         , expect = Http.expectString
         , timeout = Nothing
         , withCredentials = False
         }
         |> Http.send ReceiveDeleteServer
+
+
+requestNetworks : Model -> Cmd Msg
+requestNetworks model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.neutron ++ "/v2.0/networks"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeNetworks
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveNetworks
+
+
+decodeNetworks : Decode.Decoder (List Network)
+decodeNetworks =
+    Decode.field "networks" (Decode.list networkDecoder)
+
+
+networkDecoder : Decode.Decoder Network
+networkDecoder =
+    Decode.map5 Network
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "admin_state_up" Decode.bool)
+        (Decode.field "status" Decode.string)
+        (Decode.field "router:external" Decode.bool)
+
+
+receiveNetworks : Model -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
+receiveNetworks model result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok networks ->
+            processFloatingIpsNeeded { model | networks = networks }
+
+
+requestPorts : Model -> Cmd Msg
+requestPorts model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.neutron ++ "/v2.0/ports"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodePorts
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceivePorts
+
+
+decodePorts : Decode.Decoder (List Port)
+decodePorts =
+    Decode.field "ports" (Decode.list portDecoder)
+
+
+portDecoder : Decode.Decoder Port
+portDecoder =
+    Decode.map4 Port
+        (Decode.field "id" Decode.string)
+        (Decode.field "device_id" Decode.string)
+        (Decode.field "admin_state_up" Decode.bool)
+        (Decode.field "status" Decode.string)
+
+
+receivePorts : Model -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
+receivePorts model result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok ports ->
+            processFloatingIpsNeeded { model | ports = ports }
+
+
+processFloatingIpsNeeded : Model -> ( Model, Cmd Msg )
+processFloatingIpsNeeded model =
+    case getExternalNetwork model of
+        Nothing ->
+            ( model, Cmd.none )
+
+        Just extNet ->
+            let
+                {- Get ports whose server is listed in floatingIpsNeeded -}
+                requestablePorts =
+                    List.filter (portIsRequestable model) model.ports
+            in
+                ( model
+                , Cmd.batch (List.map (\p -> requestFloatingIp model extNet.uuid p.uuid) requestablePorts)
+                )
+
+
+
+{- here remove server from floatingIpsNeeded when request is made? albeit this is a hack -}
+
+
+portIsRequestable : Model -> Port -> Bool
+portIsRequestable model port_ =
+    List.member port_.deviceUuid model.floatingIpsNeeded
+
+
+
+{- Tech debt: This doesn't handle the case where there is >1 external network -}
+
+
+getExternalNetwork : Model -> Maybe Network
+getExternalNetwork model =
+    List.filter (\n -> n.isExternal) model.networks |> List.head
+
+
+requestFloatingIp : Model -> NetworkUuid -> PortUuid -> Cmd Msg
+requestFloatingIp model networkUuid portUuid =
+    let
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "floating_network_id", Encode.string networkUuid )
+                        , ( "port_id", Encode.string portUuid )
+                        ]
+                  )
+                ]
+    in
+        Http.request
+            { method = "POST"
+            , headers = [ Http.header "X-Auth-Token" model.authToken ]
+            , url = model.endpoints.neutron ++ "/v2.0/floatingips"
+            , body = Http.jsonBody requestBody
+            , expect = Http.expectString
+            , timeout = Nothing
+            , withCredentials = True
+            }
+            |> Http.send ReceiveFloatingIp
+
+
+receiveFloatingIp : Model -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveFloatingIp model result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok _ ->
+            ( model, Cmd.none )
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
