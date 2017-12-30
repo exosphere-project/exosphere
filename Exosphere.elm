@@ -12,6 +12,9 @@ import Filesize exposing (format)
 import Base64
 
 
+{- App Setup -}
+
+
 main : Program Never Model Msg
 main =
     Html.program
@@ -22,13 +25,11 @@ main =
         }
 
 
-init : ( Model, Cmd Msg )
-
-
 
 {- Todo remove default creds once storing this in local storage -}
 
 
+init : ( Model, Cmd Msg )
 init =
     ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
@@ -58,6 +59,15 @@ init =
     )
 
 
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Time.every (10 * Time.second) Tick
+
+
+
+{- App-Level Types -}
+
+
 type alias Model =
     { authToken : String
     , endpoints : Endpoints
@@ -71,6 +81,36 @@ type alias Model =
     , networks : List Network
     , ports : List Port
     }
+
+
+type Msg
+    = Tick Time.Time
+    | ChangeViewState ViewState
+    | RequestAuth
+    | RequestCreateServer CreateServerRequest
+    | RequestDeleteServer Server
+    | ReceiveAuth (Result Http.Error (Http.Response String))
+    | ReceiveImages (Result Http.Error (List Image))
+    | ReceiveServers (Result Http.Error (List Server))
+    | ReceiveServerDetail Server (Result Http.Error ServerDetails)
+    | ReceiveCreateServer (Result Http.Error Server)
+    | ReceiveDeleteServer (Result Http.Error String)
+    | ReceiveFlavors (Result Http.Error (List Flavor))
+    | ReceiveKeypairs (Result Http.Error (List Keypair))
+    | ReceiveNetworks (Result Http.Error (List Network))
+    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
+    | ReceiveFloatingIp ServerUuid (Result Http.Error String)
+    | InputAuthURL String
+    | InputProjectDomain String
+    | InputProjectName String
+    | InputUserDomain String
+    | InputUsername String
+    | InputPassword String
+    | InputCreateServerName CreateServerRequest String
+    | InputCreateServerImage CreateServerRequest String
+    | InputCreateServerUserData CreateServerRequest String
+    | InputCreateServerSize CreateServerRequest String
+    | InputCreateServerKeypairName CreateServerRequest String
 
 
 type ViewState
@@ -99,6 +139,10 @@ type alias Endpoints =
     }
 
 
+
+{- Resource-Level Types -}
+
+
 type alias Image =
     { name : String
     , uuid : ImageUuid
@@ -109,12 +153,20 @@ type alias Image =
     }
 
 
+type alias ImageUuid =
+    Uuid
+
+
 type alias Server =
     { name : String
     , uuid : ServerUuid
     , details : Maybe ServerDetails
     , floatingIpState : FloatingIpState
     }
+
+
+type alias ServerUuid =
+    Uuid
 
 
 type FloatingIpState
@@ -163,6 +215,10 @@ type alias Flavor =
     }
 
 
+type alias FlavorUuid =
+    Uuid
+
+
 type alias Keypair =
     { name : String
     , publicKey : String
@@ -190,6 +246,10 @@ type alias Network =
     }
 
 
+type alias NetworkUuid =
+    Uuid
+
+
 type alias Port =
     { uuid : PortUuid
     , deviceUuid : ServerUuid
@@ -198,58 +258,20 @@ type alias Port =
     }
 
 
-type alias ServerUuid =
-    Uuid
-
-
-type alias ImageUuid =
-    Uuid
-
-
-type alias NetworkUuid =
-    Uuid
-
-
 type alias PortUuid =
     Uuid
 
 
-type alias FlavorUuid =
-    Uuid
+
+{- Helper Types -}
 
 
 type alias Uuid =
     String
 
 
-type Msg
-    = Tick Time.Time
-    | ChangeViewState ViewState
-    | RequestAuth
-    | RequestCreateServer CreateServerRequest
-    | RequestDeleteServer Server
-    | ReceiveAuth (Result Http.Error (Http.Response String))
-    | ReceiveImages (Result Http.Error (List Image))
-    | ReceiveServers (Result Http.Error (List Server))
-    | ReceiveServerDetail Server (Result Http.Error ServerDetails)
-    | ReceiveCreateServer (Result Http.Error Server)
-    | ReceiveDeleteServer (Result Http.Error String)
-    | ReceiveFlavors (Result Http.Error (List Flavor))
-    | ReceiveKeypairs (Result Http.Error (List Keypair))
-    | ReceiveNetworks (Result Http.Error (List Network))
-    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
-    | ReceiveFloatingIp ServerUuid (Result Http.Error String)
-    | InputAuthURL String
-    | InputProjectDomain String
-    | InputProjectName String
-    | InputUserDomain String
-    | InputUsername String
-    | InputPassword String
-    | InputCreateServerName CreateServerRequest String
-    | InputCreateServerImage CreateServerRequest String
-    | InputCreateServerUserData CreateServerRequest String
-    | InputCreateServerSize CreateServerRequest String
-    | InputCreateServerKeypairName CreateServerRequest String
+
+{- The Brain -}
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -415,7 +437,7 @@ update msg model =
 
 
 
-{- HTTP and JSON -}
+{- HTTP Requests -}
 
 
 requestAuthToken : Model -> Cmd Msg
@@ -476,6 +498,195 @@ requestAuthToken model =
             |> Http.send ReceiveAuth
 
 
+requestImages : Model -> Cmd Msg
+requestImages model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.glance ++ "/v1/images"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeImages
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveImages
+
+
+requestServers : Model -> Cmd Msg
+requestServers model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/v2.1/servers"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeServers
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveServers
+
+
+requestServerDetail : Model -> Server -> Cmd Msg
+requestServerDetail model server =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeServerDetails
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (ReceiveServerDetail server)
+
+
+requestFlavors : Model -> Cmd Msg
+requestFlavors model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/v2.1/flavors"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeFlavors
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveFlavors
+
+
+requestKeypairs : Model -> Cmd Msg
+requestKeypairs model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/v2.1/os-keypairs"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeKeypairs
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveKeypairs
+
+
+requestCreateServer : Model -> CreateServerRequest -> Cmd Msg
+requestCreateServer model createServerRequest =
+    let
+        requestBody =
+            Encode.object
+                [ ( "server"
+                  , Encode.object
+                        [ ( "name", Encode.string createServerRequest.name )
+                        , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
+                        , ( "imageRef", Encode.string createServerRequest.imageUuid )
+                        , ( "key_name", Encode.string createServerRequest.keypairName )
+                        , ( "networks", Encode.string "auto" )
+                        , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
+                        ]
+                  )
+                ]
+    in
+        Http.request
+            { method = "POST"
+            , headers =
+                [ Http.header "X-Auth-Token" model.authToken
+                  -- Microversion needed for automatic network provisioning
+                , Http.header "OpenStack-API-Version" "compute 2.38"
+                ]
+            , url = model.endpoints.nova ++ "/v2.1/servers"
+            , body = Http.jsonBody requestBody
+            , expect = Http.expectJson (Decode.field "server" serverDecoder)
+            , timeout = Nothing
+            , withCredentials = True
+            }
+            |> Http.send ReceiveCreateServer
+
+
+requestDeleteServer : Model -> Server -> Cmd Msg
+requestDeleteServer model server =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
+        , body = Http.emptyBody
+        , expect = Http.expectString
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveDeleteServer
+
+
+requestNetworks : Model -> Cmd Msg
+requestNetworks model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.neutron ++ "/v2.0/networks"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeNetworks
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveNetworks
+
+
+getFloatingIpRequestPorts : Model -> Server -> Cmd Msg
+getFloatingIpRequestPorts model server =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.neutron ++ "/v2.0/ports"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodePorts
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (GetFloatingIpReceivePorts server.uuid)
+
+
+requestFloatingIp : Model -> Network -> Port -> Server -> ( Model, Cmd Msg )
+requestFloatingIp model network port_ server =
+    let
+        newServer =
+            { server | floatingIpState = RequestedWaiting }
+
+        otherServers =
+            List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+        newServers =
+            newServer :: otherServers
+
+        newModel =
+            { model | servers = newServers }
+
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "floating_network_id", Encode.string network.uuid )
+                        , ( "port_id", Encode.string port_.uuid )
+                        ]
+                  )
+                ]
+
+        cmd =
+            Http.request
+                { method = "POST"
+                , headers = [ Http.header "X-Auth-Token" model.authToken ]
+                , url = model.endpoints.neutron ++ "/v2.0/floatingips"
+                , body = Http.jsonBody requestBody
+                , expect = Http.expectString
+                , timeout = Nothing
+                , withCredentials = True
+                }
+                |> Http.send (ReceiveFloatingIp server.uuid)
+    in
+        ( newModel, cmd )
+
+
+
+{- HTTP Response Handling -}
+
+
 receiveAuth : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
 receiveAuth model responseResult =
     case responseResult of
@@ -493,36 +704,6 @@ receiveAuth model responseResult =
                 ( newModel, Cmd.none )
 
 
-requestImages : Model -> Cmd Msg
-requestImages model =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.glance ++ "/v1/images"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeImages
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveImages
-
-
-decodeImages : Decode.Decoder (List Image)
-decodeImages =
-    Decode.field "images" (Decode.list imageDecoder)
-
-
-imageDecoder : Decode.Decoder Image
-imageDecoder =
-    Decode.map6 Image
-        (Decode.field "name" Decode.string)
-        (Decode.field "id" Decode.string)
-        (Decode.field "size" Decode.int)
-        (Decode.field "checksum" Decode.string)
-        (Decode.field "disk_format" Decode.string)
-        (Decode.field "container_format" Decode.string)
-
-
 receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
 receiveImages model result =
     case result of
@@ -533,38 +714,6 @@ receiveImages model result =
             ( { model | images = images }, Cmd.none )
 
 
-requestServers : Model -> Cmd Msg
-requestServers model =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/servers"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeServers
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveServers
-
-
-decodeServers : Decode.Decoder (List Server)
-decodeServers =
-    Decode.field "servers" (Decode.list serverDecoder)
-
-
-serverDecoder : Decode.Decoder Server
-serverDecoder =
-    Decode.map4 Server
-        (Decode.oneOf
-            [ Decode.field "name" Decode.string
-            , Decode.succeed ""
-            ]
-        )
-        (Decode.field "id" Decode.string)
-        (Decode.succeed Nothing)
-        (Decode.succeed Unknown)
-
-
 receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
 receiveServers model result =
     case result of
@@ -573,20 +722,6 @@ receiveServers model result =
 
         Ok servers ->
             ( { model | servers = servers }, Cmd.none )
-
-
-requestServerDetail : Model -> Server -> Cmd Msg
-requestServerDetail model server =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeServerDetails
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveServerDetail server)
 
 
 receiveServerDetail : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
@@ -631,107 +766,6 @@ receiveServerDetail model server result =
                         ( newModel, Cmd.none )
 
 
-checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
-checkFloatingIpState serverDetails floatingIpState =
-    let
-        hasFixedIp =
-            List.filter (\a -> a.openstackType == Fixed) serverDetails.ipAddresses
-                |> List.isEmpty
-                |> not
-
-        hasFloatingIp =
-            List.filter (\a -> a.openstackType == Floating) serverDetails.ipAddresses
-                |> List.isEmpty
-                |> not
-
-        isActive =
-            serverDetails.status == "ACTIVE"
-    in
-        case floatingIpState of
-            RequestedWaiting ->
-                if hasFloatingIp then
-                    Success
-                else
-                    RequestedWaiting
-
-            Failed ->
-                Failed
-
-            _ ->
-                if hasFloatingIp then
-                    Success
-                else if hasFixedIp && isActive then
-                    Requestable
-                else
-                    NotRequestable
-
-
-
-{- Todo for now this only handles IPs on the auto-allocated network -}
-
-
-decodeServerDetails : Decode.Decoder ServerDetails
-decodeServerDetails =
-    Decode.map5 ServerDetails
-        (Decode.at [ "server", "status" ] Decode.string)
-        (Decode.at [ "server", "created" ] Decode.string)
-        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
-        (Decode.at [ "server", "key_name" ] Decode.string)
-        (Decode.oneOf
-            [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
-            , Decode.succeed []
-            ]
-        )
-
-
-serverIpAddressDecoder : Decode.Decoder IpAddress
-serverIpAddressDecoder =
-    Decode.map2 IpAddress
-        (Decode.field "addr" Decode.string)
-        (Decode.field "OS-EXT-IPS:type" Decode.string
-            |> Decode.andThen ipAddressOpenstackTypeDecoder
-        )
-
-
-ipAddressOpenstackTypeDecoder : String -> Decode.Decoder IpAddressOpenstackType
-ipAddressOpenstackTypeDecoder string =
-    case string of
-        "fixed" ->
-            Decode.succeed Fixed
-
-        "floating" ->
-            Decode.succeed Floating
-
-        _ ->
-            Decode.fail "oooooooops, unrecognised IP address type"
-
-
-requestFlavors : Model -> Cmd Msg
-requestFlavors model =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/flavors"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeFlavors
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveFlavors
-
-
-decodeFlavors : Decode.Decoder (List Flavor)
-decodeFlavors =
-    Decode.field "flavors" (Decode.list flavorDecoder)
-
-
-flavorDecoder : Decode.Decoder Flavor
-flavorDecoder =
-    Decode.map2 Flavor
-        (Decode.field "id" Decode.string)
-        (Decode.field "name" Decode.string)
-
-
 receiveFlavors : Model -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
 receiveFlavors model result =
     case result of
@@ -742,33 +776,6 @@ receiveFlavors model result =
             ( { model | flavors = flavors }, Cmd.none )
 
 
-requestKeypairs : Model -> Cmd Msg
-requestKeypairs model =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/os-keypairs"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeKeypairs
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveKeypairs
-
-
-decodeKeypairs : Decode.Decoder (List Keypair)
-decodeKeypairs =
-    Decode.field "keypairs" (Decode.list keypairDecoder)
-
-
-keypairDecoder : Decode.Decoder Keypair
-keypairDecoder =
-    Decode.map3 Keypair
-        (Decode.at [ "keypair", "name" ] Decode.string)
-        (Decode.at [ "keypair", "public_key" ] Decode.string)
-        (Decode.at [ "keypair", "fingerprint" ] Decode.string)
-
-
 receiveKeypairs : Model -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
 receiveKeypairs model result =
     case result of
@@ -777,39 +784,6 @@ receiveKeypairs model result =
 
         Ok keypairs ->
             ( { model | keypairs = keypairs }, Cmd.none )
-
-
-requestCreateServer : Model -> CreateServerRequest -> Cmd Msg
-requestCreateServer model createServerRequest =
-    let
-        requestBody =
-            Encode.object
-                [ ( "server"
-                  , Encode.object
-                        [ ( "name", Encode.string createServerRequest.name )
-                        , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
-                        , ( "imageRef", Encode.string createServerRequest.imageUuid )
-                        , ( "key_name", Encode.string createServerRequest.keypairName )
-                        , ( "networks", Encode.string "auto" )
-                        , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                        ]
-                  )
-                ]
-    in
-        Http.request
-            { method = "POST"
-            , headers =
-                [ Http.header "X-Auth-Token" model.authToken
-                  -- Microversion needed for automatic network provisioning
-                , Http.header "OpenStack-API-Version" "compute 2.38"
-                ]
-            , url = model.endpoints.nova ++ "/v2.1/servers"
-            , body = Http.jsonBody requestBody
-            , expect = Http.expectJson (Decode.field "server" serverDecoder)
-            , timeout = Nothing
-            , withCredentials = True
-            }
-            |> Http.send ReceiveCreateServer
 
 
 receiveCreateServer : Model -> Result Http.Error Server -> ( Model, Cmd Msg )
@@ -831,49 +805,6 @@ receiveCreateServer model result =
                 )
 
 
-requestDeleteServer : Model -> Server -> Cmd Msg
-requestDeleteServer model server =
-    Http.request
-        { method = "DELETE"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
-        , body = Http.emptyBody
-        , expect = Http.expectString
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveDeleteServer
-
-
-requestNetworks : Model -> Cmd Msg
-requestNetworks model =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.neutron ++ "/v2.0/networks"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeNetworks
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveNetworks
-
-
-decodeNetworks : Decode.Decoder (List Network)
-decodeNetworks =
-    Decode.field "networks" (Decode.list networkDecoder)
-
-
-networkDecoder : Decode.Decoder Network
-networkDecoder =
-    Decode.map5 Network
-        (Decode.field "id" Decode.string)
-        (Decode.field "name" Decode.string)
-        (Decode.field "admin_state_up" Decode.bool)
-        (Decode.field "status" Decode.string)
-        (Decode.field "router:external" Decode.bool)
-
-
 receiveNetworks : Model -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
 receiveNetworks model result =
     case result of
@@ -882,34 +813,6 @@ receiveNetworks model result =
 
         Ok networks ->
             ( { model | networks = networks }, Cmd.none )
-
-
-getFloatingIpRequestPorts : Model -> Server -> Cmd Msg
-getFloatingIpRequestPorts model server =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.neutron ++ "/v2.0/ports"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodePorts
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (GetFloatingIpReceivePorts server.uuid)
-
-
-decodePorts : Decode.Decoder (List Port)
-decodePorts =
-    Decode.field "ports" (Decode.list portDecoder)
-
-
-portDecoder : Decode.Decoder Port
-portDecoder =
-    Decode.map4 Port
-        (Decode.field "id" Decode.string)
-        (Decode.field "device_id" Decode.string)
-        (Decode.field "admin_state_up" Decode.bool)
-        (Decode.field "status" Decode.string)
 
 
 receivePortsAndRequestFloatingIp : Model -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
@@ -941,75 +844,6 @@ receivePortsAndRequestFloatingIp model serverUuid result =
 
                     Nothing ->
                         processError model "We should have an external network here but we don't"
-
-
-
-{- Tech debt: This doesn't handle the case where there is >1 external network -}
-
-
-getExternalNetwork : Model -> Maybe Network
-getExternalNetwork model =
-    List.filter (\n -> n.isExternal) model.networks |> List.head
-
-
-requestFloatingIpIfRequestable : Model -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
-requestFloatingIpIfRequestable model network port_ serverUuid =
-    let
-        maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) model.servers
-                |> List.head
-    in
-        case maybeServer of
-            Nothing ->
-                processError model "We should have a server here but we don't"
-
-            Just server ->
-                case server.floatingIpState of
-                    Requestable ->
-                        requestFloatingIp model network port_ server
-
-                    _ ->
-                        ( model, Cmd.none )
-
-
-requestFloatingIp : Model -> Network -> Port -> Server -> ( Model, Cmd Msg )
-requestFloatingIp model network port_ server =
-    let
-        newServer =
-            { server | floatingIpState = RequestedWaiting }
-
-        otherServers =
-            List.filter (\s -> s.uuid /= newServer.uuid) model.servers
-
-        newServers =
-            newServer :: otherServers
-
-        newModel =
-            { model | servers = newServers }
-
-        requestBody =
-            Encode.object
-                [ ( "floatingip"
-                  , Encode.object
-                        [ ( "floating_network_id", Encode.string network.uuid )
-                        , ( "port_id", Encode.string port_.uuid )
-                        ]
-                  )
-                ]
-
-        cmd =
-            Http.request
-                { method = "POST"
-                , headers = [ Http.header "X-Auth-Token" model.authToken ]
-                , url = model.endpoints.neutron ++ "/v2.0/floatingips"
-                , body = Http.jsonBody requestBody
-                , expect = Http.expectString
-                , timeout = Nothing
-                , withCredentials = True
-                }
-                |> Http.send (ReceiveFloatingIp server.uuid)
-    in
-        ( newModel, cmd )
 
 
 receiveFloatingIp : Model -> ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
@@ -1058,6 +892,138 @@ receiveFloatingIp model serverUuid result =
                             ( newModel, Cmd.none )
 
 
+
+{- JSON Decoders -}
+
+
+decodeImages : Decode.Decoder (List Image)
+decodeImages =
+    Decode.field "images" (Decode.list imageDecoder)
+
+
+imageDecoder : Decode.Decoder Image
+imageDecoder =
+    Decode.map6 Image
+        (Decode.field "name" Decode.string)
+        (Decode.field "id" Decode.string)
+        (Decode.field "size" Decode.int)
+        (Decode.field "checksum" Decode.string)
+        (Decode.field "disk_format" Decode.string)
+        (Decode.field "container_format" Decode.string)
+
+
+decodeServers : Decode.Decoder (List Server)
+decodeServers =
+    Decode.field "servers" (Decode.list serverDecoder)
+
+
+serverDecoder : Decode.Decoder Server
+serverDecoder =
+    Decode.map4 Server
+        (Decode.oneOf
+            [ Decode.field "name" Decode.string
+            , Decode.succeed ""
+            ]
+        )
+        (Decode.field "id" Decode.string)
+        (Decode.succeed Nothing)
+        (Decode.succeed Unknown)
+
+
+decodeServerDetails : Decode.Decoder ServerDetails
+decodeServerDetails =
+    Decode.map5 ServerDetails
+        (Decode.at [ "server", "status" ] Decode.string)
+        (Decode.at [ "server", "created" ] Decode.string)
+        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
+        (Decode.at [ "server", "key_name" ] Decode.string)
+        (Decode.oneOf
+            [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
+            , Decode.succeed []
+            ]
+        )
+
+
+serverIpAddressDecoder : Decode.Decoder IpAddress
+serverIpAddressDecoder =
+    Decode.map2 IpAddress
+        (Decode.field "addr" Decode.string)
+        (Decode.field "OS-EXT-IPS:type" Decode.string
+            |> Decode.andThen ipAddressOpenstackTypeDecoder
+        )
+
+
+ipAddressOpenstackTypeDecoder : String -> Decode.Decoder IpAddressOpenstackType
+ipAddressOpenstackTypeDecoder string =
+    case string of
+        "fixed" ->
+            Decode.succeed Fixed
+
+        "floating" ->
+            Decode.succeed Floating
+
+        _ ->
+            Decode.fail "oooooooops, unrecognised IP address type"
+
+
+decodeFlavors : Decode.Decoder (List Flavor)
+decodeFlavors =
+    Decode.field "flavors" (Decode.list flavorDecoder)
+
+
+flavorDecoder : Decode.Decoder Flavor
+flavorDecoder =
+    Decode.map2 Flavor
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+
+
+decodeKeypairs : Decode.Decoder (List Keypair)
+decodeKeypairs =
+    Decode.field "keypairs" (Decode.list keypairDecoder)
+
+
+keypairDecoder : Decode.Decoder Keypair
+keypairDecoder =
+    Decode.map3 Keypair
+        (Decode.at [ "keypair", "name" ] Decode.string)
+        (Decode.at [ "keypair", "public_key" ] Decode.string)
+        (Decode.at [ "keypair", "fingerprint" ] Decode.string)
+
+
+decodeNetworks : Decode.Decoder (List Network)
+decodeNetworks =
+    Decode.field "networks" (Decode.list networkDecoder)
+
+
+networkDecoder : Decode.Decoder Network
+networkDecoder =
+    Decode.map5 Network
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "admin_state_up" Decode.bool)
+        (Decode.field "status" Decode.string)
+        (Decode.field "router:external" Decode.bool)
+
+
+decodePorts : Decode.Decoder (List Port)
+decodePorts =
+    Decode.field "ports" (Decode.list portDecoder)
+
+
+portDecoder : Decode.Decoder Port
+portDecoder =
+    Decode.map4 Port
+        (Decode.field "id" Decode.string)
+        (Decode.field "device_id" Decode.string)
+        (Decode.field "admin_state_up" Decode.bool)
+        (Decode.field "status" Decode.string)
+
+
+
+{- Other Logic -}
+
+
 processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
@@ -1067,9 +1033,68 @@ processError model error =
         ( { model | messages = newMsgs }, Cmd.none )
 
 
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Time.every (10 * Time.second) Tick
+getExternalNetwork : Model -> Maybe Network
+getExternalNetwork model =
+    List.filter (\n -> n.isExternal) model.networks |> List.head
+
+
+checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
+checkFloatingIpState serverDetails floatingIpState =
+    let
+        hasFixedIp =
+            List.filter (\a -> a.openstackType == Fixed) serverDetails.ipAddresses
+                |> List.isEmpty
+                |> not
+
+        hasFloatingIp =
+            List.filter (\a -> a.openstackType == Floating) serverDetails.ipAddresses
+                |> List.isEmpty
+                |> not
+
+        isActive =
+            serverDetails.status == "ACTIVE"
+    in
+        case floatingIpState of
+            RequestedWaiting ->
+                if hasFloatingIp then
+                    Success
+                else
+                    RequestedWaiting
+
+            Failed ->
+                Failed
+
+            _ ->
+                if hasFloatingIp then
+                    Success
+                else if hasFixedIp && isActive then
+                    Requestable
+                else
+                    NotRequestable
+
+
+requestFloatingIpIfRequestable : Model -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
+requestFloatingIpIfRequestable model network port_ serverUuid =
+    let
+        maybeServer =
+            List.filter (\s -> s.uuid == serverUuid) model.servers
+                |> List.head
+    in
+        case maybeServer of
+            Nothing ->
+                processError model "We should have a server here but we don't"
+
+            Just server ->
+                case server.floatingIpState of
+                    Requestable ->
+                        requestFloatingIp model network port_ server
+
+                    _ ->
+                        ( model, Cmd.none )
+
+
+
+{- Views -}
 
 
 view : Model -> Html Msg
@@ -1103,14 +1128,27 @@ view model =
         ]
 
 
-renderMessage : String -> Html Msg
-renderMessage message =
-    p [] [ text message ]
+
+{- Sub-views for most/all pages -}
 
 
 viewMessages : Model -> Html Msg
 viewMessages model =
     div [] (List.map renderMessage model.messages)
+
+
+viewNav : Model -> Html Msg
+viewNav _ =
+    div []
+        [ h2 [] [ text "Navigation" ]
+        , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
+        , button [ onClick (ChangeViewState ListImages) ] [ text "Images" ]
+        , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
+        ]
+
+
+
+{- Resource-specific views -}
 
 
 viewLogin : Model -> Html Msg
@@ -1195,63 +1233,9 @@ viewImages model =
     div [] (List.map renderImage model.images)
 
 
-renderImage : Image -> Html Msg
-renderImage image =
-    div []
-        [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" "" ""))) ] [ text "Launch" ]
-        , table []
-            [ tr []
-                [ th [] [ text "Property" ]
-                , th [] [ text "Value" ]
-                ]
-            , tr []
-                [ td [] [ text "Size" ]
-                , td [] [ text (format image.size) ]
-                ]
-            , tr []
-                [ td [] [ text "Checksum" ]
-                , td [] [ text image.checksum ]
-                ]
-            , tr []
-                [ td [] [ text "Disk format" ]
-                , td [] [ text image.diskFormat ]
-                ]
-            , tr []
-                [ td [] [ text "Container format" ]
-                , td [] [ text image.containerFormat ]
-                ]
-            , tr []
-                [ td [] [ text "UUID" ]
-                , td [] [ text image.uuid ]
-                ]
-            ]
-        ]
-
-
 viewServers : Model -> Html Msg
 viewServers model =
     div [] (List.map renderServer model.servers)
-
-
-renderServer : Server -> Html Msg
-renderServer server =
-    div []
-        [ p [] [ strong [] [ text server.name ] ]
-        , text ("UUID: " ++ server.uuid)
-        , button [ onClick (ChangeViewState (ServerDetail server)) ] [ text "Details" ]
-        , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]
-        ]
-
-
-viewNav : Model -> Html Msg
-viewNav _ =
-    div []
-        [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
-        , button [ onClick (ChangeViewState ListImages) ] [ text "Images" ]
-        , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
-        ]
 
 
 viewServerDetail : Server -> Html Msg
@@ -1297,18 +1281,6 @@ viewServerDetail server =
                         ]
                     ]
                 ]
-
-
-renderIpAddresses : List IpAddress -> Html Msg
-renderIpAddresses ipAddresses =
-    div [] (List.map renderIpAddress ipAddresses)
-
-
-renderIpAddress : IpAddress -> Html Msg
-renderIpAddress ipAddress =
-    p []
-        [ text (toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
-        ]
 
 
 viewCreateServer : Model -> CreateServerRequest -> Html Msg
@@ -1375,6 +1347,59 @@ viewCreateServer model createServerRequest =
         ]
 
 
+
+{- View Helpers -}
+
+
+renderMessage : String -> Html Msg
+renderMessage message =
+    p [] [ text message ]
+
+
+renderImage : Image -> Html Msg
+renderImage image =
+    div []
+        [ p [] [ strong [] [ text image.name ] ]
+        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" "" ""))) ] [ text "Launch" ]
+        , table []
+            [ tr []
+                [ th [] [ text "Property" ]
+                , th [] [ text "Value" ]
+                ]
+            , tr []
+                [ td [] [ text "Size" ]
+                , td [] [ text (format image.size) ]
+                ]
+            , tr []
+                [ td [] [ text "Checksum" ]
+                , td [] [ text image.checksum ]
+                ]
+            , tr []
+                [ td [] [ text "Disk format" ]
+                , td [] [ text image.diskFormat ]
+                ]
+            , tr []
+                [ td [] [ text "Container format" ]
+                , td [] [ text image.containerFormat ]
+                ]
+            , tr []
+                [ td [] [ text "UUID" ]
+                , td [] [ text image.uuid ]
+                ]
+            ]
+        ]
+
+
+renderServer : Server -> Html Msg
+renderServer server =
+    div []
+        [ p [] [ strong [] [ text server.name ] ]
+        , text ("UUID: " ++ server.uuid)
+        , button [ onClick (ChangeViewState (ServerDetail server)) ] [ text "Details" ]
+        , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]
+        ]
+
+
 getEffectiveUserDataSize : CreateServerRequest -> String
 getEffectiveUserDataSize createServerRequest =
     let
@@ -1391,6 +1416,18 @@ getEffectiveUserDataSize createServerRequest =
             ++ " characters,  "
             ++ Basics.toString base64Length
             ++ "/16384 allowed bytes (Base64 encoded)"
+
+
+renderIpAddresses : List IpAddress -> Html Msg
+renderIpAddresses ipAddresses =
+    div [] (List.map renderIpAddress ipAddresses)
+
+
+renderIpAddress : IpAddress -> Html Msg
+renderIpAddress ipAddress =
+    p []
+        [ text (toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
+        ]
 
 
 viewFlavorPicker : List Flavor -> CreateServerRequest -> Html Msg
