@@ -5,6 +5,7 @@ import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Base64
+import Helpers
 import Types exposing (..)
 
 
@@ -214,6 +215,26 @@ getFloatingIpRequestPorts model server =
         |> Http.send (GetFloatingIpReceivePorts server.uuid)
 
 
+requestFloatingIpIfRequestable : Model -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
+requestFloatingIpIfRequestable model network port_ serverUuid =
+    let
+        maybeServer =
+            List.filter (\s -> s.uuid == serverUuid) model.servers
+                |> List.head
+    in
+        case maybeServer of
+            Nothing ->
+                Helpers.processError model "We should have a server here but we don't"
+
+            Just server ->
+                case server.floatingIpState of
+                    Requestable ->
+                        requestFloatingIp model network port_ server
+
+                    _ ->
+                        ( model, Cmd.none )
+
+
 requestFloatingIp : Model -> Network -> Port -> Server -> ( Model, Cmd Msg )
 requestFloatingIp model network port_ server =
     let
@@ -262,7 +283,7 @@ receiveAuth : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd 
 receiveAuth model responseResult =
     case responseResult of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok response ->
             let
@@ -279,7 +300,7 @@ receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
 receiveImages model result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok images ->
             ( { model | images = images }, Cmd.none )
@@ -289,7 +310,7 @@ receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
 receiveServers model result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok servers ->
             ( { model | servers = servers }, Cmd.none )
@@ -299,12 +320,14 @@ receiveServerDetail : Model -> Server -> Result Http.Error ServerDetails -> ( Mo
 receiveServerDetail model server result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok serverDetails ->
             let
                 floatingIpState =
-                    checkFloatingIpState serverDetails server.floatingIpState
+                    Helpers.checkFloatingIpState
+                        serverDetails
+                        server.floatingIpState
 
                 newServer =
                     { server
@@ -341,7 +364,7 @@ receiveFlavors : Model -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
 receiveFlavors model result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok flavors ->
             ( { model | flavors = flavors }, Cmd.none )
@@ -351,7 +374,7 @@ receiveKeypairs : Model -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg 
 receiveKeypairs model result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok keypairs ->
             ( { model | keypairs = keypairs }, Cmd.none )
@@ -361,7 +384,7 @@ receiveCreateServer : Model -> Result Http.Error Server -> ( Model, Cmd Msg )
 receiveCreateServer model result =
     case result of
         Err error ->
-            (processError model error)
+            Helpers.processError model error
 
         Ok _ ->
             let
@@ -380,7 +403,7 @@ receiveNetworks : Model -> Result Http.Error (List Network) -> ( Model, Cmd Msg 
 receiveNetworks model result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok networks ->
             ( { model | networks = networks }, Cmd.none )
@@ -390,7 +413,7 @@ receivePortsAndRequestFloatingIp : Model -> ServerUuid -> Result Http.Error (Lis
 receivePortsAndRequestFloatingIp model serverUuid result =
     case result of
         Err error ->
-            processError model error
+            Helpers.processError model error
 
         Ok ports ->
             let
@@ -398,7 +421,7 @@ receivePortsAndRequestFloatingIp model serverUuid result =
                     { model | ports = ports }
 
                 maybeExtNet =
-                    getExternalNetwork model
+                    Helpers.getExternalNetwork model
 
                 maybePortForServer =
                     List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
@@ -411,10 +434,14 @@ receivePortsAndRequestFloatingIp model serverUuid result =
                                 requestFloatingIpIfRequestable newModel extNet port_ serverUuid
 
                             Nothing ->
-                                processError model "We should have a port here but we don't!?"
+                                Helpers.processError
+                                    model
+                                    "We should have a port here but we don't!?"
 
                     Nothing ->
-                        processError model "We should have an external network here but we don't"
+                        Helpers.processError
+                            model
+                            "We should have an external network here but we don't"
 
 
 receiveFloatingIp : Model -> ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
@@ -426,7 +453,9 @@ receiveFloatingIp model serverUuid result =
     in
         case maybeServer of
             Nothing ->
-                processError model "We should have a server here but we don't"
+                Helpers.processError
+                    model
+                    "We should have a server here but we don't"
 
             Just server ->
                 case result of
@@ -444,7 +473,7 @@ receiveFloatingIp model serverUuid result =
                             newModel =
                                 { model | servers = newServers }
                         in
-                            processError newModel error
+                            Helpers.processError newModel error
 
                     Ok _ ->
                         let
@@ -589,76 +618,3 @@ portDecoder =
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
-
-
-
-{- Other Logic -}
-
-
-processError : Model -> a -> ( Model, Cmd Msg )
-processError model error =
-    let
-        newMsgs =
-            toString error :: model.messages
-    in
-        ( { model | messages = newMsgs }, Cmd.none )
-
-
-getExternalNetwork : Model -> Maybe Network
-getExternalNetwork model =
-    List.filter (\n -> n.isExternal) model.networks |> List.head
-
-
-checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
-checkFloatingIpState serverDetails floatingIpState =
-    let
-        hasFixedIp =
-            List.filter (\a -> a.openstackType == Fixed) serverDetails.ipAddresses
-                |> List.isEmpty
-                |> not
-
-        hasFloatingIp =
-            List.filter (\a -> a.openstackType == Floating) serverDetails.ipAddresses
-                |> List.isEmpty
-                |> not
-
-        isActive =
-            serverDetails.status == "ACTIVE"
-    in
-        case floatingIpState of
-            RequestedWaiting ->
-                if hasFloatingIp then
-                    Success
-                else
-                    RequestedWaiting
-
-            Failed ->
-                Failed
-
-            _ ->
-                if hasFloatingIp then
-                    Success
-                else if hasFixedIp && isActive then
-                    Requestable
-                else
-                    NotRequestable
-
-
-requestFloatingIpIfRequestable : Model -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
-requestFloatingIpIfRequestable model network port_ serverUuid =
-    let
-        maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) model.servers
-                |> List.head
-    in
-        case maybeServer of
-            Nothing ->
-                processError model "We should have a server here but we don't"
-
-            Just server ->
-                case server.floatingIpState of
-                    Requestable ->
-                        requestFloatingIp model network port_ server
-
-                    _ ->
-                        ( model, Cmd.none )

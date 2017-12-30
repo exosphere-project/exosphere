@@ -2,7 +2,7 @@ module State exposing (init, subscriptions, update)
 
 import Time
 import Types exposing (..)
-import Rest exposing (..)
+import Rest
 
 
 {- Todo remove default creds once storing this in local storage -}
@@ -43,20 +43,16 @@ subscriptions _ =
     Time.every (10 * Time.second) Tick
 
 
-
-{- The Brain -}
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Tick _ ->
             case model.viewState of
                 ListUserServers ->
-                    ( model, requestServers model )
+                    ( model, Rest.requestServers model )
 
                 ServerDetail server ->
-                    ( model, requestServerDetail model server )
+                    ( model, Rest.requestServerDetail model server )
 
                 _ ->
                     ( model, Cmd.none )
@@ -74,61 +70,66 @@ update msg model =
                         ( newModel, Cmd.none )
 
                     ListImages ->
-                        ( newModel, requestImages newModel )
+                        ( newModel, Rest.requestImages newModel )
 
                     ListUserServers ->
-                        ( newModel, requestServers newModel )
+                        ( newModel, Rest.requestServers newModel )
 
                     ServerDetail server ->
-                        ( newModel, requestServerDetail newModel server )
+                        ( newModel, Rest.requestServerDetail newModel server )
 
                     CreateServer _ ->
-                        ( newModel, Cmd.batch [ requestFlavors newModel, requestKeypairs newModel ] )
+                        ( newModel
+                        , Cmd.batch
+                            [ Rest.requestFlavors newModel
+                            , Rest.requestKeypairs newModel
+                            ]
+                        )
 
         RequestAuth ->
-            ( model, requestAuthToken model )
+            ( model, Rest.requestAuthToken model )
 
         RequestCreateServer createServerRequest ->
-            ( model, requestCreateServer model createServerRequest )
+            ( model, Rest.requestCreateServer model createServerRequest )
 
         RequestDeleteServer server ->
             ( { model | servers = List.filter (\s -> s /= server) model.servers }
-            , requestDeleteServer model server
+            , Rest.requestDeleteServer model server
             )
 
         ReceiveAuth response ->
-            receiveAuth model response
+            Rest.receiveAuth model response
 
         ReceiveImages result ->
-            receiveImages model result
+            Rest.receiveImages model result
 
         ReceiveServers result ->
-            receiveServers model result
+            Rest.receiveServers model result
 
         ReceiveServerDetail server result ->
-            receiveServerDetail model server result
+            Rest.receiveServerDetail model server result
 
         ReceiveFlavors result ->
-            receiveFlavors model result
+            Rest.receiveFlavors model result
 
         ReceiveKeypairs result ->
-            receiveKeypairs model result
+            Rest.receiveKeypairs model result
 
         ReceiveCreateServer result ->
-            receiveCreateServer model result
+            Rest.receiveCreateServer model result
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
             update (ChangeViewState Home) model
 
         ReceiveNetworks result ->
-            receiveNetworks model result
+            Rest.receiveNetworks model result
 
         GetFloatingIpReceivePorts server result ->
-            receivePortsAndRequestFloatingIp model server result
+            Rest.receivePortsAndRequestFloatingIp model server result
 
         ReceiveFloatingIp server result ->
-            receiveFloatingIp model server result
+            Rest.receiveFloatingIp model server result
 
         {- Form inputs -}
         InputAuthURL authURL ->
