@@ -32,3 +32,17 @@ npm run watch
 Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
+
+## Style Guide
+
+### Imports
+
+In the spirit of [PEP 8](https://www.python.org/dev/peps/pep-0008/), each file should import modules grouped into sections as follows:
+
+- Elm Standard libraries
+- Community libraries
+- Local app-specific libraries/imports
+
+Each section would be separated by a space although £$¢king elm-format removes such spaces.
+
+Each section should be in alphabetical order.
