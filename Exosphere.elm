@@ -52,7 +52,6 @@ init =
       , keypairs = []
       , networks = []
       , ports = []
-      , floatingIpsNeeded = []
       }
     , Cmd.none
     )
@@ -70,7 +69,6 @@ type alias Model =
     , keypairs : List Keypair
     , networks : List Network
     , ports : List Port
-    , floatingIpsNeeded : List ServerUuid
     }
 
 
@@ -102,7 +100,7 @@ type alias Endpoints =
 
 type alias Image =
     { name : String
-    , uuid : String
+    , uuid : ImageUuid
     , size : Int
     , checksum : String
     , diskFormat : String
@@ -112,9 +110,19 @@ type alias Image =
 
 type alias Server =
     { name : String
-    , uuid : String
+    , uuid : ServerUuid
     , details : Maybe ServerDetails
+    , floatingIpState : FloatingIpState
     }
+
+
+type FloatingIpState
+    = Unknown
+    | NotRequestable
+    | Requestable
+    | RequestedWaiting
+    | Success
+    | Failed
 
 
 
@@ -135,21 +143,21 @@ type alias ServerDetails =
     , created : String
     , powerState : Int
     , keypairName : String
-    , ipAddresses : Maybe (List IpAddress)
+    , ipAddresses : List IpAddress
     }
 
 
 type alias CreateServerRequest =
     { name : String
-    , imageUuid : String
-    , flavorUuid : String
+    , imageUuid : ImageUuid
+    , flavorUuid : FlavorUuid
     , keypairName : String
     , userData : String
     }
 
 
 type alias Flavor =
-    { uuid : String
+    { uuid : FlavorUuid
     , name : String
     }
 
@@ -173,7 +181,7 @@ type IpAddressOpenstackType
 
 
 type alias Network =
-    { uuid : String
+    { uuid : NetworkUuid
     , name : String
     , adminStateUp : Bool
     , status : String
@@ -182,8 +190,8 @@ type alias Network =
 
 
 type alias Port =
-    { uuid : Uuid
-    , deviceUuid : Uuid
+    { uuid : PortUuid
+    , deviceUuid : ServerUuid
     , adminStateUp : Bool
     , status : String
     }
@@ -193,11 +201,19 @@ type alias ServerUuid =
     Uuid
 
 
+type alias ImageUuid =
+    Uuid
+
+
 type alias NetworkUuid =
     Uuid
 
 
 type alias PortUuid =
+    Uuid
+
+
+type alias FlavorUuid =
     Uuid
 
 
@@ -219,8 +235,8 @@ type Msg
     | ReceiveFlavors (Result Http.Error (List Flavor))
     | ReceiveKeypairs (Result Http.Error (List Keypair))
     | ReceiveNetworks (Result Http.Error (List Network))
-    | ReceivePorts (Result Http.Error (List Port))
-    | ReceiveFloatingIp (Result Http.Error String)
+    | GetFloatingIpReceivePorts Server (Result Http.Error (List Port))
+    | ReceiveFloatingIp Server (Result Http.Error String)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -259,7 +275,6 @@ update msg model =
                         ( newModel, requestServerDetail newModel server )
 
                     CreateServer _ ->
-                        {- Todo also retrieve a list of images -}
                         ( newModel, Cmd.batch [ requestFlavors newModel, requestKeypairs newModel ] )
 
         RequestAuth ->
@@ -301,14 +316,12 @@ update msg model =
         ReceiveNetworks result ->
             receiveNetworks model result
 
-        ReceivePorts result ->
-            receivePorts model result
+        GetFloatingIpReceivePorts server result ->
+            receivePortsAndRequestFloatingIp model server result
 
-        {- Todo update model automatically with new floating IP for server -}
-        ReceiveFloatingIp result ->
-            receiveFloatingIp model result
+        ReceiveFloatingIp server result ->
+            receiveFloatingIp model server result
 
-        --( { model | viewState = ListUserServers }, Cmd.none )
         {- Form inputs -}
         InputAuthURL authURL ->
             let
@@ -388,6 +401,10 @@ update msg model =
                 ( { model | viewState = viewState }, Cmd.none )
 
 
+
+{- HTTP and JSON -}
+
+
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
     let
@@ -456,8 +473,11 @@ receiveAuth model responseResult =
             let
                 authToken =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
+
+                newModel =
+                    { model | authToken = authToken, viewState = Home }
             in
-                ( { model | authToken = authToken, viewState = Home }, Cmd.none )
+                ( newModel, requestNetworks newModel )
 
 
 requestImages : Model -> Cmd Msg
@@ -521,7 +541,7 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map3 Server
+    Decode.map4 Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -529,6 +549,7 @@ serverDecoder =
         )
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
+        (Decode.succeed Unknown)
 
 
 receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
@@ -563,16 +584,68 @@ receiveServerDetail model server result =
 
         Ok serverDetails ->
             let
+                floatingIpState =
+                    checkFloatingIpState serverDetails server.floatingIpState
+
                 newServer =
-                    { server | details = Just serverDetails }
+                    { server
+                        | details = Just serverDetails
+                        , floatingIpState = floatingIpState
+                    }
 
                 otherServers =
                     List.filter (\s -> s.uuid /= newServer.uuid) model.servers
 
                 newServers =
                     newServer :: otherServers
+
+                newModel =
+                    { model
+                        | servers = newServers
+                        , {- TODO take this out? -} viewState = ServerDetail newServer
+                    }
             in
-                ( { model | servers = newServers, viewState = ServerDetail newServer }, Cmd.none )
+                case floatingIpState of
+                    Requestable ->
+                        ( newModel, getFloatingIpRequestPorts newModel newServer )
+
+                    _ ->
+                        ( newModel, Cmd.none )
+
+
+checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
+checkFloatingIpState serverDetails floatingIpState =
+    let
+        hasFixedIp =
+            List.filter (\a -> a.openstackType == Fixed) serverDetails.ipAddresses
+                |> List.isEmpty
+                |> not
+
+        hasFloatingIp =
+            List.filter (\a -> a.openstackType == Floating) serverDetails.ipAddresses
+                |> List.isEmpty
+                |> not
+
+        isActive =
+            serverDetails.status == "ACTIVE"
+    in
+        case floatingIpState of
+            RequestedWaiting ->
+                if hasFloatingIp then
+                    Success
+                else
+                    RequestedWaiting
+
+            Failed ->
+                Failed
+
+            _ ->
+                if hasFloatingIp then
+                    Success
+                else if hasFixedIp && isActive then
+                    Requestable
+                else
+                    NotRequestable
 
 
 
@@ -586,7 +659,11 @@ decodeServerDetails =
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
-        (Decode.maybe (Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)))
+        (Decode.oneOf
+            [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
+            , Decode.succeed []
+            ]
+        )
 
 
 serverIpAddressDecoder : Decode.Decoder IpAddress
@@ -723,19 +800,15 @@ receiveCreateServer model result =
         Err error ->
             (processError model error)
 
-        Ok newServer ->
+        Ok _ ->
             let
                 newModel =
-                    { model
-                        | viewState = ListUserServers
-                        , floatingIpsNeeded = newServer.uuid :: model.floatingIpsNeeded
-                    }
+                    { model | viewState = ListUserServers }
             in
                 ( newModel
                 , Cmd.batch
                     [ requestServers model
                     , requestNetworks model
-                    , requestPorts model
                     ]
                 )
 
@@ -790,11 +863,11 @@ receiveNetworks model result =
             processError model error
 
         Ok networks ->
-            processFloatingIpsNeeded { model | networks = networks }
+            ( { model | networks = networks }, Cmd.none )
 
 
-requestPorts : Model -> Cmd Msg
-requestPorts model =
+getFloatingIpRequestPorts : Model -> Server -> Cmd Msg
+getFloatingIpRequestPorts model server =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
@@ -804,7 +877,7 @@ requestPorts model =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send ReceivePorts
+        |> Http.send (GetFloatingIpReceivePorts server)
 
 
 decodePorts : Decode.Decoder (List Port)
@@ -821,40 +894,44 @@ portDecoder =
         (Decode.field "status" Decode.string)
 
 
-receivePorts : Model -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
-receivePorts model result =
+receivePortsAndRequestFloatingIp : Model -> Server -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp model server result =
     case result of
         Err error ->
             processError model error
 
         Ok ports ->
-            processFloatingIpsNeeded { model | ports = ports }
-
-
-processFloatingIpsNeeded : Model -> ( Model, Cmd Msg )
-processFloatingIpsNeeded model =
-    case getExternalNetwork model of
-        Nothing ->
-            ( model, Cmd.none )
-
-        Just extNet ->
             let
-                {- Get ports whose server is listed in floatingIpsNeeded -}
-                requestablePorts =
-                    List.filter (portIsRequestable model) model.ports
+                newServer =
+                    { server | floatingIpState = RequestedWaiting }
+
+                otherServers =
+                    List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                newServers =
+                    newServer :: otherServers
+
+                newModel =
+                    { model | ports = ports, servers = newServers }
+
+                maybeExtNet =
+                    getExternalNetwork model
+
+                maybePortForServer =
+                    List.filter (\port_ -> port_.deviceUuid == server.uuid) ports
+                        |> List.head
             in
-                ( model
-                , Cmd.batch (List.map (\p -> requestFloatingIp model extNet.uuid p.uuid) requestablePorts)
-                )
+                case maybeExtNet of
+                    Just extNet ->
+                        case maybePortForServer of
+                            Just port_ ->
+                                ( newModel, requestFloatingIp newModel extNet port_ newServer )
 
+                            Nothing ->
+                                processError model "We should have a port here but we don't!?"
 
-
-{- here remove server from floatingIpsNeeded when request is made? albeit this is a hack -}
-
-
-portIsRequestable : Model -> Port -> Bool
-portIsRequestable model port_ =
-    List.member port_.deviceUuid model.floatingIpsNeeded
+                    Nothing ->
+                        processError model "We should have an external network here but we don't"
 
 
 
@@ -866,15 +943,15 @@ getExternalNetwork model =
     List.filter (\n -> n.isExternal) model.networks |> List.head
 
 
-requestFloatingIp : Model -> NetworkUuid -> PortUuid -> Cmd Msg
-requestFloatingIp model networkUuid portUuid =
+requestFloatingIp : Model -> Network -> Port -> Server -> Cmd Msg
+requestFloatingIp model network port_ server =
     let
         requestBody =
             Encode.object
                 [ ( "floatingip"
                   , Encode.object
-                        [ ( "floating_network_id", Encode.string networkUuid )
-                        , ( "port_id", Encode.string portUuid )
+                        [ ( "floating_network_id", Encode.string network.uuid )
+                        , ( "port_id", Encode.string port_.uuid )
                         ]
                   )
                 ]
@@ -888,17 +965,43 @@ requestFloatingIp model networkUuid portUuid =
             , timeout = Nothing
             , withCredentials = True
             }
-            |> Http.send ReceiveFloatingIp
+            |> Http.send (ReceiveFloatingIp server)
 
 
-receiveFloatingIp : Model -> Result Http.Error String -> ( Model, Cmd Msg )
-receiveFloatingIp model result =
+receiveFloatingIp : Model -> Server -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveFloatingIp model server result =
     case result of
         Err error ->
-            processError model error
+            let
+                newServer =
+                    { server | floatingIpState = Failed }
+
+                otherServers =
+                    List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                newServers =
+                    newServer :: otherServers
+
+                newModel =
+                    { model | servers = newServers }
+            in
+                processError newModel error
 
         Ok _ ->
-            ( model, Cmd.none )
+            let
+                newServer =
+                    { server | floatingIpState = Success }
+
+                otherServers =
+                    List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                newServers =
+                    newServer :: otherServers
+
+                newModel =
+                    { model | servers = newServers }
+            in
+                ( newModel, Cmd.none )
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -1142,14 +1245,9 @@ viewServerDetail server =
                 ]
 
 
-renderIpAddresses : Maybe (List IpAddress) -> Html Msg
-renderIpAddresses maybeIpAddresses =
-    case maybeIpAddresses of
-        Nothing ->
-            div [] []
-
-        Just ipAddresses ->
-            div [] (List.map renderIpAddress ipAddresses)
+renderIpAddresses : List IpAddress -> Html Msg
+renderIpAddresses ipAddresses =
+    div [] (List.map renderIpAddress ipAddresses)
 
 
 renderIpAddress : IpAddress -> Html Msg
