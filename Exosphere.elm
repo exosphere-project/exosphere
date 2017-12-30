@@ -223,7 +223,8 @@ type alias Uuid =
 
 
 type Msg
-    = ChangeViewState ViewState
+    = Tick Time.Time
+    | ChangeViewState ViewState
     | RequestAuth
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
@@ -249,7 +250,6 @@ type Msg
     | InputCreateServerUserData CreateServerRequest String
     | InputCreateServerSize CreateServerRequest String
     | InputCreateServerKeypairName CreateServerRequest String
-    | Tick Time.Time
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -490,7 +490,7 @@ receiveAuth model responseResult =
                 newModel =
                     { model | authToken = authToken, viewState = Home }
             in
-                ( newModel, requestNetworks newModel )
+                ( newModel, Cmd.none )
 
 
 requestImages : Model -> Cmd Msg
@@ -620,7 +620,12 @@ receiveServerDetail model server result =
             in
                 case floatingIpState of
                     Requestable ->
-                        ( newModel, getFloatingIpRequestPorts newModel newServer )
+                        ( newModel
+                        , Cmd.batch
+                            [ getFloatingIpRequestPorts newModel newServer
+                            , requestNetworks newModel
+                            ]
+                        )
 
                     _ ->
                         ( newModel, Cmd.none )
