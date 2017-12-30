@@ -1063,7 +1063,7 @@ processError model error =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Time.every (10 * Time.second) Tick
 
 
