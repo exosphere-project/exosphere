@@ -1,7 +1,10 @@
-# EXOSPHERE
+# Exosphere
 
-A client for making things happen in the cloud. Currently targeting OpenStack.
+User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
 
+## Collaborate
+
+[Real-time  chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
 
 ## Scaffold and Electron
 
