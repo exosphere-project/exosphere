@@ -7,6 +7,7 @@ import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Time
 import Filesize exposing (format)
 import Base64
 
@@ -29,12 +30,11 @@ init : ( Model, Cmd Msg )
 
 
 init =
-    ( { authToken = ""
-
-      {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = "https://tombstone-cloud.cyverse.org:9292"
-            , nova = "https://tombstone-cloud.cyverse.org:8774/v2.1"
+            , nova = "https://tombstone-cloud.cyverse.org:8774"
+            , neutron = "https://tombstone-cloud.cyverse.org:9696"
             }
       , creds =
             Creds
@@ -44,14 +44,15 @@ init =
                 "default"
                 "demo"
                 ""
-
-      {- password -}
+            {- password -}
       , messages = []
       , images = []
       , servers = []
       , viewState = Login
       , flavors = []
       , keypairs = []
+      , networks = []
+      , ports = []
       }
     , Cmd.none
     )
@@ -67,6 +68,8 @@ type alias Model =
     , viewState : ViewState
     , flavors : List Flavor
     , keypairs : List Keypair
+    , networks : List Network
+    , ports : List Port
     }
 
 
@@ -92,12 +95,13 @@ type alias Creds =
 type alias Endpoints =
     { glance : String
     , nova : String
+    , neutron : String
     }
 
 
 type alias Image =
     { name : String
-    , uuid : String
+    , uuid : ImageUuid
     , size : Int
     , checksum : String
     , diskFormat : String
@@ -107,9 +111,19 @@ type alias Image =
 
 type alias Server =
     { name : String
-    , uuid : String
+    , uuid : ServerUuid
     , details : Maybe ServerDetails
+    , floatingIpState : FloatingIpState
     }
+
+
+type FloatingIpState
+    = Unknown
+    | NotRequestable
+    | Requestable
+    | RequestedWaiting
+    | Success
+    | Failed
 
 
 
@@ -130,21 +144,21 @@ type alias ServerDetails =
     , created : String
     , powerState : Int
     , keypairName : String
-    , ipAddresses : Maybe (List IpAddress)
+    , ipAddresses : List IpAddress
     }
 
 
 type alias CreateServerRequest =
     { name : String
-    , imageUuid : String
-    , flavorUuid : String
+    , imageUuid : ImageUuid
+    , flavorUuid : FlavorUuid
     , keypairName : String
     , userData : String
     }
 
 
 type alias Flavor =
-    { uuid : String
+    { uuid : FlavorUuid
     , name : String
     }
 
@@ -167,8 +181,50 @@ type IpAddressOpenstackType
     | Floating
 
 
+type alias Network =
+    { uuid : NetworkUuid
+    , name : String
+    , adminStateUp : Bool
+    , status : String
+    , isExternal : Bool
+    }
+
+
+type alias Port =
+    { uuid : PortUuid
+    , deviceUuid : ServerUuid
+    , adminStateUp : Bool
+    , status : String
+    }
+
+
+type alias ServerUuid =
+    Uuid
+
+
+type alias ImageUuid =
+    Uuid
+
+
+type alias NetworkUuid =
+    Uuid
+
+
+type alias PortUuid =
+    Uuid
+
+
+type alias FlavorUuid =
+    Uuid
+
+
+type alias Uuid =
+    String
+
+
 type Msg
-    = ChangeViewState ViewState
+    = Tick Time.Time
+    | ChangeViewState ViewState
     | RequestAuth
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
@@ -176,10 +232,13 @@ type Msg
     | ReceiveImages (Result Http.Error (List Image))
     | ReceiveServers (Result Http.Error (List Server))
     | ReceiveServerDetail Server (Result Http.Error ServerDetails)
-    | ReceiveCreateServer (Result Http.Error String)
+    | ReceiveCreateServer (Result Http.Error Server)
     | ReceiveDeleteServer (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List Flavor))
     | ReceiveKeypairs (Result Http.Error (List Keypair))
+    | ReceiveNetworks (Result Http.Error (List Network))
+    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
+    | ReceiveFloatingIp ServerUuid (Result Http.Error String)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -196,6 +255,17 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Tick _ ->
+            case model.viewState of
+                ListUserServers ->
+                    ( model, requestServers model )
+
+                ServerDetail server ->
+                    ( model, requestServerDetail model server )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ChangeViewState state ->
             let
                 newModel =
@@ -218,7 +288,6 @@ update msg model =
                         ( newModel, requestServerDetail newModel server )
 
                     CreateServer _ ->
-                        {- Todo also retrieve a list of images -}
                         ( newModel, Cmd.batch [ requestFlavors newModel, requestKeypairs newModel ] )
 
         RequestAuth ->
@@ -250,15 +319,22 @@ update msg model =
         ReceiveKeypairs result ->
             receiveKeypairs model result
 
-        ReceiveCreateServer _ ->
-            {- Recursive call of update function! Todo this ignores the result of server creation API call, we should display errors to user -}
-            update (ChangeViewState ListUserServers) model
+        ReceiveCreateServer result ->
+            receiveCreateServer model result
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
             update (ChangeViewState Home) model
 
-        --( { model | viewState = ListUserServers }, Cmd.none )
+        ReceiveNetworks result ->
+            receiveNetworks model result
+
+        GetFloatingIpReceivePorts server result ->
+            receivePortsAndRequestFloatingIp model server result
+
+        ReceiveFloatingIp server result ->
+            receiveFloatingIp model server result
+
         {- Form inputs -}
         InputAuthURL authURL ->
             let
@@ -338,6 +414,10 @@ update msg model =
                 ( { model | viewState = viewState }, Cmd.none )
 
 
+
+{- HTTP and JSON -}
+
+
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
     let
@@ -388,9 +468,7 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody
-
-            {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -408,8 +486,11 @@ receiveAuth model responseResult =
             let
                 authToken =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
+
+                newModel =
+                    { model | authToken = authToken, viewState = Home }
             in
-                ( { model | authToken = authToken, viewState = Home }, Cmd.none )
+                ( newModel, Cmd.none )
 
 
 requestImages : Model -> Cmd Msg
@@ -457,7 +538,7 @@ requestServers model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers"
+        , url = model.endpoints.nova ++ "/v2.1/servers"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServers
         , timeout = Nothing
@@ -473,10 +554,15 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map3 Server
-        (Decode.field "name" Decode.string)
+    Decode.map4 Server
+        (Decode.oneOf
+            [ Decode.field "name" Decode.string
+            , Decode.succeed ""
+            ]
+        )
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
+        (Decode.succeed Unknown)
 
 
 receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
@@ -494,7 +580,7 @@ requestServerDetail model server =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServerDetails
         , timeout = Nothing
@@ -511,16 +597,73 @@ receiveServerDetail model server result =
 
         Ok serverDetails ->
             let
+                floatingIpState =
+                    checkFloatingIpState serverDetails server.floatingIpState
+
                 newServer =
-                    { server | details = Just serverDetails }
+                    { server
+                        | details = Just serverDetails
+                        , floatingIpState = floatingIpState
+                    }
 
                 otherServers =
                     List.filter (\s -> s.uuid /= newServer.uuid) model.servers
 
                 newServers =
                     newServer :: otherServers
+
+                newModel =
+                    { model
+                        | servers = newServers
+                        , {- TODO take this out? -} viewState = ServerDetail newServer
+                    }
             in
-                ( { model | servers = newServers, viewState = ServerDetail newServer }, Cmd.none )
+                case floatingIpState of
+                    Requestable ->
+                        ( newModel
+                        , Cmd.batch
+                            [ getFloatingIpRequestPorts newModel newServer
+                            , requestNetworks newModel
+                            ]
+                        )
+
+                    _ ->
+                        ( newModel, Cmd.none )
+
+
+checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
+checkFloatingIpState serverDetails floatingIpState =
+    let
+        hasFixedIp =
+            List.filter (\a -> a.openstackType == Fixed) serverDetails.ipAddresses
+                |> List.isEmpty
+                |> not
+
+        hasFloatingIp =
+            List.filter (\a -> a.openstackType == Floating) serverDetails.ipAddresses
+                |> List.isEmpty
+                |> not
+
+        isActive =
+            serverDetails.status == "ACTIVE"
+    in
+        case floatingIpState of
+            RequestedWaiting ->
+                if hasFloatingIp then
+                    Success
+                else
+                    RequestedWaiting
+
+            Failed ->
+                Failed
+
+            _ ->
+                if hasFloatingIp then
+                    Success
+                else if hasFixedIp && isActive then
+                    Requestable
+                else
+                    NotRequestable
 
 
 
@@ -534,7 +677,11 @@ decodeServerDetails =
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
         (Decode.at [ "server", "key_name" ] Decode.string)
-        (Decode.maybe (Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)))
+        (Decode.oneOf
+            [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
+            , Decode.succeed []
+            ]
+        )
 
 
 serverIpAddressDecoder : Decode.Decoder IpAddress
@@ -564,7 +711,7 @@ requestFlavors model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/flavors"
+        , url = model.endpoints.nova ++ "/v2.1/flavors"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeFlavors
         , timeout = Nothing
@@ -600,7 +747,7 @@ requestKeypairs model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/os-keypairs"
+        , url = model.endpoints.nova ++ "/v2.1/os-keypairs"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeKeypairs
         , timeout = Nothing
@@ -653,17 +800,35 @@ requestCreateServer model createServerRequest =
             { method = "POST"
             , headers =
                 [ Http.header "X-Auth-Token" model.authToken
-
-                -- Microversion needed for automatic network provisioning
+                  -- Microversion needed for automatic network provisioning
                 , Http.header "OpenStack-API-Version" "compute 2.38"
                 ]
-            , url = model.endpoints.nova ++ "/servers"
+            , url = model.endpoints.nova ++ "/v2.1/servers"
             , body = Http.jsonBody requestBody
-            , expect = Http.expectString
+            , expect = Http.expectJson (Decode.field "server" serverDecoder)
             , timeout = Nothing
             , withCredentials = True
             }
             |> Http.send ReceiveCreateServer
+
+
+receiveCreateServer : Model -> Result Http.Error Server -> ( Model, Cmd Msg )
+receiveCreateServer model result =
+    case result of
+        Err error ->
+            (processError model error)
+
+        Ok _ ->
+            let
+                newModel =
+                    { model | viewState = ListUserServers }
+            in
+                ( newModel
+                , Cmd.batch
+                    [ requestServers model
+                    , requestNetworks model
+                    ]
+                )
 
 
 requestDeleteServer : Model -> Server -> Cmd Msg
@@ -671,13 +836,226 @@ requestDeleteServer model server =
     Http.request
         { method = "DELETE"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
         , body = Http.emptyBody
         , expect = Http.expectString
         , timeout = Nothing
         , withCredentials = False
         }
         |> Http.send ReceiveDeleteServer
+
+
+requestNetworks : Model -> Cmd Msg
+requestNetworks model =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.neutron ++ "/v2.0/networks"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodeNetworks
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveNetworks
+
+
+decodeNetworks : Decode.Decoder (List Network)
+decodeNetworks =
+    Decode.field "networks" (Decode.list networkDecoder)
+
+
+networkDecoder : Decode.Decoder Network
+networkDecoder =
+    Decode.map5 Network
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "admin_state_up" Decode.bool)
+        (Decode.field "status" Decode.string)
+        (Decode.field "router:external" Decode.bool)
+
+
+receiveNetworks : Model -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
+receiveNetworks model result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok networks ->
+            ( { model | networks = networks }, Cmd.none )
+
+
+getFloatingIpRequestPorts : Model -> Server -> Cmd Msg
+getFloatingIpRequestPorts model server =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "X-Auth-Token" model.authToken ]
+        , url = model.endpoints.neutron ++ "/v2.0/ports"
+        , body = Http.emptyBody
+        , expect = Http.expectJson decodePorts
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send (GetFloatingIpReceivePorts server.uuid)
+
+
+decodePorts : Decode.Decoder (List Port)
+decodePorts =
+    Decode.field "ports" (Decode.list portDecoder)
+
+
+portDecoder : Decode.Decoder Port
+portDecoder =
+    Decode.map4 Port
+        (Decode.field "id" Decode.string)
+        (Decode.field "device_id" Decode.string)
+        (Decode.field "admin_state_up" Decode.bool)
+        (Decode.field "status" Decode.string)
+
+
+receivePortsAndRequestFloatingIp : Model -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp model serverUuid result =
+    case result of
+        Err error ->
+            processError model error
+
+        Ok ports ->
+            let
+                newModel =
+                    { model | ports = ports }
+
+                maybeExtNet =
+                    getExternalNetwork model
+
+                maybePortForServer =
+                    List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
+                        |> List.head
+            in
+                case maybeExtNet of
+                    Just extNet ->
+                        case maybePortForServer of
+                            Just port_ ->
+                                requestFloatingIpIfRequestable newModel extNet port_ serverUuid
+
+                            Nothing ->
+                                processError model "We should have a port here but we don't!?"
+
+                    Nothing ->
+                        processError model "We should have an external network here but we don't"
+
+
+
+{- Tech debt: This doesn't handle the case where there is >1 external network -}
+
+
+getExternalNetwork : Model -> Maybe Network
+getExternalNetwork model =
+    List.filter (\n -> n.isExternal) model.networks |> List.head
+
+
+requestFloatingIpIfRequestable : Model -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
+requestFloatingIpIfRequestable model network port_ serverUuid =
+    let
+        maybeServer =
+            List.filter (\s -> s.uuid == serverUuid) model.servers
+                |> List.head
+    in
+        case maybeServer of
+            Nothing ->
+                processError model "We should have a server here but we don't"
+
+            Just server ->
+                case server.floatingIpState of
+                    Requestable ->
+                        requestFloatingIp model network port_ server
+
+                    _ ->
+                        ( model, Cmd.none )
+
+
+requestFloatingIp : Model -> Network -> Port -> Server -> ( Model, Cmd Msg )
+requestFloatingIp model network port_ server =
+    let
+        newServer =
+            { server | floatingIpState = RequestedWaiting }
+
+        otherServers =
+            List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+        newServers =
+            newServer :: otherServers
+
+        newModel =
+            { model | servers = newServers }
+
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "floating_network_id", Encode.string network.uuid )
+                        , ( "port_id", Encode.string port_.uuid )
+                        ]
+                  )
+                ]
+
+        cmd =
+            Http.request
+                { method = "POST"
+                , headers = [ Http.header "X-Auth-Token" model.authToken ]
+                , url = model.endpoints.neutron ++ "/v2.0/floatingips"
+                , body = Http.jsonBody requestBody
+                , expect = Http.expectString
+                , timeout = Nothing
+                , withCredentials = True
+                }
+                |> Http.send (ReceiveFloatingIp server.uuid)
+    in
+        ( newModel, cmd )
+
+
+receiveFloatingIp : Model -> ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveFloatingIp model serverUuid result =
+    let
+        maybeServer =
+            List.filter (\s -> s.uuid == serverUuid) model.servers
+                |> List.head
+    in
+        case maybeServer of
+            Nothing ->
+                processError model "We should have a server here but we don't"
+
+            Just server ->
+                case result of
+                    Err error ->
+                        let
+                            newServer =
+                                { server | floatingIpState = Failed }
+
+                            otherServers =
+                                List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                            newServers =
+                                newServer :: otherServers
+
+                            newModel =
+                                { model | servers = newServers }
+                        in
+                            processError newModel error
+
+                    Ok _ ->
+                        let
+                            newServer =
+                                { server | floatingIpState = Success }
+
+                            otherServers =
+                                List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                            newServers =
+                                newServer :: otherServers
+
+                            newModel =
+                                { model | servers = newServers }
+                        in
+                            ( newModel, Cmd.none )
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -691,7 +1069,7 @@ processError model error =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Time.every (10 * Time.second) Tick
 
 
 view : Model -> Html Msg
@@ -921,14 +1299,9 @@ viewServerDetail server =
                 ]
 
 
-renderIpAddresses : Maybe (List IpAddress) -> Html Msg
-renderIpAddresses maybeIpAddresses =
-    case maybeIpAddresses of
-        Nothing ->
-            div [] []
-
-        Just ipAddresses ->
-            div [] (List.map renderIpAddress ipAddresses)
+renderIpAddresses : List IpAddress -> Html Msg
+renderIpAddresses ipAddresses =
+    div [] (List.map renderIpAddress ipAddresses)
 
 
 renderIpAddress : IpAddress -> Html Msg
