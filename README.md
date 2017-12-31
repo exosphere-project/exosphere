@@ -39,10 +39,10 @@ Based on the instructions found here:
 
 In the spirit of [PEP 8](https://www.python.org/dev/peps/pep-0008/), each file should import modules grouped into sections as follows:
 
-- Elm Standard libraries
-- Community libraries
-- Local app-specific libraries/imports
+1. Elm Standard libraries
+2. Community libraries
+3. Local app-specific libraries/imports
 
-Each section would be separated by a space although £$¢king elm-format removes such spaces.
+Unlike Python/PEP8 you will not be able to separate each section with a space because elm-format will remove the spaces. The spaces are not an Elm convention.
 
-Each section should be in alphabetical order.
+The imports in each section should be in alphabetical order.
