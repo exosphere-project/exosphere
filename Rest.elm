@@ -291,7 +291,7 @@ receiveAuth model responseResult =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
 
                 newModel =
-                    { model | authToken = authToken, viewState = Home }
+                    { model | authToken = authToken, viewState = ListUserServers }
             in
                 ( newModel, Cmd.none )
 

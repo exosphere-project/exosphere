@@ -23,7 +23,7 @@ view model =
                 viewLogin model
 
             Home ->
-                div [] []
+                div [] [ p [] [ text "Todo put things here" ] ]
 
             ListImages ->
                 viewImages model
@@ -53,8 +53,8 @@ viewNav _ =
     div []
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
-        , button [ onClick (ChangeViewState ListImages) ] [ text "Images" ]
         , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
+        , button [ onClick (ChangeViewState ListImages) ] [ text "Create Server" ]
         ]
 
 
@@ -141,12 +141,28 @@ viewLogin model =
 
 viewImages : Model -> Html Msg
 viewImages model =
-    div [] (List.map renderImage model.images)
+    case List.isEmpty model.images of
+        True ->
+            div [] [ p [] [ text "Images loading" ] ]
+
+        False ->
+            div []
+                [ h2 [] [ text "Choose an image" ]
+                , div [] (List.map renderImage model.images)
+                ]
 
 
 viewServers : Model -> Html Msg
 viewServers model =
-    div [] (List.map renderServer model.servers)
+    case List.isEmpty model.servers of
+        True ->
+            div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+
+        False ->
+            div []
+                [ h2 [] [ text "My Servers" ]
+                , div [] (List.map renderServer model.servers)
+                ]
 
 
 viewServerDetail : Server -> Html Msg
@@ -157,7 +173,8 @@ viewServerDetail server =
 
         Just details ->
             div []
-                [ table []
+                [ h2 [] [ text "Server details" ]
+                , table []
                     [ tr []
                         [ th [] [ text "Property" ]
                         , th [] [ text "Value" ]
