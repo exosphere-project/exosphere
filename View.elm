@@ -246,12 +246,7 @@ viewCreateServer model createServerRequest =
             , tr []
                 [ td [] [ text "Image" ]
                 , td []
-                    [ input
-                        [ type_ "text"
-                        , value createServerRequest.imageUuid
-                        , onInput (InputCreateServerImage createServerRequest)
-                        ]
-                        []
+                    [ text createServerRequest.imageName
                     ]
                 ]
             , tr []
@@ -310,36 +305,61 @@ renderMessage message =
 
 renderImage : Image -> Html Msg
 renderImage image =
-    div []
-        [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "1" "" "" ""))) ] [ text "Launch" ]
-        , table []
-            [ tr []
-                [ th [] [ text "Property" ]
-                , th [] [ text "Value" ]
-                ]
-            , tr []
-                [ td [] [ text "Size" ]
-                , td [] [ text (format image.size) ]
-                ]
-            , tr []
-                [ td [] [ text "Checksum" ]
-                , td [] [ text image.checksum ]
-                ]
-            , tr []
-                [ td [] [ text "Disk format" ]
-                , td [] [ text image.diskFormat ]
-                ]
-            , tr []
-                [ td [] [ text "Container format" ]
-                , td [] [ text image.containerFormat ]
-                ]
-            , tr []
-                [ td [] [ text "UUID" ]
-                , td [] [ text image.uuid ]
+    let
+        size =
+            case image.size of
+                Just size ->
+                    format size
+
+                Nothing ->
+                    "N/A"
+
+        checksum =
+            case image.checksum of
+                Just checksum ->
+                    toString checksum
+
+                Nothing ->
+                    "N/A"
+    in
+        div []
+            [ p [] [ strong [] [ text image.name ] ]
+            , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid image.name "1" "" "" ""))) ] [ text "Launch" ]
+            , table []
+                [ tr []
+                    [ th [] [ text "Property" ]
+                    , th [] [ text "Value" ]
+                    ]
+                , tr []
+                    [ td [] [ text "Status" ]
+                    , td [] [ text (toString image.status) ]
+                    ]
+                , tr []
+                    [ td [] [ text "Size" ]
+                    , td [] [ text size ]
+                    ]
+                , tr []
+                    [ td [] [ text "Checksum" ]
+                    , td [] [ text checksum ]
+                    ]
+                , tr []
+                    [ td [] [ text "Disk format" ]
+                    , td [] [ text image.diskFormat ]
+                    ]
+                , tr []
+                    [ td [] [ text "Container format" ]
+                    , td [] [ text image.containerFormat ]
+                    ]
+                , tr []
+                    [ td [] [ text "UUID" ]
+                    , td [] [ text image.uuid ]
+                    ]
+                , tr []
+                    [ td [] [ text "Tags" ]
+                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+                    ]
                 ]
             ]
-        ]
 
 
 renderServer : Server -> Html Msg
