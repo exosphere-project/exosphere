@@ -2,7 +2,6 @@ module Types.Types exposing (..)
 
 import Http
 import Time
-import Types.OpenstackTypes as OpenstackTypes
 import Types.HelperTypes as HelperTypes
 
 

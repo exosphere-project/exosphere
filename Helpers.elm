@@ -1,6 +1,5 @@
 module Helpers exposing (processError, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState)
 
-import Maybe
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
