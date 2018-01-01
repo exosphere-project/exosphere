@@ -539,17 +539,17 @@ receiveFloatingIp model serverUuid result =
 
 
 addFloatingIpInServerDetails : Maybe ServerDetails -> IpAddress -> Maybe ServerDetails
-addFloatingIpInServerDetails serverDetails ipAddress =
-    case serverDetails of
+addFloatingIpInServerDetails maybeDetails ipAddress =
+    case maybeDetails of
         Nothing ->
             Nothing
 
-        Just serverDetails ->
+        Just details ->
             let
                 newIps =
                     ipAddress :: serverDetails.ipAddresses
             in
-                Just { serverDetails | ipAddresses = newIps }
+                Just { details | ipAddresses = newIps }
 
 
 

@@ -167,10 +167,6 @@ viewServers model =
                 ]
 
 
-
-{- TODO should this logic not go in view? -}
-
-
 viewServerDetail : Model -> ServerUuid -> Html Msg
 viewServerDetail model serverUuid =
     let
