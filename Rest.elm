@@ -63,7 +63,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -144,34 +146,63 @@ requestKeypairs model =
 requestCreateServer : Model -> CreateServerRequest -> Cmd Msg
 requestCreateServer model createServerRequest =
     let
-        requestBody =
-            Encode.object
-                [ ( "server"
-                  , Encode.object
-                        [ ( "name", Encode.string createServerRequest.name )
-                        , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
-                        , ( "imageRef", Encode.string createServerRequest.imageUuid )
-                        , ( "key_name", Encode.string createServerRequest.keypairName )
-                        , ( "networks", Encode.string "auto" )
-                        , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                        ]
-                  )
-                ]
+        serverCount =
+            Result.withDefault 1 (String.toInt createServerRequest.count)
+
+        instanceNumbers =
+            List.range 1 serverCount
+
+        generateServerName : String -> Int -> Int -> String
+        generateServerName baseName serverCount index =
+            if serverCount == 1 then
+                baseName
+            else
+                baseName ++ " " ++ Basics.toString index ++ " of " ++ Basics.toString serverCount
+
+        instanceNames =
+            instanceNumbers
+                |> List.map (generateServerName createServerRequest.name serverCount)
+
+        requestBodies =
+            instanceNames
+                |> List.map
+                    (\instanceName ->
+                        Encode.object
+                            [ ( "server"
+                              , Encode.object
+                                    [ ( "name", Encode.string instanceName )
+                                    , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
+                                    , ( "imageRef", Encode.string createServerRequest.imageUuid )
+                                    , ( "key_name", Encode.string createServerRequest.keypairName )
+                                    , ( "networks", Encode.string "auto" )
+                                    , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
+                                    ]
+                              )
+                            ]
+                    )
     in
-        Http.request
-            { method = "POST"
-            , headers =
-                [ Http.header "X-Auth-Token" model.authToken
-                  -- Microversion needed for automatic network provisioning
-                , Http.header "OpenStack-API-Version" "compute 2.38"
-                ]
-            , url = model.endpoints.nova ++ "/servers"
-            , body = Http.jsonBody requestBody
-            , expect = Http.expectJson (Decode.field "server" serverDecoder)
-            , timeout = Nothing
-            , withCredentials = True
-            }
-            |> Http.send ReceiveCreateServer
+        Cmd.batch
+            (requestBodies
+                |> List.map
+                    (\requestBody ->
+                        (Http.request
+                            { method = "POST"
+                            , headers =
+                                [ Http.header "X-Auth-Token" model.authToken
+
+                                -- Microversion needed for automatic network provisioning
+                                , Http.header "OpenStack-API-Version" "compute 2.38"
+                                ]
+                            , url = model.endpoints.nova ++ "/servers"
+                            , body = Http.jsonBody requestBody
+                            , expect = Http.expectJson (Decode.field "server" serverDecoder)
+                            , timeout = Nothing
+                            , withCredentials = True
+                            }
+                            |> Http.send ReceiveCreateServer
+                        )
+                    )
+            )
 
 
 requestDeleteServer : Model -> Server -> Cmd Msg
