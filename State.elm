@@ -10,7 +10,9 @@ import Rest
 
 init : ( Model, Cmd Msg )
 init =
-    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = ""
+
+      {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = ""
             , nova = ""
@@ -24,7 +26,8 @@ init =
                 "default"
                 "demo"
                 ""
-            {- password -}
+
+      {- password -}
       , messages = []
       , images = []
       , servers = []
@@ -185,6 +188,13 @@ update msg model =
             let
                 viewState =
                     CreateServer { createServerRequest | imageUuid = imageUuid }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
+
+        InputCreateServerCount createServerRequest count ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | count = count }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
