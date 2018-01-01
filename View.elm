@@ -2,6 +2,7 @@ module View exposing (view)
 
 import Html exposing (Html, button, div, fieldset, h2, input, label, p, strong, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (cols, placeholder, rows, type_, value)
+import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Base64
 import Filesize exposing (format)
@@ -244,6 +245,19 @@ viewCreateServer model createServerRequest =
                     ]
                 ]
             , tr []
+                [ td [] [ text "How Many?" ]
+                , td []
+                    [ input
+                        [ type_ "number"
+                        , Attr.min "1"
+                        , Attr.max "10"
+                        , value createServerRequest.count
+                        , onInput (InputCreateServerCount createServerRequest)
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
                 [ td [] [ text "Size" ]
                 , td []
                     [ viewFlavorPicker model.flavors createServerRequest
@@ -288,7 +302,7 @@ renderImage : Image -> Html Msg
 renderImage image =
     div []
         [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" "" ""))) ] [ text "Launch" ]
+        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "1" "" "" ""))) ] [ text "Launch" ]
         , table []
             [ tr []
                 [ th [] [ text "Property" ]

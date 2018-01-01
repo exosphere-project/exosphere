@@ -62,7 +62,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -156,21 +158,30 @@ requestCreateServer model createServerRequest =
                         ]
                   )
                 ]
+
+        serverCount =
+            Result.withDefault 1 (String.toInt createServerRequest.count)
     in
-        Http.request
-            { method = "POST"
-            , headers =
-                [ Http.header "X-Auth-Token" model.authToken
-                  -- Microversion needed for automatic network provisioning
-                , Http.header "OpenStack-API-Version" "compute 2.38"
-                ]
-            , url = model.endpoints.nova ++ "/v2.1/servers"
-            , body = Http.jsonBody requestBody
-            , expect = Http.expectJson (Decode.field "server" serverDecoder)
-            , timeout = Nothing
-            , withCredentials = True
-            }
-            |> Http.send ReceiveCreateServer
+        Cmd.batch
+            (List.repeat
+                serverCount
+                (Http.request
+                    { method = "POST"
+                    , headers =
+                        [ Http.header "X-Auth-Token" model.authToken
+
+                        -- Microversion needed for automatic network provisioning
+                        , Http.header "OpenStack-API-Version" "compute 2.38"
+                        ]
+                    , url = model.endpoints.nova ++ "/v2.1/servers"
+                    , body = Http.jsonBody requestBody
+                    , expect = Http.expectJson (Decode.field "server" serverDecoder)
+                    , timeout = Nothing
+                    , withCredentials = True
+                    }
+                    |> Http.send ReceiveCreateServer
+                )
+            )
 
 
 requestDeleteServer : Model -> Server -> Cmd Msg

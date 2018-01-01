@@ -47,6 +47,7 @@ type Msg
     | InputPassword String
     | InputCreateServerName CreateServerRequest String
     | InputCreateServerImage CreateServerRequest String
+    | InputCreateServerCount CreateServerRequest String
     | InputCreateServerUserData CreateServerRequest String
     | InputCreateServerSize CreateServerRequest String
     | InputCreateServerKeypairName CreateServerRequest String
@@ -142,6 +143,7 @@ type alias ServerDetails =
 type alias CreateServerRequest =
     { name : String
     , imageUuid : ImageUuid
+    , count : String
     , flavorUuid : FlavorUuid
     , keypairName : String
     , userData : String
