@@ -1,6 +1,9 @@
-module Helpers exposing (..)
+module Helpers exposing (processError, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState)
 
-import Types exposing (..)
+import Maybe
+import Types.HelperTypes as HelperTypes
+import Types.Types exposing (..)
+import Types.OpenstackTypes as OpenstackTypes
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -10,6 +13,48 @@ processError model error =
             toString error :: model.messages
     in
         ( { model | messages = newMsgs }, Cmd.none )
+
+
+serviceCatalogToEndpoints : OpenstackTypes.ServiceCatalog -> Endpoints
+serviceCatalogToEndpoints catalog =
+    Endpoints
+        (getServicePublicUrl "glance" catalog)
+        (getServicePublicUrl "nova" catalog)
+        (getServicePublicUrl "neutron" catalog)
+
+
+getServicePublicUrl : String -> OpenstackTypes.ServiceCatalog -> HelperTypes.Url
+getServicePublicUrl serviceName catalog =
+    let
+        maybeService =
+            getServiceFromCatalog serviceName catalog
+
+        maybePublicEndpoint =
+            getPublicEndpointFromService maybeService
+    in
+        case maybePublicEndpoint of
+            Just endpoint ->
+                endpoint.url
+
+            Nothing ->
+                ""
+
+
+getServiceFromCatalog : String -> OpenstackTypes.ServiceCatalog -> Maybe OpenstackTypes.Service
+getServiceFromCatalog serviceName catalog =
+    List.filter (\s -> s.name == serviceName) catalog
+        |> List.head
+
+
+getPublicEndpointFromService : Maybe OpenstackTypes.Service -> Maybe OpenstackTypes.Endpoint
+getPublicEndpointFromService maybeService =
+    case maybeService of
+        Just service ->
+            List.filter (\e -> e.interface == OpenstackTypes.Public) service.endpoints
+                |> List.head
+
+        Nothing ->
+            Nothing
 
 
 getExternalNetwork : Model -> Maybe Network

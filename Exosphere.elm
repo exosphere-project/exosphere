@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Html exposing (program)
 import State
-import Types exposing (Model, Msg)
+import Types.Types exposing (Model, Msg)
 import View
 
 

@@ -5,7 +5,7 @@ import Html.Attributes exposing (cols, placeholder, rows, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Base64
 import Filesize exposing (format)
-import Types exposing (..)
+import Types.Types exposing (..)
 
 
 view : Model -> Html Msg
@@ -135,7 +135,7 @@ viewLogin model =
                     ]
                 ]
             ]
-        , button [ onClick RequestAuth ] [ text "Log in" ]
+        , button [ onClick RequestAuthToken ] [ text "Log in" ]
         ]
 
 

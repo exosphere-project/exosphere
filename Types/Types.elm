@@ -1,7 +1,9 @@
-module Types exposing (..)
+module Types.Types exposing (..)
 
 import Http
 import Time
+import Types.OpenstackTypes as OpenstackTypes
+import Types.HelperTypes as HelperTypes
 
 
 {- App-Level Types -}
@@ -25,10 +27,10 @@ type alias Model =
 type Msg
     = Tick Time.Time
     | ChangeViewState ViewState
-    | RequestAuth
+    | RequestAuthToken
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
-    | ReceiveAuth (Result Http.Error (Http.Response String))
+    | ReceiveAuthToken (Result Http.Error (Http.Response String))
     | ReceiveImages (Result Http.Error (List Image))
     | ReceiveServers (Result Http.Error (List Server))
     | ReceiveServerDetail Server (Result Http.Error ServerDetails)
@@ -72,9 +74,9 @@ type alias Creds =
 
 
 type alias Endpoints =
-    { glance : String
-    , nova : String
-    , neutron : String
+    { glance : HelperTypes.Url
+    , nova : HelperTypes.Url
+    , neutron : HelperTypes.Url
     }
 
 
@@ -93,7 +95,7 @@ type alias Image =
 
 
 type alias ImageUuid =
-    Uuid
+    HelperTypes.Uuid
 
 
 type alias Server =
@@ -105,7 +107,7 @@ type alias Server =
 
 
 type alias ServerUuid =
-    Uuid
+    HelperTypes.Uuid
 
 
 type FloatingIpState
@@ -155,7 +157,7 @@ type alias Flavor =
 
 
 type alias FlavorUuid =
-    Uuid
+    HelperTypes.Uuid
 
 
 type alias Keypair =
@@ -186,7 +188,7 @@ type alias Network =
 
 
 type alias NetworkUuid =
-    Uuid
+    HelperTypes.Uuid
 
 
 type alias Port =
@@ -198,12 +200,4 @@ type alias Port =
 
 
 type alias PortUuid =
-    Uuid
-
-
-
-{- Helper Types -}
-
-
-type alias Uuid =
-    String
+    HelperTypes.Uuid

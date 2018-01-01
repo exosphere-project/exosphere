@@ -1,7 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Time
-import Types exposing (..)
+import Types.Types exposing (..)
 import Rest
 
 
@@ -12,9 +12,9 @@ init : ( Model, Cmd Msg )
 init =
     ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
-            { glance = "https://tombstone-cloud.cyverse.org:9292"
-            , nova = "https://tombstone-cloud.cyverse.org:8774"
-            , neutron = "https://tombstone-cloud.cyverse.org:9696"
+            { glance = ""
+            , nova = ""
+            , neutron = ""
             }
       , creds =
             Creds
@@ -86,7 +86,7 @@ update msg model =
                             ]
                         )
 
-        RequestAuth ->
+        RequestAuthToken ->
             ( model, Rest.requestAuthToken model )
 
         RequestCreateServer createServerRequest ->
@@ -97,8 +97,8 @@ update msg model =
             , Rest.requestDeleteServer model server
             )
 
-        ReceiveAuth response ->
-            Rest.receiveAuth model response
+        ReceiveAuthToken response ->
+            Rest.receiveAuthToken model response
 
         ReceiveImages result ->
             Rest.receiveImages model result
