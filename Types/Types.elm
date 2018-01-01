@@ -47,7 +47,6 @@ type Msg
     | InputUsername String
     | InputPassword String
     | InputCreateServerName CreateServerRequest String
-    | InputCreateServerImage CreateServerRequest String
     | InputCreateServerCount CreateServerRequest String
     | InputCreateServerUserData CreateServerRequest String
     | InputCreateServerSize CreateServerRequest String
@@ -86,16 +85,28 @@ type alias Endpoints =
 
 type alias Image =
     { name : String
+    , status : ImageStatus
     , uuid : ImageUuid
-    , size : Int
-    , checksum : String
+    , size : Maybe Int
+    , checksum : Maybe String
     , diskFormat : String
     , containerFormat : String
+    , tags : List String
     }
 
 
 type alias ImageUuid =
     HelperTypes.Uuid
+
+
+type ImageStatus
+    = Queued
+    | Saving
+    | Active
+    | Killed
+    | Deleted
+    | PendingDelete
+    | Deactivated
 
 
 type alias Server =
@@ -144,6 +155,7 @@ type alias ServerDetails =
 type alias CreateServerRequest =
     { name : String
     , imageUuid : ImageUuid
+    , imageName : String
     , count : String
     , flavorUuid : FlavorUuid
     , keypairName : String

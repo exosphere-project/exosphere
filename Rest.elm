@@ -78,7 +78,7 @@ requestImages model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.glance ++ "/v1/images"
+        , url = model.endpoints.glance ++ "/v2/images"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeImages
         , timeout = Nothing
@@ -622,13 +622,43 @@ decodeImages =
 
 imageDecoder : Decode.Decoder Image
 imageDecoder =
-    Decode.map6 Image
+    Decode.map8 Image
         (Decode.field "name" Decode.string)
+        (Decode.field "status" Decode.string |> Decode.andThen imageStatusDecoder)
         (Decode.field "id" Decode.string)
-        (Decode.field "size" Decode.int)
-        (Decode.field "checksum" Decode.string)
+        (Decode.field "size" (Decode.nullable Decode.int))
+        (Decode.field "checksum" (Decode.nullable Decode.string))
         (Decode.field "disk_format" Decode.string)
         (Decode.field "container_format" Decode.string)
+        (Decode.field "tags" (Decode.list Decode.string))
+
+
+imageStatusDecoder : String -> Decode.Decoder ImageStatus
+imageStatusDecoder status =
+    case status of
+        "queued" ->
+            Decode.succeed Queued
+
+        "saving" ->
+            Decode.succeed Saving
+
+        "active" ->
+            Decode.succeed Active
+
+        "killed" ->
+            Decode.succeed Killed
+
+        "deleted" ->
+            Decode.succeed Deleted
+
+        "pending_delete" ->
+            Decode.succeed PendingDelete
+
+        "deactivated" ->
+            Decode.succeed Deactivated
+
+        _ ->
+            Decode.fail "Unrecognized image status"
 
 
 decodeServers : Decode.Decoder (List Server)

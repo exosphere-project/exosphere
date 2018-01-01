@@ -181,13 +181,6 @@ update msg model =
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerImage createServerRequest imageUuid ->
-            let
-                viewState =
-                    CreateServer { createServerRequest | imageUuid = imageUuid }
-            in
-                ( { model | viewState = viewState }, Cmd.none )
-
         InputCreateServerCount createServerRequest count ->
             let
                 viewState =
