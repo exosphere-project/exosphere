@@ -51,8 +51,8 @@ update msg model =
                 ListUserServers ->
                     ( model, Rest.requestServers model )
 
-                ServerDetail server ->
-                    ( model, Rest.requestServerDetail model server )
+                ServerDetail serverUuid ->
+                    ( model, Rest.requestServerDetail model serverUuid )
 
                 _ ->
                     ( model, Cmd.none )
@@ -75,8 +75,8 @@ update msg model =
                     ListUserServers ->
                         ( newModel, Rest.requestServers newModel )
 
-                    ServerDetail server ->
-                        ( newModel, Rest.requestServerDetail newModel server )
+                    ServerDetail serverUuid ->
+                        ( newModel, Rest.requestServerDetail newModel serverUuid )
 
                     CreateServer _ ->
                         ( newModel
@@ -106,8 +106,8 @@ update msg model =
         ReceiveServers result ->
             Rest.receiveServers model result
 
-        ReceiveServerDetail server result ->
-            Rest.receiveServerDetail model server result
+        ReceiveServerDetail serverUuid result ->
+            Rest.receiveServerDetail model serverUuid result
 
         ReceiveFlavors result ->
             Rest.receiveFlavors model result
@@ -185,6 +185,13 @@ update msg model =
             let
                 viewState =
                     CreateServer { createServerRequest | imageUuid = imageUuid }
+            in
+                ( { model | viewState = viewState }, Cmd.none )
+
+        InputCreateServerCount createServerRequest count ->
+            let
+                viewState =
+                    CreateServer { createServerRequest | count = count }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 

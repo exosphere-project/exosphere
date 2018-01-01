@@ -31,14 +31,14 @@ type Msg
     | ReceiveAuth (Result Http.Error (Http.Response String))
     | ReceiveImages (Result Http.Error (List Image))
     | ReceiveServers (Result Http.Error (List Server))
-    | ReceiveServerDetail Server (Result Http.Error ServerDetails)
+    | ReceiveServerDetail ServerUuid (Result Http.Error ServerDetails)
     | ReceiveCreateServer (Result Http.Error Server)
     | ReceiveDeleteServer (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List Flavor))
     | ReceiveKeypairs (Result Http.Error (List Keypair))
     | ReceiveNetworks (Result Http.Error (List Network))
     | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
-    | ReceiveFloatingIp ServerUuid (Result Http.Error String)
+    | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -47,6 +47,7 @@ type Msg
     | InputPassword String
     | InputCreateServerName CreateServerRequest String
     | InputCreateServerImage CreateServerRequest String
+    | InputCreateServerCount CreateServerRequest String
     | InputCreateServerUserData CreateServerRequest String
     | InputCreateServerSize CreateServerRequest String
     | InputCreateServerKeypairName CreateServerRequest String
@@ -57,7 +58,7 @@ type ViewState
     | Home
     | ListImages
     | ListUserServers
-    | ServerDetail Server
+    | ServerDetail ServerUuid
     | CreateServer CreateServerRequest
 
 
@@ -142,6 +143,7 @@ type alias ServerDetails =
 type alias CreateServerRequest =
     { name : String
     , imageUuid : ImageUuid
+    , count : String
     , flavorUuid : FlavorUuid
     , keypairName : String
     , userData : String

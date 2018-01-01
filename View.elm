@@ -2,9 +2,11 @@ module View exposing (view)
 
 import Html exposing (Html, button, div, fieldset, h2, input, label, p, strong, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (cols, placeholder, rows, type_, value)
+import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Base64
 import Filesize exposing (format)
+import Helpers
 import Types exposing (..)
 
 
@@ -31,8 +33,8 @@ view model =
             ListUserServers ->
                 viewServers model
 
-            ServerDetail server ->
-                viewServerDetail server
+            ServerDetail serverUuid ->
+                viewServerDetail model serverUuid
 
             CreateServer createServerRequest ->
                 viewCreateServer model createServerRequest
@@ -165,50 +167,59 @@ viewServers model =
                 ]
 
 
-viewServerDetail : Server -> Html Msg
-viewServerDetail server =
-    case server.details of
-        Nothing ->
-            text "Retrieving details??"
+viewServerDetail : Model -> ServerUuid -> Html Msg
+viewServerDetail model serverUuid =
+    let
+        maybeServer =
+            Helpers.serverLookup model serverUuid
+    in
+        case maybeServer of
+            Nothing ->
+                text "No server found"
 
-        Just details ->
-            div []
-                [ h2 [] [ text "Server details" ]
-                , table []
-                    [ tr []
-                        [ th [] [ text "Property" ]
-                        , th [] [ text "Value" ]
-                        ]
-                    , tr []
-                        [ td [] [ text "Name" ]
-                        , td [] [ text server.name ]
-                        ]
-                    , tr []
-                        [ td [] [ text "UUID" ]
-                        , td [] [ text server.uuid ]
-                        ]
-                    , tr []
-                        [ td [] [ text "Created on" ]
-                        , td [] [ text details.created ]
-                        ]
-                    , tr []
-                        [ td [] [ text "Status" ]
-                        , td [] [ text details.status ]
-                        ]
-                    , tr []
-                        [ td [] [ text "Power state" ]
-                        , td [] [ text (toString details.powerState) ]
-                        ]
-                    , tr []
-                        [ td [] [ text "SSH Key Name" ]
-                        , td [] [ text details.keypairName ]
-                        ]
-                    , tr []
-                        [ td [] [ text "IP addresses" ]
-                        , td [] [ renderIpAddresses details.ipAddresses ]
-                        ]
-                    ]
-                ]
+            Just server ->
+                case server.details of
+                    Nothing ->
+                        text "Retrieving details??"
+
+                    Just details ->
+                        div []
+                            [ h2 [] [ text "Server details" ]
+                            , table []
+                                [ tr []
+                                    [ th [] [ text "Property" ]
+                                    , th [] [ text "Value" ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "Name" ]
+                                    , td [] [ text server.name ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "UUID" ]
+                                    , td [] [ text server.uuid ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "Created on" ]
+                                    , td [] [ text details.created ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "Status" ]
+                                    , td [] [ text details.status ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "Power state" ]
+                                    , td [] [ text (toString details.powerState) ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "SSH Key Name" ]
+                                    , td [] [ text details.keypairName ]
+                                    ]
+                                , tr []
+                                    [ td [] [ text "IP addresses" ]
+                                    , td [] [ renderIpAddresses details.ipAddresses ]
+                                    ]
+                                ]
+                            ]
 
 
 viewCreateServer : Model -> CreateServerRequest -> Html Msg
@@ -239,6 +250,19 @@ viewCreateServer model createServerRequest =
                         [ type_ "text"
                         , value createServerRequest.imageUuid
                         , onInput (InputCreateServerImage createServerRequest)
+                        ]
+                        []
+                    ]
+                ]
+            , tr []
+                [ td [] [ text "How Many?" ]
+                , td []
+                    [ input
+                        [ type_ "number"
+                        , Attr.min "1"
+                        , Attr.max "10"
+                        , value createServerRequest.count
+                        , onInput (InputCreateServerCount createServerRequest)
                         ]
                         []
                     ]
@@ -288,7 +312,7 @@ renderImage : Image -> Html Msg
 renderImage image =
     div []
         [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "" "" ""))) ] [ text "Launch" ]
+        , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid "1" "" "" ""))) ] [ text "Launch" ]
         , table []
             [ tr []
                 [ th [] [ text "Property" ]
@@ -323,7 +347,7 @@ renderServer server =
     div []
         [ p [] [ strong [] [ text server.name ] ]
         , text ("UUID: " ++ server.uuid)
-        , button [ onClick (ChangeViewState (ServerDetail server)) ] [ text "Details" ]
+        , button [ onClick (ChangeViewState (ServerDetail server.uuid)) ] [ text "Details" ]
         , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]
         ]
 
