@@ -63,7 +63,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -187,7 +189,8 @@ requestCreateServer model createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" model.authToken
-                                  -- Microversion needed for automatic network provisioning
+
+                                -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = model.endpoints.nova ++ "/servers"
@@ -565,7 +568,7 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
         Just details ->
             let
                 newIps =
-                    ipAddress :: serverDetails.ipAddresses
+                    ipAddress :: details.ipAddresses
             in
                 Just { details | ipAddresses = newIps }
 

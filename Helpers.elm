@@ -1,4 +1,4 @@
-module Helpers exposing (processError, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState)
+module Helpers exposing (processError, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup)
 
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
@@ -96,6 +96,6 @@ checkFloatingIpState serverDetails floatingIpState =
                     NotRequestable
 
 
-serverLookup : Model -> Uuid -> Maybe Server
+serverLookup : Model -> ServerUuid -> Maybe Server
 serverLookup model serverUuid =
     List.filter (\s -> s.uuid == serverUuid) model.servers |> List.head
