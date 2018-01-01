@@ -101,18 +101,18 @@ requestServers model =
         |> Http.send ReceiveServers
 
 
-requestServerDetail : Model -> Server -> Cmd Msg
-requestServerDetail model server =
+requestServerDetail : Model -> ServerUuid -> Cmd Msg
+requestServerDetail model serverUuid =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/servers/" ++ serverUuid
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServerDetails
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveServerDetail server)
+        |> Http.send (ReceiveServerDetail serverUuid)
 
 
 requestFlavors : Model -> Cmd Msg
@@ -298,7 +298,7 @@ requestFloatingIp model network port_ server =
                 , headers = [ Http.header "X-Auth-Token" model.authToken ]
                 , url = model.endpoints.neutron ++ "/v2.0/floatingips"
                 , body = Http.jsonBody requestBody
-                , expect = Http.expectString
+                , expect = Http.expectJson decodeFloatingIpCreation
                 , timeout = Nothing
                 , withCredentials = True
                 }
@@ -365,48 +365,60 @@ receiveServers model result =
             ( { model | servers = servers }, Cmd.none )
 
 
-receiveServerDetail : Model -> Server -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetail model server result =
+receiveServerDetail : Model -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetail model serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok serverDetails ->
             let
-                floatingIpState =
-                    Helpers.checkFloatingIpState
-                        serverDetails
-                        server.floatingIpState
-
-                newServer =
-                    { server
-                        | details = Just serverDetails
-                        , floatingIpState = floatingIpState
-                    }
-
-                otherServers =
-                    List.filter (\s -> s.uuid /= newServer.uuid) model.servers
-
-                newServers =
-                    newServer :: otherServers
-
-                newModel =
-                    { model
-                        | servers = newServers
-                        , {- TODO take this out? -} viewState = ServerDetail newServer
-                    }
+                maybeServer =
+                    List.filter (\s -> s.uuid == serverUuid) model.servers
+                        |> List.head
             in
-                case floatingIpState of
-                    Requestable ->
-                        ( newModel
-                        , Cmd.batch
-                            [ getFloatingIpRequestPorts newModel newServer
-                            , requestNetworks newModel
-                            ]
-                        )
+                case maybeServer of
+                    Nothing ->
+                        Helpers.processError
+                            model
+                            "No server found when receiving server details"
 
-                    _ ->
-                        ( newModel, Cmd.none )
+                    Just server ->
+                        let
+                            floatingIpState =
+                                Helpers.checkFloatingIpState
+                                    serverDetails
+                                    server.floatingIpState
+
+                            newServer =
+                                { server
+                                    | details = Just serverDetails
+                                    , floatingIpState = floatingIpState
+                                }
+
+                            otherServers =
+                                List.filter (\s -> s.uuid /= newServer.uuid) model.servers
+
+                            newServers =
+                                newServer :: otherServers
+
+                            newModel =
+                                { model
+                                    | servers = newServers
+                                    , {- TODO take this out? -} viewState = ServerDetail newServer.uuid
+                                }
+                        in
+                            case floatingIpState of
+                                Requestable ->
+                                    ( newModel
+                                    , Cmd.batch
+                                        [ getFloatingIpRequestPorts newModel newServer
+                                        , requestNetworks newModel
+                                        ]
+                                    )
+
+                                _ ->
+                                    ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
@@ -493,7 +505,7 @@ receivePortsAndRequestFloatingIp model serverUuid result =
                             "We should have an external network here but we don't"
 
 
-receiveFloatingIp : Model -> ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveFloatingIp : Model -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
 receiveFloatingIp model serverUuid result =
     let
         maybeServer =
@@ -524,10 +536,16 @@ receiveFloatingIp model serverUuid result =
                         in
                             Helpers.processError newModel error
 
-                    Ok _ ->
+                    Ok ipAddress ->
                         let
                             newServer =
-                                { server | floatingIpState = Success }
+                                { server
+                                    | floatingIpState = Success
+                                    , details =
+                                        addFloatingIpInServerDetails
+                                            server.details
+                                            ipAddress
+                                }
 
                             otherServers =
                                 List.filter (\s -> s.uuid /= newServer.uuid) model.servers
@@ -539,6 +557,20 @@ receiveFloatingIp model serverUuid result =
                                 { model | servers = newServers }
                         in
                             ( newModel, Cmd.none )
+
+
+addFloatingIpInServerDetails : Maybe ServerDetails -> IpAddress -> Maybe ServerDetails
+addFloatingIpInServerDetails maybeDetails ipAddress =
+    case maybeDetails of
+        Nothing ->
+            Nothing
+
+        Just details ->
+            let
+                newIps =
+                    ipAddress :: details.ipAddresses
+            in
+                Just { details | ipAddresses = newIps }
 
 
 
@@ -705,3 +737,10 @@ portDecoder =
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
+
+
+decodeFloatingIpCreation : Decode.Decoder IpAddress
+decodeFloatingIpCreation =
+    Decode.map2 IpAddress
+        (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
+        (Decode.succeed Floating)
