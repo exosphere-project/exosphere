@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/asthenosphere/exosphere.git"
+    "url": "git+https://github.com/exosphere-project/exosphere.git"
   },
   "keywords": [
     "elm",
@@ -26,7 +26,7 @@
     "electron"
   ],
   "bugs": {
-    "url": "https://github.com/asthenosphere/exosphere/issues"
+    "url": "https://github.com/exosphere-project/exosphere/issues"
   },
-  "homepage": "https://github.com/asthenosphere/exosphere#readme"
+  "homepage": "https://github.com/exosphere-project/exosphere#readme"
 }
