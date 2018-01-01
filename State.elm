@@ -10,9 +10,7 @@ import Rest
 
 init : ( Model, Cmd Msg )
 init =
-    ( { authToken = ""
-
-      {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = ""
             , nova = ""
@@ -26,8 +24,7 @@ init =
                 "default"
                 "demo"
                 ""
-
-      {- password -}
+            {- password -}
       , messages = []
       , images = []
       , servers = []
@@ -78,8 +75,8 @@ update msg model =
                     ListUserServers ->
                         ( newModel, Rest.requestServers newModel )
 
-                    ServerDetail server ->
-                        ( newModel, Rest.requestServerDetail newModel server )
+                    ServerDetail serverUuid ->
+                        ( newModel, Rest.requestServerDetail newModel serverUuid )
 
                     CreateServer _ ->
                         ( newModel
@@ -109,8 +106,8 @@ update msg model =
         ReceiveServers result ->
             Rest.receiveServers model result
 
-        ReceiveServerDetail server result ->
-            Rest.receiveServerDetail model server result
+        ReceiveServerDetail serverUuid result ->
+            Rest.receiveServerDetail model serverUuid result
 
         ReceiveFlavors result ->
             Rest.receiveFlavors model result
