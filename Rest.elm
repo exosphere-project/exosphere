@@ -6,7 +6,8 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Base64
 import Helpers
-import Types exposing (..)
+import Types.Types exposing (..)
+import Types.OpenstackTypes as OpenstackTypes
 
 
 {- HTTP Requests -}
@@ -67,7 +68,7 @@ requestAuthToken model =
             , timeout = Nothing
             , withCredentials = True
             }
-            |> Http.send ReceiveAuth
+            |> Http.send ReceiveAuthToken
 
 
 requestImages : Model -> Cmd Msg
@@ -89,7 +90,7 @@ requestServers model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/servers"
+        , url = model.endpoints.nova ++ "/servers"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServers
         , timeout = Nothing
@@ -103,7 +104,7 @@ requestServerDetail model server =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
         , body = Http.emptyBody
         , expect = Http.expectJson decodeServerDetails
         , timeout = Nothing
@@ -117,7 +118,7 @@ requestFlavors model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/flavors"
+        , url = model.endpoints.nova ++ "/flavors"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeFlavors
         , timeout = Nothing
@@ -131,7 +132,7 @@ requestKeypairs model =
     Http.request
         { method = "GET"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/os-keypairs"
+        , url = model.endpoints.nova ++ "/os-keypairs"
         , body = Http.emptyBody
         , expect = Http.expectJson decodeKeypairs
         , timeout = Nothing
@@ -164,7 +165,7 @@ requestCreateServer model createServerRequest =
                   -- Microversion needed for automatic network provisioning
                 , Http.header "OpenStack-API-Version" "compute 2.38"
                 ]
-            , url = model.endpoints.nova ++ "/v2.1/servers"
+            , url = model.endpoints.nova ++ "/servers"
             , body = Http.jsonBody requestBody
             , expect = Http.expectJson (Decode.field "server" serverDecoder)
             , timeout = Nothing
@@ -178,7 +179,7 @@ requestDeleteServer model server =
     Http.request
         { method = "DELETE"
         , headers = [ Http.header "X-Auth-Token" model.authToken ]
-        , url = model.endpoints.nova ++ "/v2.1/servers/" ++ server.uuid
+        , url = model.endpoints.nova ++ "/servers/" ++ server.uuid
         , body = Http.emptyBody
         , expect = Http.expectString
         , timeout = Nothing
@@ -279,19 +280,36 @@ requestFloatingIp model network port_ server =
 {- HTTP Response Handling -}
 
 
-receiveAuth : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
-receiveAuth model responseResult =
+receiveAuthToken : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
+receiveAuthToken model responseResult =
     case responseResult of
         Err error ->
             Helpers.processError model error
 
         Ok response ->
+            storeTokenAndEndpoints model response
+
+
+storeTokenAndEndpoints : Model -> Http.Response String -> ( Model, Cmd Msg )
+storeTokenAndEndpoints model response =
+    case Decode.decodeString decodeAuthToken response.body of
+        Err error ->
+            Helpers.processError model error
+
+        Ok serviceCatalog ->
             let
                 authToken =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
 
+                endpoints =
+                    Helpers.serviceCatalogToEndpoints serviceCatalog
+
                 newModel =
-                    { model | authToken = authToken, viewState = ListUserServers }
+                    { model
+                        | authToken = authToken
+                        , endpoints = endpoints
+                        , viewState = ListUserServers
+                    }
             in
                 ( newModel, Cmd.none )
 
@@ -494,6 +512,44 @@ receiveFloatingIp model serverUuid result =
 
 
 {- JSON Decoders -}
+
+
+decodeAuthToken : Decode.Decoder OpenstackTypes.ServiceCatalog
+decodeAuthToken =
+    Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder)
+
+
+openstackServiceDecoder : Decode.Decoder OpenstackTypes.Service
+openstackServiceDecoder =
+    Decode.map3 OpenstackTypes.Service
+        (Decode.field "name" Decode.string)
+        (Decode.field "type" Decode.string)
+        (Decode.field "endpoints" (Decode.list openstackEndpointDecoder))
+
+
+openstackEndpointDecoder : Decode.Decoder OpenstackTypes.Endpoint
+openstackEndpointDecoder =
+    Decode.map2 OpenstackTypes.Endpoint
+        (Decode.field "interface" Decode.string
+            |> Decode.andThen openstackEndpointInterfaceDecoder
+        )
+        (Decode.field "url" Decode.string)
+
+
+openstackEndpointInterfaceDecoder : String -> Decode.Decoder OpenstackTypes.EndpointInterface
+openstackEndpointInterfaceDecoder interface =
+    case interface of
+        "public" ->
+            Decode.succeed OpenstackTypes.Public
+
+        "admin" ->
+            Decode.succeed OpenstackTypes.Admin
+
+        "internal" ->
+            Decode.succeed OpenstackTypes.Internal
+
+        _ ->
+            Decode.fail "unrecognized interface type"
 
 
 decodeImages : Decode.Decoder (List Image)
