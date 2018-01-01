@@ -50,3 +50,8 @@ checkFloatingIpState serverDetails floatingIpState =
                     Requestable
                 else
                     NotRequestable
+
+
+serverLookup : Model -> Uuid -> Maybe Server
+serverLookup model serverUuid =
+    List.filter (\s -> s.uuid == serverUuid) model.servers |> List.head
