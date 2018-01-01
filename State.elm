@@ -51,8 +51,8 @@ update msg model =
                 ListUserServers ->
                     ( model, Rest.requestServers model )
 
-                ServerDetail server ->
-                    ( model, Rest.requestServerDetail model server )
+                ServerDetail serverUuid ->
+                    ( model, Rest.requestServerDetail model serverUuid )
 
                 _ ->
                     ( model, Cmd.none )
