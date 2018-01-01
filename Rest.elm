@@ -278,7 +278,6 @@ requestFloatingIp model network port_ server =
 
 
 {- HTTP Response Handling -}
-{- TODO break this up -}
 
 
 receiveAuthToken : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
@@ -288,30 +287,31 @@ receiveAuthToken model responseResult =
             Helpers.processError model error
 
         Ok response ->
+            storeTokenAndEndpoints model response
+
+
+storeTokenAndEndpoints : Model -> Http.Response String -> ( Model, Cmd Msg )
+storeTokenAndEndpoints model response =
+    case Decode.decodeString decodeAuthToken response.body of
+        Err error ->
+            Helpers.processError model error
+
+        Ok serviceCatalog ->
             let
-                serviceCatalogResult =
-                    Decode.decodeString decodeAuthToken response.body
+                authToken =
+                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
+
+                endpoints =
+                    Helpers.serviceCatalogToEndpoints serviceCatalog
+
+                newModel =
+                    { model
+                        | authToken = authToken
+                        , endpoints = endpoints
+                        , viewState = ListUserServers
+                    }
             in
-                case serviceCatalogResult of
-                    Err error ->
-                        Helpers.processError model error
-
-                    Ok serviceCatalog ->
-                        let
-                            authToken =
-                                Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
-
-                            endpoints =
-                                Helpers.serviceCatalogToEndpoints serviceCatalog
-
-                            newModel =
-                                { model
-                                    | authToken = authToken
-                                    , endpoints = endpoints
-                                    , viewState = ListUserServers
-                                }
-                        in
-                            ( newModel, Cmd.none )
+                ( newModel, Cmd.none )
 
 
 receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
