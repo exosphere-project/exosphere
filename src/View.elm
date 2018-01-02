@@ -16,28 +16,54 @@ view model =
         [ viewMessages model
         , case model.viewState of
             Login ->
-                div [] []
-
-            _ ->
-                viewNav model
-        , case model.viewState of
-            Login ->
                 viewLogin model
 
             Home ->
                 div [] [ p [] [ text "Todo put things here" ] ]
 
-            ListImages ->
-                viewImages model
+            ListImages providerName ->
+                case Helpers.providerLookup model providerName of
+                    Nothing ->
+                        text "Provider not found"
 
-            ListUserServers ->
-                viewServers model
+                    Just provider ->
+                        div []
+                            [ viewNav provider
+                            , viewImages provider
+                            ]
 
-            ServerDetail serverUuid ->
-                viewServerDetail model serverUuid
+            ListUserServers providerName ->
+                case Helpers.providerLookup model providerName of
+                    Nothing ->
+                        text "Provider not found"
 
-            CreateServer createServerRequest ->
-                viewCreateServer model createServerRequest
+                    Just provider ->
+                        div []
+                            [ viewNav provider
+                            , viewServers provider
+                            ]
+
+            ServerDetail providerName serverUuid ->
+                case Helpers.providerLookup model providerName of
+                    Nothing ->
+                        text "Provider not found"
+
+                    Just provider ->
+                        div []
+                            [ viewNav provider
+                            , viewServerDetail provider serverUuid
+                            ]
+
+            CreateServer providerName createServerRequest ->
+                case Helpers.providerLookup model providerName of
+                    Nothing ->
+                        text "Provider not found"
+
+                    Just provider ->
+                        div []
+                            [ viewNav provider
+                            , viewCreateServer provider createServerRequest
+                            ]
         ]
 
 
@@ -50,13 +76,13 @@ viewMessages model =
     div [] (List.map renderMessage model.messages)
 
 
-viewNav : Model -> Html Msg
-viewNav _ =
+viewNav : Provider -> Html Msg
+viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
-        , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
-        , button [ onClick (ChangeViewState ListImages) ] [ text "Create Server" ]
+        , button [ onClick (ChangeViewState (ListUserServers provider.name)) ] [ text "My Servers" ]
+        , button [ onClick (ChangeViewState (ListImages provider.name)) ] [ text "Create Server" ]
         ]
 
 
@@ -137,39 +163,39 @@ viewLogin model =
                     ]
                 ]
             ]
-        , button [ onClick RequestAuthToken ] [ text "Log in" ]
+        , button [ onClick RequestNewProviderToken ] [ text "Log in" ]
         ]
 
 
-viewImages : Model -> Html Msg
-viewImages model =
-    case List.isEmpty model.images of
+viewImages : Provider -> Html Msg
+viewImages provider =
+    case List.isEmpty provider.images of
         True ->
             div [] [ p [] [ text "Images loading" ] ]
 
         False ->
             div []
                 [ h2 [] [ text "Choose an image" ]
-                , div [] (List.map renderImage model.images)
+                , div [] (List.map (renderImage provider) provider.images)
                 ]
 
 
-viewServers : Model -> Html Msg
-viewServers model =
-    case List.isEmpty model.servers of
+viewServers : Provider -> Html Msg
+viewServers provider =
+    case List.isEmpty provider.servers of
         True ->
             div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
 
         False ->
             let
                 noServersSelected =
-                    List.any .selected model.servers |> not
+                    List.any .selected provider.servers |> not
 
                 allServersSelected =
-                    List.all .selected model.servers
+                    List.all .selected provider.servers
 
                 selectedServers =
-                    List.filter .selected model.servers
+                    List.filter .selected provider.servers
             in
                 div []
                     [ h2 [] [ text "My Servers" ]
@@ -180,7 +206,7 @@ viewServers model =
                                 [ type_ "checkbox"
                                 , name "toggle-all"
                                 , checked allServersSelected
-                                , onClick (SelectAllServers (not allServersSelected))
+                                , onClick (SelectAllServers provider.name (not allServersSelected))
                                 ]
                                 []
                             , label
@@ -188,20 +214,20 @@ viewServers model =
                                 [ text "Select All" ]
                             , button
                                 [ disabled noServersSelected
-                                , onClick (RequestDeleteServers selectedServers)
+                                , onClick (RequestDeleteServers provider.name selectedServers)
                                 ]
                                 [ text "Delete" ]
                             ]
                         ]
-                    , div [] (List.map renderServer model.servers)
+                    , div [] (List.map (renderServer provider) provider.servers)
                     ]
 
 
-viewServerDetail : Model -> ServerUuid -> Html Msg
-viewServerDetail model serverUuid =
+viewServerDetail : Provider -> ServerUuid -> Html Msg
+viewServerDetail provider serverUuid =
     let
         maybeServer =
-            Helpers.serverLookup model serverUuid
+            Helpers.serverLookup provider serverUuid
     in
         case maybeServer of
             Nothing ->
@@ -252,8 +278,8 @@ viewServerDetail model serverUuid =
                             ]
 
 
-viewCreateServer : Model -> CreateServerRequest -> Html Msg
-viewCreateServer model createServerRequest =
+viewCreateServer : Provider -> CreateServerRequest -> Html Msg
+viewCreateServer provider createServerRequest =
     div []
         [ h2 [] [ text "Create Server" ]
         , table []
@@ -268,7 +294,7 @@ viewCreateServer model createServerRequest =
                         [ type_ "text"
                         , placeholder "My Server"
                         , value createServerRequest.name
-                        , onInput (InputCreateServerName createServerRequest)
+                        , onInput (InputCreateServerName provider.name createServerRequest)
                         ]
                         []
                     ]
@@ -287,7 +313,7 @@ viewCreateServer model createServerRequest =
                         , Attr.min "1"
                         , Attr.max "10"
                         , value createServerRequest.count
-                        , onInput (InputCreateServerCount createServerRequest)
+                        , onInput (InputCreateServerCount provider.name createServerRequest)
                         ]
                         []
                     ]
@@ -295,13 +321,13 @@ viewCreateServer model createServerRequest =
             , tr []
                 [ td [] [ text "Size" ]
                 , td []
-                    [ viewFlavorPicker model.flavors createServerRequest
+                    [ viewFlavorPicker provider createServerRequest
                     ]
                 ]
             , tr []
                 [ td [] [ text "SSH Keypair" ]
                 , td []
-                    [ viewKeypairPicker model.keypairs createServerRequest
+                    [ viewKeypairPicker provider createServerRequest
                     ]
                 ]
             , tr []
@@ -312,7 +338,7 @@ viewCreateServer model createServerRequest =
                             [ value createServerRequest.userData
                             , rows 20
                             , cols 80
-                            , onInput (InputCreateServerUserData createServerRequest)
+                            , onInput (InputCreateServerUserData provider.name createServerRequest)
                             ]
                             []
                         ]
@@ -320,7 +346,7 @@ viewCreateServer model createServerRequest =
                     ]
                 ]
             ]
-        , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
+        , button [ onClick (RequestCreateServer provider.name createServerRequest) ] [ text "Create" ]
         ]
 
 
@@ -333,8 +359,8 @@ renderMessage message =
     p [] [ text message ]
 
 
-renderImage : Image -> Html Msg
-renderImage image =
+renderImage : Provider -> Image -> Html Msg
+renderImage provider image =
     let
         size =
             case image.size of
@@ -354,7 +380,7 @@ renderImage image =
     in
         div []
             [ p [] [ strong [] [ text image.name ] ]
-            , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" image.uuid image.name "1" "" "" ""))) ] [ text "Launch" ]
+            , button [ onClick (ChangeViewState (CreateServer provider.name (CreateServerRequest "" provider.name image.uuid image.name "1" "" "" ""))) ] [ text "Launch" ]
             , table []
                 [ tr []
                     [ th [] [ text "Property" ]
@@ -392,21 +418,21 @@ renderImage image =
             ]
 
 
-renderServer : Server -> Html Msg
-renderServer server =
+renderServer : Provider -> Server -> Html Msg
+renderServer provider server =
     div []
         [ p []
             [ input
                 [ type_ "checkbox"
                 , checked server.selected
-                , onClick (SelectServer server (not server.selected))
+                , onClick (SelectServer provider.name server (not server.selected))
                 ]
                 []
             , strong [] [ text server.name ]
             ]
         , text ("UUID: " ++ server.uuid)
-        , button [ onClick (ChangeViewState (ServerDetail server.uuid)) ] [ text "Details" ]
-        , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]
+        , button [ onClick (ChangeViewState (ServerDetail provider.name server.uuid)) ] [ text "Details" ]
+        , button [ onClick (RequestDeleteServer provider.name server) ] [ text "Delete" ]
         ]
 
 
@@ -440,25 +466,25 @@ renderIpAddress ipAddress =
         ]
 
 
-viewFlavorPicker : List Flavor -> CreateServerRequest -> Html Msg
-viewFlavorPicker flavors createServerRequest =
+viewFlavorPicker : Provider -> CreateServerRequest -> Html Msg
+viewFlavorPicker provider createServerRequest =
     let
         viewFlavorPickerLabel flavor =
             label []
-                [ input [ type_ "radio", onClick (InputCreateServerSize createServerRequest flavor.uuid) ] []
+                [ input [ type_ "radio", onClick (InputCreateServerSize provider.name createServerRequest flavor.uuid) ] []
                 , text flavor.name
                 ]
     in
-        fieldset [] (List.map viewFlavorPickerLabel flavors)
+        fieldset [] (List.map viewFlavorPickerLabel provider.flavors)
 
 
-viewKeypairPicker : List Keypair -> CreateServerRequest -> Html Msg
-viewKeypairPicker keypairs createServerRequest =
+viewKeypairPicker : Provider -> CreateServerRequest -> Html Msg
+viewKeypairPicker provider createServerRequest =
     let
         viewKeypairPickerLabel keypair =
             label []
-                [ input [ type_ "radio", onClick (InputCreateServerKeypairName createServerRequest keypair.name) ] []
+                [ input [ type_ "radio", onClick (InputCreateServerKeypairName provider.name createServerRequest keypair.name) ] []
                 , text keypair.name
                 ]
     in
-        fieldset [] (List.map viewKeypairPickerLabel keypairs)
+        fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)

@@ -9,13 +9,19 @@ import Types.HelperTypes as HelperTypes
 
 
 type alias Model =
-    { authToken : String
-    , endpoints : Endpoints
+    { messages : List String
+    , viewState : ViewState
+    , providers : List Provider
     , creds : Creds
-    , messages : List String
+    }
+
+
+type alias Provider =
+    { name : ProviderName
+    , authToken : AuthToken
+    , endpoints : Endpoints
     , images : List Image
     , servers : List Server
-    , viewState : ViewState
     , flavors : List Flavor
     , keypairs : List Keypair
     , networks : List Network
@@ -26,43 +32,43 @@ type alias Model =
 type Msg
     = Tick Time.Time
     | ChangeViewState ViewState
-    | RequestAuthToken
-    | RequestCreateServer CreateServerRequest
-    | RequestDeleteServer Server
-    | RequestDeleteServers (List Server)
-    | SelectServer Server Bool
-    | SelectAllServers Bool
+    | RequestNewProviderToken
+    | SelectServer ProviderName Server Bool
+    | SelectAllServers ProviderName Bool
+    | RequestCreateServer ProviderName CreateServerRequest
+    | RequestDeleteServer ProviderName Server
+    | RequestDeleteServers ProviderName (List Server)
     | ReceiveAuthToken (Result Http.Error (Http.Response String))
-    | ReceiveImages (Result Http.Error (List Image))
-    | ReceiveServers (Result Http.Error (List Server))
-    | ReceiveServerDetail ServerUuid (Result Http.Error ServerDetails)
-    | ReceiveCreateServer (Result Http.Error Server)
-    | ReceiveDeleteServer (Result Http.Error String)
-    | ReceiveFlavors (Result Http.Error (List Flavor))
-    | ReceiveKeypairs (Result Http.Error (List Keypair))
-    | ReceiveNetworks (Result Http.Error (List Network))
-    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
-    | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
+    | ReceiveImages ProviderName (Result Http.Error (List Image))
+    | ReceiveServers ProviderName (Result Http.Error (List Server))
+    | ReceiveServerDetail ProviderName ServerUuid (Result Http.Error ServerDetails)
+    | ReceiveCreateServer ProviderName (Result Http.Error Server)
+    | ReceiveDeleteServer ProviderName (Result Http.Error String)
+    | ReceiveFlavors ProviderName (Result Http.Error (List Flavor))
+    | ReceiveKeypairs ProviderName (Result Http.Error (List Keypair))
+    | ReceiveNetworks ProviderName (Result Http.Error (List Network))
+    | GetFloatingIpReceivePorts ProviderName ServerUuid (Result Http.Error (List Port))
+    | ReceiveFloatingIp ProviderName ServerUuid (Result Http.Error IpAddress)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
     | InputUserDomain String
     | InputUsername String
     | InputPassword String
-    | InputCreateServerName CreateServerRequest String
-    | InputCreateServerCount CreateServerRequest String
-    | InputCreateServerUserData CreateServerRequest String
-    | InputCreateServerSize CreateServerRequest String
-    | InputCreateServerKeypairName CreateServerRequest String
+    | InputCreateServerName ProviderName CreateServerRequest String
+    | InputCreateServerCount ProviderName CreateServerRequest String
+    | InputCreateServerUserData ProviderName CreateServerRequest String
+    | InputCreateServerSize ProviderName CreateServerRequest String
+    | InputCreateServerKeypairName ProviderName CreateServerRequest String
 
 
 type ViewState
     = Login
     | Home
-    | ListImages
-    | ListUserServers
-    | ServerDetail ServerUuid
-    | CreateServer CreateServerRequest
+    | ListImages ProviderName
+    | ListUserServers ProviderName
+    | ServerDetail ProviderName ServerUuid
+    | CreateServer ProviderName CreateServerRequest
 
 
 type alias Creds =
@@ -158,6 +164,7 @@ type alias ServerDetails =
 
 type alias CreateServerRequest =
     { name : String
+    , providerName : ProviderName
     , imageUuid : ImageUuid
     , imageName : String
     , count : String
@@ -165,6 +172,14 @@ type alias CreateServerRequest =
     , keypairName : String
     , userData : String
     }
+
+
+type alias ProviderName =
+    String
+
+
+type alias AuthToken =
+    String
 
 
 type alias Flavor =
