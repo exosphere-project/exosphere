@@ -219,6 +219,15 @@ requestDeleteServer model server =
         |> Http.send ReceiveDeleteServer
 
 
+requestDeleteServers : Model -> List Server -> Cmd Msg
+requestDeleteServers model serversToDelete =
+    let
+        deleteRequests =
+            List.map (requestDeleteServer model) serversToDelete
+    in
+        Cmd.batch deleteRequests
+
+
 requestNetworks : Model -> Cmd Msg
 requestNetworks model =
     Http.request
@@ -723,7 +732,7 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map4 Server
+    Decode.map5 Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -732,6 +741,7 @@ serverDecoder =
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
         (Decode.succeed Unknown)
+        (Decode.succeed False)
 
 
 decodeServerDetails : Decode.Decoder ServerDetails
