@@ -351,7 +351,7 @@ createProvider model response =
                     Helpers.serviceCatalogToEndpoints serviceCatalog
 
                 newProvider =
-                    { name = "todo-provider-name"
+                    { name = Helpers.providerNameFromUrl model.creds.authURL
                     , authToken = authToken
                     , endpoints = endpoints
                     , images = []

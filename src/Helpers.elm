@@ -1,5 +1,6 @@
-module Helpers exposing (processError, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup)
+module Helpers exposing (processError, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup)
 
+import Regex
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
@@ -12,6 +13,29 @@ processError model error =
             toString error :: model.messages
     in
         ( { model | messages = newMsgs }, Cmd.none )
+
+
+providerNameFromUrl : HelperTypes.Url -> ProviderName
+providerNameFromUrl url =
+    let
+        r =
+            Regex.regex ".*\\/\\/(.*?)(:\\d+)?\\/"
+
+        matches =
+            Regex.find (Regex.AtMost 1) r url
+
+        maybeMaybeName =
+            matches
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+    in
+        case maybeMaybeName of
+            Just (Just name) ->
+                name
+
+            _ ->
+                "placeholder-url-unparseable"
 
 
 serviceCatalogToEndpoints : OpenstackTypes.ServiceCatalog -> Endpoints
