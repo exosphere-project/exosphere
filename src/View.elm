@@ -1,7 +1,7 @@
 module View exposing (view)
 
-import Html exposing (Html, button, div, fieldset, h2, input, label, p, strong, table, td, text, textarea, th, tr)
-import Html.Attributes exposing (cols, placeholder, rows, type_, value)
+import Html exposing (Html, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
+import Html.Attributes exposing (cols, for, name, hidden, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Base64
@@ -161,10 +161,40 @@ viewServers model =
             div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
 
         False ->
-            div []
-                [ h2 [] [ text "My Servers" ]
-                , div [] (List.map renderServer model.servers)
-                ]
+            let
+                noServersSelected =
+                    List.any .selected model.servers |> not
+
+                allServersSelected =
+                    List.all .selected model.servers
+
+                selectedServers =
+                    List.filter .selected model.servers
+            in
+                div []
+                    [ h2 [] [ text "My Servers" ]
+                    , div []
+                        [ fieldset []
+                            [ legend [] [ text "Bulk Actions" ]
+                            , input
+                                [ type_ "checkbox"
+                                , name "toggle-all"
+                                , checked allServersSelected
+                                , onClick (SelectAllServers (not allServersSelected))
+                                ]
+                                []
+                            , label
+                                [ for "toggle-all" ]
+                                [ text "Select All" ]
+                            , button
+                                [ disabled noServersSelected
+                                , onClick (RequestDeleteServers selectedServers)
+                                ]
+                                [ text "Delete" ]
+                            ]
+                        ]
+                    , div [] (List.map renderServer model.servers)
+                    ]
 
 
 viewServerDetail : Model -> ServerUuid -> Html Msg
@@ -365,7 +395,15 @@ renderImage image =
 renderServer : Server -> Html Msg
 renderServer server =
     div []
-        [ p [] [ strong [] [ text server.name ] ]
+        [ p []
+            [ input
+                [ type_ "checkbox"
+                , checked server.selected
+                , onClick (SelectServer server (not server.selected))
+                ]
+                []
+            , strong [] [ text server.name ]
+            ]
         , text ("UUID: " ++ server.uuid)
         , button [ onClick (ChangeViewState (ServerDetail server.uuid)) ] [ text "Details" ]
         , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]

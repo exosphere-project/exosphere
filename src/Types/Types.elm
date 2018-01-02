@@ -29,6 +29,9 @@ type Msg
     | RequestAuthToken
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
+    | RequestDeleteServers (List Server)
+    | SelectServer Server Bool
+    | SelectAllServers Bool
     | ReceiveAuthToken (Result Http.Error (Http.Response String))
     | ReceiveImages (Result Http.Error (List Image))
     | ReceiveServers (Result Http.Error (List Server))
@@ -114,6 +117,7 @@ type alias Server =
     , uuid : ServerUuid
     , details : Maybe ServerDetails
     , floatingIpState : FloatingIpState
+    , selected : Bool
     }
 
 

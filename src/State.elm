@@ -10,7 +10,9 @@ import Rest
 
 init : ( Model, Cmd Msg )
 init =
-    ( { authToken = "" {- Todo remove the following hard coding and decode JSON in auth token response -}
+    ( { authToken = ""
+
+      {- Todo remove the following hard coding and decode JSON in auth token response -}
       , endpoints =
             { glance = ""
             , nova = ""
@@ -24,7 +26,8 @@ init =
                 "default"
                 "demo"
                 ""
-            {- password -}
+
+      {- password -}
       , messages = []
       , images = []
       , servers = []
@@ -96,6 +99,30 @@ update msg model =
             ( { model | servers = List.filter (\s -> s /= server) model.servers }
             , Rest.requestDeleteServer model server
             )
+
+        RequestDeleteServers serversToDelete ->
+            ( { model | servers = List.filter (\s -> (not (List.member s serversToDelete))) model.servers }
+            , Rest.requestDeleteServers model serversToDelete
+            )
+
+        SelectServer server newSelectionState ->
+            let
+                updateServer someServer =
+                    if someServer.uuid == server.uuid then
+                        { someServer | selected = newSelectionState }
+                    else
+                        someServer
+            in
+                { model | servers = List.map updateServer model.servers }
+                    ! []
+
+        SelectAllServers allServersSelected ->
+            let
+                updateServer someServer =
+                    { someServer | selected = allServersSelected }
+            in
+                { model | servers = List.map updateServer model.servers }
+                    ! []
 
         ReceiveAuthToken response ->
             Rest.receiveAuthToken model response
