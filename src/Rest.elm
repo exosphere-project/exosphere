@@ -361,8 +361,61 @@ receiveServers model result =
         Err error ->
             Helpers.processError model error
 
-        Ok servers ->
-            ( { model | servers = servers }, Cmd.none )
+        Ok newServers ->
+            -- Instead of just overwriting model.servers, copy `details`, `floatingIpState` and `selected` from
+            -- existing, matching servers in model.servers (assuming there are corresponding ones)
+            let
+                serverUuidOfServer : Server -> ServerUuid
+                serverUuidOfServer server =
+                    server.uuid
+
+                serverIsInListOfServers : List Server -> Server -> Bool
+                serverIsInListOfServers servers server =
+                    let
+                        serverUuids =
+                            List.map serverUuidOfServer servers
+
+                        serverUuid =
+                            serverUuidOfServer server
+                    in
+                        List.member serverUuid serverUuids
+
+                existingServers =
+                    model.servers
+
+                ( newServersInExistingServers, newServersNotInExistingServers ) =
+                    List.partition (serverIsInListOfServers existingServers) newServers
+
+                ( existingServersInNewServers, existingServersNotInNewServers ) =
+                    List.partition (serverIsInListOfServers newServers) existingServers
+
+                existingServersInNewServersSorted =
+                    List.sortBy .uuid existingServersInNewServers
+
+                newServersInExistingServersSorted =
+                    List.sortBy .uuid newServersInExistingServers
+
+                combinedMatchingNewAndExistingServers =
+                    List.map2 (,) newServersInExistingServersSorted existingServersInNewServersSorted
+
+                enrichNewServerWithExistingDetails : ( Server, Server ) -> Server
+                enrichNewServerWithExistingDetails ( newServer, existingServer ) =
+                    { existingServer | name = newServer.name }
+
+                enrichNewServersWithExistingDetails : List ( Server, Server ) -> List Server
+                enrichNewServersWithExistingDetails combinedMatchingNewAndExistingServers =
+                    List.map enrichNewServerWithExistingDetails combinedMatchingNewAndExistingServers
+
+                enrichedNewServers =
+                    enrichNewServersWithExistingDetails combinedMatchingNewAndExistingServers
+
+                newServersWithExistingMatchesAndWithout =
+                    List.append newServersNotInExistingServers enrichedNewServers
+
+                newServersWithExistingMatchesAndWithoutSorted =
+                    List.sortBy .name newServersWithExistingMatchesAndWithout
+            in
+                ( { model | servers = newServersWithExistingMatchesAndWithoutSorted }, Cmd.none )
 
 
 receiveServerDetail : Model -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
@@ -402,10 +455,12 @@ receiveServerDetail model serverUuid result =
                             newServers =
                                 newServer :: otherServers
 
+                            newServersSorted =
+                                List.sortBy .name newServers
+
                             newModel =
                                 { model
-                                    | servers = newServers
-                                    , {- TODO take this out? -} viewState = ServerDetail newServer.uuid
+                                    | servers = newServersSorted
                                 }
                         in
                             case floatingIpState of
