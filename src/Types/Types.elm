@@ -64,7 +64,7 @@ type Msg
 
 type ViewState
     = Login
-    | Home
+    | Home ProviderName
     | ListImages ProviderName
     | ListUserServers ProviderName
     | ServerDetail ProviderName ServerUuid

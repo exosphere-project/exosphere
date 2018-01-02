@@ -14,12 +14,23 @@ view : Model -> Html Msg
 view model =
     div []
         [ viewMessages model
+        , viewProviderPicker model
         , case model.viewState of
             Login ->
                 viewLogin model
 
-            Home ->
-                div [] [ p [] [ text "Todo put things here" ] ]
+            Home providerName ->
+                case Helpers.providerLookup model providerName of
+                    Nothing ->
+                        text "Provider not found"
+
+                    Just provider ->
+                        div []
+                            [ p []
+                                [ viewNav provider
+                                , text ("Home page for " ++ provider.name ++ ", todo put things here")
+                                ]
+                            ]
 
             ListImages providerName ->
                 case Helpers.providerLookup model providerName of
@@ -76,11 +87,20 @@ viewMessages model =
     div [] (List.map renderMessage model.messages)
 
 
+viewProviderPicker : Model -> Html Msg
+viewProviderPicker model =
+    div []
+        [ h2 [] [ text "Providers" ]
+        , button [ onClick (ChangeViewState Login) ] [ text "Add Provider" ]
+        , div [] (List.map renderProviderPicker model.providers)
+        ]
+
+
 viewNav : Provider -> Html Msg
 viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
+        , button [ onClick (ChangeViewState (Home provider.name)) ] [ text "Home" ]
         , button [ onClick (ChangeViewState (ListUserServers provider.name)) ] [ text "My Servers" ]
         , button [ onClick (ChangeViewState (ListImages provider.name)) ] [ text "Create Server" ]
         ]
@@ -357,6 +377,11 @@ viewCreateServer provider createServerRequest =
 renderMessage : String -> Html Msg
 renderMessage message =
     p [] [ text message ]
+
+
+renderProviderPicker : Provider -> Html Msg
+renderProviderPicker provider =
+    button [ onClick (ChangeViewState (Home provider.name)) ] [ text provider.name ]
 
 
 renderImage : Provider -> Image -> Html Msg
