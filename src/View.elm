@@ -237,43 +237,74 @@ viewServerDetail provider serverUuid =
                         text "Retrieving details??"
 
                     Just details ->
-                        div []
-                            [ h2 [] [ text "Server details" ]
-                            , table []
-                                [ tr []
-                                    [ th [] [ text "Property" ]
-                                    , th [] [ text "Value" ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "Name" ]
-                                    , td [] [ text server.name ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "UUID" ]
-                                    , td [] [ text server.uuid ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "Created on" ]
-                                    , td [] [ text details.created ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "Status" ]
-                                    , td [] [ text details.status ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "Power state" ]
-                                    , td [] [ text (toString details.powerState) ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "SSH Key Name" ]
-                                    , td [] [ text details.keypairName ]
-                                    ]
-                                , tr []
-                                    [ td [] [ text "IP addresses" ]
-                                    , td [] [ renderIpAddresses details.ipAddresses ]
+                        let
+                            maybeFlavor =
+                                Helpers.flavorLookup provider details.flavorUuid
+
+                            flavorText =
+                                case maybeFlavor of
+                                    Just flavor ->
+                                        flavor.name
+
+                                    Nothing ->
+                                        "Unknown flavor"
+
+                            maybeImage =
+                                Helpers.imageLookup provider details.imageUuid
+
+                            imageText =
+                                case maybeImage of
+                                    Just image ->
+                                        image.name
+
+                                    Nothing ->
+                                        "Unknown image"
+                        in
+                            div []
+                                [ h2 [] [ text "Server details" ]
+                                , table []
+                                    [ tr []
+                                        [ th [] [ text "Property" ]
+                                        , th [] [ text "Value" ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "Name" ]
+                                        , td [] [ text server.name ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "UUID" ]
+                                        , td [] [ text server.uuid ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "Created on" ]
+                                        , td [] [ text details.created ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "Status" ]
+                                        , td [] [ text details.status ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "Power state" ]
+                                        , td [] [ text (toString details.powerState) ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "Image" ]
+                                        , td [] [ text imageText ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "Flavor" ]
+                                        , td [] [ text flavorText ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "SSH Key Name" ]
+                                        , td [] [ text details.keypairName ]
+                                        ]
+                                    , tr []
+                                        [ td [] [ text "IP addresses" ]
+                                        , td [] [ renderIpAddresses details.ipAddresses ]
+                                        ]
                                     ]
                                 ]
-                            ]
 
 
 viewCreateServer : Provider -> CreateServerRequest -> Html Msg

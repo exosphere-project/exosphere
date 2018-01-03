@@ -837,16 +837,45 @@ serverDecoder =
 
 decodeServerDetails : Decode.Decoder ServerDetails
 decodeServerDetails =
-    Decode.map5 ServerDetails
+    Decode.map7 ServerDetails
         (Decode.at [ "server", "status" ] Decode.string)
         (Decode.at [ "server", "created" ] Decode.string)
-        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int)
+        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
+            |> Decode.andThen serverPowerStateDecoder
+        )
+        (Decode.at [ "server", "image", "id" ] Decode.string)
+        (Decode.at [ "server", "flavor", "id" ] Decode.string)
         (Decode.at [ "server", "key_name" ] Decode.string)
         (Decode.oneOf
             [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
             , Decode.succeed []
             ]
         )
+
+
+serverPowerStateDecoder : Int -> Decode.Decoder ServerPowerState
+serverPowerStateDecoder int =
+    case int of
+        0 ->
+            Decode.succeed NoState
+
+        1 ->
+            Decode.succeed Running
+
+        3 ->
+            Decode.succeed Paused
+
+        4 ->
+            Decode.succeed Shutdown
+
+        6 ->
+            Decode.succeed Crashed
+
+        7 ->
+            Decode.succeed Suspended
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised server power state"
 
 
 serverIpAddressDecoder : Decode.Decoder IpAddress

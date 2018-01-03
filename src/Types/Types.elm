@@ -144,24 +144,33 @@ type FloatingIpState
 
 
 {- Todo add to ServerDetail:
-   - Flavor
-   - Image
    - Metadata
    - Volumes
    - Security Groups
    - Etc
 
-   Also, make status and powerState union types, keypairName a key type, created a real date/time, etc
+   Also, make keypairName a key type, created a real date/time, etc
 -}
 
 
 type alias ServerDetails =
     { status : String
     , created : String
-    , powerState : Int
+    , powerState : ServerPowerState
+    , imageUuid : ImageUuid
+    , flavorUuid : FlavorUuid
     , keypairName : String
     , ipAddresses : List IpAddress
     }
+
+
+type ServerPowerState
+    = NoState
+    | Running
+    | Paused
+    | Shutdown
+    | Crashed
+    | Suspended
 
 
 type alias CreateServerRequest =

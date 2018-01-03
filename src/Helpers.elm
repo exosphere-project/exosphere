@@ -1,4 +1,4 @@
-module Helpers exposing (processError, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup)
+module Helpers exposing (processError, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup)
 
 import Regex
 import Types.HelperTypes as HelperTypes
@@ -130,4 +130,20 @@ providerLookup model providerName =
     List.filter
         (\p -> p.name == providerName)
         (model.selectedProvider :: model.otherProviders)
+        |> List.head
+
+
+flavorLookup : Provider -> FlavorUuid -> Maybe Flavor
+flavorLookup provider flavorUuid =
+    List.filter
+        (\f -> f.uuid == flavorUuid)
+        provider.flavors
+        |> List.head
+
+
+imageLookup : Provider -> ImageUuid -> Maybe Image
+imageLookup provider imageUuid =
+    List.filter
+        (\i -> i.uuid == imageUuid)
+        provider.images
         |> List.head
