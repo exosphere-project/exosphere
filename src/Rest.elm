@@ -63,7 +63,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -187,7 +189,8 @@ requestCreateServer provider createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" provider.authToken
-                                  -- Microversion needed for automatic network provisioning
+
+                                -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = provider.endpoints.nova ++ "/servers"
@@ -523,9 +526,10 @@ receiveServerDetail model provider serverUuid result =
                                 { model
                                     | providers =
                                         newProviders
-                                        {-
-                                           , {- TODO take this out? -} viewState = ServerDetail provider.name newServer.uuid
-                                        -}
+
+                                    {-
+                                       , {- TODO take this out? -} viewState = ServerDetail provider.name newServer.uuid
+                                    -}
                                 }
                         in
                             case floatingIpState of
