@@ -63,9 +63,7 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authURL
-            , body = Http.jsonBody requestBody
-
-            {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = True
@@ -84,7 +82,7 @@ requestImages provider =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveImages provider.name)
+        |> Http.send ReceiveImages
 
 
 requestServers : Provider -> Cmd Msg
@@ -98,7 +96,7 @@ requestServers provider =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveServers provider.name)
+        |> Http.send ReceiveServers
 
 
 requestServerDetail : Provider -> ServerUuid -> Cmd Msg
@@ -112,7 +110,7 @@ requestServerDetail provider serverUuid =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveServerDetail provider.name serverUuid)
+        |> Http.send (ReceiveServerDetail serverUuid)
 
 
 requestFlavors : Provider -> Cmd Msg
@@ -126,7 +124,7 @@ requestFlavors provider =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveFlavors provider.name)
+        |> Http.send ReceiveFlavors
 
 
 requestKeypairs : Provider -> Cmd Msg
@@ -140,7 +138,7 @@ requestKeypairs provider =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveKeypairs provider.name)
+        |> Http.send ReceiveKeypairs
 
 
 requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
@@ -189,8 +187,7 @@ requestCreateServer provider createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" provider.authToken
-
-                                -- Microversion needed for automatic network provisioning
+                                  -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = provider.endpoints.nova ++ "/servers"
@@ -199,7 +196,7 @@ requestCreateServer provider createServerRequest =
                             , timeout = Nothing
                             , withCredentials = True
                             }
-                            |> Http.send (ReceiveCreateServer provider.name)
+                            |> Http.send ReceiveCreateServer
                         )
                     )
             )
@@ -216,7 +213,7 @@ requestDeleteServer provider server =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveDeleteServer provider.name)
+        |> Http.send ReceiveDeleteServer
 
 
 requestDeleteServers : Provider -> List Server -> Cmd Msg
@@ -239,7 +236,7 @@ requestNetworks provider =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveNetworks provider.name)
+        |> Http.send ReceiveNetworks
 
 
 getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
@@ -253,7 +250,7 @@ getFloatingIpRequestPorts provider server =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (GetFloatingIpReceivePorts provider.name server.uuid)
+        |> Http.send (GetFloatingIpReceivePorts server.uuid)
 
 
 requestFloatingIpIfRequestable : Model -> Provider -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
@@ -291,14 +288,8 @@ requestFloatingIp model provider network port_ server =
         newProvider =
             { provider | servers = newServers }
 
-        otherProviders =
-            List.filter (\p -> p.name /= newProvider.name) model.providers
-
-        newProviders =
-            newProvider :: otherProviders
-
         newModel =
-            { model | providers = newProviders }
+            { model | selectedProvider = newProvider }
 
         requestBody =
             Encode.object
@@ -320,7 +311,7 @@ requestFloatingIp model provider network port_ server =
                 , timeout = Nothing
                 , withCredentials = True
                 }
-                |> Http.send (ReceiveFloatingIp provider.name server.uuid)
+                |> Http.send (ReceiveFloatingIp server.uuid)
     in
         ( newModel, cmd )
 
@@ -365,40 +356,44 @@ createProvider model response =
                     , ports = []
                     }
 
-                newProviders =
-                    newProvider :: model.providers
+                {- This is kinda hacky, abusing empty provider name to mean no valid provider -}
+                otherProviders =
+                    case model.selectedProvider.name of
+                        "" ->
+                            []
+
+                        _ ->
+                            model.selectedProvider :: model.otherProviders
 
                 newModel =
                     { model
-                        | providers = newProviders
-                        , viewState = ListUserServers newProvider.name
+                        | selectedProvider = newProvider
+                        , otherProviders = otherProviders
+                        , viewState = ListUserServers
                     }
             in
                 ( newModel, Cmd.none )
 
 
-receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
-receiveImages model provider result =
+receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
+receiveImages model result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok images ->
             let
+                oldProvider =
+                    model.selectedProvider
+
                 newProvider =
-                    { provider | images = images }
-
-                otherProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
-
-                newProviders =
-                    newProvider :: otherProviders
+                    { oldProvider | images = images }
             in
-                ( { model | providers = newProviders }, Cmd.none )
+                ( { model | selectedProvider = newProvider }, Cmd.none )
 
 
-receiveServers : Model -> Provider -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
-receiveServers model provider result =
+receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
+receiveServers model result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -423,7 +418,7 @@ receiveServers model provider result =
                         List.member serverUuid serverUuids
 
                 existingServers =
-                    provider.servers
+                    model.selectedProvider.servers
 
                 ( newServersInExistingServers, newServersNotInExistingServers ) =
                     List.partition (serverIsInListOfServers existingServers) newServers
@@ -457,20 +452,17 @@ receiveServers model provider result =
                 newServersWithExistingMatchesAndWithoutSorted =
                     List.sortBy .name newServersWithExistingMatchesAndWithout
 
+                oldProvider =
+                    model.selectedProvider
+
                 newProvider =
-                    { provider | servers = newServersWithExistingMatchesAndWithoutSorted }
-
-                otherProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
-
-                newProviders =
-                    newProvider :: otherProviders
+                    { oldProvider | servers = newServersWithExistingMatchesAndWithoutSorted }
             in
-                ( { model | providers = newProviders }, Cmd.none )
+                ( { model | selectedProvider = newProvider }, Cmd.none )
 
 
-receiveServerDetail : Model -> Provider -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetail model provider serverUuid result =
+receiveServerDetail : Model -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetail model serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -478,7 +470,9 @@ receiveServerDetail model provider serverUuid result =
         Ok serverDetails ->
             let
                 maybeServer =
-                    List.filter (\s -> s.uuid == serverUuid) provider.servers
+                    List.filter
+                        (\s -> s.uuid == serverUuid)
+                        model.selectedProvider.servers
                         |> List.head
             in
                 case maybeServer of
@@ -503,7 +497,7 @@ receiveServerDetail model provider serverUuid result =
                             otherServers =
                                 List.filter
                                     (\s -> s.uuid /= newServer.uuid)
-                                    provider.servers
+                                    model.selectedProvider.servers
 
                             newServers =
                                 newServer :: otherServers
@@ -511,36 +505,24 @@ receiveServerDetail model provider serverUuid result =
                             newServersSorted =
                                 List.sortBy .name newServers
 
+                            oldProvider =
+                                model.selectedProvider
+
                             newProvider =
-                                { provider | servers = newServersSorted }
-
-                            otherProviders =
-                                List.filter
-                                    (\p -> p.name /= provider.name)
-                                    model.providers
-
-                            newProviders =
-                                newProvider :: otherProviders
+                                { oldProvider | servers = newServersSorted }
 
                             newModel =
-                                { model
-                                    | providers =
-                                        newProviders
-
-                                    {-
-                                       , {- TODO take this out? -} viewState = ServerDetail provider.name newServer.uuid
-                                    -}
-                                }
+                                { model | selectedProvider = newProvider }
                         in
                             case floatingIpState of
                                 Requestable ->
                                     ( newModel
                                     , Cmd.batch
                                         [ getFloatingIpRequestPorts
-                                            newProvider
+                                            model.selectedProvider
                                             newServer
                                         , requestNetworks
-                                            newProvider
+                                            model.selectedProvider
                                         ]
                                     )
 
@@ -548,48 +530,42 @@ receiveServerDetail model provider serverUuid result =
                                     ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Provider -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
-receiveFlavors model provider result =
+receiveFlavors : Model -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
+receiveFlavors model result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok flavors ->
             let
+                oldProvider =
+                    model.selectedProvider
+
                 newProvider =
-                    { provider | flavors = flavors }
-
-                otherProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
-
-                newProviders =
-                    newProvider :: otherProviders
+                    { oldProvider | flavors = flavors }
             in
-                ( { model | providers = newProviders }, Cmd.none )
+                ( { model | selectedProvider = newProvider }, Cmd.none )
 
 
-receiveKeypairs : Model -> Provider -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
-receiveKeypairs model provider result =
+receiveKeypairs : Model -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
+receiveKeypairs model result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok keypairs ->
             let
+                oldProvider =
+                    model.selectedProvider
+
                 newProvider =
-                    { provider | keypairs = keypairs }
-
-                otherProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
-
-                newProviders =
-                    newProvider :: otherProviders
+                    { oldProvider | keypairs = keypairs }
             in
-                ( { model | providers = newProviders }, Cmd.none )
+                ( { model | selectedProvider = newProvider }, Cmd.none )
 
 
-receiveCreateServer : Model -> Provider -> Result Http.Error Server -> ( Model, Cmd Msg )
-receiveCreateServer model provider result =
+receiveCreateServer : Model -> Result Http.Error Server -> ( Model, Cmd Msg )
+receiveCreateServer model result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -597,58 +573,52 @@ receiveCreateServer model provider result =
         Ok _ ->
             let
                 newModel =
-                    { model | viewState = ListUserServers provider.name }
+                    { model | viewState = ListUserServers }
             in
                 ( newModel
                 , Cmd.batch
-                    [ requestServers provider
-                    , requestNetworks provider
+                    [ requestServers model.selectedProvider
+                    , requestNetworks model.selectedProvider
                     ]
                 )
 
 
-receiveNetworks : Model -> Provider -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
-receiveNetworks model provider result =
+receiveNetworks : Model -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
+receiveNetworks model result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok networks ->
             let
+                oldProvider =
+                    model.selectedProvider
+
                 newProvider =
-                    { provider | networks = networks }
-
-                otherProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
-
-                newProviders =
-                    newProvider :: otherProviders
+                    { oldProvider | networks = networks }
             in
-                ( { model | providers = newProviders }, Cmd.none )
+                ( { model | selectedProvider = newProvider }, Cmd.none )
 
 
-receivePortsAndRequestFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
-receivePortsAndRequestFloatingIp model provider serverUuid result =
+receivePortsAndRequestFloatingIp : Model -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp model serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok ports ->
             let
+                oldProvider =
+                    model.selectedProvider
+
                 newProvider =
-                    { provider | ports = ports }
-
-                otherProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
-
-                newProviders =
-                    newProvider :: otherProviders
+                    { oldProvider | ports = ports }
 
                 newModel =
-                    { model | providers = newProviders }
+                    { model | selectedProvider = newProvider }
 
                 maybeExtNet =
-                    Helpers.getExternalNetwork provider
+                    Helpers.getExternalNetwork newProvider
 
                 maybePortForServer =
                     List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
@@ -658,7 +628,12 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                     Just extNet ->
                         case maybePortForServer of
                             Just port_ ->
-                                requestFloatingIpIfRequestable newModel newProvider extNet port_ serverUuid
+                                requestFloatingIpIfRequestable
+                                    newModel
+                                    newProvider
+                                    extNet
+                                    port_
+                                    serverUuid
 
                             Nothing ->
                                 Helpers.processError
@@ -671,11 +646,11 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                             "We should have an external network here but we don't"
 
 
-receiveFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
-receiveFloatingIp model provider serverUuid result =
+receiveFloatingIp : Model -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
+receiveFloatingIp model serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) provider.servers
+            List.filter (\s -> s.uuid == serverUuid) model.selectedProvider.servers
                 |> List.head
     in
         case maybeServer of
@@ -692,22 +667,19 @@ receiveFloatingIp model provider serverUuid result =
                                 { server | floatingIpState = Failed }
 
                             otherServers =
-                                List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+                                List.filter (\s -> s.uuid /= newServer.uuid) model.selectedProvider.servers
 
                             newServers =
                                 newServer :: otherServers
 
+                            oldProvider =
+                                model.selectedProvider
+
                             newProvider =
-                                { provider | servers = newServers }
-
-                            otherProviders =
-                                List.filter (\p -> p.name /= provider.name) model.providers
-
-                            newProviders =
-                                newProvider :: otherProviders
+                                { oldProvider | servers = newServers }
 
                             newModel =
-                                { model | providers = newProviders }
+                                { model | selectedProvider = newProvider }
                         in
                             Helpers.processError newModel error
 
@@ -725,24 +697,19 @@ receiveFloatingIp model provider serverUuid result =
                             otherServers =
                                 List.filter
                                     (\s -> s.uuid /= newServer.uuid)
-                                    provider.servers
+                                    model.selectedProvider.servers
 
                             newServers =
                                 newServer :: otherServers
 
+                            oldProvider =
+                                model.selectedProvider
+
                             newProvider =
-                                { provider | servers = newServers }
-
-                            otherProviders =
-                                List.filter
-                                    (\p -> p.name /= provider.name)
-                                    model.providers
-
-                            newProviders =
-                                newProvider :: otherProviders
+                                { oldProvider | servers = newServers }
 
                             newModel =
-                                { model | providers = newProviders }
+                                { model | selectedProvider = newProvider }
                         in
                             ( newModel, Cmd.none )
 

@@ -127,5 +127,7 @@ serverLookup provider serverUuid =
 
 providerLookup : Model -> ProviderName -> Maybe Provider
 providerLookup model providerName =
-    List.filter (\p -> p.name == providerName) model.providers
+    List.filter
+        (\p -> p.name == providerName)
+        (model.selectedProvider :: model.otherProviders)
         |> List.head
