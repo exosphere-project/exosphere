@@ -10,6 +10,6 @@ before_script:
   - npm install -g elm elm-test elm-format elm-analyse
   - elm-package install -y
 script:
-    # - elm-format Exosphere.elm --yes
+    - elm-make --warn --yes src/Exosphere.elm --output elm.js
     - elm-analyse
     # - elm-test
