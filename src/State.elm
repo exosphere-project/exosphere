@@ -79,7 +79,11 @@ update msg model =
 
                     ServerDetail serverUuid ->
                         ( newModel
-                        , Rest.requestServerDetail model.selectedProvider serverUuid
+                        , Cmd.batch
+                            [ Rest.requestServerDetail model.selectedProvider serverUuid
+                            , Rest.requestFlavors newModel.selectedProvider
+                            , Rest.requestImages newModel.selectedProvider
+                            ]
                         )
 
                     CreateServer _ ->
