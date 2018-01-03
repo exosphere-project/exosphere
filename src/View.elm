@@ -66,12 +66,11 @@ viewProviderPicker : Model -> Html Msg
 viewProviderPicker model =
     div []
         [ h2 [] [ text "Providers" ]
-        , button [ onClick (ChangeViewState Login) ] [ text "Add Provider" ]
         , div []
-            (List.map
-                renderProviderPicker
-                (model.selectedProvider :: model.otherProviders)
-            )
+            [ text model.selectedProvider.name
+            , div [] (List.map renderProviderPicker model.otherProviders)
+            ]
+        , button [ onClick (ChangeViewState Login) ] [ text "Add Provider" ]
         ]
 
 
