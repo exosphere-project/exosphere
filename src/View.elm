@@ -175,7 +175,7 @@ viewLogin model =
                 [ td [] [ text "Password" ]
                 , td []
                     [ input
-                        [ type_ "text"
+                        [ type_ "password"
                         , value model.creds.password
                         , onInput InputPassword
                         ]
