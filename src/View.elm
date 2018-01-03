@@ -360,7 +360,12 @@ renderMessage message =
 
 renderProviderPicker : Provider -> Html Msg
 renderProviderPicker provider =
-    button [ onClick (SelectProvider provider.name) ] [ text provider.name ]
+    case provider.name of
+        "" ->
+            div [] []
+
+        _ ->
+            button [ onClick (SelectProvider provider.name) ] [ text provider.name ]
 
 
 renderImage : Provider -> Image -> Html Msg
