@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Time
+import Helpers
 import Types.Types exposing (..)
 import Rest
 
@@ -10,14 +11,9 @@ import Rest
 
 init : ( Model, Cmd Msg )
 init =
-    ( { authToken = ""
-
-      {- Todo remove the following hard coding and decode JSON in auth token response -}
-      , endpoints =
-            { glance = ""
-            , nova = ""
-            , neutron = ""
-            }
+    ( { messages = []
+      , viewState = Login
+      , providers = []
       , creds =
             Creds
                 "https://tombstone-cloud.cyverse.org:8000/v3/auth/tokens"
@@ -26,16 +22,6 @@ init =
                 "default"
                 "demo"
                 ""
-
-      {- password -}
-      , messages = []
-      , images = []
-      , servers = []
-      , viewState = Login
-      , flavors = []
-      , keypairs = []
-      , networks = []
-      , ports = []
       }
     , Cmd.none
     )
@@ -51,11 +37,23 @@ update msg model =
     case msg of
         Tick _ ->
             case model.viewState of
-                ListUserServers ->
-                    ( model, Rest.requestServers model )
+                ListUserServers providerName ->
+                    case Helpers.providerLookup model providerName of
+                        Nothing ->
+                            Helpers.processError model "provider not found"
 
-                ServerDetail serverUuid ->
-                    ( model, Rest.requestServerDetail model serverUuid )
+                        Just provider ->
+                            ( model, Rest.requestServers provider )
+
+                ServerDetail providerName serverUuid ->
+                    case Helpers.providerLookup model providerName of
+                        Nothing ->
+                            Helpers.processError model "provider not found"
+
+                        Just provider ->
+                            ( model
+                            , Rest.requestServerDetail provider serverUuid
+                            )
 
                 _ ->
                     ( model, Cmd.none )
@@ -69,94 +67,261 @@ update msg model =
                     Login ->
                         ( newModel, Cmd.none )
 
-                    Home ->
+                    Home providerName ->
                         ( newModel, Cmd.none )
 
-                    ListImages ->
-                        ( newModel, Rest.requestImages newModel )
+                    ListImages providerName ->
+                        case Helpers.providerLookup model providerName of
+                            Nothing ->
+                                Helpers.processError model "provider not found"
 
-                    ListUserServers ->
-                        ( newModel, Rest.requestServers newModel )
+                            Just provider ->
+                                ( newModel
+                                , Rest.requestImages provider
+                                )
 
-                    ServerDetail serverUuid ->
-                        ( newModel, Rest.requestServerDetail newModel serverUuid )
+                    ListUserServers providerName ->
+                        case Helpers.providerLookup model providerName of
+                            Nothing ->
+                                Helpers.processError model "provider not found"
 
-                    CreateServer _ ->
-                        ( newModel
-                        , Cmd.batch
-                            [ Rest.requestFlavors newModel
-                            , Rest.requestKeypairs newModel
-                            ]
-                        )
+                            Just provider ->
+                                ( newModel
+                                , Rest.requestServers provider
+                                )
 
-        RequestAuthToken ->
+                    ServerDetail providerName serverUuid ->
+                        case Helpers.providerLookup model providerName of
+                            Nothing ->
+                                Helpers.processError model "provider not found"
+
+                            Just provider ->
+                                ( newModel
+                                , Rest.requestServerDetail
+                                    provider
+                                    serverUuid
+                                )
+
+                    CreateServer providerName _ ->
+                        case Helpers.providerLookup model providerName of
+                            Nothing ->
+                                Helpers.processError model "provider not found"
+
+                            Just provider ->
+                                ( newModel
+                                , Cmd.batch
+                                    [ Rest.requestFlavors provider
+                                    , Rest.requestKeypairs provider
+                                    ]
+                                )
+
+        RequestNewProviderToken ->
             ( model, Rest.requestAuthToken model )
 
-        RequestCreateServer createServerRequest ->
-            ( model, Rest.requestCreateServer model createServerRequest )
+        RequestCreateServer providerName createServerRequest ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
 
-        RequestDeleteServer server ->
-            ( { model | servers = List.filter (\s -> s /= server) model.servers }
-            , Rest.requestDeleteServer model server
-            )
+                Just provider ->
+                    ( model
+                    , Rest.requestCreateServer provider createServerRequest
+                    )
 
-        RequestDeleteServers serversToDelete ->
-            ( { model | servers = List.filter (\s -> (not (List.member s serversToDelete))) model.servers }
-            , Rest.requestDeleteServers model serversToDelete
-            )
+        RequestDeleteServer providerName server ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
 
-        SelectServer server newSelectionState ->
-            let
-                updateServer someServer =
-                    if someServer.uuid == server.uuid then
-                        { someServer | selected = newSelectionState }
-                    else
-                        someServer
-            in
-                { model | servers = List.map updateServer model.servers }
-                    ! []
+                Just provider ->
+                    let
+                        newProvider =
+                            { provider
+                                | servers =
+                                    List.filter
+                                        (\s -> s /= server)
+                                        provider.servers
+                            }
 
-        SelectAllServers allServersSelected ->
-            let
-                updateServer someServer =
-                    { someServer | selected = allServersSelected }
-            in
-                { model | servers = List.map updateServer model.servers }
-                    ! []
+                        otherProviders =
+                            List.filter
+                                (\p -> p.name /= provider.name)
+                                model.providers
+
+                        newProviders =
+                            newProvider :: otherProviders
+
+                        newModel =
+                            { model | providers = newProviders }
+                    in
+                        ( newModel
+                        , Rest.requestDeleteServer provider server
+                        )
 
         ReceiveAuthToken response ->
             Rest.receiveAuthToken model response
 
-        ReceiveImages result ->
-            Rest.receiveImages model result
+        ReceiveImages providerName result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
 
-        ReceiveServers result ->
-            Rest.receiveServers model result
+                Just provider ->
+                    Rest.receiveImages model provider result
 
-        ReceiveServerDetail serverUuid result ->
-            Rest.receiveServerDetail model serverUuid result
+        RequestDeleteServers providerName serversToDelete ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
 
-        ReceiveFlavors result ->
-            Rest.receiveFlavors model result
+                Just provider ->
+                    let
+                        newProvider =
+                            { provider | servers = List.filter (\s -> (not (List.member s serversToDelete))) provider.servers }
 
-        ReceiveKeypairs result ->
-            Rest.receiveKeypairs model result
+                        otherProviders =
+                            List.filter
+                                (\p -> p.name /= provider.name)
+                                model.providers
 
-        ReceiveCreateServer result ->
-            Rest.receiveCreateServer model result
+                        newProviders =
+                            newProvider :: otherProviders
 
-        ReceiveDeleteServer _ ->
+                        newModel =
+                            { model | providers = newProviders }
+                    in
+                        ( newModel
+                        , Rest.requestDeleteServers newProvider serversToDelete
+                        )
+
+        SelectServer providerName server newSelectionState ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    let
+                        updateServer someServer =
+                            if someServer.uuid == server.uuid then
+                                { someServer | selected = newSelectionState }
+                            else
+                                someServer
+
+                        newProvider =
+                            { provider | servers = List.map updateServer provider.servers }
+
+                        otherProviders =
+                            List.filter
+                                (\p -> p.name /= provider.name)
+                                model.providers
+
+                        newProviders =
+                            newProvider :: otherProviders
+
+                        newModel =
+                            { model | providers = newProviders }
+                    in
+                        newModel
+                            ! []
+
+        SelectAllServers providerName allServersSelected ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    let
+                        updateServer someServer =
+                            { someServer | selected = allServersSelected }
+
+                        newProvider =
+                            { provider | servers = List.map updateServer provider.servers }
+
+                        otherProviders =
+                            List.filter
+                                (\p -> p.name /= provider.name)
+                                model.providers
+
+                        newProviders =
+                            newProvider :: otherProviders
+
+                        newModel =
+                            { model | providers = newProviders }
+                    in
+                        newModel
+                            ! []
+
+        ReceiveServers providerName result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receiveServers model provider result
+
+        ReceiveServerDetail providerName serverUuid result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receiveServerDetail model provider serverUuid result
+
+        ReceiveFlavors providerName result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receiveFlavors model provider result
+
+        ReceiveKeypairs providerName result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receiveKeypairs model provider result
+
+        ReceiveCreateServer providerName result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receiveCreateServer model provider result
+
+        ReceiveDeleteServer providerName _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ChangeViewState Home) model
+            update (ChangeViewState (Home providerName)) model
 
-        ReceiveNetworks result ->
-            Rest.receiveNetworks model result
+        ReceiveNetworks providerName result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
 
-        GetFloatingIpReceivePorts server result ->
-            Rest.receivePortsAndRequestFloatingIp model server result
+                Just provider ->
+                    Rest.receiveNetworks model provider result
 
-        ReceiveFloatingIp server result ->
-            Rest.receiveFloatingIp model server result
+        GetFloatingIpReceivePorts providerName server result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receivePortsAndRequestFloatingIp
+                        model
+                        provider
+                        server
+                        result
+
+        ReceiveFloatingIp providerName server result ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "provider not found"
+
+                Just provider ->
+                    Rest.receiveFloatingIp model provider server result
 
         {- Form inputs -}
         InputAuthURL authURL ->
@@ -201,37 +366,37 @@ update msg model =
             in
                 ( { model | creds = { creds | password = password } }, Cmd.none )
 
-        InputCreateServerName createServerRequest name ->
+        InputCreateServerName providerName createServerRequest name ->
             let
                 viewState =
-                    CreateServer { createServerRequest | name = name }
+                    CreateServer providerName { createServerRequest | name = name }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerCount createServerRequest count ->
+        InputCreateServerCount providerName createServerRequest count ->
             let
                 viewState =
-                    CreateServer { createServerRequest | count = count }
+                    CreateServer providerName { createServerRequest | count = count }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerUserData createServerRequest userData ->
+        InputCreateServerUserData providerName createServerRequest userData ->
             let
                 viewState =
-                    CreateServer { createServerRequest | userData = userData }
+                    CreateServer providerName { createServerRequest | userData = userData }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerSize createServerRequest flavorUuid ->
+        InputCreateServerSize providerName createServerRequest flavorUuid ->
             let
                 viewState =
-                    CreateServer { createServerRequest | flavorUuid = flavorUuid }
+                    CreateServer providerName { createServerRequest | flavorUuid = flavorUuid }
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
-        InputCreateServerKeypairName createServerRequest keypairName ->
+        InputCreateServerKeypairName providerName createServerRequest keypairName ->
             let
                 viewState =
-                    CreateServer { createServerRequest | keypairName = keypairName }
+                    CreateServer providerName { createServerRequest | keypairName = keypairName }
             in
                 ( { model | viewState = viewState }, Cmd.none )

@@ -1,5 +1,6 @@
-module Helpers exposing (processError, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup)
+module Helpers exposing (processError, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup)
 
+import Regex
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
@@ -12,6 +13,29 @@ processError model error =
             toString error :: model.messages
     in
         ( { model | messages = newMsgs }, Cmd.none )
+
+
+providerNameFromUrl : HelperTypes.Url -> ProviderName
+providerNameFromUrl url =
+    let
+        r =
+            Regex.regex ".*\\/\\/(.*?)(:\\d+)?\\/"
+
+        matches =
+            Regex.find (Regex.AtMost 1) r url
+
+        maybeMaybeName =
+            matches
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+    in
+        case maybeMaybeName of
+            Just (Just name) ->
+                name
+
+            _ ->
+                "placeholder-url-unparseable"
 
 
 serviceCatalogToEndpoints : OpenstackTypes.ServiceCatalog -> Endpoints
@@ -56,9 +80,9 @@ getPublicEndpointFromService maybeService =
             Nothing
 
 
-getExternalNetwork : Model -> Maybe Network
-getExternalNetwork model =
-    List.filter (\n -> n.isExternal) model.networks |> List.head
+getExternalNetwork : Provider -> Maybe Network
+getExternalNetwork provider =
+    List.filter (\n -> n.isExternal) provider.networks |> List.head
 
 
 checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
@@ -96,6 +120,12 @@ checkFloatingIpState serverDetails floatingIpState =
                     NotRequestable
 
 
-serverLookup : Model -> ServerUuid -> Maybe Server
-serverLookup model serverUuid =
-    List.filter (\s -> s.uuid == serverUuid) model.servers |> List.head
+serverLookup : Provider -> ServerUuid -> Maybe Server
+serverLookup provider serverUuid =
+    List.filter (\s -> s.uuid == serverUuid) provider.servers |> List.head
+
+
+providerLookup : Model -> ProviderName -> Maybe Provider
+providerLookup model providerName =
+    List.filter (\p -> p.name == providerName) model.providers
+        |> List.head
