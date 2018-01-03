@@ -356,9 +356,19 @@ createProvider model response =
                     , ports = []
                     }
 
+                {- This is kinda hacky, abusing empty provider name to mean no valid provider -}
+                otherProviders =
+                    case model.selectedProvider.name of
+                        "" ->
+                            []
+
+                        _ ->
+                            model.selectedProvider :: model.otherProviders
+
                 newModel =
                     { model
                         | selectedProvider = newProvider
+                        , otherProviders = otherProviders
                         , viewState = ListUserServers
                     }
             in
