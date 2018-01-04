@@ -4,7 +4,7 @@ import Dict
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Base64
+import Utils.Base64 as Base64
 import Helpers
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes

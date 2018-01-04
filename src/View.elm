@@ -4,7 +4,7 @@ import Html exposing (Html, button, div, fieldset, h2, input, label, legend, p, 
 import Html.Attributes exposing (cols, for, name, hidden, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
-import Base64
+import Utils.Base64 as Base64
 import Filesize exposing (format)
 import Types.Types exposing (..)
 import Helpers
