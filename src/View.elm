@@ -1,7 +1,7 @@
 module View exposing (view)
 
-import Html exposing (Html, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
-import Html.Attributes exposing (cols, for, name, hidden, placeholder, rows, type_, value, class, checked, disabled)
+import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
+import Html.Attributes exposing (cols, for, target, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Utils.Base64 as Base64
@@ -303,6 +303,10 @@ viewServerDetail provider serverUuid =
                                         [ td [] [ text "IP addresses" ]
                                         , td [] [ renderIpAddresses details.ipAddresses ]
                                         ]
+                                    , tr []
+                                        [ td [] [ text "Shell" ]
+                                        , td [] [ renderShellLink server.name details.ipAddresses ]
+                                        ]
                                     ]
                                 ]
 
@@ -503,6 +507,28 @@ renderIpAddress ipAddress =
     p []
         [ text (toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
         ]
+
+
+renderShellLink : String -> List IpAddress -> Html Msg
+renderShellLink serverName ipAddresses =
+    let
+        isFloatingIpAddress : IpAddress -> Bool
+        isFloatingIpAddress ipAddress =
+            ipAddress.openstackType == Floating
+
+        hasFloatingIpAddress =
+            List.any isFloatingIpAddress ipAddresses
+
+        jwtToken =
+            "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2hlbGwifQ.ZJVNxLucVYcVWOOMUoKxJFDyyT4GUL4kiaMYoHifeFihcqk_GerBmqJ0Tq9cr-KoPWaz94U7YSLjd7qtWCr2VgiMVkT9d-VCxLrpbqi3cieI1rnB7HWh1jhutdRNNx7wHsqOqzWksyEV7-FsoXahXiPJ_0kmRcKMfoWYuz-BXTY"
+
+        shellUrl =
+            "https://" ++ serverName ++ ".freemyip.com/redir-shell?token=" ++ jwtToken
+    in
+        if hasFloatingIpAddress then
+            a [ href shellUrl, target "_blank" ] [ text "Launch" ]
+        else
+            text "(Not available)"
 
 
 viewFlavorPicker : Provider -> CreateServerRequest -> Html Msg
