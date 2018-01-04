@@ -360,7 +360,11 @@ viewCreateServer provider createServerRequest =
                     ]
                 ]
             , tr []
-                [ td [] [ text "User Data" ]
+                [ td []
+                    [ text "User Data"
+                    , Html.br [] []
+                    , text "(Boot Script)"
+                    ]
                 , td []
                     [ div []
                         [ textarea
@@ -368,6 +372,7 @@ viewCreateServer provider createServerRequest =
                             , rows 20
                             , cols 80
                             , onInput (InputCreateServerUserData createServerRequest)
+                            , placeholder "#!/bin/bash"
                             ]
                             []
                         ]
