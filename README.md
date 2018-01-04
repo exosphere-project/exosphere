@@ -6,13 +6,16 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 [Real-time  chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
 
-## Scaffold and Electron
+## Try Exosphere as Electron App
 
-To run this Electron app you will need to install Electron. You will also need elm, npm, and node.
+We plan to build OS-specific application packages for Exosphere using [electron-builder](https://www.electron.build/), but haven't gotten to it yet. Here's how to get Exosphere running with a few extra steps.
 
-Convenience commands to do this:
+First, [install Elm](https://guide.elm-lang.org/install.html) and [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+
+Then install Electron. Convenience commands to do this (run from the root of the exosphere repo):
 
 ```bash
+npm install electron
 npm install
 ```
 
@@ -32,6 +35,14 @@ npm run watch
 Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
+
+## Try Exosphere in browser
+
+Note: connecting to cloud providers from Exosphere running in a browser is currently problematic because of the same-origin policy (making cross-origin credentialed requests and viewing headers of the responses). A way around this is to 1. install a browser extension like [CORS Everywhere](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/), and 2. Connect to an OpenStack cloud whose Keystone is configured to allow cross-origin requests. This works for testing/evaluation purposes but is not recommended for security reasons.
+
+- First, [install Elm](https://guide.elm-lang.org/install.html)
+- Run `elm-reactor` from the root of this repository
+- Visit `http://localhost:8000/src/Exosphere.elm`
 
 ## Style Guide
 
