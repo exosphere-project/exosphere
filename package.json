@@ -13,7 +13,9 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "chokidar": "^1.4.2"
+    "chokidar-cli": "^1.2.0",
+    "electron": "^1.7.10",
+    "elm": "^0.18.0"
   },
   "repository": {
     "type": "git",
@@ -28,5 +30,6 @@
   "bugs": {
     "url": "https://github.com/exosphere-project/exosphere/issues"
   },
-  "homepage": "https://github.com/exosphere-project/exosphere#readme"
+  "homepage": "https://github.com/exosphere-project/exosphere#readme",
+  "dependencies": {}
 }

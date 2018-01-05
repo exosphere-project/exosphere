@@ -10,12 +10,11 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 We plan to build OS-specific application packages for Exosphere using [electron-builder](https://www.electron.build/), but haven't gotten to it yet. Here's how to get Exosphere running with a few extra steps.
 
-First, [install Elm](https://guide.elm-lang.org/install.html) and [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
-Then install Electron. Convenience commands to do this (run from the root of the exosphere repo):
+Then install the project's dependencies (including Elm & Electron). Convenience command to do this (run from the root of the exosphere repo):
 
 ```bash
-npm install electron
 npm install
 ```
 
