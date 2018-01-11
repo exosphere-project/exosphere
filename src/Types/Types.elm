@@ -57,6 +57,7 @@ type Msg
     | InputUserDomain String
     | InputUsername String
     | InputPassword String
+    | InputOpenRc String
     | InputCreateServerName CreateServerRequest String
     | InputCreateServerCount CreateServerRequest String
     | InputCreateServerUserData CreateServerRequest String

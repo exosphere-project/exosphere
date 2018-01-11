@@ -1,7 +1,7 @@
 module View exposing (view)
 
-import Html exposing (Html, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
-import Html.Attributes exposing (cols, for, name, hidden, placeholder, rows, type_, value, class, checked, disabled)
+import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
+import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Base64
@@ -92,6 +92,7 @@ viewLogin : Model -> Html Msg
 viewLogin model =
     div []
         [ h2 [] [ text "Please log in" ]
+        , p [] [ text "Either enter your credentials..." ]
         , table []
             [ tr []
                 [ td [] [ text "Keystone auth URL" ]
@@ -161,7 +162,28 @@ viewLogin model =
                     ]
                 ]
             ]
-        , button [ onClick RequestNewProviderToken ] [ text "Log in" ]
+        , p []
+            [ text "...or paste an "
+              {-
+                 Todo this link opens in Electron, should open in user's browser
+                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+              -}
+            , a
+                [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
+                [ text "OpenRC"
+                ]
+            , text " file"
+            ]
+        , textarea
+            [ rows 10
+            , cols 40
+            , onInput (InputOpenRc)
+            , placeholder "export..."
+            ]
+            []
+        , div []
+            [ button [ onClick RequestNewProviderToken ] [ text "Log in" ]
+            ]
         ]
 
 

@@ -278,6 +278,9 @@ update msg model =
             in
                 ( { model | creds = { creds | password = password } }, Cmd.none )
 
+        InputOpenRc openRc ->
+            Helpers.processOpenRc model openRc
+
         InputCreateServerName createServerRequest name ->
             let
                 viewState =
