@@ -1,6 +1,7 @@
-module Helpers exposing (processError, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup)
+module Helpers exposing (processError, processOpenRc, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup)
 
 import Regex
+import Maybe.Extra
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
@@ -13,6 +14,44 @@ processError model error =
             toString error :: model.messages
     in
         ( { model | messages = newMsgs }, Cmd.none )
+
+
+processOpenRc : Model -> String -> ( Model, Cmd Msg )
+processOpenRc model openRc =
+    let
+        regexes =
+            { authURL = Regex.regex "export OS_AUTH_URL=(.*)"
+            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN_NAME=(.*)"
+            , projectName = Regex.regex "export OS_PROJECT_NAME=(.*)"
+            , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=(.*)"
+            , username = Regex.regex "export OS_USERNAME=(.*)"
+            , password = Regex.regex "export OS_PASSWORD=(.*)"
+            }
+
+        getMatch text regex =
+            Regex.find (Regex.AtMost 1) regex text
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+                |> Maybe.Extra.join
+
+        newField regex oldField =
+            getMatch openRc regex
+                |> Maybe.withDefault oldField
+
+        newCreds =
+            Creds
+                (newField regexes.authURL model.creds.authURL)
+                (newField regexes.projectDomain model.creds.projectDomain)
+                (newField regexes.projectName model.creds.projectName)
+                (newField regexes.userDomain model.creds.userDomain)
+                (newField regexes.username model.creds.username)
+                (newField regexes.password model.creds.password)
+
+        newModel =
+            { model | creds = newCreds }
+    in
+        ( newModel, Cmd.none )
 
 
 providerNameFromUrl : HelperTypes.Url -> ProviderName
