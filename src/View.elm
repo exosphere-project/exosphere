@@ -20,7 +20,7 @@ view model =
                 viewLogin model
 
             ListAllServers ->
-                div [] [ text "All servers across all logged-in providers would be listed here" ]
+                div [] [ viewAllServers (model.selectedProvider :: model.otherProviders) ]
 
             ProviderHome ->
                 div []
@@ -36,7 +36,7 @@ view model =
 
             ListProviderServers ->
                 div []
-                    [ viewServers model.selectedProvider
+                    [ viewServersWithActions model.selectedProvider
                     ]
 
             ServerDetail serverUuid ->
@@ -206,8 +206,20 @@ viewImages provider =
                 ]
 
 
-viewServers : Provider -> Html Msg
-viewServers provider =
+viewAllServers : List Provider -> Html Msg
+viewAllServers providers =
+    let
+        providerServerTuples provider =
+            List.map (\s -> ( provider, s )) provider.servers
+
+        providersServerTuples =
+            List.concatMap providerServerTuples providers
+    in
+        div [] (List.map (\( p, s ) -> renderServer p s) providersServerTuples)
+
+
+viewServersWithActions : Provider -> Html Msg
+viewServersWithActions provider =
     case List.isEmpty provider.servers of
         True ->
             div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
