@@ -68,7 +68,7 @@ update msg model =
                     Login ->
                         ( newModel, Cmd.none )
 
-                    Home ->
+                    ProviderHome ->
                         ( newModel, Cmd.none )
 
                     ListImages ->
@@ -224,7 +224,7 @@ update msg model =
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ChangeViewState Home) model
+            update (ChangeViewState ProviderHome) model
 
         ReceiveNetworks result ->
             Rest.receiveNetworks model result

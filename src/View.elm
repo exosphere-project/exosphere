@@ -19,7 +19,7 @@ view model =
             Login ->
                 viewLogin model
 
-            Home ->
+            ProviderHome ->
                 div []
                     [ p []
                         [ viewNav model.selectedProvider
@@ -78,7 +78,7 @@ viewNav : Provider -> Html Msg
 viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
+        , button [ onClick (ChangeViewState ProviderHome) ] [ text "Home" ]
         , button [ onClick (ChangeViewState ListProviderServers) ] [ text "My Servers" ]
         , button [ onClick (ChangeViewState ListImages) ] [ text "Create Server" ]
         ]
