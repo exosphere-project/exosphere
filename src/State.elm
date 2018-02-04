@@ -48,7 +48,7 @@ update msg model =
     case msg of
         Tick _ ->
             case model.viewState of
-                ListUserServers ->
+                ListProviderServers ->
                     ( model, Rest.requestServers model.selectedProvider )
 
                 ServerDetail serverUuid ->
@@ -68,13 +68,17 @@ update msg model =
                     Login ->
                         ( newModel, Cmd.none )
 
-                    Home ->
+                    ListAllServers ->
+                        {- Todo request servers for all providers, which reqires refactoring requestServers/receiveServers to update servers for any provider in the model, not just SelectedProvider. -}
+                        ( newModel, Cmd.none )
+
+                    ProviderHome ->
                         ( newModel, Cmd.none )
 
                     ListImages ->
                         ( newModel, Rest.requestImages model.selectedProvider )
 
-                    ListUserServers ->
+                    ListProviderServers ->
                         ( newModel, Rest.requestServers model.selectedProvider )
 
                     ServerDetail serverUuid ->
@@ -224,7 +228,7 @@ update msg model =
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ChangeViewState Home) model
+            update (ChangeViewState ProviderHome) model
 
         ReceiveNetworks result ->
             Rest.receiveNetworks model result

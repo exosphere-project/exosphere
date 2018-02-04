@@ -369,7 +369,7 @@ createProvider model response =
                     { model
                         | selectedProvider = newProvider
                         , otherProviders = otherProviders
-                        , viewState = ListUserServers
+                        , viewState = ListProviderServers
                     }
             in
                 ( newModel, Cmd.none )
@@ -573,7 +573,7 @@ receiveCreateServer model result =
         Ok _ ->
             let
                 newModel =
-                    { model | viewState = ListUserServers }
+                    { model | viewState = ListProviderServers }
             in
                 ( newModel
                 , Cmd.batch
