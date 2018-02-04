@@ -11,7 +11,20 @@ import Types.HelperTypes as HelperTypes
 type alias Model =
     { messages : List String
     , viewState : ViewState
-    , selectedProvider : Provider
+    , selectedProvider :
+        Provider
+        {-
+           Todo
+           refactor providers into an ADT which can either be:
+               - Nothing (not logged in)
+               - A tuple of Maybe Provider and List Provider
+            ??
+            We need to cover the following circumstances:
+            - Not logged in to any provider
+            - Logged in to one or more providers, no provider selected
+            - Logged in to one or more providers, with a provider selected
+           Then we can avoid initializing a "dummy provider" with the app
+        -}
     , otherProviders : List Provider
     , creds : Creds
     }

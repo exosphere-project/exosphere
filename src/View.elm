@@ -14,7 +14,7 @@ view : Model -> Html Msg
 view model =
     div []
         [ viewMessages model
-        , viewProviderPicker model
+        , viewNav model
         , case model.viewState of
             Login ->
                 viewLogin model
@@ -25,33 +25,28 @@ view model =
             ProviderHome ->
                 div []
                     [ p []
-                        [ viewNav model.selectedProvider
-                        , text ("Home page for " ++ model.selectedProvider.name ++ ", todo put things here")
+                        [ text ("Home page for " ++ model.selectedProvider.name ++ ", todo put things here")
                         ]
                     ]
 
             ListImages ->
                 div []
-                    [ viewNav model.selectedProvider
-                    , viewImages model.selectedProvider
+                    [ viewImages model.selectedProvider
                     ]
 
             ListProviderServers ->
                 div []
-                    [ viewNav model.selectedProvider
-                    , viewServers model.selectedProvider
+                    [ viewServers model.selectedProvider
                     ]
 
             ServerDetail serverUuid ->
                 div []
-                    [ viewNav model.selectedProvider
-                    , viewServerDetail model.selectedProvider serverUuid
+                    [ viewServerDetail model.selectedProvider serverUuid
                     ]
 
             CreateServer createServerRequest ->
                 div []
-                    [ viewNav model.selectedProvider
-                    , viewCreateServer model.selectedProvider createServerRequest
+                    [ viewCreateServer model.selectedProvider createServerRequest
                     ]
         ]
 
@@ -65,10 +60,18 @@ viewMessages model =
     div [] (List.map renderMessage model.messages)
 
 
-viewProviderPicker : Model -> Html Msg
-viewProviderPicker model =
+viewNav : Model -> Html Msg
+viewNav model =
     div []
-        [ h2 [] [ text "Providers" ]
+        [ viewOverallNav model
+        , viewProviderSpecificNav model
+        ]
+
+
+viewOverallNav : Model -> Html Msg
+viewOverallNav model =
+    div []
+        [ button [ onClick (ChangeViewState ListAllServers) ] [ text "All My Stuff" ]
         , div []
             [ text model.selectedProvider.name
             , div [] (List.map renderProviderPicker model.otherProviders)
@@ -77,10 +80,10 @@ viewProviderPicker model =
         ]
 
 
-viewNav : Provider -> Html Msg
-viewNav provider =
+viewProviderSpecificNav : Model -> Html Msg
+viewProviderSpecificNav model =
     div []
-        [ h2 [] [ text "Navigation" ]
+        [ h2 [] [ text "Provider-specific Navigation" ]
         , button [ onClick (ChangeViewState ProviderHome) ] [ text "Home" ]
         , button [ onClick (ChangeViewState ListProviderServers) ] [ text "My Servers" ]
         , button [ onClick (ChangeViewState ListImages) ] [ text "Create Server" ]
