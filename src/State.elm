@@ -27,7 +27,7 @@ init =
       , otherProviders = []
       , creds =
             Creds
-                "https://tombstone-cloud.cyverse.org:8000/v3/auth/tokens"
+                "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens"
                 "default"
                 "demo"
                 "default"
