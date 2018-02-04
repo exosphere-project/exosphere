@@ -68,6 +68,10 @@ update msg model =
                     Login ->
                         ( newModel, Cmd.none )
 
+                    ListAllServers ->
+                        {- Todo request servers for all providers, which reqires refactoring requestServers/receiveServers to update servers for any provider in the model, not just SelectedProvider. -}
+                        ( newModel, Cmd.none )
+
                     ProviderHome ->
                         ( newModel, Cmd.none )
 

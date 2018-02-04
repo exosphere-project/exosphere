@@ -19,6 +19,9 @@ view model =
             Login ->
                 viewLogin model
 
+            ListAllServers ->
+                div [] [ text "All servers across all logged-in providers would be listed here" ]
+
             ProviderHome ->
                 div []
                     [ p []

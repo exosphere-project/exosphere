@@ -67,6 +67,7 @@ type Msg
 
 type ViewState
     = Login
+    | ListAllServers
     | ProviderHome
     | ListImages
     | ListProviderServers
