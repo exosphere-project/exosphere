@@ -33,7 +33,7 @@ view model =
                     , viewImages model.selectedProvider
                     ]
 
-            ListUserServers ->
+            ListProviderServers ->
                 div []
                     [ viewNav model.selectedProvider
                     , viewServers model.selectedProvider
@@ -79,7 +79,7 @@ viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
-        , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
+        , button [ onClick (ChangeViewState ListProviderServers) ] [ text "My Servers" ]
         , button [ onClick (ChangeViewState ListImages) ] [ text "Create Server" ]
         ]
 

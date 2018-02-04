@@ -48,7 +48,7 @@ update msg model =
     case msg of
         Tick _ ->
             case model.viewState of
-                ListUserServers ->
+                ListProviderServers ->
                     ( model, Rest.requestServers model.selectedProvider )
 
                 ServerDetail serverUuid ->
@@ -74,7 +74,7 @@ update msg model =
                     ListImages ->
                         ( newModel, Rest.requestImages model.selectedProvider )
 
-                    ListUserServers ->
+                    ListProviderServers ->
                         ( newModel, Rest.requestServers model.selectedProvider )
 
                     ServerDetail serverUuid ->

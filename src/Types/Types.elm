@@ -69,7 +69,7 @@ type ViewState
     = Login
     | Home
     | ListImages
-    | ListUserServers
+    | ListProviderServers
     | ServerDetail ServerUuid
     | CreateServer CreateServerRequest
 
