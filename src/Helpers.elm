@@ -1,4 +1,4 @@
-module Helpers exposing (processError, processOpenRc, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup)
+module Helpers exposing (processError, processOpenRc, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider)
 
 import Regex
 import Maybe.Extra
@@ -168,7 +168,7 @@ providerLookup : Model -> ProviderName -> Maybe Provider
 providerLookup model providerName =
     List.filter
         (\p -> p.name == providerName)
-        (model.selectedProvider :: model.otherProviders)
+        (model.providers)
         |> List.head
 
 
@@ -186,3 +186,15 @@ imageLookup provider imageUuid =
         (\i -> i.uuid == imageUuid)
         provider.images
         |> List.head
+
+
+modelUpdateProvider : Model -> Provider -> Model
+modelUpdateProvider model newProvider =
+    let
+        otherProviders =
+            List.filter (\p -> p.name /= newProvider.name) model.providers
+
+        newProviders =
+            newProvider :: otherProviders
+    in
+        { model | providers = newProviders }

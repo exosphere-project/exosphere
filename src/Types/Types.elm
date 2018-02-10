@@ -11,8 +11,7 @@ import Types.HelperTypes as HelperTypes
 type alias Model =
     { messages : List String
     , viewState : ViewState
-    , selectedProvider : Provider
-    , otherProviders : List Provider
+    , providers : List Provider
     , creds : Creds
     }
 
@@ -34,23 +33,22 @@ type Msg
     = Tick Time.Time
     | ChangeViewState ViewState
     | RequestNewProviderToken
-    | SelectProvider ProviderName
-    | SelectServer Server Bool
-    | SelectAllServers Bool
-    | RequestCreateServer CreateServerRequest
-    | RequestDeleteServer Server
-    | RequestDeleteServers (List Server)
+    | SelectServer ProviderName Server Bool
+    | SelectAllServers ProviderName Bool
+    | RequestCreateServer ProviderName CreateServerRequest
+    | RequestDeleteServer ProviderName Server
+    | RequestDeleteServers ProviderName (List Server)
     | ReceiveAuthToken (Result Http.Error (Http.Response String))
-    | ReceiveImages (Result Http.Error (List Image))
-    | ReceiveServers (Result Http.Error (List Server))
-    | ReceiveServerDetail ServerUuid (Result Http.Error ServerDetails)
-    | ReceiveCreateServer (Result Http.Error Server)
-    | ReceiveDeleteServer (Result Http.Error String)
-    | ReceiveFlavors (Result Http.Error (List Flavor))
-    | ReceiveKeypairs (Result Http.Error (List Keypair))
-    | ReceiveNetworks (Result Http.Error (List Network))
-    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
-    | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
+    | ReceiveImages ProviderName (Result Http.Error (List Image))
+    | ReceiveServers ProviderName (Result Http.Error (List Server))
+    | ReceiveServerDetail ProviderName ServerUuid (Result Http.Error ServerDetails)
+    | ReceiveCreateServer ProviderName (Result Http.Error Server)
+    | ReceiveDeleteServer ProviderName (Result Http.Error String)
+    | ReceiveFlavors ProviderName (Result Http.Error (List Flavor))
+    | ReceiveKeypairs ProviderName (Result Http.Error (List Keypair))
+    | ReceiveNetworks ProviderName (Result Http.Error (List Network))
+    | GetFloatingIpReceivePorts ProviderName ServerUuid (Result Http.Error (List Port))
+    | ReceiveFloatingIp ProviderName ServerUuid (Result Http.Error IpAddress)
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -67,11 +65,11 @@ type Msg
 
 type ViewState
     = Login
-    | Home
-    | ListImages
-    | ListUserServers
-    | ServerDetail ServerUuid
-    | CreateServer CreateServerRequest
+    | ProviderHome ProviderName
+    | ListImages ProviderName
+    | ListProviderServers ProviderName
+    | ServerDetail ProviderName ServerUuid
+    | CreateServer ProviderName CreateServerRequest
 
 
 type alias Creds =
