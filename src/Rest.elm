@@ -73,72 +73,102 @@ requestAuthToken model =
 
 requestImages : Provider -> Cmd Msg
 requestImages provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.glance ++ "/v2/images"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeImages
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveImages provider.name)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.glance ++ "/v2/images"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeImages
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveImages result)
+    in
+        Http.send resultMsg request
 
 
 requestServers : Provider -> Cmd Msg
 requestServers provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/servers"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeServers
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveServers provider.name)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/servers"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeServers
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveServers result)
+    in
+        Http.send resultMsg request
 
 
 requestServerDetail : Provider -> ServerUuid -> Cmd Msg
 requestServerDetail provider serverUuid =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/servers/" ++ serverUuid
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeServerDetails
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveServerDetail provider.name serverUuid)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/servers/" ++ serverUuid
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeServerDetails
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveServerDetail serverUuid result)
+    in
+        Http.send resultMsg request
 
 
 requestFlavors : Provider -> Cmd Msg
 requestFlavors provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/flavors"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeFlavors
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveFlavors provider.name)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/flavors"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeFlavors
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveFlavors result)
+    in
+        Http.send resultMsg request
 
 
 requestKeypairs : Provider -> Cmd Msg
 requestKeypairs provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/os-keypairs"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeKeypairs
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveKeypairs provider.name)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/os-keypairs"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeKeypairs
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveKeypairs result)
+    in
+        Http.send resultMsg request
 
 
 requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
@@ -178,6 +208,9 @@ requestCreateServer provider createServerRequest =
                               )
                             ]
                     )
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveCreateServer result)
     in
         Cmd.batch
             (requestBodies
@@ -196,7 +229,7 @@ requestCreateServer provider createServerRequest =
                             , timeout = Nothing
                             , withCredentials = True
                             }
-                            |> Http.send (ReceiveCreateServer provider.name)
+                            |> Http.send resultMsg
                         )
                     )
             )
@@ -204,16 +237,22 @@ requestCreateServer provider createServerRequest =
 
 requestDeleteServer : Provider -> Server -> Cmd Msg
 requestDeleteServer provider server =
-    Http.request
-        { method = "DELETE"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/servers/" ++ server.uuid
-        , body = Http.emptyBody
-        , expect = Http.expectString
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveDeleteServer provider.name)
+    let
+        request =
+            Http.request
+                { method = "DELETE"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/servers/" ++ server.uuid
+                , body = Http.emptyBody
+                , expect = Http.expectString
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveDeleteServer result)
+    in
+        Http.send resultMsg request
 
 
 requestDeleteServers : Provider -> List Server -> Cmd Msg
@@ -227,30 +266,42 @@ requestDeleteServers provider serversToDelete =
 
 requestNetworks : Provider -> Cmd Msg
 requestNetworks provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.neutron ++ "/v2.0/networks"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeNetworks
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveNetworks provider.name)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/networks"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeNetworks
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveNetworks result)
+    in
+        Http.send resultMsg request
 
 
 getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
 getFloatingIpRequestPorts provider server =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.neutron ++ "/v2.0/ports"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodePorts
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (GetFloatingIpReceivePorts provider.name server.uuid)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/ports"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodePorts
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (GetFloatingIpReceivePorts server.uuid result)
+    in
+        Http.send resultMsg request
 
 
 requestFloatingIpIfRequestable : Model -> Provider -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
@@ -301,7 +352,7 @@ requestFloatingIp model provider network port_ server =
                   )
                 ]
 
-        cmd =
+        request =
             Http.request
                 { method = "POST"
                 , headers = [ Http.header "X-Auth-Token" provider.authToken ]
@@ -311,7 +362,12 @@ requestFloatingIp model provider network port_ server =
                 , timeout = Nothing
                 , withCredentials = True
                 }
-                |> Http.send (ReceiveFloatingIp provider.name server.uuid)
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveFloatingIp server.uuid result)
+
+        cmd =
+            Http.send resultMsg request
     in
         ( newModel, cmd )
 
@@ -362,7 +418,7 @@ createProvider model response =
                 newModel =
                     { model
                         | providers = newProviders
-                        , viewState = ListProviderServers newProvider.name
+                        , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
                 ( newModel, Cmd.none )
@@ -563,7 +619,7 @@ receiveCreateServer model provider result =
         Ok _ ->
             let
                 newModel =
-                    { model | viewState = ListProviderServers provider.name }
+                    { model | viewState = ProviderView provider.name ListProviderServers }
             in
                 ( newModel
                 , Cmd.batch

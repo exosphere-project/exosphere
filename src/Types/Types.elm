@@ -31,24 +31,10 @@ type alias Provider =
 
 type Msg
     = Tick Time.Time
-    | ChangeViewState ViewState
+    | SetNonProviderView NonProviderViewConstructor
     | RequestNewProviderToken
-    | SelectServer ProviderName Server Bool
-    | SelectAllServers ProviderName Bool
-    | RequestCreateServer ProviderName CreateServerRequest
-    | RequestDeleteServer ProviderName Server
-    | RequestDeleteServers ProviderName (List Server)
     | ReceiveAuthToken (Result Http.Error (Http.Response String))
-    | ReceiveImages ProviderName (Result Http.Error (List Image))
-    | ReceiveServers ProviderName (Result Http.Error (List Server))
-    | ReceiveServerDetail ProviderName ServerUuid (Result Http.Error ServerDetails)
-    | ReceiveCreateServer ProviderName (Result Http.Error Server)
-    | ReceiveDeleteServer ProviderName (Result Http.Error String)
-    | ReceiveFlavors ProviderName (Result Http.Error (List Flavor))
-    | ReceiveKeypairs ProviderName (Result Http.Error (List Keypair))
-    | ReceiveNetworks ProviderName (Result Http.Error (List Network))
-    | GetFloatingIpReceivePorts ProviderName ServerUuid (Result Http.Error (List Port))
-    | ReceiveFloatingIp ProviderName ServerUuid (Result Http.Error IpAddress)
+    | ProviderMsg ProviderName ProviderSpecificMsgConstructor
     | InputAuthURL String
     | InputProjectDomain String
     | InputProjectName String
@@ -63,13 +49,42 @@ type Msg
     | InputCreateServerKeypairName CreateServerRequest String
 
 
+type ProviderSpecificMsgConstructor
+    = SetProviderView ProviderViewConstructor
+    | SelectServer Server Bool
+    | SelectAllServers Bool
+    | RequestServers
+    | RequestServerDetail ServerUuid
+    | RequestCreateServer CreateServerRequest
+    | RequestDeleteServer Server
+    | RequestDeleteServers (List Server)
+    | ReceiveImages (Result Http.Error (List Image))
+    | ReceiveServers (Result Http.Error (List Server))
+    | ReceiveServerDetail ServerUuid (Result Http.Error ServerDetails)
+    | ReceiveCreateServer (Result Http.Error Server)
+    | ReceiveDeleteServer (Result Http.Error String)
+    | ReceiveFlavors (Result Http.Error (List Flavor))
+    | ReceiveKeypairs (Result Http.Error (List Keypair))
+    | ReceiveNetworks (Result Http.Error (List Network))
+    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
+    | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
+
+
 type ViewState
+    = NonProviderView NonProviderViewConstructor
+    | ProviderView ProviderName ProviderViewConstructor
+
+
+type NonProviderViewConstructor
     = Login
-    | ProviderHome ProviderName
-    | ListImages ProviderName
-    | ListProviderServers ProviderName
-    | ServerDetail ProviderName ServerUuid
-    | CreateServer ProviderName CreateServerRequest
+
+
+type ProviderViewConstructor
+    = ProviderHome
+    | ListImages
+    | ListProviderServers
+    | ServerDetail ServerUuid
+    | CreateServer CreateServerRequest
 
 
 type alias Creds =
