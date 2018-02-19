@@ -78,11 +78,10 @@ viewMessages model =
 
 viewProviderPicker : Model -> Html Msg
 viewProviderPicker model =
-    {- Todo make "selected provider" a pattern-match-accessible part ov viewState -}
     div []
         [ h2 [] [ text "Providers" ]
         , div []
-            [ div [] (List.map renderProviderPicker model.providers)
+            [ div [] (List.map (renderProviderPicker model) model.providers)
             ]
         , button [ onClick (SetNonProviderView Login) ] [ text "Add Provider" ]
         ]
@@ -429,14 +428,23 @@ renderMessage message =
     p [] [ text message ]
 
 
-renderProviderPicker : Provider -> Html Msg
-renderProviderPicker provider =
-    case provider.name of
-        "" ->
-            div [] []
+renderProviderPicker : Model -> Provider -> Html Msg
+renderProviderPicker model provider =
+    let
+        isSelected p =
+            case model.viewState of
+                NonProviderView _ ->
+                    False
 
-        _ ->
-            button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
+                ProviderView selectedProvName _ ->
+                    p.name == selectedProvName
+    in
+        case isSelected provider of
+            False ->
+                button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
+
+            True ->
+                text provider.name
 
 
 renderImage : Provider -> Image -> Html Msg
