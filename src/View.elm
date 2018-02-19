@@ -16,41 +16,55 @@ view model =
         [ viewMessages model
         , viewProviderPicker model
         , case model.viewState of
-            Login ->
-                viewLogin model
+            NonProviderView viewConstructor ->
+                case viewConstructor of
+                    Login ->
+                        viewLogin model
 
-            Home ->
-                div []
-                    [ p []
-                        [ viewNav model.selectedProvider
-                        , text ("Home page for " ++ model.selectedProvider.name ++ ", todo put things here")
-                        ]
-                    ]
+            ProviderView providerName viewConstructor ->
+                case Helpers.providerLookup model providerName of
+                    Nothing ->
+                        text "Oops! Provider not found"
 
-            ListImages ->
-                div []
-                    [ viewNav model.selectedProvider
-                    , viewImages model.selectedProvider
-                    ]
-
-            ListUserServers ->
-                div []
-                    [ viewNav model.selectedProvider
-                    , viewServers model.selectedProvider
-                    ]
-
-            ServerDetail serverUuid ->
-                div []
-                    [ viewNav model.selectedProvider
-                    , viewServerDetail model.selectedProvider serverUuid
-                    ]
-
-            CreateServer createServerRequest ->
-                div []
-                    [ viewNav model.selectedProvider
-                    , viewCreateServer model.selectedProvider createServerRequest
-                    ]
+                    Just provider ->
+                        providerView model provider viewConstructor
         ]
+
+
+providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
+providerView model provider viewConstructor =
+    case viewConstructor of
+        ProviderHome ->
+            div []
+                [ p []
+                    [ viewNav provider
+                    , text ("Home page for " ++ provider.name ++ ", todo put things here")
+                    ]
+                ]
+
+        ListImages ->
+            div []
+                [ viewNav provider
+                , viewImages provider
+                ]
+
+        ListProviderServers ->
+            div []
+                [ viewNav provider
+                , viewServers provider
+                ]
+
+        ServerDetail serverUuid ->
+            div []
+                [ viewNav provider
+                , viewServerDetail provider serverUuid
+                ]
+
+        CreateServer createServerRequest ->
+            div []
+                [ viewNav provider
+                , viewCreateServer provider createServerRequest
+                ]
 
 
 
@@ -67,10 +81,9 @@ viewProviderPicker model =
     div []
         [ h2 [] [ text "Providers" ]
         , div []
-            [ text model.selectedProvider.name
-            , div [] (List.map renderProviderPicker model.otherProviders)
+            [ div [] (List.map (renderProviderPicker model) model.providers)
             ]
-        , button [ onClick (ChangeViewState Login) ] [ text "Add Provider" ]
+        , button [ onClick (SetNonProviderView Login) ] [ text "Add Provider" ]
         ]
 
 
@@ -78,9 +91,9 @@ viewNav : Provider -> Html Msg
 viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ChangeViewState Home) ] [ text "Home" ]
-        , button [ onClick (ChangeViewState ListUserServers) ] [ text "My Servers" ]
-        , button [ onClick (ChangeViewState ListImages) ] [ text "Create Server" ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text "Home" ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
         ]
 
 
@@ -226,7 +239,7 @@ viewServers provider =
                                 [ type_ "checkbox"
                                 , name "toggle-all"
                                 , checked allServersSelected
-                                , onClick (SelectAllServers (not allServersSelected))
+                                , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
                                 ]
                                 []
                             , label
@@ -234,7 +247,7 @@ viewServers provider =
                                 [ text "Select All" ]
                             , button
                                 [ disabled noServersSelected
-                                , onClick (RequestDeleteServers selectedServers)
+                                , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
                                 ]
                                 [ text "Delete" ]
                             ]
@@ -402,7 +415,7 @@ viewCreateServer provider createServerRequest =
                     ]
                 ]
             ]
-        , button [ onClick (RequestCreateServer createServerRequest) ] [ text "Create" ]
+        , button [ onClick (ProviderMsg provider.name (RequestCreateServer createServerRequest)) ] [ text "Create" ]
         ]
 
 
@@ -415,14 +428,23 @@ renderMessage message =
     p [] [ text message ]
 
 
-renderProviderPicker : Provider -> Html Msg
-renderProviderPicker provider =
-    case provider.name of
-        "" ->
-            div [] []
+renderProviderPicker : Model -> Provider -> Html Msg
+renderProviderPicker model provider =
+    let
+        isSelected p =
+            case model.viewState of
+                NonProviderView _ ->
+                    False
 
-        _ ->
-            button [ onClick (SelectProvider provider.name) ] [ text provider.name ]
+                ProviderView selectedProvName _ ->
+                    p.name == selectedProvName
+    in
+        case isSelected provider of
+            False ->
+                button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
+
+            True ->
+                text provider.name
 
 
 renderImage : Provider -> Image -> Html Msg
@@ -446,7 +468,7 @@ renderImage provider image =
     in
         div []
             [ p [] [ strong [] [ text image.name ] ]
-            , button [ onClick (ChangeViewState (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" "" ""))) ] [ text "Launch" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" "" "")))) ] [ text "Launch" ]
             , table []
                 [ tr []
                     [ th [] [ text "Property" ]
@@ -491,14 +513,14 @@ renderServer provider server =
             [ input
                 [ type_ "checkbox"
                 , checked server.selected
-                , onClick (SelectServer server (not server.selected))
+                , onClick (ProviderMsg provider.name (SelectServer server (not server.selected)))
                 ]
                 []
             , strong [] [ text server.name ]
             ]
         , text ("UUID: " ++ server.uuid)
-        , button [ onClick (ChangeViewState (ServerDetail server.uuid)) ] [ text "Details" ]
-        , button [ onClick (RequestDeleteServer server) ] [ text "Delete" ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
+        , button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
         ]
 
 

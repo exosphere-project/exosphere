@@ -12,19 +12,8 @@ import Rest
 init : ( Model, Cmd Msg )
 init =
     ( { messages = []
-      , viewState = Login
-      , selectedProvider =
-            Provider
-                ""
-                ""
-                { glance = "", nova = "", neutron = "" }
-                []
-                []
-                []
-                []
-                []
-                []
-      , otherProviders = []
+      , viewState = NonProviderView Login
+      , providers = []
       , creds =
             Creds
                 "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens"
@@ -48,192 +37,40 @@ update msg model =
     case msg of
         Tick _ ->
             case model.viewState of
-                ListUserServers ->
-                    ( model, Rest.requestServers model.selectedProvider )
+                NonProviderView _ ->
+                    ( model, Cmd.none )
 
-                ServerDetail serverUuid ->
-                    ( model
-                    , Rest.requestServerDetail model.selectedProvider serverUuid
-                    )
+                ProviderView providerName ListProviderServers ->
+                    update (ProviderMsg providerName RequestServers) model
+
+                ProviderView providerName (ServerDetail serverUuid) ->
+                    update (ProviderMsg providerName (RequestServerDetail serverUuid)) model
 
                 _ ->
                     ( model, Cmd.none )
 
-        ChangeViewState state ->
+        SetNonProviderView nonProviderViewConstructor ->
             let
                 newModel =
-                    { model | viewState = state }
+                    { model | viewState = NonProviderView nonProviderViewConstructor }
             in
-                case state of
+                case nonProviderViewConstructor of
                     Login ->
                         ( newModel, Cmd.none )
-
-                    Home ->
-                        ( newModel, Cmd.none )
-
-                    ListImages ->
-                        ( newModel, Rest.requestImages model.selectedProvider )
-
-                    ListUserServers ->
-                        ( newModel, Rest.requestServers model.selectedProvider )
-
-                    ServerDetail serverUuid ->
-                        ( newModel
-                        , Cmd.batch
-                            [ Rest.requestServerDetail model.selectedProvider serverUuid
-                            , Rest.requestFlavors newModel.selectedProvider
-                            , Rest.requestImages newModel.selectedProvider
-                            ]
-                        )
-
-                    CreateServer _ ->
-                        ( newModel
-                        , Cmd.batch
-                            [ Rest.requestFlavors newModel.selectedProvider
-                            , Rest.requestKeypairs newModel.selectedProvider
-                            ]
-                        )
 
         RequestNewProviderToken ->
             ( model, Rest.requestAuthToken model )
 
-        SelectProvider providerName ->
-            case Helpers.providerLookup model providerName of
-                Just provider ->
-                    let
-                        allProviders =
-                            model.selectedProvider :: model.otherProviders
-
-                        selectedProvider =
-                            provider
-
-                        otherProviders =
-                            List.filter
-                                (\p -> p.name /= selectedProvider.name)
-                                allProviders
-
-                        newModel =
-                            { model
-                                | selectedProvider = selectedProvider
-                                , otherProviders = otherProviders
-                            }
-                    in
-                        ( newModel, Cmd.none )
-
-                Nothing ->
-                    Helpers.processError model "Provider not found"
-
-        RequestCreateServer createServerRequest ->
-            ( model
-            , Rest.requestCreateServer model.selectedProvider createServerRequest
-            )
-
-        RequestDeleteServer server ->
-            let
-                oldProvider =
-                    model.selectedProvider
-
-                newProvider =
-                    { oldProvider
-                        | servers =
-                            List.filter
-                                (\s -> s /= server)
-                                oldProvider.servers
-                    }
-
-                newModel =
-                    { model | selectedProvider = newProvider }
-            in
-                ( newModel, Rest.requestDeleteServer newProvider server )
-
         ReceiveAuthToken response ->
             Rest.receiveAuthToken model response
 
-        ReceiveImages result ->
-            Rest.receiveImages model result
+        ProviderMsg providerName msg ->
+            case Helpers.providerLookup model providerName of
+                Nothing ->
+                    Helpers.processError model "Provider not found"
 
-        RequestDeleteServers serversToDelete ->
-            let
-                oldProvider =
-                    model.selectedProvider
-
-                newProvider =
-                    { oldProvider | servers = List.filter (\s -> (not (List.member s serversToDelete))) oldProvider.servers }
-
-                newModel =
-                    { model | selectedProvider = newProvider }
-            in
-                ( newModel
-                , Rest.requestDeleteServers model.selectedProvider serversToDelete
-                )
-
-        SelectServer server newSelectionState ->
-            let
-                updateServer someServer =
-                    if someServer.uuid == server.uuid then
-                        { someServer | selected = newSelectionState }
-                    else
-                        someServer
-
-                oldProvider =
-                    model.selectedProvider
-
-                newProvider =
-                    { oldProvider
-                        | servers =
-                            List.map updateServer oldProvider.servers
-                    }
-
-                newModel =
-                    { model | selectedProvider = newProvider }
-            in
-                newModel
-                    ! []
-
-        SelectAllServers allServersSelected ->
-            let
-                updateServer someServer =
-                    { someServer | selected = allServersSelected }
-
-                oldProvider =
-                    model.selectedProvider
-
-                newProvider =
-                    { oldProvider | servers = List.map updateServer oldProvider.servers }
-
-                newModel =
-                    { model | selectedProvider = newProvider }
-            in
-                newModel
-                    ! []
-
-        ReceiveServers result ->
-            Rest.receiveServers model result
-
-        ReceiveServerDetail serverUuid result ->
-            Rest.receiveServerDetail model serverUuid result
-
-        ReceiveFlavors result ->
-            Rest.receiveFlavors model result
-
-        ReceiveKeypairs result ->
-            Rest.receiveKeypairs model result
-
-        ReceiveCreateServer result ->
-            Rest.receiveCreateServer model result
-
-        ReceiveDeleteServer _ ->
-            {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ChangeViewState Home) model
-
-        ReceiveNetworks result ->
-            Rest.receiveNetworks model result
-
-        GetFloatingIpReceivePorts server result ->
-            Rest.receivePortsAndRequestFloatingIp model server result
-
-        ReceiveFloatingIp server result ->
-            Rest.receiveFloatingIp model server result
+                Just provider ->
+                    processProviderSpecificMsg model provider msg
 
         {- Form inputs -}
         InputAuthURL authURL ->
@@ -284,34 +121,171 @@ update msg model =
         InputCreateServerName createServerRequest name ->
             let
                 viewState =
-                    CreateServer { createServerRequest | name = name }
+                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | name = name })
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
         InputCreateServerCount createServerRequest count ->
             let
                 viewState =
-                    CreateServer { createServerRequest | count = count }
+                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | count = count })
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
         InputCreateServerUserData createServerRequest userData ->
             let
                 viewState =
-                    CreateServer { createServerRequest | userData = userData }
+                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | userData = userData })
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
         InputCreateServerSize createServerRequest flavorUuid ->
             let
                 viewState =
-                    CreateServer { createServerRequest | flavorUuid = flavorUuid }
+                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | flavorUuid = flavorUuid })
             in
                 ( { model | viewState = viewState }, Cmd.none )
 
         InputCreateServerKeypairName createServerRequest keypairName ->
             let
                 viewState =
-                    CreateServer { createServerRequest | keypairName = keypairName }
+                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | keypairName = keypairName })
             in
                 ( { model | viewState = viewState }, Cmd.none )
+
+
+processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
+processProviderSpecificMsg model provider msg =
+    case msg of
+        SetProviderView providerViewConstructor ->
+            let
+                newModel =
+                    { model | viewState = (ProviderView provider.name providerViewConstructor) }
+            in
+                case providerViewConstructor of
+                    ProviderHome ->
+                        ( newModel, Cmd.none )
+
+                    ListImages ->
+                        ( newModel, Rest.requestImages provider )
+
+                    ListProviderServers ->
+                        ( newModel, Rest.requestServers provider )
+
+                    ServerDetail serverUuid ->
+                        ( newModel
+                        , Cmd.batch
+                            [ Rest.requestServerDetail provider serverUuid
+                            , Rest.requestFlavors provider
+                            , Rest.requestImages provider
+                            ]
+                        )
+
+                    CreateServer createServerRequest ->
+                        ( newModel
+                        , Cmd.batch
+                            [ Rest.requestFlavors provider
+                            , Rest.requestKeypairs provider
+                            ]
+                        )
+
+        RequestServers ->
+            ( model, Rest.requestServers provider )
+
+        RequestServerDetail serverUuid ->
+            ( model, Rest.requestServerDetail provider serverUuid )
+
+        RequestCreateServer createServerRequest ->
+            ( model, Rest.requestCreateServer provider createServerRequest )
+
+        RequestDeleteServer server ->
+            let
+                newProvider =
+                    { provider
+                        | servers =
+                            List.filter
+                                (\s -> s /= server)
+                                provider.servers
+                    }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+                ( newModel, Rest.requestDeleteServer newProvider server )
+
+        ReceiveImages result ->
+            Rest.receiveImages model provider result
+
+        RequestDeleteServers serversToDelete ->
+            let
+                newProvider =
+                    { provider | servers = List.filter (\s -> (not (List.member s serversToDelete))) provider.servers }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+                ( newModel
+                , Rest.requestDeleteServers newProvider serversToDelete
+                )
+
+        SelectServer server newSelectionState ->
+            let
+                updateServer someServer =
+                    if someServer.uuid == server.uuid then
+                        { someServer | selected = newSelectionState }
+                    else
+                        someServer
+
+                newProvider =
+                    { provider
+                        | servers =
+                            List.map updateServer provider.servers
+                    }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+                newModel
+                    ! []
+
+        SelectAllServers allServersSelected ->
+            let
+                updateServer someServer =
+                    { someServer | selected = allServersSelected }
+
+                newProvider =
+                    { provider | servers = List.map updateServer provider.servers }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+                newModel
+                    ! []
+
+        ReceiveServers result ->
+            Rest.receiveServers model provider result
+
+        ReceiveServerDetail serverUuid result ->
+            Rest.receiveServerDetail model provider serverUuid result
+
+        ReceiveFlavors result ->
+            Rest.receiveFlavors model provider result
+
+        ReceiveKeypairs result ->
+            Rest.receiveKeypairs model provider result
+
+        ReceiveCreateServer result ->
+            Rest.receiveCreateServer model provider result
+
+        ReceiveDeleteServer _ ->
+            {- Todo this ignores the result of server deletion API call, we should display errors to user -}
+            update (ProviderMsg provider.name (SetProviderView ProviderHome)) model
+
+        ReceiveNetworks result ->
+            Rest.receiveNetworks model provider result
+
+        GetFloatingIpReceivePorts serverUuid result ->
+            Rest.receivePortsAndRequestFloatingIp model provider serverUuid result
+
+        ReceiveFloatingIp serverUuid result ->
+            Rest.receiveFloatingIp model provider serverUuid result

@@ -73,72 +73,102 @@ requestAuthToken model =
 
 requestImages : Provider -> Cmd Msg
 requestImages provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.glance ++ "/v2/images"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeImages
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveImages
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.glance ++ "/v2/images"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeImages
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveImages result)
+    in
+        Http.send resultMsg request
 
 
 requestServers : Provider -> Cmd Msg
 requestServers provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/servers"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeServers
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveServers
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/servers"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeServers
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveServers result)
+    in
+        Http.send resultMsg request
 
 
 requestServerDetail : Provider -> ServerUuid -> Cmd Msg
 requestServerDetail provider serverUuid =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/servers/" ++ serverUuid
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeServerDetails
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (ReceiveServerDetail serverUuid)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/servers/" ++ serverUuid
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeServerDetails
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveServerDetail serverUuid result)
+    in
+        Http.send resultMsg request
 
 
 requestFlavors : Provider -> Cmd Msg
 requestFlavors provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/flavors"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeFlavors
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveFlavors
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/flavors"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeFlavors
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveFlavors result)
+    in
+        Http.send resultMsg request
 
 
 requestKeypairs : Provider -> Cmd Msg
 requestKeypairs provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/os-keypairs"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeKeypairs
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveKeypairs
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/os-keypairs"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeKeypairs
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveKeypairs result)
+    in
+        Http.send resultMsg request
 
 
 requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
@@ -178,6 +208,9 @@ requestCreateServer provider createServerRequest =
                               )
                             ]
                     )
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveCreateServer result)
     in
         Cmd.batch
             (requestBodies
@@ -196,7 +229,7 @@ requestCreateServer provider createServerRequest =
                             , timeout = Nothing
                             , withCredentials = True
                             }
-                            |> Http.send ReceiveCreateServer
+                            |> Http.send resultMsg
                         )
                     )
             )
@@ -204,16 +237,22 @@ requestCreateServer provider createServerRequest =
 
 requestDeleteServer : Provider -> Server -> Cmd Msg
 requestDeleteServer provider server =
-    Http.request
-        { method = "DELETE"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.nova ++ "/servers/" ++ server.uuid
-        , body = Http.emptyBody
-        , expect = Http.expectString
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveDeleteServer
+    let
+        request =
+            Http.request
+                { method = "DELETE"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.nova ++ "/servers/" ++ server.uuid
+                , body = Http.emptyBody
+                , expect = Http.expectString
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveDeleteServer result)
+    in
+        Http.send resultMsg request
 
 
 requestDeleteServers : Provider -> List Server -> Cmd Msg
@@ -227,30 +266,42 @@ requestDeleteServers provider serversToDelete =
 
 requestNetworks : Provider -> Cmd Msg
 requestNetworks provider =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.neutron ++ "/v2.0/networks"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodeNetworks
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send ReceiveNetworks
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/networks"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeNetworks
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveNetworks result)
+    in
+        Http.send resultMsg request
 
 
 getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
 getFloatingIpRequestPorts provider server =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-        , url = provider.endpoints.neutron ++ "/v2.0/ports"
-        , body = Http.emptyBody
-        , expect = Http.expectJson decodePorts
-        , timeout = Nothing
-        , withCredentials = False
-        }
-        |> Http.send (GetFloatingIpReceivePorts server.uuid)
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/ports"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodePorts
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (GetFloatingIpReceivePorts server.uuid result)
+    in
+        Http.send resultMsg request
 
 
 requestFloatingIpIfRequestable : Model -> Provider -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
@@ -289,7 +340,7 @@ requestFloatingIp model provider network port_ server =
             { provider | servers = newServers }
 
         newModel =
-            { model | selectedProvider = newProvider }
+            Helpers.modelUpdateProvider model newProvider
 
         requestBody =
             Encode.object
@@ -301,7 +352,7 @@ requestFloatingIp model provider network port_ server =
                   )
                 ]
 
-        cmd =
+        request =
             Http.request
                 { method = "POST"
                 , headers = [ Http.header "X-Auth-Token" provider.authToken ]
@@ -311,7 +362,12 @@ requestFloatingIp model provider network port_ server =
                 , timeout = Nothing
                 , withCredentials = True
                 }
-                |> Http.send (ReceiveFloatingIp server.uuid)
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveFloatingIp server.uuid result)
+
+        cmd =
+            Http.send resultMsg request
     in
         ( newModel, cmd )
 
@@ -356,44 +412,37 @@ createProvider model response =
                     , ports = []
                     }
 
-                {- This is kinda hacky, abusing empty provider name to mean no valid provider -}
-                otherProviders =
-                    case model.selectedProvider.name of
-                        "" ->
-                            []
-
-                        _ ->
-                            model.selectedProvider :: model.otherProviders
+                newProviders =
+                    newProvider :: model.providers
 
                 newModel =
                     { model
-                        | selectedProvider = newProvider
-                        , otherProviders = otherProviders
-                        , viewState = ListUserServers
+                        | providers = newProviders
+                        , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
                 ( newModel, Cmd.none )
 
 
-receiveImages : Model -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
-receiveImages model result =
+receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
+receiveImages model provider result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok images ->
             let
-                oldProvider =
-                    model.selectedProvider
-
                 newProvider =
-                    { oldProvider | images = images }
+                    { provider | images = images }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
             in
-                ( { model | selectedProvider = newProvider }, Cmd.none )
+                ( newModel, Cmd.none )
 
 
-receiveServers : Model -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
-receiveServers model result =
+receiveServers : Model -> Provider -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
+receiveServers model provider result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -418,7 +467,7 @@ receiveServers model result =
                         List.member serverUuid serverUuids
 
                 existingServers =
-                    model.selectedProvider.servers
+                    provider.servers
 
                 ( newServersInExistingServers, newServersNotInExistingServers ) =
                     List.partition (serverIsInListOfServers existingServers) newServers
@@ -452,17 +501,17 @@ receiveServers model result =
                 newServersWithExistingMatchesAndWithoutSorted =
                     List.sortBy .name newServersWithExistingMatchesAndWithout
 
-                oldProvider =
-                    model.selectedProvider
-
                 newProvider =
-                    { oldProvider | servers = newServersWithExistingMatchesAndWithoutSorted }
+                    { provider | servers = newServersWithExistingMatchesAndWithoutSorted }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
             in
-                ( { model | selectedProvider = newProvider }, Cmd.none )
+                ( newModel, Cmd.none )
 
 
-receiveServerDetail : Model -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetail model serverUuid result =
+receiveServerDetail : Model -> Provider -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetail model provider serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -472,7 +521,7 @@ receiveServerDetail model serverUuid result =
                 maybeServer =
                     List.filter
                         (\s -> s.uuid == serverUuid)
-                        model.selectedProvider.servers
+                        provider.servers
                         |> List.head
             in
                 case maybeServer of
@@ -497,7 +546,7 @@ receiveServerDetail model serverUuid result =
                             otherServers =
                                 List.filter
                                     (\s -> s.uuid /= newServer.uuid)
-                                    model.selectedProvider.servers
+                                    provider.servers
 
                             newServers =
                                 newServer :: otherServers
@@ -505,24 +554,21 @@ receiveServerDetail model serverUuid result =
                             newServersSorted =
                                 List.sortBy .name newServers
 
-                            oldProvider =
-                                model.selectedProvider
-
                             newProvider =
-                                { oldProvider | servers = newServersSorted }
+                                { provider | servers = newServersSorted }
 
                             newModel =
-                                { model | selectedProvider = newProvider }
+                                Helpers.modelUpdateProvider model newProvider
                         in
                             case floatingIpState of
                                 Requestable ->
                                     ( newModel
                                     , Cmd.batch
                                         [ getFloatingIpRequestPorts
-                                            model.selectedProvider
+                                            newProvider
                                             newServer
                                         , requestNetworks
-                                            model.selectedProvider
+                                            newProvider
                                         ]
                                     )
 
@@ -530,42 +576,42 @@ receiveServerDetail model serverUuid result =
                                     ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
-receiveFlavors model result =
+receiveFlavors : Model -> Provider -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
+receiveFlavors model provider result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok flavors ->
             let
-                oldProvider =
-                    model.selectedProvider
-
                 newProvider =
-                    { oldProvider | flavors = flavors }
+                    { provider | flavors = flavors }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
             in
-                ( { model | selectedProvider = newProvider }, Cmd.none )
+                ( newModel, Cmd.none )
 
 
-receiveKeypairs : Model -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
-receiveKeypairs model result =
+receiveKeypairs : Model -> Provider -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
+receiveKeypairs model provider result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok keypairs ->
             let
-                oldProvider =
-                    model.selectedProvider
-
                 newProvider =
-                    { oldProvider | keypairs = keypairs }
+                    { provider | keypairs = keypairs }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
             in
-                ( { model | selectedProvider = newProvider }, Cmd.none )
+                ( newModel, Cmd.none )
 
 
-receiveCreateServer : Model -> Result Http.Error Server -> ( Model, Cmd Msg )
-receiveCreateServer model result =
+receiveCreateServer : Model -> Provider -> Result Http.Error Server -> ( Model, Cmd Msg )
+receiveCreateServer model provider result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -573,49 +619,46 @@ receiveCreateServer model result =
         Ok _ ->
             let
                 newModel =
-                    { model | viewState = ListUserServers }
+                    { model | viewState = ProviderView provider.name ListProviderServers }
             in
                 ( newModel
                 , Cmd.batch
-                    [ requestServers model.selectedProvider
-                    , requestNetworks model.selectedProvider
+                    [ requestServers provider
+                    , requestNetworks provider
                     ]
                 )
 
 
-receiveNetworks : Model -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
-receiveNetworks model result =
+receiveNetworks : Model -> Provider -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
+receiveNetworks model provider result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok networks ->
             let
-                oldProvider =
-                    model.selectedProvider
-
                 newProvider =
-                    { oldProvider | networks = networks }
+                    { provider | networks = networks }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
             in
-                ( { model | selectedProvider = newProvider }, Cmd.none )
+                ( newModel, Cmd.none )
 
 
-receivePortsAndRequestFloatingIp : Model -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
-receivePortsAndRequestFloatingIp model serverUuid result =
+receivePortsAndRequestFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp model provider serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok ports ->
             let
-                oldProvider =
-                    model.selectedProvider
-
                 newProvider =
-                    { oldProvider | ports = ports }
+                    { provider | ports = ports }
 
                 newModel =
-                    { model | selectedProvider = newProvider }
+                    Helpers.modelUpdateProvider model newProvider
 
                 maybeExtNet =
                     Helpers.getExternalNetwork newProvider
@@ -637,20 +680,20 @@ receivePortsAndRequestFloatingIp model serverUuid result =
 
                             Nothing ->
                                 Helpers.processError
-                                    model
+                                    newModel
                                     "We should have a port here but we don't!?"
 
                     Nothing ->
                         Helpers.processError
-                            model
+                            newModel
                             "We should have an external network here but we don't"
 
 
-receiveFloatingIp : Model -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
-receiveFloatingIp model serverUuid result =
+receiveFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
+receiveFloatingIp model provider serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) model.selectedProvider.servers
+            List.filter (\s -> s.uuid == serverUuid) provider.servers
                 |> List.head
     in
         case maybeServer of
@@ -667,19 +710,16 @@ receiveFloatingIp model serverUuid result =
                                 { server | floatingIpState = Failed }
 
                             otherServers =
-                                List.filter (\s -> s.uuid /= newServer.uuid) model.selectedProvider.servers
+                                List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
 
                             newServers =
                                 newServer :: otherServers
 
-                            oldProvider =
-                                model.selectedProvider
-
                             newProvider =
-                                { oldProvider | servers = newServers }
+                                { provider | servers = newServers }
 
                             newModel =
-                                { model | selectedProvider = newProvider }
+                                Helpers.modelUpdateProvider model newProvider
                         in
                             Helpers.processError newModel error
 
@@ -697,19 +737,16 @@ receiveFloatingIp model serverUuid result =
                             otherServers =
                                 List.filter
                                     (\s -> s.uuid /= newServer.uuid)
-                                    model.selectedProvider.servers
+                                    provider.servers
 
                             newServers =
                                 newServer :: otherServers
 
-                            oldProvider =
-                                model.selectedProvider
-
                             newProvider =
-                                { oldProvider | servers = newServers }
+                                { provider | servers = newServers }
 
                             newModel =
-                                { model | selectedProvider = newProvider }
+                                Helpers.modelUpdateProvider model newProvider
                         in
                             ( newModel, Cmd.none )
 
