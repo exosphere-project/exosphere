@@ -73,85 +73,62 @@ update msg model =
                     processProviderSpecificMsg model provider msg
 
         {- Form inputs -}
-        InputAuthURL authURL ->
+        InputLoginField loginField ->
             let
                 creds =
                     model.creds
-            in
-                ( { model | creds = { creds | authURL = authURL } }, Cmd.none )
 
-        InputProjectDomain projectDomain ->
+                newCreds =
+                    case loginField of
+                        AuthUrl authUrl ->
+                            { creds | authUrl = authUrl }
+
+                        ProjectDomain projectDomain ->
+                            { creds | projectDomain = projectDomain }
+
+                        ProjectName projectName ->
+                            { creds | projectName = projectName }
+
+                        UserDomain userDomain ->
+                            { creds | userDomain = userDomain }
+
+                        Username username ->
+                            { creds | username = username }
+
+                        Password password ->
+                            { creds | password = password }
+
+                        OpenRc openRc ->
+                            Helpers.processOpenRc model openRc
+
+                newModel =
+                    { model | creds = newCreds }
+            in
+                ( newModel, Cmd.none )
+
+        InputCreateServerField createServerRequest createServerField ->
             let
-                creds =
-                    model.creds
-            in
-                ( { model | creds = { creds | projectDomain = projectDomain } }, Cmd.none )
+                newCreateServerRequest =
+                    case createServerField of
+                        CreateServerName name ->
+                            { createServerRequest | name = name }
 
-        InputProjectName projectName ->
-            let
-                creds =
-                    model.creds
-            in
-                ( { model | creds = { creds | projectName = projectName } }, Cmd.none )
+                        CreateServerCount count ->
+                            { createServerRequest | count = count }
 
-        InputUserDomain userDomain ->
-            let
-                creds =
-                    model.creds
-            in
-                ( { model | creds = { creds | userDomain = userDomain } }, Cmd.none )
+                        CreateServerUserData userData ->
+                            { createServerRequest | userData = userData }
 
-        InputUsername username ->
-            let
-                creds =
-                    model.creds
-            in
-                ( { model | creds = { creds | username = username } }, Cmd.none )
+                        CreateServerSize flavorUuid ->
+                            { createServerRequest | flavorUuid = flavorUuid }
 
-        InputPassword password ->
-            let
-                creds =
-                    model.creds
-            in
-                ( { model | creds = { creds | password = password } }, Cmd.none )
+                        CreateServerKeypairName keypairName ->
+                            { createServerRequest | keypairName = keypairName }
 
-        InputOpenRc openRc ->
-            Helpers.processOpenRc model openRc
-
-        InputCreateServerName createServerRequest name ->
-            let
-                viewState =
-                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | name = name })
+                newViewState =
+                    ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in
-                ( { model | viewState = viewState }, Cmd.none )
-
-        InputCreateServerCount createServerRequest count ->
-            let
-                viewState =
-                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | count = count })
-            in
-                ( { model | viewState = viewState }, Cmd.none )
-
-        InputCreateServerUserData createServerRequest userData ->
-            let
-                viewState =
-                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | userData = userData })
-            in
-                ( { model | viewState = viewState }, Cmd.none )
-
-        InputCreateServerSize createServerRequest flavorUuid ->
-            let
-                viewState =
-                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | flavorUuid = flavorUuid })
-            in
-                ( { model | viewState = viewState }, Cmd.none )
-
-        InputCreateServerKeypairName createServerRequest keypairName ->
-            let
-                viewState =
-                    ProviderView createServerRequest.providerName (CreateServer { createServerRequest | keypairName = keypairName })
-            in
-                ( { model | viewState = viewState }, Cmd.none )
+                ( { model | viewState = newViewState }, Cmd.none )
 
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )

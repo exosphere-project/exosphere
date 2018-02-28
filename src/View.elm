@@ -112,9 +112,9 @@ viewLogin model =
                 , td []
                     [ input
                         [ type_ "text"
-                        , value model.creds.authURL
+                        , value model.creds.authUrl
                         , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-                        , onInput InputAuthURL
+                        , onInput (\u -> InputLoginField (AuthUrl u))
                         ]
                         []
                     ]
@@ -125,7 +125,7 @@ viewLogin model =
                     [ input
                         [ type_ "text"
                         , value model.creds.projectDomain
-                        , onInput InputProjectDomain
+                        , onInput (\d -> InputLoginField (ProjectDomain d))
                         ]
                         []
                     ]
@@ -136,7 +136,7 @@ viewLogin model =
                     [ input
                         [ type_ "text"
                         , value model.creds.projectName
-                        , onInput InputProjectName
+                        , onInput (\pn -> InputLoginField (ProjectName pn))
                         ]
                         []
                     ]
@@ -147,7 +147,7 @@ viewLogin model =
                     [ input
                         [ type_ "text"
                         , value model.creds.userDomain
-                        , onInput InputUserDomain
+                        , onInput (\d -> InputLoginField (UserDomain d))
                         ]
                         []
                     ]
@@ -158,7 +158,7 @@ viewLogin model =
                     [ input
                         [ type_ "text"
                         , value model.creds.username
-                        , onInput InputUsername
+                        , onInput (\u -> InputLoginField (Username u))
                         ]
                         []
                     ]
@@ -169,7 +169,7 @@ viewLogin model =
                     [ input
                         [ type_ "password"
                         , value model.creds.password
-                        , onInput InputPassword
+                        , onInput (\p -> InputLoginField (Password p))
                         ]
                         []
                     ]
@@ -190,7 +190,7 @@ viewLogin model =
         , textarea
             [ rows 10
             , cols 40
-            , onInput (InputOpenRc)
+            , onInput (\o -> InputLoginField (OpenRc o))
             , placeholder "export..."
             ]
             []
@@ -358,7 +358,7 @@ viewCreateServer provider createServerRequest =
                         [ type_ "text"
                         , placeholder "My Server"
                         , value createServerRequest.name
-                        , onInput (InputCreateServerName createServerRequest)
+                        , onInput (\n -> InputCreateServerField createServerRequest (CreateServerName n))
                         ]
                         []
                     ]
@@ -377,7 +377,7 @@ viewCreateServer provider createServerRequest =
                         , Attr.min "1"
                         , Attr.max "10"
                         , value createServerRequest.count
-                        , onInput (InputCreateServerCount createServerRequest)
+                        , onInput (\c -> InputCreateServerField createServerRequest (CreateServerCount c))
                         ]
                         []
                     ]
@@ -406,7 +406,7 @@ viewCreateServer provider createServerRequest =
                             [ value createServerRequest.userData
                             , rows 20
                             , cols 80
-                            , onInput (InputCreateServerUserData createServerRequest)
+                            , onInput (\u -> InputCreateServerField createServerRequest (CreateServerUserData u))
                             , placeholder "#!/bin/bash"
                             ]
                             []
@@ -559,7 +559,7 @@ viewFlavorPicker provider createServerRequest =
     let
         viewFlavorPickerLabel flavor =
             label []
-                [ input [ type_ "radio", onClick (InputCreateServerSize createServerRequest flavor.uuid) ] []
+                [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerSize flavor.uuid)) ] []
                 , text flavor.name
                 ]
     in
@@ -571,7 +571,7 @@ viewKeypairPicker provider createServerRequest =
     let
         viewKeypairPickerLabel keypair =
             label []
-                [ input [ type_ "radio", onClick (InputCreateServerKeypairName createServerRequest keypair.name) ] []
+                [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerKeypairName keypair.name)) ] []
                 , text keypair.name
                 ]
     in

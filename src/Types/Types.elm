@@ -35,18 +35,8 @@ type Msg
     | RequestNewProviderToken
     | ReceiveAuthToken (Result Http.Error (Http.Response String))
     | ProviderMsg ProviderName ProviderSpecificMsgConstructor
-    | InputAuthURL String
-    | InputProjectDomain String
-    | InputProjectName String
-    | InputUserDomain String
-    | InputUsername String
-    | InputPassword String
-    | InputOpenRc String
-    | InputCreateServerName CreateServerRequest String
-    | InputCreateServerCount CreateServerRequest String
-    | InputCreateServerUserData CreateServerRequest String
-    | InputCreateServerSize CreateServerRequest String
-    | InputCreateServerKeypairName CreateServerRequest String
+    | InputLoginField LoginField
+    | InputCreateServerField CreateServerRequest CreateServerField
 
 
 type ProviderSpecificMsgConstructor
@@ -87,8 +77,26 @@ type ProviderViewConstructor
     | CreateServer CreateServerRequest
 
 
+type LoginField
+    = AuthUrl String
+    | ProjectDomain String
+    | ProjectName String
+    | UserDomain String
+    | Username String
+    | Password String
+    | OpenRc String
+
+
+type CreateServerField
+    = CreateServerName String
+    | CreateServerCount String
+    | CreateServerUserData String
+    | CreateServerSize String
+    | CreateServerKeypairName String
+
+
 type alias Creds =
-    { authURL : String
+    { authUrl : String
     , projectDomain : String
     , projectName : String
     , userDomain : String
