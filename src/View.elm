@@ -8,13 +8,47 @@ import Base64
 import Filesize exposing (format)
 import Types.Types exposing (..)
 import Helpers
+import Element
+import Style
+import Style.Color as Color
+import Style.Font as Font
+import Color exposing (darkGrey, white, black)
 
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewMessages model
-        , viewProviderPicker model
+    Element.layout stylesheet <| viewUnstyled model
+
+
+type MyStyles
+    = Title
+    | Default
+
+
+stylesheet =
+    Style.styleSheet
+        [ Style.style Title
+            [ Color.text darkGrey
+            , Color.background white
+            , Font.size 50
+              -- all units given as px
+            ]
+        , Style.style Default
+            [ Color.text black
+            , Color.background white
+            , Font.size 14
+              -- all units given as px
+            ]
+        ]
+
+
+viewUnstyled : Model -> Element.Element MyStyles variation Msg
+viewUnstyled model =
+    Element.column Default
+        []
+        [ Element.el Title [] (Element.text "Exosphere")
+        , Element.html (viewMessages model)
+        , Element.html (viewProviderPicker model)
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -24,10 +58,10 @@ view model =
             ProviderView providerName viewConstructor ->
                 case Helpers.providerLookup model providerName of
                     Nothing ->
-                        text "Oops! Provider not found"
+                        Element.html (text "Oops! Provider not found")
 
                     Just provider ->
-                        providerView model provider viewConstructor
+                        Element.html (providerView model provider viewConstructor)
         ]
 
 
@@ -101,11 +135,28 @@ viewNav provider =
 {- Resource-specific views -}
 
 
-viewLogin : Model -> Html Msg
+viewLogin : Model -> Element.Element MyStyles variation Msg
 viewLogin model =
+    Element.column Default
+        []
+        [ Element.html (h2 [] [ text "Please log in" ])
+        , Element.row Default
+            []
+            [ Element.html (viewLoginFields model)
+            , Element.html (viewLoginOpenRc model)
+            ]
+        , Element.html
+            (div []
+                [ button [ onClick RequestNewProviderToken ] [ text "Log in" ]
+                ]
+            )
+        ]
+
+
+viewLoginFields : Model -> Html Msg
+viewLoginFields model =
     div []
-        [ h2 [] [ text "Please log in" ]
-        , p [] [ text "Either enter your credentials..." ]
+        [ p [] [ text "Either enter your credentials..." ]
         , table []
             [ tr []
                 [ td [] [ text "Keystone auth URL" ]
@@ -175,7 +226,13 @@ viewLogin model =
                     ]
                 ]
             ]
-        , p []
+        ]
+
+
+viewLoginOpenRc : Model -> Html Msg
+viewLoginOpenRc model =
+    div []
+        [ div []
             [ text "...or paste an "
               {-
                  Todo this link opens in Electron, should open in user's browser
@@ -194,9 +251,6 @@ viewLogin model =
             , placeholder "export..."
             ]
             []
-        , div []
-            [ button [ onClick RequestNewProviderToken ] [ text "Log in" ]
-            ]
         ]
 
 
