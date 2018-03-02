@@ -62,7 +62,7 @@ requestAuthToken model =
         Http.request
             { method = "POST"
             , headers = []
-            , url = model.creds.authURL
+            , url = model.creds.authUrl
             , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
@@ -401,7 +401,7 @@ createProvider model response =
                     Helpers.serviceCatalogToEndpoints serviceCatalog
 
                 newProvider =
-                    { name = Helpers.providerNameFromUrl model.creds.authURL
+                    { name = Helpers.providerNameFromUrl model.creds.authUrl
                     , authToken = authToken
                     , endpoints = endpoints
                     , images = []

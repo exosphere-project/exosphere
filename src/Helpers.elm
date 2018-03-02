@@ -16,11 +16,11 @@ processError model error =
         ( { model | messages = newMsgs }, Cmd.none )
 
 
-processOpenRc : Model -> String -> ( Model, Cmd Msg )
+processOpenRc : Model -> String -> Creds
 processOpenRc model openRc =
     let
         regexes =
-            { authURL = Regex.regex "export OS_AUTH_URL=(.*)"
+            { authUrl = Regex.regex "export OS_AUTH_URL=(.*)"
             , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN_NAME=(.*)"
             , projectName = Regex.regex "export OS_PROJECT_NAME=(.*)"
             , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=(.*)"
@@ -38,20 +38,14 @@ processOpenRc model openRc =
         newField regex oldField =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
-
-        newCreds =
-            Creds
-                (newField regexes.authURL model.creds.authURL)
-                (newField regexes.projectDomain model.creds.projectDomain)
-                (newField regexes.projectName model.creds.projectName)
-                (newField regexes.userDomain model.creds.userDomain)
-                (newField regexes.username model.creds.username)
-                (newField regexes.password model.creds.password)
-
-        newModel =
-            { model | creds = newCreds }
     in
-        ( newModel, Cmd.none )
+        Creds
+            (newField regexes.authUrl model.creds.authUrl)
+            (newField regexes.projectDomain model.creds.projectDomain)
+            (newField regexes.projectName model.creds.projectName)
+            (newField regexes.userDomain model.creds.userDomain)
+            (newField regexes.username model.creds.username)
+            (newField regexes.password model.creds.password)
 
 
 providerNameFromUrl : HelperTypes.Url -> ProviderName
