@@ -1,5 +1,6 @@
 module Types.OpenstackTypes exposing (..)
 
+import Types.Types exposing (AuthToken)
 import Types.HelperTypes as HelperTypes
 
 
@@ -7,6 +8,12 @@ import Types.HelperTypes as HelperTypes
    Types that match structure of data returned from OpenStack API, used for
    decoding JSON. Not necessarily how we ultimately want to store in the app.
 -}
+
+
+type alias TokenAndServiceCatalog =
+    { token : AuthToken
+    , catalog : ServiceCatalog
+    }
 
 
 type alias ServiceCatalog =
