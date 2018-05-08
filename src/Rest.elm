@@ -6,7 +6,6 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Base64
 import Helpers
-import Tuple
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
 
@@ -22,27 +21,53 @@ requestAuthToken model =
             Encode.object
                 [ ( "auth"
                   , Encode.object
-                        [ ( "tenantName", Encode.string model.creds.projectName )
-                        , ( "passwordCredentials"
+                        [ ( "identity"
                           , Encode.object
-                                [ ( "username", Encode.string model.creds.username )
-                                , ( "password", Encode.string model.creds.password )
+                                [ ( "methods", Encode.list [ Encode.string "password" ] )
+                                , ( "password"
+                                  , Encode.object
+                                        [ ( "user"
+                                          , Encode.object
+                                                [ ( "name", Encode.string model.creds.username )
+                                                , ( "domain"
+                                                  , Encode.object
+                                                        [ ( "id", Encode.string model.creds.userDomain )
+                                                        ]
+                                                  )
+                                                , ( "password", Encode.string model.creds.password )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        , ( "scope"
+                          , Encode.object
+                                [ ( "project"
+                                  , Encode.object
+                                        [ ( "name", Encode.string model.creds.projectName )
+                                        , ( "domain"
+                                          , Encode.object
+                                                [ ( "id", Encode.string model.creds.projectDomain )
+                                                ]
+                                          )
+                                        ]
+                                  )
                                 ]
                           )
                         ]
                   )
                 ]
     in
+        {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
         Http.request
             { method = "POST"
             , headers = []
             , url = model.creds.authUrl
-            , body = Http.jsonBody requestBody
-
-            {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
-            , withCredentials = False
+            , withCredentials = True
             }
             |> Http.send ReceiveAuthToken
 
@@ -196,8 +221,7 @@ requestCreateServer provider createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" provider.authToken
-
-                                -- Microversion needed for automatic network provisioning
+                                  -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = provider.endpoints.nova ++ "/servers"
@@ -363,23 +387,19 @@ receiveAuthToken model responseResult =
             createProvider model response
 
 
-
-{- Keystone V2 -}
-
-
 createProvider : Model -> Http.Response String -> ( Model, Cmd Msg )
 createProvider model response =
-    case Decode.decodeString decodeAuthTokenAndCatalog response.body of
+    case Decode.decodeString decodeAuthToken response.body of
         Err error ->
             Helpers.processError model error
 
-        Ok tokenAndCatalog ->
+        Ok serviceCatalog ->
             let
                 authToken =
-                    tokenAndCatalog.token
+                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
 
                 endpoints =
-                    Helpers.serviceCatalogToEndpoints (tokenAndCatalog.catalog)
+                    Helpers.serviceCatalogToEndpoints serviceCatalog
 
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
@@ -403,47 +423,6 @@ createProvider model response =
                     }
             in
                 ( newModel, Cmd.none )
-
-
-
-{- Keystone V3
-   createProvider : Model -> Http.Response String -> ( Model, Cmd Msg )
-   createProvider model response =
-       case Decode.decodeString decodeAuthToken response.body of
-           Err error ->
-               Helpers.processError model error
-
-           Ok serviceCatalog ->
-               let
-                   authToken =
-                       Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
-
-                   endpoints =
-                       Helpers.serviceCatalogToEndpoints serviceCatalog
-
-                   newProvider =
-                       { name = Helpers.providerNameFromUrl model.creds.authUrl
-                       , authToken = authToken
-                       , endpoints = endpoints
-                       , images = []
-                       , servers = []
-                       , flavors = []
-                       , keypairs = []
-                       , networks = []
-                       , ports = []
-                       }
-
-                   newProviders =
-                       newProvider :: model.providers
-
-                   newModel =
-                       { model
-                           | providers = newProviders
-                           , viewState = ProviderView newProvider.name ListProviderServers
-                       }
-               in
-                   ( newModel, Cmd.none )
--}
 
 
 receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
@@ -789,22 +768,11 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
 
 
 {- JSON Decoders -}
-{- Keystone V2 -}
 
 
-decodeAuthTokenAndCatalog : Decode.Decoder OpenstackTypes.TokenAndServiceCatalog
-decodeAuthTokenAndCatalog =
-    Decode.map2 OpenstackTypes.TokenAndServiceCatalog
-        (Decode.at [ "access", "token", "id" ] Decode.string)
-        (Decode.at [ "access", "serviceCatalog" ] (Decode.list openstackServiceDecoder))
-
-
-
-{- Keystone V3
-   decodeAuthToken : Decode.Decoder OpenstackTypes.ServiceCatalog
-   decodeAuthToken =
-       Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder)
--}
+decodeAuthToken : Decode.Decoder OpenstackTypes.ServiceCatalog
+decodeAuthToken =
+    Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder)
 
 
 openstackServiceDecoder : Decode.Decoder OpenstackTypes.Service
@@ -815,51 +783,29 @@ openstackServiceDecoder =
         (Decode.field "endpoints" (Decode.list openstackEndpointDecoder))
 
 
-
-{- Keystone V2 -}
-
-
 openstackEndpointDecoder : Decode.Decoder OpenstackTypes.Endpoint
 openstackEndpointDecoder =
-    let
-        url =
-            (Decode.field "publicURL" Decode.string)
-    in
-        Decode.map2 OpenstackTypes.Endpoint
-            (Decode.succeed
-                OpenstackTypes.Public
-            )
-            (Decode.field
-                "publicURL"
-                Decode.string
-            )
+    Decode.map2 OpenstackTypes.Endpoint
+        (Decode.field "interface" Decode.string
+            |> Decode.andThen openstackEndpointInterfaceDecoder
+        )
+        (Decode.field "url" Decode.string)
 
 
+openstackEndpointInterfaceDecoder : String -> Decode.Decoder OpenstackTypes.EndpointInterface
+openstackEndpointInterfaceDecoder interface =
+    case interface of
+        "public" ->
+            Decode.succeed OpenstackTypes.Public
 
-{- Keystone V3
-   openstackEndpointDecoder : Decode.Decoder OpenstackTypes.Endpoint
-   openstackEndpointDecoder =
-       Decode.map2 OpenstackTypes.Endpoint
-           (Decode.field "interface" Decode.string
-               |> Decode.andThen openstackEndpointInterfaceDecoder
-           )
-           (Decode.field "url" Decode.string)
+        "admin" ->
+            Decode.succeed OpenstackTypes.Admin
 
-   openstackEndpointInterfaceDecoder : String -> Decode.Decoder OpenstackTypes.EndpointInterface
-   openstackEndpointInterfaceDecoder interface =
-       case interface of
-           "public" ->
-               Decode.succeed OpenstackTypes.Public
+        "internal" ->
+            Decode.succeed OpenstackTypes.Internal
 
-           "admin" ->
-               Decode.succeed OpenstackTypes.Admin
-
-           "internal" ->
-               Decode.succeed OpenstackTypes.Internal
-
-           _ ->
-               Decode.fail "unrecognized interface type"
--}
+        _ ->
+            Decode.fail "unrecognized interface type"
 
 
 decodeImages : Decode.Decoder (List Image)
