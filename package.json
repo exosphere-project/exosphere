@@ -4,10 +4,11 @@
   "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
   "main": "index.js",
   "scripts": {
-    "elm": "elm make src/Exosphere.elm --output elm.js || true",
-    "elm:watch": "chokidar 'src/**/*.elm' -c 'npm run elm'",
-    "start": "electron main.js",
-    "watch": "npm run start & npm run elm:watch & wait",
+    "elm": "elm make src/Exosphere.elm || true",
+    "elm:watch": "chokidar 'src/**/*.elm' -c 'npm run electron-build'",
+    "electron-build": "elm make src/Exosphere.elm --output elm.js || true",
+    "electron-start": "electron electron-main.js",
+    "electron-watch": "npm run electron-start & npm run elm:watch & wait",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
