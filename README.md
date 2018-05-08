@@ -4,7 +4,28 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Collaborate
 
-[Real-time  chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
+[Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
+
+## Try Exosphere
+
+[Try Exosphere on GitHub Pages](https://c-mart.github.io/exosphere-project/exosphere/index.html)
+
+## Build and Run Exosphere
+
+First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+
+Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
+
+```bash
+npm install
+```
+
+To compile the app:
+```
+elm-make src/Exosphere.elm
+```
+
+Then browse to the compiled index.html.
 
 ## Try Exosphere as Electron App
 
@@ -21,14 +42,14 @@ npm install
 To compile and run the app:
 
 ```bash
-npm run elm
-npm run start
+npm run electron-build
+npm run electron-start
 ```
 
 To watch for changes to `*.elm` files, auto-compile when they change, and hot-reloading of the app:
 
 ```bash
-npm run watch
+npm run electron-watch
 ```
 
 Based on the instructions found here:

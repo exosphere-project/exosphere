@@ -3,7 +3,7 @@
 const electron = require('electron')
 
 const app = electron.app // this is our app
-const BrowserWindow = electron.BrowserWindow // This is a Module that creates windows  
+const BrowserWindow = electron.BrowserWindow // This is a Module that creates windows
 
 let mainWindow // saves a global reference to mainWindow so it doesn't get garbage collected
 
@@ -12,13 +12,13 @@ app.on('ready', createWindow) // called when electron has initialized
 // This will create our app window, no surprise there
 function createWindow () {
   mainWindow = new BrowserWindow({
-    width: 1024, 
+    width: 1024,
     height: 768
   })
 
   // display the index.html file
-  mainWindow.loadURL(`file://${ __dirname }/index.html`)
-  
+  mainWindow.loadURL(`file://${ __dirname }/electron-index.html`)
+
   // open dev tools by default so we can see any console errors
   mainWindow.webContents.openDevTools()
 
