@@ -12,11 +12,11 @@ import Types.OpenstackTypes as OpenstackTypes
 
 
 {- HTTP Requests -}
-{- Keystone v2 -}
 
 
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
+    {- Keystone v2 -}
     let
         requestBody =
             Encode.object
@@ -35,13 +35,7 @@ requestAuthToken model =
     in
         Http.request
             { method = "POST"
-            , headers =
-                [ (Http.header "Access-Control-Request-Method" "POST")
-
-                {- todo set this automatically somehow -}
-                , (Http.header "Origin" "http://localhost:8000")
-                , (Http.header "Access-Control-Request-Headers" "X-Custom-Header")
-                ]
+            , headers = []
             , url = model.creds.authUrl
             , body = Http.jsonBody requestBody
 
@@ -51,69 +45,6 @@ requestAuthToken model =
             , withCredentials = False
             }
             |> Http.send ReceiveAuthToken
-
-
-
-{- Keystone v3
-   requestAuthToken : Model -> Cmd Msg
-   requestAuthToken model =
-       let
-           requestBody =
-               Encode.object
-                   [ ( "auth"
-                     , Encode.object
-                           [ ( "identity"
-                             , Encode.object
-                                   [ ( "methods", Encode.list [ Encode.string "password" ] )
-                                   , ( "password"
-                                     , Encode.object
-                                           [ ( "user"
-                                             , Encode.object
-                                                   [ ( "name", Encode.string model.creds.username )
-                                                   , ( "domain"
-                                                     , Encode.object
-                                                           [ ( "id", Encode.string model.creds.userDomain )
-                                                           ]
-                                                     )
-                                                   , ( "password", Encode.string model.creds.password )
-                                                   ]
-                                             )
-                                           ]
-                                     )
-                                   ]
-                             )
-                           , ( "scope"
-                             , Encode.object
-                                   [ ( "project"
-                                     , Encode.object
-                                           [ ( "name", Encode.string model.creds.projectName )
-                                           , ( "domain"
-                                             , Encode.object
-                                                   [ ( "id", Encode.string model.creds.projectDomain )
-                                                   ]
-                                             )
-                                           ]
-                                     )
-                                   ]
-                             )
-                           ]
-                     )
-                   ]
-       in
-           {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
-           Http.request
-               { method = "POST"
-               , headers = []
-               , url = model.creds.authUrl
-               , body = Http.jsonBody requestBody
-
-               {- Todo handle no response? -}
-               , expect = Http.expectStringResponse (\response -> Ok response)
-               , timeout = Nothing
-               , withCredentials = True
-               }
-               |> Http.send ReceiveAuthToken
--}
 
 
 requestImages : Provider -> Cmd Msg
