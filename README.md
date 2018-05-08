@@ -56,3 +56,26 @@ In the spirit of [PEP 8](https://www.python.org/dev/peps/pep-0008/), each file s
 Unlike Python/PEP8 you will not be able to separate each section with a space because elm-format will remove the spaces. The spaces are not an Elm convention.
 
 The imports in each section should be in alphabetical order.
+
+## OpenStack and CORS
+
+In order to use Exosphere, OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
+
+(todo describe security implications)
+
+The OpenStack admin guide has a great page on how to enable CORS across OpenStack services. This guide was removed but is fortunately [still accessible via Wayback Machine](https://web.archive.org/web/20160305193201/http://docs.openstack.org/admin-guide-cloud/cross_project_cors.html).
+
+At minimum, need the following in keystone.conf and neutron.conf:
+
+```
+[cors]
+allowed_origin: *
+```
+
+The following in nova.conf:
+
+```
+[cors]
+allowed_origin = *
+allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Custom-Header,OpenStack-API-Version, X-Auth-Token
+```
