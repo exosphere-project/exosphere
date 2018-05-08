@@ -273,7 +273,7 @@ requestCreateServer provider createServerRequest =
                             , body = Http.jsonBody requestBody
                             , expect = Http.expectJson (Decode.field "server" serverDecoder)
                             , timeout = Nothing
-                            , withCredentials = True
+                            , withCredentials = False
                             }
                             |> Http.send resultMsg
                         )
@@ -406,7 +406,7 @@ requestFloatingIp model provider network port_ server =
                 , body = Http.jsonBody requestBody
                 , expect = Http.expectJson decodeFloatingIpCreation
                 , timeout = Nothing
-                , withCredentials = True
+                , withCredentials = False
                 }
 
         resultMsg result =
