@@ -15,7 +15,6 @@ import Types.OpenstackTypes as OpenstackTypes
 
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
-    {- Keystone v2 -}
     let
         requestBody =
             Encode.object
@@ -64,10 +63,12 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authUrl
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
-            , withCredentials = True
+            , withCredentials = False
             }
             |> Http.send ReceiveAuthToken
 
@@ -221,7 +222,8 @@ requestCreateServer provider createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" provider.authToken
-                                  -- Microversion needed for automatic network provisioning
+
+                                -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = provider.endpoints.nova ++ "/servers"
