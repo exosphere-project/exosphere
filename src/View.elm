@@ -1,21 +1,21 @@
 module View exposing (view)
 
+import Base64
+import Filesize exposing (format)
+import Helpers
 import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Maybe
-import Tuple
-import Base64
-import Filesize exposing (format)
+import Toast
 import Types.Types exposing (..)
-import Helpers
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ viewMessages model
+        [ notificationsView model
         , viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
@@ -31,6 +31,16 @@ view model =
                     Just provider ->
                         providerView model provider viewConstructor
         ]
+
+
+notificationsView : Model -> Html Msg
+notificationsView model =
+    Html.ul [ class "notifications-list" ] (Toast.views model.toast model.time notificationView)
+
+
+notificationView : Toast.NotificationState -> String -> Html Msg
+notificationView state notification =
+    Html.li [] [ Html.text notification ]
 
 
 providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
@@ -180,10 +190,11 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-              {-
-                 Todo this link opens in Electron, should open in user's browser
-                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-              -}
+
+            {-
+               Todo this link opens in Electron, should open in user's browser
+               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+            -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
