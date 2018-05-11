@@ -4,9 +4,13 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Collaborate
 
-[Real-time  chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
+[Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
 
 ## Try Exosphere
+
+[Try Exosphere on GitHub Pages](https://c-mart.github.io/exosphere-project/exosphere/index.html)
+
+## Build and Run Exosphere
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
