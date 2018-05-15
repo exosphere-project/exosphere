@@ -8,7 +8,7 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Try Exosphere
 
-[Try Exosphere on GitHub Pages](https://c-mart.github.io/exosphere-project/exosphere/index.html)
+[Try Exosphere on GitHub Pages](https://exosphere-project.github.io/exosphere/)
 
 ## Build and Run Exosphere
 
