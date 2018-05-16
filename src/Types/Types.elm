@@ -67,6 +67,7 @@ type ViewState
 
 type NonProviderViewConstructor
     = Login
+    | ListServers
 
 
 type ProviderViewConstructor
