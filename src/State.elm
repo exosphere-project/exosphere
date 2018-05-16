@@ -58,6 +58,12 @@ update msg model =
                     Login ->
                         ( newModel, Cmd.none )
 
+                    ListServers ->
+                        ( newModel
+                        , Cmd.batch
+                            (List.map (\p -> Rest.requestServers p) model.providers)
+                        )
+
         RequestNewProviderToken ->
             ( model, Rest.requestAuthToken model )
 

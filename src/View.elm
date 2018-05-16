@@ -1,6 +1,6 @@
 module View exposing (view)
 
-import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
+import Html exposing (Html, a, button, div, fieldset, h2, h3, input, label, legend, p, strong, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
@@ -14,12 +14,15 @@ view : Model -> Html Msg
 view model =
     div []
         [ viewMessages model
-        , viewProviderPicker model
+        , viewTopNav model
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
                     Login ->
                         viewLogin model
+
+                    ListServers ->
+                        div [] [ viewAllProvidersServers model.providers ]
 
             ProviderView providerName viewConstructor ->
                 case Helpers.providerLookup model providerName of
@@ -37,32 +40,32 @@ providerView model provider viewConstructor =
         ProviderHome ->
             div []
                 [ p []
-                    [ viewNav provider
+                    [ viewProviderNav provider
                     , text ("Home page for " ++ provider.name ++ ", todo put things here")
                     ]
                 ]
 
         ListImages ->
             div []
-                [ viewNav provider
+                [ viewProviderNav provider
                 , viewImages provider
                 ]
 
         ListProviderServers ->
             div []
-                [ viewNav provider
-                , viewServers provider
+                [ viewProviderNav provider
+                , viewProviderServers provider
                 ]
 
         ServerDetail serverUuid ->
             div []
-                [ viewNav provider
+                [ viewProviderNav provider
                 , viewServerDetail provider serverUuid
                 ]
 
         CreateServer createServerRequest ->
             div []
-                [ viewNav provider
+                [ viewProviderNav provider
                 , viewCreateServer provider createServerRequest
                 ]
 
@@ -76,19 +79,20 @@ viewMessages model =
     div [] (List.map renderMessage model.messages)
 
 
-viewProviderPicker : Model -> Html Msg
-viewProviderPicker model =
+viewTopNav : Model -> Html Msg
+viewTopNav model =
     div []
         [ h2 [] [ text "Providers" ]
         , div []
             [ div [] (List.map (renderProviderPicker model) model.providers)
             ]
         , button [ onClick (SetNonProviderView Login) ] [ text "Add Provider" ]
+        , button [ onClick (SetNonProviderView ListServers) ] [ text "Resources on All Providers" ]
         ]
 
 
-viewNav : Provider -> Html Msg
-viewNav provider =
+viewProviderNav : Provider -> Html Msg
+viewProviderNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text "Home" ]
@@ -177,10 +181,11 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-              {-
-                 Todo this link opens in Electron, should open in user's browser
-                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-              -}
+
+            {-
+               Todo this link opens in Electron, should open in user's browser
+               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+            -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -213,8 +218,18 @@ viewImages provider =
                 ]
 
 
-viewServers : Provider -> Html Msg
-viewServers provider =
+viewAllProvidersServers : List Provider -> Html Msg
+viewAllProvidersServers providers =
+    div []
+        ([ h2 [] [ text "Resources on All Providers" ]
+         , text "This is a view of all your stuff across all logged-in providers. To create something new, select a provider in the navigation above."
+         ]
+            ++ List.map viewProviderServers providers
+        )
+
+
+viewProviderServers : Provider -> Html Msg
+viewProviderServers provider =
     case List.isEmpty provider.servers of
         True ->
             div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
@@ -231,7 +246,7 @@ viewServers provider =
                     List.filter .selected provider.servers
             in
                 div []
-                    [ h2 [] [ text "My Servers" ]
+                    [ h3 [] [ text ("My servers on " ++ provider.name) ]
                     , div []
                         [ fieldset []
                             [ legend [] [ text "Bulk Actions" ]
@@ -488,11 +503,11 @@ renderImage provider image =
                     ]
                 , tr []
                     [ td [] [ text "Disk format" ]
-                    , td [] [ text image.diskFormat ]
+                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
                     ]
                 , tr []
                     [ td [] [ text "Container format" ]
-                    , td [] [ text image.containerFormat ]
+                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
                     ]
                 , tr []
                     [ td [] [ text "UUID" ]

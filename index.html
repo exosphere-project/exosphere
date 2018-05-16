@@ -16761,6 +16761,7 @@ var _exosphere_project$exosphere$Types_Types$ProviderView = F2(
 var _exosphere_project$exosphere$Types_Types$NonProviderView = function (a) {
 	return {ctor: 'NonProviderView', _0: a};
 };
+var _exosphere_project$exosphere$Types_Types$ListServers = {ctor: 'ListServers'};
 var _exosphere_project$exosphere$Types_Types$Login = {ctor: 'Login'};
 var _exosphere_project$exosphere$Types_Types$CreateServer = function (a) {
 	return {ctor: 'CreateServer', _0: a};
@@ -17886,8 +17887,14 @@ var _exosphere_project$exosphere$Rest$imageDecoder = A9(
 		_elm_lang$core$Json_Decode$field,
 		'checksum',
 		_elm_lang$core$Json_Decode$nullable(_elm_lang$core$Json_Decode$string)),
-	A2(_elm_lang$core$Json_Decode$field, 'disk_format', _elm_lang$core$Json_Decode$string),
-	A2(_elm_lang$core$Json_Decode$field, 'container_format', _elm_lang$core$Json_Decode$string),
+	A2(
+		_elm_lang$core$Json_Decode$field,
+		'disk_format',
+		_elm_lang$core$Json_Decode$nullable(_elm_lang$core$Json_Decode$string)),
+	A2(
+		_elm_lang$core$Json_Decode$field,
+		'container_format',
+		_elm_lang$core$Json_Decode$nullable(_elm_lang$core$Json_Decode$string)),
 	A2(
 		_elm_lang$core$Json_Decode$field,
 		'tags',
@@ -18895,7 +18902,21 @@ var _exosphere_project$exosphere$State$update = F2(
 							viewState: _exosphere_project$exosphere$Types_Types$NonProviderView(_p3)
 						});
 					var _p2 = _p3;
-					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
+					if (_p2.ctor === 'Login') {
+						return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						return {
+							ctor: '_Tuple2',
+							_0: newModel,
+							_1: _elm_lang$core$Platform_Cmd$batch(
+								A2(
+									_elm_lang$core$List$map,
+									function (p) {
+										return _exosphere_project$exosphere$Rest$requestServers(p);
+									},
+									model.providers))
+						};
+					}
 				case 'RequestNewProviderToken':
 					return {
 						ctor: '_Tuple2',
@@ -19575,7 +19596,8 @@ var _exosphere_project$exosphere$View$renderImage = F2(
 																{ctor: '[]'},
 																{
 																	ctor: '::',
-																	_0: _elm_lang$html$Html$text(image.diskFormat),
+																	_0: _elm_lang$html$Html$text(
+																		A2(_elm_lang$core$Maybe$withDefault, '', image.diskFormat)),
 																	_1: {ctor: '[]'}
 																}),
 															_1: {ctor: '[]'}
@@ -19603,7 +19625,8 @@ var _exosphere_project$exosphere$View$renderImage = F2(
 																	{ctor: '[]'},
 																	{
 																		ctor: '::',
-																		_0: _elm_lang$html$Html$text(image.containerFormat),
+																		_0: _elm_lang$html$Html$text(
+																			A2(_elm_lang$core$Maybe$withDefault, '', image.containerFormat)),
 																		_1: {ctor: '[]'}
 																	}),
 																_1: {ctor: '[]'}
@@ -20439,7 +20462,7 @@ var _exosphere_project$exosphere$View$viewServerDetail = F2(
 			}
 		}
 	});
-var _exosphere_project$exosphere$View$viewServers = function (provider) {
+var _exosphere_project$exosphere$View$viewProviderServers = function (provider) {
 	var _p10 = _elm_lang$core$List$isEmpty(provider.servers);
 	if (_p10 === true) {
 		return A2(
@@ -20482,11 +20505,12 @@ var _exosphere_project$exosphere$View$viewServers = function (provider) {
 			{
 				ctor: '::',
 				_0: A2(
-					_elm_lang$html$Html$h2,
+					_elm_lang$html$Html$h3,
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text('My Servers'),
+						_0: _elm_lang$html$Html$text(
+							A2(_elm_lang$core$Basics_ops['++'], 'My servers on ', provider.name)),
 						_1: {ctor: '[]'}
 					}),
 				_1: {
@@ -20592,6 +20616,30 @@ var _exosphere_project$exosphere$View$viewServers = function (provider) {
 				}
 			});
 	}
+};
+var _exosphere_project$exosphere$View$viewAllProvidersServers = function (providers) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$h2,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Resources on All Providers'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('This is a view of all your stuff across all logged-in providers. To create something new, select a provider in the navigation above.'),
+					_1: {ctor: '[]'}
+				}
+			},
+			A2(_elm_lang$core$List$map, _exosphere_project$exosphere$View$viewProviderServers, providers)));
 };
 var _exosphere_project$exosphere$View$viewImages = function (provider) {
 	var _p11 = _elm_lang$core$List$isEmpty(provider.images);
@@ -21045,7 +21093,7 @@ var _exosphere_project$exosphere$View$viewLogin = function (model) {
 			}
 		});
 };
-var _exosphere_project$exosphere$View$viewNav = function (provider) {
+var _exosphere_project$exosphere$View$viewProviderNav = function (provider) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{ctor: '[]'},
@@ -21119,7 +21167,7 @@ var _exosphere_project$exosphere$View$viewNav = function (provider) {
 			}
 		});
 };
-var _exosphere_project$exosphere$View$viewProviderPicker = function (model) {
+var _exosphere_project$exosphere$View$viewTopNav = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{ctor: '[]'},
@@ -21164,7 +21212,23 @@ var _exosphere_project$exosphere$View$viewProviderPicker = function (model) {
 							_0: _elm_lang$html$Html$text('Add Provider'),
 							_1: {ctor: '[]'}
 						}),
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$button,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onClick(
+									_exosphere_project$exosphere$Types_Types$SetNonProviderView(_exosphere_project$exosphere$Types_Types$ListServers)),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Resources on All Providers'),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});
@@ -21190,7 +21254,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 							{ctor: '[]'},
 							{
 								ctor: '::',
-								_0: _exosphere_project$exosphere$View$viewNav(provider),
+								_0: _exosphere_project$exosphere$View$viewProviderNav(provider),
 								_1: {
 									ctor: '::',
 									_0: _elm_lang$html$Html$text(
@@ -21209,7 +21273,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: _exosphere_project$exosphere$View$viewNav(provider),
+						_0: _exosphere_project$exosphere$View$viewProviderNav(provider),
 						_1: {
 							ctor: '::',
 							_0: _exosphere_project$exosphere$View$viewImages(provider),
@@ -21222,10 +21286,10 @@ var _exosphere_project$exosphere$View$providerView = F3(
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: _exosphere_project$exosphere$View$viewNav(provider),
+						_0: _exosphere_project$exosphere$View$viewProviderNav(provider),
 						_1: {
 							ctor: '::',
-							_0: _exosphere_project$exosphere$View$viewServers(provider),
+							_0: _exosphere_project$exosphere$View$viewProviderServers(provider),
 							_1: {ctor: '[]'}
 						}
 					});
@@ -21235,7 +21299,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: _exosphere_project$exosphere$View$viewNav(provider),
+						_0: _exosphere_project$exosphere$View$viewProviderNav(provider),
 						_1: {
 							ctor: '::',
 							_0: A2(_exosphere_project$exosphere$View$viewServerDetail, provider, _p12._0),
@@ -21248,7 +21312,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: _exosphere_project$exosphere$View$viewNav(provider),
+						_0: _exosphere_project$exosphere$View$viewProviderNav(provider),
 						_1: {
 							ctor: '::',
 							_0: A2(_exosphere_project$exosphere$View$viewCreateServer, provider, _p12._0),
@@ -21266,14 +21330,25 @@ var _exosphere_project$exosphere$View$view = function (model) {
 			_0: _exosphere_project$exosphere$View$viewMessages(model),
 			_1: {
 				ctor: '::',
-				_0: _exosphere_project$exosphere$View$viewProviderPicker(model),
+				_0: _exosphere_project$exosphere$View$viewTopNav(model),
 				_1: {
 					ctor: '::',
 					_0: function () {
 						var _p13 = model.viewState;
 						if (_p13.ctor === 'NonProviderView') {
 							var _p14 = _p13._0;
-							return _exosphere_project$exosphere$View$viewLogin(model);
+							if (_p14.ctor === 'Login') {
+								return _exosphere_project$exosphere$View$viewLogin(model);
+							} else {
+								return A2(
+									_elm_lang$html$Html$div,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _exosphere_project$exosphere$View$viewAllProvidersServers(model.providers),
+										_1: {ctor: '[]'}
+									});
+							}
 						} else {
 							var _p15 = A2(_exosphere_project$exosphere$Helpers$providerLookup, model, _p13._0);
 							if (_p15.ctor === 'Nothing') {
