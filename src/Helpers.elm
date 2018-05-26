@@ -20,12 +20,12 @@ processOpenRc : Model -> String -> Creds
 processOpenRc model openRc =
     let
         regexes =
-            { authUrl = Regex.regex "export OS_AUTH_URL=(.*)"
-            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN_NAME=(.*)"
-            , projectName = Regex.regex "export OS_PROJECT_NAME=(.*)"
-            , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=(.*)"
-            , username = Regex.regex "export OS_USERNAME=(.*)"
-            , password = Regex.regex "export OS_PASSWORD=(.*)"
+            { authUrl = Regex.regex "export OS_AUTH_URL=\"(.*)\""
+            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN_NAME=\"(.*)\""
+            , projectName = Regex.regex "export OS_PROJECT_NAME=\"(.*)\""
+            , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=\"(.*)\""
+            , username = Regex.regex "export OS_USERNAME=\"(.*)\""
+            , password = Regex.regex "export OS_PASSWORD=\"(.*)\""
             }
 
         getMatch text regex =
