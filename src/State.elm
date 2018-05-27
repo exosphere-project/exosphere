@@ -99,7 +99,7 @@ update msg model =
                             { creds | password = password }
 
                         OpenRc openRc ->
-                            Helpers.processOpenRc model openRc
+                            Helpers.processOpenRc creds openRc
 
                 newModel =
                     { model | creds = newCreds }
