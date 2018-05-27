@@ -21,7 +21,7 @@ processOpenRc model openRc =
     let
         regexes =
             { authUrl = Regex.regex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
-            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN_NAME=\"?([^\"\n]*)\"?"
+            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
             , projectName = Regex.regex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
             , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
             , username = Regex.regex "export OS_USERNAME=\"?([^\"\n]*)\"?"
