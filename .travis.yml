@@ -11,5 +11,5 @@ before_script:
   - elm-package install -y
 script:
     - elm-make --warn --yes src/Exosphere.elm --output elm.js
-    - elm-analyse
-    # - elm-test
+    - elm-test
+    - elm-analyse || true

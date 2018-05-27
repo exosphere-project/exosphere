@@ -1,5 +1,7 @@
 # Exosphere
 
+[![Build Status](https://travis-ci.org/exosphere-project/exosphere.svg?branch=master)](https://travis-ci.org/exosphere-project/exosphere)
+
 User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
 
 ## Collaborate
