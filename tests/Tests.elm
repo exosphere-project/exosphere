@@ -108,16 +108,3 @@ processOpenRcSuite =
                             ""
                         )
         ]
-
-
-
-{-
-   type alias Creds =
-       { authUrl : String
-       , projectDomain : String
-       , projectName : String
-       , userDomain : String
-       , username : String
-       , password : String
-       }
--}
