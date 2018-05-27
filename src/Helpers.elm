@@ -1,4 +1,4 @@
-module Helpers exposing (processError, processOpenRc, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider)
+module Helpers exposing (processError, processOpenRc, providePasswordHint, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider)
 
 import Regex
 import Maybe.Extra
@@ -46,6 +46,23 @@ processOpenRc model openRc =
             (newField regexes.userDomain model.creds.userDomain)
             (newField regexes.username model.creds.username)
             (newField regexes.password model.creds.password)
+
+
+providePasswordHint : String -> String -> List ( String, String )
+providePasswordHint username password =
+    let
+        checks =
+            [ (not <| String.isEmpty username)
+            , (String.isEmpty password)
+            , (username /= "demo")
+            ]
+    in
+        if List.all (\p -> p) checks then
+            [ ( "border-color", "rgba(239, 130, 17, 0.8)" )
+            , ( "background-color", "rgba(245, 234, 234, 0.7)" )
+            ]
+        else
+            []
 
 
 providerNameFromUrl : HelperTypes.Url -> ProviderName

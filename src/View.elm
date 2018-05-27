@@ -168,6 +168,7 @@ viewLogin model =
                 , td []
                     [ input
                         [ type_ "password"
+                        , Attr.style (Helpers.providePasswordHint model.creds.username model.creds.password)
                         , value model.creds.password
                         , onInput (\p -> InputLoginField (Password p))
                         ]
