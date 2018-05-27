@@ -16,8 +16,8 @@ processError model error =
         ( { model | messages = newMsgs }, Cmd.none )
 
 
-processOpenRc : Model -> String -> Creds
-processOpenRc model openRc =
+processOpenRc : Creds -> String -> Creds
+processOpenRc existingCreds openRc =
     let
         regexes =
             { authUrl = Regex.regex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
@@ -40,12 +40,12 @@ processOpenRc model openRc =
                 |> Maybe.withDefault oldField
     in
         Creds
-            (newField regexes.authUrl model.creds.authUrl)
-            (newField regexes.projectDomain model.creds.projectDomain)
-            (newField regexes.projectName model.creds.projectName)
-            (newField regexes.userDomain model.creds.userDomain)
-            (newField regexes.username model.creds.username)
-            (newField regexes.password model.creds.password)
+            (newField regexes.authUrl existingCreds.authUrl)
+            (newField regexes.projectDomain existingCreds.projectDomain)
+            (newField regexes.projectName existingCreds.projectName)
+            (newField regexes.userDomain existingCreds.userDomain)
+            (newField regexes.username existingCreds.username)
+            (newField regexes.password existingCreds.password)
 
 
 providePasswordHint : String -> String -> List ( String, String )
