@@ -1,7 +1,6 @@
 module Main exposing (main)
 
-import BeautifulExample
-import Color
+import Html exposing (program)
 import State
 import Types.Types exposing (Model, Msg)
 import View
@@ -12,15 +11,7 @@ import View
 
 main : Program Never Model Msg
 main =
-    BeautifulExample.program
-        { title = "Exosphere"
-        , details =
-            Just """User-friendly, extensible client for cloud computing. Currently targeting OpenStack."""
-        , color = Just Color.blue
-        , maxWidth = 640
-        , githubUrl = Just "https://github.com/exosphere-project/exosphere"
-        , documentationUrl = Just "https://github.com/exosphere-project/exosphere"
-        }
+    program
         { init = State.init
         , view = View.view
         , update = State.update
