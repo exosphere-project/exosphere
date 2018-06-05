@@ -80,7 +80,7 @@ requestImages provider =
             Http.request
                 { method = "GET"
                 , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-                , url = provider.endpoints.glance ++ "/v2/images"
+                , url = provider.endpoints.glance ++ "/v2/images?limit=999999"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeImages
                 , timeout = Nothing
