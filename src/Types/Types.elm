@@ -122,8 +122,8 @@ type alias Image =
     , uuid : ImageUuid
     , size : Maybe Int
     , checksum : Maybe String
-    , diskFormat : String
-    , containerFormat : String
+    , diskFormat : Maybe String
+    , containerFormat : Maybe String
     , tags : List String
     }
 

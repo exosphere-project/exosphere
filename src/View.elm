@@ -4,6 +4,7 @@ import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, 
 import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
+import Maybe
 import Base64
 import Filesize exposing (format)
 import Types.Types exposing (..)
@@ -178,10 +179,11 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-              {-
-                 Todo this link opens in Electron, should open in user's browser
-                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-              -}
+
+            {-
+               Todo this link opens in Electron, should open in user's browser
+               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+            -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -489,11 +491,11 @@ renderImage provider image =
                     ]
                 , tr []
                     [ td [] [ text "Disk format" ]
-                    , td [] [ text image.diskFormat ]
+                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
                     ]
                 , tr []
                     [ td [] [ text "Container format" ]
-                    , td [] [ text image.containerFormat ]
+                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
                     ]
                 , tr []
                     [ td [] [ text "UUID" ]

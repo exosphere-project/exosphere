@@ -823,8 +823,8 @@ imageDecoder =
         (Decode.field "id" Decode.string)
         (Decode.field "size" (Decode.nullable Decode.int))
         (Decode.field "checksum" (Decode.nullable Decode.string))
-        (Decode.field "disk_format" Decode.string)
-        (Decode.field "container_format" Decode.string)
+        (Decode.field "disk_format" (Decode.nullable Decode.string))
+        (Decode.field "container_format" (Decode.nullable Decode.string))
         (Decode.field "tags" (Decode.list Decode.string))
 
 
