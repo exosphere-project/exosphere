@@ -88,7 +88,7 @@ In order to use Exosphere, OpenStack services must be configured to allow cross-
 
 The OpenStack admin guide has a great page on how to enable CORS across OpenStack services. This guide was removed but is fortunately [still accessible via Wayback Machine](https://web.archive.org/web/20160305193201/http://docs.openstack.org/admin-guide-cloud/cross_project_cors.html).
 
-At minimum, need the following in keystone.conf and neutron.conf:
+At minimum, need the following in glance.conf, keystone.conf, and neutron.conf:
 
 ```
 [cors]
@@ -100,5 +100,5 @@ The following in nova.conf:
 ```
 [cors]
 allowed_origin = *
-allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Custom-Header,OpenStack-API-Version, X-Auth-Token
+allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Custom-Header,OpenStack-API-Version,X-Auth-Token
 ```
