@@ -10,7 +10,7 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Try Exosphere
 
-[Try Exosphere on GitHub Pages](https://exosphere-project.github.io/exosphere/)
+[Try Exosphere on GitLab Pages](https://exosphere.gitlab.io/exosphere/index.html)
 
 ## Build and Run Exosphere
 
