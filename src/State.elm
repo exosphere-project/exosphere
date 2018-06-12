@@ -2,6 +2,7 @@ module State exposing (init, subscriptions, update)
 
 import Time
 import Helpers
+import Maybe
 import Types.Types exposing (..)
 import Rest
 
@@ -22,6 +23,11 @@ init =
                 "default"
                 "demo"
                 ""
+      , globals =
+            Globals
+                (Maybe.Just
+                    "distro-base"
+                )
       }
     , Cmd.none
     )
@@ -103,6 +109,25 @@ update msg model =
 
                 newModel =
                     { model | creds = newCreds }
+            in
+                ( newModel, Cmd.none )
+
+        InputImageFilterTag inputTag ->
+            let
+                maybeTag =
+                    if inputTag == "" then
+                        Nothing
+                    else
+                        Just inputTag
+
+                globals =
+                    model.globals
+
+                newGlobals =
+                    { globals | imageFilterTag = maybeTag }
+
+                newModel =
+                    { model | globals = newGlobals }
             in
                 ( newModel, Cmd.none )
 
