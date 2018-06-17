@@ -1,6 +1,7 @@
 module Types.Types exposing (..)
 
 import Http
+import Maybe
 import Time
 import Types.HelperTypes as HelperTypes
 
@@ -13,6 +14,7 @@ type alias Model =
     , viewState : ViewState
     , providers : List Provider
     , creds : Creds
+    , imageFilterTag : Maybe String
     }
 
 
@@ -37,6 +39,7 @@ type Msg
     | ProviderMsg ProviderName ProviderSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
+    | InputImageFilterTag String
 
 
 type ProviderSpecificMsgConstructor

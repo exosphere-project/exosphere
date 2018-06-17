@@ -5,6 +5,7 @@ import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, row
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Maybe
+import Tuple
 import Base64
 import Filesize exposing (format)
 import Types.Types exposing (..)
@@ -46,7 +47,7 @@ providerView model provider viewConstructor =
         ListImages ->
             div []
                 [ viewNav provider
-                , viewImages provider
+                , viewImagesIfLoaded provider model.imageFilterTag
                 ]
 
         ListProviderServers ->
@@ -94,7 +95,7 @@ viewNav provider =
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text "Home" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView (ListImages))) ] [ text "Create Server" ]
         ]
 
 
@@ -179,11 +180,10 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-
-            {-
-               Todo this link opens in Electron, should open in user's browser
-               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-            -}
+              {-
+                 Todo this link opens in Electron, should open in user's browser
+                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+              -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -203,17 +203,63 @@ viewLogin model =
         ]
 
 
-viewImages : Provider -> Html Msg
-viewImages provider =
+viewImagesIfLoaded : Provider -> Maybe String -> Html Msg
+viewImagesIfLoaded provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
             div [] [ p [] [ text "Images loading" ] ]
 
         False ->
-            div []
-                [ h2 [] [ text "Choose an image" ]
-                , div [] (List.map (renderImage provider) provider.images)
+            viewImages provider maybeFilterTag
+
+
+viewImages : Provider -> Maybe String -> Html Msg
+viewImages provider maybeFilterTag =
+    let
+        imageContainsTag tag image =
+            List.member tag image.tags
+
+        filteredImages =
+            case maybeFilterTag of
+                Nothing ->
+                    provider.images
+
+                Just filterTag ->
+                    List.filter (imageContainsTag filterTag) provider.images
+
+        noMatchWarning =
+            (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
+
+        displayedImages =
+            if noMatchWarning == False then
+                filteredImages
+            else
+                provider.images
+    in
+        div []
+            [ h2 [] [ text "Choose an image" ]
+            , div []
+                [ text "Filter on tag: "
+                , input
+                    [ type_ "text"
+                    , value (Maybe.withDefault "" maybeFilterTag)
+                    , onInput (\t -> InputImageFilterTag t)
+                    , placeholder "try \"distro-base\""
+                    ]
+                    []
+                , Html.br [] []
+                , button
+                    [ onClick (InputImageFilterTag "")
+                    ]
+                    [ text "Clear filter (show all)" ]
+                , Html.br [] []
+                , if noMatchWarning then
+                    text "No matches found, showing all images"
+                  else
+                    div [] []
                 ]
+            , div [] (List.map (renderImage provider) displayedImages)
+            ]
 
 
 viewServers : Provider -> Html Msg
