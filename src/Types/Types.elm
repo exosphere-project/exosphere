@@ -14,7 +14,7 @@ type alias Model =
     , viewState : ViewState
     , providers : List Provider
     , creds : Creds
-    , globals : Globals
+    , imageFilterTag : Maybe String
     }
 
 
@@ -29,10 +29,6 @@ type alias Provider =
     , networks : List Network
     , ports : List Port
     }
-
-
-type alias Globals =
-    { imageFilterTag : Maybe String }
 
 
 type Msg

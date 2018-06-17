@@ -9688,15 +9688,12 @@ var _elm_lang$http$Http$StringPart = F2(
 var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
 var _exosphere_project$exosphere$Types_Types$Model = F5(
 	function (a, b, c, d, e) {
-		return {messages: a, viewState: b, providers: c, creds: d, globals: e};
+		return {messages: a, viewState: b, providers: c, creds: d, imageFilterTag: e};
 	});
 var _exosphere_project$exosphere$Types_Types$Provider = F9(
 	function (a, b, c, d, e, f, g, h, i) {
 		return {name: a, authToken: b, endpoints: c, images: d, servers: e, flavors: f, keypairs: g, networks: h, ports: i};
 	});
-var _exosphere_project$exosphere$Types_Types$Globals = function (a) {
-	return {imageFilterTag: a};
-};
 var _exosphere_project$exosphere$Types_Types$Creds = F6(
 	function (a, b, c, d, e, f) {
 		return {authUrl: a, projectDomain: b, projectName: c, userDomain: d, username: e, password: f};
@@ -12053,14 +12050,10 @@ var _exosphere_project$exosphere$State$update = F2(
 					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 				case 'InputImageFilterTag':
 					var _p6 = _p0._0;
-					var globals = model.globals;
 					var maybeTag = _elm_lang$core$Native_Utils.eq(_p6, '') ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p6);
-					var newGlobals = _elm_lang$core$Native_Utils.update(
-						globals,
-						{imageFilterTag: maybeTag});
 					var newModel = _elm_lang$core$Native_Utils.update(
 						model,
-						{globals: newGlobals});
+						{imageFilterTag: maybeTag});
 					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 				default:
 					var _p8 = _p0._0;
@@ -12289,8 +12282,7 @@ var _exosphere_project$exosphere$State$init = {
 		viewState: _exosphere_project$exosphere$Types_Types$NonProviderView(_exosphere_project$exosphere$Types_Types$Login),
 		providers: {ctor: '[]'},
 		creds: A6(_exosphere_project$exosphere$Types_Types$Creds, 'https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens', 'default', 'demo', 'default', 'demo', ''),
-		globals: _exosphere_project$exosphere$Types_Types$Globals(
-			_elm_lang$core$Maybe$Just('distro-base'))
+		imageFilterTag: _elm_lang$core$Maybe$Just('distro-base')
 	},
 	_1: _elm_lang$core$Platform_Cmd$none
 };
@@ -13752,7 +13744,7 @@ var _exosphere_project$exosphere$View$viewImages = F2(
 						{ctor: '[]'},
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html$text('Filter on tag (try \"distro-base\"): '),
+							_0: _elm_lang$html$Html$text('Filter on tag: '),
 							_1: {
 								ctor: '::',
 								_0: A2(
@@ -13770,7 +13762,11 @@ var _exosphere_project$exosphere$View$viewImages = F2(
 													function (t) {
 														return _exosphere_project$exosphere$Types_Types$InputImageFilterTag(t);
 													}),
-												_1: {ctor: '[]'}
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Attributes$placeholder('try \"distro-base\"'),
+													_1: {ctor: '[]'}
+												}
 											}
 										}
 									},
@@ -13798,11 +13794,18 @@ var _exosphere_project$exosphere$View$viewImages = F2(
 											}),
 										_1: {
 											ctor: '::',
-											_0: noMatchWarning ? _elm_lang$html$Html$text('No matches found! Displaying all images.') : A2(
-												_elm_lang$html$Html$div,
+											_0: A2(
+												_elm_lang$html$Html$br,
 												{ctor: '[]'},
 												{ctor: '[]'}),
-											_1: {ctor: '[]'}
+											_1: {
+												ctor: '::',
+												_0: noMatchWarning ? _elm_lang$html$Html$text('No matches found, showing all images') : A2(
+													_elm_lang$html$Html$div,
+													{ctor: '[]'},
+													{ctor: '[]'}),
+												_1: {ctor: '[]'}
+											}
 										}
 									}
 								}
@@ -14423,7 +14426,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 						_0: _exosphere_project$exosphere$View$viewNav(provider),
 						_1: {
 							ctor: '::',
-							_0: A2(_exosphere_project$exosphere$View$viewImagesIfLoaded, provider, model.globals.imageFilterTag),
+							_0: A2(_exosphere_project$exosphere$View$viewImagesIfLoaded, provider, model.imageFilterTag),
 							_1: {ctor: '[]'}
 						}
 					});

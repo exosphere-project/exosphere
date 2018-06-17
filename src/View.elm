@@ -47,7 +47,7 @@ providerView model provider viewConstructor =
         ListImages ->
             div []
                 [ viewNav provider
-                , viewImagesIfLoaded provider model.globals.imageFilterTag
+                , viewImagesIfLoaded provider model.imageFilterTag
                 ]
 
         ListProviderServers ->
@@ -244,6 +244,7 @@ viewImages provider maybeFilterTag =
                     [ type_ "text"
                     , value (Maybe.withDefault "" maybeFilterTag)
                     , onInput (\t -> InputImageFilterTag t)
+                    , placeholder "try \"distro-base\""
                     ]
                     []
                 , Html.br [] []
@@ -251,8 +252,9 @@ viewImages provider maybeFilterTag =
                     [ onClick (InputImageFilterTag "")
                     ]
                     [ text "Clear filter (show all)" ]
+                , Html.br [] []
                 , if noMatchWarning then
-                    text "No matches found"
+                    text "No matches found, showing all images"
                   else
                     div [] []
                 ]

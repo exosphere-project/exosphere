@@ -23,11 +23,7 @@ init =
                 "default"
                 "demo"
                 ""
-      , globals =
-            Globals
-                (Maybe.Just
-                    "distro-base"
-                )
+      , imageFilterTag = Maybe.Just "distro-base"
       }
     , Cmd.none
     )
@@ -120,14 +116,8 @@ update msg model =
                     else
                         Just inputTag
 
-                globals =
-                    model.globals
-
-                newGlobals =
-                    { globals | imageFilterTag = maybeTag }
-
                 newModel =
-                    { model | globals = newGlobals }
+                    { model | imageFilterTag = maybeTag }
             in
                 ( newModel, Cmd.none )
 
