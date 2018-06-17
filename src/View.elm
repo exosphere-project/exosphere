@@ -47,7 +47,7 @@ providerView model provider viewConstructor =
         ListImages ->
             div []
                 [ viewNav provider
-                , viewImages provider model.globals.imageFilterTag
+                , viewImagesIfLoaded provider model.globals.imageFilterTag
                 ]
 
         ListProviderServers ->
@@ -203,52 +203,61 @@ viewLogin model =
         ]
 
 
-viewImages : Provider -> Maybe String -> Html Msg
-viewImages provider maybeFilterTag =
+viewImagesIfLoaded : Provider -> Maybe String -> Html Msg
+viewImagesIfLoaded provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
             div [] [ p [] [ text "Images loading" ] ]
 
         False ->
-            let
-                imageContainsTag tag image =
-                    List.member tag image.tags
+            viewImages provider maybeFilterTag
 
-                filteredImages =
-                    case maybeFilterTag of
-                        Nothing ->
-                            provider.images
 
-                        Just filterTag ->
-                            List.filter (imageContainsTag filterTag) provider.images
+viewImages : Provider -> Maybe String -> Html Msg
+viewImages provider maybeFilterTag =
+    let
+        imageContainsTag tag image =
+            List.member tag image.tags
 
-                noMatchWarning =
-                    (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
+        filteredImages =
+            case maybeFilterTag of
+                Nothing ->
+                    provider.images
 
-                displayedImages =
-                    if noMatchWarning == False then
-                        filteredImages
-                    else
-                        provider.images
-            in
-                div []
-                    [ h2 [] [ text "Choose an image" ]
-                    , div []
-                        [ text "Filter on tag (try \"distro-base\"): "
-                        , input
-                            [ type_ "text"
-                            , value (Maybe.withDefault "" maybeFilterTag)
-                            , onInput (\t -> InputImageFilterTag t)
-                            ]
-                            []
-                        , Html.br [] []
-                        , if noMatchWarning then
-                            text "No matches found! Displaying all images."
-                          else
-                            div [] []
-                        ]
-                    , div [] (List.map (renderImage provider) displayedImages)
+                Just filterTag ->
+                    List.filter (imageContainsTag filterTag) provider.images
+
+        noMatchWarning =
+            (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
+
+        displayedImages =
+            if noMatchWarning == False then
+                filteredImages
+            else
+                provider.images
+    in
+        div []
+            [ h2 [] [ text "Choose an image" ]
+            , div []
+                [ text "Filter on tag: "
+                , input
+                    [ type_ "text"
+                    , value (Maybe.withDefault "" maybeFilterTag)
+                    , onInput (\t -> InputImageFilterTag t)
                     ]
+                    []
+                , Html.br [] []
+                , button
+                    [ onClick (InputImageFilterTag "")
+                    ]
+                    [ text "Clear filter (show all)" ]
+                , if noMatchWarning then
+                    text "No matches found"
+                  else
+                    div [] []
+                ]
+            , div [] (List.map (renderImage provider) displayedImages)
+            ]
 
 
 viewServers : Provider -> Html Msg

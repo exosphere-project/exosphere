@@ -13713,8 +13713,119 @@ var _exosphere_project$exosphere$View$viewServers = function (provider) {
 };
 var _exosphere_project$exosphere$View$viewImages = F2(
 	function (provider, maybeFilterTag) {
-		var _p11 = _elm_lang$core$List$isEmpty(provider.images);
-		if (_p11 === true) {
+		var imageContainsTag = F2(
+			function (tag, image) {
+				return A2(_elm_lang$core$List$member, tag, image.tags);
+			});
+		var filteredImages = function () {
+			var _p11 = maybeFilterTag;
+			if (_p11.ctor === 'Nothing') {
+				return provider.images;
+			} else {
+				return A2(
+					_elm_lang$core$List$filter,
+					imageContainsTag(_p11._0),
+					provider.images);
+			}
+		}();
+		var noMatchWarning = (!_elm_lang$core$Native_Utils.eq(maybeFilterTag, _elm_lang$core$Maybe$Nothing)) && _elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$List$length(filteredImages),
+			0);
+		var displayedImages = _elm_lang$core$Native_Utils.eq(noMatchWarning, false) ? filteredImages : provider.images;
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$h2,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Choose an image'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Filter on tag (try \"distro-base\"): '),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$input,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$type_('text'),
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$value(
+												A2(_elm_lang$core$Maybe$withDefault, '', maybeFilterTag)),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Events$onInput(
+													function (t) {
+														return _exosphere_project$exosphere$Types_Types$InputImageFilterTag(t);
+													}),
+												_1: {ctor: '[]'}
+											}
+										}
+									},
+									{ctor: '[]'}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$br,
+										{ctor: '[]'},
+										{ctor: '[]'}),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$button,
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html_Events$onClick(
+													_exosphere_project$exosphere$Types_Types$InputImageFilterTag('')),
+												_1: {ctor: '[]'}
+											},
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html$text('Clear filter (show all)'),
+												_1: {ctor: '[]'}
+											}),
+										_1: {
+											ctor: '::',
+											_0: noMatchWarning ? _elm_lang$html$Html$text('No matches found! Displaying all images.') : A2(
+												_elm_lang$html$Html$div,
+												{ctor: '[]'},
+												{ctor: '[]'}),
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{ctor: '[]'},
+							A2(
+								_elm_lang$core$List$map,
+								_exosphere_project$exosphere$View$renderImage(provider),
+								displayedImages)),
+						_1: {ctor: '[]'}
+					}
+				}
+			});
+	});
+var _exosphere_project$exosphere$View$viewImagesIfLoaded = F2(
+	function (provider, maybeFilterTag) {
+		var _p12 = _elm_lang$core$List$isEmpty(provider.images);
+		if (_p12 === true) {
 			return A2(
 				_elm_lang$html$Html$div,
 				{ctor: '[]'},
@@ -13731,98 +13842,7 @@ var _exosphere_project$exosphere$View$viewImages = F2(
 					_1: {ctor: '[]'}
 				});
 		} else {
-			var imageContainsTag = F2(
-				function (tag, image) {
-					return A2(_elm_lang$core$List$member, tag, image.tags);
-				});
-			var filteredImages = function () {
-				var _p12 = maybeFilterTag;
-				if (_p12.ctor === 'Nothing') {
-					return provider.images;
-				} else {
-					return A2(
-						_elm_lang$core$List$filter,
-						imageContainsTag(_p12._0),
-						provider.images);
-				}
-			}();
-			var noMatchWarning = (!_elm_lang$core$Native_Utils.eq(maybeFilterTag, _elm_lang$core$Maybe$Nothing)) && _elm_lang$core$Native_Utils.eq(
-				_elm_lang$core$List$length(filteredImages),
-				0);
-			var displayedImages = _elm_lang$core$Native_Utils.eq(noMatchWarning, false) ? filteredImages : provider.images;
-			return A2(
-				_elm_lang$html$Html$div,
-				{ctor: '[]'},
-				{
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$h2,
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('Choose an image'),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$div,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text('Filter on tag (try \"distro-base\"): '),
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$input,
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$type_('text'),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$value(
-													A2(_elm_lang$core$Maybe$withDefault, '', maybeFilterTag)),
-												_1: {
-													ctor: '::',
-													_0: _elm_lang$html$Html_Events$onInput(
-														function (t) {
-															return _exosphere_project$exosphere$Types_Types$InputImageFilterTag(t);
-														}),
-													_1: {ctor: '[]'}
-												}
-											}
-										},
-										{ctor: '[]'}),
-									_1: {
-										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$br,
-											{ctor: '[]'},
-											{ctor: '[]'}),
-										_1: {
-											ctor: '::',
-											_0: noMatchWarning ? _elm_lang$html$Html$text('No matches found! Displaying all images.') : A2(
-												_elm_lang$html$Html$div,
-												{ctor: '[]'},
-												{ctor: '[]'}),
-											_1: {ctor: '[]'}
-										}
-									}
-								}
-							}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$div,
-								{ctor: '[]'},
-								A2(
-									_elm_lang$core$List$map,
-									_exosphere_project$exosphere$View$renderImage(provider),
-									displayedImages)),
-							_1: {ctor: '[]'}
-						}
-					}
-				});
+			return A2(_exosphere_project$exosphere$View$viewImages, provider, maybeFilterTag);
 		}
 	});
 var _exosphere_project$exosphere$View$viewLogin = function (model) {
@@ -14403,7 +14423,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 						_0: _exosphere_project$exosphere$View$viewNav(provider),
 						_1: {
 							ctor: '::',
-							_0: A2(_exosphere_project$exosphere$View$viewImages, provider, model.globals.imageFilterTag),
+							_0: A2(_exosphere_project$exosphere$View$viewImagesIfLoaded, provider, model.globals.imageFilterTag),
 							_1: {ctor: '[]'}
 						}
 					});
