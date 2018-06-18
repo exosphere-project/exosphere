@@ -15,7 +15,7 @@ import Types.Types exposing (..)
 view : Model -> Html Msg
 view model =
     div []
-        [ notificationsView model
+        [ viewToast model
         , viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
@@ -34,13 +34,13 @@ view model =
         ]
 
 
-notificationsView : Model -> Html Msg
-notificationsView model =
-    Html.ul [ class "notifications-list" ] (Toast.views model.toast model.time notificationView)
+viewToast : Model -> Html Msg
+viewToast model =
+    Html.ul [ class "notifications-list" ] (Toast.views model.toast model.time viewToastItem)
 
 
-notificationView : Toast.NotificationState -> String -> Html Msg
-notificationView state notification =
+viewToastItem : Toast.NotificationState -> String -> Html Msg
+viewToastItem state notification =
     Html.li [] [ Html.text notification ]
 
 
