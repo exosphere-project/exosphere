@@ -10302,26 +10302,16 @@ var _exosphere_project$exosphere$Helpers$processOpenRc = F2(
 			A2(newField, regexes.username, existingCreds.username),
 			A2(newField, regexes.password, existingCreds.password));
 	});
-var _exosphere_project$exosphere$Helpers$postNotification = F2(
-	function (notification, model) {
-		var newToastNotification = A2(_iosphere$elm_toast$Toast$createNotification, notification, model.time + (_elm_lang$core$Time$second * 30));
-		var newToast = A2(_iosphere$elm_toast$Toast$addNotification, newToastNotification, model.toast);
-		return _elm_lang$core$Native_Utils.update(
-			model,
-			{toast: newToast});
-	});
 var _exosphere_project$exosphere$Helpers$processError = F2(
 	function (model, error) {
 		var errorString = _elm_lang$core$Basics$toString(error);
 		var newMsgs = {ctor: '::', _0: errorString, _1: model.messages};
+		var newToastNotification = A2(_iosphere$elm_toast$Toast$createNotification, errorString, model.time + (_elm_lang$core$Time$second * 30));
+		var newToast = A2(_iosphere$elm_toast$Toast$addNotification, newToastNotification, model.toast);
 		var newModel = _elm_lang$core$Native_Utils.update(
 			model,
-			{messages: newMsgs});
-		return {
-			ctor: '_Tuple2',
-			_0: A2(_exosphere_project$exosphere$Helpers$postNotification, errorString, newModel),
-			_1: _elm_lang$core$Platform_Cmd$none
-		};
+			{messages: newMsgs, toast: newToast});
+		return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _truqu$elm_base64$Base64_Decode$charToInt = function ($char) {
 	var _p0 = $char;

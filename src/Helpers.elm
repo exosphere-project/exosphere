@@ -9,18 +9,6 @@ import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
 
 
-postNotification : String -> Model -> Model
-postNotification notification model =
-    let
-        newToastNotification =
-            Toast.createNotification notification (model.time + Time.second * 30)
-
-        newToast =
-            Toast.addNotification newToastNotification model.toast
-    in
-        { model | toast = newToast }
-
-
 processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
@@ -30,10 +18,16 @@ processError model error =
         newMsgs =
             errorString :: model.messages
 
+        newToastNotification =
+            Toast.createNotification errorString (model.time + Time.second * 30)
+
+        newToast =
+            Toast.addNotification newToastNotification model.toast
+
         newModel =
-            { model | messages = newMsgs }
+            { model | messages = newMsgs, toast = newToast }
     in
-        ( postNotification errorString newModel, Cmd.none )
+        ( newModel, Cmd.none )
 
 
 processOpenRc : Creds -> String -> Creds
