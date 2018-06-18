@@ -606,13 +606,26 @@ renderIpAddress ipAddress =
 viewFlavorPicker : Provider -> CreateServerRequest -> Html Msg
 viewFlavorPicker provider createServerRequest =
     let
+        sortedFlavors flavors =
+            flavors
+                |> List.sortBy .disk_ephemeral
+                |> List.sortBy .disk_root
+                |> List.sortBy .ram_mb
+                |> List.sortBy .vcpu
+
+        flavorAsStr flavor =
+            flavor.name ++ " (" ++ (toString flavor.vcpu) ++ " CPU, " ++ (flavor.ram_mb // 1024 |> toString) ++ " GB RAM, " ++ (toString flavor.disk_root) ++ " GB root disk, " ++ (toString flavor.disk_ephemeral) ++ " GB ephemeral disk)"
+
         viewFlavorPickerLabel flavor =
-            label []
-                [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerSize flavor.uuid)) ] []
-                , text flavor.name
+            div []
+                [ label []
+                    [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerSize flavor.uuid)) ] []
+                    , text (flavorAsStr flavor)
+                    ]
+                , Html.br [] []
                 ]
     in
-        fieldset [] (List.map viewFlavorPickerLabel provider.flavors)
+        fieldset [] (List.map viewFlavorPickerLabel (sortedFlavors provider.flavors))
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Html Msg

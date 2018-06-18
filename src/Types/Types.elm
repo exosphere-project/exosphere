@@ -221,6 +221,10 @@ type alias AuthToken =
 type alias Flavor =
     { uuid : FlavorUuid
     , name : String
+    , vcpu : Int
+    , ram_mb : Int
+    , disk_root : Int
+    , disk_ephemeral : Int
     }
 
 
