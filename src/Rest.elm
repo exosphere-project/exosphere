@@ -63,9 +63,7 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authUrl
-            , body = Http.jsonBody requestBody
-
-            {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = False
@@ -140,7 +138,7 @@ requestFlavors provider =
             Http.request
                 { method = "GET"
                 , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-                , url = provider.endpoints.nova ++ "/flavors"
+                , url = provider.endpoints.nova ++ "/flavors/detail"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeFlavors
                 , timeout = Nothing
@@ -222,8 +220,7 @@ requestCreateServer provider createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" provider.authToken
-
-                                -- Microversion needed for automatic network provisioning
+                                  -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = provider.endpoints.nova ++ "/servers"
@@ -947,9 +944,13 @@ decodeFlavors =
 
 flavorDecoder : Decode.Decoder Flavor
 flavorDecoder =
-    Decode.map2 Flavor
+    Decode.map6 Flavor
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
+        (Decode.field "vcpus" Decode.int)
+        (Decode.field "ram" Decode.int)
+        (Decode.field "disk" Decode.int)
+        (Decode.field "OS-FLV-EXT-DATA:ephemeral" Decode.int)
 
 
 decodeKeypairs : Decode.Decoder (List Keypair)

@@ -9718,9 +9718,9 @@ var _exosphere_project$exosphere$Types_Types$CreateServerRequest = F8(
 	function (a, b, c, d, e, f, g, h) {
 		return {name: a, providerName: b, imageUuid: c, imageName: d, count: e, flavorUuid: f, keypairName: g, userData: h};
 	});
-var _exosphere_project$exosphere$Types_Types$Flavor = F2(
-	function (a, b) {
-		return {uuid: a, name: b};
+var _exosphere_project$exosphere$Types_Types$Flavor = F6(
+	function (a, b, c, d, e, f) {
+		return {uuid: a, name: b, vcpu: c, ram_mb: d, disk_root: e, disk_ephemeral: f};
 	});
 var _exosphere_project$exosphere$Types_Types$Keypair = F3(
 	function (a, b, c) {
@@ -10762,11 +10762,15 @@ var _exosphere_project$exosphere$Rest$decodeKeypairs = A2(
 	_elm_lang$core$Json_Decode$field,
 	'keypairs',
 	_elm_lang$core$Json_Decode$list(_exosphere_project$exosphere$Rest$keypairDecoder));
-var _exosphere_project$exosphere$Rest$flavorDecoder = A3(
-	_elm_lang$core$Json_Decode$map2,
+var _exosphere_project$exosphere$Rest$flavorDecoder = A7(
+	_elm_lang$core$Json_Decode$map6,
 	_exosphere_project$exosphere$Types_Types$Flavor,
 	A2(_elm_lang$core$Json_Decode$field, 'id', _elm_lang$core$Json_Decode$string),
-	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string));
+	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string),
+	A2(_elm_lang$core$Json_Decode$field, 'vcpus', _elm_lang$core$Json_Decode$int),
+	A2(_elm_lang$core$Json_Decode$field, 'ram', _elm_lang$core$Json_Decode$int),
+	A2(_elm_lang$core$Json_Decode$field, 'disk', _elm_lang$core$Json_Decode$int),
+	A2(_elm_lang$core$Json_Decode$field, 'OS-FLV-EXT-DATA:ephemeral', _elm_lang$core$Json_Decode$int));
 var _exosphere_project$exosphere$Rest$decodeFlavors = A2(
 	_elm_lang$core$Json_Decode$field,
 	'flavors',
@@ -11703,7 +11707,7 @@ var _exosphere_project$exosphere$Rest$requestFlavors = function (provider) {
 				_0: A2(_elm_lang$http$Http$header, 'X-Auth-Token', provider.authToken),
 				_1: {ctor: '[]'}
 			},
-			url: A2(_elm_lang$core$Basics_ops['++'], provider.endpoints.nova, '/flavors'),
+			url: A2(_elm_lang$core$Basics_ops['++'], provider.endpoints.nova, '/flavors/detail'),
 			body: _elm_lang$http$Http$emptyBody,
 			expect: _elm_lang$http$Http$expectJson(_exosphere_project$exosphere$Rest$decodeFlavors),
 			timeout: _elm_lang$core$Maybe$Nothing,
@@ -12324,39 +12328,110 @@ var _exosphere_project$exosphere$View$viewKeypairPicker = F2(
 	});
 var _exosphere_project$exosphere$View$viewFlavorPicker = F2(
 	function (provider, createServerRequest) {
+		var flavorAsStr = function (flavor) {
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				flavor.name,
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					' (',
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						_elm_lang$core$Basics$toString(flavor.vcpu),
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							' CPU, ',
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								_elm_lang$core$Basics$toString((flavor.ram_mb / 1024) | 0),
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									' GB RAM, ',
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										_elm_lang$core$Basics$toString(flavor.disk_root),
+										A2(
+											_elm_lang$core$Basics_ops['++'],
+											' GB root disk, ',
+											A2(
+												_elm_lang$core$Basics_ops['++'],
+												_elm_lang$core$Basics$toString(flavor.disk_ephemeral),
+												' GB ephemeral disk)')))))))));
+		};
 		var viewFlavorPickerLabel = function (flavor) {
 			return A2(
-				_elm_lang$html$Html$label,
+				_elm_lang$html$Html$div,
 				{ctor: '[]'},
 				{
 					ctor: '::',
 					_0: A2(
-						_elm_lang$html$Html$input,
+						_elm_lang$html$Html$label,
+						{ctor: '[]'},
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$type_('radio'),
+							_0: A2(
+								_elm_lang$html$Html$input,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$type_('radio'),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Events$onClick(
+											A2(
+												_exosphere_project$exosphere$Types_Types$InputCreateServerField,
+												createServerRequest,
+												_exosphere_project$exosphere$Types_Types$CreateServerSize(flavor.uuid))),
+										_1: {ctor: '[]'}
+									}
+								},
+								{ctor: '[]'}),
 							_1: {
 								ctor: '::',
-								_0: _elm_lang$html$Html_Events$onClick(
-									A2(
-										_exosphere_project$exosphere$Types_Types$InputCreateServerField,
-										createServerRequest,
-										_exosphere_project$exosphere$Types_Types$CreateServerSize(flavor.uuid))),
+								_0: _elm_lang$html$Html$text(
+									flavorAsStr(flavor)),
 								_1: {ctor: '[]'}
 							}
-						},
-						{ctor: '[]'}),
+						}),
 					_1: {
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(flavor.name),
+						_0: A2(
+							_elm_lang$html$Html$br,
+							{ctor: '[]'},
+							{ctor: '[]'}),
 						_1: {ctor: '[]'}
 					}
 				});
 		};
+		var sortedFlavors = function (flavors) {
+			return A2(
+				_elm_lang$core$List$sortBy,
+				function (_) {
+					return _.vcpu;
+				},
+				A2(
+					_elm_lang$core$List$sortBy,
+					function (_) {
+						return _.ram_mb;
+					},
+					A2(
+						_elm_lang$core$List$sortBy,
+						function (_) {
+							return _.disk_root;
+						},
+						A2(
+							_elm_lang$core$List$sortBy,
+							function (_) {
+								return _.disk_ephemeral;
+							},
+							flavors))));
+		};
 		return A2(
 			_elm_lang$html$Html$fieldset,
 			{ctor: '[]'},
-			A2(_elm_lang$core$List$map, viewFlavorPickerLabel, provider.flavors));
+			A2(
+				_elm_lang$core$List$map,
+				viewFlavorPickerLabel,
+				sortedFlavors(provider.flavors)));
 	});
 var _exosphere_project$exosphere$View$renderIpAddress = function (ipAddress) {
 	return A2(
