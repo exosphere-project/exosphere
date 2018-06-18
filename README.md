@@ -1,6 +1,6 @@
 # Exosphere
 
-[![Build Status](https://travis-ci.org/exosphere-project/exosphere.svg?branch=master)](https://travis-ci.org/exosphere-project/exosphere)
+[![pipeline status](https://gitlab.com/exosphere/exosphere/badges/master/pipeline.svg)](https://gitlab.com/exosphere/exosphere/commits/master)
 
 User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
 

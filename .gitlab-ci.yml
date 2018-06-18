@@ -1,13 +1,53 @@
-# This file is a template, and might need editing before it works on your project.
-# Full project: https://gitlab.com/pages/plain-html
-pages:
-  stage: deploy
+image: node:4.2.2
+
+stages:
+  - build
+  - test
+  - deploy
+
+elm_make:
+  stage: build
+  cache:
+    paths:
+      - node_modules/
+  before_script:
+    - npm install -g elm
+    - elm-package install -y
   script:
-  - mkdir .public
-  - cp -r * .public
-  - mv .public public
+    - elm make --warn --yes src/Exosphere.elm --output public/index.html
   artifacts:
     paths:
-    - public
+      - public
+
+elm_analyse:
+  stage: test
+  cache:
+    paths:
+      - elm-stuff/
+  before_script:
+    - npm install -g elm elm-analyse elm-format
+    - elm-package install -y
+  script:
+    - elm-analyse || true
+
+elm_test:
+  stage: test
+  cache:
+    paths:
+      - tests/elm-stuff/build-artifacts
+  before_script:
+    - npm install -g elm elm-test
+  script:
+    - elm-test
+
+pages:
+  stage: deploy
+  dependencies:
+    - elm_make
+  script:
+    - file public/index.html
+  artifacts:
+    paths:
+      - public
   only:
-  - master
+    - master
