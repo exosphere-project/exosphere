@@ -3,7 +3,7 @@ module View exposing (view)
 import Base64
 import Filesize exposing (format)
 import Helpers
-import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
+import Html exposing (Html, a, button, div, fieldset, h2, h3, input, label, legend, li, p, strong, table, td, text, textarea, th, tr, ul)
 import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
@@ -30,6 +30,7 @@ view model =
 
                     Just provider ->
                         providerView model provider viewConstructor
+        , viewMessages model
         ]
 
 
@@ -85,7 +86,11 @@ providerView model provider viewConstructor =
 
 viewMessages : Model -> Html Msg
 viewMessages model =
-    div [] (List.map renderMessage model.messages)
+    div [ Attr.style [ ( "height", "240px" ), ( "border", "1px black solid" ) ] ]
+        [ h3 [] [ text "Messages" ]
+        , ul [ Attr.style [ ( "height", "180px" ), ( "overflow", "auto" ) ] ]
+            (List.map renderMessage model.messages)
+        ]
 
 
 viewProviderPicker : Model -> Html Msg
@@ -485,7 +490,7 @@ viewCreateServer provider createServerRequest =
 
 renderMessage : String -> Html Msg
 renderMessage message =
-    p [] [ text message ]
+    li [] [ text message ]
 
 
 renderProviderPicker : Model -> Provider -> Html Msg

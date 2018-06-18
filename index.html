@@ -12154,41 +12154,34 @@ var _exosphere_project$exosphere$State$update = F2(
 			switch (_p0.ctor) {
 				case 'Tick':
 					var _p2 = _p0._0;
-					var serverPollInterval = 10000;
 					var newToast = A2(_iosphere$elm_toast$Toast$updateTimestamp, _p2, model.toast);
 					var updatedModel = A2(
 						_exosphere_project$exosphere$Helpers$updateToast,
 						newToast,
 						A2(_exosphere_project$exosphere$Helpers$updateTime, _p2, model));
-					var timeSinceLastTick = A2(_elm_lang$core$Debug$log, 'update Tick newTime - model.time', _p2) - model.time;
-					var shouldPollServer = _elm_lang$core$Native_Utils.cmp(timeSinceLastTick, serverPollInterval) > 0;
-					if (shouldPollServer) {
-						var _p1 = model.viewState;
-						if (_p1.ctor === 'NonProviderView') {
-							return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
-						} else {
-							switch (_p1._1.ctor) {
-								case 'ListProviderServers':
-									var _v2 = A2(_exosphere_project$exosphere$Types_Types$ProviderMsg, _p1._0, _exosphere_project$exosphere$Types_Types$RequestServers),
-										_v3 = updatedModel;
-									msg = _v2;
-									model = _v3;
-									continue update;
-								case 'ServerDetail':
-									var _v4 = A2(
-										_exosphere_project$exosphere$Types_Types$ProviderMsg,
-										_p1._0,
-										_exosphere_project$exosphere$Types_Types$RequestServerDetail(_p1._1._0)),
-										_v5 = updatedModel;
-									msg = _v4;
-									model = _v5;
-									continue update;
-								default:
-									return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
-							}
-						}
-					} else {
+					var _p1 = model.viewState;
+					if (_p1.ctor === 'NonProviderView') {
 						return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						switch (_p1._1.ctor) {
+							case 'ListProviderServers':
+								var _v2 = A2(_exosphere_project$exosphere$Types_Types$ProviderMsg, _p1._0, _exosphere_project$exosphere$Types_Types$RequestServers),
+									_v3 = updatedModel;
+								msg = _v2;
+								model = _v3;
+								continue update;
+							case 'ServerDetail':
+								var _v4 = A2(
+									_exosphere_project$exosphere$Types_Types$ProviderMsg,
+									_p1._0,
+									_exosphere_project$exosphere$Types_Types$RequestServerDetail(_p1._1._0)),
+									_v5 = updatedModel;
+								msg = _v4;
+								model = _v5;
+								continue update;
+							default:
+								return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
+						}
 					}
 				case 'SetNonProviderView':
 					var _p4 = _p0._0;
@@ -12476,7 +12469,7 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 		}
 	});
 var _exosphere_project$exosphere$State$subscriptions = function (_p15) {
-	return A2(_elm_lang$core$Time$every, 1 * _elm_lang$core$Time$second, _exosphere_project$exosphere$Types_Types$Tick);
+	return A2(_elm_lang$core$Time$every, 10 * _elm_lang$core$Time$second, _exosphere_project$exosphere$Types_Types$Tick);
 };
 var _exosphere_project$exosphere$State$init = {
 	ctor: '_Tuple2',
@@ -13110,7 +13103,7 @@ var _exosphere_project$exosphere$View$renderProviderPicker = F2(
 	});
 var _exosphere_project$exosphere$View$renderMessage = function (message) {
 	return A2(
-		_elm_lang$html$Html$p,
+		_elm_lang$html$Html$li,
 		{ctor: '[]'},
 		{
 			ctor: '::',
@@ -14662,8 +14655,52 @@ var _exosphere_project$exosphere$View$viewProviderPicker = function (model) {
 var _exosphere_project$exosphere$View$viewMessages = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
-		{ctor: '[]'},
-		A2(_elm_lang$core$List$map, _exosphere_project$exosphere$View$renderMessage, model.messages));
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'height', _1: '240px'},
+					_1: {
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'border', _1: '1px black solid'},
+						_1: {ctor: '[]'}
+					}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$h3,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Messages'),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$ul,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'height', _1: '180px'},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'overflow', _1: 'auto'},
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					},
+					A2(_elm_lang$core$List$map, _exosphere_project$exosphere$View$renderMessage, model.messages)),
+				_1: {ctor: '[]'}
+			}
+		});
 };
 var _exosphere_project$exosphere$View$providerView = F3(
 	function (model, provider, viewConstructor) {
@@ -14794,7 +14831,11 @@ var _exosphere_project$exosphere$View$view = function (model) {
 							}
 						}
 					}(),
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: _exosphere_project$exosphere$View$viewMessages(model),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});
