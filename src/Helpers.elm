@@ -1,4 +1,4 @@
-module Helpers exposing (processError, processOpenRc, providePasswordHint, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider, updateTime, updateToast)
+module Helpers exposing (processError, processOpenRc, providePasswordHint, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider)
 
 import Maybe.Extra
 import Regex
@@ -7,16 +7,6 @@ import Toast exposing (Toast)
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
-
-
-updateToast : Toast String -> Model -> Model
-updateToast toast model =
-    { model | toast = toast }
-
-
-updateTime : Time.Time -> Model -> Model
-updateTime time model =
-    { model | time = time }
 
 
 postNotification : String -> Model -> Model

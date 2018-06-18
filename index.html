@@ -10323,18 +10323,6 @@ var _exosphere_project$exosphere$Helpers$processError = F2(
 			_1: _elm_lang$core$Platform_Cmd$none
 		};
 	});
-var _exosphere_project$exosphere$Helpers$updateTime = F2(
-	function (time, model) {
-		return _elm_lang$core$Native_Utils.update(
-			model,
-			{time: time});
-	});
-var _exosphere_project$exosphere$Helpers$updateToast = F2(
-	function (toast, model) {
-		return _elm_lang$core$Native_Utils.update(
-			model,
-			{toast: toast});
-	});
 var _truqu$elm_base64$Base64_Decode$charToInt = function ($char) {
 	var _p0 = $char;
 	switch (_p0.valueOf()) {
@@ -12155,18 +12143,17 @@ var _exosphere_project$exosphere$State$update = F2(
 				case 'Tick':
 					var _p2 = _p0._0;
 					var newToast = A2(_iosphere$elm_toast$Toast$updateTimestamp, _p2, model.toast);
-					var updatedModel = A2(
-						_exosphere_project$exosphere$Helpers$updateToast,
-						newToast,
-						A2(_exosphere_project$exosphere$Helpers$updateTime, _p2, model));
+					var newModel = _elm_lang$core$Native_Utils.update(
+						model,
+						{time: _p2, toast: newToast});
 					var _p1 = model.viewState;
 					if (_p1.ctor === 'NonProviderView') {
-						return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
+						return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 					} else {
 						switch (_p1._1.ctor) {
 							case 'ListProviderServers':
 								var _v2 = A2(_exosphere_project$exosphere$Types_Types$ProviderMsg, _p1._0, _exosphere_project$exosphere$Types_Types$RequestServers),
-									_v3 = updatedModel;
+									_v3 = newModel;
 								msg = _v2;
 								model = _v3;
 								continue update;
@@ -12175,12 +12162,12 @@ var _exosphere_project$exosphere$State$update = F2(
 									_exosphere_project$exosphere$Types_Types$ProviderMsg,
 									_p1._0,
 									_exosphere_project$exosphere$Types_Types$RequestServerDetail(_p1._1._0)),
-									_v5 = updatedModel;
+									_v5 = newModel;
 								msg = _v4;
 								model = _v5;
 								continue update;
 							default:
-								return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
+								return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					}
 				case 'SetNonProviderView':
