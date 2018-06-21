@@ -10302,38 +10302,16 @@ var _exosphere_project$exosphere$Helpers$processOpenRc = F2(
 			A2(newField, regexes.username, existingCreds.username),
 			A2(newField, regexes.password, existingCreds.password));
 	});
-var _exosphere_project$exosphere$Helpers$postNotification = F2(
-	function (notification, model) {
-		var newToastNotification = A2(_iosphere$elm_toast$Toast$createNotification, notification, model.time + (_elm_lang$core$Time$second * 30));
-		var newToast = A2(_iosphere$elm_toast$Toast$addNotification, newToastNotification, model.toast);
-		return _elm_lang$core$Native_Utils.update(
-			model,
-			{toast: newToast});
-	});
 var _exosphere_project$exosphere$Helpers$processError = F2(
 	function (model, error) {
 		var errorString = _elm_lang$core$Basics$toString(error);
 		var newMsgs = {ctor: '::', _0: errorString, _1: model.messages};
+		var newToastNotification = A2(_iosphere$elm_toast$Toast$createNotification, errorString, model.time + (_elm_lang$core$Time$second * 30));
+		var newToast = A2(_iosphere$elm_toast$Toast$addNotification, newToastNotification, model.toast);
 		var newModel = _elm_lang$core$Native_Utils.update(
 			model,
-			{messages: newMsgs});
-		return {
-			ctor: '_Tuple2',
-			_0: A2(_exosphere_project$exosphere$Helpers$postNotification, errorString, newModel),
-			_1: _elm_lang$core$Platform_Cmd$none
-		};
-	});
-var _exosphere_project$exosphere$Helpers$updateTime = F2(
-	function (time, model) {
-		return _elm_lang$core$Native_Utils.update(
-			model,
-			{time: time});
-	});
-var _exosphere_project$exosphere$Helpers$updateToast = F2(
-	function (toast, model) {
-		return _elm_lang$core$Native_Utils.update(
-			model,
-			{toast: toast});
+			{messages: newMsgs, toast: newToast});
+		return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _truqu$elm_base64$Base64_Decode$charToInt = function ($char) {
 	var _p0 = $char;
@@ -12155,18 +12133,17 @@ var _exosphere_project$exosphere$State$update = F2(
 				case 'Tick':
 					var _p2 = _p0._0;
 					var newToast = A2(_iosphere$elm_toast$Toast$updateTimestamp, _p2, model.toast);
-					var updatedModel = A2(
-						_exosphere_project$exosphere$Helpers$updateToast,
-						newToast,
-						A2(_exosphere_project$exosphere$Helpers$updateTime, _p2, model));
+					var newModel = _elm_lang$core$Native_Utils.update(
+						model,
+						{time: _p2, toast: newToast});
 					var _p1 = model.viewState;
 					if (_p1.ctor === 'NonProviderView') {
-						return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
+						return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 					} else {
 						switch (_p1._1.ctor) {
 							case 'ListProviderServers':
 								var _v2 = A2(_exosphere_project$exosphere$Types_Types$ProviderMsg, _p1._0, _exosphere_project$exosphere$Types_Types$RequestServers),
-									_v3 = updatedModel;
+									_v3 = newModel;
 								msg = _v2;
 								model = _v3;
 								continue update;
@@ -12175,12 +12152,12 @@ var _exosphere_project$exosphere$State$update = F2(
 									_exosphere_project$exosphere$Types_Types$ProviderMsg,
 									_p1._0,
 									_exosphere_project$exosphere$Types_Types$RequestServerDetail(_p1._1._0)),
-									_v5 = updatedModel;
+									_v5 = newModel;
 								msg = _v4;
 								model = _v5;
 								continue update;
 							default:
-								return {ctor: '_Tuple2', _0: updatedModel, _1: _elm_lang$core$Platform_Cmd$none};
+								return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					}
 				case 'SetNonProviderView':
@@ -14784,7 +14761,7 @@ var _exosphere_project$exosphere$View$providerView = F3(
 					});
 		}
 	});
-var _exosphere_project$exosphere$View$notificationView = F2(
+var _exosphere_project$exosphere$View$viewToastItem = F2(
 	function (state, notification) {
 		return A2(
 			_elm_lang$html$Html$li,
@@ -14795,7 +14772,7 @@ var _exosphere_project$exosphere$View$notificationView = F2(
 				_1: {ctor: '[]'}
 			});
 	});
-var _exosphere_project$exosphere$View$notificationsView = function (model) {
+var _exosphere_project$exosphere$View$viewToast = function (model) {
 	return A2(
 		_elm_lang$html$Html$ul,
 		{
@@ -14803,7 +14780,7 @@ var _exosphere_project$exosphere$View$notificationsView = function (model) {
 			_0: _elm_lang$html$Html_Attributes$class('notifications-list'),
 			_1: {ctor: '[]'}
 		},
-		A3(_iosphere$elm_toast$Toast$views, model.toast, model.time, _exosphere_project$exosphere$View$notificationView));
+		A3(_iosphere$elm_toast$Toast$views, model.toast, model.time, _exosphere_project$exosphere$View$viewToastItem));
 };
 var _exosphere_project$exosphere$View$view = function (model) {
 	return A2(
@@ -14811,7 +14788,7 @@ var _exosphere_project$exosphere$View$view = function (model) {
 		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: _exosphere_project$exosphere$View$notificationsView(model),
+			_0: _exosphere_project$exosphere$View$viewToast(model),
 			_1: {
 				ctor: '::',
 				_0: _exosphere_project$exosphere$View$viewProviderPicker(model),

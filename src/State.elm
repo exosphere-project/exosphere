@@ -45,21 +45,21 @@ update msg model =
                 newToast =
                     Toast.updateTimestamp newTime model.toast
 
-                updatedModel =
-                    Helpers.updateTime newTime model |> Helpers.updateToast newToast
+                newModel =
+                    { model | time = newTime, toast = newToast }
             in
                 case model.viewState of
                     NonProviderView _ ->
-                        ( updatedModel, Cmd.none )
+                        ( newModel, Cmd.none )
 
                     ProviderView providerName ListProviderServers ->
-                        update (ProviderMsg providerName RequestServers) updatedModel
+                        update (ProviderMsg providerName RequestServers) newModel
 
                     ProviderView providerName (ServerDetail serverUuid) ->
-                        update (ProviderMsg providerName (RequestServerDetail serverUuid)) updatedModel
+                        update (ProviderMsg providerName (RequestServerDetail serverUuid)) newModel
 
                     _ ->
-                        ( updatedModel, Cmd.none )
+                        ( newModel, Cmd.none )
 
         SetNonProviderView nonProviderViewConstructor ->
             let
