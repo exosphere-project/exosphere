@@ -4,6 +4,7 @@ import Http
 import Maybe
 import Time
 import Types.HelperTypes as HelperTypes
+import Toast exposing (Toast)
 
 
 {- App-Level Types -}
@@ -15,6 +16,8 @@ type alias Model =
     , providers : List Provider
     , creds : Creds
     , imageFilterTag : Maybe String
+    , time : Time.Time
+    , toast : Toast String
     }
 
 

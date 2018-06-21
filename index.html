@@ -9686,9 +9686,177 @@ var _elm_lang$http$Http$StringPart = F2(
 		return {ctor: 'StringPart', _0: a, _1: b};
 	});
 var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
-var _exosphere_project$exosphere$Types_Types$Model = F5(
-	function (a, b, c, d, e) {
-		return {messages: a, viewState: b, providers: c, creds: d, imageFilterTag: e};
+var _iosphere$elm_toast$Types$InternalConfig = function (a) {
+	return {hideTransitionDelay: a};
+};
+var _iosphere$elm_toast$Types$InternalToast = F2(
+	function (a, b) {
+		return {config: a, notifications: b};
+	});
+var _iosphere$elm_toast$Types$InternalNotification = F3(
+	function (a, b, c) {
+		return {startTime: a, expirationTime: b, message: c};
+	});
+var _iosphere$elm_toast$Types$Toast = function (a) {
+	return {ctor: 'Toast', _0: a};
+};
+var _iosphere$elm_toast$Types$Notification = function (a) {
+	return {ctor: 'Notification', _0: a};
+};
+var _iosphere$elm_toast$Internal$sanityCheck = function (_p0) {
+	var _p1 = _p0;
+	var _p2 = _p1._0;
+	return _elm_lang$core$Native_Utils.cmp(_p2.startTime, _p2.expirationTime) < 0;
+};
+var _iosphere$elm_toast$Internal$member = F2(
+	function (notification, _p3) {
+		var _p4 = _p3;
+		return A2(_elm_lang$core$List$member, notification, _p4._0.notifications);
+	});
+var _iosphere$elm_toast$Internal$listAllNotifications = function (_p5) {
+	var _p6 = _p5;
+	return _p6._0.notifications;
+};
+var _iosphere$elm_toast$Internal$config = function (_p7) {
+	var _p8 = _p7;
+	return _p8._0.config;
+};
+var _iosphere$elm_toast$Internal$updateNotifications = F2(
+	function (_p9, list) {
+		var _p10 = _p9;
+		return _iosphere$elm_toast$Types$Toast(
+			_elm_lang$core$Native_Utils.update(
+				_p10._0,
+				{notifications: list}));
+	});
+var _iosphere$elm_toast$Toast$addNotification = F2(
+	function (notification, toast) {
+		return (_iosphere$elm_toast$Internal$sanityCheck(notification) && (!A2(_iosphere$elm_toast$Internal$member, notification, toast))) ? A2(
+			_iosphere$elm_toast$Internal$updateNotifications,
+			toast,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				_iosphere$elm_toast$Internal$listAllNotifications(toast),
+				{
+					ctor: '::',
+					_0: notification,
+					_1: {ctor: '[]'}
+				})) : toast;
+	});
+var _iosphere$elm_toast$Toast$createFutureNotification = F3(
+	function (start, notificationValue, expiration) {
+		return _iosphere$elm_toast$Types$Notification(
+			{startTime: start, expirationTime: expiration, message: notificationValue});
+	});
+var _iosphere$elm_toast$Toast$createNotification = F2(
+	function (notificationValue, expiration) {
+		return A3(_iosphere$elm_toast$Toast$createFutureNotification, 0, notificationValue, expiration);
+	});
+var _iosphere$elm_toast$Toast$initWithTransitionDelay = function (delay) {
+	return _iosphere$elm_toast$Types$Toast(
+		A2(
+			_iosphere$elm_toast$Types$InternalToast,
+			_iosphere$elm_toast$Types$InternalConfig(delay),
+			{ctor: '[]'}));
+};
+var _iosphere$elm_toast$Toast$init = _iosphere$elm_toast$Toast$initWithTransitionDelay(0);
+var _iosphere$elm_toast$Toast$Hiding = {ctor: 'Hiding'};
+var _iosphere$elm_toast$Toast$Visible = {ctor: 'Visible'};
+var _iosphere$elm_toast$Toast$Past = {ctor: 'Past'};
+var _iosphere$elm_toast$Toast$Inactive = {ctor: 'Inactive'};
+var _iosphere$elm_toast$Toast$Active = function (a) {
+	return {ctor: 'Active', _0: a};
+};
+var _iosphere$elm_toast$Toast$notificationState = F3(
+	function (time, config, notification) {
+		var _p0 = notification;
+		var _p1 = _p0._0;
+		return (_elm_lang$core$Native_Utils.cmp(_p1.startTime, time) > 0) ? _iosphere$elm_toast$Toast$Inactive : ((_elm_lang$core$Native_Utils.cmp(_p1.expirationTime, time) > 0) ? _iosphere$elm_toast$Toast$Active(_iosphere$elm_toast$Toast$Visible) : ((_elm_lang$core$Native_Utils.cmp(_p1.expirationTime + config.hideTransitionDelay, time) > -1) ? _iosphere$elm_toast$Toast$Active(_iosphere$elm_toast$Toast$Hiding) : _iosphere$elm_toast$Toast$Past));
+	});
+var _iosphere$elm_toast$Toast$filterValidNotifications = F2(
+	function (time, config) {
+		return _elm_lang$core$List$filter(
+			function (note) {
+				return !_elm_lang$core$Native_Utils.eq(
+					A3(_iosphere$elm_toast$Toast$notificationState, time, config, note),
+					_iosphere$elm_toast$Toast$Past);
+			});
+	});
+var _iosphere$elm_toast$Toast$updateTimestamp = F2(
+	function (time, _p2) {
+		var _p3 = _p2;
+		var _p4 = _p3;
+		return A2(
+			_iosphere$elm_toast$Internal$updateNotifications,
+			_p4,
+			A3(
+				_iosphere$elm_toast$Toast$filterValidNotifications,
+				time,
+				_p3._0.config,
+				_iosphere$elm_toast$Internal$listAllNotifications(_p4)));
+	});
+var _iosphere$elm_toast$Toast$filterActiveNotifications = F2(
+	function (time, config) {
+		return _elm_lang$core$List$filter(
+			function (note) {
+				var _p5 = A3(_iosphere$elm_toast$Toast$notificationState, time, config, note);
+				if (_p5.ctor === 'Active') {
+					return true;
+				} else {
+					return false;
+				}
+			});
+	});
+var _iosphere$elm_toast$Toast$listActiveNotifications = F2(
+	function (_p6, time) {
+		var _p7 = _p6;
+		var _p8 = _p7._0;
+		return A3(_iosphere$elm_toast$Toast$filterActiveNotifications, time, _p8.config, _p8.notifications);
+	});
+var _iosphere$elm_toast$Toast$view = F4(
+	function (config, time, viewFunc, _p9) {
+		var _p10 = _p9;
+		var _p11 = A3(_iosphere$elm_toast$Toast$notificationState, time, config, _p10);
+		switch (_p11.ctor) {
+			case 'Active':
+				return _elm_lang$core$Maybe$Just(
+					A2(viewFunc, _p11._0, _p10._0.message));
+			case 'Inactive':
+				return _elm_lang$core$Maybe$Nothing;
+			default:
+				return _elm_lang$core$Maybe$Nothing;
+		}
+	});
+var _iosphere$elm_toast$Toast$views = F3(
+	function (toast, time, viewFunc) {
+		var config = _iosphere$elm_toast$Internal$config(toast);
+		return A2(
+			_elm_lang$core$List$filterMap,
+			A3(_iosphere$elm_toast$Toast$view, config, time, viewFunc),
+			_iosphere$elm_toast$Internal$listAllNotifications(toast));
+	});
+var _iosphere$elm_toast$Toast$keyedViews = F3(
+	function (toast, time, viewFunc) {
+		var config = _iosphere$elm_toast$Internal$config(toast);
+		return A2(
+			_elm_lang$core$List$filterMap,
+			function (notification) {
+				return A2(
+					_elm_lang$core$Maybe$map,
+					function (view) {
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Basics$toString(notification),
+							_1: view
+						};
+					},
+					A4(_iosphere$elm_toast$Toast$view, config, time, viewFunc, notification));
+			},
+			_iosphere$elm_toast$Internal$listAllNotifications(toast));
+	});
+var _exosphere_project$exosphere$Types_Types$Model = F7(
+	function (a, b, c, d, e, f, g) {
+		return {messages: a, viewState: b, providers: c, creds: d, imageFilterTag: e, time: f, toast: g};
 	});
 var _exosphere_project$exosphere$Types_Types$Provider = F9(
 	function (a, b, c, d, e, f, g, h, i) {
@@ -10136,18 +10304,14 @@ var _exosphere_project$exosphere$Helpers$processOpenRc = F2(
 	});
 var _exosphere_project$exosphere$Helpers$processError = F2(
 	function (model, error) {
-		var newMsgs = {
-			ctor: '::',
-			_0: _elm_lang$core$Basics$toString(error),
-			_1: model.messages
-		};
-		return {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Native_Utils.update(
-				model,
-				{messages: newMsgs}),
-			_1: _elm_lang$core$Platform_Cmd$none
-		};
+		var errorString = _elm_lang$core$Basics$toString(error);
+		var newMsgs = {ctor: '::', _0: errorString, _1: model.messages};
+		var newToastNotification = A2(_iosphere$elm_toast$Toast$createNotification, errorString, model.time + (_elm_lang$core$Time$second * 30));
+		var newToast = A2(_iosphere$elm_toast$Toast$addNotification, newToastNotification, model.toast);
+		var newModel = _elm_lang$core$Native_Utils.update(
+			model,
+			{messages: newMsgs, toast: newToast});
+		return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _truqu$elm_base64$Base64_Decode$charToInt = function ($char) {
 	var _p0 = $char;
@@ -11967,14 +12131,19 @@ var _exosphere_project$exosphere$State$update = F2(
 			var _p0 = msg;
 			switch (_p0.ctor) {
 				case 'Tick':
+					var _p2 = _p0._0;
+					var newToast = A2(_iosphere$elm_toast$Toast$updateTimestamp, _p2, model.toast);
+					var newModel = _elm_lang$core$Native_Utils.update(
+						model,
+						{time: _p2, toast: newToast});
 					var _p1 = model.viewState;
 					if (_p1.ctor === 'NonProviderView') {
-						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+						return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 					} else {
 						switch (_p1._1.ctor) {
 							case 'ListProviderServers':
 								var _v2 = A2(_exosphere_project$exosphere$Types_Types$ProviderMsg, _p1._0, _exosphere_project$exosphere$Types_Types$RequestServers),
-									_v3 = model;
+									_v3 = newModel;
 								msg = _v2;
 								model = _v3;
 								continue update;
@@ -11983,22 +12152,22 @@ var _exosphere_project$exosphere$State$update = F2(
 									_exosphere_project$exosphere$Types_Types$ProviderMsg,
 									_p1._0,
 									_exosphere_project$exosphere$Types_Types$RequestServerDetail(_p1._1._0)),
-									_v5 = model;
+									_v5 = newModel;
 								msg = _v4;
 								model = _v5;
 								continue update;
 							default:
-								return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+								return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					}
 				case 'SetNonProviderView':
-					var _p3 = _p0._0;
+					var _p4 = _p0._0;
 					var newModel = _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							viewState: _exosphere_project$exosphere$Types_Types$NonProviderView(_p3)
+							viewState: _exosphere_project$exosphere$Types_Types$NonProviderView(_p4)
 						});
-					var _p2 = _p3;
+					var _p3 = _p4;
 					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 				case 'RequestNewProviderToken':
 					return {
@@ -12009,43 +12178,43 @@ var _exosphere_project$exosphere$State$update = F2(
 				case 'ReceiveAuthToken':
 					return A2(_exosphere_project$exosphere$Rest$receiveAuthToken, model, _p0._0);
 				case 'ProviderMsg':
-					var _p4 = A2(_exosphere_project$exosphere$Helpers$providerLookup, model, _p0._0);
-					if (_p4.ctor === 'Nothing') {
+					var _p5 = A2(_exosphere_project$exosphere$Helpers$providerLookup, model, _p0._0);
+					if (_p5.ctor === 'Nothing') {
 						return A2(_exosphere_project$exosphere$Helpers$processError, model, 'Provider not found');
 					} else {
-						return A3(_exosphere_project$exosphere$State$processProviderSpecificMsg, model, _p4._0, _p0._1);
+						return A3(_exosphere_project$exosphere$State$processProviderSpecificMsg, model, _p5._0, _p0._1);
 					}
 				case 'InputLoginField':
 					var creds = model.creds;
 					var newCreds = function () {
-						var _p5 = _p0._0;
-						switch (_p5.ctor) {
+						var _p6 = _p0._0;
+						switch (_p6.ctor) {
 							case 'AuthUrl':
 								return _elm_lang$core$Native_Utils.update(
 									creds,
-									{authUrl: _p5._0});
+									{authUrl: _p6._0});
 							case 'ProjectDomain':
 								return _elm_lang$core$Native_Utils.update(
 									creds,
-									{projectDomain: _p5._0});
+									{projectDomain: _p6._0});
 							case 'ProjectName':
 								return _elm_lang$core$Native_Utils.update(
 									creds,
-									{projectName: _p5._0});
+									{projectName: _p6._0});
 							case 'UserDomain':
 								return _elm_lang$core$Native_Utils.update(
 									creds,
-									{userDomain: _p5._0});
+									{userDomain: _p6._0});
 							case 'Username':
 								return _elm_lang$core$Native_Utils.update(
 									creds,
-									{username: _p5._0});
+									{username: _p6._0});
 							case 'Password':
 								return _elm_lang$core$Native_Utils.update(
 									creds,
-									{password: _p5._0});
+									{password: _p6._0});
 							default:
-								return A2(_exosphere_project$exosphere$Helpers$processOpenRc, creds, _p5._0);
+								return A2(_exosphere_project$exosphere$Helpers$processOpenRc, creds, _p6._0);
 						}
 					}();
 					var newModel = _elm_lang$core$Native_Utils.update(
@@ -12053,42 +12222,42 @@ var _exosphere_project$exosphere$State$update = F2(
 						{creds: newCreds});
 					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 				case 'InputImageFilterTag':
-					var _p6 = _p0._0;
-					var maybeTag = _elm_lang$core$Native_Utils.eq(_p6, '') ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p6);
+					var _p7 = _p0._0;
+					var maybeTag = _elm_lang$core$Native_Utils.eq(_p7, '') ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(_p7);
 					var newModel = _elm_lang$core$Native_Utils.update(
 						model,
 						{imageFilterTag: maybeTag});
 					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 				default:
-					var _p8 = _p0._0;
+					var _p9 = _p0._0;
 					var newCreateServerRequest = function () {
-						var _p7 = _p0._1;
-						switch (_p7.ctor) {
+						var _p8 = _p0._1;
+						switch (_p8.ctor) {
 							case 'CreateServerName':
 								return _elm_lang$core$Native_Utils.update(
-									_p8,
-									{name: _p7._0});
+									_p9,
+									{name: _p8._0});
 							case 'CreateServerCount':
 								return _elm_lang$core$Native_Utils.update(
-									_p8,
-									{count: _p7._0});
+									_p9,
+									{count: _p8._0});
 							case 'CreateServerUserData':
 								return _elm_lang$core$Native_Utils.update(
-									_p8,
-									{userData: _p7._0});
+									_p9,
+									{userData: _p8._0});
 							case 'CreateServerSize':
 								return _elm_lang$core$Native_Utils.update(
-									_p8,
-									{flavorUuid: _p7._0});
+									_p9,
+									{flavorUuid: _p8._0});
 							default:
 								return _elm_lang$core$Native_Utils.update(
-									_p8,
-									{keypairName: _p7._0});
+									_p9,
+									{keypairName: _p8._0});
 						}
 					}();
 					var newViewState = A2(
 						_exosphere_project$exosphere$Types_Types$ProviderView,
-						_p8.providerName,
+						_p9.providerName,
 						_exosphere_project$exosphere$Types_Types$CreateServer(newCreateServerRequest));
 					return {
 						ctor: '_Tuple2',
@@ -12102,17 +12271,17 @@ var _exosphere_project$exosphere$State$update = F2(
 	});
 var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 	function (model, provider, msg) {
-		var _p9 = msg;
-		switch (_p9.ctor) {
+		var _p10 = msg;
+		switch (_p10.ctor) {
 			case 'SetProviderView':
-				var _p11 = _p9._0;
+				var _p12 = _p10._0;
 				var newModel = _elm_lang$core$Native_Utils.update(
 					model,
 					{
-						viewState: A2(_exosphere_project$exosphere$Types_Types$ProviderView, provider.name, _p11)
+						viewState: A2(_exosphere_project$exosphere$Types_Types$ProviderView, provider.name, _p12)
 					});
-				var _p10 = _p11;
-				switch (_p10.ctor) {
+				var _p11 = _p12;
+				switch (_p11.ctor) {
 					case 'ProviderHome':
 						return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 					case 'ListImages':
@@ -12134,7 +12303,7 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 							_1: _elm_lang$core$Platform_Cmd$batch(
 								{
 									ctor: '::',
-									_0: A2(_exosphere_project$exosphere$Rest$requestServerDetail, provider, _p10._0),
+									_0: A2(_exosphere_project$exosphere$Rest$requestServerDetail, provider, _p11._0),
 									_1: {
 										ctor: '::',
 										_0: _exosphere_project$exosphere$Rest$requestFlavors(provider),
@@ -12172,23 +12341,23 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 				return {
 					ctor: '_Tuple2',
 					_0: model,
-					_1: A2(_exosphere_project$exosphere$Rest$requestServerDetail, provider, _p9._0)
+					_1: A2(_exosphere_project$exosphere$Rest$requestServerDetail, provider, _p10._0)
 				};
 			case 'RequestCreateServer':
 				return {
 					ctor: '_Tuple2',
 					_0: model,
-					_1: A2(_exosphere_project$exosphere$Rest$requestCreateServer, provider, _p9._0)
+					_1: A2(_exosphere_project$exosphere$Rest$requestCreateServer, provider, _p10._0)
 				};
 			case 'RequestDeleteServer':
-				var _p12 = _p9._0;
+				var _p13 = _p10._0;
 				var newProvider = _elm_lang$core$Native_Utils.update(
 					provider,
 					{
 						servers: A2(
 							_elm_lang$core$List$filter,
 							function (s) {
-								return !_elm_lang$core$Native_Utils.eq(s, _p12);
+								return !_elm_lang$core$Native_Utils.eq(s, _p13);
 							},
 							provider.servers)
 					});
@@ -12196,19 +12365,19 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 				return {
 					ctor: '_Tuple2',
 					_0: newModel,
-					_1: A2(_exosphere_project$exosphere$Rest$requestDeleteServer, newProvider, _p12)
+					_1: A2(_exosphere_project$exosphere$Rest$requestDeleteServer, newProvider, _p13)
 				};
 			case 'ReceiveImages':
-				return A3(_exosphere_project$exosphere$Rest$receiveImages, model, provider, _p9._0);
+				return A3(_exosphere_project$exosphere$Rest$receiveImages, model, provider, _p10._0);
 			case 'RequestDeleteServers':
-				var _p13 = _p9._0;
+				var _p14 = _p10._0;
 				var newProvider = _elm_lang$core$Native_Utils.update(
 					provider,
 					{
 						servers: A2(
 							_elm_lang$core$List$filter,
 							function (s) {
-								return !A2(_elm_lang$core$List$member, s, _p13);
+								return !A2(_elm_lang$core$List$member, s, _p14);
 							},
 							provider.servers)
 					});
@@ -12216,13 +12385,13 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 				return {
 					ctor: '_Tuple2',
 					_0: newModel,
-					_1: A2(_exosphere_project$exosphere$Rest$requestDeleteServers, newProvider, _p13)
+					_1: A2(_exosphere_project$exosphere$Rest$requestDeleteServers, newProvider, _p14)
 				};
 			case 'SelectServer':
 				var updateServer = function (someServer) {
-					return _elm_lang$core$Native_Utils.eq(someServer.uuid, _p9._0.uuid) ? _elm_lang$core$Native_Utils.update(
+					return _elm_lang$core$Native_Utils.eq(someServer.uuid, _p10._0.uuid) ? _elm_lang$core$Native_Utils.update(
 						someServer,
-						{selected: _p9._1}) : someServer;
+						{selected: _p10._1}) : someServer;
 				};
 				var newProvider = _elm_lang$core$Native_Utils.update(
 					provider,
@@ -12238,7 +12407,7 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 				var updateServer = function (someServer) {
 					return _elm_lang$core$Native_Utils.update(
 						someServer,
-						{selected: _p9._0});
+						{selected: _p10._0});
 				};
 				var newProvider = _elm_lang$core$Native_Utils.update(
 					provider,
@@ -12251,15 +12420,15 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 					newModel,
 					{ctor: '[]'});
 			case 'ReceiveServers':
-				return A3(_exosphere_project$exosphere$Rest$receiveServers, model, provider, _p9._0);
+				return A3(_exosphere_project$exosphere$Rest$receiveServers, model, provider, _p10._0);
 			case 'ReceiveServerDetail':
-				return A4(_exosphere_project$exosphere$Rest$receiveServerDetail, model, provider, _p9._0, _p9._1);
+				return A4(_exosphere_project$exosphere$Rest$receiveServerDetail, model, provider, _p10._0, _p10._1);
 			case 'ReceiveFlavors':
-				return A3(_exosphere_project$exosphere$Rest$receiveFlavors, model, provider, _p9._0);
+				return A3(_exosphere_project$exosphere$Rest$receiveFlavors, model, provider, _p10._0);
 			case 'ReceiveKeypairs':
-				return A3(_exosphere_project$exosphere$Rest$receiveKeypairs, model, provider, _p9._0);
+				return A3(_exosphere_project$exosphere$Rest$receiveKeypairs, model, provider, _p10._0);
 			case 'ReceiveCreateServer':
-				return A3(_exosphere_project$exosphere$Rest$receiveCreateServer, model, provider, _p9._0);
+				return A3(_exosphere_project$exosphere$Rest$receiveCreateServer, model, provider, _p10._0);
 			case 'ReceiveDeleteServer':
 				return A2(
 					_exosphere_project$exosphere$State$update,
@@ -12269,14 +12438,14 @@ var _exosphere_project$exosphere$State$processProviderSpecificMsg = F3(
 						_exosphere_project$exosphere$Types_Types$SetProviderView(_exosphere_project$exosphere$Types_Types$ProviderHome)),
 					model);
 			case 'ReceiveNetworks':
-				return A3(_exosphere_project$exosphere$Rest$receiveNetworks, model, provider, _p9._0);
+				return A3(_exosphere_project$exosphere$Rest$receiveNetworks, model, provider, _p10._0);
 			case 'GetFloatingIpReceivePorts':
-				return A4(_exosphere_project$exosphere$Rest$receivePortsAndRequestFloatingIp, model, provider, _p9._0, _p9._1);
+				return A4(_exosphere_project$exosphere$Rest$receivePortsAndRequestFloatingIp, model, provider, _p10._0, _p10._1);
 			default:
-				return A4(_exosphere_project$exosphere$Rest$receiveFloatingIp, model, provider, _p9._0, _p9._1);
+				return A4(_exosphere_project$exosphere$Rest$receiveFloatingIp, model, provider, _p10._0, _p10._1);
 		}
 	});
-var _exosphere_project$exosphere$State$subscriptions = function (_p14) {
+var _exosphere_project$exosphere$State$subscriptions = function (_p15) {
 	return A2(_elm_lang$core$Time$every, 10 * _elm_lang$core$Time$second, _exosphere_project$exosphere$Types_Types$Tick);
 };
 var _exosphere_project$exosphere$State$init = {
@@ -12286,7 +12455,9 @@ var _exosphere_project$exosphere$State$init = {
 		viewState: _exosphere_project$exosphere$Types_Types$NonProviderView(_exosphere_project$exosphere$Types_Types$Login),
 		providers: {ctor: '[]'},
 		creds: A6(_exosphere_project$exosphere$Types_Types$Creds, 'https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens', 'default', 'demo', 'default', 'demo', ''),
-		imageFilterTag: _elm_lang$core$Maybe$Just('distro-base')
+		imageFilterTag: _elm_lang$core$Maybe$Just('distro-base'),
+		time: 0,
+		toast: _iosphere$elm_toast$Toast$init
 	},
 	_1: _elm_lang$core$Platform_Cmd$none
 };
@@ -12909,7 +13080,7 @@ var _exosphere_project$exosphere$View$renderProviderPicker = F2(
 	});
 var _exosphere_project$exosphere$View$renderMessage = function (message) {
 	return A2(
-		_elm_lang$html$Html$p,
+		_elm_lang$html$Html$li,
 		{ctor: '[]'},
 		{
 			ctor: '::',
@@ -14461,8 +14632,52 @@ var _exosphere_project$exosphere$View$viewProviderPicker = function (model) {
 var _exosphere_project$exosphere$View$viewMessages = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
-		{ctor: '[]'},
-		A2(_elm_lang$core$List$map, _exosphere_project$exosphere$View$renderMessage, model.messages));
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'height', _1: '240px'},
+					_1: {
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'border', _1: '1px black solid'},
+						_1: {ctor: '[]'}
+					}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$h3,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Messages'),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$ul,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'height', _1: '180px'},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'overflow', _1: 'auto'},
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					},
+					A2(_elm_lang$core$List$map, _exosphere_project$exosphere$View$renderMessage, model.messages)),
+				_1: {ctor: '[]'}
+			}
+		});
 };
 var _exosphere_project$exosphere$View$providerView = F3(
 	function (model, provider, viewConstructor) {
@@ -14546,13 +14761,34 @@ var _exosphere_project$exosphere$View$providerView = F3(
 					});
 		}
 	});
+var _exosphere_project$exosphere$View$viewToastItem = F2(
+	function (state, notification) {
+		return A2(
+			_elm_lang$html$Html$li,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text(notification),
+				_1: {ctor: '[]'}
+			});
+	});
+var _exosphere_project$exosphere$View$viewToast = function (model) {
+	return A2(
+		_elm_lang$html$Html$ul,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('notifications-list'),
+			_1: {ctor: '[]'}
+		},
+		A3(_iosphere$elm_toast$Toast$views, model.toast, model.time, _exosphere_project$exosphere$View$viewToastItem));
+};
 var _exosphere_project$exosphere$View$view = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: _exosphere_project$exosphere$View$viewMessages(model),
+			_0: _exosphere_project$exosphere$View$viewToast(model),
 			_1: {
 				ctor: '::',
 				_0: _exosphere_project$exosphere$View$viewProviderPicker(model),
@@ -14572,7 +14808,11 @@ var _exosphere_project$exosphere$View$view = function (model) {
 							}
 						}
 					}(),
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: _exosphere_project$exosphere$View$viewMessages(model),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});

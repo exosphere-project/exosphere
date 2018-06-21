@@ -1,7 +1,9 @@
 module Helpers exposing (processError, processOpenRc, providePasswordHint, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider)
 
-import Regex
 import Maybe.Extra
+import Regex
+import Time
+import Toast exposing (Toast)
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
@@ -10,10 +12,22 @@ import Types.OpenstackTypes as OpenstackTypes
 processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
+        errorString =
+            toString error
+
         newMsgs =
-            toString error :: model.messages
+            errorString :: model.messages
+
+        newToastNotification =
+            Toast.createNotification errorString (model.time + Time.second * 30)
+
+        newToast =
+            Toast.addNotification newToastNotification model.toast
+
+        newModel =
+            { model | messages = newMsgs, toast = newToast }
     in
-        ( { model | messages = newMsgs }, Cmd.none )
+        ( newModel, Cmd.none )
 
 
 processOpenRc : Creds -> String -> Creds

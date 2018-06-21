@@ -1,21 +1,21 @@
 module View exposing (view)
 
-import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
+import Base64
+import Filesize exposing (format)
+import Helpers
+import Html exposing (Html, a, button, div, fieldset, h2, h3, input, label, legend, li, p, strong, table, td, text, textarea, th, tr, ul)
 import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Maybe
-import Tuple
-import Base64
-import Filesize exposing (format)
+import Toast
 import Types.Types exposing (..)
-import Helpers
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ viewMessages model
+        [ viewToast model
         , viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
@@ -30,7 +30,18 @@ view model =
 
                     Just provider ->
                         providerView model provider viewConstructor
+        , viewMessages model
         ]
+
+
+viewToast : Model -> Html Msg
+viewToast model =
+    Html.ul [ class "notifications-list" ] (Toast.views model.toast model.time viewToastItem)
+
+
+viewToastItem : Toast.NotificationState -> String -> Html Msg
+viewToastItem state notification =
+    Html.li [] [ Html.text notification ]
 
 
 providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
@@ -75,7 +86,11 @@ providerView model provider viewConstructor =
 
 viewMessages : Model -> Html Msg
 viewMessages model =
-    div [] (List.map renderMessage model.messages)
+    div [ Attr.style [ ( "height", "240px" ), ( "border", "1px black solid" ) ] ]
+        [ h3 [] [ text "Messages" ]
+        , ul [ Attr.style [ ( "height", "180px" ), ( "overflow", "auto" ) ] ]
+            (List.map renderMessage model.messages)
+        ]
 
 
 viewProviderPicker : Model -> Html Msg
@@ -180,10 +195,11 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-              {-
-                 Todo this link opens in Electron, should open in user's browser
-                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-              -}
+
+            {-
+               Todo this link opens in Electron, should open in user's browser
+               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+            -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -474,7 +490,7 @@ viewCreateServer provider createServerRequest =
 
 renderMessage : String -> Html Msg
 renderMessage message =
-    p [] [ text message ]
+    li [] [ text message ]
 
 
 renderProviderPicker : Model -> Provider -> Html Msg
