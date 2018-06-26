@@ -4,6 +4,7 @@ import Dict
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Time
 import Base64
 import Helpers
 import Types.Types exposing (..)
@@ -372,6 +373,26 @@ requestFloatingIp model provider network port_ server =
         ( newModel, cmd )
 
 
+requestGottyStatus : Provider -> ServerUuid -> String -> Cmd Msg
+requestGottyStatus provider serverUuid ipAddress =
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = []
+                , url = "http://" ++ ipAddress ++ ":9444"
+                , body = Http.emptyBody
+                , expect = Http.expectJson gottyStatusDecoder
+                , timeout = Just (3 * Time.second)
+                , withCredentials = False
+                }
+
+        resultMsg provider serverUuid result =
+            ProviderMsg provider.name (ReceiveGottyStatus serverUuid result)
+    in
+        Http.send (resultMsg provider serverUuid) request
+
+
 
 {- HTTP Response Handling -}
 
@@ -572,6 +593,21 @@ receiveServerDetail model provider serverUuid result =
                                         ]
                                     )
 
+                                Success ->
+                                    let
+                                        maybeFloatingIp =
+                                            Helpers.getFloatingIp
+                                                serverDetails.ipAddresses
+                                    in
+                                        case maybeFloatingIp of
+                                            Just floatingIp ->
+                                                ( newModel
+                                                , requestGottyStatus provider server.uuid floatingIp
+                                                )
+
+                                            Nothing ->
+                                                Helpers.processError newModel "We should have a floating IP address here but we don't"
+
                                 _ ->
                                     ( newModel, Cmd.none )
 
@@ -703,6 +739,7 @@ receiveFloatingIp model provider serverUuid result =
                     "We should have a server here but we don't"
 
             Just server ->
+                {- This repeats a lot of code in receiveGottyStatus, badly needs a refactor -}
                 case result of
                     Err error ->
                         let
@@ -763,6 +800,65 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
                     ipAddress :: details.ipAddresses
             in
                 Just { details | ipAddresses = newIps }
+
+
+receiveGottyStatus : Model -> Provider -> ServerUuid -> Result Http.Error Bool -> ( Model, Cmd Msg )
+receiveGottyStatus model provider serverUuid result =
+    let
+        maybeServer =
+            List.filter (\s -> s.uuid == serverUuid) provider.servers
+                |> List.head
+    in
+        case maybeServer of
+            Nothing ->
+                Helpers.processError
+                    model
+                    "We should have a server here but we don't"
+
+            Just server ->
+                {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
+                case result of
+                    Err error ->
+                        let
+                            newServer =
+                                { server | gottyStatus = False }
+
+                            otherServers =
+                                List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+
+                            newServers =
+                                newServer :: otherServers
+
+                            newProvider =
+                                { provider | servers = newServers }
+
+                            newModel =
+                                Helpers.modelUpdateProvider model newProvider
+                        in
+                            Helpers.processError newModel error
+
+                    Ok gottyStatus ->
+                        let
+                            newServer =
+                                { server
+                                    | gottyStatus = gottyStatus
+                                }
+
+                            otherServers =
+                                List.filter
+                                    (\s -> s.uuid /= newServer.uuid)
+                                    provider.servers
+
+                            newServers =
+                                newServer :: otherServers
+
+                            newProvider =
+                                { provider | servers = newServers }
+
+                            newModel =
+                                Helpers.modelUpdateProvider model newProvider
+                        in
+                            ( newModel, Cmd.none )
 
 
 
@@ -860,7 +956,7 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map5 Server
+    Decode.map6 Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -869,6 +965,7 @@ serverDecoder =
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
         (Decode.succeed Unknown)
+        (Decode.succeed False)
         (Decode.succeed False)
 
 
@@ -1000,3 +1097,8 @@ decodeFloatingIpCreation =
     Decode.map2 IpAddress
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed Floating)
+
+
+gottyStatusDecoder : Decode.Decoder Bool
+gottyStatusDecoder =
+    Decode.field "gotty_online" Decode.bool

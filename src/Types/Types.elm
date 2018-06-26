@@ -18,6 +18,12 @@ type alias Model =
     , imageFilterTag : Maybe String
     , time : Time.Time
     , toast : Toast String
+    , globalDefaults : GlobalDefaults
+    }
+
+
+type alias GlobalDefaults =
+    { shellUserData : String
     }
 
 
@@ -64,6 +70,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveNetworks (Result Http.Error (List Network))
     | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
     | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
+    | ReceiveGottyStatus ServerUuid (Result Http.Error Bool)
 
 
 type ViewState
@@ -154,6 +161,7 @@ type alias Server =
     , details : Maybe ServerDetails
     , floatingIpState : FloatingIpState
     , selected : Bool
+    , gottyStatus : Bool
     }
 
 

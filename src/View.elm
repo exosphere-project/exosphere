@@ -4,7 +4,7 @@ import Base64
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html, a, button, div, fieldset, h2, h3, input, label, legend, li, p, strong, table, td, text, textarea, th, tr, ul)
-import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
+import Html.Attributes exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, target, type_, value)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Maybe
@@ -58,7 +58,7 @@ providerView model provider viewConstructor =
         ListImages ->
             div []
                 [ viewNav provider
-                , viewImagesIfLoaded provider model.imageFilterTag
+                , viewImagesIfLoaded model.globalDefaults provider model.imageFilterTag
                 ]
 
         ListProviderServers ->
@@ -195,11 +195,10 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-
-            {-
-               Todo this link opens in Electron, should open in user's browser
-               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-            -}
+              {-
+                 Todo this link opens in Electron, should open in user's browser
+                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+              -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -219,18 +218,18 @@ viewLogin model =
         ]
 
 
-viewImagesIfLoaded : Provider -> Maybe String -> Html Msg
-viewImagesIfLoaded provider maybeFilterTag =
+viewImagesIfLoaded : GlobalDefaults -> Provider -> Maybe String -> Html Msg
+viewImagesIfLoaded globalDefaults provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
             div [] [ p [] [ text "Images loading" ] ]
 
         False ->
-            viewImages provider maybeFilterTag
+            viewImages globalDefaults provider maybeFilterTag
 
 
-viewImages : Provider -> Maybe String -> Html Msg
-viewImages provider maybeFilterTag =
+viewImages : GlobalDefaults -> Provider -> Maybe String -> Html Msg
+viewImages globalDefaults provider maybeFilterTag =
     let
         imageContainsTag tag image =
             List.member tag image.tags
@@ -274,7 +273,7 @@ viewImages provider maybeFilterTag =
                   else
                     div [] []
                 ]
-            , div [] (List.map (renderImage provider) displayedImages)
+            , div [] (List.map (renderImage globalDefaults provider) displayedImages)
             ]
 
 
@@ -359,6 +358,26 @@ viewServerDetail provider serverUuid =
 
                                     Nothing ->
                                         "Unknown image"
+
+                            maybeFloatingIp =
+                                Helpers.getFloatingIp details.ipAddresses
+
+                            webTerminalLink gottyStatus maybeFloatingIp =
+                                case maybeFloatingIp of
+                                    Just floatingIp ->
+                                        case gottyStatus of
+                                            False ->
+                                                text "Web terminal not online yet"
+
+                                            True ->
+                                                div []
+                                                    [ a [ href ("https://" ++ floatingIp ++ ":9443"), target "_blank" ] [ text "Launch Web Terminal" ]
+                                                    , Html.br [] []
+                                                    , text "Log in with username 'ubuntu' and password 'test'"
+                                                    ]
+
+                                    Nothing ->
+                                        text "Web terminal not online yet"
                         in
                             div []
                                 [ h2 [] [ text "Server details" ]
@@ -404,6 +423,9 @@ viewServerDetail provider serverUuid =
                                         , td [] [ renderIpAddresses details.ipAddresses ]
                                         ]
                                     ]
+                                , h2 [] [ text "Interact with server" ]
+                                , p []
+                                    [ (webTerminalLink server.gottyStatus maybeFloatingIp) ]
                                 ]
 
 
@@ -512,8 +534,8 @@ renderProviderPicker model provider =
                 text provider.name
 
 
-renderImage : Provider -> Image -> Html Msg
-renderImage provider image =
+renderImage : GlobalDefaults -> Provider -> Image -> Html Msg
+renderImage globalDefaults provider image =
     let
         size =
             case image.size of
@@ -533,7 +555,7 @@ renderImage provider image =
     in
         div []
             [ p [] [ strong [] [ text image.name ] ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" "" "")))) ] [ text "Launch" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" "" globalDefaults.shellUserData)))) ] [ text "Launch" ]
             , table []
                 [ tr []
                     [ th [] [ text "Property" ]

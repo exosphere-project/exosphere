@@ -13,23 +13,39 @@ import Rest
 
 init : ( Model, Cmd Msg )
 init =
-    ( { messages = []
-      , viewState = NonProviderView Login
-      , providers = []
-      , creds =
-            Creds
-                "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens"
-                "default"
-                "demo"
-                "default"
-                "demo"
-                ""
-      , imageFilterTag = Maybe.Just "distro-base"
-      , time = 0
-      , toast = Toast.init
-      }
-    , Cmd.none
-    )
+    let
+        globalDefaults =
+            { shellUserData =
+                """#cloud-config
+# The following code installs a server for the in-browser terminal.
+runcmd:
+ - [wget, "https://gist.githubusercontent.com/julianpistorius/466af49f5eb1eb6b3c0c24ce92d7c855/raw/setup_webshell.sh", -O, "/home/ubuntu/setup_webshell.sh" ]
+ - [ sh, -cxe, "chown ubuntu.ubuntu /home/ubuntu/*" ]
+ - [ sh, -cxe, "chmod 700 /home/ubuntu/setup_webshell.sh" ]
+ - [ sh, -cxe, "user_passwd=test su -c /home/ubuntu/setup_webshell.sh ubuntu" ]
+
+final_message: "The system is finally up, after $UPTIME seconds"
+"""
+            }
+    in
+        ( { messages = []
+          , viewState = NonProviderView Login
+          , providers = []
+          , creds =
+                Creds
+                    "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens"
+                    "default"
+                    "demo"
+                    "default"
+                    "demo"
+                    ""
+          , imageFilterTag = Maybe.Just "distro-base"
+          , time = 0
+          , toast = Toast.init
+          , globalDefaults = globalDefaults
+          }
+        , Cmd.none
+        )
 
 
 subscriptions : Model -> Sub Msg
@@ -291,3 +307,6 @@ processProviderSpecificMsg model provider msg =
 
         ReceiveFloatingIp serverUuid result ->
             Rest.receiveFloatingIp model provider serverUuid result
+
+        ReceiveGottyStatus serverUuid result ->
+            Rest.receiveGottyStatus model provider serverUuid result
