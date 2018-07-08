@@ -366,18 +366,32 @@ viewServerDetail provider serverUuid =
                                 case maybeFloatingIp of
                                     Just floatingIp ->
                                         case gottyStatus of
-                                            False ->
-                                                text "Web terminal not online yet"
+                                            NotChecked ->
+                                                text "Status of web terminal not available yet."
 
-                                            True ->
+                                            CheckedNotReady ->
+                                                text "Web terminal not online yet."
+
+                                            Ready ->
                                                 div []
-                                                    [ a [ href ("https://" ++ floatingIp ++ ":9443"), target "_blank" ] [ text "Launch Web Terminal" ]
+                                                    [ text "Web terminal is ready!"
+                                                    , Html.br [] []
+                                                    , a [ href ("https://" ++ floatingIp ++ ":9443"), target "_blank" ] [ text "Launch Web Terminal" ]
+                                                    , Html.br [] []
+                                                    , text "Log in with username 'ubuntu' and password 'test'"
+                                                    ]
+
+                                            Error ->
+                                                div []
+                                                    [ text "Unable to detect status of web terminal. This link may work a few minutes after server is active."
+                                                    , Html.br [] []
+                                                    , a [ href ("https://" ++ floatingIp ++ ":9443"), target "_blank" ] [ text "Launch Web Terminal" ]
                                                     , Html.br [] []
                                                     , text "Log in with username 'ubuntu' and password 'test'"
                                                     ]
 
                                     Nothing ->
-                                        text "Web terminal not online yet"
+                                        text "Web terminal not online yet."
                         in
                             div []
                                 [ h2 [] [ text "Server details" ]

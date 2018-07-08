@@ -70,7 +70,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveNetworks (Result Http.Error (List Network))
     | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
     | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
-    | ReceiveGottyStatus ServerUuid (Result Http.Error Bool)
+    | ReceiveGottyStatus ServerUuid (Result Http.Error GottyStatus)
 
 
 type ViewState
@@ -161,7 +161,7 @@ type alias Server =
     , details : Maybe ServerDetails
     , floatingIpState : FloatingIpState
     , selected : Bool
-    , gottyStatus : Bool
+    , gottyStatus : GottyStatus
     }
 
 
@@ -176,6 +176,13 @@ type FloatingIpState
     | RequestedWaiting
     | Success
     | Failed
+
+
+type GottyStatus
+    = NotChecked
+    | CheckedNotReady
+    | Ready
+    | Error
 
 
 

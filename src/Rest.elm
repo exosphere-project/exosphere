@@ -802,7 +802,7 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
                 Just { details | ipAddresses = newIps }
 
 
-receiveGottyStatus : Model -> Provider -> ServerUuid -> Result Http.Error Bool -> ( Model, Cmd Msg )
+receiveGottyStatus : Model -> Provider -> ServerUuid -> Result Http.Error GottyStatus -> ( Model, Cmd Msg )
 receiveGottyStatus model provider serverUuid result =
     let
         maybeServer =
@@ -821,7 +821,7 @@ receiveGottyStatus model provider serverUuid result =
                     Err error ->
                         let
                             newServer =
-                                { server | gottyStatus = False }
+                                { server | gottyStatus = Error }
 
                             otherServers =
                                 List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
@@ -835,7 +835,7 @@ receiveGottyStatus model provider serverUuid result =
                             newModel =
                                 Helpers.modelUpdateProvider model newProvider
                         in
-                            Helpers.processError newModel error
+                            ( newModel, Cmd.none )
 
                     Ok gottyStatus ->
                         let
@@ -966,7 +966,7 @@ serverDecoder =
         (Decode.succeed Nothing)
         (Decode.succeed Unknown)
         (Decode.succeed False)
-        (Decode.succeed False)
+        (Decode.succeed NotChecked)
 
 
 decodeServerDetails : Decode.Decoder ServerDetails
@@ -1099,6 +1099,13 @@ decodeFloatingIpCreation =
         (Decode.succeed Floating)
 
 
-gottyStatusDecoder : Decode.Decoder Bool
+gottyStatusDecoder : Decode.Decoder GottyStatus
 gottyStatusDecoder =
-    Decode.field "gotty_online" Decode.bool
+    let
+        boolToGottyStatus b =
+            if b == True then
+                Ready
+            else
+                CheckedNotReady
+    in
+        Decode.map boolToGottyStatus (Decode.field "gotty_online" Decode.bool)
