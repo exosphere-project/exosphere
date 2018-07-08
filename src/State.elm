@@ -150,6 +150,12 @@ update msg model =
                         CreateServerKeypairName keypairName ->
                             { createServerRequest | keypairName = keypairName }
 
+                        CreateServerVolBacked volBacked ->
+                            { createServerRequest | volBacked = volBacked }
+
+                        CreateServerVolBackedSize sizeStr ->
+                            { createServerRequest | volBackedSizeGb = sizeStr }
+
                 newViewState =
                     ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in

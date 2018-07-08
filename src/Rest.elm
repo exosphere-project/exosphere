@@ -191,23 +191,43 @@ requestCreateServer provider createServerRequest =
             instanceNumbers
                 |> List.map (generateServerName createServerRequest.name serverCount)
 
+        baseServerProps createServerRequest instanceName =
+            [ ( "name", Encode.string instanceName )
+            , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
+            , ( "key_name", Encode.string createServerRequest.keypairName )
+            , ( "networks", Encode.string "auto" )
+            , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
+            ]
+
+        buildRequestOuterJson props =
+            Encode.object [ ( "server", Encode.object props ) ]
+
+        buildRequestBody instanceName =
+            case createServerRequest.volBacked of
+                False ->
+                    ( "imageRef", Encode.string createServerRequest.imageUuid )
+                        :: (baseServerProps createServerRequest instanceName)
+                        |> buildRequestOuterJson
+
+                True ->
+                    ( "block_device_mapping_v2"
+                    , Encode.list
+                        [ Encode.object
+                            [ ( "boot_index", Encode.string "0" )
+                            , ( "uuid", Encode.string createServerRequest.imageUuid )
+                            , ( "source_type", Encode.string "image" )
+                            , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
+                            , ( "destination_type", Encode.string "volume" )
+                            , ( "delete_on_termination", Encode.bool True )
+                            ]
+                        ]
+                    )
+                        :: (baseServerProps createServerRequest instanceName)
+                        |> buildRequestOuterJson
+
         requestBodies =
             instanceNames
-                |> List.map
-                    (\instanceName ->
-                        Encode.object
-                            [ ( "server"
-                              , Encode.object
-                                    [ ( "name", Encode.string instanceName )
-                                    , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
-                                    , ( "imageRef", Encode.string createServerRequest.imageUuid )
-                                    , ( "key_name", Encode.string createServerRequest.keypairName )
-                                    , ( "networks", Encode.string "auto" )
-                                    , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                                    ]
-                              )
-                            ]
-                    )
+                |> List.map buildRequestBody
 
         resultMsg result =
             ProviderMsg provider.name (ReceiveCreateServer result)
@@ -880,7 +900,11 @@ decodeServerDetails =
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
             |> Decode.andThen serverPowerStateDecoder
         )
-        (Decode.at [ "server", "image", "id" ] Decode.string)
+        (Decode.oneOf
+            [ Decode.at [ "server", "image", "id" ] Decode.string
+            , Decode.succeed ""
+            ]
+        )
         (Decode.at [ "server", "flavor", "id" ] Decode.string)
         (Decode.at [ "server", "key_name" ] Decode.string)
         (Decode.oneOf
