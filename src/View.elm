@@ -673,12 +673,12 @@ viewVolBackedPrompt provider createServerRequest =
     in
         div []
             [ label []
-                [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked False)) ] []
+                [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked False)) ] []
                 , text nonVolBackedOptionText
                 ]
             , Html.br [] []
             , label []
-                [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked True)) ] []
+                [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked True)) ] []
                 , input
                     [ type_ "number"
                     , Attr.min "2"
