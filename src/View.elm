@@ -195,11 +195,10 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-
-            {-
-               Todo this link opens in Electron, should open in user's browser
-               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-            -}
+              {-
+                 Todo this link opens in Electron, should open in user's browser
+                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+              -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -454,6 +453,12 @@ viewCreateServer provider createServerRequest =
                     ]
                 ]
             , tr []
+                [ td [] [ text "Choose a root disk size:" ]
+                , td []
+                    [ viewVolBackedPrompt provider createServerRequest
+                    ]
+                ]
+            , tr []
                 [ td [] [ text "SSH Keypair" ]
                 , td []
                     [ viewKeypairPicker provider createServerRequest
@@ -533,7 +538,7 @@ renderImage provider image =
     in
         div []
             [ p [] [ strong [] [ text image.name ] ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" "" "")))) ] [ text "Launch" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) ] [ text "Launch" ]
             , table []
                 [ tr []
                     [ th [] [ text "Property" ]
@@ -642,6 +647,48 @@ viewFlavorPicker provider createServerRequest =
                 ]
     in
         fieldset [] (List.map viewFlavorPickerLabel (sortedFlavors provider.flavors))
+
+
+viewVolBackedPrompt : Provider -> CreateServerRequest -> Html Msg
+viewVolBackedPrompt provider createServerRequest =
+    let
+        maybeFlavor =
+            List.filter (\f -> f.uuid == createServerRequest.flavorUuid) provider.flavors
+                |> List.head
+
+        flavorRootDiskSize =
+            case maybeFlavor of
+                Nothing ->
+                    {- This should be an impossible state -}
+                    0
+
+                Just flavor ->
+                    flavor.disk_root
+
+        nonVolBackedOptionText =
+            if flavorRootDiskSize == 0 then
+                "Default for selected image (warning, could be too small for your work)"
+            else
+                toString flavorRootDiskSize ++ "  GB (default for selected size)"
+    in
+        div []
+            [ label []
+                [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked False)) ] []
+                , text nonVolBackedOptionText
+                ]
+            , Html.br [] []
+            , label []
+                [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked True)) ] []
+                , input
+                    [ type_ "number"
+                    , Attr.min "2"
+                    , value createServerRequest.volBackedSizeGb
+                    , onInput (\s -> InputCreateServerField createServerRequest (CreateServerVolBackedSize s))
+                    ]
+                    []
+                , text " GB (will use a volume for root disk)"
+                ]
+            ]
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Html Msg

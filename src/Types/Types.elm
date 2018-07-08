@@ -99,6 +99,8 @@ type CreateServerField
     | CreateServerUserData String
     | CreateServerSize String
     | CreateServerKeypairName String
+    | CreateServerVolBacked Bool
+    | CreateServerVolBackedSize String
 
 
 type alias Creds =
@@ -208,6 +210,8 @@ type alias CreateServerRequest =
     , imageName : String
     , count : String
     , flavorUuid : FlavorUuid
+    , volBacked : Bool
+    , volBackedSizeGb : String
     , keypairName : String
     , userData : String
     }
