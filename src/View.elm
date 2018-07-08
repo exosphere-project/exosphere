@@ -635,7 +635,7 @@ viewFlavorPicker provider createServerRequest =
         viewFlavorPickerLabel flavor =
             div []
                 [ label []
-                    [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerSize flavor.uuid)) ] []
+                    [ input [ type_ "radio", name "flavor", onClick (InputCreateServerField createServerRequest (CreateServerSize flavor.uuid)) ] []
                     , text (flavorAsStr flavor)
                     ]
                 , Html.br [] []
@@ -649,7 +649,7 @@ viewKeypairPicker provider createServerRequest =
     let
         viewKeypairPickerLabel keypair =
             label []
-                [ input [ type_ "radio", onClick (InputCreateServerField createServerRequest (CreateServerKeypairName keypair.name)) ] []
+                [ input [ type_ "radio", name "keypair", onClick (InputCreateServerField createServerRequest (CreateServerKeypairName keypair.name)) ] []
                 , text keypair.name
                 ]
     in
