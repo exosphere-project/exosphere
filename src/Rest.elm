@@ -64,7 +64,9 @@ requestAuthToken model =
             { method = "POST"
             , headers = []
             , url = model.creds.authUrl
-            , body = Http.jsonBody requestBody {- Todo handle no response? -}
+            , body = Http.jsonBody requestBody
+
+            {- Todo handle no response? -}
             , expect = Http.expectStringResponse (\response -> Ok response)
             , timeout = Nothing
             , withCredentials = False
@@ -221,7 +223,8 @@ requestCreateServer provider createServerRequest =
                             { method = "POST"
                             , headers =
                                 [ Http.header "X-Auth-Token" provider.authToken
-                                  -- Microversion needed for automatic network provisioning
+
+                                -- Microversion needed for automatic network provisioning
                                 , Http.header "OpenStack-API-Version" "compute 2.38"
                                 ]
                             , url = provider.endpoints.nova ++ "/servers"
@@ -380,7 +383,7 @@ requestGottyStatus provider serverUuid ipAddress =
             Http.request
                 { method = "GET"
                 , headers = []
-                , url = "http://" ++ ipAddress ++ ":9444"
+                , url = "http://" ++ ipAddress ++ ":9090/ping"
                 , body = Http.emptyBody
                 , expect = Http.expectJson gottyStatusDecoder
                 , timeout = Just (3 * Time.second)
@@ -1102,10 +1105,14 @@ decodeFloatingIpCreation =
 gottyStatusDecoder : Decode.Decoder GottyStatus
 gottyStatusDecoder =
     let
-        boolToGottyStatus b =
-            if b == True then
-                Ready
-            else
-                CheckedNotReady
+        serviceToShellStatus s =
+            let
+                _ =
+                    Debug.log "s" s
+            in
+                if s == "cockpit" then
+                    Ready
+                else
+                    CheckedNotReady
     in
-        Decode.map boolToGottyStatus (Decode.field "gotty_online" Decode.bool)
+        Decode.map serviceToShellStatus (Decode.field "service" Decode.string)

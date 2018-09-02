@@ -195,10 +195,11 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-              {-
-                 Todo this link opens in Electron, should open in user's browser
-                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-              -}
+
+            {-
+               Todo this link opens in Electron, should open in user's browser
+               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+            -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -365,30 +366,32 @@ viewServerDetail provider serverUuid =
                             webTerminalLink gottyStatus maybeFloatingIp =
                                 case maybeFloatingIp of
                                     Just floatingIp ->
-                                        case gottyStatus of
-                                            NotChecked ->
-                                                text "Status of web terminal not available yet."
+                                        let
+                                            webTerminalLinkBase =
+                                                [ Html.br [] []
+                                                , a [ href ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"), target "_blank" ] [ text "Launch Web Terminal" ]
+                                                , Html.br [] []
+                                                , text "Log in with your chosen username and password"
+                                                ]
+                                        in
+                                            case gottyStatus of
+                                                NotChecked ->
+                                                    text "Status of web terminal not available yet."
 
-                                            CheckedNotReady ->
-                                                text "Web terminal not online yet."
+                                                CheckedNotReady ->
+                                                    text "Web terminal not online yet."
 
-                                            Ready ->
-                                                div []
-                                                    [ text "Web terminal is ready!"
-                                                    , Html.br [] []
-                                                    , a [ href ("https://" ++ floatingIp ++ ":9443"), target "_blank" ] [ text "Launch Web Terminal" ]
-                                                    , Html.br [] []
-                                                    , text "Log in with username 'ubuntu' and password 'test'"
-                                                    ]
+                                                Ready ->
+                                                    div []
+                                                        ([ text "Web terminal is ready!" ]
+                                                            ++ webTerminalLinkBase
+                                                        )
 
-                                            Error ->
-                                                div []
-                                                    [ text "Unable to detect status of web terminal. This link may work a few minutes after server is active."
-                                                    , Html.br [] []
-                                                    , a [ href ("https://" ++ floatingIp ++ ":9443"), target "_blank" ] [ text "Launch Web Terminal" ]
-                                                    , Html.br [] []
-                                                    , text "Log in with username 'ubuntu' and password 'test'"
-                                                    ]
+                                                Error ->
+                                                    div []
+                                                        ([ text "Unable to detect status of web terminal. This link may work a few minutes after server is active." ]
+                                                            ++ webTerminalLinkBase
+                                                        )
 
                                     Nothing ->
                                         text "Web terminal not online yet."

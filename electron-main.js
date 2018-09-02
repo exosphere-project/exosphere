@@ -3,6 +3,9 @@
 const electron = require('electron')
 
 const app = electron.app // this is our app
+// Uncomment this for testing while we figure out certificates
+// app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+
 const BrowserWindow = electron.BrowserWindow // This is a Module that creates windows
 
 let mainWindow // saves a global reference to mainWindow so it doesn't get garbage collected
