@@ -1,4 +1,4 @@
-image: node:4.2.2
+image: node:carbon-stretch
 
 stages:
   - build
@@ -11,13 +11,15 @@ elm_make:
     paths:
       - node_modules/
   before_script:
-    - npm install -g elm
-    - elm-package install -y
+    - npm install elm@0.19.0
   script:
-    - elm make --warn --yes src/Exosphere.elm --output public/index.html
+    - npx elm make src/Exosphere.elm --output public/index.html
   artifacts:
     paths:
       - public
+
+# Waiting for elm-analyse to support Elm 0.19:
+# https://github.com/stil4m/elm-analyse/issues/176
 
 elm_analyse:
   stage: test
@@ -25,10 +27,9 @@ elm_analyse:
     paths:
       - elm-stuff/
   before_script:
-    - npm install -g elm elm-analyse elm-format
-    - elm-package install -y
+    - npm install elm@0.19.0 elm-analyse elm-format
   script:
-    - elm-analyse || true
+    - npx elm-analyse || true
 
 elm_test:
   stage: test
@@ -36,9 +37,9 @@ elm_test:
     paths:
       - tests/elm-stuff/build-artifacts
   before_script:
-    - npm install -g elm elm-test@beta
+    - npm install elm@0.19.0 elm-test@beta
   script:
-    - elm-test
+    - npx elm-test
 
 pages:
   stage: deploy
