@@ -23,7 +23,7 @@ requestAuthToken model =
                   , Encode.object
                         [ ( "identity"
                           , Encode.object
-                                [ ( "methods", Encode.list [ Encode.string "password" ] )
+                                [ ( "methods", Encode.list Encode.string [ "password" ] )
                                 , ( "password"
                                   , Encode.object
                                         [ ( "user"
@@ -177,11 +177,11 @@ requestKeypairs provider =
 requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
 requestCreateServer provider createServerRequest =
     let
-        serverCount =
-            Result.withDefault 1 (String.toInt createServerRequest.count)
+        getServerCount =
+            Maybe.withDefault 1 (String.toInt createServerRequest.count)
 
         instanceNumbers =
-            List.range 1 serverCount
+            List.range 1 getServerCount
 
         generateServerName : String -> Int -> Int -> String
         generateServerName baseName serverCount index =
@@ -189,18 +189,18 @@ requestCreateServer provider createServerRequest =
                 baseName
 
             else
-                baseName ++ " " ++ Basics.toString index ++ " of " ++ Basics.toString serverCount
+                baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt getServerCount
 
         instanceNames =
             instanceNumbers
-                |> List.map (generateServerName createServerRequest.name serverCount)
+                |> List.map (generateServerName createServerRequest.name getServerCount)
 
-        baseServerProps createServerRequest instanceName =
+        baseServerProps innerCreateServerRequest instanceName =
             [ ( "name", Encode.string instanceName )
-            , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
-            , ( "key_name", Encode.string createServerRequest.keypairName )
+            , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
+            , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
             , ( "networks", Encode.string "auto" )
-            , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
+            , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
             ]
 
         buildRequestOuterJson props =
@@ -215,15 +215,14 @@ requestCreateServer provider createServerRequest =
 
                 True ->
                     ( "block_device_mapping_v2"
-                    , Encode.list
-                        [ Encode.object
-                            [ ( "boot_index", Encode.string "0" )
-                            , ( "uuid", Encode.string createServerRequest.imageUuid )
-                            , ( "source_type", Encode.string "image" )
-                            , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
-                            , ( "destination_type", Encode.string "volume" )
-                            , ( "delete_on_termination", Encode.bool True )
-                            ]
+                    , Encode.list Encode.object
+                        [ [ ( "boot_index", Encode.string "0" )
+                          , ( "uuid", Encode.string createServerRequest.imageUuid )
+                          , ( "source_type", Encode.string "image" )
+                          , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
+                          , ( "destination_type", Encode.string "volume" )
+                          , ( "delete_on_termination", Encode.bool True )
+                          ]
                         ]
                     )
                         :: baseServerProps createServerRequest instanceName
@@ -505,8 +504,8 @@ receiveServers model provider result =
                 newServersInExistingServersSorted =
                     List.sortBy .uuid newServersInExistingServers
 
-                combinedMatchingNewAndExistingServers =
-                    List.map2 (,) newServersInExistingServersSorted existingServersInNewServersSorted
+                getCombinedMatchingNewAndExistingServers =
+                    List.map2 (\a b -> ( a, b )) newServersInExistingServersSorted existingServersInNewServersSorted
 
                 enrichNewServerWithExistingDetails : ( Server, Server ) -> Server
                 enrichNewServerWithExistingDetails ( newServer, existingServer ) =
@@ -517,7 +516,7 @@ receiveServers model provider result =
                     List.map enrichNewServerWithExistingDetails combinedMatchingNewAndExistingServers
 
                 enrichedNewServers =
-                    enrichNewServersWithExistingDetails combinedMatchingNewAndExistingServers
+                    enrichNewServersWithExistingDetails getCombinedMatchingNewAndExistingServers
 
                 newServersWithExistingMatchesAndWithout =
                     List.append newServersNotInExistingServers enrichedNewServers

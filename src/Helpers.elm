@@ -1,5 +1,6 @@
 module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, serverLookup, serviceCatalogToEndpoints)
 
+import Debug
 import Maybe.Extra
 import Regex
 import Time
@@ -8,11 +9,16 @@ import Types.OpenstackTypes as OpenstackTypes
 import Types.Types exposing (..)
 
 
+alwaysRegex : String -> Regex.Regex
+alwaysRegex regexStr =
+    Regex.fromString regexStr |> Maybe.withDefault Regex.never
+
+
 processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
         errorString =
-            toString error
+            Debug.toString error
 
         newMsgs =
             errorString :: model.messages
@@ -27,16 +33,16 @@ processOpenRc : Creds -> String -> Creds
 processOpenRc existingCreds openRc =
     let
         regexes =
-            { authUrl = Regex.regex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
-            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
-            , projectName = Regex.regex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
-            , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
-            , username = Regex.regex "export OS_USERNAME=\"?([^\"\n]*)\"?"
-            , password = Regex.regex "export OS_PASSWORD=\"(.*)\""
+            { authUrl = alwaysRegex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
+            , projectDomain = alwaysRegex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
+            , projectName = alwaysRegex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
+            , userDomain = alwaysRegex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
+            , username = alwaysRegex "export OS_USERNAME=\"?([^\"\n]*)\"?"
+            , password = alwaysRegex "export OS_PASSWORD=\"(.*)\""
             }
 
         getMatch text regex =
-            Regex.find (Regex.AtMost 1) regex text
+            Regex.findAtMost 1 regex text
                 |> List.head
                 |> Maybe.map (\x -> x.submatches)
                 |> Maybe.andThen List.head
@@ -55,7 +61,7 @@ processOpenRc existingCreds openRc =
         (newField regexes.password existingCreds.password)
 
 
-providePasswordHint : String -> String -> List ( String, String )
+providePasswordHint : String -> String -> List { styleKey : String, styleValue : String }
 providePasswordHint username password =
     let
         checks =
@@ -65,8 +71,8 @@ providePasswordHint username password =
             ]
     in
     if List.all (\p -> p) checks then
-        [ ( "border-color", "rgba(239, 130, 17, 0.8)" )
-        , ( "background-color", "rgba(245, 234, 234, 0.7)" )
+        [ { styleKey = "border-color", styleValue = "rgba(239, 130, 17, 0.8)" }
+        , { styleKey = "background-color", styleValue = "rgba(245, 234, 234, 0.7)" }
         ]
 
     else
@@ -77,10 +83,10 @@ providerNameFromUrl : HelperTypes.Url -> ProviderName
 providerNameFromUrl url =
     let
         r =
-            Regex.regex ".*\\/\\/(.*?)(:\\d+)?\\/"
+            alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/"
 
         matches =
-            Regex.find (Regex.AtMost 1) r url
+            Regex.findAtMost 1 r url
 
         maybeMaybeName =
             matches

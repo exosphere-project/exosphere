@@ -33,7 +33,7 @@ type alias Provider =
 
 
 type Msg
-    = Tick Time.Time
+    = Tick Time.Posix
     | SetNonProviderView NonProviderViewConstructor
     | RequestNewProviderToken
     | ReceiveAuthToken (Result Http.Error (Http.Response String))

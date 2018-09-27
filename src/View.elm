@@ -167,11 +167,13 @@ viewLogin model =
                 [ td [] [ text "Password" ]
                 , td []
                     [ input
-                        [ type_ "password"
-                        , Attr.style (Helpers.providePasswordHint model.creds.username model.creds.password)
-                        , value model.creds.password
-                        , onInput (\p -> InputLoginField (Password p))
-                        ]
+                        ([ type_ "password"
+                         , value model.creds.password
+                         , onInput (\p -> InputLoginField (Password p))
+                         ]
+                            ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
+                                (Helpers.providePasswordHint model.creds.username model.creds.password)
+                        )
                         []
                     ]
                 ]
@@ -370,7 +372,7 @@ viewServerDetail provider serverUuid =
                                 ]
                             , tr []
                                 [ td [] [ text "Power state" ]
-                                , td [] [ text (toString details.powerState) ]
+                                , td [] [ text (Debug.toString details.powerState) ]
                                 ]
                             , tr []
                                 [ td [] [ text "Image" ]
@@ -508,16 +510,16 @@ renderImage provider image =
     let
         size =
             case image.size of
-                Just size ->
-                    format size
+                Just s ->
+                    format s
 
                 Nothing ->
                     "N/A"
 
         checksum =
             case image.checksum of
-                Just checksum ->
-                    toString checksum
+                Just c ->
+                    c
 
                 Nothing ->
                     "N/A"
@@ -532,7 +534,7 @@ renderImage provider image =
                 ]
             , tr []
                 [ td [] [ text "Status" ]
-                , td [] [ text (toString image.status) ]
+                , td [] [ text (Debug.toString image.status) ]
                 ]
             , tr []
                 [ td [] [ text "Size" ]
@@ -592,9 +594,9 @@ getEffectiveUserDataSize createServerRequest =
         base64Length =
             String.length base64Value
     in
-    Basics.toString rawLength
+    String.fromInt rawLength
         ++ " characters,  "
-        ++ Basics.toString base64Length
+        ++ String.fromInt base64Length
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
@@ -606,7 +608,7 @@ renderIpAddresses ipAddresses =
 renderIpAddress : IpAddress -> Html Msg
 renderIpAddress ipAddress =
     p []
-        [ text (toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
+        [ text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
         ]
 
 
@@ -621,7 +623,7 @@ viewFlavorPicker provider createServerRequest =
                 |> List.sortBy .vcpu
 
         flavorAsStr flavor =
-            flavor.name ++ " (" ++ toString flavor.vcpu ++ " CPU, " ++ (flavor.ram_mb // 1024 |> toString) ++ " GB RAM, " ++ toString flavor.disk_root ++ " GB root disk, " ++ toString flavor.disk_ephemeral ++ " GB ephemeral disk)"
+            flavor.name ++ " (" ++ String.fromInt flavor.vcpu ++ " CPU, " ++ (flavor.ram_mb // 1024 |> String.fromInt) ++ " GB RAM, " ++ String.fromInt flavor.disk_root ++ " GB root disk, " ++ String.fromInt flavor.disk_ephemeral ++ " GB ephemeral disk)"
 
         viewFlavorPickerLabel flavor =
             div []
@@ -656,7 +658,7 @@ viewVolBackedPrompt provider createServerRequest =
                 "Default for selected image (warning, could be too small for your work)"
 
             else
-                toString flavorRootDiskSize ++ "  GB (default for selected size)"
+                String.fromInt flavorRootDiskSize ++ "  GB (default for selected size)"
     in
     div []
         [ label []
