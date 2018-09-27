@@ -1,15 +1,12 @@
-module Tests exposing (..)
+module Tests exposing (emptyCreds, processOpenRcSuite)
 
 -- Test related Modules
-
-import Expect exposing (Expectation)
-import Test exposing (..)
-import TestData
-
-
 -- Exosphere Modules Under Test
 
+import Expect exposing (Expectation)
 import Helpers
+import Test exposing (..)
+import TestData
 import Types.Types exposing (Creds)
 
 
@@ -25,7 +22,7 @@ processOpenRcSuite =
             \() ->
                 ""
                     |> Helpers.processOpenRc emptyCreds
-                    |> Expect.equal (emptyCreds)
+                    |> Expect.equal emptyCreds
         , test "that $OS_PASSWORD_INPUT is *not* processed" <|
             \() ->
                 """

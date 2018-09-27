@@ -1,4 +1,4 @@
-module TestData exposing (..)
+module TestData exposing (openrcPreV3, openrcV3, openrcV3withComments)
 
 
 openrcV3withComments : String

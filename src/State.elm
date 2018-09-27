@@ -1,11 +1,12 @@
 module State exposing (init, subscriptions, update)
 
-import Time
-import Toast
 import Helpers
 import Maybe
-import Types.Types exposing (..)
 import Rest
+import Time
+import Toast
+import Types.Types exposing (..)
+
 
 
 {- Todo remove default creds once storing this in local storage -}
@@ -48,27 +49,27 @@ update msg model =
                 newModel =
                     { model | time = newTime, toast = newToast }
             in
-                case model.viewState of
-                    NonProviderView _ ->
-                        ( newModel, Cmd.none )
+            case model.viewState of
+                NonProviderView _ ->
+                    ( newModel, Cmd.none )
 
-                    ProviderView providerName ListProviderServers ->
-                        update (ProviderMsg providerName RequestServers) newModel
+                ProviderView providerName ListProviderServers ->
+                    update (ProviderMsg providerName RequestServers) newModel
 
-                    ProviderView providerName (ServerDetail serverUuid) ->
-                        update (ProviderMsg providerName (RequestServerDetail serverUuid)) newModel
+                ProviderView providerName (ServerDetail serverUuid) ->
+                    update (ProviderMsg providerName (RequestServerDetail serverUuid)) newModel
 
-                    _ ->
-                        ( newModel, Cmd.none )
+                _ ->
+                    ( newModel, Cmd.none )
 
         SetNonProviderView nonProviderViewConstructor ->
             let
                 newModel =
                     { model | viewState = NonProviderView nonProviderViewConstructor }
             in
-                case nonProviderViewConstructor of
-                    Login ->
-                        ( newModel, Cmd.none )
+            case nonProviderViewConstructor of
+                Login ->
+                    ( newModel, Cmd.none )
 
         RequestNewProviderToken ->
             ( model, Rest.requestAuthToken model )
@@ -116,20 +117,21 @@ update msg model =
                 newModel =
                     { model | creds = newCreds }
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
         InputImageFilterTag inputTag ->
             let
                 maybeTag =
                     if inputTag == "" then
                         Nothing
+
                     else
                         Just inputTag
 
                 newModel =
                     { model | imageFilterTag = maybeTag }
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
         InputCreateServerField createServerRequest createServerField ->
             let
@@ -159,7 +161,7 @@ update msg model =
                 newViewState =
                     ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in
-                ( { model | viewState = newViewState }, Cmd.none )
+            ( { model | viewState = newViewState }, Cmd.none )
 
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
@@ -168,34 +170,34 @@ processProviderSpecificMsg model provider msg =
         SetProviderView providerViewConstructor ->
             let
                 newModel =
-                    { model | viewState = (ProviderView provider.name providerViewConstructor) }
+                    { model | viewState = ProviderView provider.name providerViewConstructor }
             in
-                case providerViewConstructor of
-                    ProviderHome ->
-                        ( newModel, Cmd.none )
+            case providerViewConstructor of
+                ProviderHome ->
+                    ( newModel, Cmd.none )
 
-                    ListImages ->
-                        ( newModel, Rest.requestImages provider )
+                ListImages ->
+                    ( newModel, Rest.requestImages provider )
 
-                    ListProviderServers ->
-                        ( newModel, Rest.requestServers provider )
+                ListProviderServers ->
+                    ( newModel, Rest.requestServers provider )
 
-                    ServerDetail serverUuid ->
-                        ( newModel
-                        , Cmd.batch
-                            [ Rest.requestServerDetail provider serverUuid
-                            , Rest.requestFlavors provider
-                            , Rest.requestImages provider
-                            ]
-                        )
+                ServerDetail serverUuid ->
+                    ( newModel
+                    , Cmd.batch
+                        [ Rest.requestServerDetail provider serverUuid
+                        , Rest.requestFlavors provider
+                        , Rest.requestImages provider
+                        ]
+                    )
 
-                    CreateServer createServerRequest ->
-                        ( newModel
-                        , Cmd.batch
-                            [ Rest.requestFlavors provider
-                            , Rest.requestKeypairs provider
-                            ]
-                        )
+                CreateServer createServerRequest ->
+                    ( newModel
+                    , Cmd.batch
+                        [ Rest.requestFlavors provider
+                        , Rest.requestKeypairs provider
+                        ]
+                    )
 
         RequestServers ->
             ( model, Rest.requestServers provider )
@@ -219,7 +221,7 @@ processProviderSpecificMsg model provider msg =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel, Rest.requestDeleteServer newProvider server )
+            ( newModel, Rest.requestDeleteServer newProvider server )
 
         ReceiveImages result ->
             Rest.receiveImages model provider result
@@ -227,20 +229,21 @@ processProviderSpecificMsg model provider msg =
         RequestDeleteServers serversToDelete ->
             let
                 newProvider =
-                    { provider | servers = List.filter (\s -> (not (List.member s serversToDelete))) provider.servers }
+                    { provider | servers = List.filter (\s -> not (List.member s serversToDelete)) provider.servers }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel
-                , Rest.requestDeleteServers newProvider serversToDelete
-                )
+            ( newModel
+            , Rest.requestDeleteServers newProvider serversToDelete
+            )
 
         SelectServer server newSelectionState ->
             let
                 updateServer someServer =
                     if someServer.uuid == server.uuid then
                         { someServer | selected = newSelectionState }
+
                     else
                         someServer
 
@@ -253,8 +256,8 @@ processProviderSpecificMsg model provider msg =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                newModel
-                    ! []
+            newModel
+                ! []
 
         SelectAllServers allServersSelected ->
             let
@@ -267,8 +270,8 @@ processProviderSpecificMsg model provider msg =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                newModel
-                    ! []
+            newModel
+                ! []
 
         ReceiveServers result ->
             Rest.receiveServers model provider result

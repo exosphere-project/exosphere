@@ -1,12 +1,12 @@
-module Helpers exposing (processError, processOpenRc, providePasswordHint, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, serverLookup, serviceCatalogToEndpoints)
 
 import Maybe.Extra
 import Regex
 import Time
 import Toast exposing (Toast)
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
+import Types.Types exposing (..)
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -27,7 +27,7 @@ processError model error =
         newModel =
             { model | messages = newMsgs, toast = newToast }
     in
-        ( newModel, Cmd.none )
+    ( newModel, Cmd.none )
 
 
 processOpenRc : Creds -> String -> Creds
@@ -53,30 +53,31 @@ processOpenRc existingCreds openRc =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
     in
-        Creds
-            (newField regexes.authUrl existingCreds.authUrl)
-            (newField regexes.projectDomain existingCreds.projectDomain)
-            (newField regexes.projectName existingCreds.projectName)
-            (newField regexes.userDomain existingCreds.userDomain)
-            (newField regexes.username existingCreds.username)
-            (newField regexes.password existingCreds.password)
+    Creds
+        (newField regexes.authUrl existingCreds.authUrl)
+        (newField regexes.projectDomain existingCreds.projectDomain)
+        (newField regexes.projectName existingCreds.projectName)
+        (newField regexes.userDomain existingCreds.userDomain)
+        (newField regexes.username existingCreds.username)
+        (newField regexes.password existingCreds.password)
 
 
 providePasswordHint : String -> String -> List ( String, String )
 providePasswordHint username password =
     let
         checks =
-            [ (not <| String.isEmpty username)
-            , (String.isEmpty password)
-            , (username /= "demo")
+            [ not <| String.isEmpty username
+            , String.isEmpty password
+            , username /= "demo"
             ]
     in
-        if List.all (\p -> p) checks then
-            [ ( "border-color", "rgba(239, 130, 17, 0.8)" )
-            , ( "background-color", "rgba(245, 234, 234, 0.7)" )
-            ]
-        else
-            []
+    if List.all (\p -> p) checks then
+        [ ( "border-color", "rgba(239, 130, 17, 0.8)" )
+        , ( "background-color", "rgba(245, 234, 234, 0.7)" )
+        ]
+
+    else
+        []
 
 
 providerNameFromUrl : HelperTypes.Url -> ProviderName
@@ -94,12 +95,12 @@ providerNameFromUrl url =
                 |> Maybe.map (\x -> x.submatches)
                 |> Maybe.andThen List.head
     in
-        case maybeMaybeName of
-            Just (Just name) ->
-                name
+    case maybeMaybeName of
+        Just (Just name) ->
+            name
 
-            _ ->
-                "placeholder-url-unparseable"
+        _ ->
+            "placeholder-url-unparseable"
 
 
 serviceCatalogToEndpoints : OpenstackTypes.ServiceCatalog -> Endpoints
@@ -119,12 +120,12 @@ getServicePublicUrl serviceName catalog =
         maybePublicEndpoint =
             getPublicEndpointFromService maybeService
     in
-        case maybePublicEndpoint of
-            Just endpoint ->
-                endpoint.url
+    case maybePublicEndpoint of
+        Just endpoint ->
+            endpoint.url
 
-            Nothing ->
-                ""
+        Nothing ->
+            ""
 
 
 getServiceFromCatalog : String -> OpenstackTypes.ServiceCatalog -> Maybe OpenstackTypes.Service
@@ -165,23 +166,26 @@ checkFloatingIpState serverDetails floatingIpState =
         isActive =
             serverDetails.status == "ACTIVE"
     in
-        case floatingIpState of
-            RequestedWaiting ->
-                if hasFloatingIp then
-                    Success
-                else
-                    RequestedWaiting
+    case floatingIpState of
+        RequestedWaiting ->
+            if hasFloatingIp then
+                Success
 
-            Failed ->
-                Failed
+            else
+                RequestedWaiting
 
-            _ ->
-                if hasFloatingIp then
-                    Success
-                else if hasFixedIp && isActive then
-                    Requestable
-                else
-                    NotRequestable
+        Failed ->
+            Failed
+
+        _ ->
+            if hasFloatingIp then
+                Success
+
+            else if hasFixedIp && isActive then
+                Requestable
+
+            else
+                NotRequestable
 
 
 serverLookup : Provider -> ServerUuid -> Maybe Server
@@ -193,7 +197,7 @@ providerLookup : Model -> ProviderName -> Maybe Provider
 providerLookup model providerName =
     List.filter
         (\p -> p.name == providerName)
-        (model.providers)
+        model.providers
         |> List.head
 
 
@@ -222,4 +226,4 @@ modelUpdateProvider model newProvider =
         newProviders =
             newProvider :: otherProviders
     in
-        { model | providers = newProviders }
+    { model | providers = newProviders }
