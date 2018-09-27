@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Html exposing (program)
+import Browser exposing (element)
 import State
 import Types.Types exposing (Model, Msg)
 import View
@@ -10,9 +10,8 @@ import View
 {- App Setup -}
 
 
-main : Program Never Model Msg
 main =
-    program
+    element
         { init = State.init
         , view = View.view
         , update = State.update

@@ -36,7 +36,7 @@ elm_test:
     paths:
       - tests/elm-stuff/build-artifacts
   before_script:
-    - npm install -g elm elm-test
+    - npm install -g elm elm-test@beta
   script:
     - elm-test
 

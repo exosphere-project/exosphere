@@ -11,8 +11,8 @@ import Types.Types exposing (..)
 {- Todo remove default creds once storing this in local storage -}
 
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> ( Model, Cmd Msg )
+init _ =
     ( { messages = []
       , viewState = NonProviderView Login
       , providers = []
@@ -32,7 +32,8 @@ init =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every (10 * Time.second) Tick
+    -- 10 seconds
+    Time.every (10 * 1000) Tick
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,13 +68,13 @@ update msg model =
         ReceiveAuthToken response ->
             Rest.receiveAuthToken model response
 
-        ProviderMsg providerName msg ->
+        ProviderMsg providerName innerMsg ->
             case Helpers.providerLookup model providerName of
                 Nothing ->
                     Helpers.processError model "Provider not found"
 
                 Just provider ->
-                    processProviderSpecificMsg model provider msg
+                    processProviderSpecificMsg model provider innerMsg
 
         {- Form inputs -}
         InputLoginField loginField ->
@@ -246,8 +247,9 @@ processProviderSpecificMsg model provider msg =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-            newModel
-                ! []
+            ( newModel
+            , Cmd.none
+            )
 
         SelectAllServers allServersSelected ->
             let
@@ -260,8 +262,9 @@ processProviderSpecificMsg model provider msg =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-            newModel
-                ! []
+            ( newModel
+            , Cmd.none
+            )
 
         ReceiveServers result ->
             Rest.receiveServers model provider result
