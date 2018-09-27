@@ -1,4 +1,4 @@
-module Types.HelperTypes exposing (..)
+module Types.HelperTypes exposing (Url, Uuid)
 
 
 type alias Url =

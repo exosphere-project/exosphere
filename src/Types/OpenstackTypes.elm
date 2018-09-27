@@ -1,6 +1,7 @@
-module Types.OpenstackTypes exposing (..)
+module Types.OpenstackTypes exposing (Endpoint, EndpointInterface(..), Service, ServiceCatalog, ServiceName(..))
 
 import Types.HelperTypes as HelperTypes
+
 
 
 {-

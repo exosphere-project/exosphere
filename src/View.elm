@@ -4,8 +4,7 @@ import Base64
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html, a, button, div, fieldset, h2, h3, input, label, legend, li, p, strong, table, td, text, textarea, th, tr, ul)
-import Html.Attributes exposing (cols, for, name, hidden, href, placeholder, rows, type_, value, class, checked, disabled)
-import Html.Attributes as Attr
+import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe
 import Toast
@@ -110,7 +109,7 @@ viewNav provider =
         [ h2 [] [ text "Navigation" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text "Home" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView (ListImages))) ] [ text "Create Server" ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
         ]
 
 
@@ -195,10 +194,11 @@ viewLogin model =
             ]
         , p []
             [ text "...or paste an "
-              {-
-                 Todo this link opens in Electron, should open in user's browser
-                 https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-              -}
+
+            {-
+               Todo this link opens in Electron, should open in user's browser
+               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
+            -}
             , a
                 [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
                 [ text "OpenRC"
@@ -248,33 +248,35 @@ viewImages provider maybeFilterTag =
         displayedImages =
             if noMatchWarning == False then
                 filteredImages
+
             else
                 provider.images
     in
-        div []
-            [ h2 [] [ text "Choose an image" ]
-            , div []
-                [ text "Filter on tag: "
-                , input
-                    [ type_ "text"
-                    , value (Maybe.withDefault "" maybeFilterTag)
-                    , onInput (\t -> InputImageFilterTag t)
-                    , placeholder "try \"distro-base\""
-                    ]
-                    []
-                , Html.br [] []
-                , button
-                    [ onClick (InputImageFilterTag "")
-                    ]
-                    [ text "Clear filter (show all)" ]
-                , Html.br [] []
-                , if noMatchWarning then
-                    text "No matches found, showing all images"
-                  else
-                    div [] []
+    div []
+        [ h2 [] [ text "Choose an image" ]
+        , div []
+            [ text "Filter on tag: "
+            , input
+                [ type_ "text"
+                , value (Maybe.withDefault "" maybeFilterTag)
+                , onInput (\t -> InputImageFilterTag t)
+                , placeholder "try \"distro-base\""
                 ]
-            , div [] (List.map (renderImage provider) displayedImages)
+                []
+            , Html.br [] []
+            , button
+                [ onClick (InputImageFilterTag "")
+                ]
+                [ text "Clear filter (show all)" ]
+            , Html.br [] []
+            , if noMatchWarning then
+                text "No matches found, showing all images"
+
+              else
+                div [] []
             ]
+        , div [] (List.map (renderImage provider) displayedImages)
+        ]
 
 
 viewServers : Provider -> Html Msg
@@ -294,30 +296,30 @@ viewServers provider =
                 selectedServers =
                     List.filter .selected provider.servers
             in
-                div []
-                    [ h2 [] [ text "My Servers" ]
-                    , div []
-                        [ fieldset []
-                            [ legend [] [ text "Bulk Actions" ]
-                            , input
-                                [ type_ "checkbox"
-                                , name "toggle-all"
-                                , checked allServersSelected
-                                , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
-                                ]
-                                []
-                            , label
-                                [ for "toggle-all" ]
-                                [ text "Select All" ]
-                            , button
-                                [ disabled noServersSelected
-                                , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
-                                ]
-                                [ text "Delete" ]
+            div []
+                [ h2 [] [ text "My Servers" ]
+                , div []
+                    [ fieldset []
+                        [ legend [] [ text "Bulk Actions" ]
+                        , input
+                            [ type_ "checkbox"
+                            , name "toggle-all"
+                            , checked allServersSelected
+                            , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
                             ]
+                            []
+                        , label
+                            [ for "toggle-all" ]
+                            [ text "Select All" ]
+                        , button
+                            [ disabled noServersSelected
+                            , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+                            ]
+                            [ text "Delete" ]
                         ]
-                    , div [] (List.map (renderServer provider) provider.servers)
                     ]
+                , div [] (List.map (renderServer provider) provider.servers)
+                ]
 
 
 viewServerDetail : Provider -> ServerUuid -> Html Msg
@@ -326,84 +328,84 @@ viewServerDetail provider serverUuid =
         maybeServer =
             Helpers.serverLookup provider serverUuid
     in
-        case maybeServer of
-            Nothing ->
-                text "No server found"
+    case maybeServer of
+        Nothing ->
+            text "No server found"
 
-            Just server ->
-                case server.details of
-                    Nothing ->
-                        text "Retrieving details??"
+        Just server ->
+            case server.details of
+                Nothing ->
+                    text "Retrieving details??"
 
-                    Just details ->
-                        let
-                            maybeFlavor =
-                                Helpers.flavorLookup provider details.flavorUuid
+                Just details ->
+                    let
+                        maybeFlavor =
+                            Helpers.flavorLookup provider details.flavorUuid
 
-                            flavorText =
-                                case maybeFlavor of
-                                    Just flavor ->
-                                        flavor.name
+                        flavorText =
+                            case maybeFlavor of
+                                Just flavor ->
+                                    flavor.name
 
-                                    Nothing ->
-                                        "Unknown flavor"
+                                Nothing ->
+                                    "Unknown flavor"
 
-                            maybeImage =
-                                Helpers.imageLookup provider details.imageUuid
+                        maybeImage =
+                            Helpers.imageLookup provider details.imageUuid
 
-                            imageText =
-                                case maybeImage of
-                                    Just image ->
-                                        image.name
+                        imageText =
+                            case maybeImage of
+                                Just image ->
+                                    image.name
 
-                                    Nothing ->
-                                        "Unknown image"
-                        in
-                            div []
-                                [ h2 [] [ text "Server details" ]
-                                , table []
-                                    [ tr []
-                                        [ th [] [ text "Property" ]
-                                        , th [] [ text "Value" ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "Name" ]
-                                        , td [] [ text server.name ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "UUID" ]
-                                        , td [] [ text server.uuid ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "Created on" ]
-                                        , td [] [ text details.created ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "Status" ]
-                                        , td [] [ text details.status ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "Power state" ]
-                                        , td [] [ text (toString details.powerState) ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "Image" ]
-                                        , td [] [ text imageText ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "Flavor" ]
-                                        , td [] [ text flavorText ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "SSH Key Name" ]
-                                        , td [] [ text details.keypairName ]
-                                        ]
-                                    , tr []
-                                        [ td [] [ text "IP addresses" ]
-                                        , td [] [ renderIpAddresses details.ipAddresses ]
-                                        ]
-                                    ]
+                                Nothing ->
+                                    "Unknown image"
+                    in
+                    div []
+                        [ h2 [] [ text "Server details" ]
+                        , table []
+                            [ tr []
+                                [ th [] [ text "Property" ]
+                                , th [] [ text "Value" ]
                                 ]
+                            , tr []
+                                [ td [] [ text "Name" ]
+                                , td [] [ text server.name ]
+                                ]
+                            , tr []
+                                [ td [] [ text "UUID" ]
+                                , td [] [ text server.uuid ]
+                                ]
+                            , tr []
+                                [ td [] [ text "Created on" ]
+                                , td [] [ text details.created ]
+                                ]
+                            , tr []
+                                [ td [] [ text "Status" ]
+                                , td [] [ text details.status ]
+                                ]
+                            , tr []
+                                [ td [] [ text "Power state" ]
+                                , td [] [ text (toString details.powerState) ]
+                                ]
+                            , tr []
+                                [ td [] [ text "Image" ]
+                                , td [] [ text imageText ]
+                                ]
+                            , tr []
+                                [ td [] [ text "Flavor" ]
+                                , td [] [ text flavorText ]
+                                ]
+                            , tr []
+                                [ td [] [ text "SSH Key Name" ]
+                                , td [] [ text details.keypairName ]
+                                ]
+                            , tr []
+                                [ td [] [ text "IP addresses" ]
+                                , td [] [ renderIpAddresses details.ipAddresses ]
+                                ]
+                            ]
+                        ]
 
 
 viewCreateServer : Provider -> CreateServerRequest -> Html Msg
@@ -509,12 +511,12 @@ renderProviderPicker model provider =
                 ProviderView selectedProvName _ ->
                     p.name == selectedProvName
     in
-        case isSelected provider of
-            False ->
-                button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
+    case isSelected provider of
+        False ->
+            button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
 
-            True ->
-                text provider.name
+        True ->
+            text provider.name
 
 
 renderImage : Provider -> Image -> Html Msg
@@ -536,44 +538,44 @@ renderImage provider image =
                 Nothing ->
                     "N/A"
     in
-        div []
-            [ p [] [ strong [] [ text image.name ] ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) ] [ text "Launch" ]
-            , table []
-                [ tr []
-                    [ th [] [ text "Property" ]
-                    , th [] [ text "Value" ]
-                    ]
-                , tr []
-                    [ td [] [ text "Status" ]
-                    , td [] [ text (toString image.status) ]
-                    ]
-                , tr []
-                    [ td [] [ text "Size" ]
-                    , td [] [ text size ]
-                    ]
-                , tr []
-                    [ td [] [ text "Checksum" ]
-                    , td [] [ text checksum ]
-                    ]
-                , tr []
-                    [ td [] [ text "Disk format" ]
-                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
-                    ]
-                , tr []
-                    [ td [] [ text "Container format" ]
-                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
-                    ]
-                , tr []
-                    [ td [] [ text "UUID" ]
-                    , td [] [ text image.uuid ]
-                    ]
-                , tr []
-                    [ td [] [ text "Tags" ]
-                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                    ]
+    div []
+        [ p [] [ strong [] [ text image.name ] ]
+        , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) ] [ text "Launch" ]
+        , table []
+            [ tr []
+                [ th [] [ text "Property" ]
+                , th [] [ text "Value" ]
+                ]
+            , tr []
+                [ td [] [ text "Status" ]
+                , td [] [ text (toString image.status) ]
+                ]
+            , tr []
+                [ td [] [ text "Size" ]
+                , td [] [ text size ]
+                ]
+            , tr []
+                [ td [] [ text "Checksum" ]
+                , td [] [ text checksum ]
+                ]
+            , tr []
+                [ td [] [ text "Disk format" ]
+                , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
+                ]
+            , tr []
+                [ td [] [ text "Container format" ]
+                , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
+                ]
+            , tr []
+                [ td [] [ text "UUID" ]
+                , td [] [ text image.uuid ]
+                ]
+            , tr []
+                [ td [] [ text "Tags" ]
+                , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
                 ]
             ]
+        ]
 
 
 renderServer : Provider -> Server -> Html Msg
@@ -606,10 +608,10 @@ getEffectiveUserDataSize createServerRequest =
         base64Length =
             String.length base64Value
     in
-        Basics.toString rawLength
-            ++ " characters,  "
-            ++ Basics.toString base64Length
-            ++ "/16384 allowed bytes (Base64 encoded)"
+    Basics.toString rawLength
+        ++ " characters,  "
+        ++ Basics.toString base64Length
+        ++ "/16384 allowed bytes (Base64 encoded)"
 
 
 renderIpAddresses : List IpAddress -> Html Msg
@@ -635,7 +637,7 @@ viewFlavorPicker provider createServerRequest =
                 |> List.sortBy .vcpu
 
         flavorAsStr flavor =
-            flavor.name ++ " (" ++ (toString flavor.vcpu) ++ " CPU, " ++ (flavor.ram_mb // 1024 |> toString) ++ " GB RAM, " ++ (toString flavor.disk_root) ++ " GB root disk, " ++ (toString flavor.disk_ephemeral) ++ " GB ephemeral disk)"
+            flavor.name ++ " (" ++ toString flavor.vcpu ++ " CPU, " ++ (flavor.ram_mb // 1024 |> toString) ++ " GB RAM, " ++ toString flavor.disk_root ++ " GB root disk, " ++ toString flavor.disk_ephemeral ++ " GB ephemeral disk)"
 
         viewFlavorPickerLabel flavor =
             div []
@@ -646,7 +648,7 @@ viewFlavorPicker provider createServerRequest =
                 , Html.br [] []
                 ]
     in
-        fieldset [] (List.map viewFlavorPickerLabel (sortedFlavors provider.flavors))
+    fieldset [] (List.map viewFlavorPickerLabel (sortedFlavors provider.flavors))
 
 
 viewVolBackedPrompt : Provider -> CreateServerRequest -> Html Msg
@@ -668,27 +670,28 @@ viewVolBackedPrompt provider createServerRequest =
         nonVolBackedOptionText =
             if flavorRootDiskSize == 0 then
                 "Default for selected image (warning, could be too small for your work)"
+
             else
                 toString flavorRootDiskSize ++ "  GB (default for selected size)"
     in
-        div []
-            [ label []
-                [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked False)) ] []
-                , text nonVolBackedOptionText
-                ]
-            , Html.br [] []
-            , label []
-                [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked True)) ] []
-                , input
-                    [ type_ "number"
-                    , Attr.min "2"
-                    , value createServerRequest.volBackedSizeGb
-                    , onInput (\s -> InputCreateServerField createServerRequest (CreateServerVolBackedSize s))
-                    ]
-                    []
-                , text " GB (will use a volume for root disk)"
-                ]
+    div []
+        [ label []
+            [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked False)) ] []
+            , text nonVolBackedOptionText
             ]
+        , Html.br [] []
+        , label []
+            [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked True)) ] []
+            , input
+                [ type_ "number"
+                , Attr.min "2"
+                , value createServerRequest.volBackedSizeGb
+                , onInput (\s -> InputCreateServerField createServerRequest (CreateServerVolBackedSize s))
+                ]
+                []
+            , text " GB (will use a volume for root disk)"
+            ]
+        ]
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Html Msg
@@ -700,4 +703,4 @@ viewKeypairPicker provider createServerRequest =
                 , text keypair.name
                 ]
     in
-        fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)
+    fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)
