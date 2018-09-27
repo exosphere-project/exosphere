@@ -3,19 +3,17 @@ module View exposing (view)
 import Base64
 import Filesize exposing (format)
 import Helpers
-import Html exposing (Html, a, button, div, fieldset, h2, h3, input, label, legend, li, p, strong, table, td, text, textarea, th, tr, ul)
+import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
 import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe
-import Toast
 import Types.Types exposing (..)
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ viewToast model
-        , viewProviderPicker model
+        [ viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -31,16 +29,6 @@ view model =
                         providerView model provider viewConstructor
         , viewMessages model
         ]
-
-
-viewToast : Model -> Html Msg
-viewToast model =
-    Html.ul [ class "notifications-list" ] (Toast.views model.toast model.time viewToastItem)
-
-
-viewToastItem : Toast.NotificationState -> String -> Html Msg
-viewToastItem state notification =
-    Html.li [] [ Html.text notification ]
 
 
 providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
@@ -85,11 +73,7 @@ providerView model provider viewConstructor =
 
 viewMessages : Model -> Html Msg
 viewMessages model =
-    div [ Attr.style [ ( "height", "240px" ), ( "border", "1px black solid" ) ] ]
-        [ h3 [] [ text "Messages" ]
-        , ul [ Attr.style [ ( "height", "180px" ), ( "overflow", "auto" ) ] ]
-            (List.map renderMessage model.messages)
-        ]
+    div [] (List.map renderMessage model.messages)
 
 
 viewProviderPicker : Model -> Html Msg
@@ -497,7 +481,7 @@ viewCreateServer provider createServerRequest =
 
 renderMessage : String -> Html Msg
 renderMessage message =
-    li [] [ text message ]
+    p [] [ text message ]
 
 
 renderProviderPicker : Model -> Provider -> Html Msg

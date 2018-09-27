@@ -3,7 +3,6 @@ module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork,
 import Maybe.Extra
 import Regex
 import Time
-import Toast exposing (Toast)
 import Types.HelperTypes as HelperTypes
 import Types.OpenstackTypes as OpenstackTypes
 import Types.Types exposing (..)
@@ -18,14 +17,8 @@ processError model error =
         newMsgs =
             errorString :: model.messages
 
-        newToastNotification =
-            Toast.createNotification errorString (model.time + Time.second * 30)
-
-        newToast =
-            Toast.addNotification newToastNotification model.toast
-
         newModel =
-            { model | messages = newMsgs, toast = newToast }
+            { model | messages = newMsgs }
     in
     ( newModel, Cmd.none )
 
