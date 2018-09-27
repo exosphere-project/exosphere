@@ -3,7 +3,6 @@ module Types.Types exposing (AuthToken, CreateServerField(..), CreateServerReque
 import Http
 import Maybe
 import Time
-import Toast exposing (Toast)
 import Types.HelperTypes as HelperTypes
 
 
@@ -17,8 +16,6 @@ type alias Model =
     , providers : List Provider
     , creds : Creds
     , imageFilterTag : Maybe String
-    , time : Time.Time
-    , toast : Toast String
     }
 
 

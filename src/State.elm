@@ -4,7 +4,6 @@ import Helpers
 import Maybe
 import Rest
 import Time
-import Toast
 import Types.Types exposing (..)
 
 
@@ -26,8 +25,6 @@ init =
                 "demo"
                 ""
       , imageFilterTag = Maybe.Just "distro-base"
-      , time = 0
-      , toast = Toast.init
       }
     , Cmd.none
     )
@@ -41,26 +38,19 @@ subscriptions _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Tick newTime ->
-            let
-                newToast =
-                    Toast.updateTimestamp newTime model.toast
-
-                newModel =
-                    { model | time = newTime, toast = newToast }
-            in
+        Tick _ ->
             case model.viewState of
                 NonProviderView _ ->
-                    ( newModel, Cmd.none )
+                    ( model, Cmd.none )
 
                 ProviderView providerName ListProviderServers ->
-                    update (ProviderMsg providerName RequestServers) newModel
+                    update (ProviderMsg providerName RequestServers) model
 
                 ProviderView providerName (ServerDetail serverUuid) ->
-                    update (ProviderMsg providerName (RequestServerDetail serverUuid)) newModel
+                    update (ProviderMsg providerName (RequestServerDetail serverUuid)) model
 
                 _ ->
-                    ( newModel, Cmd.none )
+                    ( model, Cmd.none )
 
         SetNonProviderView nonProviderViewConstructor ->
             let
