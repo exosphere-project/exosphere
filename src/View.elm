@@ -1,6 +1,12 @@
 module View exposing (view)
 
 import Base64
+import Element
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
+import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
@@ -13,8 +19,14 @@ import Types.Types exposing (..)
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewProviderPicker model
+    Element.layout []
+        (elementView model)
+
+
+elementView : Model -> Element.Element Msg
+elementView model =
+    Element.column []
+        [ Element.html (viewProviderPicker model)
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -24,11 +36,11 @@ view model =
             ProviderView providerName viewConstructor ->
                 case Helpers.providerLookup model providerName of
                     Nothing ->
-                        text "Oops! Provider not found"
+                        Element.html (text "Oops! Provider not found")
 
                     Just provider ->
-                        providerView model provider viewConstructor
-        , viewMessages model
+                        Element.html (providerView model provider viewConstructor)
+        , Element.html (viewMessages model)
         ]
 
 
@@ -93,106 +105,138 @@ viewNav provider =
 {- Resource-specific views -}
 
 
-viewLogin : Model -> Html Msg
+viewLogin : Model -> Element.Element Msg
 viewLogin model =
-    div []
-        [ h2 [] [ text "Please log in" ]
-        , p [] [ text "Either enter your credentials..." ]
-        , table []
-            [ tr []
-                [ td [] [ text "Keystone auth URL" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.authUrl
-                        , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-                        , onInput (\u -> InputLoginField (AuthUrl u))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Project Domain" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.projectDomain
-                        , onInput (\d -> InputLoginField (ProjectDomain d))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Project Name" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.projectName
-                        , onInput (\pn -> InputLoginField (ProjectName pn))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "User Domain" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.userDomain
-                        , onInput (\d -> InputLoginField (UserDomain d))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "User Name" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.username
-                        , onInput (\u -> InputLoginField (Username u))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Password" ]
-                , td []
-                    [ input
-                        ([ type_ "password"
-                         , value model.creds.password
-                         , onInput (\p -> InputLoginField (Password p))
-                         ]
-                            ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
-                                (Helpers.providePasswordHint model.creds.username model.creds.password)
-                        )
-                        []
-                    ]
-                ]
+    Element.column [ Element.spacing 20 ]
+        [ Element.el
+            [ Region.heading 2
+            , Font.size 24
+            , Font.bold
             ]
-        , p []
-            [ text "...or paste an "
+            (Element.text "Please log in")
+        , Element.wrappedRow
+            [ Element.spacing 10 ]
+            [ viewLoginCredsEntry model
+            , viewLoginOpenRcEntry model
+            ]
+        , Element.el [ Element.alignRight ] (uiButton { label = Element.text "Log in", onPress = Just RequestNewProviderToken })
+        ]
+
+
+viewLoginCredsEntry : Model -> Element.Element Msg
+viewLoginCredsEntry model =
+    Element.column
+        [ Element.height Element.fill
+        , Element.spacing 15
+        ]
+        [ Element.el [] (Element.text "Either enter your credentials...")
+        , Element.html
+            (table []
+                [ tr []
+                    [ td [] [ text "Keystone auth URL" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.authUrl
+                            , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
+                            , onInput (\u -> InputLoginField (AuthUrl u))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "Project Domain" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.projectDomain
+                            , onInput (\d -> InputLoginField (ProjectDomain d))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "Project Name" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.projectName
+                            , onInput (\pn -> InputLoginField (ProjectName pn))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "User Domain" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.userDomain
+                            , onInput (\d -> InputLoginField (UserDomain d))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "User Name" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.username
+                            , onInput (\u -> InputLoginField (Username u))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "Password" ]
+                    , td []
+                        [ input
+                            ([ type_ "password"
+                             , value model.creds.password
+                             , onInput (\p -> InputLoginField (Password p))
+                             ]
+                                ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
+                                    (Helpers.providePasswordHint model.creds.username model.creds.password)
+                            )
+                            []
+                        ]
+                    ]
+                ]
+            )
+        ]
+
+
+viewLoginOpenRcEntry : Model -> Element.Element Msg
+viewLoginOpenRcEntry model =
+    Element.column
+        [ Element.height Element.fill
+        , Element.spacing 15
+        ]
+        [ Element.paragraph []
+            [ Element.text "...or paste an "
 
             {-
                Todo this link opens in Electron, should open in user's browser
                https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
             -}
-            , a
-                [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
-                [ text "OpenRC"
-                ]
-            , text " file"
+            , Element.link []
+                { url = "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
+                , label = Element.text "OpenRC"
+                }
+            , Element.text " file"
             ]
-        , textarea
-            [ rows 10
-            , cols 40
-            , onInput (\o -> InputLoginField (OpenRc o))
-            , placeholder "export..."
+        , Input.multiline
+            [ Element.width (Element.px 300)
+            , Element.height (Element.px 200)
+            , Font.size 12
             ]
-            []
-        , div []
-            [ button [ onClick RequestNewProviderToken ] [ text "Log in" ]
-            ]
+            { onChange = \o -> InputLoginField (OpenRc o)
+            , text = "export..."
+            , placeholder = Nothing
+            , label = Input.labelLeft [] Element.none
+            , spellcheck = False
+            }
         ]
 
 
@@ -697,3 +741,18 @@ viewKeypairPicker provider createServerRequest =
                 ]
     in
     fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)
+
+
+
+{- Elm UI Doodads -}
+
+
+uiButton : { onPress : Maybe Msg, label : Element.Element Msg } -> Element.Element Msg
+uiButton props =
+    Input.button
+        [ Element.padding 5
+        , Border.rounded 6
+        , Border.color (Element.rgb 0 0 0)
+        , Border.width 1
+        ]
+        props
