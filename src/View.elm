@@ -39,36 +39,36 @@ elementView model =
                         Element.html (text "Oops! Provider not found")
 
                     Just provider ->
-                        Element.html (providerView model provider viewConstructor)
+                        providerView model provider viewConstructor
         , Element.html (viewMessages model)
         ]
 
 
-providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
+providerView : Model -> Provider -> ProviderViewConstructor -> Element.Element Msg
 providerView model provider viewConstructor =
     case viewConstructor of
         ListImages ->
-            div []
+            Element.column []
                 [ viewNav provider
                 , viewImagesIfLoaded provider model.imageFilterTag
                 ]
 
         ListProviderServers ->
-            div []
+            Element.column []
                 [ viewNav provider
-                , viewServers provider
+                , Element.html (viewServers provider)
                 ]
 
         ServerDetail serverUuid ->
-            div []
+            Element.column []
                 [ viewNav provider
-                , viewServerDetail provider serverUuid
+                , Element.html (viewServerDetail provider serverUuid)
                 ]
 
         CreateServer createServerRequest ->
-            div []
+            Element.column []
                 [ viewNav provider
-                , viewCreateServer provider createServerRequest
+                , Element.html (viewCreateServer provider createServerRequest)
                 ]
 
 
@@ -92,13 +92,15 @@ viewProviderPicker model =
         ]
 
 
-viewNav : Provider -> Html Msg
+viewNav : Provider -> Element.Element Msg
 viewNav provider =
-    div []
-        [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
-        ]
+    Element.html
+        (div []
+            [ h2 [] [ text "Navigation" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
+            ]
+        )
 
 
 
@@ -240,17 +242,17 @@ viewLoginOpenRcEntry model =
         ]
 
 
-viewImagesIfLoaded : Provider -> Maybe String -> Html Msg
+viewImagesIfLoaded : Provider -> Maybe String -> Element.Element Msg
 viewImagesIfLoaded provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
-            div [] [ p [] [ text "Images loading" ] ]
+            Element.column [] [ Element.row [] [ Element.text "Images loading" ] ]
 
         False ->
             viewImages provider maybeFilterTag
 
 
-viewImages : Provider -> Maybe String -> Html Msg
+viewImages : Provider -> Maybe String -> Element.Element Msg
 viewImages provider maybeFilterTag =
     let
         imageContainsTag tag image =
@@ -274,30 +276,32 @@ viewImages provider maybeFilterTag =
             else
                 provider.images
     in
-    div []
-        [ h2 [] [ text "Choose an image" ]
-        , div []
-            [ text "Filter on tag: "
-            , input
-                [ type_ "text"
-                , value (Maybe.withDefault "" maybeFilterTag)
-                , onInput (\t -> InputImageFilterTag t)
-                , placeholder "try \"distro-base\""
-                ]
-                []
-            , Html.br [] []
-            , button
-                [ onClick (InputImageFilterTag "")
-                ]
-                [ text "Clear filter (show all)" ]
-            , Html.br [] []
-            , if noMatchWarning then
-                text "No matches found, showing all images"
+    Element.column []
+        [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
+        , Element.html
+            (div []
+                [ text "Filter on tag: "
+                , input
+                    [ type_ "text"
+                    , value (Maybe.withDefault "" maybeFilterTag)
+                    , onInput (\t -> InputImageFilterTag t)
+                    , placeholder "try \"distro-base\""
+                    ]
+                    []
+                , Html.br [] []
+                , button
+                    [ onClick (InputImageFilterTag "")
+                    ]
+                    [ text "Clear filter (show all)" ]
+                , Html.br [] []
+                , if noMatchWarning then
+                    text "No matches found, showing all images"
 
-              else
-                div [] []
-            ]
-        , div [] (List.map (renderImage provider) displayedImages)
+                  else
+                    div [] []
+                ]
+            )
+        , Element.column [] (List.map (renderImage provider) displayedImages)
         ]
 
 
@@ -552,7 +556,7 @@ renderProviderPicker model provider =
             text provider.name
 
 
-renderImage : Provider -> Image -> Html Msg
+renderImage : Provider -> Image -> Element.Element Msg
 renderImage provider image =
     let
         size =
@@ -571,43 +575,45 @@ renderImage provider image =
                 Nothing ->
                     "N/A"
     in
-    div []
-        [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) ] [ text "Launch" ]
-        , table []
-            [ tr []
-                [ th [] [ text "Property" ]
-                , th [] [ text "Value" ]
+    Element.column []
+        [ Element.el [ Font.heavy ] (Element.text image.name)
+        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) })
+        , Element.html
+            (table []
+                [ tr []
+                    [ th [] [ text "Property" ]
+                    , th [] [ text "Value" ]
+                    ]
+                , tr []
+                    [ td [] [ text "Status" ]
+                    , td [] [ text (Debug.toString image.status) ]
+                    ]
+                , tr []
+                    [ td [] [ text "Size" ]
+                    , td [] [ text size ]
+                    ]
+                , tr []
+                    [ td [] [ text "Checksum" ]
+                    , td [] [ text checksum ]
+                    ]
+                , tr []
+                    [ td [] [ text "Disk format" ]
+                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
+                    ]
+                , tr []
+                    [ td [] [ text "Container format" ]
+                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
+                    ]
+                , tr []
+                    [ td [] [ text "UUID" ]
+                    , td [] [ text image.uuid ]
+                    ]
+                , tr []
+                    [ td [] [ text "Tags" ]
+                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+                    ]
                 ]
-            , tr []
-                [ td [] [ text "Status" ]
-                , td [] [ text (Debug.toString image.status) ]
-                ]
-            , tr []
-                [ td [] [ text "Size" ]
-                , td [] [ text size ]
-                ]
-            , tr []
-                [ td [] [ text "Checksum" ]
-                , td [] [ text checksum ]
-                ]
-            , tr []
-                [ td [] [ text "Disk format" ]
-                , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
-                ]
-            , tr []
-                [ td [] [ text "Container format" ]
-                , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
-                ]
-            , tr []
-                [ td [] [ text "UUID" ]
-                , td [] [ text image.uuid ]
-                ]
-            , tr []
-                [ td [] [ text "Tags" ]
-                , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                ]
-            ]
+            )
         ]
 
 
