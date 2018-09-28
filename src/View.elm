@@ -39,7 +39,7 @@ elementView model =
                         Element.html (text "Oops! Provider not found")
 
                     Just provider ->
-                        providerView model provider viewConstructor
+                        Element.html (providerView model provider viewConstructor)
         , Element.html (viewMessages model)
         ]
 
