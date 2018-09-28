@@ -25,7 +25,7 @@ view model =
 
 elementView : Model -> Element.Element Msg
 elementView model =
-    Element.column []
+    Element.column [ Element.padding 10 ]
         [ Element.html (viewProviderPicker model)
         , case model.viewState of
             NonProviderView viewConstructor ->
@@ -39,7 +39,7 @@ elementView model =
                         Element.html (text "Oops! Provider not found")
 
                     Just provider ->
-                        Element.html (providerView model provider viewConstructor)
+                        providerView model provider viewConstructor
         , Element.html (viewMessages model)
         ]
 
@@ -276,32 +276,21 @@ viewImages provider maybeFilterTag =
             else
                 provider.images
     in
-    Element.column []
+    Element.column [ Element.spacing 10 ]
         [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
-        , Element.html
-            (div []
-                [ text "Filter on tag: "
-                , input
-                    [ type_ "text"
-                    , value (Maybe.withDefault "" maybeFilterTag)
-                    , onInput (\t -> InputImageFilterTag t)
-                    , placeholder "try \"distro-base\""
-                    ]
-                    []
-                , Html.br [] []
-                , button
-                    [ onClick (InputImageFilterTag "")
-                    ]
-                    [ text "Clear filter (show all)" ]
-                , Html.br [] []
-                , if noMatchWarning then
-                    text "No matches found, showing all images"
+        , Input.text []
+            { text = Maybe.withDefault "" maybeFilterTag
+            , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
+            , onChange = \t -> InputImageFilterTag t
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
+            }
+        , uiButton { label = Element.text "Clear filter (show all)", onPress = Just (InputImageFilterTag "") }
+        , if noMatchWarning then
+            Element.text "No matches found, showing all images"
 
-                  else
-                    div [] []
-                ]
-            )
-        , Element.column [] (List.map (renderImage provider) displayedImages)
+          else
+            Element.none
+        , Element.wrappedRow [ Element.spacing 20 ] (List.map (renderImage provider) displayedImages)
         ]
 
 
@@ -575,45 +564,70 @@ renderImage provider image =
                 Nothing ->
                     "N/A"
     in
-    Element.column []
-        [ Element.el [ Font.heavy ] (Element.text image.name)
+    Element.column
+        [ Element.spacing 10
+        , Element.height Element.fill
+        , Element.width (Element.px 500)
+        , Border.width 1
+        , Border.shadow
+            { offset = ( 2, 2 )
+            , size = 2
+            , blur = 1
+            , color = Element.rgba 0.3 0.3 0.3 0.6
+            }
+        , Element.padding 10
+        ]
+        [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
         , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) })
-        , Element.html
-            (table []
-                [ tr []
-                    [ th [] [ text "Property" ]
-                    , th [] [ text "Value" ]
-                    ]
-                , tr []
-                    [ td [] [ text "Status" ]
-                    , td [] [ text (Debug.toString image.status) ]
-                    ]
-                , tr []
-                    [ td [] [ text "Size" ]
-                    , td [] [ text size ]
-                    ]
-                , tr []
-                    [ td [] [ text "Checksum" ]
-                    , td [] [ text checksum ]
-                    ]
-                , tr []
-                    [ td [] [ text "Disk format" ]
-                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
-                    ]
-                , tr []
-                    [ td [] [ text "Container format" ]
-                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
-                    ]
-                , tr []
-                    [ td [] [ text "UUID" ]
-                    , td [] [ text image.uuid ]
-                    ]
-                , tr []
-                    [ td [] [ text "Tags" ]
-                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                    ]
-                ]
-            )
+        , Element.row []
+            [ Element.text "Status: "
+            , Element.text (Debug.toString image.status)
+            ]
+        , Element.row []
+            [ Element.text "Size: "
+            , Element.text size
+            ]
+        , Element.row []
+            [ Element.text "tags: "
+            , Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags)
+            ]
+
+        --        , Element.html
+        --            (table []
+        --                [ tr []
+        --                    [ th [] [ text "Property" ]
+        --                    , th [] [ text "Value" ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Status" ]
+        --                    , td [] [ text (Debug.toString image.status) ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Size" ]
+        --                    , td [] [ text size ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Checksum" ]
+        --                    , td [] [ text checksum ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Disk format" ]
+        --                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Container format" ]
+        --                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "UUID" ]
+        --                    , td [] [ text image.uuid ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Tags" ]
+        --                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+        --                    ]
+        --                ]
+        --            )
         ]
 
 
