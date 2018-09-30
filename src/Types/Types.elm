@@ -74,8 +74,7 @@ type NonProviderViewConstructor
 
 
 type ProviderViewConstructor
-    = ProviderHome
-    | ListImages
+    = ListImages
     | ListProviderServers
     | ServerDetail ServerUuid
     | CreateServer CreateServerRequest

@@ -34,14 +34,6 @@ view model =
 providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
 providerView model provider viewConstructor =
     case viewConstructor of
-        ProviderHome ->
-            div []
-                [ p []
-                    [ viewNav provider
-                    , text ("Home page for " ++ provider.name ++ ", todo put things here")
-                    ]
-                ]
-
         ListImages ->
             div []
                 [ viewNav provider
@@ -91,7 +83,6 @@ viewNav : Provider -> Html Msg
 viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text "Home" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
         ]
@@ -499,7 +490,7 @@ renderProviderPicker model provider =
     in
     case isSelected provider of
         False ->
-            button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
+            button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text provider.name ]
 
         True ->
             text provider.name

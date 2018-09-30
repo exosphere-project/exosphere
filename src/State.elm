@@ -164,9 +164,6 @@ processProviderSpecificMsg model provider msg =
                     { model | viewState = ProviderView provider.name providerViewConstructor }
             in
             case providerViewConstructor of
-                ProviderHome ->
-                    ( newModel, Cmd.none )
-
                 ListImages ->
                     ( newModel, Rest.requestImages provider )
 
@@ -283,7 +280,7 @@ processProviderSpecificMsg model provider msg =
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ProviderMsg provider.name (SetProviderView ProviderHome)) model
+            update (ProviderMsg provider.name (SetProviderView ListProviderServers)) model
 
         ReceiveNetworks result ->
             Rest.receiveNetworks model provider result

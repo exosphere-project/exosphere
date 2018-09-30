@@ -444,7 +444,7 @@ createProvider model response =
                         , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
-            ( newModel, Cmd.none )
+            ( newModel, requestServers newProvider )
 
 
 receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
