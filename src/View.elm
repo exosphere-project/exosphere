@@ -1,6 +1,12 @@
 module View exposing (view)
 
 import Base64
+import Element
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
+import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
@@ -13,8 +19,14 @@ import Types.Types exposing (..)
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewProviderPicker model
+    Element.layout []
+        (elementView model)
+
+
+elementView : Model -> Element.Element Msg
+elementView model =
+    Element.column [ Element.padding 10 ]
+        [ Element.html (viewProviderPicker model)
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -24,39 +36,39 @@ view model =
             ProviderView providerName viewConstructor ->
                 case Helpers.providerLookup model providerName of
                     Nothing ->
-                        text "Oops! Provider not found"
+                        Element.html (text "Oops! Provider not found")
 
                     Just provider ->
                         providerView model provider viewConstructor
-        , viewMessages model
+        , Element.html (viewMessages model)
         ]
 
 
-providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
+providerView : Model -> Provider -> ProviderViewConstructor -> Element.Element Msg
 providerView model provider viewConstructor =
     case viewConstructor of
         ListImages ->
-            div []
+            Element.column []
                 [ viewNav provider
                 , viewImagesIfLoaded provider model.imageFilterTag
                 ]
 
         ListProviderServers ->
-            div []
+            Element.column []
                 [ viewNav provider
-                , viewServers provider
+                , Element.html (viewServers provider)
                 ]
 
         ServerDetail serverUuid ->
-            div []
+            Element.column []
                 [ viewNav provider
-                , viewServerDetail provider serverUuid
+                , Element.html (viewServerDetail provider serverUuid)
                 ]
 
         CreateServer createServerRequest ->
-            div []
+            Element.column []
                 [ viewNav provider
-                , viewCreateServer provider createServerRequest
+                , Element.html (viewCreateServer provider createServerRequest)
                 ]
 
 
@@ -80,133 +92,167 @@ viewProviderPicker model =
         ]
 
 
-viewNav : Provider -> Html Msg
+viewNav : Provider -> Element.Element Msg
 viewNav provider =
-    div []
-        [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
-        ]
+    Element.html
+        (div []
+            [ h2 [] [ text "Navigation" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
+            , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
+            ]
+        )
 
 
 
 {- Resource-specific views -}
 
 
-viewLogin : Model -> Html Msg
+viewLogin : Model -> Element.Element Msg
 viewLogin model =
-    div []
-        [ h2 [] [ text "Please log in" ]
-        , p [] [ text "Either enter your credentials..." ]
-        , table []
-            [ tr []
-                [ td [] [ text "Keystone auth URL" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.authUrl
-                        , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-                        , onInput (\u -> InputLoginField (AuthUrl u))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Project Domain" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.projectDomain
-                        , onInput (\d -> InputLoginField (ProjectDomain d))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Project Name" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.projectName
-                        , onInput (\pn -> InputLoginField (ProjectName pn))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "User Domain" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.userDomain
-                        , onInput (\d -> InputLoginField (UserDomain d))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "User Name" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , value model.creds.username
-                        , onInput (\u -> InputLoginField (Username u))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Password" ]
-                , td []
-                    [ input
-                        ([ type_ "password"
-                         , value model.creds.password
-                         , onInput (\p -> InputLoginField (Password p))
-                         ]
-                            ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
-                                (Helpers.providePasswordHint model.creds.username model.creds.password)
-                        )
-                        []
-                    ]
-                ]
+    Element.column [ Element.spacing 20 ]
+        [ Element.el
+            [ Region.heading 2
+            , Font.size 24
+            , Font.bold
             ]
-        , p []
-            [ text "...or paste an "
+            (Element.text "Please log in")
+        , Element.wrappedRow
+            [ Element.spacing 10 ]
+            [ viewLoginCredsEntry model
+            , viewLoginOpenRcEntry model
+            ]
+        , Element.el [ Element.alignRight ] (uiButton { label = Element.text "Log in", onPress = Just RequestNewProviderToken })
+        ]
+
+
+viewLoginCredsEntry : Model -> Element.Element Msg
+viewLoginCredsEntry model =
+    Element.column
+        [ Element.height Element.fill
+        , Element.spacing 15
+        ]
+        [ Element.el [] (Element.text "Either enter your credentials...")
+        , Element.html
+            (table []
+                [ tr []
+                    [ td [] [ text "Keystone auth URL" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.authUrl
+                            , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
+                            , onInput (\u -> InputLoginField (AuthUrl u))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "Project Domain" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.projectDomain
+                            , onInput (\d -> InputLoginField (ProjectDomain d))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "Project Name" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.projectName
+                            , onInput (\pn -> InputLoginField (ProjectName pn))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "User Domain" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.userDomain
+                            , onInput (\d -> InputLoginField (UserDomain d))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "User Name" ]
+                    , td []
+                        [ input
+                            [ type_ "text"
+                            , value model.creds.username
+                            , onInput (\u -> InputLoginField (Username u))
+                            ]
+                            []
+                        ]
+                    ]
+                , tr []
+                    [ td [] [ text "Password" ]
+                    , td []
+                        [ input
+                            ([ type_ "password"
+                             , value model.creds.password
+                             , onInput (\p -> InputLoginField (Password p))
+                             ]
+                                ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
+                                    (Helpers.providePasswordHint model.creds.username model.creds.password)
+                            )
+                            []
+                        ]
+                    ]
+                ]
+            )
+        ]
+
+
+viewLoginOpenRcEntry : Model -> Element.Element Msg
+viewLoginOpenRcEntry model =
+    Element.column
+        [ Element.height Element.fill
+        , Element.spacing 15
+        ]
+        [ Element.paragraph []
+            [ Element.text "...or paste an "
 
             {-
                Todo this link opens in Electron, should open in user's browser
                https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
             -}
-            , a
-                [ href "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" ]
-                [ text "OpenRC"
-                ]
-            , text " file"
+            , Element.link []
+                { url = "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
+                , label = Element.text "OpenRC"
+                }
+            , Element.text " file"
             ]
-        , textarea
-            [ rows 10
-            , cols 40
-            , onInput (\o -> InputLoginField (OpenRc o))
-            , placeholder "export..."
+        , Input.multiline
+            [ Element.width (Element.px 300)
+            , Element.height (Element.px 200)
+            , Font.size 12
             ]
-            []
-        , div []
-            [ button [ onClick RequestNewProviderToken ] [ text "Log in" ]
-            ]
+            { onChange = \o -> InputLoginField (OpenRc o)
+            , text = "export..."
+            , placeholder = Nothing
+            , label = Input.labelLeft [] Element.none
+            , spellcheck = False
+            }
         ]
 
 
-viewImagesIfLoaded : Provider -> Maybe String -> Html Msg
+viewImagesIfLoaded : Provider -> Maybe String -> Element.Element Msg
 viewImagesIfLoaded provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
-            div [] [ p [] [ text "Images loading" ] ]
+            Element.column [] [ Element.row [] [ Element.text "Images loading" ] ]
 
         False ->
             viewImages provider maybeFilterTag
 
 
-viewImages : Provider -> Maybe String -> Html Msg
+viewImages : Provider -> Maybe String -> Element.Element Msg
 viewImages provider maybeFilterTag =
     let
         imageContainsTag tag image =
@@ -230,30 +276,21 @@ viewImages provider maybeFilterTag =
             else
                 provider.images
     in
-    div []
-        [ h2 [] [ text "Choose an image" ]
-        , div []
-            [ text "Filter on tag: "
-            , input
-                [ type_ "text"
-                , value (Maybe.withDefault "" maybeFilterTag)
-                , onInput (\t -> InputImageFilterTag t)
-                , placeholder "try \"distro-base\""
-                ]
-                []
-            , Html.br [] []
-            , button
-                [ onClick (InputImageFilterTag "")
-                ]
-                [ text "Clear filter (show all)" ]
-            , Html.br [] []
-            , if noMatchWarning then
-                text "No matches found, showing all images"
+    Element.column [ Element.spacing 10 ]
+        [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
+        , Input.text []
+            { text = Maybe.withDefault "" maybeFilterTag
+            , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
+            , onChange = \t -> InputImageFilterTag t
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
+            }
+        , uiButton { label = Element.text "Clear filter (show all)", onPress = Just (InputImageFilterTag "") }
+        , if noMatchWarning then
+            Element.text "No matches found, showing all images"
 
-              else
-                div [] []
-            ]
-        , div [] (List.map (renderImage provider) displayedImages)
+          else
+            Element.none
+        , Element.wrappedRow [ Element.spacing 20 ] (List.map (renderImage provider) displayedImages)
         ]
 
 
@@ -508,7 +545,7 @@ renderProviderPicker model provider =
             text provider.name
 
 
-renderImage : Provider -> Image -> Html Msg
+renderImage : Provider -> Image -> Element.Element Msg
 renderImage provider image =
     let
         size =
@@ -527,43 +564,70 @@ renderImage provider image =
                 Nothing ->
                     "N/A"
     in
-    div []
-        [ p [] [ strong [] [ text image.name ] ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) ] [ text "Launch" ]
-        , table []
-            [ tr []
-                [ th [] [ text "Property" ]
-                , th [] [ text "Value" ]
-                ]
-            , tr []
-                [ td [] [ text "Status" ]
-                , td [] [ text (Debug.toString image.status) ]
-                ]
-            , tr []
-                [ td [] [ text "Size" ]
-                , td [] [ text size ]
-                ]
-            , tr []
-                [ td [] [ text "Checksum" ]
-                , td [] [ text checksum ]
-                ]
-            , tr []
-                [ td [] [ text "Disk format" ]
-                , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
-                ]
-            , tr []
-                [ td [] [ text "Container format" ]
-                , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
-                ]
-            , tr []
-                [ td [] [ text "UUID" ]
-                , td [] [ text image.uuid ]
-                ]
-            , tr []
-                [ td [] [ text "Tags" ]
-                , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                ]
+    Element.column
+        [ Element.spacing 10
+        , Element.height Element.fill
+        , Element.width (Element.px 500)
+        , Border.width 1
+        , Border.shadow
+            { offset = ( 2, 2 )
+            , size = 2
+            , blur = 1
+            , color = Element.rgba 0.3 0.3 0.3 0.6
+            }
+        , Element.padding 10
+        ]
+        [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
+        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) })
+        , Element.row []
+            [ Element.text "Status: "
+            , Element.text (Debug.toString image.status)
             ]
+        , Element.row []
+            [ Element.text "Size: "
+            , Element.text size
+            ]
+        , Element.row []
+            [ Element.text "tags: "
+            , Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags)
+            ]
+
+        --        , Element.html
+        --            (table []
+        --                [ tr []
+        --                    [ th [] [ text "Property" ]
+        --                    , th [] [ text "Value" ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Status" ]
+        --                    , td [] [ text (Debug.toString image.status) ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Size" ]
+        --                    , td [] [ text size ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Checksum" ]
+        --                    , td [] [ text checksum ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Disk format" ]
+        --                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Container format" ]
+        --                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "UUID" ]
+        --                    , td [] [ text image.uuid ]
+        --                    ]
+        --                , tr []
+        --                    [ td [] [ text "Tags" ]
+        --                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+        --                    ]
+        --                ]
+        --            )
         ]
 
 
@@ -697,3 +761,18 @@ viewKeypairPicker provider createServerRequest =
                 ]
     in
     fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)
+
+
+
+{- Elm UI Doodads -}
+
+
+uiButton : { onPress : Maybe Msg, label : Element.Element Msg } -> Element.Element Msg
+uiButton props =
+    Input.button
+        [ Element.padding 5
+        , Border.rounded 6
+        , Border.color (Element.rgb 0 0 0)
+        , Border.width 1
+        ]
+        props

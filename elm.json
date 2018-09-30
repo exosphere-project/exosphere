@@ -16,6 +16,7 @@
             "elm/time": "1.0.0",
             "elm-community/maybe-extra": "5.0.0",
             "krisajenkins/remotedata": "5.0.0",
+            "mdgriffith/elm-ui": "1.0.0",
             "truqu/elm-base64": "2.0.4"
         },
         "indirect": {
