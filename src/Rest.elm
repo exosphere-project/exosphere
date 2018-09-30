@@ -6,6 +6,7 @@ import Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import RemoteData
 import Types.OpenstackTypes as OpenstackTypes
 import Types.Types exposing (..)
 
@@ -331,7 +332,7 @@ requestFloatingIpIfRequestable : Model -> Provider -> Network -> Port -> ServerU
 requestFloatingIpIfRequestable model provider network port_ serverUuid =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) provider.servers
+            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
     case maybeServer of
@@ -354,13 +355,13 @@ requestFloatingIp model provider network port_ server =
             { server | floatingIpState = RequestedWaiting }
 
         otherServers =
-            List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
 
         newServers =
             newServer :: otherServers
 
         newProvider =
-            { provider | servers = newServers }
+            { provider | servers = RemoteData.Success newServers }
 
         newModel =
             Helpers.modelUpdateProvider model newProvider
@@ -428,7 +429,7 @@ createProvider model response =
                     , authToken = authToken
                     , endpoints = endpoints
                     , images = []
-                    , servers = []
+                    , servers = RemoteData.NotAsked
                     , flavors = []
                     , keypairs = []
                     , networks = []
@@ -490,7 +491,7 @@ receiveServers model provider result =
                     List.member serverUuid serverUuids
 
                 existingServers =
-                    provider.servers
+                    RemoteData.withDefault [] provider.servers
 
                 ( newServersInExistingServers, newServersNotInExistingServers ) =
                     List.partition (serverIsInListOfServers existingServers) newServers
@@ -525,7 +526,7 @@ receiveServers model provider result =
                     List.sortBy .name newServersWithExistingMatchesAndWithout
 
                 newProvider =
-                    { provider | servers = newServersWithExistingMatchesAndWithoutSorted }
+                    { provider | servers = RemoteData.Success newServersWithExistingMatchesAndWithoutSorted }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
@@ -544,7 +545,7 @@ receiveServerDetail model provider serverUuid result =
                 maybeServer =
                     List.filter
                         (\s -> s.uuid == serverUuid)
-                        provider.servers
+                        (RemoteData.withDefault [] provider.servers)
                         |> List.head
             in
             case maybeServer of
@@ -569,7 +570,7 @@ receiveServerDetail model provider serverUuid result =
                         otherServers =
                             List.filter
                                 (\s -> s.uuid /= newServer.uuid)
-                                provider.servers
+                                (RemoteData.withDefault [] provider.servers)
 
                         newServers =
                             newServer :: otherServers
@@ -578,7 +579,7 @@ receiveServerDetail model provider serverUuid result =
                             List.sortBy .name newServers
 
                         newProvider =
-                            { provider | servers = newServersSorted }
+                            { provider | servers = RemoteData.Success newServersSorted }
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider
@@ -716,7 +717,7 @@ receiveFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error IpAddre
 receiveFloatingIp model provider serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) provider.servers
+            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
     case maybeServer of
@@ -733,13 +734,13 @@ receiveFloatingIp model provider serverUuid result =
                             { server | floatingIpState = Failed }
 
                         otherServers =
-                            List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+                            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
 
                         newServers =
                             newServer :: otherServers
 
                         newProvider =
-                            { provider | servers = newServers }
+                            { provider | servers = RemoteData.Success newServers }
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider
@@ -760,13 +761,13 @@ receiveFloatingIp model provider serverUuid result =
                         otherServers =
                             List.filter
                                 (\s -> s.uuid /= newServer.uuid)
-                                provider.servers
+                                (RemoteData.withDefault [] provider.servers)
 
                         newServers =
                             newServer :: otherServers
 
                         newProvider =
-                            { provider | servers = newServers }
+                            { provider | servers = RemoteData.Success newServers }
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider

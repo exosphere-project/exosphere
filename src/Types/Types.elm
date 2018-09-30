@@ -2,6 +2,7 @@ module Types.Types exposing (AuthToken, CreateServerField(..), CreateServerReque
 
 import Http
 import Maybe
+import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
 
@@ -24,7 +25,7 @@ type alias Provider =
     , authToken : AuthToken
     , endpoints : Endpoints
     , images : List Image
-    , servers : List Server
+    , servers : WebData (List Server)
     , flavors : List Flavor
     , keypairs : List Keypair
     , networks : List Network

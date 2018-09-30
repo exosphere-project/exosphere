@@ -2,6 +2,7 @@ module State exposing (init, subscriptions, update)
 
 import Helpers
 import Maybe
+import RemoteData
 import Rest
 import Time
 import Types.Types exposing (..)
@@ -208,9 +209,7 @@ processProviderSpecificMsg model provider msg =
                 newProvider =
                     { provider
                         | servers =
-                            List.filter
-                                (\s -> s /= server)
-                                provider.servers
+                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers))
                     }
 
                 newModel =
@@ -231,7 +230,11 @@ processProviderSpecificMsg model provider msg =
                         someServer
 
                 newProvider =
-                    { provider | servers = List.filter (\s -> not (List.member s serversToDelete)) provider.servers }
+                    { provider
+                        | servers =
+                            RemoteData.Success
+                                (List.map updateServer (RemoteData.withDefault [] provider.servers))
+                    }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
@@ -252,7 +255,7 @@ processProviderSpecificMsg model provider msg =
                 newProvider =
                     { provider
                         | servers =
-                            List.map updateServer provider.servers
+                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers))
                     }
 
                 newModel =
@@ -268,7 +271,7 @@ processProviderSpecificMsg model provider msg =
                     { someServer | selected = allServersSelected }
 
                 newProvider =
-                    { provider | servers = List.map updateServer provider.servers }
+                    { provider | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers)) }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider

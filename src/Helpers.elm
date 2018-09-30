@@ -3,6 +3,7 @@ module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork,
 import Debug
 import Maybe.Extra
 import Regex
+import RemoteData
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.OpenstackTypes as OpenstackTypes
@@ -189,7 +190,7 @@ checkFloatingIpState serverDetails floatingIpState =
 
 serverLookup : Provider -> ServerUuid -> Maybe Server
 serverLookup provider serverUuid =
-    List.filter (\s -> s.uuid == serverUuid) provider.servers |> List.head
+    List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers) |> List.head
 
 
 providerLookup : Model -> ProviderName -> Maybe Provider

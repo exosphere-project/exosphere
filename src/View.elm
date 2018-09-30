@@ -7,6 +7,7 @@ import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, 
 import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe
+import RemoteData
 import Types.Types exposing (..)
 
 
@@ -258,45 +259,56 @@ viewImages provider maybeFilterTag =
 
 viewServers : Provider -> Html Msg
 viewServers provider =
-    case List.isEmpty provider.servers of
-        True ->
-            div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+    case provider.servers of
+        RemoteData.NotAsked ->
+            div [] [ p [] [ text "Please wait..." ] ]
 
-        False ->
-            let
-                noServersSelected =
-                    List.any .selected provider.servers |> not
+        RemoteData.Loading ->
+            div [] [ p [] [ text "Loading..." ] ]
 
-                allServersSelected =
-                    List.all .selected provider.servers
+        RemoteData.Failure e ->
+            div [] [ p [] [ text ("Cannot display servers. Error message: " ++ Debug.toString e) ] ]
 
-                selectedServers =
-                    List.filter .selected provider.servers
-            in
-            div []
-                [ h2 [] [ text "My Servers" ]
-                , div []
-                    [ fieldset []
-                        [ legend [] [ text "Bulk Actions" ]
-                        , input
-                            [ type_ "checkbox"
-                            , name "toggle-all"
-                            , checked allServersSelected
-                            , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
+        RemoteData.Success servers ->
+            case List.isEmpty servers of
+                True ->
+                    div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+
+                False ->
+                    let
+                        noServersSelected =
+                            List.any .selected servers |> not
+
+                        allServersSelected =
+                            List.all .selected servers
+
+                        selectedServers =
+                            List.filter .selected servers
+                    in
+                    div []
+                        [ h2 [] [ text "My Servers" ]
+                        , div []
+                            [ fieldset []
+                                [ legend [] [ text "Bulk Actions" ]
+                                , input
+                                    [ type_ "checkbox"
+                                    , name "toggle-all"
+                                    , checked allServersSelected
+                                    , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
+                                    ]
+                                    []
+                                , label
+                                    [ for "toggle-all" ]
+                                    [ text "Select All" ]
+                                , button
+                                    [ disabled noServersSelected
+                                    , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+                                    ]
+                                    [ text "Delete" ]
+                                ]
                             ]
-                            []
-                        , label
-                            [ for "toggle-all" ]
-                            [ text "Select All" ]
-                        , button
-                            [ disabled noServersSelected
-                            , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
-                            ]
-                            [ text "Delete" ]
+                        , div [] (List.map (renderServer provider) servers)
                         ]
-                    ]
-                , div [] (List.map (renderServer provider) provider.servers)
-                ]
 
 
 viewServerDetail : Provider -> ServerUuid -> Html Msg
