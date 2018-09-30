@@ -2,6 +2,7 @@ module State exposing (init, subscriptions, update)
 
 import Helpers
 import Maybe
+import RemoteData
 import Rest
 import Time
 import Types.Types exposing (..)
@@ -164,9 +165,6 @@ processProviderSpecificMsg model provider msg =
                     { model | viewState = ProviderView provider.name providerViewConstructor }
             in
             case providerViewConstructor of
-                ProviderHome ->
-                    ( newModel, Cmd.none )
-
                 ListImages ->
                     ( newModel, Rest.requestImages provider )
 
@@ -201,12 +199,17 @@ processProviderSpecificMsg model provider msg =
 
         RequestDeleteServer server ->
             let
+                updateServer someServer =
+                    if someServer.uuid == server.uuid then
+                        { someServer | deletionAttempted = True }
+
+                    else
+                        someServer
+
                 newProvider =
                     { provider
                         | servers =
-                            List.filter
-                                (\s -> s /= server)
-                                provider.servers
+                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers))
                     }
 
                 newModel =
@@ -219,8 +222,19 @@ processProviderSpecificMsg model provider msg =
 
         RequestDeleteServers serversToDelete ->
             let
+                updateServer someServer =
+                    if List.member someServer.uuid (List.map .uuid serversToDelete) then
+                        { someServer | deletionAttempted = True }
+
+                    else
+                        someServer
+
                 newProvider =
-                    { provider | servers = List.filter (\s -> not (List.member s serversToDelete)) provider.servers }
+                    { provider
+                        | servers =
+                            RemoteData.Success
+                                (List.map updateServer (RemoteData.withDefault [] provider.servers))
+                    }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
@@ -241,7 +255,7 @@ processProviderSpecificMsg model provider msg =
                 newProvider =
                     { provider
                         | servers =
-                            List.map updateServer provider.servers
+                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers))
                     }
 
                 newModel =
@@ -257,7 +271,7 @@ processProviderSpecificMsg model provider msg =
                     { someServer | selected = allServersSelected }
 
                 newProvider =
-                    { provider | servers = List.map updateServer provider.servers }
+                    { provider | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers)) }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
@@ -283,7 +297,7 @@ processProviderSpecificMsg model provider msg =
 
         ReceiveDeleteServer _ ->
             {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ProviderMsg provider.name (SetProviderView ProviderHome)) model
+            update (ProviderMsg provider.name (SetProviderView ListProviderServers)) model
 
         ReceiveNetworks result ->
             Rest.receiveNetworks model provider result

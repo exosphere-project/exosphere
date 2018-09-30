@@ -7,6 +7,7 @@ import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, 
 import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe
+import RemoteData
 import Types.Types exposing (..)
 
 
@@ -34,14 +35,6 @@ view model =
 providerView : Model -> Provider -> ProviderViewConstructor -> Html Msg
 providerView model provider viewConstructor =
     case viewConstructor of
-        ProviderHome ->
-            div []
-                [ p []
-                    [ viewNav provider
-                    , text ("Home page for " ++ provider.name ++ ", todo put things here")
-                    ]
-                ]
-
         ListImages ->
             div []
                 [ viewNav provider
@@ -91,7 +84,6 @@ viewNav : Provider -> Html Msg
 viewNav provider =
     div []
         [ h2 [] [ text "Navigation" ]
-        , button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text "Home" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
         , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
         ]
@@ -267,45 +259,56 @@ viewImages provider maybeFilterTag =
 
 viewServers : Provider -> Html Msg
 viewServers provider =
-    case List.isEmpty provider.servers of
-        True ->
-            div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+    case provider.servers of
+        RemoteData.NotAsked ->
+            div [] [ p [] [ text "Please wait..." ] ]
 
-        False ->
-            let
-                noServersSelected =
-                    List.any .selected provider.servers |> not
+        RemoteData.Loading ->
+            div [] [ p [] [ text "Loading..." ] ]
 
-                allServersSelected =
-                    List.all .selected provider.servers
+        RemoteData.Failure e ->
+            div [] [ p [] [ text ("Cannot display servers. Error message: " ++ Debug.toString e) ] ]
 
-                selectedServers =
-                    List.filter .selected provider.servers
-            in
-            div []
-                [ h2 [] [ text "My Servers" ]
-                , div []
-                    [ fieldset []
-                        [ legend [] [ text "Bulk Actions" ]
-                        , input
-                            [ type_ "checkbox"
-                            , name "toggle-all"
-                            , checked allServersSelected
-                            , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
+        RemoteData.Success servers ->
+            case List.isEmpty servers of
+                True ->
+                    div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+
+                False ->
+                    let
+                        noServersSelected =
+                            List.any .selected servers |> not
+
+                        allServersSelected =
+                            List.all .selected servers
+
+                        selectedServers =
+                            List.filter .selected servers
+                    in
+                    div []
+                        [ h2 [] [ text "My Servers" ]
+                        , div []
+                            [ fieldset []
+                                [ legend [] [ text "Bulk Actions" ]
+                                , input
+                                    [ type_ "checkbox"
+                                    , name "toggle-all"
+                                    , checked allServersSelected
+                                    , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
+                                    ]
+                                    []
+                                , label
+                                    [ for "toggle-all" ]
+                                    [ text "Select All" ]
+                                , button
+                                    [ disabled noServersSelected
+                                    , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+                                    ]
+                                    [ text "Delete" ]
+                                ]
                             ]
-                            []
-                        , label
-                            [ for "toggle-all" ]
-                            [ text "Select All" ]
-                        , button
-                            [ disabled noServersSelected
-                            , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
-                            ]
-                            [ text "Delete" ]
+                        , div [] (List.map (renderServer provider) servers)
                         ]
-                    ]
-                , div [] (List.map (renderServer provider) provider.servers)
-                ]
 
 
 viewServerDetail : Provider -> ServerUuid -> Html Msg
@@ -499,7 +502,7 @@ renderProviderPicker model provider =
     in
     case isSelected provider of
         False ->
-            button [ onClick (ProviderMsg provider.name (SetProviderView ProviderHome)) ] [ text provider.name ]
+            button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text provider.name ]
 
         True ->
             text provider.name
@@ -578,7 +581,11 @@ renderServer provider server =
             ]
         , text ("UUID: " ++ server.uuid)
         , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
-        , button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
+        , if server.deletionAttempted == True then
+            text "Deleting..."
+
+          else
+            button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
         ]
 
 
