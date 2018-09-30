@@ -17,13 +17,23 @@ init =
         globalDefaults =
             { shellUserData =
                 """#cloud-config
-# The following code installs a server for the in-browser terminal.
+users:
+  - name: johndoe
+    shell: /bin/bash
+    groups: sudo, admin
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDOh+iPN+4MRfHXnWyTV0u0AEwe+b1IQVZyMKu9J995rYsY+W9r9Pz06U3sZgjFJ2HIPtCKVHwHBJaTmxOcCWB/295dNEzhsCxnBoxbVTHGV+yjqzOLmOIoBTVIpRBP/KILCo9q0hrJLRceXaJE/wgdB/9qqIGd82j0MD1lAUMzy7JkbCIaona32opSWsrxabgL7Di1pb8QjZumBZ/Vu3x0dN7qaAxHkZIdEh5kbmxNjqmf6QzywlJVrgyHR9xn2nPGGe9CBlM47dSMkR1ZRN2dHyzjDrfTG5TjDRor30hYUyuDSWj6QBhHa5J/Qg24e8ZtSCjFvbBSj+hYsn3WxHd3 johndoe@example.com
+packages:
+  - cockpit
 runcmd:
- - [wget, "https://gist.githubusercontent.com/julianpistorius/466af49f5eb1eb6b3c0c24ce92d7c855/raw/setup_webshell.sh", -O, "/home/ubuntu/setup_webshell.sh" ]
- - [ sh, -cxe, "chown ubuntu.ubuntu /home/ubuntu/*" ]
- - [ sh, -cxe, "chmod 700 /home/ubuntu/setup_webshell.sh" ]
- - [ sh, -cxe, "user_passwd=test su -c /home/ubuntu/setup_webshell.sh ubuntu" ]
-
+  - systemctl enable cockpit.socket
+  - systemctl start cockpit.socket
+  - systemctl daemon-reload
+chpasswd:
+  list: |
+    johndoe:redacted-password-add-your-own-password-here
+  expire: False
 final_message: "The system is finally up, after $UPTIME seconds"
 """
             }
