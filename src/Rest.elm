@@ -883,7 +883,7 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map5 Server
+    Decode.map6 Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -892,6 +892,7 @@ serverDecoder =
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
         (Decode.succeed Unknown)
+        (Decode.succeed False)
         (Decode.succeed False)
 
 

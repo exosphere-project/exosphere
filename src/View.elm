@@ -569,7 +569,11 @@ renderServer provider server =
             ]
         , text ("UUID: " ++ server.uuid)
         , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
-        , button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
+        , if server.deletionAttempted == True then
+            text "Deleting..."
+
+          else
+            button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
         ]
 
 

@@ -198,6 +198,13 @@ processProviderSpecificMsg model provider msg =
 
         RequestDeleteServer server ->
             let
+                updateServer someServer =
+                    if someServer.uuid == server.uuid then
+                        { someServer | deletionAttempted = True }
+
+                    else
+                        someServer
+
                 newProvider =
                     { provider
                         | servers =
@@ -216,6 +223,13 @@ processProviderSpecificMsg model provider msg =
 
         RequestDeleteServers serversToDelete ->
             let
+                updateServer someServer =
+                    if List.member someServer.uuid (List.map .uuid serversToDelete) then
+                        { someServer | deletionAttempted = True }
+
+                    else
+                        someServer
+
                 newProvider =
                     { provider | servers = List.filter (\s -> not (List.member s serversToDelete)) provider.servers }
 

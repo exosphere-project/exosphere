@@ -153,6 +153,7 @@ type alias Server =
     , details : Maybe ServerDetails
     , floatingIpState : FloatingIpState
     , selected : Bool
+    , deletionAttempted : Bool
     }
 
 
