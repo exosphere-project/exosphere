@@ -63,13 +63,13 @@ providerView model provider viewConstructor =
         ListProviderServers ->
             Element.column []
                 [ viewNav provider
-                , Element.html (viewServers provider)
+                , viewServers provider
                 ]
 
         ServerDetail serverUuid ->
             Element.column []
                 [ viewNav provider
-                , Element.html (viewServerDetail provider serverUuid)
+                , viewServerDetail provider serverUuid
                 ]
 
         CreateServer createServerRequest ->
@@ -306,22 +306,22 @@ viewImages globalDefaults provider maybeFilterTag =
         ]
 
 
-viewServers : Provider -> Html Msg
+viewServers : Provider -> Element.Element Msg
 viewServers provider =
     case provider.servers of
         RemoteData.NotAsked ->
-            div [] [ p [] [ text "Please wait..." ] ]
+            Element.paragraph [] [ Element.text "Please wait..." ]
 
         RemoteData.Loading ->
-            div [] [ p [] [ text "Loading..." ] ]
+            Element.paragraph [] [ Element.text "Loading..." ]
 
         RemoteData.Failure e ->
-            div [] [ p [] [ text ("Cannot display servers. Error message: " ++ Debug.toString e) ] ]
+            Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
         RemoteData.Success servers ->
             case List.isEmpty servers of
                 True ->
-                    div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+                    Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
                 False ->
                     let
@@ -334,33 +334,35 @@ viewServers provider =
                         selectedServers =
                             List.filter .selected servers
                     in
-                    div []
-                        [ h2 [] [ text "My Servers" ]
-                        , div []
-                            [ fieldset []
-                                [ legend [] [ text "Bulk Actions" ]
-                                , input
-                                    [ type_ "checkbox"
-                                    , name "toggle-all"
-                                    , checked allServersSelected
-                                    , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
+                    Element.column []
+                        [ Element.el [ Region.heading 2 ] (Element.text "My Servers")
+                        , Element.column []
+                            [ Element.html
+                                (fieldset []
+                                    [ legend [] [ text "Bulk Actions" ]
+                                    , input
+                                        [ type_ "checkbox"
+                                        , name "toggle-all"
+                                        , checked allServersSelected
+                                        , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
+                                        ]
+                                        []
+                                    , label
+                                        [ for "toggle-all" ]
+                                        [ text "Select All" ]
+                                    , button
+                                        [ disabled noServersSelected
+                                        , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+                                        ]
+                                        [ text "Delete" ]
                                     ]
-                                    []
-                                , label
-                                    [ for "toggle-all" ]
-                                    [ text "Select All" ]
-                                , button
-                                    [ disabled noServersSelected
-                                    , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
-                                    ]
-                                    [ text "Delete" ]
-                                ]
+                                )
                             ]
-                        , div [] (List.map (renderServer provider) servers)
+                        , Element.column [] (List.map (renderServer provider) servers)
                         ]
 
 
-viewServerDetail : Provider -> ServerUuid -> Html Msg
+viewServerDetail : Provider -> ServerUuid -> Element.Element Msg
 viewServerDetail provider serverUuid =
     let
         maybeServer =
@@ -368,12 +370,12 @@ viewServerDetail provider serverUuid =
     in
     case maybeServer of
         Nothing ->
-            text "No server found"
+            Element.text "No server found"
 
         Just server ->
             case server.details of
                 Nothing ->
-                    text "Retrieving details??"
+                    Element.text "Retrieving details??"
 
                 Just details ->
                     let
@@ -442,49 +444,43 @@ viewServerDetail provider serverUuid =
                                 Nothing ->
                                     text "Terminal and Cockpit services not ready yet."
                     in
-                    div []
-                        [ h2 [] [ text "Server details" ]
-                        , table []
-                            [ tr []
-                                [ th [] [ text "Property" ]
-                                , th [] [ text "Value" ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Name" ]
-                                , td [] [ text server.name ]
-                                ]
-                            , tr []
-                                [ td [] [ text "UUID" ]
-                                , td [] [ text server.uuid ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Created on" ]
-                                , td [] [ text details.created ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Status" ]
-                                , td [] [ text details.status ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Power state" ]
-                                , td [] [ text (Debug.toString details.powerState) ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Image" ]
-                                , td [] [ text imageText ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Flavor" ]
-                                , td [] [ text flavorText ]
-                                ]
-                            , tr []
-                                [ td [] [ text "SSH Key Name" ]
-                                , td [] [ text details.keypairName ]
-                                ]
-                            , tr []
-                                [ td [] [ text "IP addresses" ]
-                                , td [] [ renderIpAddresses details.ipAddresses ]
-                                ]
+                    Element.column [ Element.explain Debug.todo ]
+                        [ Element.el [ Region.heading 2 ] (Element.text "Server Details")
+                        , Element.row []
+                            [ Element.text "Name: "
+                            , Element.text server.name
+                            ]
+                        , Element.row []
+                            [ Element.text "UUID: "
+                            , Element.text server.uuid
+                            ]
+                        , Element.row []
+                            [ Element.text "Created on: "
+                            , Element.text details.created
+                            ]
+                        , Element.row []
+                            [ Element.text "Status: "
+                            , Element.text details.status
+                            ]
+                        , Element.row []
+                            [ Element.text "Power state: "
+                            , Element.text (Debug.toString details.powerState)
+                            ]
+                        , Element.row []
+                            [ Element.text "Image: "
+                            , Element.text imageText
+                            ]
+                        , Element.row []
+                            [ Element.text "Flavor: "
+                            , Element.text flavorText
+                            ]
+                        , Element.row []
+                            [ Element.text "SSH Key Name: "
+                            , Element.text details.keypairName
+                            ]
+                        , Element.row []
+                            [ Element.text "IP addresses: "
+                            , renderIpAddresses details.ipAddresses
                             ]
                         , h2 [] [ text "Interact with server" ]
                         , p []
@@ -647,69 +643,34 @@ renderImage globalDefaults provider image =
             , Element.text size
             ]
         , Element.row []
-            [ Element.text "tags: "
+            [ Element.text "Tags: "
             , Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags)
             ]
-
-        --        , Element.html
-        --            (table []
-        --                [ tr []
-        --                    [ th [] [ text "Property" ]
-        --                    , th [] [ text "Value" ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Status" ]
-        --                    , td [] [ text (Debug.toString image.status) ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Size" ]
-        --                    , td [] [ text size ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Checksum" ]
-        --                    , td [] [ text checksum ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Disk format" ]
-        --                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Container format" ]
-        --                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "UUID" ]
-        --                    , td [] [ text image.uuid ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Tags" ]
-        --                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-        --                    ]
-        --                ]
-        --            )
         ]
 
 
-renderServer : Provider -> Server -> Html Msg
+renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
-    div []
-        [ p []
-            [ input
-                [ type_ "checkbox"
-                , checked server.selected
-                , onClick (ProviderMsg provider.name (SelectServer server (not server.selected)))
+    Element.html
+        (div []
+            [ p []
+                [ input
+                    [ type_ "checkbox"
+                    , checked server.selected
+                    , onClick (ProviderMsg provider.name (SelectServer server (not server.selected)))
+                    ]
+                    []
+                , strong [] [ text server.name ]
                 ]
-                []
-            , strong [] [ text server.name ]
-            ]
-        , text ("UUID: " ++ server.uuid)
-        , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
-        , if server.deletionAttempted == True then
-            text "Deleting..."
+            , text ("UUID: " ++ server.uuid)
+            , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
+            , if server.deletionAttempted == True then
+                text "Deleting..."
 
-          else
-            button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
-        ]
+              else
+                button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
+            ]
+        )
 
 
 getEffectiveUserDataSize : CreateServerRequest -> String
@@ -730,15 +691,15 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List IpAddress -> Html Msg
+renderIpAddresses : List IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
-    div [] (List.map renderIpAddress ipAddresses)
+    Element.column [] (List.map renderIpAddress ipAddresses)
 
 
-renderIpAddress : IpAddress -> Html Msg
+renderIpAddress : IpAddress -> Element.Element Msg
 renderIpAddress ipAddress =
-    p []
-        [ text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
+    Element.paragraph []
+        [ Element.text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
         ]
 
 
