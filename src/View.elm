@@ -19,14 +19,21 @@ import Types.Types exposing (..)
 
 view : Model -> Html Msg
 view model =
-    Element.layout []
+    Element.layout
+        [ Background.color (Element.rgb 0.2 0.2 0.2)
+        , Font.color (Element.rgb 1 0.1 0.1)
+        , Element.explain Debug.todo
+        ]
         (elementView model)
 
 
 elementView : Model -> Element.Element Msg
 elementView model =
-    Element.column [ Element.padding 10 ]
-        [ Element.html (viewProviderPicker model)
+    Element.column
+        [ Element.padding 10
+        , Element.explain Debug.todo
+        ]
+        [ viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -36,11 +43,11 @@ elementView model =
             ProviderView providerName viewConstructor ->
                 case Helpers.providerLookup model providerName of
                     Nothing ->
-                        Element.html (text "Oops! Provider not found")
+                        Element.text "Oops! Provider not found"
 
                     Just provider ->
                         providerView model provider viewConstructor
-        , Element.html (viewMessages model)
+        , viewMessages model
         ]
 
 
@@ -76,31 +83,29 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewMessages : Model -> Html Msg
+viewMessages : Model -> Element.Element Msg
 viewMessages model =
-    div [] (List.map renderMessage model.messages)
+    Element.column [] (List.map renderMessage model.messages)
 
 
-viewProviderPicker : Model -> Html Msg
+viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
-    div []
-        [ h2 [] [ text "Providers" ]
-        , div []
-            [ div [] (List.map (renderProviderPicker model) model.providers)
+    Element.column []
+        [ Element.el [ Region.heading 2 ] (Element.text "Providers")
+        , Element.column []
+            [ Element.column [] (List.map (renderProviderPicker model) model.providers)
             ]
-        , button [ onClick (SetNonProviderView Login) ] [ text "Add Provider" ]
+        , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
         ]
 
 
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
-    Element.html
-        (div []
-            [ h2 [] [ text "Navigation" ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
-            ]
-        )
+    Element.column []
+        [ Element.el [ Region.heading 2 ] (Element.text "Navigation")
+        , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
+        , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
+        ]
 
 
 
@@ -276,7 +281,10 @@ viewImages globalDefaults provider maybeFilterTag =
             else
                 provider.images
     in
-    Element.column [ Element.spacing 10 ]
+    Element.column
+        [ Element.spacing 10
+        , Element.explain Debug.todo
+        ]
         [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
         , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
@@ -290,7 +298,11 @@ viewImages globalDefaults provider maybeFilterTag =
 
           else
             Element.none
-        , Element.wrappedRow [ Element.spacing 20 ] (List.map (renderImage globalDefaults provider) displayedImages)
+        , Element.wrappedRow
+            [ Element.spacing 20
+            , Element.explain Debug.todo
+            ]
+            (List.map (renderImage globalDefaults provider) displayedImages)
         ]
 
 
@@ -567,12 +579,12 @@ viewCreateServer provider createServerRequest =
 {- View Helpers -}
 
 
-renderMessage : String -> Html Msg
+renderMessage : String -> Element.Element Msg
 renderMessage message =
-    p [] [ text message ]
+    Element.paragraph [] [ Element.text message ]
 
 
-renderProviderPicker : Model -> Provider -> Html Msg
+renderProviderPicker : Model -> Provider -> Element.Element Msg
 renderProviderPicker model provider =
     let
         isSelected p =
@@ -585,10 +597,10 @@ renderProviderPicker model provider =
     in
     case isSelected provider of
         False ->
-            button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text provider.name ]
+            uiButton { label = Element.text provider.name, onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
 
         True ->
-            text provider.name
+            Element.text provider.name
 
 
 renderImage : GlobalDefaults -> Provider -> Image -> Element.Element Msg
@@ -622,6 +634,7 @@ renderImage globalDefaults provider image =
             , color = Element.rgba 0.3 0.3 0.3 0.6
             }
         , Element.padding 10
+        , Element.explain Debug.todo
         ]
         [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
         , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
