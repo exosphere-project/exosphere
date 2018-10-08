@@ -317,30 +317,25 @@ viewServers provider =
 
                         selectedServers =
                             List.filter .selected servers
+
+                        deleteButtonOnPress =
+                            if noServersSelected == True then
+                                Nothing
+
+                            else
+                                Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
                     in
                     Element.column []
                         [ Element.el [ Region.heading 2 ] (Element.text "My Servers")
-                        , Element.column []
-                            [ Element.html
-                                (fieldset []
-                                    [ legend [] [ text "Bulk Actions" ]
-                                    , input
-                                        [ type_ "checkbox"
-                                        , name "toggle-all"
-                                        , checked allServersSelected
-                                        , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
-                                        ]
-                                        []
-                                    , label
-                                        [ for "toggle-all" ]
-                                        [ text "Select All" ]
-                                    , button
-                                        [ disabled noServersSelected
-                                        , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
-                                        ]
-                                        [ text "Delete" ]
-                                    ]
-                                )
+                        , Element.column [ Element.padding 5, Element.spacing 10, Border.width 1 ]
+                            [ Element.text "Bulk Actions"
+                            , Input.checkbox []
+                                { checked = allServersSelected
+                                , onChange = \new -> ProviderMsg provider.name (SelectAllServers new)
+                                , icon = Input.defaultCheckbox
+                                , label = Input.labelRight [] (Element.text "Select All")
+                                }
+                            , uiButton { label = Element.text "Delete", onPress = deleteButtonOnPress }
                             ]
                         , Element.column [] (List.map (renderServer provider) servers)
                         ]
@@ -773,10 +768,19 @@ viewKeypairPicker provider createServerRequest =
 
 uiButton : { onPress : Maybe Msg, label : Element.Element Msg } -> Element.Element Msg
 uiButton props =
+    let
+        borderColor =
+            if props.onPress == Nothing then
+                -- This should be where we decide what a disabled button looks like
+                Element.rgb 0 0 0
+
+            else
+                Element.rgb 1 0 0
+    in
     Input.button
         [ Element.padding 5
         , Border.rounded 6
-        , Border.color (Element.rgb 0 0 0)
+        , Border.color borderColor
         , Border.width 1
         ]
         props
