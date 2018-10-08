@@ -1,14 +1,16 @@
-module Rest exposing (..)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveGottyStatus, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
+import Base64
 import Dict
+import Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import RemoteData
 import Time
-import Base64
-import Helpers
-import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
+import Types.Types exposing (..)
+
 
 
 {- HTTP Requests -}
@@ -23,7 +25,7 @@ requestAuthToken model =
                   , Encode.object
                         [ ( "identity"
                           , Encode.object
-                                [ ( "methods", Encode.list [ Encode.string "password" ] )
+                                [ ( "methods", Encode.list Encode.string [ "password" ] )
                                 , ( "password"
                                   , Encode.object
                                         [ ( "user"
@@ -59,19 +61,19 @@ requestAuthToken model =
                   )
                 ]
     in
-        {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
-        Http.request
-            { method = "POST"
-            , headers = []
-            , url = model.creds.authUrl
-            , body = Http.jsonBody requestBody
+    {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = model.creds.authUrl
+        , body = Http.jsonBody requestBody
 
-            {- Todo handle no response? -}
-            , expect = Http.expectStringResponse (\response -> Ok response)
-            , timeout = Nothing
-            , withCredentials = False
-            }
-            |> Http.send ReceiveAuthToken
+        {- Todo handle no response? -}
+        , expect = Http.expectStringResponse (\response -> Ok response)
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> Http.send ReceiveAuthToken
 
 
 requestImages : Provider -> Cmd Msg
@@ -91,7 +93,7 @@ requestImages provider =
         resultMsg result =
             ProviderMsg provider.name (ReceiveImages result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestServers : Provider -> Cmd Msg
@@ -111,7 +113,7 @@ requestServers provider =
         resultMsg result =
             ProviderMsg provider.name (ReceiveServers result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestServerDetail : Provider -> ServerUuid -> Cmd Msg
@@ -131,7 +133,7 @@ requestServerDetail provider serverUuid =
         resultMsg result =
             ProviderMsg provider.name (ReceiveServerDetail serverUuid result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestFlavors : Provider -> Cmd Msg
@@ -151,7 +153,7 @@ requestFlavors provider =
         resultMsg result =
             ProviderMsg provider.name (ReceiveFlavors result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestKeypairs : Provider -> Cmd Msg
@@ -171,72 +173,91 @@ requestKeypairs provider =
         resultMsg result =
             ProviderMsg provider.name (ReceiveKeypairs result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
 requestCreateServer provider createServerRequest =
     let
-        serverCount =
-            Result.withDefault 1 (String.toInt createServerRequest.count)
+        getServerCount =
+            Maybe.withDefault 1 (String.toInt createServerRequest.count)
 
         instanceNumbers =
-            List.range 1 serverCount
+            List.range 1 getServerCount
 
         generateServerName : String -> Int -> Int -> String
         generateServerName baseName serverCount index =
             if serverCount == 1 then
                 baseName
+
             else
-                baseName ++ " " ++ Basics.toString index ++ " of " ++ Basics.toString serverCount
+                baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt getServerCount
 
         instanceNames =
             instanceNumbers
-                |> List.map (generateServerName createServerRequest.name serverCount)
+                |> List.map (generateServerName createServerRequest.name getServerCount)
+
+        baseServerProps innerCreateServerRequest instanceName =
+            [ ( "name", Encode.string instanceName )
+            , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
+            , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
+            , ( "networks", Encode.string "auto" )
+            , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
+            ]
+
+        buildRequestOuterJson props =
+            Encode.object [ ( "server", Encode.object props ) ]
+
+        buildRequestBody instanceName =
+            case createServerRequest.volBacked of
+                False ->
+                    ( "imageRef", Encode.string createServerRequest.imageUuid )
+                        :: baseServerProps createServerRequest instanceName
+                        |> buildRequestOuterJson
+
+                True ->
+                    ( "block_device_mapping_v2"
+                    , Encode.list Encode.object
+                        [ [ ( "boot_index", Encode.string "0" )
+                          , ( "uuid", Encode.string createServerRequest.imageUuid )
+                          , ( "source_type", Encode.string "image" )
+                          , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
+                          , ( "destination_type", Encode.string "volume" )
+                          , ( "delete_on_termination", Encode.bool True )
+                          ]
+                        ]
+                    )
+                        :: baseServerProps createServerRequest instanceName
+                        |> buildRequestOuterJson
 
         requestBodies =
             instanceNames
-                |> List.map
-                    (\instanceName ->
-                        Encode.object
-                            [ ( "server"
-                              , Encode.object
-                                    [ ( "name", Encode.string instanceName )
-                                    , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
-                                    , ( "imageRef", Encode.string createServerRequest.imageUuid )
-                                    , ( "key_name", Encode.string createServerRequest.keypairName )
-                                    , ( "networks", Encode.string "auto" )
-                                    , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-                                    ]
-                              )
-                            ]
-                    )
+                |> List.map buildRequestBody
 
         resultMsg result =
             ProviderMsg provider.name (ReceiveCreateServer result)
     in
-        Cmd.batch
-            (requestBodies
-                |> List.map
-                    (\requestBody ->
-                        (Http.request
-                            { method = "POST"
-                            , headers =
-                                [ Http.header "X-Auth-Token" provider.authToken
+    Cmd.batch
+        (requestBodies
+            |> List.map
+                (\requestBody ->
+                    Http.request
+                        { method = "POST"
+                        , headers =
+                            [ Http.header "X-Auth-Token" provider.authToken
 
-                                -- Microversion needed for automatic network provisioning
-                                , Http.header "OpenStack-API-Version" "compute 2.38"
-                                ]
-                            , url = provider.endpoints.nova ++ "/servers"
-                            , body = Http.jsonBody requestBody
-                            , expect = Http.expectJson (Decode.field "server" serverDecoder)
-                            , timeout = Nothing
-                            , withCredentials = False
-                            }
-                            |> Http.send resultMsg
-                        )
-                    )
-            )
+                            -- Microversion needed for automatic network provisioning
+                            , Http.header "OpenStack-API-Version" "compute 2.38"
+                            ]
+                        , url = provider.endpoints.nova ++ "/servers"
+                        , body = Http.jsonBody requestBody
+                        , expect = Http.expectJson (Decode.field "server" serverDecoder)
+                        , timeout = Nothing
+                        , withCredentials = False
+                        }
+                        |> Http.send resultMsg
+                )
+        )
 
 
 requestDeleteServer : Provider -> Server -> Cmd Msg
@@ -256,7 +277,7 @@ requestDeleteServer provider server =
         resultMsg result =
             ProviderMsg provider.name (ReceiveDeleteServer result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestDeleteServers : Provider -> List Server -> Cmd Msg
@@ -265,7 +286,7 @@ requestDeleteServers provider serversToDelete =
         deleteRequests =
             List.map (requestDeleteServer provider) serversToDelete
     in
-        Cmd.batch deleteRequests
+    Cmd.batch deleteRequests
 
 
 requestNetworks : Provider -> Cmd Msg
@@ -285,7 +306,7 @@ requestNetworks provider =
         resultMsg result =
             ProviderMsg provider.name (ReceiveNetworks result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
@@ -305,27 +326,27 @@ getFloatingIpRequestPorts provider server =
         resultMsg result =
             ProviderMsg provider.name (GetFloatingIpReceivePorts server.uuid result)
     in
-        Http.send resultMsg request
+    Http.send resultMsg request
 
 
 requestFloatingIpIfRequestable : Model -> Provider -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
 requestFloatingIpIfRequestable model provider network port_ serverUuid =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) provider.servers
+            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
-        case maybeServer of
-            Nothing ->
-                Helpers.processError model "We should have a server here but we don't"
+    case maybeServer of
+        Nothing ->
+            Helpers.processError model "We should have a server here but we don't"
 
-            Just server ->
-                case server.floatingIpState of
-                    Requestable ->
-                        requestFloatingIp model provider network port_ server
+        Just server ->
+            case server.floatingIpState of
+                Requestable ->
+                    requestFloatingIp model provider network port_ server
 
-                    _ ->
-                        ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
 
 requestFloatingIp : Model -> Provider -> Network -> Port -> Server -> ( Model, Cmd Msg )
@@ -335,13 +356,13 @@ requestFloatingIp model provider network port_ server =
             { server | floatingIpState = RequestedWaiting }
 
         otherServers =
-            List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
 
         newServers =
             newServer :: otherServers
 
         newProvider =
-            { provider | servers = newServers }
+            { provider | servers = RemoteData.Success newServers }
 
         newModel =
             Helpers.modelUpdateProvider model newProvider
@@ -373,7 +394,7 @@ requestFloatingIp model provider network port_ server =
         cmd =
             Http.send resultMsg request
     in
-        ( newModel, cmd )
+    ( newModel, cmd )
 
 
 requestGottyStatus : Provider -> ServerUuid -> String -> Cmd Msg
@@ -386,14 +407,14 @@ requestGottyStatus provider serverUuid ipAddress =
                 , url = "http://" ++ ipAddress ++ ":9090/ping"
                 , body = Http.emptyBody
                 , expect = Http.expectJson gottyStatusDecoder
-                , timeout = Just (3 * Time.second)
+                , timeout = Just 3000
                 , withCredentials = False
                 }
 
-        resultMsg provider serverUuid result =
-            ProviderMsg provider.name (ReceiveGottyStatus serverUuid result)
+        resultMsg provider2 serverUuid2 result =
+            ProviderMsg provider2.name (ReceiveGottyStatus serverUuid2 result)
     in
-        Http.send (resultMsg provider serverUuid) request
+    Http.send (resultMsg provider serverUuid) request
 
 
 
@@ -429,7 +450,7 @@ createProvider model response =
                     , authToken = authToken
                     , endpoints = endpoints
                     , images = []
-                    , servers = []
+                    , servers = RemoteData.NotAsked
                     , flavors = []
                     , keypairs = []
                     , networks = []
@@ -445,7 +466,7 @@ createProvider model response =
                         , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
-                ( newModel, Cmd.none )
+            ( newModel, requestServers newProvider )
 
 
 receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
@@ -462,7 +483,7 @@ receiveImages model provider result =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 receiveServers : Model -> Provider -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
@@ -488,10 +509,10 @@ receiveServers model provider result =
                         serverUuid =
                             serverUuidOfServer server
                     in
-                        List.member serverUuid serverUuids
+                    List.member serverUuid serverUuids
 
                 existingServers =
-                    provider.servers
+                    RemoteData.withDefault [] provider.servers
 
                 ( newServersInExistingServers, newServersNotInExistingServers ) =
                     List.partition (serverIsInListOfServers existingServers) newServers
@@ -505,8 +526,8 @@ receiveServers model provider result =
                 newServersInExistingServersSorted =
                     List.sortBy .uuid newServersInExistingServers
 
-                combinedMatchingNewAndExistingServers =
-                    List.map2 (,) newServersInExistingServersSorted existingServersInNewServersSorted
+                getCombinedMatchingNewAndExistingServers =
+                    List.map2 (\a b -> ( a, b )) newServersInExistingServersSorted existingServersInNewServersSorted
 
                 enrichNewServerWithExistingDetails : ( Server, Server ) -> Server
                 enrichNewServerWithExistingDetails ( newServer, existingServer ) =
@@ -517,7 +538,7 @@ receiveServers model provider result =
                     List.map enrichNewServerWithExistingDetails combinedMatchingNewAndExistingServers
 
                 enrichedNewServers =
-                    enrichNewServersWithExistingDetails combinedMatchingNewAndExistingServers
+                    enrichNewServersWithExistingDetails getCombinedMatchingNewAndExistingServers
 
                 newServersWithExistingMatchesAndWithout =
                     List.append newServersNotInExistingServers enrichedNewServers
@@ -526,12 +547,12 @@ receiveServers model provider result =
                     List.sortBy .name newServersWithExistingMatchesAndWithout
 
                 newProvider =
-                    { provider | servers = newServersWithExistingMatchesAndWithoutSorted }
+                    { provider | servers = RemoteData.Success newServersWithExistingMatchesAndWithoutSorted }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 receiveServerDetail : Model -> Provider -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
@@ -545,74 +566,74 @@ receiveServerDetail model provider serverUuid result =
                 maybeServer =
                     List.filter
                         (\s -> s.uuid == serverUuid)
-                        provider.servers
+                        (RemoteData.withDefault [] provider.servers)
                         |> List.head
             in
-                case maybeServer of
-                    Nothing ->
-                        Helpers.processError
-                            model
-                            "No server found when receiving server details"
+            case maybeServer of
+                Nothing ->
+                    Helpers.processError
+                        model
+                        "No server found when receiving server details"
 
-                    Just server ->
-                        let
-                            floatingIpState =
-                                Helpers.checkFloatingIpState
-                                    serverDetails
-                                    server.floatingIpState
+                Just server ->
+                    let
+                        floatingIpState =
+                            Helpers.checkFloatingIpState
+                                serverDetails
+                                server.floatingIpState
 
-                            newServer =
-                                { server
-                                    | details = Just serverDetails
-                                    , floatingIpState = floatingIpState
-                                }
+                        newServer =
+                            { server
+                                | details = Just serverDetails
+                                , floatingIpState = floatingIpState
+                            }
 
-                            otherServers =
-                                List.filter
-                                    (\s -> s.uuid /= newServer.uuid)
-                                    provider.servers
+                        otherServers =
+                            List.filter
+                                (\s -> s.uuid /= newServer.uuid)
+                                (RemoteData.withDefault [] provider.servers)
 
-                            newServers =
-                                newServer :: otherServers
+                        newServers =
+                            newServer :: otherServers
 
-                            newServersSorted =
-                                List.sortBy .name newServers
+                        newServersSorted =
+                            List.sortBy .name newServers
 
-                            newProvider =
-                                { provider | servers = newServersSorted }
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServersSorted }
 
-                            newModel =
-                                Helpers.modelUpdateProvider model newProvider
-                        in
-                            case floatingIpState of
-                                Requestable ->
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    case floatingIpState of
+                        Requestable ->
+                            ( newModel
+                            , Cmd.batch
+                                [ getFloatingIpRequestPorts
+                                    newProvider
+                                    newServer
+                                , requestNetworks
+                                    newProvider
+                                ]
+                            )
+
+                        Success ->
+                            let
+                                maybeFloatingIp =
+                                    Helpers.getFloatingIp
+                                        serverDetails.ipAddresses
+                            in
+                            case maybeFloatingIp of
+                                Just floatingIp ->
                                     ( newModel
-                                    , Cmd.batch
-                                        [ getFloatingIpRequestPorts
-                                            newProvider
-                                            newServer
-                                        , requestNetworks
-                                            newProvider
-                                        ]
+                                    , requestGottyStatus provider server.uuid floatingIp
                                     )
 
-                                Success ->
-                                    let
-                                        maybeFloatingIp =
-                                            Helpers.getFloatingIp
-                                                serverDetails.ipAddresses
-                                    in
-                                        case maybeFloatingIp of
-                                            Just floatingIp ->
-                                                ( newModel
-                                                , requestGottyStatus provider server.uuid floatingIp
-                                                )
+                                Nothing ->
+                                    Helpers.processError newModel "We should have a floating IP address here but we don't"
 
-                                            Nothing ->
-                                                Helpers.processError newModel "We should have a floating IP address here but we don't"
-
-                                _ ->
-                                    ( newModel, Cmd.none )
+                        _ ->
+                            ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Provider -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
@@ -629,7 +650,7 @@ receiveFlavors model provider result =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 receiveKeypairs : Model -> Provider -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
@@ -646,7 +667,7 @@ receiveKeypairs model provider result =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 receiveCreateServer : Model -> Provider -> Result Http.Error Server -> ( Model, Cmd Msg )
@@ -660,12 +681,12 @@ receiveCreateServer model provider result =
                 newModel =
                     { model | viewState = ProviderView provider.name ListProviderServers }
             in
-                ( newModel
-                , Cmd.batch
-                    [ requestServers provider
-                    , requestNetworks provider
-                    ]
-                )
+            ( newModel
+            , Cmd.batch
+                [ requestServers provider
+                , requestNetworks provider
+                ]
+            )
 
 
 receiveNetworks : Model -> Provider -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
@@ -682,7 +703,7 @@ receiveNetworks model provider result =
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-                ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 receivePortsAndRequestFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
@@ -706,89 +727,89 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                     List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
                         |> List.head
             in
-                case maybeExtNet of
-                    Just extNet ->
-                        case maybePortForServer of
-                            Just port_ ->
-                                requestFloatingIpIfRequestable
-                                    newModel
-                                    newProvider
-                                    extNet
-                                    port_
-                                    serverUuid
+            case maybeExtNet of
+                Just extNet ->
+                    case maybePortForServer of
+                        Just port_ ->
+                            requestFloatingIpIfRequestable
+                                newModel
+                                newProvider
+                                extNet
+                                port_
+                                serverUuid
 
-                            Nothing ->
-                                Helpers.processError
-                                    newModel
-                                    "We should have a port here but we don't!?"
+                        Nothing ->
+                            Helpers.processError
+                                newModel
+                                "We should have a port here but we don't!?"
 
-                    Nothing ->
-                        Helpers.processError
-                            newModel
-                            "We should have an external network here but we don't"
+                Nothing ->
+                    Helpers.processError
+                        newModel
+                        "We should have an external network here but we don't"
 
 
 receiveFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
 receiveFloatingIp model provider serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) provider.servers
+            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
-        case maybeServer of
-            Nothing ->
-                Helpers.processError
-                    model
-                    "We should have a server here but we don't"
+    case maybeServer of
+        Nothing ->
+            Helpers.processError
+                model
+                "We should have a server here but we don't"
 
-            Just server ->
-                {- This repeats a lot of code in receiveGottyStatus, badly needs a refactor -}
-                case result of
-                    Err error ->
-                        let
-                            newServer =
-                                { server | floatingIpState = Failed }
+        Just server ->
+            {- This repeats a lot of code in receiveGottyStatus, badly needs a refactor -}
+            case result of
+                Err error ->
+                    let
+                        newServer =
+                            { server | floatingIpState = Failed }
 
-                            otherServers =
-                                List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+                        otherServers =
+                            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
 
-                            newServers =
-                                newServer :: otherServers
+                        newServers =
+                            newServer :: otherServers
 
-                            newProvider =
-                                { provider | servers = newServers }
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServers }
 
-                            newModel =
-                                Helpers.modelUpdateProvider model newProvider
-                        in
-                            Helpers.processError newModel error
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    Helpers.processError newModel error
 
-                    Ok ipAddress ->
-                        let
-                            newServer =
-                                { server
-                                    | floatingIpState = Success
-                                    , details =
-                                        addFloatingIpInServerDetails
-                                            server.details
-                                            ipAddress
-                                }
+                Ok ipAddress ->
+                    let
+                        newServer =
+                            { server
+                                | floatingIpState = Success
+                                , details =
+                                    addFloatingIpInServerDetails
+                                        server.details
+                                        ipAddress
+                            }
 
-                            otherServers =
-                                List.filter
-                                    (\s -> s.uuid /= newServer.uuid)
-                                    provider.servers
+                        otherServers =
+                            List.filter
+                                (\s -> s.uuid /= newServer.uuid)
+                                (RemoteData.withDefault [] provider.servers)
 
-                            newServers =
-                                newServer :: otherServers
+                        newServers =
+                            newServer :: otherServers
 
-                            newProvider =
-                                { provider | servers = newServers }
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServers }
 
-                            newModel =
-                                Helpers.modelUpdateProvider model newProvider
-                        in
-                            ( newModel, Cmd.none )
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
 
 
 addFloatingIpInServerDetails : Maybe ServerDetails -> IpAddress -> Maybe ServerDetails
@@ -802,66 +823,66 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
                 newIps =
                     ipAddress :: details.ipAddresses
             in
-                Just { details | ipAddresses = newIps }
+            Just { details | ipAddresses = newIps }
 
 
 receiveGottyStatus : Model -> Provider -> ServerUuid -> Result Http.Error GottyStatus -> ( Model, Cmd Msg )
 receiveGottyStatus model provider serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) provider.servers
+            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
-        case maybeServer of
-            Nothing ->
-                Helpers.processError
-                    model
-                    "We should have a server here but we don't"
+    case maybeServer of
+        Nothing ->
+            Helpers.processError
+                model
+                "We should have a server here but we don't"
 
-            Just server ->
-                {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
-                case result of
-                    Err error ->
-                        let
-                            newServer =
-                                { server | gottyStatus = Error }
+        Just server ->
+            {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
+            case result of
+                Err error ->
+                    let
+                        newServer =
+                            { server | gottyStatus = Error }
 
-                            otherServers =
-                                List.filter (\s -> s.uuid /= newServer.uuid) provider.servers
+                        otherServers =
+                            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
 
-                            newServers =
-                                newServer :: otherServers
+                        newServers =
+                            newServer :: otherServers
 
-                            newProvider =
-                                { provider | servers = newServers }
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServers }
 
-                            newModel =
-                                Helpers.modelUpdateProvider model newProvider
-                        in
-                            ( newModel, Cmd.none )
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
 
-                    Ok gottyStatus ->
-                        let
-                            newServer =
-                                { server
-                                    | gottyStatus = gottyStatus
-                                }
+                Ok gottyStatus ->
+                    let
+                        newServer =
+                            { server
+                                | gottyStatus = gottyStatus
+                            }
 
-                            otherServers =
-                                List.filter
-                                    (\s -> s.uuid /= newServer.uuid)
-                                    provider.servers
+                        otherServers =
+                            List.filter
+                                (\s -> s.uuid /= newServer.uuid)
+                                (RemoteData.withDefault [] provider.servers)
 
-                            newServers =
-                                newServer :: otherServers
+                        newServers =
+                            newServer :: otherServers
 
-                            newProvider =
-                                { provider | servers = newServers }
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServers }
 
-                            newModel =
-                                Helpers.modelUpdateProvider model newProvider
-                        in
-                            ( newModel, Cmd.none )
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
 
 
 
@@ -959,7 +980,7 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map6 Server
+    Decode.map7 Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -970,6 +991,7 @@ serverDecoder =
         (Decode.succeed Unknown)
         (Decode.succeed False)
         (Decode.succeed NotChecked)
+        (Decode.succeed False)
 
 
 decodeServerDetails : Decode.Decoder ServerDetails
@@ -980,7 +1002,11 @@ decodeServerDetails =
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
             |> Decode.andThen serverPowerStateDecoder
         )
-        (Decode.at [ "server", "image", "id" ] Decode.string)
+        (Decode.oneOf
+            [ Decode.at [ "server", "image", "id" ] Decode.string
+            , Decode.succeed ""
+            ]
+        )
         (Decode.at [ "server", "flavor", "id" ] Decode.string)
         (Decode.at [ "server", "key_name" ] Decode.string)
         (Decode.oneOf
@@ -1110,9 +1136,10 @@ gottyStatusDecoder =
                 _ =
                     Debug.log "s" s
             in
-                if s == "cockpit" then
-                    Ready
-                else
-                    CheckedNotReady
+            if s == "cockpit" then
+                Ready
+
+            else
+                CheckedNotReady
     in
-        Decode.map serviceToShellStatus (Decode.field "service" Decode.string)
+    Decode.map serviceToShellStatus (Decode.field "service" Decode.string)

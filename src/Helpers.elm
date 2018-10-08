@@ -1,49 +1,49 @@
-module Helpers exposing (processError, processOpenRc, providePasswordHint, providerNameFromUrl, serviceCatalogToEndpoints, getExternalNetwork, checkFloatingIpState, serverLookup, providerLookup, flavorLookup, imageLookup, modelUpdateProvider, getFloatingIp)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, serverLookup, serviceCatalogToEndpoints)
 
+import Debug
 import Maybe.Extra
 import Regex
+import RemoteData
 import Time
-import Toast exposing (Toast)
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
 import Types.OpenstackTypes as OpenstackTypes
+import Types.Types exposing (..)
+
+
+alwaysRegex : String -> Regex.Regex
+alwaysRegex regexStr =
+    Regex.fromString regexStr |> Maybe.withDefault Regex.never
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
         errorString =
-            toString error
+            Debug.toString error
 
         newMsgs =
             errorString :: model.messages
 
-        newToastNotification =
-            Toast.createNotification errorString (model.time + Time.second * 30)
-
-        newToast =
-            Toast.addNotification newToastNotification model.toast
-
         newModel =
-            { model | messages = newMsgs, toast = newToast }
+            { model | messages = newMsgs }
     in
-        ( newModel, Cmd.none )
+    ( newModel, Cmd.none )
 
 
 processOpenRc : Creds -> String -> Creds
 processOpenRc existingCreds openRc =
     let
         regexes =
-            { authUrl = Regex.regex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
-            , projectDomain = Regex.regex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
-            , projectName = Regex.regex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
-            , userDomain = Regex.regex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
-            , username = Regex.regex "export OS_USERNAME=\"?([^\"\n]*)\"?"
-            , password = Regex.regex "export OS_PASSWORD=\"(.*)\""
+            { authUrl = alwaysRegex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
+            , projectDomain = alwaysRegex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
+            , projectName = alwaysRegex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
+            , userDomain = alwaysRegex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
+            , username = alwaysRegex "export OS_USERNAME=\"?([^\"\n]*)\"?"
+            , password = alwaysRegex "export OS_PASSWORD=\"(.*)\""
             }
 
         getMatch text regex =
-            Regex.find (Regex.AtMost 1) regex text
+            Regex.findAtMost 1 regex text
                 |> List.head
                 |> Maybe.map (\x -> x.submatches)
                 |> Maybe.andThen List.head
@@ -53,40 +53,41 @@ processOpenRc existingCreds openRc =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
     in
-        Creds
-            (newField regexes.authUrl existingCreds.authUrl)
-            (newField regexes.projectDomain existingCreds.projectDomain)
-            (newField regexes.projectName existingCreds.projectName)
-            (newField regexes.userDomain existingCreds.userDomain)
-            (newField regexes.username existingCreds.username)
-            (newField regexes.password existingCreds.password)
+    Creds
+        (newField regexes.authUrl existingCreds.authUrl)
+        (newField regexes.projectDomain existingCreds.projectDomain)
+        (newField regexes.projectName existingCreds.projectName)
+        (newField regexes.userDomain existingCreds.userDomain)
+        (newField regexes.username existingCreds.username)
+        (newField regexes.password existingCreds.password)
 
 
-providePasswordHint : String -> String -> List ( String, String )
+providePasswordHint : String -> String -> List { styleKey : String, styleValue : String }
 providePasswordHint username password =
     let
         checks =
-            [ (not <| String.isEmpty username)
-            , (String.isEmpty password)
-            , (username /= "demo")
+            [ not <| String.isEmpty username
+            , String.isEmpty password
+            , username /= "demo"
             ]
     in
-        if List.all (\p -> p) checks then
-            [ ( "border-color", "rgba(239, 130, 17, 0.8)" )
-            , ( "background-color", "rgba(245, 234, 234, 0.7)" )
-            ]
-        else
-            []
+    if List.all (\p -> p) checks then
+        [ { styleKey = "border-color", styleValue = "rgba(239, 130, 17, 0.8)" }
+        , { styleKey = "background-color", styleValue = "rgba(245, 234, 234, 0.7)" }
+        ]
+
+    else
+        []
 
 
 providerNameFromUrl : HelperTypes.Url -> ProviderName
 providerNameFromUrl url =
     let
         r =
-            Regex.regex ".*\\/\\/(.*?)(:\\d+)?\\/"
+            alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/"
 
         matches =
-            Regex.find (Regex.AtMost 1) r url
+            Regex.findAtMost 1 r url
 
         maybeMaybeName =
             matches
@@ -94,12 +95,12 @@ providerNameFromUrl url =
                 |> Maybe.map (\x -> x.submatches)
                 |> Maybe.andThen List.head
     in
-        case maybeMaybeName of
-            Just (Just name) ->
-                name
+    case maybeMaybeName of
+        Just (Just name) ->
+            name
 
-            _ ->
-                "placeholder-url-unparseable"
+        _ ->
+            "placeholder-url-unparseable"
 
 
 serviceCatalogToEndpoints : OpenstackTypes.ServiceCatalog -> Endpoints
@@ -119,12 +120,12 @@ getServicePublicUrl serviceName catalog =
         maybePublicEndpoint =
             getPublicEndpointFromService maybeService
     in
-        case maybePublicEndpoint of
-            Just endpoint ->
-                endpoint.url
+    case maybePublicEndpoint of
+        Just endpoint ->
+            endpoint.url
 
-            Nothing ->
-                ""
+        Nothing ->
+            ""
 
 
 getServiceFromCatalog : String -> OpenstackTypes.ServiceCatalog -> Maybe OpenstackTypes.Service
@@ -165,35 +166,38 @@ checkFloatingIpState serverDetails floatingIpState =
         isActive =
             serverDetails.status == "ACTIVE"
     in
-        case floatingIpState of
-            RequestedWaiting ->
-                if hasFloatingIp then
-                    Success
-                else
-                    RequestedWaiting
+    case floatingIpState of
+        RequestedWaiting ->
+            if hasFloatingIp then
+                Success
 
-            Failed ->
-                Failed
+            else
+                RequestedWaiting
 
-            _ ->
-                if hasFloatingIp then
-                    Success
-                else if hasFixedIp && isActive then
-                    Requestable
-                else
-                    NotRequestable
+        Failed ->
+            Failed
+
+        _ ->
+            if hasFloatingIp then
+                Success
+
+            else if hasFixedIp && isActive then
+                Requestable
+
+            else
+                NotRequestable
 
 
 serverLookup : Provider -> ServerUuid -> Maybe Server
 serverLookup provider serverUuid =
-    List.filter (\s -> s.uuid == serverUuid) provider.servers |> List.head
+    List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers) |> List.head
 
 
 providerLookup : Model -> ProviderName -> Maybe Provider
 providerLookup model providerName =
     List.filter
         (\p -> p.name == providerName)
-        (model.providers)
+        model.providers
         |> List.head
 
 
@@ -222,7 +226,7 @@ modelUpdateProvider model newProvider =
         newProviders =
             newProvider :: otherProviders
     in
-        { model | providers = newProviders }
+    { model | providers = newProviders }
 
 
 getFloatingIp : List IpAddress -> Maybe String
@@ -231,6 +235,6 @@ getFloatingIp ipAddresses =
         isFloating ipAddress =
             ipAddress.openstackType == Floating
     in
-        List.filter isFloating ipAddresses
-            |> List.head
-            |> Maybe.map .address
+    List.filter isFloating ipAddresses
+        |> List.head
+        |> Maybe.map .address

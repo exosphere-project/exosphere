@@ -1,10 +1,11 @@
-module Types.Types exposing (..)
+module Types.Types exposing (AuthToken, CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, GottyStatus(..), Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderViewConstructor(..), Server, ServerDetails, ServerPowerState(..), ServerUuid, ViewState(..))
 
 import Http
 import Maybe
+import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
-import Toast exposing (Toast)
+
 
 
 {- App-Level Types -}
@@ -16,8 +17,6 @@ type alias Model =
     , providers : List Provider
     , creds : Creds
     , imageFilterTag : Maybe String
-    , time : Time.Time
-    , toast : Toast String
     , globalDefaults : GlobalDefaults
     }
 
@@ -32,7 +31,7 @@ type alias Provider =
     , authToken : AuthToken
     , endpoints : Endpoints
     , images : List Image
-    , servers : List Server
+    , servers : WebData (List Server)
     , flavors : List Flavor
     , keypairs : List Keypair
     , networks : List Network
@@ -41,7 +40,7 @@ type alias Provider =
 
 
 type Msg
-    = Tick Time.Time
+    = Tick Time.Posix
     | SetNonProviderView NonProviderViewConstructor
     | RequestNewProviderToken
     | ReceiveAuthToken (Result Http.Error (Http.Response String))
@@ -83,8 +82,7 @@ type NonProviderViewConstructor
 
 
 type ProviderViewConstructor
-    = ProviderHome
-    | ListImages
+    = ListImages
     | ListProviderServers
     | ServerDetail ServerUuid
     | CreateServer CreateServerRequest
@@ -106,6 +104,8 @@ type CreateServerField
     | CreateServerUserData String
     | CreateServerSize String
     | CreateServerKeypairName String
+    | CreateServerVolBacked Bool
+    | CreateServerVolBackedSize String
 
 
 type alias Creds =
@@ -162,6 +162,7 @@ type alias Server =
     , floatingIpState : FloatingIpState
     , selected : Bool
     , gottyStatus : GottyStatus
+    , deletionAttempted : Bool
     }
 
 
@@ -223,6 +224,8 @@ type alias CreateServerRequest =
     , imageName : String
     , count : String
     , flavorUuid : FlavorUuid
+    , volBacked : Bool
+    , volBackedSizeGb : String
     , keypairName : String
     , userData : String
     }
