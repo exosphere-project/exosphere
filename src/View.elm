@@ -630,26 +630,23 @@ renderImage globalDefaults provider image =
 
 renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
-    Element.html
-        (div []
-            [ p []
-                [ input
-                    [ type_ "checkbox"
-                    , checked server.selected
-                    , onClick (ProviderMsg provider.name (SelectServer server (not server.selected)))
-                    ]
-                    []
-                , strong [] [ text server.name ]
-                ]
-            , text ("UUID: " ++ server.uuid)
-            , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
+    Element.column []
+        [ Input.checkbox []
+            { checked = server.selected
+            , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
+            , icon = Input.defaultCheckbox
+            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.name))
+            }
+        , Element.row [ Element.spacing 10 ]
+            [ Element.text ("UUID: " ++ server.uuid)
+            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) }
             , if server.deletionAttempted == True then
-                text "Deleting..."
+                Element.text "Deleting..."
 
               else
-                button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
+                uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
             ]
-        )
+        ]
 
 
 getEffectiveUserDataSize : CreateServerRequest -> String
