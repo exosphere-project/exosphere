@@ -114,7 +114,10 @@ viewNav provider =
 
 viewLogin : Model -> Element.Element Msg
 viewLogin model =
-    Element.column [ Element.spacing 20 ]
+    Element.column
+        [ Element.spacing 20
+        , Element.explain Debug.todo
+        ]
         [ Element.el
             [ Region.heading 2
             , Font.size 24
@@ -133,84 +136,64 @@ viewLogin model =
 viewLoginCredsEntry : Model -> Element.Element Msg
 viewLoginCredsEntry model =
     Element.column
-        [ Element.height Element.fill
-        , Element.spacing 15
+        [ Element.width (Element.px 800)
+        , Element.height Element.shrink
+        , Element.alignTop
+        , Element.centerX
+        , Element.spacing 10
+        , Element.padding 10
+        , Element.explain Debug.todo
         ]
         [ Element.el [] (Element.text "Either enter your credentials...")
-        , Element.html
-            (table []
-                [ tr []
-                    [ td [] [ text "Keystone auth URL" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.authUrl
-                            , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-                            , onInput (\u -> InputLoginField (AuthUrl u))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "Project Domain" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.projectDomain
-                            , onInput (\d -> InputLoginField (ProjectDomain d))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "Project Name" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.projectName
-                            , onInput (\pn -> InputLoginField (ProjectName pn))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "User Domain" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.userDomain
-                            , onInput (\d -> InputLoginField (UserDomain d))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "User Name" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.username
-                            , onInput (\u -> InputLoginField (Username u))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "Password" ]
-                    , td []
-                        [ input
-                            ([ type_ "password"
-                             , value model.creds.password
-                             , onInput (\p -> InputLoginField (Password p))
-                             ]
-                                ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
-                                    (Helpers.providePasswordHint model.creds.username model.creds.password)
-                            )
-                            []
-                        ]
-                    ]
-                ]
-            )
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.authUrl
+            , placeholder = Just (Input.placeholder [] (Element.text "Auth URL e.g. https://mycloud.net:5000/v3"))
+            , onChange = \u -> InputLoginField (AuthUrl u)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.projectDomain
+            , placeholder = Just (Input.placeholder [] (Element.text "Project domain e.g. default"))
+            , onChange = \d -> InputLoginField (ProjectDomain d)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.projectName
+            , placeholder = Just (Input.placeholder [] (Element.text "Project name e.g. demo"))
+            , onChange = \pn -> InputLoginField (ProjectName pn)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Name")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.userDomain
+            , placeholder = Just (Input.placeholder [] (Element.text "User domain e.g. default"))
+            , onChange = \d -> InputLoginField (UserDomain d)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Domain")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.username
+            , placeholder = Just (Input.placeholder [] (Element.text "User name e.g. demo"))
+            , onChange = \u -> InputLoginField (Username u)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Name")
+            }
+        , Input.currentPassword
+            [ Element.spacing 12
+            ]
+            { text = model.creds.password
+            , placeholder = Just (Input.placeholder [] (Element.text "Password"))
+            , show = False
+            , onChange = \p -> InputLoginField (Password p)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
+            }
         ]
 
 
@@ -219,6 +202,7 @@ viewLoginOpenRcEntry model =
     Element.column
         [ Element.height Element.fill
         , Element.spacing 15
+        , Element.explain Debug.todo
         ]
         [ Element.paragraph []
             [ Element.text "...or paste an "
