@@ -9,9 +9,7 @@ import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
-import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
-import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, target, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html)
 import Maybe
 import RemoteData
 import Types.Types exposing (..)
@@ -379,40 +377,46 @@ viewServerDetail provider serverUuid =
                                 Just floatingIp ->
                                     let
                                         interactionLinksBase =
-                                            [ Html.br [] []
-                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html")) ] [ text "Launch Terminal" ]
-                                            , text " Type commands in a shell!"
-                                            , Html.br [] []
-                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090")) ] [ text "Launch Cockpit" ]
-                                            , text " Manage your server with an interactive dashboard!"
-                                            , Html.br [] []
-                                            , Html.ul []
-                                                [ Html.li [] [ text "These links will open in a new browser window; you may need to accept a self-signed certificate warning" ]
-                                                , Html.li [] [ text "Then, log in with your previously chosen username and password" ]
+                                            [ Element.row []
+                                                [ uiButton
+                                                    { label = Element.text "Launch Terminal"
+                                                    , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
+                                                    }
+                                                , Element.text "Type commands in a shell!"
                                                 ]
+                                            , Element.row
+                                                []
+                                                [ uiButton
+                                                    { label = Element.text "Launch Cockpit"
+                                                    , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090"))
+                                                    }
+                                                , Element.text "Manage your server with an interactive dashboard!"
+                                                ]
+                                            , Element.text "- These links will open in a new browser window; you may need to accept a self-signed certificate warning"
+                                            , Element.text "- Then, log in with your previously chosen username and password"
                                             ]
                                     in
                                     case cockpitStatus of
                                         NotChecked ->
-                                            text "Status of terminal and cockpit not available yet."
+                                            Element.text "Status of terminal and cockpit not available yet."
 
                                         CheckedNotReady ->
-                                            text "Terminal and Cockpit not ready yet."
+                                            Element.text "Terminal and Cockpit not ready yet."
 
                                         Ready ->
-                                            div []
-                                                ([ text "Terminal and Cockpit are ready..." ]
+                                            Element.column []
+                                                ([ Element.text "Terminal and Cockpit are ready..." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                         Error ->
-                                            div []
-                                                ([ text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
+                                            Element.column []
+                                                ([ Element.text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                 Nothing ->
-                                    text "Terminal and Cockpit services not ready yet."
+                                    Element.text "Terminal and Cockpit services not ready yet."
                     in
                     Element.column []
                         [ Element.el [ Region.heading 2 ] (Element.text "Server Details")
@@ -452,9 +456,8 @@ viewServerDetail provider serverUuid =
                             [ Element.text "IP addresses: "
                             , renderIpAddresses details.ipAddresses
                             ]
-                        , h2 [] [ text "Interact with server" ]
-                        , p []
-                            [ interactionLinks server.cockpitStatus ]
+                        , Element.el [ Region.heading 2 ] (Element.text "Interact with server")
+                        , interactionLinks server.cockpitStatus
                         ]
 
 
