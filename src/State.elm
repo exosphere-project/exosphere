@@ -2,6 +2,7 @@ module State exposing (init, subscriptions, update)
 
 import Helpers
 import Maybe
+import Ports
 import RemoteData
 import Rest
 import Time
@@ -179,6 +180,9 @@ update msg model =
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
+        OpenInBrowser url ->
+            ( model, Ports.openInBrowser url )
+
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
 processProviderSpecificMsg model provider msg =
@@ -332,5 +336,5 @@ processProviderSpecificMsg model provider msg =
         ReceiveFloatingIp serverUuid result ->
             Rest.receiveFloatingIp model provider serverUuid result
 
-        ReceiveGottyStatus serverUuid result ->
-            Rest.receiveGottyStatus model provider serverUuid result
+        ReceiveCockpitStatus serverUuid result ->
+            Rest.receiveCockpitStatus model provider serverUuid result

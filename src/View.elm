@@ -390,38 +390,45 @@ viewServerDetail provider serverUuid =
                         maybeFloatingIp =
                             Helpers.getFloatingIp details.ipAddresses
 
-                        webTerminalLink gottyStatus =
+                        interactionLinks cockpitStatus =
                             case maybeFloatingIp of
                                 Just floatingIp ->
                                     let
-                                        webTerminalLinkBase =
+                                        interactionLinksBase =
                                             [ Html.br [] []
-                                            , a [ href ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"), target "_blank" ] [ text "Launch Web Terminal" ]
+                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html")) ] [ text "Launch Terminal" ]
+                                            , text " Type commands in a shell!"
                                             , Html.br [] []
-                                            , text "Log in with your chosen username and password"
+                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090")) ] [ text "Launch Cockpit" ]
+                                            , text " Manage your server with an interactive dashboard!"
+                                            , Html.br [] []
+                                            , Html.ul []
+                                                [ Html.li [] [ text "These links will open in a new browser window; you may need to accept a self-signed certificate warning" ]
+                                                , Html.li [] [ text "Then, log in with your previously chosen username and password" ]
+                                                ]
                                             ]
                                     in
-                                    case gottyStatus of
+                                    case cockpitStatus of
                                         NotChecked ->
-                                            text "Status of web terminal not available yet."
+                                            text "Status of terminal and cockpit not available yet."
 
                                         CheckedNotReady ->
-                                            text "Web terminal not online yet."
+                                            text "Terminal and Cockpit not ready yet."
 
                                         Ready ->
                                             div []
-                                                ([ text "Web terminal is ready!" ]
-                                                    ++ webTerminalLinkBase
+                                                ([ text "Terminal and Cockpit are ready..." ]
+                                                    ++ interactionLinksBase
                                                 )
 
                                         Error ->
                                             div []
-                                                ([ text "Unable to detect status of web terminal. This link may work a few minutes after server is active." ]
-                                                    ++ webTerminalLinkBase
+                                                ([ text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
+                                                    ++ interactionLinksBase
                                                 )
 
                                 Nothing ->
-                                    text "Web terminal not online yet."
+                                    text "Terminal and Cockpit services not ready yet."
                     in
                     div []
                         [ h2 [] [ text "Server details" ]
@@ -469,7 +476,7 @@ viewServerDetail provider serverUuid =
                             ]
                         , h2 [] [ text "Interact with server" ]
                         , p []
-                            [ webTerminalLink server.gottyStatus ]
+                            [ interactionLinks server.cockpitStatus ]
                         ]
 
 

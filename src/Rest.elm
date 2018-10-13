@@ -1,4 +1,4 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveGottyStatus, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Base64
 import Dict
@@ -397,8 +397,8 @@ requestFloatingIp model provider network port_ server =
     ( newModel, cmd )
 
 
-requestGottyStatus : Provider -> ServerUuid -> String -> Cmd Msg
-requestGottyStatus provider serverUuid ipAddress =
+requestCockpitStatus : Provider -> ServerUuid -> String -> Cmd Msg
+requestCockpitStatus provider serverUuid ipAddress =
     let
         request =
             Http.request
@@ -406,13 +406,13 @@ requestGottyStatus provider serverUuid ipAddress =
                 , headers = []
                 , url = "http://" ++ ipAddress ++ ":9090/ping"
                 , body = Http.emptyBody
-                , expect = Http.expectJson gottyStatusDecoder
+                , expect = Http.expectJson cockpitStatusDecoder
                 , timeout = Just 3000
                 , withCredentials = False
                 }
 
         resultMsg provider2 serverUuid2 result =
-            ProviderMsg provider2.name (ReceiveGottyStatus serverUuid2 result)
+            ProviderMsg provider2.name (ReceiveCockpitStatus serverUuid2 result)
     in
     Http.send (resultMsg provider serverUuid) request
 
@@ -626,7 +626,7 @@ receiveServerDetail model provider serverUuid result =
                             case maybeFloatingIp of
                                 Just floatingIp ->
                                     ( newModel
-                                    , requestGottyStatus provider server.uuid floatingIp
+                                    , requestCockpitStatus provider server.uuid floatingIp
                                     )
 
                                 Nothing ->
@@ -763,7 +763,7 @@ receiveFloatingIp model provider serverUuid result =
                 "We should have a server here but we don't"
 
         Just server ->
-            {- This repeats a lot of code in receiveGottyStatus, badly needs a refactor -}
+            {- This repeats a lot of code in receiveCockpitStatus, badly needs a refactor -}
             case result of
                 Err error ->
                     let
@@ -826,8 +826,8 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
             Just { details | ipAddresses = newIps }
 
 
-receiveGottyStatus : Model -> Provider -> ServerUuid -> Result Http.Error GottyStatus -> ( Model, Cmd Msg )
-receiveGottyStatus model provider serverUuid result =
+receiveCockpitStatus : Model -> Provider -> ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
+receiveCockpitStatus model provider serverUuid result =
     let
         maybeServer =
             List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
@@ -845,7 +845,7 @@ receiveGottyStatus model provider serverUuid result =
                 Err error ->
                     let
                         newServer =
-                            { server | gottyStatus = Error }
+                            { server | cockpitStatus = Error }
 
                         otherServers =
                             List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
@@ -861,11 +861,11 @@ receiveGottyStatus model provider serverUuid result =
                     in
                     ( newModel, Cmd.none )
 
-                Ok gottyStatus ->
+                Ok cockpitStatus ->
                     let
                         newServer =
                             { server
-                                | gottyStatus = gottyStatus
+                                | cockpitStatus = cockpitStatus
                             }
 
                         otherServers =
@@ -1128,10 +1128,10 @@ decodeFloatingIpCreation =
         (Decode.succeed Floating)
 
 
-gottyStatusDecoder : Decode.Decoder GottyStatus
-gottyStatusDecoder =
+cockpitStatusDecoder : Decode.Decoder CockpitStatus
+cockpitStatusDecoder =
     let
-        serviceToShellStatus s =
+        serviceToCockpitStatus s =
             let
                 _ =
                     Debug.log "s" s
@@ -1142,4 +1142,4 @@ gottyStatusDecoder =
             else
                 CheckedNotReady
     in
-    Decode.map serviceToShellStatus (Decode.field "service" Decode.string)
+    Decode.map serviceToCockpitStatus (Decode.field "service" Decode.string)
