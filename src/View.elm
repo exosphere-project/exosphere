@@ -75,7 +75,7 @@ providerView model provider viewConstructor =
         CreateServer createServerRequest ->
             Element.column []
                 [ viewNav provider
-                , Element.html (viewCreateServer provider createServerRequest)
+                , viewCreateServer provider createServerRequest
                 ]
 
 
@@ -467,86 +467,137 @@ viewServerDetail provider serverUuid =
                         ]
 
 
-viewCreateServer : Provider -> CreateServerRequest -> Html Msg
+viewCreateServer : Provider -> CreateServerRequest -> Element.Element Msg
 viewCreateServer provider createServerRequest =
-    div []
-        [ h2 [] [ text "Create Server" ]
-        , table []
-            [ tr []
-                [ th [] [ text "Property" ]
-                , th [] [ text "Value" ]
+    Element.row []
+        [ Element.column [ Element.spacing 10, Element.padding 10, Element.width (Element.px 600) ]
+            [ Element.el [ Region.heading 2 ] (Element.text "Create Server")
+            , Input.text
+                [ Element.spacing 12
                 ]
-            , tr []
-                [ td [] [ text "Server Name" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , placeholder "My Server"
-                        , value createServerRequest.name
-                        , onInput (\n -> InputCreateServerField createServerRequest (CreateServerName n))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Image" ]
-                , td []
-                    [ text createServerRequest.imageName
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "How Many?" ]
-                , td []
-                    [ input
-                        [ type_ "number"
-                        , Attr.min "1"
-                        , Attr.max "10"
-                        , value createServerRequest.count
-                        , onInput (\c -> InputCreateServerField createServerRequest (CreateServerCount c))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Size" ]
-                , td []
-                    [ viewFlavorPicker provider createServerRequest
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Choose a root disk size:" ]
-                , td []
-                    [ viewVolBackedPrompt provider createServerRequest
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "SSH Keypair" ]
-                , td []
-                    [ viewKeypairPicker provider createServerRequest
-                    ]
-                ]
-            , tr []
-                [ td []
-                    [ text "User Data"
-                    , Html.br [] []
-                    , text "(Boot Script)"
-                    ]
-                , td []
-                    [ div []
-                        [ textarea
-                            [ value createServerRequest.userData
-                            , rows 20
-                            , cols 80
-                            , onInput (\u -> InputCreateServerField createServerRequest (CreateServerUserData u))
-                            , placeholder "#!/bin/bash"
+                { text = createServerRequest.name
+                , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
+                , label = Input.labelLeft [] (Element.text "Name")
+                }
+            , Element.row [] [ Element.text "Image: ", Element.text createServerRequest.imageName ]
+            , Element.row [ Element.spacing 10 ]
+                [ Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.count)
+                , Input.slider
+                    [ Element.height (Element.px 30)
+                    , Element.width (Element.px 100 |> Element.minimum 200)
+
+                    -- Here is where we're creating/styling the "track"
+                    , Element.behindContent
+                        (Element.el
+                            [ Element.width Element.fill
+                            , Element.height (Element.px 2)
+                            , Element.centerY
+                            , Background.color (Element.rgb 0.5 0.5 0.5)
+                            , Border.rounded 2
                             ]
-                            []
-                        ]
-                    , div [] [ text (getEffectiveUserDataSize createServerRequest) ]
+                            Element.none
+                        )
                     ]
+                    { onChange = \c -> InputCreateServerField createServerRequest (CreateServerCount (String.fromFloat c))
+                    , label = Input.labelLeft [] (Element.text "How many?")
+                    , min = 1
+                    , max = 10
+                    , step = Just 1
+                    , value = String.toFloat createServerRequest.count |> Maybe.withDefault 1.0
+                    , thumb =
+                        Input.defaultThumb
+                    }
                 ]
+            , viewFlavorPicker provider createServerRequest
+            , viewVolBackedPrompt provider createServerRequest
+            , viewKeypairPicker provider createServerRequest
+            , viewUserDataInput provider createServerRequest
+            , uiButton
+                { onPress = Just (ProviderMsg provider.name (RequestCreateServer createServerRequest))
+                , label = Element.text "Create"
+                }
             ]
-        , button [ onClick (ProviderMsg provider.name (RequestCreateServer createServerRequest)) ] [ text "Create" ]
+        , Element.html
+            (div []
+                [ table []
+                    [ tr []
+                        [ th [] [ text "Property" ]
+                        , th [] [ text "Value" ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Server Name" ]
+                        , td []
+                            [ input
+                                [ type_ "text"
+                                , placeholder "My Server"
+                                , value createServerRequest.name
+                                , onInput (\n -> InputCreateServerField createServerRequest (CreateServerName n))
+                                ]
+                                []
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Image" ]
+                        , td []
+                            [ text createServerRequest.imageName
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ text "How Many?" ]
+                        , td []
+                            [ input
+                                [ type_ "number"
+                                , Attr.min "1"
+                                , Attr.max "10"
+                                , value createServerRequest.count
+                                , onInput (\c -> InputCreateServerField createServerRequest (CreateServerCount c))
+                                ]
+                                []
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Size" ]
+                        , td []
+                            [ viewFlavorPickerDELETE provider createServerRequest
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ text "Choose a root disk size:" ]
+                        , td []
+                            [ viewVolBackedPromptDELETE provider createServerRequest
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ text "SSH Keypair" ]
+                        , td []
+                            [ viewKeypairPickerDELETE provider createServerRequest
+                            ]
+                        ]
+                    , tr []
+                        [ td []
+                            [ text "User Data"
+                            , Html.br [] []
+                            , text "(Boot Script)"
+                            ]
+                        , td []
+                            [ div []
+                                [ textarea
+                                    [ value createServerRequest.userData
+                                    , rows 20
+                                    , cols 80
+                                    , onInput (\u -> InputCreateServerField createServerRequest (CreateServerUserData u))
+                                    , placeholder "#!/bin/bash"
+                                    ]
+                                    []
+                                ]
+                            , div [] [ text (getEffectiveUserDataSize createServerRequest) ]
+                            ]
+                        ]
+                    ]
+                , button [ onClick (ProviderMsg provider.name (RequestCreateServer createServerRequest)) ] [ text "Create" ]
+                ]
+            )
         ]
 
 
@@ -679,8 +730,32 @@ renderIpAddress ipAddress =
         ]
 
 
-viewFlavorPicker : Provider -> CreateServerRequest -> Html Msg
+viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewFlavorPicker provider createServerRequest =
+    let
+        sortedFlavors flavors =
+            flavors
+                |> List.sortBy .disk_ephemeral
+                |> List.sortBy .disk_root
+                |> List.sortBy .ram_mb
+                |> List.sortBy .vcpu
+
+        flavorAsStr flavor =
+            flavor.name ++ " (" ++ String.fromInt flavor.vcpu ++ " CPU, " ++ (flavor.ram_mb // 1024 |> String.fromInt) ++ " GB RAM, " ++ String.fromInt flavor.disk_root ++ " GB root disk, " ++ String.fromInt flavor.disk_ephemeral ++ " GB ephemeral disk)"
+
+        flavorAsOption flavor =
+            Input.option flavor.uuid (Element.text (flavorAsStr flavor))
+    in
+    Input.radio []
+        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Size")
+        , onChange = \new -> InputCreateServerField createServerRequest (CreateServerSize new)
+        , options = List.map flavorAsOption (sortedFlavors provider.flavors)
+        , selected = Just createServerRequest.flavorUuid
+        }
+
+
+viewFlavorPickerDELETE : Provider -> CreateServerRequest -> Html Msg
+viewFlavorPickerDELETE provider createServerRequest =
     let
         sortedFlavors flavors =
             flavors
@@ -704,8 +779,72 @@ viewFlavorPicker provider createServerRequest =
     fieldset [] (List.map viewFlavorPickerLabel (sortedFlavors provider.flavors))
 
 
-viewVolBackedPrompt : Provider -> CreateServerRequest -> Html Msg
+viewVolBackedPrompt : Provider -> CreateServerRequest -> Element.Element Msg
 viewVolBackedPrompt provider createServerRequest =
+    let
+        maybeFlavor =
+            List.filter (\f -> f.uuid == createServerRequest.flavorUuid) provider.flavors
+                |> List.head
+
+        flavorRootDiskSize =
+            case maybeFlavor of
+                Nothing ->
+                    {- This should be an impossible state -}
+                    0
+
+                Just flavor ->
+                    flavor.disk_root
+
+        nonVolBackedOptionText =
+            if flavorRootDiskSize == 0 then
+                "Default for selected image (warning, could be too small for your work)"
+
+            else
+                String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
+    in
+    Input.radio []
+        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
+        , onChange = \new -> InputCreateServerField createServerRequest (CreateServerVolBacked new)
+        , options =
+            [ Input.option False (Element.text nonVolBackedOptionText)
+            , Input.option True
+                (Element.row
+                    [ Element.spacing 10 ]
+                    [ --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
+                      Input.slider
+                        [ Element.height (Element.px 30)
+                        , Element.width (Element.px 100 |> Element.minimum 200)
+
+                        -- Here is where we're creating/styling the "track"
+                        , Element.behindContent
+                            (Element.el
+                                [ Element.width Element.fill
+                                , Element.height (Element.px 2)
+                                , Element.centerY
+                                , Background.color (Element.rgb 0.5 0.5 0.5)
+                                , Border.rounded 2
+                                ]
+                                Element.none
+                            )
+                        ]
+                        { onChange = \c -> InputCreateServerField createServerRequest (CreateServerVolBackedSize (String.fromFloat c))
+                        , label = Input.labelRight [] (Element.text (createServerRequest.volBackedSizeGb ++ " GB (will use a volume for root disk)"))
+                        , min = 2
+                        , max = 20
+                        , step = Just 1
+                        , value = String.toFloat createServerRequest.volBackedSizeGb |> Maybe.withDefault 2.0
+                        , thumb =
+                            Input.defaultThumb
+                        }
+                    ]
+                )
+            ]
+        , selected = Just createServerRequest.volBacked
+        }
+
+
+viewVolBackedPromptDELETE : Provider -> CreateServerRequest -> Html Msg
+viewVolBackedPromptDELETE provider createServerRequest =
     let
         maybeFlavor =
             List.filter (\f -> f.uuid == createServerRequest.flavorUuid) provider.flavors
@@ -747,8 +886,22 @@ viewVolBackedPrompt provider createServerRequest =
         ]
 
 
-viewKeypairPicker : Provider -> CreateServerRequest -> Html Msg
+viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewKeypairPicker provider createServerRequest =
+    let
+        keypairAsOption keypair =
+            Input.option keypair.name (Element.text keypair.name)
+    in
+    Input.radio []
+        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
+        , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
+        , options = List.map keypairAsOption provider.keypairs
+        , selected = Just createServerRequest.keypairName
+        }
+
+
+viewKeypairPickerDELETE : Provider -> CreateServerRequest -> Html Msg
+viewKeypairPickerDELETE provider createServerRequest =
     let
         viewKeypairPickerLabel keypair =
             label []
@@ -757,6 +910,20 @@ viewKeypairPicker provider createServerRequest =
                 ]
     in
     fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)
+
+
+viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
+viewUserDataInput provider createServerRequest =
+    Input.multiline
+        [ Element.width (Element.px 300)
+        , Element.height (Element.px 200)
+        ]
+        { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+        , text = "#!/bin/bash\n\n# Replace with your script..."
+        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+        , label = Input.labelAbove [] (Element.text "User Data (Boot Script)")
+        , spellcheck = False
+        }
 
 
 
