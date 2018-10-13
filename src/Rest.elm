@@ -1,4 +1,4 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Base64
 import Dict
@@ -7,6 +7,7 @@ import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import RemoteData
+import Time
 import Types.OpenstackTypes as OpenstackTypes
 import Types.Types exposing (..)
 
@@ -396,6 +397,26 @@ requestFloatingIp model provider network port_ server =
     ( newModel, cmd )
 
 
+requestCockpitStatus : Provider -> ServerUuid -> String -> Cmd Msg
+requestCockpitStatus provider serverUuid ipAddress =
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = []
+                , url = "http://" ++ ipAddress ++ ":9090/ping"
+                , body = Http.emptyBody
+                , expect = Http.expectJson cockpitStatusDecoder
+                , timeout = Just 3000
+                , withCredentials = False
+                }
+
+        resultMsg provider2 serverUuid2 result =
+            ProviderMsg provider2.name (ReceiveCockpitStatus serverUuid2 result)
+    in
+    Http.send (resultMsg provider serverUuid) request
+
+
 
 {- HTTP Response Handling -}
 
@@ -596,6 +617,21 @@ receiveServerDetail model provider serverUuid result =
                                 ]
                             )
 
+                        Success ->
+                            let
+                                maybeFloatingIp =
+                                    Helpers.getFloatingIp
+                                        serverDetails.ipAddresses
+                            in
+                            case maybeFloatingIp of
+                                Just floatingIp ->
+                                    ( newModel
+                                    , requestCockpitStatus provider server.uuid floatingIp
+                                    )
+
+                                Nothing ->
+                                    Helpers.processError newModel "We should have a floating IP address here but we don't"
+
                         _ ->
                             ( newModel, Cmd.none )
 
@@ -727,6 +763,7 @@ receiveFloatingIp model provider serverUuid result =
                 "We should have a server here but we don't"
 
         Just server ->
+            {- This repeats a lot of code in receiveCockpitStatus, badly needs a refactor -}
             case result of
                 Err error ->
                     let
@@ -787,6 +824,65 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
                     ipAddress :: details.ipAddresses
             in
             Just { details | ipAddresses = newIps }
+
+
+receiveCockpitStatus : Model -> Provider -> ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
+receiveCockpitStatus model provider serverUuid result =
+    let
+        maybeServer =
+            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
+                |> List.head
+    in
+    case maybeServer of
+        Nothing ->
+            Helpers.processError
+                model
+                "We should have a server here but we don't"
+
+        Just server ->
+            {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
+            case result of
+                Err error ->
+                    let
+                        newServer =
+                            { server | cockpitStatus = Error }
+
+                        otherServers =
+                            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
+
+                        newServers =
+                            newServer :: otherServers
+
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServers }
+
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
+
+                Ok cockpitStatus ->
+                    let
+                        newServer =
+                            { server
+                                | cockpitStatus = cockpitStatus
+                            }
+
+                        otherServers =
+                            List.filter
+                                (\s -> s.uuid /= newServer.uuid)
+                                (RemoteData.withDefault [] provider.servers)
+
+                        newServers =
+                            newServer :: otherServers
+
+                        newProvider =
+                            { provider | servers = RemoteData.Success newServers }
+
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
 
 
 
@@ -884,7 +980,7 @@ decodeServers =
 
 serverDecoder : Decode.Decoder Server
 serverDecoder =
-    Decode.map6 Server
+    Decode.map7 Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -894,6 +990,7 @@ serverDecoder =
         (Decode.succeed Nothing)
         (Decode.succeed Unknown)
         (Decode.succeed False)
+        (Decode.succeed NotChecked)
         (Decode.succeed False)
 
 
@@ -1029,3 +1126,20 @@ decodeFloatingIpCreation =
     Decode.map2 IpAddress
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed Floating)
+
+
+cockpitStatusDecoder : Decode.Decoder CockpitStatus
+cockpitStatusDecoder =
+    let
+        serviceToCockpitStatus s =
+            let
+                _ =
+                    Debug.log "s" s
+            in
+            if s == "cockpit" then
+                Ready
+
+            else
+                CheckedNotReady
+    in
+    Decode.map serviceToCockpitStatus (Decode.field "service" Decode.string)

@@ -2,6 +2,7 @@ module State exposing (init, subscriptions, update)
 
 import Helpers
 import Maybe
+import Ports
 import RemoteData
 import Rest
 import Time
@@ -14,6 +15,29 @@ import Types.Types exposing (..)
 
 init : () -> ( Model, Cmd Msg )
 init _ =
+    let
+        globalDefaults =
+            { shellUserData =
+                """#cloud-config
+users:
+  - default
+  - name: exouser
+    shell: /bin/bash
+    groups: sudo, admin
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+packages:
+  - cockpit
+runcmd:
+  - systemctl enable cockpit.socket
+  - systemctl start cockpit.socket
+  - systemctl daemon-reload
+chpasswd:
+  list: |
+    exouser:changeme123
+  expire: False
+"""
+            }
+    in
     ( { messages = []
       , viewState = NonProviderView Login
       , providers = []
@@ -26,6 +50,7 @@ init _ =
                 "demo"
                 ""
       , imageFilterTag = Maybe.Just "distro-base"
+      , globalDefaults = globalDefaults
       }
     , Cmd.none
     )
@@ -154,6 +179,9 @@ update msg model =
                     ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in
             ( { model | viewState = newViewState }, Cmd.none )
+
+        OpenInBrowser url ->
+            ( model, Ports.openInBrowser url )
 
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
@@ -307,3 +335,6 @@ processProviderSpecificMsg model provider msg =
 
         ReceiveFloatingIp serverUuid result ->
             Rest.receiveFloatingIp model provider serverUuid result
+
+        ReceiveCockpitStatus serverUuid result ->
+            Rest.receiveCockpitStatus model provider serverUuid result

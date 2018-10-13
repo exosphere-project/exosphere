@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderViewConstructor(..), Server, ServerDetails, ServerPowerState(..), ServerUuid, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderViewConstructor(..), Server, ServerDetails, ServerPowerState(..), ServerUuid, ViewState(..))
 
 import Http
 import Maybe
@@ -17,6 +17,12 @@ type alias Model =
     , providers : List Provider
     , creds : Creds
     , imageFilterTag : Maybe String
+    , globalDefaults : GlobalDefaults
+    }
+
+
+type alias GlobalDefaults =
+    { shellUserData : String
     }
 
 
@@ -42,6 +48,7 @@ type Msg
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
+    | OpenInBrowser String
 
 
 type ProviderSpecificMsgConstructor
@@ -63,6 +70,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveNetworks (Result Http.Error (List Network))
     | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
     | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
+    | ReceiveCockpitStatus ServerUuid (Result Http.Error CockpitStatus)
 
 
 type ViewState
@@ -154,6 +162,7 @@ type alias Server =
     , details : Maybe ServerDetails
     , floatingIpState : FloatingIpState
     , selected : Bool
+    , cockpitStatus : CockpitStatus
     , deletionAttempted : Bool
     }
 
@@ -169,6 +178,13 @@ type FloatingIpState
     | RequestedWaiting
     | Success
     | Failed
+
+
+type CockpitStatus
+    = NotChecked
+    | CheckedNotReady
+    | Ready
+    | Error
 
 
 

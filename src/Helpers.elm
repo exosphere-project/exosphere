@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, serverLookup, serviceCatalogToEndpoints)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, serverLookup, serviceCatalogToEndpoints)
 
 import Debug
 import Maybe.Extra
@@ -227,3 +227,14 @@ modelUpdateProvider model newProvider =
             newProvider :: otherProviders
     in
     { model | providers = newProviders }
+
+
+getFloatingIp : List IpAddress -> Maybe String
+getFloatingIp ipAddresses =
+    let
+        isFloating ipAddress =
+            ipAddress.openstackType == Floating
+    in
+    List.filter isFloating ipAddresses
+        |> List.head
+        |> Maybe.map .address

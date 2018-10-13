@@ -3,6 +3,7 @@
 const electron = require('electron')
 
 const app = electron.app // this is our app
+
 const BrowserWindow = electron.BrowserWindow // This is a Module that creates windows
 
 let mainWindow // saves a global reference to mainWindow so it doesn't get garbage collected

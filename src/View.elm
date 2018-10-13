@@ -10,7 +10,7 @@ import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
-import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, type_, value)
+import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, target, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe
 import RemoteData
@@ -50,7 +50,7 @@ providerView model provider viewConstructor =
         ListImages ->
             Element.column []
                 [ viewNav provider
-                , viewImagesIfLoaded provider model.imageFilterTag
+                , viewImagesIfLoaded model.globalDefaults provider model.imageFilterTag
                 ]
 
         ListProviderServers ->
@@ -242,18 +242,18 @@ viewLoginOpenRcEntry model =
         ]
 
 
-viewImagesIfLoaded : Provider -> Maybe String -> Element.Element Msg
-viewImagesIfLoaded provider maybeFilterTag =
+viewImagesIfLoaded : GlobalDefaults -> Provider -> Maybe String -> Element.Element Msg
+viewImagesIfLoaded globalDefaults provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
             Element.column [] [ Element.row [] [ Element.text "Images loading" ] ]
 
         False ->
-            viewImages provider maybeFilterTag
+            viewImages globalDefaults provider maybeFilterTag
 
 
-viewImages : Provider -> Maybe String -> Element.Element Msg
-viewImages provider maybeFilterTag =
+viewImages : GlobalDefaults -> Provider -> Maybe String -> Element.Element Msg
+viewImages globalDefaults provider maybeFilterTag =
     let
         imageContainsTag tag image =
             List.member tag image.tags
@@ -290,7 +290,7 @@ viewImages provider maybeFilterTag =
 
           else
             Element.none
-        , Element.wrappedRow [ Element.spacing 20 ] (List.map (renderImage provider) displayedImages)
+        , Element.wrappedRow [ Element.spacing 20 ] (List.map (renderImage globalDefaults provider) displayedImages)
         ]
 
 
@@ -386,6 +386,49 @@ viewServerDetail provider serverUuid =
 
                                 Nothing ->
                                     "Unknown image"
+
+                        maybeFloatingIp =
+                            Helpers.getFloatingIp details.ipAddresses
+
+                        interactionLinks cockpitStatus =
+                            case maybeFloatingIp of
+                                Just floatingIp ->
+                                    let
+                                        interactionLinksBase =
+                                            [ Html.br [] []
+                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html")) ] [ text "Launch Terminal" ]
+                                            , text " Type commands in a shell!"
+                                            , Html.br [] []
+                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090")) ] [ text "Launch Cockpit" ]
+                                            , text " Manage your server with an interactive dashboard!"
+                                            , Html.br [] []
+                                            , Html.ul []
+                                                [ Html.li [] [ text "These links will open in a new browser window; you may need to accept a self-signed certificate warning" ]
+                                                , Html.li [] [ text "Then, log in with your previously chosen username and password" ]
+                                                ]
+                                            ]
+                                    in
+                                    case cockpitStatus of
+                                        NotChecked ->
+                                            text "Status of terminal and cockpit not available yet."
+
+                                        CheckedNotReady ->
+                                            text "Terminal and Cockpit not ready yet."
+
+                                        Ready ->
+                                            div []
+                                                ([ text "Terminal and Cockpit are ready..." ]
+                                                    ++ interactionLinksBase
+                                                )
+
+                                        Error ->
+                                            div []
+                                                ([ text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
+                                                    ++ interactionLinksBase
+                                                )
+
+                                Nothing ->
+                                    text "Terminal and Cockpit services not ready yet."
                     in
                     div []
                         [ h2 [] [ text "Server details" ]
@@ -431,6 +474,9 @@ viewServerDetail provider serverUuid =
                                 , td [] [ renderIpAddresses details.ipAddresses ]
                                 ]
                             ]
+                        , h2 [] [ text "Interact with server" ]
+                        , p []
+                            [ interactionLinks server.cockpitStatus ]
                         ]
 
 
@@ -545,8 +591,8 @@ renderProviderPicker model provider =
             text provider.name
 
 
-renderImage : Provider -> Image -> Element.Element Msg
-renderImage provider image =
+renderImage : GlobalDefaults -> Provider -> Image -> Element.Element Msg
+renderImage globalDefaults provider image =
     let
         size =
             case image.size of
@@ -578,7 +624,7 @@ renderImage provider image =
         , Element.padding 10
         ]
         [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
-        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" "")))) })
+        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
         , Element.row []
             [ Element.text "Status: "
             , Element.text (Debug.toString image.status)
