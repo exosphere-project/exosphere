@@ -20,10 +20,7 @@ import Types.Types exposing (..)
 view : Model -> Html Msg
 view model =
     Element.layout
-        [ Background.color (Element.rgb 0.2 0.2 0.2)
-        , Font.color (Element.rgb 1 0.1 0.1)
-        , Element.explain Debug.todo
-        ]
+        []
         (elementView model)
 
 
@@ -31,7 +28,6 @@ elementView : Model -> Element.Element Msg
 elementView model =
     Element.column
         [ Element.padding 10
-        , Element.explain Debug.todo
         ]
         [ viewProviderPicker model
         , case model.viewState of
@@ -116,7 +112,6 @@ viewLogin : Model -> Element.Element Msg
 viewLogin model =
     Element.column
         [ Element.spacing 20
-        , Element.explain Debug.todo
         ]
         [ Element.el
             [ Region.heading 2
@@ -142,7 +137,6 @@ viewLoginCredsEntry model =
         , Element.centerX
         , Element.spacing 10
         , Element.padding 10
-        , Element.explain Debug.todo
         ]
         [ Element.el [] (Element.text "Either enter your credentials...")
         , Input.text
@@ -202,7 +196,6 @@ viewLoginOpenRcEntry model =
     Element.column
         [ Element.height Element.fill
         , Element.spacing 15
-        , Element.explain Debug.todo
         ]
         [ Element.paragraph []
             [ Element.text "...or paste an "
@@ -267,7 +260,6 @@ viewImages globalDefaults provider maybeFilterTag =
     in
     Element.column
         [ Element.spacing 10
-        , Element.explain Debug.todo
         ]
         [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
         , Input.text []
@@ -284,7 +276,6 @@ viewImages globalDefaults provider maybeFilterTag =
             Element.none
         , Element.wrappedRow
             [ Element.spacing 20
-            , Element.explain Debug.todo
             ]
             (List.map (renderImage globalDefaults provider) displayedImages)
         ]
@@ -423,7 +414,7 @@ viewServerDetail provider serverUuid =
                                 Nothing ->
                                     text "Terminal and Cockpit services not ready yet."
                     in
-                    Element.column [ Element.explain Debug.todo ]
+                    Element.column []
                         [ Element.el [ Region.heading 2 ] (Element.text "Server Details")
                         , Element.row []
                             [ Element.text "Name: "
@@ -580,7 +571,6 @@ renderImage globalDefaults provider image =
             , color = Element.rgba 0.3 0.3 0.3 0.6
             }
         , Element.padding 10
-        , Element.explain Debug.todo
         ]
         [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
         , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
@@ -776,10 +766,10 @@ uiButton props =
         borderColor =
             if props.onPress == Nothing then
                 -- This should be where we decide what a disabled button looks like
-                Element.rgb 0 0 0
+                Element.rgb 0.8 0.8 0.8
 
             else
-                Element.rgb 1 0 0
+                Element.rgb 0 0 0
     in
     Input.button
         [ Element.padding 5
