@@ -9,9 +9,7 @@ import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
-import Html exposing (Html, a, button, div, fieldset, h2, input, label, legend, p, strong, table, td, text, textarea, th, tr)
-import Html.Attributes as Attr exposing (checked, class, cols, disabled, for, hidden, href, name, placeholder, rows, target, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html)
 import Maybe
 import RemoteData
 import Types.Types exposing (..)
@@ -19,14 +17,17 @@ import Types.Types exposing (..)
 
 view : Model -> Html Msg
 view model =
-    Element.layout []
+    Element.layout
+        []
         (elementView model)
 
 
 elementView : Model -> Element.Element Msg
 elementView model =
-    Element.column [ Element.padding 10 ]
-        [ Element.html (viewProviderPicker model)
+    Element.column
+        [ Element.padding 10
+        ]
+        [ viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -36,11 +37,11 @@ elementView model =
             ProviderView providerName viewConstructor ->
                 case Helpers.providerLookup model providerName of
                     Nothing ->
-                        Element.html (text "Oops! Provider not found")
+                        Element.text "Oops! Provider not found"
 
                     Just provider ->
                         providerView model provider viewConstructor
-        , Element.html (viewMessages model)
+        , viewMessages model
         ]
 
 
@@ -56,19 +57,19 @@ providerView model provider viewConstructor =
         ListProviderServers ->
             Element.column []
                 [ viewNav provider
-                , Element.html (viewServers provider)
+                , viewServers provider
                 ]
 
         ServerDetail serverUuid ->
             Element.column []
                 [ viewNav provider
-                , Element.html (viewServerDetail provider serverUuid)
+                , viewServerDetail provider serverUuid
                 ]
 
         CreateServer createServerRequest ->
             Element.column []
                 [ viewNav provider
-                , Element.html (viewCreateServer provider createServerRequest)
+                , viewCreateServer provider createServerRequest
                 ]
 
 
@@ -76,31 +77,29 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewMessages : Model -> Html Msg
+viewMessages : Model -> Element.Element Msg
 viewMessages model =
-    div [] (List.map renderMessage model.messages)
+    Element.column [] (List.map renderMessage model.messages)
 
 
-viewProviderPicker : Model -> Html Msg
+viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
-    div []
-        [ h2 [] [ text "Providers" ]
-        , div []
-            [ div [] (List.map (renderProviderPicker model) model.providers)
+    Element.column []
+        [ Element.el [ Region.heading 2 ] (Element.text "Providers")
+        , Element.column []
+            [ Element.column [] (List.map (renderProviderPicker model) model.providers)
             ]
-        , button [ onClick (SetNonProviderView Login) ] [ text "Add Provider" ]
+        , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
         ]
 
 
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
-    Element.html
-        (div []
-            [ h2 [] [ text "Navigation" ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text "My Servers" ]
-            , button [ onClick (ProviderMsg provider.name (SetProviderView ListImages)) ] [ text "Create Server" ]
-            ]
-        )
+    Element.column []
+        [ Element.el [ Region.heading 2 ] (Element.text "Navigation")
+        , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
+        , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
+        ]
 
 
 
@@ -109,7 +108,9 @@ viewNav provider =
 
 viewLogin : Model -> Element.Element Msg
 viewLogin model =
-    Element.column [ Element.spacing 20 ]
+    Element.column
+        [ Element.spacing 20
+        ]
         [ Element.el
             [ Region.heading 2
             , Font.size 24
@@ -128,84 +129,63 @@ viewLogin model =
 viewLoginCredsEntry : Model -> Element.Element Msg
 viewLoginCredsEntry model =
     Element.column
-        [ Element.height Element.fill
-        , Element.spacing 15
+        [ Element.width (Element.px 800)
+        , Element.height Element.shrink
+        , Element.alignTop
+        , Element.centerX
+        , Element.spacing 10
+        , Element.padding 10
         ]
         [ Element.el [] (Element.text "Either enter your credentials...")
-        , Element.html
-            (table []
-                [ tr []
-                    [ td [] [ text "Keystone auth URL" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.authUrl
-                            , placeholder "Auth URL e.g. https://mycloud.net:5000/v3"
-                            , onInput (\u -> InputLoginField (AuthUrl u))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "Project Domain" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.projectDomain
-                            , onInput (\d -> InputLoginField (ProjectDomain d))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "Project Name" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.projectName
-                            , onInput (\pn -> InputLoginField (ProjectName pn))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "User Domain" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.userDomain
-                            , onInput (\d -> InputLoginField (UserDomain d))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "User Name" ]
-                    , td []
-                        [ input
-                            [ type_ "text"
-                            , value model.creds.username
-                            , onInput (\u -> InputLoginField (Username u))
-                            ]
-                            []
-                        ]
-                    ]
-                , tr []
-                    [ td [] [ text "Password" ]
-                    , td []
-                        [ input
-                            ([ type_ "password"
-                             , value model.creds.password
-                             , onInput (\p -> InputLoginField (Password p))
-                             ]
-                                ++ List.map (\r -> Attr.style r.styleKey r.styleValue)
-                                    (Helpers.providePasswordHint model.creds.username model.creds.password)
-                            )
-                            []
-                        ]
-                    ]
-                ]
-            )
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.authUrl
+            , placeholder = Just (Input.placeholder [] (Element.text "Auth URL e.g. https://mycloud.net:5000/v3"))
+            , onChange = \u -> InputLoginField (AuthUrl u)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.projectDomain
+            , placeholder = Just (Input.placeholder [] (Element.text "Project domain e.g. default"))
+            , onChange = \d -> InputLoginField (ProjectDomain d)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.projectName
+            , placeholder = Just (Input.placeholder [] (Element.text "Project name e.g. demo"))
+            , onChange = \pn -> InputLoginField (ProjectName pn)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Name")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.userDomain
+            , placeholder = Just (Input.placeholder [] (Element.text "User domain e.g. default"))
+            , onChange = \d -> InputLoginField (UserDomain d)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Domain")
+            }
+        , Input.text
+            [ Element.spacing 12
+            ]
+            { text = model.creds.username
+            , placeholder = Just (Input.placeholder [] (Element.text "User name e.g. demo"))
+            , onChange = \u -> InputLoginField (Username u)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Name")
+            }
+        , Input.currentPassword
+            [ Element.spacing 12
+            ]
+            { text = model.creds.password
+            , placeholder = Just (Input.placeholder [] (Element.text "Password"))
+            , show = False
+            , onChange = \p -> InputLoginField (Password p)
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
+            }
         ]
 
 
@@ -276,7 +256,9 @@ viewImages globalDefaults provider maybeFilterTag =
             else
                 provider.images
     in
-    Element.column [ Element.spacing 10 ]
+    Element.column
+        [ Element.spacing 10
+        ]
         [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
         , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
@@ -290,26 +272,29 @@ viewImages globalDefaults provider maybeFilterTag =
 
           else
             Element.none
-        , Element.wrappedRow [ Element.spacing 20 ] (List.map (renderImage globalDefaults provider) displayedImages)
+        , Element.wrappedRow
+            [ Element.spacing 20
+            ]
+            (List.map (renderImage globalDefaults provider) displayedImages)
         ]
 
 
-viewServers : Provider -> Html Msg
+viewServers : Provider -> Element.Element Msg
 viewServers provider =
     case provider.servers of
         RemoteData.NotAsked ->
-            div [] [ p [] [ text "Please wait..." ] ]
+            Element.paragraph [] [ Element.text "Please wait..." ]
 
         RemoteData.Loading ->
-            div [] [ p [] [ text "Loading..." ] ]
+            Element.paragraph [] [ Element.text "Loading..." ]
 
         RemoteData.Failure e ->
-            div [] [ p [] [ text ("Cannot display servers. Error message: " ++ Debug.toString e) ] ]
+            Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
         RemoteData.Success servers ->
             case List.isEmpty servers of
                 True ->
-                    div [] [ p [] [ text "You don't have any servers yet, go create one!" ] ]
+                    Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
                 False ->
                     let
@@ -321,34 +306,31 @@ viewServers provider =
 
                         selectedServers =
                             List.filter .selected servers
+
+                        deleteButtonOnPress =
+                            if noServersSelected == True then
+                                Nothing
+
+                            else
+                                Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
                     in
-                    div []
-                        [ h2 [] [ text "My Servers" ]
-                        , div []
-                            [ fieldset []
-                                [ legend [] [ text "Bulk Actions" ]
-                                , input
-                                    [ type_ "checkbox"
-                                    , name "toggle-all"
-                                    , checked allServersSelected
-                                    , onClick (ProviderMsg provider.name (SelectAllServers (not allServersSelected)))
-                                    ]
-                                    []
-                                , label
-                                    [ for "toggle-all" ]
-                                    [ text "Select All" ]
-                                , button
-                                    [ disabled noServersSelected
-                                    , onClick (ProviderMsg provider.name (RequestDeleteServers selectedServers))
-                                    ]
-                                    [ text "Delete" ]
-                                ]
+                    Element.column []
+                        [ Element.el [ Region.heading 2 ] (Element.text "My Servers")
+                        , Element.column [ Element.padding 5, Element.spacing 10, Border.width 1 ]
+                            [ Element.text "Bulk Actions"
+                            , Input.checkbox []
+                                { checked = allServersSelected
+                                , onChange = \new -> ProviderMsg provider.name (SelectAllServers new)
+                                , icon = Input.defaultCheckbox
+                                , label = Input.labelRight [] (Element.text "Select All")
+                                }
+                            , uiButton { label = Element.text "Delete", onPress = deleteButtonOnPress }
                             ]
-                        , div [] (List.map (renderServer provider) servers)
+                        , Element.column [] (List.map (renderServer provider) servers)
                         ]
 
 
-viewServerDetail : Provider -> ServerUuid -> Html Msg
+viewServerDetail : Provider -> ServerUuid -> Element.Element Msg
 viewServerDetail provider serverUuid =
     let
         maybeServer =
@@ -356,12 +338,12 @@ viewServerDetail provider serverUuid =
     in
     case maybeServer of
         Nothing ->
-            text "No server found"
+            Element.text "No server found"
 
         Just server ->
             case server.details of
                 Nothing ->
-                    text "Retrieving details??"
+                    Element.text "Retrieving details??"
 
                 Just details ->
                     let
@@ -395,171 +377,141 @@ viewServerDetail provider serverUuid =
                                 Just floatingIp ->
                                     let
                                         interactionLinksBase =
-                                            [ Html.br [] []
-                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html")) ] [ text "Launch Terminal" ]
-                                            , text " Type commands in a shell!"
-                                            , Html.br [] []
-                                            , Html.button [ onClick (OpenInBrowser ("https://" ++ floatingIp ++ ":9090")) ] [ text "Launch Cockpit" ]
-                                            , text " Manage your server with an interactive dashboard!"
-                                            , Html.br [] []
-                                            , Html.ul []
-                                                [ Html.li [] [ text "These links will open in a new browser window; you may need to accept a self-signed certificate warning" ]
-                                                , Html.li [] [ text "Then, log in with your previously chosen username and password" ]
+                                            [ Element.row []
+                                                [ uiButton
+                                                    { label = Element.text "Launch Terminal"
+                                                    , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
+                                                    }
+                                                , Element.text "Type commands in a shell!"
                                                 ]
+                                            , Element.row
+                                                []
+                                                [ uiButton
+                                                    { label = Element.text "Launch Cockpit"
+                                                    , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090"))
+                                                    }
+                                                , Element.text "Manage your server with an interactive dashboard!"
+                                                ]
+                                            , Element.text "- These links will open in a new browser window; you may need to accept a self-signed certificate warning"
+                                            , Element.text "- Then, log in with your previously chosen username and password"
                                             ]
                                     in
                                     case cockpitStatus of
                                         NotChecked ->
-                                            text "Status of terminal and cockpit not available yet."
+                                            Element.text "Status of terminal and cockpit not available yet."
 
                                         CheckedNotReady ->
-                                            text "Terminal and Cockpit not ready yet."
+                                            Element.text "Terminal and Cockpit not ready yet."
 
                                         Ready ->
-                                            div []
-                                                ([ text "Terminal and Cockpit are ready..." ]
+                                            Element.column []
+                                                ([ Element.text "Terminal and Cockpit are ready..." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                         Error ->
-                                            div []
-                                                ([ text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
+                                            Element.column []
+                                                ([ Element.text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                 Nothing ->
-                                    text "Terminal and Cockpit services not ready yet."
+                                    Element.text "Terminal and Cockpit services not ready yet."
                     in
-                    div []
-                        [ h2 [] [ text "Server details" ]
-                        , table []
-                            [ tr []
-                                [ th [] [ text "Property" ]
-                                , th [] [ text "Value" ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Name" ]
-                                , td [] [ text server.name ]
-                                ]
-                            , tr []
-                                [ td [] [ text "UUID" ]
-                                , td [] [ text server.uuid ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Created on" ]
-                                , td [] [ text details.created ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Status" ]
-                                , td [] [ text details.status ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Power state" ]
-                                , td [] [ text (Debug.toString details.powerState) ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Image" ]
-                                , td [] [ text imageText ]
-                                ]
-                            , tr []
-                                [ td [] [ text "Flavor" ]
-                                , td [] [ text flavorText ]
-                                ]
-                            , tr []
-                                [ td [] [ text "SSH Key Name" ]
-                                , td [] [ text details.keypairName ]
-                                ]
-                            , tr []
-                                [ td [] [ text "IP addresses" ]
-                                , td [] [ renderIpAddresses details.ipAddresses ]
-                                ]
+                    Element.column []
+                        [ Element.el [ Region.heading 2 ] (Element.text "Server Details")
+                        , Element.row []
+                            [ Element.text "Name: "
+                            , Element.text server.name
                             ]
-                        , h2 [] [ text "Interact with server" ]
-                        , p []
-                            [ interactionLinks server.cockpitStatus ]
+                        , Element.row []
+                            [ Element.text "UUID: "
+                            , Element.text server.uuid
+                            ]
+                        , Element.row []
+                            [ Element.text "Created on: "
+                            , Element.text details.created
+                            ]
+                        , Element.row []
+                            [ Element.text "Status: "
+                            , Element.text details.status
+                            ]
+                        , Element.row []
+                            [ Element.text "Power state: "
+                            , Element.text (Debug.toString details.powerState)
+                            ]
+                        , Element.row []
+                            [ Element.text "Image: "
+                            , Element.text imageText
+                            ]
+                        , Element.row []
+                            [ Element.text "Flavor: "
+                            , Element.text flavorText
+                            ]
+                        , Element.row []
+                            [ Element.text "SSH Key Name: "
+                            , Element.text details.keypairName
+                            ]
+                        , Element.row []
+                            [ Element.text "IP addresses: "
+                            , renderIpAddresses details.ipAddresses
+                            ]
+                        , Element.el [ Region.heading 2 ] (Element.text "Interact with server")
+                        , interactionLinks server.cockpitStatus
                         ]
 
 
-viewCreateServer : Provider -> CreateServerRequest -> Html Msg
+viewCreateServer : Provider -> CreateServerRequest -> Element.Element Msg
 viewCreateServer provider createServerRequest =
-    div []
-        [ h2 [] [ text "Create Server" ]
-        , table []
-            [ tr []
-                [ th [] [ text "Property" ]
-                , th [] [ text "Value" ]
+    Element.row []
+        [ Element.column [ Element.spacing 10, Element.padding 10, Element.width (Element.px 600) ]
+            [ Element.el [ Region.heading 2 ] (Element.text "Create Server")
+            , Input.text
+                [ Element.spacing 12
                 ]
-            , tr []
-                [ td [] [ text "Server Name" ]
-                , td []
-                    [ input
-                        [ type_ "text"
-                        , placeholder "My Server"
-                        , value createServerRequest.name
-                        , onInput (\n -> InputCreateServerField createServerRequest (CreateServerName n))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Image" ]
-                , td []
-                    [ text createServerRequest.imageName
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "How Many?" ]
-                , td []
-                    [ input
-                        [ type_ "number"
-                        , Attr.min "1"
-                        , Attr.max "10"
-                        , value createServerRequest.count
-                        , onInput (\c -> InputCreateServerField createServerRequest (CreateServerCount c))
-                        ]
-                        []
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Size" ]
-                , td []
-                    [ viewFlavorPicker provider createServerRequest
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "Choose a root disk size:" ]
-                , td []
-                    [ viewVolBackedPrompt provider createServerRequest
-                    ]
-                ]
-            , tr []
-                [ td [] [ text "SSH Keypair" ]
-                , td []
-                    [ viewKeypairPicker provider createServerRequest
-                    ]
-                ]
-            , tr []
-                [ td []
-                    [ text "User Data"
-                    , Html.br [] []
-                    , text "(Boot Script)"
-                    ]
-                , td []
-                    [ div []
-                        [ textarea
-                            [ value createServerRequest.userData
-                            , rows 20
-                            , cols 80
-                            , onInput (\u -> InputCreateServerField createServerRequest (CreateServerUserData u))
-                            , placeholder "#!/bin/bash"
+                { text = createServerRequest.name
+                , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
+                , label = Input.labelLeft [] (Element.text "Name")
+                }
+            , Element.row [] [ Element.text "Image: ", Element.text createServerRequest.imageName ]
+            , Element.row [ Element.spacing 10 ]
+                [ Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.count)
+                , Input.slider
+                    [ Element.height (Element.px 30)
+                    , Element.width (Element.px 100 |> Element.minimum 200)
+
+                    -- Here is where we're creating/styling the "track"
+                    , Element.behindContent
+                        (Element.el
+                            [ Element.width Element.fill
+                            , Element.height (Element.px 2)
+                            , Element.centerY
+                            , Background.color (Element.rgb 0.5 0.5 0.5)
+                            , Border.rounded 2
                             ]
-                            []
-                        ]
-                    , div [] [ text (getEffectiveUserDataSize createServerRequest) ]
+                            Element.none
+                        )
                     ]
+                    { onChange = \c -> InputCreateServerField createServerRequest (CreateServerCount (String.fromFloat c))
+                    , label = Input.labelLeft [] (Element.text "How many?")
+                    , min = 1
+                    , max = 10
+                    , step = Just 1
+                    , value = String.toFloat createServerRequest.count |> Maybe.withDefault 1.0
+                    , thumb =
+                        Input.defaultThumb
+                    }
                 ]
+            , viewFlavorPicker provider createServerRequest
+            , viewVolBackedPrompt provider createServerRequest
+            , viewKeypairPicker provider createServerRequest
+            , viewUserDataInput provider createServerRequest
+            , uiButton
+                { onPress = Just (ProviderMsg provider.name (RequestCreateServer createServerRequest))
+                , label = Element.text "Create"
+                }
             ]
-        , button [ onClick (ProviderMsg provider.name (RequestCreateServer createServerRequest)) ] [ text "Create" ]
         ]
 
 
@@ -567,12 +519,12 @@ viewCreateServer provider createServerRequest =
 {- View Helpers -}
 
 
-renderMessage : String -> Html Msg
+renderMessage : String -> Element.Element Msg
 renderMessage message =
-    p [] [ text message ]
+    Element.paragraph [] [ Element.text message ]
 
 
-renderProviderPicker : Model -> Provider -> Html Msg
+renderProviderPicker : Model -> Provider -> Element.Element Msg
 renderProviderPicker model provider =
     let
         isSelected p =
@@ -585,10 +537,10 @@ renderProviderPicker model provider =
     in
     case isSelected provider of
         False ->
-            button [ onClick (ProviderMsg provider.name (SetProviderView ListProviderServers)) ] [ text provider.name ]
+            uiButton { label = Element.text provider.name, onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
 
         True ->
-            text provider.name
+            Element.text provider.name
 
 
 renderImage : GlobalDefaults -> Provider -> Image -> Element.Element Msg
@@ -634,68 +586,30 @@ renderImage globalDefaults provider image =
             , Element.text size
             ]
         , Element.row []
-            [ Element.text "tags: "
+            [ Element.text "Tags: "
             , Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags)
             ]
-
-        --        , Element.html
-        --            (table []
-        --                [ tr []
-        --                    [ th [] [ text "Property" ]
-        --                    , th [] [ text "Value" ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Status" ]
-        --                    , td [] [ text (Debug.toString image.status) ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Size" ]
-        --                    , td [] [ text size ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Checksum" ]
-        --                    , td [] [ text checksum ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Disk format" ]
-        --                    , td [] [ text (Maybe.withDefault "" image.diskFormat) ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Container format" ]
-        --                    , td [] [ text (Maybe.withDefault "" image.containerFormat) ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "UUID" ]
-        --                    , td [] [ text image.uuid ]
-        --                    ]
-        --                , tr []
-        --                    [ td [] [ text "Tags" ]
-        --                    , td [] [ text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-        --                    ]
-        --                ]
-        --            )
         ]
 
 
-renderServer : Provider -> Server -> Html Msg
+renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
-    div []
-        [ p []
-            [ input
-                [ type_ "checkbox"
-                , checked server.selected
-                , onClick (ProviderMsg provider.name (SelectServer server (not server.selected)))
-                ]
-                []
-            , strong [] [ text server.name ]
-            ]
-        , text ("UUID: " ++ server.uuid)
-        , button [ onClick (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) ] [ text "Details" ]
-        , if server.deletionAttempted == True then
-            text "Deleting..."
+    Element.column []
+        [ Input.checkbox []
+            { checked = server.selected
+            , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
+            , icon = Input.defaultCheckbox
+            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.name))
+            }
+        , Element.row [ Element.spacing 10 ]
+            [ Element.text ("UUID: " ++ server.uuid)
+            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) }
+            , if server.deletionAttempted == True then
+                Element.text "Deleting..."
 
-          else
-            button [ onClick (ProviderMsg provider.name (RequestDeleteServer server)) ] [ text "Delete" ]
+              else
+                uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
+            ]
         ]
 
 
@@ -717,19 +631,19 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List IpAddress -> Html Msg
+renderIpAddresses : List IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
-    div [] (List.map renderIpAddress ipAddresses)
+    Element.column [] (List.map renderIpAddress ipAddresses)
 
 
-renderIpAddress : IpAddress -> Html Msg
+renderIpAddress : IpAddress -> Element.Element Msg
 renderIpAddress ipAddress =
-    p []
-        [ text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
+    Element.paragraph []
+        [ Element.text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
         ]
 
 
-viewFlavorPicker : Provider -> CreateServerRequest -> Html Msg
+viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewFlavorPicker provider createServerRequest =
     let
         sortedFlavors flavors =
@@ -742,19 +656,18 @@ viewFlavorPicker provider createServerRequest =
         flavorAsStr flavor =
             flavor.name ++ " (" ++ String.fromInt flavor.vcpu ++ " CPU, " ++ (flavor.ram_mb // 1024 |> String.fromInt) ++ " GB RAM, " ++ String.fromInt flavor.disk_root ++ " GB root disk, " ++ String.fromInt flavor.disk_ephemeral ++ " GB ephemeral disk)"
 
-        viewFlavorPickerLabel flavor =
-            div []
-                [ label []
-                    [ input [ type_ "radio", name "flavor", onClick (InputCreateServerField createServerRequest (CreateServerSize flavor.uuid)) ] []
-                    , text (flavorAsStr flavor)
-                    ]
-                , Html.br [] []
-                ]
+        flavorAsOption flavor =
+            Input.option flavor.uuid (Element.text (flavorAsStr flavor))
     in
-    fieldset [] (List.map viewFlavorPickerLabel (sortedFlavors provider.flavors))
+    Input.radio []
+        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Size")
+        , onChange = \new -> InputCreateServerField createServerRequest (CreateServerSize new)
+        , options = List.map flavorAsOption (sortedFlavors provider.flavors)
+        , selected = Just createServerRequest.flavorUuid
+        }
 
 
-viewVolBackedPrompt : Provider -> CreateServerRequest -> Html Msg
+viewVolBackedPrompt : Provider -> CreateServerRequest -> Element.Element Msg
 viewVolBackedPrompt provider createServerRequest =
     let
         maybeFlavor =
@@ -775,38 +688,75 @@ viewVolBackedPrompt provider createServerRequest =
                 "Default for selected image (warning, could be too small for your work)"
 
             else
-                String.fromInt flavorRootDiskSize ++ "  GB (default for selected size)"
+                String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
     in
-    div []
-        [ label []
-            [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked False)) ] []
-            , text nonVolBackedOptionText
+    Input.radio []
+        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
+        , onChange = \new -> InputCreateServerField createServerRequest (CreateServerVolBacked new)
+        , options =
+            [ Input.option False (Element.text nonVolBackedOptionText)
+            , Input.option True
+                (Element.row
+                    [ Element.spacing 10 ]
+                    [ --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
+                      Input.slider
+                        [ Element.height (Element.px 30)
+                        , Element.width (Element.px 100 |> Element.minimum 200)
+
+                        -- Here is where we're creating/styling the "track"
+                        , Element.behindContent
+                            (Element.el
+                                [ Element.width Element.fill
+                                , Element.height (Element.px 2)
+                                , Element.centerY
+                                , Background.color (Element.rgb 0.5 0.5 0.5)
+                                , Border.rounded 2
+                                ]
+                                Element.none
+                            )
+                        ]
+                        { onChange = \c -> InputCreateServerField createServerRequest (CreateServerVolBackedSize (String.fromFloat c))
+                        , label = Input.labelRight [] (Element.text (createServerRequest.volBackedSizeGb ++ " GB (will use a volume for root disk)"))
+                        , min = 2
+                        , max = 20
+                        , step = Just 1
+                        , value = String.toFloat createServerRequest.volBackedSizeGb |> Maybe.withDefault 2.0
+                        , thumb =
+                            Input.defaultThumb
+                        }
+                    ]
+                )
             ]
-        , Html.br [] []
-        , label []
-            [ input [ type_ "radio", name "volbacked", onClick (InputCreateServerField createServerRequest (CreateServerVolBacked True)) ] []
-            , input
-                [ type_ "number"
-                , Attr.min "2"
-                , value createServerRequest.volBackedSizeGb
-                , onInput (\s -> InputCreateServerField createServerRequest (CreateServerVolBackedSize s))
-                ]
-                []
-            , text " GB (will use a volume for root disk)"
-            ]
-        ]
+        , selected = Just createServerRequest.volBacked
+        }
 
 
-viewKeypairPicker : Provider -> CreateServerRequest -> Html Msg
+viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewKeypairPicker provider createServerRequest =
     let
-        viewKeypairPickerLabel keypair =
-            label []
-                [ input [ type_ "radio", name "keypair", onClick (InputCreateServerField createServerRequest (CreateServerKeypairName keypair.name)) ] []
-                , text keypair.name
-                ]
+        keypairAsOption keypair =
+            Input.option keypair.name (Element.text keypair.name)
     in
-    fieldset [] (List.map viewKeypairPickerLabel provider.keypairs)
+    Input.radio []
+        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
+        , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
+        , options = List.map keypairAsOption provider.keypairs
+        , selected = Just createServerRequest.keypairName
+        }
+
+
+viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
+viewUserDataInput provider createServerRequest =
+    Input.multiline
+        [ Element.width (Element.px 300)
+        , Element.height (Element.px 200)
+        ]
+        { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+        , text = "#!/bin/bash\n\n# Replace with your script..."
+        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+        , label = Input.labelAbove [] (Element.text "User Data (Boot Script)")
+        , spellcheck = False
+        }
 
 
 
@@ -815,10 +765,19 @@ viewKeypairPicker provider createServerRequest =
 
 uiButton : { onPress : Maybe Msg, label : Element.Element Msg } -> Element.Element Msg
 uiButton props =
+    let
+        borderColor =
+            if props.onPress == Nothing then
+                -- This should be where we decide what a disabled button looks like
+                Element.rgb 0.8 0.8 0.8
+
+            else
+                Element.rgb 0 0 0
+    in
     Input.button
         [ Element.padding 5
         , Border.rounded 6
-        , Border.color (Element.rgb 0 0 0)
+        , Border.color borderColor
         , Border.width 1
         ]
         props
