@@ -658,12 +658,20 @@ viewFlavorPicker provider createServerRequest =
 
         flavorAsOption flavor =
             Input.option flavor.uuid (Element.text (flavorAsStr flavor))
+
+        defaultFlavorUuid : String -> String
+        defaultFlavorUuid possiblyEmptyFlavorUuid =
+            if possiblyEmptyFlavorUuid == "" then
+                Maybe.map .uuid (List.head (sortedFlavors provider.flavors)) |> Maybe.withDefault ""
+
+            else
+                possiblyEmptyFlavorUuid
     in
     Input.radio []
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Size")
         , onChange = \new -> InputCreateServerField createServerRequest (CreateServerSize new)
         , options = List.map flavorAsOption (sortedFlavors provider.flavors)
-        , selected = Just createServerRequest.flavorUuid
+        , selected = Just (createServerRequest.flavorUuid |> defaultFlavorUuid)
         }
 
 
