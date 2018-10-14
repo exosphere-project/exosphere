@@ -262,8 +262,7 @@ viewImages globalDefaults provider maybeFilterTag =
           else
             Element.none
         , Element.wrappedRow
-            [ Element.spacing 20
-            ]
+            (exoRowAttributes ++ [ Element.spacing 15 ])
             (List.map (renderImage globalDefaults provider) displayedImages)
         ]
 
@@ -559,8 +558,7 @@ renderImage globalDefaults provider image =
     in
     Element.column
         (exoColumnAttributes
-            ++ [ Element.height Element.fill
-               , Element.width (Element.px 500)
+            ++ [ Element.width (Element.px 500)
                , Border.width 1
                , Border.shadow
                     { offset = ( 2, 2 )
