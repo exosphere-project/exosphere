@@ -450,8 +450,46 @@ viewServerDetail provider serverUuid =
                         ]
 
 
+hint : String -> Element.Attribute msg
+hint hintText =
+    Element.below
+        (Element.el
+            [ Font.color (Element.rgb 1 0 0)
+            , Font.size 14
+            , Element.alignRight
+            , Element.moveDown 6
+            ]
+            (Element.text hintText)
+        )
+
+
 viewCreateServer : Provider -> CreateServerRequest -> Element.Element Msg
 viewCreateServer provider createServerRequest =
+    let
+        serverNameEmptyHint =
+            if createServerRequest.name == "" then
+                [ hint "Server name can't be empty" ]
+
+            else
+                []
+
+        requestIsValid =
+            if createServerRequest.name == "" then
+                False
+
+            else if createServerRequest.keypairName == "" then
+                False
+
+            else
+                True
+
+        createOnPress =
+            if requestIsValid == True then
+                Just (ProviderMsg provider.name (RequestCreateServer createServerRequest))
+
+            else
+                Nothing
+    in
     Element.row exoRowAttributes
         [ Element.column
             (exoColumnAttributes
@@ -459,8 +497,10 @@ viewCreateServer provider createServerRequest =
             )
             [ Element.el [ Region.heading 2 ] (Element.text "Create Server")
             , Input.text
-                [ Element.spacing 12
-                ]
+                ([ Element.spacing 12
+                 ]
+                    ++ serverNameEmptyHint
+                )
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
@@ -500,7 +540,7 @@ viewCreateServer provider createServerRequest =
             , viewKeypairPicker provider createServerRequest
             , viewUserDataInput provider createServerRequest
             , uiButton
-                { onPress = Just (ProviderMsg provider.name (RequestCreateServer createServerRequest))
+                { onPress = createOnPress
                 , label = Element.text "Create"
                 }
             ]
@@ -567,7 +607,7 @@ renderImage globalDefaults provider image =
                ]
         )
         [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
-        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
+        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
         , Element.row exoRowAttributes
             [ Element.text "Status: "
             , Element.text (Debug.toString image.status)
@@ -742,8 +782,15 @@ viewKeypairPicker provider createServerRequest =
 
             else
                 possiblyEmptyKeypairName
+
+        keypairEmptyHint =
+            if createServerRequest.keypairName == "" then
+                [ hint "Please pick a keypair" ]
+
+            else
+                []
     in
-    Input.radio []
+    Input.radio keypairEmptyHint
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
         , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
         , options = List.map keypairAsOption provider.keypairs
@@ -760,7 +807,16 @@ viewUserDataInput provider createServerRequest =
         { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
         , text = createServerRequest.userData
         , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
-        , label = Input.labelAbove [] (Element.text "User Data (Boot Script)")
+        , label =
+            Input.labelAbove
+                [ Element.paddingEach
+                    { top = 20
+                    , right = 0
+                    , bottom = 20
+                    , left = 0
+                    }
+                ]
+                (Element.text "User Data (Boot Script)")
         , spellcheck = False
         }
 
