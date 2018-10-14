@@ -47,30 +47,25 @@ elementView model =
 
 providerView : Model -> Provider -> ProviderViewConstructor -> Element.Element Msg
 providerView model provider viewConstructor =
-    case viewConstructor of
-        ListImages ->
-            Element.column []
-                [ viewNav provider
-                , viewImagesIfLoaded model.globalDefaults provider model.imageFilterTag
-                ]
+    let
+        v =
+            case viewConstructor of
+                ListImages ->
+                    viewImagesIfLoaded model.globalDefaults provider model.imageFilterTag
 
-        ListProviderServers ->
-            Element.column []
-                [ viewNav provider
-                , viewServers provider
-                ]
+                ListProviderServers ->
+                    viewServers provider
 
-        ServerDetail serverUuid ->
-            Element.column []
-                [ viewNav provider
-                , viewServerDetail provider serverUuid
-                ]
+                ServerDetail serverUuid ->
+                    viewServerDetail provider serverUuid
 
-        CreateServer createServerRequest ->
-            Element.column []
-                [ viewNav provider
-                , viewCreateServer provider createServerRequest
-                ]
+                CreateServer createServerRequest ->
+                    viewCreateServer provider createServerRequest
+    in
+    Element.column []
+        [ viewNav provider
+        , v
+        ]
 
 
 
