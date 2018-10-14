@@ -774,14 +774,13 @@ uiButton props =
     let
         disabledAttrs =
             [ Border.color (Element.rgb 0.8 0.8 0.8)
-            , Font.color (Element.rgb 0.5 0.5 0.5)
-            , Background.color (Element.rgb 0.2 0.2 0.2)
+            , Font.color (Element.rgb 0.6 0.6 0.6)
             ]
 
         enabledAttrs =
             [ Border.color (Element.rgb 0 0 0) ]
 
-        enabledVsDisabledAttrs =
+        attrs =
             if props.onPress == Nothing then
                 -- This should be where we decide what a disabled button looks like
                 disabledAttrs
@@ -794,7 +793,7 @@ uiButton props =
          , Border.rounded 6
          , Border.width 1
          ]
-            ++ enabledVsDisabledAttrs
+            ++ attrs
         )
         props
 
