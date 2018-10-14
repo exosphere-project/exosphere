@@ -774,8 +774,7 @@ uiButton props =
     let
         disabledAttrs =
             [ Border.color (Element.rgb 0.8 0.8 0.8)
-            , Font.color (Element.rgb 0.5 0.5 0.5)
-            , Background.color (Element.rgb 0.2 0.2 0.2)
+            , Font.color (Element.rgb 0.6 0.6 0.6)
             ]
 
         enabledAttrs =
