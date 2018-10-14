@@ -772,20 +772,30 @@ viewUserDataInput provider createServerRequest =
 uiButton : { onPress : Maybe Msg, label : Element.Element Msg } -> Element.Element Msg
 uiButton props =
     let
-        borderColor =
+        disabledAttrs =
+            [ Border.color (Element.rgb 0.8 0.8 0.8)
+            , Font.color (Element.rgb 0.5 0.5 0.5)
+            , Background.color (Element.rgb 0.2 0.2 0.2)
+            ]
+
+        enabledAttrs =
+            [ Border.color (Element.rgb 0 0 0) ]
+
+        enabledVsDisabledAttrs =
             if props.onPress == Nothing then
                 -- This should be where we decide what a disabled button looks like
-                Element.rgb 0.8 0.8 0.8
+                disabledAttrs
 
             else
-                Element.rgb 0 0 0
+                enabledAttrs
     in
     Input.button
-        [ Element.padding 5
-        , Border.rounded 6
-        , Border.color borderColor
-        , Border.width 1
-        ]
+        ([ Element.padding 5
+         , Border.rounded 6
+         , Border.width 1
+         ]
+            ++ enabledVsDisabledAttrs
+        )
         props
 
 
