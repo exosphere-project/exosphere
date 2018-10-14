@@ -736,12 +736,20 @@ viewKeypairPicker provider createServerRequest =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
+
+        defaultKeypairName : String -> String
+        defaultKeypairName possiblyEmptyKeypairName =
+            if possiblyEmptyKeypairName == "" then
+                Maybe.map .name (List.head provider.keypairs) |> Maybe.withDefault ""
+
+            else
+                possiblyEmptyKeypairName
     in
     Input.radio []
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
         , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
         , options = List.map keypairAsOption provider.keypairs
-        , selected = Just createServerRequest.keypairName
+        , selected = Just (createServerRequest.keypairName |> defaultKeypairName)
         }
 
 
