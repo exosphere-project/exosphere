@@ -121,8 +121,6 @@ viewLoginCredsEntry model =
         (exoColumnAttributes
             ++ [ Element.width (Element.px 500)
                , Element.alignTop
-
-               --               , Element.centerX
                ]
         )
         [ Element.el [] (Element.text "Either enter your credentials...")
