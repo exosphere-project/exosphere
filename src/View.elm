@@ -107,11 +107,11 @@ viewLogin model =
             ]
             (Element.text "Please log in")
         , Element.wrappedRow
-            [ Element.spacing 10 ]
+            exoRowAttributes
             [ viewLoginCredsEntry model
             , viewLoginOpenRcEntry model
             ]
-        , Element.el [ Element.alignRight ] (uiButton { label = Element.text "Log in", onPress = Just RequestNewProviderToken })
+        , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ]) (uiButton { label = Element.text "Log in", onPress = Just RequestNewProviderToken })
         ]
 
 
@@ -119,10 +119,8 @@ viewLoginCredsEntry : Model -> Element.Element Msg
 viewLoginCredsEntry model =
     Element.column
         (exoColumnAttributes
-            ++ [ Element.width (Element.px 800)
-               , Element.height Element.shrink
+            ++ [ Element.width (Element.px 500)
                , Element.alignTop
-               , Element.centerX
                ]
         )
         [ Element.el [] (Element.text "Either enter your credentials...")
@@ -182,8 +180,8 @@ viewLoginOpenRcEntry : Model -> Element.Element Msg
 viewLoginOpenRcEntry model =
     Element.column
         (exoColumnAttributes
-            ++ [ Element.height Element.fill
-               , Element.spacing 15
+            ++ [ Element.spacing 15
+               , Element.height (Element.fill |> Element.minimum 250)
                ]
         )
         [ Element.paragraph []
@@ -201,7 +199,7 @@ viewLoginOpenRcEntry model =
             ]
         , Input.multiline
             [ Element.width (Element.px 300)
-            , Element.height (Element.px 200)
+            , Element.height Element.fill
             , Font.size 12
             ]
             { onChange = \o -> InputLoginField (OpenRc o)
@@ -793,11 +791,16 @@ uiButton props =
 
 exoRowAttributes : List (Element.Attribute Msg)
 exoRowAttributes =
-    exoPaddingSpacingAttributes
+    exoElementAttributes
 
 
 exoColumnAttributes : List (Element.Attribute Msg)
 exoColumnAttributes =
+    exoElementAttributes
+
+
+exoElementAttributes : List (Element.Attribute Msg)
+exoElementAttributes =
     exoPaddingSpacingAttributes
 
 
