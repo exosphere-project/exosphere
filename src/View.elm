@@ -24,9 +24,7 @@ view model =
 
 elementView : Model -> Element.Element Msg
 elementView model =
-    Element.column
-        [ Element.padding 10
-        ]
+    Element.column exoColumnAttributes
         [ viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
@@ -62,7 +60,7 @@ providerView model provider viewConstructor =
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
     in
-    Element.column []
+    Element.column exoColumnAttributes
         [ viewNav provider
         , v
         ]
@@ -74,23 +72,21 @@ providerView model provider viewConstructor =
 
 viewMessages : Model -> Element.Element Msg
 viewMessages model =
-    Element.column [] (List.map renderMessage model.messages)
+    Element.column exoColumnAttributes (List.map renderMessage model.messages)
 
 
 viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
-    Element.column []
+    Element.column exoColumnAttributes
         [ Element.el [ Region.heading 2 ] (Element.text "Providers")
-        , Element.column []
-            [ Element.column [] (List.map (renderProviderPicker model) model.providers)
-            ]
+        , Element.column exoColumnAttributes (List.map (renderProviderPicker model) model.providers)
         , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
         ]
 
 
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
-    Element.column []
+    Element.column exoColumnAttributes
         [ Element.el [ Region.heading 2 ] (Element.text "Navigation")
         , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
         , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
@@ -103,9 +99,7 @@ viewNav provider =
 
 viewLogin : Model -> Element.Element Msg
 viewLogin model =
-    Element.column
-        [ Element.spacing 20
-        ]
+    Element.column exoColumnAttributes
         [ Element.el
             [ Region.heading 2
             , Font.size 24
@@ -124,13 +118,13 @@ viewLogin model =
 viewLoginCredsEntry : Model -> Element.Element Msg
 viewLoginCredsEntry model =
     Element.column
-        [ Element.width (Element.px 800)
-        , Element.height Element.shrink
-        , Element.alignTop
-        , Element.centerX
-        , Element.spacing 10
-        , Element.padding 10
-        ]
+        (exoColumnAttributes
+            ++ [ Element.width (Element.px 800)
+               , Element.height Element.shrink
+               , Element.alignTop
+               , Element.centerX
+               ]
+        )
         [ Element.el [] (Element.text "Either enter your credentials...")
         , Input.text
             [ Element.spacing 12
@@ -187,9 +181,11 @@ viewLoginCredsEntry model =
 viewLoginOpenRcEntry : Model -> Element.Element Msg
 viewLoginOpenRcEntry model =
     Element.column
-        [ Element.height Element.fill
-        , Element.spacing 15
-        ]
+        (exoColumnAttributes
+            ++ [ Element.height Element.fill
+               , Element.spacing 15
+               ]
+        )
         [ Element.paragraph []
             [ Element.text "...or paste an "
 
@@ -221,7 +217,7 @@ viewImagesIfLoaded : GlobalDefaults -> Provider -> Maybe String -> Element.Eleme
 viewImagesIfLoaded globalDefaults provider maybeFilterTag =
     case List.isEmpty provider.images of
         True ->
-            Element.column [] [ Element.row [] [ Element.text "Images loading" ] ]
+            Element.text "Images loading"
 
         False ->
             viewImages globalDefaults provider maybeFilterTag
@@ -251,9 +247,7 @@ viewImages globalDefaults provider maybeFilterTag =
             else
                 provider.images
     in
-    Element.column
-        [ Element.spacing 10
-        ]
+    Element.column exoColumnAttributes
         [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
         , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
@@ -309,9 +303,9 @@ viewServers provider =
                             else
                                 Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
                     in
-                    Element.column []
+                    Element.column exoColumnAttributes
                         [ Element.el [ Region.heading 2 ] (Element.text "My Servers")
-                        , Element.column [ Element.padding 5, Element.spacing 10, Border.width 1 ]
+                        , Element.column (exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
                             [ Element.text "Bulk Actions"
                             , Input.checkbox []
                                 { checked = allServersSelected
@@ -321,7 +315,7 @@ viewServers provider =
                                 }
                             , uiButton { label = Element.text "Delete", onPress = deleteButtonOnPress }
                             ]
-                        , Element.column [] (List.map (renderServer provider) servers)
+                        , Element.column exoColumnAttributes (List.map (renderServer provider) servers)
                         ]
 
 
@@ -372,7 +366,7 @@ viewServerDetail provider serverUuid =
                                 Just floatingIp ->
                                     let
                                         interactionLinksBase =
-                                            [ Element.row []
+                                            [ Element.row exoRowAttributes
                                                 [ uiButton
                                                     { label = Element.text "Launch Terminal"
                                                     , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
@@ -380,7 +374,7 @@ viewServerDetail provider serverUuid =
                                                 , Element.text "Type commands in a shell!"
                                                 ]
                                             , Element.row
-                                                []
+                                                exoRowAttributes
                                                 [ uiButton
                                                     { label = Element.text "Launch Cockpit"
                                                     , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090"))
@@ -399,55 +393,58 @@ viewServerDetail provider serverUuid =
                                             Element.text "Terminal and Cockpit not ready yet."
 
                                         Ready ->
-                                            Element.column []
+                                            Element.column exoColumnAttributes
                                                 ([ Element.text "Terminal and Cockpit are ready..." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                         Error ->
-                                            Element.column []
+                                            Element.column exoColumnAttributes
                                                 ([ Element.text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                 Nothing ->
                                     Element.text "Terminal and Cockpit services not ready yet."
+
+                        compactRow children =
+                            Element.row (exoRowAttributes ++ [ Element.padding 0, Element.spacing 0 ]) children
                     in
-                    Element.column []
+                    Element.column exoColumnAttributes
                         [ Element.el [ Region.heading 2 ] (Element.text "Server Details")
-                        , Element.row []
+                        , compactRow
                             [ Element.text "Name: "
                             , Element.text server.name
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "UUID: "
                             , Element.text server.uuid
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "Created on: "
                             , Element.text details.created
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "Status: "
                             , Element.text details.status
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "Power state: "
                             , Element.text (Debug.toString details.powerState)
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "Image: "
                             , Element.text imageText
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "Flavor: "
                             , Element.text flavorText
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "SSH Key Name: "
                             , Element.text details.keypairName
                             ]
-                        , Element.row []
+                        , compactRow
                             [ Element.text "IP addresses: "
                             , renderIpAddresses details.ipAddresses
                             ]
@@ -458,8 +455,11 @@ viewServerDetail provider serverUuid =
 
 viewCreateServer : Provider -> CreateServerRequest -> Element.Element Msg
 viewCreateServer provider createServerRequest =
-    Element.row []
-        [ Element.column [ Element.spacing 10, Element.padding 10, Element.width (Element.px 600) ]
+    Element.row exoRowAttributes
+        [ Element.column
+            (exoColumnAttributes
+                ++ [ Element.width (Element.px 600) ]
+            )
             [ Element.el [ Region.heading 2 ] (Element.text "Create Server")
             , Input.text
                 [ Element.spacing 12
@@ -469,8 +469,8 @@ viewCreateServer provider createServerRequest =
                 , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
-            , Element.row [] [ Element.text "Image: ", Element.text createServerRequest.imageName ]
-            , Element.row [ Element.spacing 10 ]
+            , Element.row exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
+            , Element.row exoRowAttributes
                 [ Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.count)
                 , Input.slider
                     [ Element.height (Element.px 30)
@@ -558,29 +558,29 @@ renderImage globalDefaults provider image =
                     "N/A"
     in
     Element.column
-        [ Element.spacing 10
-        , Element.height Element.fill
-        , Element.width (Element.px 500)
-        , Border.width 1
-        , Border.shadow
-            { offset = ( 2, 2 )
-            , size = 2
-            , blur = 1
-            , color = Element.rgba 0.3 0.3 0.3 0.6
-            }
-        , Element.padding 10
-        ]
+        (exoColumnAttributes
+            ++ [ Element.height Element.fill
+               , Element.width (Element.px 500)
+               , Border.width 1
+               , Border.shadow
+                    { offset = ( 2, 2 )
+                    , size = 2
+                    , blur = 1
+                    , color = Element.rgba 0.3 0.3 0.3 0.6
+                    }
+               ]
+        )
         [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
         , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest "" provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
-        , Element.row []
+        , Element.row exoRowAttributes
             [ Element.text "Status: "
             , Element.text (Debug.toString image.status)
             ]
-        , Element.row []
+        , Element.row exoRowAttributes
             [ Element.text "Size: "
             , Element.text size
             ]
-        , Element.row []
+        , Element.row exoRowAttributes
             [ Element.text "Tags: "
             , Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags)
             ]
@@ -589,14 +589,14 @@ renderImage globalDefaults provider image =
 
 renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
-    Element.column []
+    Element.column exoColumnAttributes
         [ Input.checkbox []
             { checked = server.selected
             , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.name))
             }
-        , Element.row [ Element.spacing 10 ]
+        , Element.row exoRowAttributes
             [ Element.text ("UUID: " ++ server.uuid)
             , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) }
             , if server.deletionAttempted == True then
@@ -628,7 +628,7 @@ getEffectiveUserDataSize createServerRequest =
 
 renderIpAddresses : List IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
-    Element.column [] (List.map renderIpAddress ipAddresses)
+    Element.column exoColumnAttributes (List.map renderIpAddress ipAddresses)
 
 
 renderIpAddress : IpAddress -> Element.Element Msg
@@ -691,8 +691,7 @@ viewVolBackedPrompt provider createServerRequest =
         , options =
             [ Input.option False (Element.text nonVolBackedOptionText)
             , Input.option True
-                (Element.row
-                    [ Element.spacing 10 ]
+                (Element.row exoRowAttributes
                     [ --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
                       Input.slider
                         [ Element.height (Element.px 30)
@@ -776,3 +775,20 @@ uiButton props =
         , Border.width 1
         ]
         props
+
+
+exoRowAttributes : List (Element.Attribute Msg)
+exoRowAttributes =
+    exoPaddingSpacingAttributes
+
+
+exoColumnAttributes : List (Element.Attribute Msg)
+exoColumnAttributes =
+    exoPaddingSpacingAttributes
+
+
+exoPaddingSpacingAttributes : List (Element.Attribute Msg)
+exoPaddingSpacingAttributes =
+    [ Element.padding 10
+    , Element.spacing 10
+    ]
