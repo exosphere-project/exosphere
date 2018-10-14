@@ -752,7 +752,7 @@ viewUserDataInput provider createServerRequest =
         , Element.height (Element.px 200)
         ]
         { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
-        , text = "#!/bin/bash\n\n# Replace with your script..."
+        , text = createServerRequest.userData
         , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
         , label = Input.labelAbove [] (Element.text "User Data (Boot Script)")
         , spellcheck = False
