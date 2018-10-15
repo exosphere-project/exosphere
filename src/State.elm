@@ -340,7 +340,6 @@ processProviderSpecificMsg model provider msg =
             Rest.receiveSecurityGroupsAndEnsureExoGroup model provider result
 
         ReceiveCreateExoSecurityGroup result ->
-            {- Todo this ignores the result of security group creation API call, we should display errors to user -}
             Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model provider result
 
         ReceiveCreateExoSecurityGroupRules _ ->
