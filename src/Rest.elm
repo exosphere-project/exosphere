@@ -1,5 +1,6 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
+import Array
 import Base64
 import Dict
 import Helpers
@@ -203,6 +204,7 @@ requestCreateServer provider createServerRequest =
             , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
             , ( "networks", Encode.string "auto" )
             , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
+            , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
             ]
 
         buildRequestOuterJson props =
@@ -397,6 +399,111 @@ requestFloatingIp model provider network port_ server =
     ( newModel, cmd )
 
 
+requestSecurityGroups : Provider -> Cmd Msg
+requestSecurityGroups provider =
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/security-groups"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeSecurityGroups
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveSecurityGroups result)
+    in
+    Http.send resultMsg request
+
+
+requestCreateExoSecurityGroup : Provider -> Cmd Msg
+requestCreateExoSecurityGroup provider =
+    let
+        desc =
+            "Security group for instances launched via Exosphere"
+
+        requestBody =
+            Encode.object
+                [ ( "security_group"
+                  , Encode.object
+                        [ ( "name", Encode.string "exosphere" )
+                        , ( "description", Encode.string desc )
+                        ]
+                  )
+                ]
+
+        request =
+            Http.request
+                { method = "POST"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/security-groups"
+                , body = Http.jsonBody requestBody
+                , expect = Http.expectJson decodeNewSecurityGroup
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveCreateExoSecurityGroup result)
+    in
+    Http.send resultMsg request
+
+
+requestCreateExoSecurityGroupRules : Model -> Provider -> ( Model, Cmd Msg )
+requestCreateExoSecurityGroupRules model provider =
+    let
+        maybeSecurityGroup =
+            List.filter (\g -> g.name == "exosphere") provider.securityGroups |> List.head
+    in
+    case maybeSecurityGroup of
+        Nothing ->
+            Helpers.processError model "Error: expecting to find an Exosphere security group but none was found."
+
+        Just group ->
+            let
+                makeRequestBody port_number desc =
+                    Encode.object
+                        [ ( "security_group_rule"
+                          , Encode.object
+                                [ ( "security_group_id", Encode.string group.uuid )
+                                , ( "ethertype", Encode.string "IPv4" )
+                                , ( "direction", Encode.string "ingress" )
+                                , ( "protocol", Encode.string "tcp" )
+                                , ( "port_range_min", Encode.string port_number )
+                                , ( "port_range_max", Encode.string port_number )
+                                , ( "description", Encode.string desc )
+                                ]
+                          )
+                        ]
+
+                buildRequest body =
+                    Http.request
+                        { method = "POST"
+                        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                        , url = provider.endpoints.neutron ++ "/v2.0/security-group-rules"
+                        , body = Http.jsonBody body
+                        , expect = Http.expectString
+                        , timeout = Nothing
+                        , withCredentials = False
+                        }
+
+                resultMsg result =
+                    ProviderMsg provider.name (ReceiveCreateExoSecurityGroupRules result)
+
+                bodies =
+                    [ makeRequestBody "22" "SSH"
+                    , makeRequestBody "9090" "Cockpit"
+                    ]
+
+                cmds =
+                    List.map (\b -> Http.send resultMsg (buildRequest b)) bodies
+            in
+            ( model, Cmd.batch cmds )
+
+
 requestCockpitStatus : Provider -> ServerUuid -> String -> Cmd Msg
 requestCockpitStatus provider serverUuid ipAddress =
     let
@@ -455,6 +562,7 @@ createProvider model response =
                     , keypairs = []
                     , networks = []
                     , ports = []
+                    , securityGroups = []
                     }
 
                 newProviders =
@@ -466,7 +574,7 @@ createProvider model response =
                         , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
-            ( newModel, requestServers newProvider )
+            ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider ] )
 
 
 receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
@@ -826,6 +934,52 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
             Just { details | ipAddresses = newIps }
 
 
+receiveSecurityGroupsAndEnsureExoGroup : Model -> Provider -> Result Http.Error (List SecurityGroup) -> ( Model, Cmd Msg )
+receiveSecurityGroupsAndEnsureExoGroup model provider result =
+    {- Create an "exosphere" security group unless one already exists -}
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok securityGroups ->
+            let
+                newProvider =
+                    { provider | securityGroups = securityGroups }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+
+                cmds =
+                    case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
+                        Just _ ->
+                            []
+
+                        Nothing ->
+                            [ requestCreateExoSecurityGroup newProvider ]
+            in
+            ( newModel, Cmd.batch cmds )
+
+
+receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Provider -> Result Http.Error SecurityGroup -> ( Model, Cmd Msg )
+receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok newSecGroup ->
+            let
+                newSecGroups =
+                    newSecGroup :: provider.securityGroups
+
+                newProvider =
+                    { provider | securityGroups = newSecGroups }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            requestCreateExoSecurityGroupRules newModel newProvider
+
+
 receiveCockpitStatus : Model -> Provider -> ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
 receiveCockpitStatus model provider serverUuid result =
     let
@@ -1126,6 +1280,85 @@ decodeFloatingIpCreation =
     Decode.map2 IpAddress
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed Floating)
+
+
+decodeSecurityGroups : Decode.Decoder (List SecurityGroup)
+decodeSecurityGroups =
+    Decode.field "security_groups" (Decode.list securityGroupDecoder)
+
+
+decodeNewSecurityGroup : Decode.Decoder SecurityGroup
+decodeNewSecurityGroup =
+    Decode.field "security_group" securityGroupDecoder
+
+
+securityGroupDecoder : Decode.Decoder SecurityGroup
+securityGroupDecoder =
+    Decode.map4 SecurityGroup
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
+
+
+securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
+securityGroupRuleDecoder =
+    Decode.map7 SecurityGroupRule
+        (Decode.field "id" Decode.string)
+        (Decode.field "ethertype" Decode.string |> Decode.andThen securityGroupRuleEthertypeDecoder)
+        (Decode.field "direction" Decode.string |> Decode.andThen securityGroupRuleDirectionDecoder)
+        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.andThen securityGroupRuleProtocolDecoder)))
+        (Decode.field "port_range_min" (Decode.nullable Decode.int))
+        (Decode.field "port_range_max" (Decode.nullable Decode.int))
+        (Decode.field "remote_group_id" (Decode.nullable Decode.string))
+
+
+securityGroupRuleEthertypeDecoder : String -> Decode.Decoder SecurityGroupRuleEthertype
+securityGroupRuleEthertypeDecoder ethertype =
+    case ethertype of
+        "IPv4" ->
+            Decode.succeed Ipv4
+
+        "IPv6" ->
+            Decode.succeed Ipv6
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised security group rule ethertype"
+
+
+securityGroupRuleDirectionDecoder : String -> Decode.Decoder SecurityGroupRuleDirection
+securityGroupRuleDirectionDecoder dir =
+    case dir of
+        "ingress" ->
+            Decode.succeed Ingress
+
+        "egress" ->
+            Decode.succeed Egress
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised security group rule direction"
+
+
+securityGroupRuleProtocolDecoder : String -> Decode.Decoder SecurityGroupRuleProtocol
+securityGroupRuleProtocolDecoder prot =
+    case prot of
+        "any" ->
+            Decode.succeed AnyProtocol
+
+        "icmp" ->
+            Decode.succeed Icmp
+
+        "icmpv6" ->
+            Decode.succeed Icmpv6
+
+        "tcp" ->
+            Decode.succeed Tcp
+
+        "udp" ->
+            Decode.succeed Udp
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised security group rule protocol"
 
 
 cockpitStatusDecoder : Decode.Decoder CockpitStatus

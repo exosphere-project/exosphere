@@ -336,5 +336,15 @@ processProviderSpecificMsg model provider msg =
         ReceiveFloatingIp serverUuid result ->
             Rest.receiveFloatingIp model provider serverUuid result
 
+        ReceiveSecurityGroups result ->
+            Rest.receiveSecurityGroupsAndEnsureExoGroup model provider result
+
+        ReceiveCreateExoSecurityGroup result ->
+            Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model provider result
+
+        ReceiveCreateExoSecurityGroupRules _ ->
+            {- Todo this ignores the result of security group rule creation API call, we should display errors to user -}
+            ( model, Cmd.none )
+
         ReceiveCockpitStatus serverUuid result ->
             Rest.receiveCockpitStatus model provider serverUuid result

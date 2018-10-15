@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderViewConstructor(..), Server, ServerDetails, ServerPowerState(..), ServerUuid, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderViewConstructor(..), SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), SecurityGroupRuleUuid, SecurityGroupUuid, Server, ServerDetails, ServerPowerState(..), ServerUuid, ViewState(..))
 
 import Http
 import Maybe
@@ -36,6 +36,7 @@ type alias Provider =
     , keypairs : List Keypair
     , networks : List Network
     , ports : List Port
+    , securityGroups : List SecurityGroup
     }
 
 
@@ -70,6 +71,9 @@ type ProviderSpecificMsgConstructor
     | ReceiveNetworks (Result Http.Error (List Network))
     | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
     | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
+    | ReceiveSecurityGroups (Result Http.Error (List SecurityGroup))
+    | ReceiveCreateExoSecurityGroup (Result Http.Error SecurityGroup)
+    | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
     | ReceiveCockpitStatus ServerUuid (Result Http.Error CockpitStatus)
 
 
@@ -295,3 +299,48 @@ type alias Port =
 
 type alias PortUuid =
     HelperTypes.Uuid
+
+
+type alias SecurityGroup =
+    { uuid : SecurityGroupUuid
+    , name : String
+    , description : Maybe String
+    , rules : List SecurityGroupRule
+    }
+
+
+type alias SecurityGroupUuid =
+    HelperTypes.Uuid
+
+
+type alias SecurityGroupRule =
+    { uuid : SecurityGroupRuleUuid
+    , ethertype : SecurityGroupRuleEthertype
+    , direction : SecurityGroupRuleDirection
+    , protocol : Maybe SecurityGroupRuleProtocol
+    , port_range_min : Maybe Int
+    , port_range_max : Maybe Int
+    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
+    }
+
+
+type alias SecurityGroupRuleUuid =
+    HelperTypes.Uuid
+
+
+type SecurityGroupRuleDirection
+    = Ingress
+    | Egress
+
+
+type SecurityGroupRuleEthertype
+    = Ipv4
+    | Ipv6
+
+
+type SecurityGroupRuleProtocol
+    = AnyProtocol
+    | Icmp
+    | Icmpv6
+    | Tcp
+    | Udp
