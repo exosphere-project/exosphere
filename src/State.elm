@@ -336,5 +336,8 @@ processProviderSpecificMsg model provider msg =
         ReceiveFloatingIp serverUuid result ->
             Rest.receiveFloatingIp model provider serverUuid result
 
+        ReceiveSecurityGroups result ->
+            Rest.receiveSecurityGroups model provider result
+
         ReceiveCockpitStatus serverUuid result ->
             Rest.receiveCockpitStatus model provider serverUuid result

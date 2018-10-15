@@ -1,4 +1,4 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroups, receiveServerDetail, receiveServers, requestAuthToken, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Base64
 import Dict
@@ -397,6 +397,26 @@ requestFloatingIp model provider network port_ server =
     ( newModel, cmd )
 
 
+requestSecurityGroups : Provider -> Cmd Msg
+requestSecurityGroups provider =
+    let
+        request =
+            Http.request
+                { method = "GET"
+                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , url = provider.endpoints.neutron ++ "/v2.0/security_groups"
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeSecurityGroups
+                , timeout = Nothing
+                , withCredentials = False
+                }
+
+        resultMsg result =
+            ProviderMsg provider.name (ReceiveSecurityGroups result)
+    in
+    Http.send resultMsg request
+
+
 requestCockpitStatus : Provider -> ServerUuid -> String -> Cmd Msg
 requestCockpitStatus provider serverUuid ipAddress =
     let
@@ -455,6 +475,7 @@ createProvider model response =
                     , keypairs = []
                     , networks = []
                     , ports = []
+                    , securityGroups = []
                     }
 
                 newProviders =
@@ -466,7 +487,7 @@ createProvider model response =
                         , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
-            ( newModel, requestServers newProvider )
+            ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider ] )
 
 
 receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
@@ -826,6 +847,23 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
             Just { details | ipAddresses = newIps }
 
 
+receiveSecurityGroups : Model -> Provider -> Result Http.Error (List SecurityGroup) -> ( Model, Cmd Msg )
+receiveSecurityGroups model provider result =
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok securityGroups ->
+            let
+                newProvider =
+                    { provider | securityGroups = securityGroups }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            ( newModel, Cmd.none )
+
+
 receiveCockpitStatus : Model -> Provider -> ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
 receiveCockpitStatus model provider serverUuid result =
     let
@@ -1126,6 +1164,80 @@ decodeFloatingIpCreation =
     Decode.map2 IpAddress
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed Floating)
+
+
+decodeSecurityGroups : Decode.Decoder (List SecurityGroup)
+decodeSecurityGroups =
+    Decode.field "security_groups" (Decode.list securityGroupDecoder)
+
+
+securityGroupDecoder : Decode.Decoder SecurityGroup
+securityGroupDecoder =
+    Decode.map4 SecurityGroup
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" (Decode.nullable Decode.string))
+        (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
+
+
+securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
+securityGroupRuleDecoder =
+    Decode.map7 SecurityGroupRule
+        (Decode.field "id" Decode.string)
+        (Decode.field "ethertype" Decode.string |> Decode.andThen securityGroupRuleEthertypeDecoder)
+        (Decode.field "direction" Decode.string |> Decode.andThen securityGroupRuleDirectionDecoder)
+        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.andThen securityGroupRuleProtocolDecoder)))
+        (Decode.field "port_range_min" (Decode.nullable Decode.int))
+        (Decode.field "port_range_max" (Decode.nullable Decode.int))
+        (Decode.field "remote_group_id" (Decode.nullable Decode.string))
+
+
+securityGroupRuleEthertypeDecoder : String -> Decode.Decoder SecurityGroupRuleEthertype
+securityGroupRuleEthertypeDecoder ethertype =
+    case ethertype of
+        "IPv4" ->
+            Decode.succeed Ipv4
+
+        "IPv6" ->
+            Decode.succeed Ipv6
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised security group rule ethertype"
+
+
+securityGroupRuleDirectionDecoder : String -> Decode.Decoder SecurityGroupRuleDirection
+securityGroupRuleDirectionDecoder dir =
+    case dir of
+        "ingress" ->
+            Decode.succeed Ingress
+
+        "egress" ->
+            Decode.succeed Egress
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised security group rule direction"
+
+
+securityGroupRuleProtocolDecoder : String -> Decode.Decoder SecurityGroupRuleProtocol
+securityGroupRuleProtocolDecoder prot =
+    case prot of
+        "any" ->
+            Decode.succeed AnyProtocol
+
+        "icmp" ->
+            Decode.succeed Icmp
+
+        "icmpv6" ->
+            Decode.succeed Icmpv6
+
+        "tcp" ->
+            Decode.succeed Tcp
+
+        "udp" ->
+            Decode.succeed Udp
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised security group rule protocol"
 
 
 cockpitStatusDecoder : Decode.Decoder CockpitStatus
