@@ -72,6 +72,8 @@ type ProviderSpecificMsgConstructor
     | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
     | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
     | ReceiveSecurityGroups (Result Http.Error (List SecurityGroup))
+    | ReceiveCreateExoSecurityGroup (Result Http.Error SecurityGroup)
+    | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
     | ReceiveCockpitStatus ServerUuid (Result Http.Error CockpitStatus)
 
 
