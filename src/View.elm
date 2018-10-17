@@ -767,14 +767,6 @@ viewKeypairPicker provider createServerRequest =
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
-        defaultKeypairName : String -> String
-        defaultKeypairName possiblyEmptyKeypairName =
-            if possiblyEmptyKeypairName == "" then
-                Maybe.map .name (List.head provider.keypairs) |> Maybe.withDefault ""
-
-            else
-                possiblyEmptyKeypairName
-
         keypairEmptyHint =
             if createServerRequest.keypairName == "" then
                 [ hint "Please pick a keypair" ]
@@ -786,7 +778,7 @@ viewKeypairPicker provider createServerRequest =
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
         , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
         , options = List.map keypairAsOption provider.keypairs
-        , selected = Just (createServerRequest.keypairName |> defaultKeypairName)
+        , selected = Just createServerRequest.keypairName
         }
 
 
