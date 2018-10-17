@@ -480,6 +480,9 @@ viewCreateServer provider createServerRequest =
             else if createServerRequest.keypairName == "" then
                 False
 
+            else if createServerRequest.flavorUuid == "" then
+                False
+
             else
                 True
 
@@ -689,8 +692,15 @@ viewFlavorPicker provider createServerRequest =
 
         flavorAsOption flavor =
             Input.option flavor.uuid (Element.text (flavorAsStr flavor))
+
+        flavorEmptyHint =
+            if createServerRequest.flavorUuid == "" then
+                [ hint "Please pick a size" ]
+
+            else
+                []
     in
-    Input.radio []
+    Input.radio flavorEmptyHint
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Size")
         , onChange = \new -> InputCreateServerField createServerRequest (CreateServerSize new)
         , options = List.map flavorAsOption (sortedFlavors provider.flavors)
