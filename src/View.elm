@@ -689,20 +689,12 @@ viewFlavorPicker provider createServerRequest =
 
         flavorAsOption flavor =
             Input.option flavor.uuid (Element.text (flavorAsStr flavor))
-
-        defaultFlavorUuid : String -> String
-        defaultFlavorUuid possiblyEmptyFlavorUuid =
-            if possiblyEmptyFlavorUuid == "" then
-                Maybe.map .uuid (List.head (sortedFlavors provider.flavors)) |> Maybe.withDefault ""
-
-            else
-                possiblyEmptyFlavorUuid
     in
     Input.radio []
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Size")
         , onChange = \new -> InputCreateServerField createServerRequest (CreateServerSize new)
         , options = List.map flavorAsOption (sortedFlavors provider.flavors)
-        , selected = Just (createServerRequest.flavorUuid |> defaultFlavorUuid)
+        , selected = Just createServerRequest.flavorUuid
         }
 
 
@@ -775,14 +767,6 @@ viewKeypairPicker provider createServerRequest =
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
-        defaultKeypairName : String -> String
-        defaultKeypairName possiblyEmptyKeypairName =
-            if possiblyEmptyKeypairName == "" then
-                Maybe.map .name (List.head provider.keypairs) |> Maybe.withDefault ""
-
-            else
-                possiblyEmptyKeypairName
-
         keypairEmptyHint =
             if createServerRequest.keypairName == "" then
                 [ hint "Please pick a keypair" ]
@@ -794,7 +778,7 @@ viewKeypairPicker provider createServerRequest =
         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
         , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
         , options = List.map keypairAsOption provider.keypairs
-        , selected = Just (createServerRequest.keypairName |> defaultKeypairName)
+        , selected = Just createServerRequest.keypairName
         }
 
 
