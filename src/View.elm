@@ -730,45 +730,54 @@ viewVolBackedPrompt provider createServerRequest =
 
             else
                 String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
-    in
-    Input.radio []
-        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
-        , onChange = \new -> InputCreateServerField createServerRequest (CreateServerVolBacked new)
-        , options =
-            [ Input.option False (Element.text nonVolBackedOptionText)
-            , Input.option True
-                (Element.row exoRowAttributes
-                    [ --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
-                      Input.slider
-                        [ Element.height (Element.px 30)
-                        , Element.width (Element.px 100 |> Element.minimum 200)
 
-                        -- Here is where we're creating/styling the "track"
-                        , Element.behindContent
-                            (Element.el
-                                [ Element.width Element.fill
-                                , Element.height (Element.px 2)
-                                , Element.centerY
-                                , Background.color (Element.rgb 0.5 0.5 0.5)
-                                , Border.rounded 2
-                                ]
-                                Element.none
-                            )
+        volSizeSlider =
+            --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
+            Input.slider
+                [ Element.height (Element.px 30)
+                , Element.width (Element.px 100 |> Element.minimum 200)
+
+                -- Here is where we're creating/styling the "track"
+                , Element.behindContent
+                    (Element.el
+                        [ Element.width Element.fill
+                        , Element.height (Element.px 2)
+                        , Element.centerY
+                        , Background.color (Element.rgb 0.5 0.5 0.5)
+                        , Border.rounded 2
                         ]
-                        { onChange = \c -> InputCreateServerField createServerRequest (CreateServerVolBackedSize (String.fromFloat c))
-                        , label = Input.labelRight [] (Element.text (createServerRequest.volBackedSizeGb ++ " GB (will use a volume for root disk)"))
-                        , min = 2
-                        , max = 20
-                        , step = Just 1
-                        , value = String.toFloat createServerRequest.volBackedSizeGb |> Maybe.withDefault 2.0
-                        , thumb =
-                            Input.defaultThumb
-                        }
-                    ]
-                )
-            ]
-        , selected = Just createServerRequest.volBacked
-        }
+                        Element.none
+                    )
+                ]
+                { onChange = \c -> InputCreateServerField createServerRequest (CreateServerVolBackedSize (String.fromFloat c))
+                , label = Input.labelRight [] (Element.text (createServerRequest.volBackedSizeGb ++ " GB"))
+                , min = 2
+                , max = 100
+                , step = Just 1
+                , value = String.toFloat createServerRequest.volBackedSizeGb |> Maybe.withDefault 2.0
+                , thumb =
+                    Input.defaultThumb
+                }
+    in
+    Element.column exoColumnAttributes
+        [ Input.radio []
+            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
+            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerVolBacked new)
+            , options =
+                [ Input.option False (Element.text nonVolBackedOptionText)
+                , Input.option True (Element.text "Custom disk size (volume-backed)")
+
+                {- -}
+                ]
+            , selected = Just createServerRequest.volBacked
+            }
+        , case createServerRequest.volBacked of
+            False ->
+                Element.none
+
+            True ->
+                volSizeSlider
+        ]
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg
