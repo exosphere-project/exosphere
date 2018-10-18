@@ -795,8 +795,8 @@ viewKeypairPicker provider createServerRequest =
 viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
 viewUserDataInput provider createServerRequest =
     Input.multiline
-        [ Element.width (Element.px 300)
-        , Element.height (Element.px 200)
+        [ Element.width (Element.px 600)
+        , Element.height (Element.px 500)
         ]
         { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
         , text = createServerRequest.userData
