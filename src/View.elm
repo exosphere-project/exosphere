@@ -621,7 +621,7 @@ renderImage globalDefaults provider image =
             ]
         , Element.row exoRowAttributes
             [ Element.text "Tags: "
-            , Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags)
+            , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
             ]
         ]
 
