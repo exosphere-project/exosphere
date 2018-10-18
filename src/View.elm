@@ -404,48 +404,30 @@ viewServerDetail provider serverUuid =
                                 Nothing ->
                                     Element.text "Terminal and Cockpit services not ready yet."
 
-                        compactRow children =
-                            Element.row (exoRowAttributes ++ [ Element.padding 0, Element.spacing 0 ]) children
+                        compactKVRow : String -> Element.Element Msg -> Element.Element Msg
+                        compactKVRow key value =
+                            Element.row
+                                (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
+                                [ Element.el [ Font.bold, Element.width (Element.px 200) ] (Element.paragraph [] [ Element.text key ])
+                                , Element.el [] value
+                                ]
                     in
                     Element.column exoColumnAttributes
-                        [ Element.el [ Region.heading 2 ] (Element.text "Server Details")
-                        , compactRow
-                            [ Element.text "Name: "
-                            , Element.text server.name
+                        [ Element.el
+                            [ Region.heading 2
+                            , Font.bold
                             ]
-                        , compactRow
-                            [ Element.text "UUID: "
-                            , Element.text server.uuid
-                            ]
-                        , compactRow
-                            [ Element.text "Created on: "
-                            , Element.text details.created
-                            ]
-                        , compactRow
-                            [ Element.text "Status: "
-                            , Element.text details.status
-                            ]
-                        , compactRow
-                            [ Element.text "Power state: "
-                            , Element.text (Debug.toString details.powerState)
-                            ]
-                        , compactRow
-                            [ Element.text "Image: "
-                            , Element.text imageText
-                            ]
-                        , compactRow
-                            [ Element.text "Flavor: "
-                            , Element.text flavorText
-                            ]
-                        , compactRow
-                            [ Element.text "SSH Key Name: "
-                            , Element.text details.keypairName
-                            ]
-                        , compactRow
-                            [ Element.text "IP addresses: "
-                            , renderIpAddresses details.ipAddresses
-                            ]
-                        , Element.el [ Region.heading 2 ] (Element.text "Interact with server")
+                            (Element.text "Server Details")
+                        , compactKVRow "Name" (Element.text server.name)
+                        , compactKVRow "UUID" (Element.text server.uuid)
+                        , compactKVRow "Created on" (Element.text details.created)
+                        , compactKVRow "Status" (Element.text details.status)
+                        , compactKVRow "Power state" (Element.text (Debug.toString details.powerState))
+                        , compactKVRow "Image" (Element.text imageText)
+                        , compactKVRow "Flavor" (Element.text flavorText)
+                        , compactKVRow "SSH Key Name" (Element.text details.keypairName)
+                        , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
+                        , Element.el [ Region.heading 2, Font.bold ] (Element.text "Interact with server")
                         , interactionLinks server.cockpitStatus
                         ]
 
