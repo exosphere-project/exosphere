@@ -662,32 +662,109 @@ renderIpAddress ipAddress =
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewFlavorPicker provider createServerRequest =
     let
-        sortedFlavors flavors =
-            flavors
+        sortedFlavors =
+            provider.flavors
                 |> List.sortBy .disk_ephemeral
                 |> List.sortBy .disk_root
                 |> List.sortBy .ram_mb
                 |> List.sortBy .vcpu
 
-        flavorAsStr flavor =
-            flavor.name ++ " (" ++ String.fromInt flavor.vcpu ++ " CPU, " ++ (flavor.ram_mb // 1024 |> String.fromInt) ++ " GB RAM, " ++ String.fromInt flavor.disk_root ++ " GB root disk, " ++ String.fromInt flavor.disk_ephemeral ++ " GB ephemeral disk)"
-
-        flavorAsOption flavor =
-            Input.option flavor.uuid (Element.text (flavorAsStr flavor))
-
-        flavorEmptyHint =
-            if createServerRequest.flavorUuid == "" then
-                [ hint "Please pick a size" ]
-
-            else
+        -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
+        -- but we want to embed a button in each table row, so we define several Input.radios,
+        -- each containing just a single option.
+        -- https://elmlang.slack.com/archives/C4F9NBLR1/p1539909855000100
+        radioButton flavor =
+            Input.radio
                 []
+                { label = Input.labelHidden flavor.name
+                , onChange = \f -> InputCreateServerField createServerRequest (CreateServerSize f)
+                , options = [ Input.option flavor.uuid (Element.text " ") ]
+                , selected =
+                    case flavor.uuid == createServerRequest.flavorUuid of
+                        True ->
+                            Just flavor.uuid
+
+                        False ->
+                            Nothing
+                }
+
+        paddingRight =
+            Element.paddingEach
+                { top = 0
+                , right = 15
+                , bottom = 0
+                , left = 0
+                }
+
+        headerAttribs =
+            [ paddingRight
+            , Font.bold
+            , Font.center
+            ]
+
+        columns =
+            [ { header = Element.none
+              , width = Element.fill
+              , view = \r -> radioButton r
+              }
+            , { header = Element.el (headerAttribs ++ [ Font.alignLeft ]) (Element.text "Name")
+              , width = Element.fill
+              , view = \r -> Element.el [ paddingRight ] (Element.text r.name)
+              }
+            , { header = Element.el headerAttribs (Element.text "CPUs")
+              , width = Element.fill
+              , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (String.fromInt r.vcpu))
+              }
+            , { header = Element.el headerAttribs (Element.text "RAM (GB)")
+              , width = Element.fill
+              , view = \r -> Element.el [ paddingRight, Font.alignRight ] (Element.text (r.ram_mb // 1024 |> String.fromInt))
+              }
+            , { header = Element.el headerAttribs (Element.text "Root Disk")
+              , width = Element.fill
+              , view =
+                    \r ->
+                        Element.el
+                            [ paddingRight, Font.alignRight ]
+                            (if r.disk_root == 0 then
+                                Element.text "- *"
+
+                             else
+                                Element.text (String.fromInt r.disk_root ++ " GB")
+                            )
+              }
+            , { header = Element.el headerAttribs (Element.text "Ephemeral Disk")
+              , width = Element.fill
+              , view =
+                    \r ->
+                        Element.el
+                            [ paddingRight, Font.alignRight ]
+                            (if r.disk_ephemeral == 0 then
+                                Element.text "none"
+
+                             else
+                                Element.text (String.fromInt r.disk_ephemeral ++ " GB")
+                            )
+              }
+            ]
+
+        zeroRootDiskExplainText =
+            case List.filter (\f -> f.disk_root == 0) provider.flavors |> List.head of
+                Just _ ->
+                    "* No default root disk size is defined for this instance size, see below"
+
+                Nothing ->
+                    ""
     in
-    Input.radio flavorEmptyHint
-        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Size")
-        , onChange = \new -> InputCreateServerField createServerRequest (CreateServerSize new)
-        , options = List.map flavorAsOption (sortedFlavors provider.flavors)
-        , selected = Just createServerRequest.flavorUuid
-        }
+    Element.column
+        exoColumnAttributes
+        [ Element.el [ Font.bold ] (Element.text "Size")
+        , Element.table
+            []
+            { data = sortedFlavors
+            , columns = columns
+            }
+        , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
+        ]
 
 
 viewVolBackedPrompt : Provider -> CreateServerRequest -> Element.Element Msg
