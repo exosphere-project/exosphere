@@ -750,7 +750,7 @@ viewFlavorPicker provider createServerRequest =
         zeroRootDiskExplainText =
             case List.filter (\f -> f.disk_root == 0) provider.flavors |> List.head of
                 Just _ ->
-                    "* No default root disk size is defined for this instance size, see below"
+                    "* No default root disk size is defined for this server size, see below"
 
                 Nothing ->
                     ""
