@@ -1,21 +1,34 @@
 {
   "name": "exosphere",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "productName": "Exosphere",
   "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
   "main": "index.js",
   "scripts": {
     "elm": "elm make src/Exosphere.elm || true",
     "elm:watch": "chokidar 'src/**/*.elm' -c 'npm run electron-build'",
     "electron-build": "elm make src/Exosphere.elm --output elm.js || true",
-    "electron-start": "electron electron-main.js",
+    "electron-start": "electron index.js",
     "electron-watch": "npm run electron-start & npm run elm:watch & wait",
-    "test": "elm-test"
+    "test": "elm-test",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "author": "",
+  "postinstall": "electron-builder install-app-deps",
+  "author": {
+    "email": "dont@spam.me"
+  },
   "license": "MIT",
+  "build": {
+    "appId": "exosphere-project.exosphere",
+    "mac": {
+      "category": "cloud.client"
+    }
+  },
   "devDependencies": {
     "chokidar-cli": "^1.2.0",
     "electron": "^1.8.2",
+    "electron-builder": "^20.28.4",
     "elm": "^0.19.0"
   },
   "repository": {

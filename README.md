@@ -24,14 +24,12 @@ npm install
 
 To compile the app:
 ```
-elm-make src/Exosphere.elm
+elm make src/Exosphere.elm
 ```
 
 Then browse to the compiled index.html.
 
 ## Try Exosphere as Electron App
-
-We plan to build OS-specific application packages for Exosphere using [electron-builder](https://www.electron.build/), but haven't gotten to it yet. Here's how to get Exosphere running with a few extra steps.
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
@@ -57,6 +55,33 @@ npm run electron-watch
 Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
+
+
+## Package Exosphere as a distributable Electron app
+
+This uses [electron-builder](https://www.electron.build/). See the link for more information.
+
+### On/For Mac OS X
+
+```bash
+npm install
+npm run electron-build
+npm run dist
+```
+
+### On/For Linux
+
+```bash
+npm install
+npm run electron-build
+npx electron-builder --linux deb tar.xz
+```
+
+Note:
+
+- Currently only tested with MacOS - need testing and instructions for Linux & Windows.
+- Add instructions for [code signing](https://www.electron.build/code-signing)  
+
 
 ## Try Exosphere in browser
 
