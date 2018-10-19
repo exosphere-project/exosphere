@@ -59,12 +59,23 @@ Based on the instructions found here:
 
 ## Package Exosphere as a distributable Electron app
 
-This uses [electron-builder](https://www.electron.build/). See the link for more information. 
+This uses [electron-builder](https://www.electron.build/). See the link for more information.
+
+### On/For Mac OS X
 
 ```bash
+npm install
 npm run electron-build
 npm run dist
-``` 
+```
+
+### On/For Linux
+
+```bash
+npm install
+npm run electron-build
+npx electron-builder --linux deb tar.xz
+```
 
 Note:
 
