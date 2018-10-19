@@ -15,7 +15,9 @@
     "dist": "electron-builder"
   },
   "postinstall": "electron-builder install-app-deps",
-  "author": "",
+  "author": {
+    "email" : "dont@spam.me"
+  },
   "license": "MIT",
   "build": {
     "appId": "exosphere-project.exosphere",
