@@ -16,7 +16,7 @@
   },
   "postinstall": "electron-builder install-app-deps",
   "author": {
-    "email" : "dont@spam.me"
+    "email": "dont@spam.me"
   },
   "license": "MIT",
   "build": {
