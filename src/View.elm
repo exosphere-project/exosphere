@@ -18,7 +18,14 @@ import Types.Types exposing (..)
 view : Model -> Html Msg
 view model =
     Element.layout
-        []
+        [ Font.family
+            [ Font.external
+                { name = "Open Sans"
+                , url = "fonts/open-sans-regular-400.css"
+                }
+            , Font.sansSerif
+            ]
+        ]
         (elementView model)
 
 
