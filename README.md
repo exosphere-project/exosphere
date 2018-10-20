@@ -71,6 +71,8 @@ npm run dist
 
 ### On/For Linux
 
+(Tested with Ubuntu 16.04)
+
 ```bash
 npm install
 npm run electron-build
@@ -79,7 +81,7 @@ npx electron-builder --linux deb tar.xz
 
 Note:
 
-- Currently only tested with MacOS - need testing and instructions for Linux & Windows.
+- Currently only tested with MacOS and Linux (Ubuntu 16.04) - need testing and instructions for Windows.
 - Add instructions for [code signing](https://www.electron.build/code-signing)  
 
 

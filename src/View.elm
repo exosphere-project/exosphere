@@ -18,7 +18,7 @@ import Types.Types exposing (..)
 view : Model -> Html Msg
 view model =
     Element.layout
-        []
+        [ Font.size 17 ]
         (elementView model)
 
 
@@ -78,7 +78,7 @@ viewMessages model =
 viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
     Element.column exoColumnAttributes
-        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Providers")
+        [ Element.el heading2 (Element.text "Providers")
         , Element.column exoColumnAttributes (List.map (renderProviderPicker model) model.providers)
         , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
         ]
@@ -87,7 +87,7 @@ viewProviderPicker model =
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
     Element.column exoColumnAttributes
-        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Navigation")
+        [ Element.el heading2 (Element.text "Navigation")
         , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
         , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
         ]
@@ -101,10 +101,7 @@ viewLogin : Model -> Element.Element Msg
 viewLogin model =
     Element.column exoColumnAttributes
         [ Element.el
-            [ Region.heading 2
-            , Font.size 24
-            , Font.bold
-            ]
+            heading2
             (Element.text "Please log in")
         , Element.wrappedRow
             exoRowAttributes
@@ -246,7 +243,7 @@ viewImages globalDefaults provider maybeFilterTag =
                 provider.images
     in
     Element.column exoColumnAttributes
-        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Choose an image")
+        [ Element.el heading2 (Element.text "Choose an image")
         , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
             , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
@@ -301,7 +298,7 @@ viewServers provider =
                                 Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
                     in
                     Element.column exoColumnAttributes
-                        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "My Servers")
+                        [ Element.el heading2 (Element.text "My Servers")
                         , Element.column (exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
                             [ Element.text "Bulk Actions"
                             , Input.checkbox []
@@ -414,9 +411,7 @@ viewServerDetail provider serverUuid =
                     in
                     Element.column exoColumnAttributes
                         [ Element.el
-                            [ Region.heading 2
-                            , Font.bold
-                            ]
+                            heading2
                             (Element.text "Server Details")
                         , compactKVRow "Name" (Element.text server.name)
                         , compactKVRow "UUID" (Element.text server.uuid)
@@ -427,7 +422,7 @@ viewServerDetail provider serverUuid =
                         , compactKVRow "Flavor" (Element.text flavorText)
                         , compactKVRow "SSH Key Name" (Element.text details.keypairName)
                         , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
-                        , Element.el [ Region.heading 2, Font.bold ] (Element.text "Interact with server")
+                        , Element.el heading2 (Element.text "Interact with server")
                         , interactionLinks server.cockpitStatus
                         ]
 
@@ -480,7 +475,7 @@ viewCreateServer provider createServerRequest =
             (exoColumnAttributes
                 ++ [ Element.width (Element.px 600) ]
             )
-            [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Create Server")
+            [ Element.el heading2 (Element.text "Create Server")
             , Input.text
                 ([ Element.spacing 12
                  ]
@@ -936,4 +931,12 @@ exoPaddingSpacingAttributes : List (Element.Attribute Msg)
 exoPaddingSpacingAttributes =
     [ Element.padding 10
     , Element.spacing 10
+    ]
+
+
+heading2 : List (Element.Attribute Msg)
+heading2 =
+    [ Region.heading 2
+    , Font.bold
+    , Font.size 24
     ]
