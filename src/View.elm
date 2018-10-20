@@ -78,7 +78,7 @@ viewMessages model =
 viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
     Element.column exoColumnAttributes
-        [ Element.el [ Region.heading 2 ] (Element.text "Providers")
+        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Providers")
         , Element.column exoColumnAttributes (List.map (renderProviderPicker model) model.providers)
         , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
         ]
@@ -87,7 +87,7 @@ viewProviderPicker model =
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
     Element.column exoColumnAttributes
-        [ Element.el [ Region.heading 2 ] (Element.text "Navigation")
+        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Navigation")
         , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
         , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
         ]
@@ -246,7 +246,7 @@ viewImages globalDefaults provider maybeFilterTag =
                 provider.images
     in
     Element.column exoColumnAttributes
-        [ Element.el [ Region.heading 2 ] (Element.text "Choose an image")
+        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Choose an image")
         , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
             , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
@@ -301,7 +301,7 @@ viewServers provider =
                                 Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
                     in
                     Element.column exoColumnAttributes
-                        [ Element.el [ Region.heading 2 ] (Element.text "My Servers")
+                        [ Element.el [ Region.heading 2, Font.bold ] (Element.text "My Servers")
                         , Element.column (exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
                             [ Element.text "Bulk Actions"
                             , Input.checkbox []
@@ -480,7 +480,7 @@ viewCreateServer provider createServerRequest =
             (exoColumnAttributes
                 ++ [ Element.width (Element.px 600) ]
             )
-            [ Element.el [ Region.heading 2 ] (Element.text "Create Server")
+            [ Element.el [ Region.heading 2, Font.bold ] (Element.text "Create Server")
             , Input.text
                 ([ Element.spacing 12
                  ]
@@ -853,7 +853,7 @@ viewKeypairPicker provider createServerRequest =
                 []
     in
     Input.radio keypairEmptyHint
-        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "SSH Keypair")
+        { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "SSH Keypair")
         , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
         , options = List.map keypairAsOption provider.keypairs
         , selected = Just createServerRequest.keypairName
@@ -877,6 +877,7 @@ viewUserDataInput provider createServerRequest =
                     , bottom = 20
                     , left = 0
                     }
+                , Font.bold
                 ]
                 (Element.text "User Data (Boot Script)")
         , spellcheck = False
