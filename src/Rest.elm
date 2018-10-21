@@ -1151,7 +1151,7 @@ serverDecoder =
 decodeServerDetails : Decode.Decoder ServerDetails
 decodeServerDetails =
     Decode.map7 ServerDetails
-        (Decode.at [ "server", "status" ] Decode.string)
+        (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
             |> Decode.andThen serverPowerStateDecoder
@@ -1168,6 +1168,40 @@ decodeServerDetails =
             , Decode.succeed []
             ]
         )
+
+
+serverOpenstackStatusDecoder : String -> Decode.Decoder ServerOpenstackStatus
+serverOpenstackStatusDecoder status =
+    case String.toLower status of
+        "paused" ->
+            Decode.succeed ServerOSStatusPaused
+
+        "suspended" ->
+            Decode.succeed ServerOSStatusSuspended
+
+        "active" ->
+            Decode.succeed ServerOSStatusActive
+
+        "shutoff" ->
+            Decode.succeed ServerOSStatusShutoff
+
+        "rescued" ->
+            Decode.succeed ServerOSStatusRescued
+
+        "stopped" ->
+            Decode.succeed ServerOSStatusStopped
+
+        "soft_deleted" ->
+            Decode.succeed ServerOSStatusSoftDeleted
+
+        "error" ->
+            Decode.succeed ServerOSStatusError
+
+        "build" ->
+            Decode.succeed ServerOSStatusBuilding
+
+        _ ->
+            Decode.fail "Ooooooops, unrecognised server OpenStack status"
 
 
 serverPowerStateDecoder : Int -> Decode.Decoder ServerPowerState

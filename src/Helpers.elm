@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints)
 
 import Debug
 import Maybe.Extra
@@ -187,7 +187,7 @@ checkFloatingIpState serverDetails floatingIpState =
                 |> not
 
         isActive =
-            serverDetails.status == "ACTIVE"
+            serverDetails.openstackStatus == ServerOSStatusActive
     in
     case floatingIpState of
         RequestedWaiting ->
@@ -261,3 +261,88 @@ getFloatingIp ipAddresses =
     List.filter isFloating ipAddresses
         |> List.head
         |> Maybe.map .address
+
+
+getServerUiStatus : Server -> ServerUiStatus
+getServerUiStatus server =
+    case server.details of
+        Nothing ->
+            ServerUiStatusUnknown
+
+        Just details ->
+            case details.openstackStatus of
+                ServerOSStatusActive ->
+                    case server.cockpitStatus of
+                        NotChecked ->
+                            ServerUiStatusStarting
+
+                        CheckedNotReady ->
+                            ServerUiStatusStarting
+
+                        Ready ->
+                            ServerUiStatusReady
+
+                        Error ->
+                            {- TODO this will perpetually show "starting" if Cockpit never successfully starts, should eventually show error -}
+                            ServerUiStatusStarting
+
+                ServerOSStatusPaused ->
+                    ServerUiStatusPaused
+
+                ServerOSStatusSuspended ->
+                    ServerUiStatusSuspended
+
+                ServerOSStatusShutoff ->
+                    ServerUiStatusShutoff
+
+                ServerOSStatusStopped ->
+                    ServerUiStatusStopped
+
+                ServerOSStatusSoftDeleted ->
+                    ServerUiStatusSoftDeleted
+
+                ServerOSStatusError ->
+                    ServerUiStatusError
+
+                ServerOSStatusBuilding ->
+                    ServerUiStatusBuilding
+
+                ServerOSStatusRescued ->
+                    ServerUiStatusRescued
+
+
+getServerUiStatusStr : ServerUiStatus -> String
+getServerUiStatusStr status =
+    case status of
+        ServerUiStatusUnknown ->
+            "Unknown"
+
+        ServerUiStatusBuilding ->
+            "Building"
+
+        ServerUiStatusStarting ->
+            "Starting"
+
+        ServerUiStatusReady ->
+            "Ready"
+
+        ServerUiStatusPaused ->
+            "Paused"
+
+        ServerUiStatusSuspended ->
+            "Suspended"
+
+        ServerUiStatusShutoff ->
+            "Shut off"
+
+        ServerUiStatusStopped ->
+            "Stopped"
+
+        ServerUiStatusSoftDeleted ->
+            "Soft-deleted"
+
+        ServerUiStatusError ->
+            "Error"
+
+        ServerUiStatusRescued ->
+            "Rescued"

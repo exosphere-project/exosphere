@@ -571,9 +571,11 @@ viewServerDetail provider serverUuid =
                             heading2
                             (Element.text "Server Details")
                         , compactKVRow "Name" (Element.text server.name)
+                        , compactKVRow "Status" (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
                         , compactKVRow "UUID" (Element.text server.uuid)
                         , compactKVRow "Created on" (Element.text details.created)
-                        , compactKVRow "Status" (Element.text details.status)
+
+                        {- TODO maybe hide power state? -}
                         , compactKVRow "Power state" (Element.text (Debug.toString details.powerState))
                         , compactKVRow "Image" (Element.text imageText)
                         , compactKVRow "Flavor" (Element.text flavorText)

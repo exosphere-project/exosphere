@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), SecurityGroupRuleUuid, SecurityGroupUuid, Server, ServerDetails, ServerPowerState(..), ServerUuid, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), SecurityGroupRuleUuid, SecurityGroupUuid, Server, ServerDetails, ServerOpenstackStatus(..), ServerPowerState(..), ServerUiStatus(..), ServerUuid, ViewState(..))
 
 import Http
 import Maybe
@@ -191,6 +191,20 @@ type CockpitStatus
     | Error
 
 
+type ServerUiStatus
+    = ServerUiStatusUnknown
+    | ServerUiStatusBuilding
+    | ServerUiStatusStarting
+    | ServerUiStatusReady
+    | ServerUiStatusPaused
+    | ServerUiStatusSuspended
+    | ServerUiStatusShutoff
+    | ServerUiStatusStopped
+    | ServerUiStatusSoftDeleted
+    | ServerUiStatusError
+    | ServerUiStatusRescued
+
+
 
 {- Todo add to ServerDetail:
    - Metadata
@@ -203,7 +217,7 @@ type CockpitStatus
 
 
 type alias ServerDetails =
-    { status : String
+    { openstackStatus : ServerOpenstackStatus
     , created : String
     , powerState : ServerPowerState
     , imageUuid : ImageUuid
@@ -211,6 +225,18 @@ type alias ServerDetails =
     , keypairName : String
     , ipAddresses : List IpAddress
     }
+
+
+type ServerOpenstackStatus
+    = ServerOSStatusPaused
+    | ServerOSStatusSuspended
+    | ServerOSStatusActive
+    | ServerOSStatusShutoff
+    | ServerOSStatusStopped
+    | ServerOSStatusSoftDeleted
+    | ServerOSStatusError
+    | ServerOSStatusBuilding
+    | ServerOSStatusRescued
 
 
 type ServerPowerState
