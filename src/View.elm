@@ -757,12 +757,19 @@ viewFlavorPicker provider createServerRequest =
 
                 Nothing ->
                     ""
+
+        flavorEmptyHint =
+            if createServerRequest.flavorUuid == "" then
+                [ hint "Please pick a size" ]
+
+            else
+                []
     in
     Element.column
         exoColumnAttributes
         [ Element.el [ Font.bold ] (Element.text "Size")
         , Element.table
-            []
+            flavorEmptyHint
             { data = sortedFlavors
             , columns = columns
             }
