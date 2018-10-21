@@ -20,10 +20,7 @@ view model =
     Element.layout
         [ Font.size 17
         , Font.family
-            [ Font.external
-                { name = "Open Sans"
-                , url = "fonts/open-sans-regular-400.css"
-                }
+            [ Font.typeface "Open Sans"
             , Font.sansSerif
             ]
         ]
