@@ -29,27 +29,68 @@ view model =
 
 elementView : Model -> Element.Element Msg
 elementView model =
+    let
+        mainContentContainerView =
+            Element.column [ Element.padding 20 ]
+                [ viewProviderPicker model
+                , case model.viewState of
+                    NonProviderView viewConstructor ->
+                        case viewConstructor of
+                            Login ->
+                                viewLogin model
+
+                    ProviderView providerName viewConstructor ->
+                        case Helpers.providerLookup model providerName of
+                            Nothing ->
+                                Element.text "Oops! Provider not found"
+
+                            Just provider ->
+                                providerView model provider viewConstructor
+                , viewMessages model
+                ]
+    in
     Element.column
         [ Element.padding 0
-        , Element.spacing 10
+        , Element.spacing 0
         , Element.width Element.fill
+        , Element.height Element.fill
         ]
         [ navBarView model
-        , viewProviderPicker model
-        , case model.viewState of
-            NonProviderView viewConstructor ->
-                case viewConstructor of
-                    Login ->
-                        viewLogin model
+        , Element.row []
+            [ navMenuView model
+            , mainContentContainerView
+            ]
+        ]
 
-            ProviderView providerName viewConstructor ->
-                case Helpers.providerLookup model providerName of
-                    Nothing ->
-                        Element.text "Oops! Provider not found"
 
-                    Just provider ->
-                        providerView model provider viewConstructor
-        , viewMessages model
+navMenuView : Model -> Element.Element Msg
+navMenuView model =
+    let
+        menuItem icon text =
+            Element.column
+                [ Element.width Element.fill
+                , Border.color (Element.rgb255 3 3 3)
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Element.spacing 15
+                , Element.paddingXY 15 30
+                ]
+                [ Element.row
+                    [ Element.spacing 15 ]
+                    [ Element.text icon
+                    , Element.el
+                        [ Font.size 18
+                        ]
+                        (Element.text text)
+                    ]
+                ]
+    in
+    Element.column
+        [ Background.color (Element.rgb255 41 46 52)
+        , Font.color (Element.rgb255 209 209 209)
+        , Element.width (Element.px 240)
+        , Element.height (Element.fill |> Element.minimum 800)
+        ]
+        [ menuItem "" "Dashboard"
         ]
 
 
@@ -69,7 +110,7 @@ navBarView model =
         navBarBrand =
             Element.row
                 [ Element.padding 10
-                , Element.spacing 10
+                , Element.spacing 20
                 ]
                 [ Element.el
                     [ Region.heading 1
@@ -83,7 +124,7 @@ navBarView model =
 
         navBarRight =
             Element.row
-                [ Element.alignRight ]
+                [ Element.alignRight, Element.paddingXY 20 0 ]
                 [ Element.el
                     [ Font.color (Element.rgb255 209 209 209)
                     ]
@@ -94,7 +135,7 @@ navBarView model =
             Element.row
                 [ Element.padding 10
                 , Element.spacing 10
-                , Element.height (Element.px 58)
+                , Element.height (Element.px 70)
                 , Element.width Element.fill
                 ]
                 [ navBarBrand
