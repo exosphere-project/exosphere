@@ -497,6 +497,13 @@ viewServerDetail provider serverUuid =
                             Debug.toString details.powerState
                                 |> String.dropLeft 5
 
+                        detailedStatus =
+                            [ Element.text "Detailed status"
+                            , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                            , compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                            , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                            ]
+
                         maybeFlavor =
                             Helpers.flavorLookup provider details.flavorUuid
 
@@ -571,15 +578,13 @@ viewServerDetail provider serverUuid =
                             "Status"
                             (Element.column
                                 (exoColumnAttributes ++ [ Element.padding 0 ])
-                                [ Element.row [ Font.bold ]
+                                ([ Element.row [ Font.bold ]
                                     [ Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
                                     , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
                                     ]
-                                , Element.text "Detailed status |> / V"
-                                , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                                , compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                                , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
-                                ]
+                                 ]
+                                    ++ detailedStatus
+                                )
                             )
                         , compactKVRow "UUID" (Element.text server.osProps.uuid)
                         , compactKVRow "Created on" (Element.text details.created)
