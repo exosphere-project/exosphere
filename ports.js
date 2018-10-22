@@ -15,3 +15,25 @@ app.ports.openInBrowser.subscribe(function (url) {
     const { shell } = require('electron')
     shell.openExternal(url)
 });
+
+
+app.ports.openNewWindow.subscribe(function (url) {
+  // Open link in new Electron window, with 'nodeIntegration: false' so
+  // Bootstrap will work.
+  const electron = require('electron');
+  const BrowserWindow = electron.remote.BrowserWindow;
+  let newWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: false
+    }
+  });
+  console.log('after constructor');
+  newWindow.on('closed', () => {
+    newWindow = null
+  });
+
+  // display the index.html file
+  newWindow.loadURL(url);
+});

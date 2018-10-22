@@ -542,7 +542,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                             [ Element.row exoRowAttributes
                                                 [ uiButton
                                                     { label = Element.text "Launch Terminal"
-                                                    , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
+                                                    , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
                                                     }
                                                 , Element.text "Type commands in a shell!"
                                                 ]
@@ -550,11 +550,11 @@ viewServerDetail provider serverUuid verboseStatus =
                                                 exoRowAttributes
                                                 [ uiButton
                                                     { label = Element.text "Launch Cockpit"
-                                                    , onPress = Just (OpenInBrowser ("https://" ++ floatingIp ++ ":9090"))
+                                                    , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090"))
                                                     }
                                                 , Element.text "Manage your server with an interactive dashboard!"
                                                 ]
-                                            , Element.text "- These links will open in a new browser window; you may need to accept a self-signed certificate warning"
+                                            , Element.text "- These links will open in new windows"
                                             , Element.text "- Then, log in with your previously chosen username and password"
                                             ]
                                     in

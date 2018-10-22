@@ -4,6 +4,9 @@ const electron = require('electron')
 
 const app = electron.app // this is our app
 
+// Uncomment this for testing with self-signed certificates
+// app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+
 const BrowserWindow = electron.BrowserWindow // This is a Module that creates windows
 
 const Menu = electron.Menu;

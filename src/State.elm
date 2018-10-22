@@ -183,6 +183,9 @@ update msg model =
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
 
+        OpenNewWindow url ->
+            ( model, Ports.openNewWindow url )
+
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
 processProviderSpecificMsg model provider msg =

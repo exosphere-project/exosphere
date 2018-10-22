@@ -58,6 +58,7 @@ type Msg
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
     | OpenInBrowser String
+    | OpenNewWindow String
 
 
 type ProviderSpecificMsgConstructor

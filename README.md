@@ -57,6 +57,24 @@ Based on the instructions found here:
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
 
 
+### Note about self-signed certificates for terminal and server dashboard
+
+Currently the Cockpit dashboard and terminal for a provisioned server is served using a self-signed TLS certificate.
+While we work on a permanent solution which does not require trusting self-signed certificates we have to enable the
+`ignore-certificate-errors` switch for Electron.   
+
+```javascript
+// Uncomment this for testing with self-signed certificates
+app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+```
+
+Do not enable this by default.
+
+Until the permanent solution has been implemented, do not use the terminal or server dashboard functionality over 
+untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or 
+dashboard view.
+
+
 ## Package Exosphere as a distributable Electron app
 
 This uses [electron-builder](https://www.electron.build/). See the link for more information.
@@ -109,7 +127,7 @@ The imports in each section should be in alphabetical order.
 
 ## OpenStack and CORS
 
-In order to use Exosphere, OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
+In order to use Exosphere in a browser (as opposed to Electron), OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
 
 (todo describe security implications)
 
