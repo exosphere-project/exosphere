@@ -877,7 +877,7 @@ receiveFloatingIp model provider serverUuid result =
                     let
                         newServer =
                             let
-                                oldOsProps =
+                                oldOSProps =
                                     server.osProps
 
                                 oldExoProps =
@@ -889,7 +889,7 @@ receiveFloatingIp model provider serverUuid result =
                                         ipAddress
                             in
                             Server
-                                { oldOsProps | details = details }
+                                { oldOSProps | details = details }
                                 { oldExoProps | floatingIpState = Success }
 
                         otherServers =
