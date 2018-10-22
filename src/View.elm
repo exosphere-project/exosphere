@@ -12,6 +12,7 @@ import Helpers
 import Html exposing (Html)
 import Maybe
 import RemoteData
+import String.Extra
 import Types.Types exposing (..)
 
 
@@ -29,23 +30,169 @@ view model =
 
 elementView : Model -> Element.Element Msg
 elementView model =
-    Element.column exoColumnAttributes
-        [ viewProviderPicker model
-        , case model.viewState of
-            NonProviderView viewConstructor ->
-                case viewConstructor of
-                    Login ->
-                        viewLogin model
+    let
+        mainContentContainerView =
+            Element.column
+                [ Element.padding 10
+                , Element.alignTop
+                ]
+                [ case model.viewState of
+                    NonProviderView viewConstructor ->
+                        case viewConstructor of
+                            Login ->
+                                viewLogin model
 
-            ProviderView providerName viewConstructor ->
-                case Helpers.providerLookup model providerName of
-                    Nothing ->
-                        Element.text "Oops! Provider not found"
+                    ProviderView providerName viewConstructor ->
+                        case Helpers.providerLookup model providerName of
+                            Nothing ->
+                                Element.text "Oops! Provider not found"
 
-                    Just provider ->
-                        providerView model provider viewConstructor
-        , viewMessages model
+                            Just provider ->
+                                providerView model provider viewConstructor
+                , viewMessages model
+                ]
+    in
+    Element.column
+        [ Element.padding 0
+        , Element.spacing 0
+        , Element.width Element.fill
+        , Element.height Element.fill
         ]
+        [ navBarView model
+        , Element.row []
+            [ navMenuView model
+            , mainContentContainerView
+            ]
+        ]
+
+
+getProviderTitle : Provider -> String
+getProviderTitle provider =
+    let
+        providerName =
+            provider.name
+
+        providerTitle =
+            Helpers.providerTitle providerName
+
+        humanCaseTitle =
+            String.Extra.humanize providerTitle
+
+        titleCaseTitle =
+            String.Extra.toTitleCase humanCaseTitle
+    in
+    titleCaseTitle
+
+
+navMenuView : Model -> Element.Element Msg
+navMenuView model =
+    let
+        menuItem : String -> String -> Maybe msg -> Element.Element msg
+        menuItem icon text onPress =
+            let
+                menuItemAttrs =
+                    [ Element.width Element.fill
+                    , Border.color (Element.rgb255 3 3 3)
+                    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                    , Element.spacing 15
+                    , Element.paddingXY 15 30
+                    ]
+
+                label =
+                    Element.column
+                        []
+                        [ Element.row
+                            [ Element.spacing 15 ]
+                            [ Element.text icon
+                            , Element.el
+                                [ Font.size 18
+                                ]
+                                (Element.text text)
+                            ]
+                        ]
+            in
+            Input.button menuItemAttrs { label = label, onPress = onPress }
+
+        providerMenuItem : Provider -> Element.Element Msg
+        providerMenuItem provider =
+            let
+                providerTitle =
+                    getProviderTitle provider
+            in
+            menuItem "" providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
+
+        providerMenuItems : List Provider -> List (Element.Element Msg)
+        providerMenuItems providers =
+            List.map providerMenuItem providers
+
+        addProviderMenuItem =
+            menuItem "" "Add Provider" (Just (SetNonProviderView Login))
+    in
+    Element.column
+        [ Background.color (Element.rgb255 41 46 52)
+        , Font.color (Element.rgb255 209 209 209)
+        , Element.width (Element.px 240)
+        , Element.height (Element.fill |> Element.minimum 800)
+        ]
+        (providerMenuItems model.providers
+            ++ [ addProviderMenuItem
+               ]
+        )
+
+
+navBarView : Model -> Element.Element Msg
+navBarView model =
+    let
+        navBarContainerAttributes =
+            [ Background.color (Element.rgb255 29 29 29)
+            , Element.width Element.fill
+            ]
+
+        -- TODO: Responsiveness - Depending on how wide the screen is, return Element.column for navBarContainerElement.
+        -- https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element#responsiveness
+        navBarContainerElement =
+            Element.row
+
+        navBarBrand =
+            Element.row
+                [ Element.padding 10
+                , Element.spacing 20
+                ]
+                [ Element.el
+                    [ Region.heading 1
+                    , Font.bold
+                    , Font.size 26
+                    , Font.color (Element.rgb 1 1 1)
+                    ]
+                    (Element.text "exosphere")
+                , Element.image [ Element.height (Element.px 40) ] { src = "assets/img/logo-alt.svg", description = "" }
+                ]
+
+        navBarRight =
+            Element.row
+                [ Element.alignRight, Element.paddingXY 20 0 ]
+                [ Element.el
+                    [ Font.color (Element.rgb255 209 209 209)
+                    ]
+                    (Element.text "")
+
+                -- This is where the right-hand side menu would go
+                ]
+
+        navBarHeaderView =
+            Element.row
+                [ Element.padding 10
+                , Element.spacing 10
+                , Element.height (Element.px 70)
+                , Element.width Element.fill
+                ]
+                [ navBarBrand
+                , navBarRight
+                ]
+    in
+    navBarContainerElement
+        navBarContainerAttributes
+        [ navBarHeaderView ]
 
 
 providerView : Model -> Provider -> ProviderViewConstructor -> Element.Element Msg
@@ -92,7 +239,7 @@ viewProviderPicker model =
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
     Element.column exoColumnAttributes
-        [ Element.el heading2 (Element.text "Navigation")
+        [ Element.el heading2 (Element.text (getProviderTitle provider))
         , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
         , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
         ]
@@ -107,13 +254,18 @@ viewLogin model =
     Element.column exoColumnAttributes
         [ Element.el
             heading2
-            (Element.text "Please log in")
+            (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
             exoRowAttributes
             [ viewLoginCredsEntry model
             , viewLoginOpenRcEntry model
             ]
-        , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ]) (uiButton { label = Element.text "Log in", onPress = Just RequestNewProviderToken })
+        , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+            (uiButton
+                { label = Element.text "Log In"
+                , onPress = Just RequestNewProviderToken
+                }
+            )
         ]
 
 
@@ -130,7 +282,7 @@ viewLoginCredsEntry model =
             [ Element.spacing 12
             ]
             { text = model.creds.authUrl
-            , placeholder = Just (Input.placeholder [] (Element.text "Auth URL e.g. https://mycloud.net:5000/v3"))
+            , placeholder = Just (Input.placeholder [] (Element.text "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"))
             , onChange = \u -> InputLoginField (AuthUrl u)
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
             }
@@ -138,7 +290,7 @@ viewLoginCredsEntry model =
             [ Element.spacing 12
             ]
             { text = model.creds.projectDomain
-            , placeholder = Just (Input.placeholder [] (Element.text "Project domain e.g. default"))
+            , placeholder = Just (Input.placeholder [] (Element.text "OS_PROJECT_DOMAIN_ID e.g. default"))
             , onChange = \d -> InputLoginField (ProjectDomain d)
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain")
             }

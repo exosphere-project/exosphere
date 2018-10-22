@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, serverLookup, serviceCatalogToEndpoints)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints)
 
 import Debug
 import Maybe.Extra
@@ -78,6 +78,29 @@ providePasswordHint username password =
 
     else
         []
+
+
+providerTitle : ProviderName -> ProviderTitle
+providerTitle providerName =
+    let
+        r =
+            alwaysRegex "^(.*?)\\..*"
+
+        matches =
+            Regex.findAtMost 1 r providerName
+
+        maybeMaybeTitle =
+            matches
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+    in
+    case maybeMaybeTitle of
+        Just (Just title) ->
+            title
+
+        _ ->
+            providerName
 
 
 providerNameFromUrl : HelperTypes.Url -> ProviderName
