@@ -10,6 +10,7 @@ import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html)
+import Icons exposing (..)
 import Maybe
 import RemoteData
 import String.Extra
@@ -569,8 +570,11 @@ viewServerDetail provider serverUuid =
                         , compactKVRow
                             "Status"
                             (Element.column
-                                exoColumnAttributes
-                                [ Element.el [ Font.bold ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
+                                (exoColumnAttributes ++ [ Element.padding 0 ])
+                                [ Element.row [ Font.bold ]
+                                    [ Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
+                                    , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+                                    ]
                                 , Element.text "Detailed status |> / V"
                                 , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                                 , compactKVSubRow "Power state" (Element.text friendlyPowerState)

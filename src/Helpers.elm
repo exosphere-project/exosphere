@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints)
 
 import Debug
 import Maybe.Extra
@@ -342,3 +342,40 @@ getServerUiStatusStr status =
 
         ServerUiStatusRescued ->
             "Rescued"
+
+
+getServerUiStatusColor : ServerUiStatus -> String
+getServerUiStatusColor status =
+    case status of
+        ServerUiStatusUnknown ->
+            "gray"
+
+        ServerUiStatusBuilding ->
+            "yellow"
+
+        ServerUiStatusStarting ->
+            "yellow"
+
+        ServerUiStatusReady ->
+            "green"
+
+        ServerUiStatusPaused ->
+            "gray"
+
+        ServerUiStatusSuspended ->
+            "gray"
+
+        ServerUiStatusShutoff ->
+            "gray"
+
+        ServerUiStatusStopped ->
+            "gray"
+
+        ServerUiStatusSoftDeleted ->
+            "gray"
+
+        ServerUiStatusError ->
+            "red"
+
+        ServerUiStatusRescued ->
+            "red"
