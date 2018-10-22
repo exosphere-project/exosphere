@@ -488,6 +488,14 @@ viewServerDetail provider serverUuid =
 
                 Just details ->
                     let
+                        friendlyOpenstackStatus =
+                            Debug.toString details.openstackStatus
+                                |> String.dropLeft 6
+
+                        friendlyPowerState =
+                            Debug.toString details.powerState
+                                |> String.dropLeft 5
+
                         maybeFlavor =
                             Helpers.flavorLookup provider details.flavorUuid
 
@@ -550,34 +558,27 @@ viewServerDetail provider serverUuid =
                                                     ++ interactionLinksBase
                                                 )
 
-                                        Error ->
-                                            Element.column exoColumnAttributes
-                                                ([ Element.text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
-                                                    ++ interactionLinksBase
-                                                )
-
                                 Nothing ->
                                     Element.text "Terminal and Cockpit services not ready yet."
-
-                        compactKVRow : String -> Element.Element Msg -> Element.Element Msg
-                        compactKVRow key value =
-                            Element.row
-                                (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
-                                [ Element.el [ Font.bold, Element.width (Element.px 200) ] (Element.paragraph [] [ Element.text key ])
-                                , Element.el [] value
-                                ]
                     in
                     Element.column exoColumnAttributes
                         [ Element.el
                             heading2
                             (Element.text "Server Details")
                         , compactKVRow "Name" (Element.text server.osProps.name)
-                        , compactKVRow "Status" (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
+                        , compactKVRow
+                            "Status"
+                            (Element.column
+                                exoColumnAttributes
+                                [ Element.el [ Font.bold ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
+                                , Element.text "Detailed status |> / V"
+                                , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                                , compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                                , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                                ]
+                            )
                         , compactKVRow "UUID" (Element.text server.osProps.uuid)
                         , compactKVRow "Created on" (Element.text details.created)
-
-                        {- TODO maybe hide power state? -}
-                        , compactKVRow "Power state" (Element.text (Debug.toString details.powerState))
                         , compactKVRow "Image" (Element.text imageText)
                         , compactKVRow "Flavor" (Element.text flavorText)
                         , compactKVRow "SSH Key Name" (Element.text details.keypairName)
@@ -804,14 +805,22 @@ getEffectiveUserDataSize createServerRequest =
 
 renderIpAddresses : List OSTypes.IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
-    Element.column exoColumnAttributes (List.map renderIpAddress ipAddresses)
+    Element.column (exoColumnAttributes ++ [ Element.padding 0 ]) (List.map renderIpAddress ipAddresses)
 
 
 renderIpAddress : OSTypes.IpAddress -> Element.Element Msg
 renderIpAddress ipAddress =
-    Element.paragraph []
-        [ Element.text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
-        ]
+    let
+        humanFriendlyIpType : OSTypes.IpAddressType -> String
+        humanFriendlyIpType ipType =
+            case ipType of
+                OSTypes.IpAddressFixed ->
+                    "Fixed IP"
+
+                OSTypes.IpAddressFloating ->
+                    "Floating IP"
+    in
+    compactKVSubRow (humanFriendlyIpType ipAddress.openstackType) (Element.text ipAddress.address)
 
 
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
@@ -1046,6 +1055,19 @@ viewUserDataInput provider createServerRequest =
         }
 
 
+friendlyCockpitReadiness : CockpitStatus -> String
+friendlyCockpitReadiness cockpitStatus =
+    case cockpitStatus of
+        NotChecked ->
+            "Not checked yet"
+
+        CheckedNotReady ->
+            "Checked but not ready yet (May become ready soon)"
+
+        Ready ->
+            "Ready"
+
+
 
 {- Elm UI Doodads -}
 
@@ -1107,3 +1129,21 @@ heading2 =
     , Font.bold
     , Font.size 24
     ]
+
+
+compactKVRow : String -> Element.Element Msg -> Element.Element Msg
+compactKVRow key value =
+    Element.row
+        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
+        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        , Element.el [] value
+        ]
+
+
+compactKVSubRow : String -> Element.Element Msg -> Element.Element Msg
+compactKVSubRow key value =
+    Element.row
+        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
+        [ Element.paragraph [ Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        , Element.el [] value
+        ]

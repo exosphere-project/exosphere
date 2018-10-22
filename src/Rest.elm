@@ -984,54 +984,34 @@ receiveCockpitStatus model provider serverUuid result =
 
         Just server ->
             {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
-            case result of
-                Err error ->
-                    let
-                        newServer =
-                            let
-                                oldExoProps =
-                                    server.exoProps
-                            in
-                            Server server.osProps { oldExoProps | cockpitStatus = Error }
+            let
+                cockpitStatus =
+                    case result of
+                        Err error ->
+                            CheckedNotReady
 
-                        otherServers =
-                            List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
+                        Ok status ->
+                            status
 
-                        newServers =
-                            newServer :: otherServers
+                oldExoProps =
+                    server.exoProps
 
-                        newProvider =
-                            { provider | servers = RemoteData.Success newServers }
+                newServer =
+                    Server server.osProps { oldExoProps | cockpitStatus = cockpitStatus }
 
-                        newModel =
-                            Helpers.modelUpdateProvider model newProvider
-                    in
-                    ( newModel, Cmd.none )
+                otherServers =
+                    List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
 
-                Ok cockpitStatus ->
-                    let
-                        newServer =
-                            let
-                                oldExoProps =
-                                    server.exoProps
-                            in
-                            Server server.osProps { oldExoProps | cockpitStatus = cockpitStatus }
+                newServers =
+                    newServer :: otherServers
 
-                        otherServers =
-                            List.filter
-                                (\s -> s.osProps.uuid /= newServer.osProps.uuid)
-                                (RemoteData.withDefault [] provider.servers)
+                newProvider =
+                    { provider | servers = RemoteData.Success newServers }
 
-                        newServers =
-                            newServer :: otherServers
-
-                        newProvider =
-                            { provider | servers = RemoteData.Success newServers }
-
-                        newModel =
-                            Helpers.modelUpdateProvider model newProvider
-                    in
-                    ( newModel, Cmd.none )
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            ( newModel, Cmd.none )
 
 
 
@@ -1199,7 +1179,7 @@ serverPowerStateDecoder : Int -> Decode.Decoder OSTypes.ServerPowerState
 serverPowerStateDecoder int =
     case int of
         0 ->
-            Decode.succeed OSTypes.NoPowerState
+            Decode.succeed OSTypes.PowerNoState
 
         1 ->
             Decode.succeed OSTypes.PowerRunning

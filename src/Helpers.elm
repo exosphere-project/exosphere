@@ -282,10 +282,6 @@ getServerUiStatus server =
                         Ready ->
                             ServerUiStatusReady
 
-                        Error ->
-                            {- TODO this will perpetually show "starting" if Cockpit never successfully starts, should eventually show error -}
-                            ServerUiStatusStarting
-
                 OSTypes.ServerPaused ->
                     ServerUiStatusPaused
 

@@ -162,7 +162,6 @@ type CockpitStatus
     = NotChecked
     | CheckedNotReady
     | Ready
-    | Error
 
 
 type ServerUiStatus

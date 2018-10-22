@@ -112,7 +112,7 @@ type ServerStatus
 
 
 type ServerPowerState
-    = NoPowerState
+    = PowerNoState
     | PowerRunning
     | PowerPaused
     | PowerShutdown
