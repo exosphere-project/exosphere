@@ -128,7 +128,9 @@ navBarView model =
                 [ Element.el
                     [ Font.color (Element.rgb255 209 209 209)
                     ]
-                    (Element.text "Menu")
+                    (Element.text "")
+
+                -- This is where the right-hand side menu would go
                 ]
 
         navBarHeaderView =
