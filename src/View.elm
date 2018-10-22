@@ -13,6 +13,7 @@ import Html exposing (Html)
 import Maybe
 import RemoteData
 import String.Extra
+import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 
@@ -439,13 +440,13 @@ viewServers provider =
                 False ->
                     let
                         noServersSelected =
-                            List.any .selected servers |> not
+                            List.any (\s -> s.exoProps.selected) servers |> not
 
                         allServersSelected =
-                            List.all .selected servers
+                            List.all (\s -> s.exoProps.selected) servers
 
                         selectedServers =
-                            List.filter .selected servers
+                            List.filter (\s -> s.exoProps.selected) servers
 
                         deleteButtonOnPress =
                             if noServersSelected == True then
@@ -470,7 +471,7 @@ viewServers provider =
                         ]
 
 
-viewServerDetail : Provider -> ServerUuid -> Element.Element Msg
+viewServerDetail : Provider -> OSTypes.ServerUuid -> Element.Element Msg
 viewServerDetail provider serverUuid =
     let
         maybeServer =
@@ -481,7 +482,7 @@ viewServerDetail provider serverUuid =
             Element.text "No server found"
 
         Just server ->
-            case server.details of
+            case server.osProps.details of
                 Nothing ->
                     Element.text "Retrieving details??"
 
@@ -570,9 +571,9 @@ viewServerDetail provider serverUuid =
                         [ Element.el
                             heading2
                             (Element.text "Server Details")
-                        , compactKVRow "Name" (Element.text server.name)
+                        , compactKVRow "Name" (Element.text server.osProps.name)
                         , compactKVRow "Status" (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
-                        , compactKVRow "UUID" (Element.text server.uuid)
+                        , compactKVRow "UUID" (Element.text server.osProps.uuid)
                         , compactKVRow "Created on" (Element.text details.created)
 
                         {- TODO maybe hide power state? -}
@@ -582,7 +583,7 @@ viewServerDetail provider serverUuid =
                         , compactKVRow "SSH Key Name" (Element.text details.keypairName)
                         , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
                         , Element.el heading2 (Element.text "Interact with server")
-                        , interactionLinks server.cockpitStatus
+                        , interactionLinks server.exoProps.cockpitStatus
                         ]
 
 
@@ -714,7 +715,7 @@ renderProviderPicker model provider =
             Element.text provider.name
 
 
-renderImage : GlobalDefaults -> Provider -> Image -> Element.Element Msg
+renderImage : GlobalDefaults -> Provider -> OSTypes.Image -> Element.Element Msg
 renderImage globalDefaults provider image =
     let
         size =
@@ -766,15 +767,15 @@ renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
     Element.column exoColumnAttributes
         [ Input.checkbox []
-            { checked = server.selected
+            { checked = server.exoProps.selected
             , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.name))
+            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
         , Element.row exoRowAttributes
-            [ Element.text ("UUID: " ++ server.uuid)
-            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) }
-            , if server.deletionAttempted == True then
+            [ Element.text ("UUID: " ++ server.osProps.uuid)
+            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid))) }
+            , if server.exoProps.deletionAttempted == True then
                 Element.text "Deleting..."
 
               else
@@ -801,12 +802,12 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List IpAddress -> Element.Element Msg
+renderIpAddresses : List OSTypes.IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
     Element.column exoColumnAttributes (List.map renderIpAddress ipAddresses)
 
 
-renderIpAddress : IpAddress -> Element.Element Msg
+renderIpAddress : OSTypes.IpAddress -> Element.Element Msg
 renderIpAddress ipAddress =
     Element.paragraph []
         [ Element.text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)

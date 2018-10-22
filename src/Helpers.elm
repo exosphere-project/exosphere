@@ -6,7 +6,7 @@ import Regex
 import RemoteData
 import Time
 import Types.HelperTypes as HelperTypes
-import Types.OpenstackTypes as OpenstackTypes
+import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 
@@ -126,7 +126,7 @@ providerNameFromUrl url =
             "placeholder-url-unparseable"
 
 
-serviceCatalogToEndpoints : OpenstackTypes.ServiceCatalog -> Endpoints
+serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints
 serviceCatalogToEndpoints catalog =
     Endpoints
         (getServicePublicUrl "glance" catalog)
@@ -134,7 +134,7 @@ serviceCatalogToEndpoints catalog =
         (getServicePublicUrl "neutron" catalog)
 
 
-getServicePublicUrl : String -> OpenstackTypes.ServiceCatalog -> HelperTypes.Url
+getServicePublicUrl : String -> OSTypes.ServiceCatalog -> HelperTypes.Url
 getServicePublicUrl serviceName catalog =
     let
         maybeService =
@@ -151,43 +151,43 @@ getServicePublicUrl serviceName catalog =
             ""
 
 
-getServiceFromCatalog : String -> OpenstackTypes.ServiceCatalog -> Maybe OpenstackTypes.Service
+getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service
 getServiceFromCatalog serviceName catalog =
     List.filter (\s -> s.name == serviceName) catalog
         |> List.head
 
 
-getPublicEndpointFromService : Maybe OpenstackTypes.Service -> Maybe OpenstackTypes.Endpoint
+getPublicEndpointFromService : Maybe OSTypes.Service -> Maybe OSTypes.Endpoint
 getPublicEndpointFromService maybeService =
     case maybeService of
         Just service ->
-            List.filter (\e -> e.interface == OpenstackTypes.Public) service.endpoints
+            List.filter (\e -> e.interface == OSTypes.Public) service.endpoints
                 |> List.head
 
         Nothing ->
             Nothing
 
 
-getExternalNetwork : Provider -> Maybe Network
+getExternalNetwork : Provider -> Maybe OSTypes.Network
 getExternalNetwork provider =
     List.filter (\n -> n.isExternal) provider.networks |> List.head
 
 
-checkFloatingIpState : ServerDetails -> FloatingIpState -> FloatingIpState
+checkFloatingIpState : OSTypes.ServerDetails -> FloatingIpState -> FloatingIpState
 checkFloatingIpState serverDetails floatingIpState =
     let
         hasFixedIp =
-            List.filter (\a -> a.openstackType == Fixed) serverDetails.ipAddresses
+            List.filter (\a -> a.openstackType == OSTypes.IpAddressFixed) serverDetails.ipAddresses
                 |> List.isEmpty
                 |> not
 
         hasFloatingIp =
-            List.filter (\a -> a.openstackType == Floating) serverDetails.ipAddresses
+            List.filter (\a -> a.openstackType == OSTypes.IpAddressFloating) serverDetails.ipAddresses
                 |> List.isEmpty
                 |> not
 
         isActive =
-            serverDetails.openstackStatus == ServerOSStatusActive
+            serverDetails.openstackStatus == OSTypes.ServerActive
     in
     case floatingIpState of
         RequestedWaiting ->
@@ -211,9 +211,9 @@ checkFloatingIpState serverDetails floatingIpState =
                 NotRequestable
 
 
-serverLookup : Provider -> ServerUuid -> Maybe Server
+serverLookup : Provider -> OSTypes.ServerUuid -> Maybe Server
 serverLookup provider serverUuid =
-    List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers) |> List.head
+    List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers) |> List.head
 
 
 providerLookup : Model -> ProviderName -> Maybe Provider
@@ -224,7 +224,7 @@ providerLookup model providerName =
         |> List.head
 
 
-flavorLookup : Provider -> FlavorUuid -> Maybe Flavor
+flavorLookup : Provider -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
 flavorLookup provider flavorUuid =
     List.filter
         (\f -> f.uuid == flavorUuid)
@@ -232,7 +232,7 @@ flavorLookup provider flavorUuid =
         |> List.head
 
 
-imageLookup : Provider -> ImageUuid -> Maybe Image
+imageLookup : Provider -> OSTypes.ImageUuid -> Maybe OSTypes.Image
 imageLookup provider imageUuid =
     List.filter
         (\i -> i.uuid == imageUuid)
@@ -252,11 +252,11 @@ modelUpdateProvider model newProvider =
     { model | providers = newProviders }
 
 
-getFloatingIp : List IpAddress -> Maybe String
+getFloatingIp : List OSTypes.IpAddress -> Maybe String
 getFloatingIp ipAddresses =
     let
         isFloating ipAddress =
-            ipAddress.openstackType == Floating
+            ipAddress.openstackType == OSTypes.IpAddressFloating
     in
     List.filter isFloating ipAddresses
         |> List.head
@@ -265,14 +265,14 @@ getFloatingIp ipAddresses =
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
-    case server.details of
+    case server.osProps.details of
         Nothing ->
             ServerUiStatusUnknown
 
         Just details ->
             case details.openstackStatus of
-                ServerOSStatusActive ->
-                    case server.cockpitStatus of
+                OSTypes.ServerActive ->
+                    case server.exoProps.cockpitStatus of
                         NotChecked ->
                             ServerUiStatusStarting
 
@@ -286,28 +286,28 @@ getServerUiStatus server =
                             {- TODO this will perpetually show "starting" if Cockpit never successfully starts, should eventually show error -}
                             ServerUiStatusStarting
 
-                ServerOSStatusPaused ->
+                OSTypes.ServerPaused ->
                     ServerUiStatusPaused
 
-                ServerOSStatusSuspended ->
+                OSTypes.ServerSuspended ->
                     ServerUiStatusSuspended
 
-                ServerOSStatusShutoff ->
+                OSTypes.ServerShutoff ->
                     ServerUiStatusShutoff
 
-                ServerOSStatusStopped ->
+                OSTypes.ServerStopped ->
                     ServerUiStatusStopped
 
-                ServerOSStatusSoftDeleted ->
+                OSTypes.ServerSoftDeleted ->
                     ServerUiStatusSoftDeleted
 
-                ServerOSStatusError ->
+                OSTypes.ServerError ->
                     ServerUiStatusError
 
-                ServerOSStatusBuilding ->
+                OSTypes.ServerBuilding ->
                     ServerUiStatusBuilding
 
-                ServerOSStatusRescued ->
+                OSTypes.ServerRescued ->
                     ServerUiStatusRescued
 
 

@@ -1,10 +1,11 @@
-module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, Flavor, FlavorUuid, FloatingIpState(..), GlobalDefaults, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressOpenstackType(..), Keypair, LoginField(..), Model, Msg(..), Network, NetworkUuid, NonProviderViewConstructor(..), Port, PortUuid, Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), SecurityGroupRuleUuid, SecurityGroupUuid, Server, ServerDetails, ServerOpenstackStatus(..), ServerPowerState(..), ServerUiStatus(..), ServerUuid, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), ViewState(..))
 
 import Http
 import Maybe
 import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
+import Types.OpenstackTypes as OSTypes
 
 
 
@@ -30,13 +31,20 @@ type alias Provider =
     { name : ProviderName
     , authToken : AuthToken
     , endpoints : Endpoints
-    , images : List Image
+    , images : List OSTypes.Image
     , servers : WebData (List Server)
-    , flavors : List Flavor
-    , keypairs : List Keypair
-    , networks : List Network
-    , ports : List Port
-    , securityGroups : List SecurityGroup
+    , flavors : List OSTypes.Flavor
+    , keypairs : List OSTypes.Keypair
+    , networks : List OSTypes.Network
+    , ports : List OSTypes.Port
+    , securityGroups : List OSTypes.SecurityGroup
+    }
+
+
+type alias Endpoints =
+    { glance : HelperTypes.Url
+    , nova : HelperTypes.Url
+    , neutron : HelperTypes.Url
     }
 
 
@@ -57,24 +65,24 @@ type ProviderSpecificMsgConstructor
     | SelectServer Server Bool
     | SelectAllServers Bool
     | RequestServers
-    | RequestServerDetail ServerUuid
+    | RequestServerDetail OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
-    | ReceiveImages (Result Http.Error (List Image))
-    | ReceiveServers (Result Http.Error (List Server))
-    | ReceiveServerDetail ServerUuid (Result Http.Error ServerDetails)
-    | ReceiveCreateServer (Result Http.Error Server)
+    | ReceiveImages (Result Http.Error (List OSTypes.Image))
+    | ReceiveServers (Result Http.Error (List OSTypes.Server))
+    | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
+    | ReceiveCreateServer (Result Http.Error OSTypes.Server)
     | ReceiveDeleteServer (Result Http.Error String)
-    | ReceiveFlavors (Result Http.Error (List Flavor))
-    | ReceiveKeypairs (Result Http.Error (List Keypair))
-    | ReceiveNetworks (Result Http.Error (List Network))
-    | GetFloatingIpReceivePorts ServerUuid (Result Http.Error (List Port))
-    | ReceiveFloatingIp ServerUuid (Result Http.Error IpAddress)
-    | ReceiveSecurityGroups (Result Http.Error (List SecurityGroup))
-    | ReceiveCreateExoSecurityGroup (Result Http.Error SecurityGroup)
+    | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))
+    | ReceiveKeypairs (Result Http.Error (List OSTypes.Keypair))
+    | ReceiveNetworks (Result Http.Error (List OSTypes.Network))
+    | GetFloatingIpReceivePorts OSTypes.ServerUuid (Result Http.Error (List OSTypes.Port))
+    | ReceiveFloatingIp OSTypes.ServerUuid (Result Http.Error OSTypes.IpAddress)
+    | ReceiveSecurityGroups (Result Http.Error (List OSTypes.SecurityGroup))
+    | ReceiveCreateExoSecurityGroup (Result Http.Error OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
-    | ReceiveCockpitStatus ServerUuid (Result Http.Error CockpitStatus)
+    | ReceiveCockpitStatus OSTypes.ServerUuid (Result Http.Error CockpitStatus)
 
 
 type ViewState
@@ -89,7 +97,7 @@ type NonProviderViewConstructor
 type ProviderViewConstructor
     = ListImages
     | ListProviderServers
-    | ServerDetail ServerUuid
+    | ServerDetail OSTypes.ServerUuid
     | CreateServer CreateServerRequest
 
 
@@ -123,56 +131,22 @@ type alias Creds =
     }
 
 
-type alias Endpoints =
-    { glance : HelperTypes.Url
-    , nova : HelperTypes.Url
-    , neutron : HelperTypes.Url
-    }
+
+-- Resource-Level Types
 
 
-
-{- Resource-Level Types -}
-
-
-type alias Image =
-    { name : String
-    , status : ImageStatus
-    , uuid : ImageUuid
-    , size : Maybe Int
-    , checksum : Maybe String
-    , diskFormat : Maybe String
-    , containerFormat : Maybe String
-    , tags : List String
-    }
-
-
-type alias ImageUuid =
-    HelperTypes.Uuid
-
-
-type ImageStatus
-    = Queued
-    | Saving
-    | Active
-    | Killed
-    | Deleted
-    | PendingDelete
-    | Deactivated
-
-
-type alias Server =
-    { name : String
-    , uuid : ServerUuid
-    , details : Maybe ServerDetails
-    , floatingIpState : FloatingIpState
+type alias ExoServerProps =
+    { floatingIpState : FloatingIpState
     , selected : Bool
     , cockpitStatus : CockpitStatus
     , deletionAttempted : Bool
     }
 
 
-type alias ServerUuid =
-    HelperTypes.Uuid
+type alias Server =
+    { osProps : OSTypes.Server
+    , exoProps : ExoServerProps
+    }
 
 
 type FloatingIpState
@@ -205,56 +179,13 @@ type ServerUiStatus
     | ServerUiStatusRescued
 
 
-
-{- Todo add to ServerDetail:
-   - Metadata
-   - Volumes
-   - Security Groups
-   - Etc
-
-   Also, make keypairName a key type, created a real date/time, etc
--}
-
-
-type alias ServerDetails =
-    { openstackStatus : ServerOpenstackStatus
-    , created : String
-    , powerState : ServerPowerState
-    , imageUuid : ImageUuid
-    , flavorUuid : FlavorUuid
-    , keypairName : String
-    , ipAddresses : List IpAddress
-    }
-
-
-type ServerOpenstackStatus
-    = ServerOSStatusPaused
-    | ServerOSStatusSuspended
-    | ServerOSStatusActive
-    | ServerOSStatusShutoff
-    | ServerOSStatusStopped
-    | ServerOSStatusSoftDeleted
-    | ServerOSStatusError
-    | ServerOSStatusBuilding
-    | ServerOSStatusRescued
-
-
-type ServerPowerState
-    = NoState
-    | Running
-    | Paused
-    | Shutdown
-    | Crashed
-    | Suspended
-
-
 type alias CreateServerRequest =
     { name : String
     , providerName : ProviderName
-    , imageUuid : ImageUuid
+    , imageUuid : OSTypes.ImageUuid
     , imageName : String
     , count : String
-    , flavorUuid : FlavorUuid
+    , flavorUuid : OSTypes.FlavorUuid
     , volBacked : Bool
     , volBackedSizeGb : String
     , keypairName : String
@@ -272,105 +203,3 @@ type alias ProviderTitle =
 
 type alias AuthToken =
     String
-
-
-type alias Flavor =
-    { uuid : FlavorUuid
-    , name : String
-    , vcpu : Int
-    , ram_mb : Int
-    , disk_root : Int
-    , disk_ephemeral : Int
-    }
-
-
-type alias FlavorUuid =
-    HelperTypes.Uuid
-
-
-type alias Keypair =
-    { name : String
-    , publicKey : String
-    , fingerprint : String
-    }
-
-
-type alias IpAddress =
-    { address : String
-    , openstackType : IpAddressOpenstackType
-    }
-
-
-type IpAddressOpenstackType
-    = Fixed
-    | Floating
-
-
-type alias Network =
-    { uuid : NetworkUuid
-    , name : String
-    , adminStateUp : Bool
-    , status : String
-    , isExternal : Bool
-    }
-
-
-type alias NetworkUuid =
-    HelperTypes.Uuid
-
-
-type alias Port =
-    { uuid : PortUuid
-    , deviceUuid : ServerUuid
-    , adminStateUp : Bool
-    , status : String
-    }
-
-
-type alias PortUuid =
-    HelperTypes.Uuid
-
-
-type alias SecurityGroup =
-    { uuid : SecurityGroupUuid
-    , name : String
-    , description : Maybe String
-    , rules : List SecurityGroupRule
-    }
-
-
-type alias SecurityGroupUuid =
-    HelperTypes.Uuid
-
-
-type alias SecurityGroupRule =
-    { uuid : SecurityGroupRuleUuid
-    , ethertype : SecurityGroupRuleEthertype
-    , direction : SecurityGroupRuleDirection
-    , protocol : Maybe SecurityGroupRuleProtocol
-    , port_range_min : Maybe Int
-    , port_range_max : Maybe Int
-    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
-    }
-
-
-type alias SecurityGroupRuleUuid =
-    HelperTypes.Uuid
-
-
-type SecurityGroupRuleDirection
-    = Ingress
-    | Egress
-
-
-type SecurityGroupRuleEthertype
-    = Ipv4
-    | Ipv6
-
-
-type SecurityGroupRuleProtocol
-    = AnyProtocol
-    | Icmp
-    | Icmpv6
-    | Tcp
-    | Udp

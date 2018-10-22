@@ -9,7 +9,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import RemoteData
 import Time
-import Types.OpenstackTypes as OpenstackTypes
+import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 
@@ -117,7 +117,7 @@ requestServers provider =
     Http.send resultMsg request
 
 
-requestServerDetail : Provider -> ServerUuid -> Cmd Msg
+requestServerDetail : Provider -> OSTypes.ServerUuid -> Cmd Msg
 requestServerDetail provider serverUuid =
     let
         request =
@@ -269,7 +269,7 @@ requestDeleteServer provider server =
             Http.request
                 { method = "DELETE"
                 , headers = [ Http.header "X-Auth-Token" provider.authToken ]
-                , url = provider.endpoints.nova ++ "/servers/" ++ server.uuid
+                , url = provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid
                 , body = Http.emptyBody
                 , expect = Http.expectString
                 , timeout = Nothing
@@ -326,16 +326,16 @@ getFloatingIpRequestPorts provider server =
                 }
 
         resultMsg result =
-            ProviderMsg provider.name (GetFloatingIpReceivePorts server.uuid result)
+            ProviderMsg provider.name (GetFloatingIpReceivePorts server.osProps.uuid result)
     in
     Http.send resultMsg request
 
 
-requestFloatingIpIfRequestable : Model -> Provider -> Network -> Port -> ServerUuid -> ( Model, Cmd Msg )
+requestFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
 requestFloatingIpIfRequestable model provider network port_ serverUuid =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
+            List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
     case maybeServer of
@@ -343,7 +343,7 @@ requestFloatingIpIfRequestable model provider network port_ serverUuid =
             Helpers.processError model "We should have a server here but we don't"
 
         Just server ->
-            case server.floatingIpState of
+            case server.exoProps.floatingIpState of
                 Requestable ->
                     requestFloatingIp model provider network port_ server
 
@@ -351,14 +351,18 @@ requestFloatingIpIfRequestable model provider network port_ serverUuid =
                     ( model, Cmd.none )
 
 
-requestFloatingIp : Model -> Provider -> Network -> Port -> Server -> ( Model, Cmd Msg )
+requestFloatingIp : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
 requestFloatingIp model provider network port_ server =
     let
         newServer =
-            { server | floatingIpState = RequestedWaiting }
+            let
+                oldExoProps =
+                    server.exoProps
+            in
+            Server server.osProps { oldExoProps | floatingIpState = RequestedWaiting }
 
         otherServers =
-            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
+            List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
 
         newServers =
             newServer :: otherServers
@@ -391,7 +395,7 @@ requestFloatingIp model provider network port_ server =
                 }
 
         resultMsg result =
-            ProviderMsg provider.name (ReceiveFloatingIp server.uuid result)
+            ProviderMsg provider.name (ReceiveFloatingIp server.osProps.uuid result)
 
         cmd =
             Http.send resultMsg request
@@ -504,7 +508,7 @@ requestCreateExoSecurityGroupRules model provider =
             ( model, Cmd.batch cmds )
 
 
-requestCockpitStatus : Provider -> ServerUuid -> String -> Cmd Msg
+requestCockpitStatus : Provider -> OSTypes.ServerUuid -> String -> Cmd Msg
 requestCockpitStatus provider serverUuid ipAddress =
     let
         request =
@@ -577,7 +581,7 @@ createProvider model response =
             ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider ] )
 
 
-receiveImages : Model -> Provider -> Result Http.Error (List Image) -> ( Model, Cmd Msg )
+receiveImages : Model -> Provider -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )
 receiveImages model provider result =
     case result of
         Err error ->
@@ -594,68 +598,37 @@ receiveImages model provider result =
             ( newModel, Cmd.none )
 
 
-receiveServers : Model -> Provider -> Result Http.Error (List Server) -> ( Model, Cmd Msg )
+receiveServers : Model -> Provider -> Result Http.Error (List OSTypes.Server) -> ( Model, Cmd Msg )
 receiveServers model provider result =
     case result of
         Err error ->
             Helpers.processError model error
 
-        Ok newServers ->
-            -- Instead of just overwriting model.servers, copy `details`, `floatingIpState` and `selected` from
-            -- existing, matching servers in model.servers (assuming there are corresponding ones)
+        Ok newOpenstackServers ->
+            -- Enrich new list of servers with any exoProps from old list of servers
             let
-                serverUuidOfServer : Server -> ServerUuid
-                serverUuidOfServer server =
-                    server.uuid
+                defaultExoProps =
+                    ExoServerProps Unknown False NotChecked False
 
-                serverIsInListOfServers : List Server -> Server -> Bool
-                serverIsInListOfServers servers server =
+                enrichNewServer : OSTypes.Server -> Server
+                enrichNewServer newOpenstackServer =
                     let
-                        serverUuids =
-                            List.map serverUuidOfServer servers
-
-                        serverUuid =
-                            serverUuidOfServer server
+                        maybeMatchingOldServer =
+                            List.filter (\oldS -> oldS.osProps.uuid == newOpenstackServer.uuid) (RemoteData.withDefault [] provider.servers)
+                                |> List.head
                     in
-                    List.member serverUuid serverUuids
+                    case maybeMatchingOldServer of
+                        Nothing ->
+                            Server newOpenstackServer defaultExoProps
 
-                existingServers =
-                    RemoteData.withDefault [] provider.servers
+                        Just oldServer ->
+                            Server newOpenstackServer oldServer.exoProps
 
-                ( newServersInExistingServers, newServersNotInExistingServers ) =
-                    List.partition (serverIsInListOfServers existingServers) newServers
-
-                ( existingServersInNewServers, existingServersNotInNewServers ) =
-                    List.partition (serverIsInListOfServers newServers) existingServers
-
-                existingServersInNewServersSorted =
-                    List.sortBy .uuid existingServersInNewServers
-
-                newServersInExistingServersSorted =
-                    List.sortBy .uuid newServersInExistingServers
-
-                getCombinedMatchingNewAndExistingServers =
-                    List.map2 (\a b -> ( a, b )) newServersInExistingServersSorted existingServersInNewServersSorted
-
-                enrichNewServerWithExistingDetails : ( Server, Server ) -> Server
-                enrichNewServerWithExistingDetails ( newServer, existingServer ) =
-                    { existingServer | name = newServer.name }
-
-                enrichNewServersWithExistingDetails : List ( Server, Server ) -> List Server
-                enrichNewServersWithExistingDetails combinedMatchingNewAndExistingServers =
-                    List.map enrichNewServerWithExistingDetails combinedMatchingNewAndExistingServers
-
-                enrichedNewServers =
-                    enrichNewServersWithExistingDetails getCombinedMatchingNewAndExistingServers
-
-                newServersWithExistingMatchesAndWithout =
-                    List.append newServersNotInExistingServers enrichedNewServers
-
-                newServersWithExistingMatchesAndWithoutSorted =
-                    List.sortBy .name newServersWithExistingMatchesAndWithout
+                newServers =
+                    List.map enrichNewServer newOpenstackServers
 
                 newProvider =
-                    { provider | servers = RemoteData.Success newServersWithExistingMatchesAndWithoutSorted }
+                    { provider | servers = RemoteData.Success newServers }
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
@@ -663,7 +636,7 @@ receiveServers model provider result =
             ( newModel, Cmd.none )
 
 
-receiveServerDetail : Model -> Provider -> ServerUuid -> Result Http.Error ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetail : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
 receiveServerDetail model provider serverUuid result =
     case result of
         Err error ->
@@ -673,7 +646,7 @@ receiveServerDetail model provider serverUuid result =
             let
                 maybeServer =
                     List.filter
-                        (\s -> s.uuid == serverUuid)
+                        (\s -> s.osProps.uuid == serverUuid)
                         (RemoteData.withDefault [] provider.servers)
                         |> List.head
             in
@@ -688,24 +661,28 @@ receiveServerDetail model provider serverUuid result =
                         floatingIpState =
                             Helpers.checkFloatingIpState
                                 serverDetails
-                                server.floatingIpState
+                                server.exoProps.floatingIpState
 
                         newServer =
-                            { server
-                                | details = Just serverDetails
-                                , floatingIpState = floatingIpState
-                            }
+                            let
+                                oldOSProps =
+                                    server.osProps
+
+                                oldExoProps =
+                                    server.exoProps
+                            in
+                            Server { oldOSProps | details = Just serverDetails } { oldExoProps | floatingIpState = floatingIpState }
 
                         otherServers =
                             List.filter
-                                (\s -> s.uuid /= newServer.uuid)
+                                (\s -> s.osProps.uuid /= newServer.osProps.uuid)
                                 (RemoteData.withDefault [] provider.servers)
 
                         newServers =
                             newServer :: otherServers
 
                         newServersSorted =
-                            List.sortBy .name newServers
+                            List.sortBy (\s -> s.osProps.name) newServers
 
                         newProvider =
                             { provider | servers = RemoteData.Success newServersSorted }
@@ -734,7 +711,7 @@ receiveServerDetail model provider serverUuid result =
                             case maybeFloatingIp of
                                 Just floatingIp ->
                                     ( newModel
-                                    , requestCockpitStatus provider server.uuid floatingIp
+                                    , requestCockpitStatus provider server.osProps.uuid floatingIp
                                     )
 
                                 Nothing ->
@@ -744,7 +721,7 @@ receiveServerDetail model provider serverUuid result =
                             ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Provider -> Result Http.Error (List Flavor) -> ( Model, Cmd Msg )
+receiveFlavors : Model -> Provider -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
 receiveFlavors model provider result =
     case result of
         Err error ->
@@ -761,7 +738,7 @@ receiveFlavors model provider result =
             ( newModel, Cmd.none )
 
 
-receiveKeypairs : Model -> Provider -> Result Http.Error (List Keypair) -> ( Model, Cmd Msg )
+receiveKeypairs : Model -> Provider -> Result Http.Error (List OSTypes.Keypair) -> ( Model, Cmd Msg )
 receiveKeypairs model provider result =
     case result of
         Err error ->
@@ -778,7 +755,7 @@ receiveKeypairs model provider result =
             ( newModel, Cmd.none )
 
 
-receiveCreateServer : Model -> Provider -> Result Http.Error Server -> ( Model, Cmd Msg )
+receiveCreateServer : Model -> Provider -> Result Http.Error OSTypes.Server -> ( Model, Cmd Msg )
 receiveCreateServer model provider result =
     case result of
         Err error ->
@@ -797,7 +774,7 @@ receiveCreateServer model provider result =
             )
 
 
-receiveNetworks : Model -> Provider -> Result Http.Error (List Network) -> ( Model, Cmd Msg )
+receiveNetworks : Model -> Provider -> Result Http.Error (List OSTypes.Network) -> ( Model, Cmd Msg )
 receiveNetworks model provider result =
     case result of
         Err error ->
@@ -814,7 +791,7 @@ receiveNetworks model provider result =
             ( newModel, Cmd.none )
 
 
-receivePortsAndRequestFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error (List Port) -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error (List OSTypes.Port) -> ( Model, Cmd Msg )
 receivePortsAndRequestFloatingIp model provider serverUuid result =
     case result of
         Err error ->
@@ -857,11 +834,11 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                         "We should have an external network here but we don't"
 
 
-receiveFloatingIp : Model -> Provider -> ServerUuid -> Result Http.Error IpAddress -> ( Model, Cmd Msg )
+receiveFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
 receiveFloatingIp model provider serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
+            List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
     case maybeServer of
@@ -876,10 +853,14 @@ receiveFloatingIp model provider serverUuid result =
                 Err error ->
                     let
                         newServer =
-                            { server | floatingIpState = Failed }
+                            let
+                                oldExoProps =
+                                    server.exoProps
+                            in
+                            Server server.osProps { oldExoProps | floatingIpState = Failed }
 
                         otherServers =
-                            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
+                            List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
 
                         newServers =
                             newServer :: otherServers
@@ -895,17 +876,25 @@ receiveFloatingIp model provider serverUuid result =
                 Ok ipAddress ->
                     let
                         newServer =
-                            { server
-                                | floatingIpState = Success
-                                , details =
+                            let
+                                oldOsProps =
+                                    server.osProps
+
+                                oldExoProps =
+                                    server.exoProps
+
+                                details =
                                     addFloatingIpInServerDetails
-                                        server.details
+                                        server.osProps.details
                                         ipAddress
-                            }
+                            in
+                            Server
+                                { oldOsProps | details = details }
+                                { oldExoProps | floatingIpState = Success }
 
                         otherServers =
                             List.filter
-                                (\s -> s.uuid /= newServer.uuid)
+                                (\s -> s.osProps.uuid /= newServer.osProps.uuid)
                                 (RemoteData.withDefault [] provider.servers)
 
                         newServers =
@@ -920,7 +909,7 @@ receiveFloatingIp model provider serverUuid result =
                     ( newModel, Cmd.none )
 
 
-addFloatingIpInServerDetails : Maybe ServerDetails -> IpAddress -> Maybe ServerDetails
+addFloatingIpInServerDetails : Maybe OSTypes.ServerDetails -> OSTypes.IpAddress -> Maybe OSTypes.ServerDetails
 addFloatingIpInServerDetails maybeDetails ipAddress =
     case maybeDetails of
         Nothing ->
@@ -934,7 +923,7 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
             Just { details | ipAddresses = newIps }
 
 
-receiveSecurityGroupsAndEnsureExoGroup : Model -> Provider -> Result Http.Error (List SecurityGroup) -> ( Model, Cmd Msg )
+receiveSecurityGroupsAndEnsureExoGroup : Model -> Provider -> Result Http.Error (List OSTypes.SecurityGroup) -> ( Model, Cmd Msg )
 receiveSecurityGroupsAndEnsureExoGroup model provider result =
     {- Create an "exosphere" security group unless one already exists -}
     case result of
@@ -960,7 +949,7 @@ receiveSecurityGroupsAndEnsureExoGroup model provider result =
             ( newModel, Cmd.batch cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Provider -> Result Http.Error SecurityGroup -> ( Model, Cmd Msg )
+receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Provider -> Result Http.Error OSTypes.SecurityGroup -> ( Model, Cmd Msg )
 receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
     case result of
         Err error ->
@@ -980,11 +969,11 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
             requestCreateExoSecurityGroupRules newModel newProvider
 
 
-receiveCockpitStatus : Model -> Provider -> ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
+receiveCockpitStatus : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
 receiveCockpitStatus model provider serverUuid result =
     let
         maybeServer =
-            List.filter (\s -> s.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
+            List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
                 |> List.head
     in
     case maybeServer of
@@ -999,10 +988,14 @@ receiveCockpitStatus model provider serverUuid result =
                 Err error ->
                     let
                         newServer =
-                            { server | cockpitStatus = Error }
+                            let
+                                oldExoProps =
+                                    server.exoProps
+                            in
+                            Server server.osProps { oldExoProps | cockpitStatus = Error }
 
                         otherServers =
-                            List.filter (\s -> s.uuid /= newServer.uuid) (RemoteData.withDefault [] provider.servers)
+                            List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
 
                         newServers =
                             newServer :: otherServers
@@ -1018,13 +1011,15 @@ receiveCockpitStatus model provider serverUuid result =
                 Ok cockpitStatus ->
                     let
                         newServer =
-                            { server
-                                | cockpitStatus = cockpitStatus
-                            }
+                            let
+                                oldExoProps =
+                                    server.exoProps
+                            in
+                            Server server.osProps { oldExoProps | cockpitStatus = cockpitStatus }
 
                         otherServers =
                             List.filter
-                                (\s -> s.uuid /= newServer.uuid)
+                                (\s -> s.osProps.uuid /= newServer.osProps.uuid)
                                 (RemoteData.withDefault [] provider.servers)
 
                         newServers =
@@ -1043,52 +1038,52 @@ receiveCockpitStatus model provider serverUuid result =
 {- JSON Decoders -}
 
 
-decodeAuthToken : Decode.Decoder OpenstackTypes.ServiceCatalog
+decodeAuthToken : Decode.Decoder OSTypes.ServiceCatalog
 decodeAuthToken =
     Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder)
 
 
-openstackServiceDecoder : Decode.Decoder OpenstackTypes.Service
+openstackServiceDecoder : Decode.Decoder OSTypes.Service
 openstackServiceDecoder =
-    Decode.map3 OpenstackTypes.Service
+    Decode.map3 OSTypes.Service
         (Decode.field "name" Decode.string)
         (Decode.field "type" Decode.string)
         (Decode.field "endpoints" (Decode.list openstackEndpointDecoder))
 
 
-openstackEndpointDecoder : Decode.Decoder OpenstackTypes.Endpoint
+openstackEndpointDecoder : Decode.Decoder OSTypes.Endpoint
 openstackEndpointDecoder =
-    Decode.map2 OpenstackTypes.Endpoint
+    Decode.map2 OSTypes.Endpoint
         (Decode.field "interface" Decode.string
             |> Decode.andThen openstackEndpointInterfaceDecoder
         )
         (Decode.field "url" Decode.string)
 
 
-openstackEndpointInterfaceDecoder : String -> Decode.Decoder OpenstackTypes.EndpointInterface
+openstackEndpointInterfaceDecoder : String -> Decode.Decoder OSTypes.EndpointInterface
 openstackEndpointInterfaceDecoder interface =
     case interface of
         "public" ->
-            Decode.succeed OpenstackTypes.Public
+            Decode.succeed OSTypes.Public
 
         "admin" ->
-            Decode.succeed OpenstackTypes.Admin
+            Decode.succeed OSTypes.Admin
 
         "internal" ->
-            Decode.succeed OpenstackTypes.Internal
+            Decode.succeed OSTypes.Internal
 
         _ ->
             Decode.fail "unrecognized interface type"
 
 
-decodeImages : Decode.Decoder (List Image)
+decodeImages : Decode.Decoder (List OSTypes.Image)
 decodeImages =
     Decode.field "images" (Decode.list imageDecoder)
 
 
-imageDecoder : Decode.Decoder Image
+imageDecoder : Decode.Decoder OSTypes.Image
 imageDecoder =
-    Decode.map8 Image
+    Decode.map8 OSTypes.Image
         (Decode.field "name" Decode.string)
         (Decode.field "status" Decode.string |> Decode.andThen imageStatusDecoder)
         (Decode.field "id" Decode.string)
@@ -1099,42 +1094,42 @@ imageDecoder =
         (Decode.field "tags" (Decode.list Decode.string))
 
 
-imageStatusDecoder : String -> Decode.Decoder ImageStatus
+imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus
 imageStatusDecoder status =
     case status of
         "queued" ->
-            Decode.succeed Queued
+            Decode.succeed OSTypes.ImageQueued
 
         "saving" ->
-            Decode.succeed Saving
+            Decode.succeed OSTypes.ImageSaving
 
         "active" ->
-            Decode.succeed Active
+            Decode.succeed OSTypes.ImageActive
 
         "killed" ->
-            Decode.succeed Killed
+            Decode.succeed OSTypes.ImageKilled
 
         "deleted" ->
-            Decode.succeed Deleted
+            Decode.succeed OSTypes.ImageDeleted
 
         "pending_delete" ->
-            Decode.succeed PendingDelete
+            Decode.succeed OSTypes.ImagePendingDelete
 
         "deactivated" ->
-            Decode.succeed Deactivated
+            Decode.succeed OSTypes.ImageDeactivated
 
         _ ->
             Decode.fail "Unrecognized image status"
 
 
-decodeServers : Decode.Decoder (List Server)
+decodeServers : Decode.Decoder (List OSTypes.Server)
 decodeServers =
     Decode.field "servers" (Decode.list serverDecoder)
 
 
-serverDecoder : Decode.Decoder Server
+serverDecoder : Decode.Decoder OSTypes.Server
 serverDecoder =
-    Decode.map7 Server
+    Decode.map3 OSTypes.Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
@@ -1142,15 +1137,11 @@ serverDecoder =
         )
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
-        (Decode.succeed Unknown)
-        (Decode.succeed False)
-        (Decode.succeed NotChecked)
-        (Decode.succeed False)
 
 
-decodeServerDetails : Decode.Decoder ServerDetails
+decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
 decodeServerDetails =
-    Decode.map7 ServerDetails
+    Decode.map7 OSTypes.ServerDetails
         (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
@@ -1170,95 +1161,95 @@ decodeServerDetails =
         )
 
 
-serverOpenstackStatusDecoder : String -> Decode.Decoder ServerOpenstackStatus
+serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
 serverOpenstackStatusDecoder status =
     case String.toLower status of
         "paused" ->
-            Decode.succeed ServerOSStatusPaused
+            Decode.succeed OSTypes.ServerPaused
 
         "suspended" ->
-            Decode.succeed ServerOSStatusSuspended
+            Decode.succeed OSTypes.ServerSuspended
 
         "active" ->
-            Decode.succeed ServerOSStatusActive
+            Decode.succeed OSTypes.ServerActive
 
         "shutoff" ->
-            Decode.succeed ServerOSStatusShutoff
+            Decode.succeed OSTypes.ServerShutoff
 
         "rescued" ->
-            Decode.succeed ServerOSStatusRescued
+            Decode.succeed OSTypes.ServerRescued
 
         "stopped" ->
-            Decode.succeed ServerOSStatusStopped
+            Decode.succeed OSTypes.ServerStopped
 
         "soft_deleted" ->
-            Decode.succeed ServerOSStatusSoftDeleted
+            Decode.succeed OSTypes.ServerSoftDeleted
 
         "error" ->
-            Decode.succeed ServerOSStatusError
+            Decode.succeed OSTypes.ServerError
 
         "build" ->
-            Decode.succeed ServerOSStatusBuilding
+            Decode.succeed OSTypes.ServerBuilding
 
         _ ->
             Decode.fail "Ooooooops, unrecognised server OpenStack status"
 
 
-serverPowerStateDecoder : Int -> Decode.Decoder ServerPowerState
+serverPowerStateDecoder : Int -> Decode.Decoder OSTypes.ServerPowerState
 serverPowerStateDecoder int =
     case int of
         0 ->
-            Decode.succeed NoState
+            Decode.succeed OSTypes.NoPowerState
 
         1 ->
-            Decode.succeed Running
+            Decode.succeed OSTypes.PowerRunning
 
         3 ->
-            Decode.succeed Paused
+            Decode.succeed OSTypes.PowerPaused
 
         4 ->
-            Decode.succeed Shutdown
+            Decode.succeed OSTypes.PowerShutdown
 
         6 ->
-            Decode.succeed Crashed
+            Decode.succeed OSTypes.PowerCrashed
 
         7 ->
-            Decode.succeed Suspended
+            Decode.succeed OSTypes.PowerSuspended
 
         _ ->
             Decode.fail "Ooooooops, unrecognised server power state"
 
 
-serverIpAddressDecoder : Decode.Decoder IpAddress
+serverIpAddressDecoder : Decode.Decoder OSTypes.IpAddress
 serverIpAddressDecoder =
-    Decode.map2 IpAddress
+    Decode.map2 OSTypes.IpAddress
         (Decode.field "addr" Decode.string)
         (Decode.field "OS-EXT-IPS:type" Decode.string
             |> Decode.andThen ipAddressOpenstackTypeDecoder
         )
 
 
-ipAddressOpenstackTypeDecoder : String -> Decode.Decoder IpAddressOpenstackType
+ipAddressOpenstackTypeDecoder : String -> Decode.Decoder OSTypes.IpAddressType
 ipAddressOpenstackTypeDecoder string =
     case string of
         "fixed" ->
-            Decode.succeed Fixed
+            Decode.succeed OSTypes.IpAddressFixed
 
         "floating" ->
-            Decode.succeed Floating
+            Decode.succeed OSTypes.IpAddressFloating
 
         _ ->
             Decode.fail "oooooooops, unrecognised IP address type"
 
 
-decodeFlavors : Decode.Decoder (List Flavor)
+decodeFlavors : Decode.Decoder (List OSTypes.Flavor)
 decodeFlavors =
     Decode.field "flavors" (Decode.list flavorDecoder)
 
 
-flavorDecoder : Decode.Decoder Flavor
+flavorDecoder : Decode.Decoder OSTypes.Flavor
 flavorDecoder =
-    Decode.map6 Flavor
+    Decode.map6 OSTypes.Flavor
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "vcpus" Decode.int)
@@ -1267,27 +1258,27 @@ flavorDecoder =
         (Decode.field "OS-FLV-EXT-DATA:ephemeral" Decode.int)
 
 
-decodeKeypairs : Decode.Decoder (List Keypair)
+decodeKeypairs : Decode.Decoder (List OSTypes.Keypair)
 decodeKeypairs =
     Decode.field "keypairs" (Decode.list keypairDecoder)
 
 
-keypairDecoder : Decode.Decoder Keypair
+keypairDecoder : Decode.Decoder OSTypes.Keypair
 keypairDecoder =
-    Decode.map3 Keypair
+    Decode.map3 OSTypes.Keypair
         (Decode.at [ "keypair", "name" ] Decode.string)
         (Decode.at [ "keypair", "public_key" ] Decode.string)
         (Decode.at [ "keypair", "fingerprint" ] Decode.string)
 
 
-decodeNetworks : Decode.Decoder (List Network)
+decodeNetworks : Decode.Decoder (List OSTypes.Network)
 decodeNetworks =
     Decode.field "networks" (Decode.list networkDecoder)
 
 
-networkDecoder : Decode.Decoder Network
+networkDecoder : Decode.Decoder OSTypes.Network
 networkDecoder =
-    Decode.map5 Network
+    Decode.map5 OSTypes.Network
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
@@ -1295,49 +1286,49 @@ networkDecoder =
         (Decode.field "router:external" Decode.bool)
 
 
-decodePorts : Decode.Decoder (List Port)
+decodePorts : Decode.Decoder (List OSTypes.Port)
 decodePorts =
     Decode.field "ports" (Decode.list portDecoder)
 
 
-portDecoder : Decode.Decoder Port
+portDecoder : Decode.Decoder OSTypes.Port
 portDecoder =
-    Decode.map4 Port
+    Decode.map4 OSTypes.Port
         (Decode.field "id" Decode.string)
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
 
 
-decodeFloatingIpCreation : Decode.Decoder IpAddress
+decodeFloatingIpCreation : Decode.Decoder OSTypes.IpAddress
 decodeFloatingIpCreation =
-    Decode.map2 IpAddress
+    Decode.map2 OSTypes.IpAddress
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
-        (Decode.succeed Floating)
+        (Decode.succeed OSTypes.IpAddressFloating)
 
 
-decodeSecurityGroups : Decode.Decoder (List SecurityGroup)
+decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)
 decodeSecurityGroups =
     Decode.field "security_groups" (Decode.list securityGroupDecoder)
 
 
-decodeNewSecurityGroup : Decode.Decoder SecurityGroup
+decodeNewSecurityGroup : Decode.Decoder OSTypes.SecurityGroup
 decodeNewSecurityGroup =
     Decode.field "security_group" securityGroupDecoder
 
 
-securityGroupDecoder : Decode.Decoder SecurityGroup
+securityGroupDecoder : Decode.Decoder OSTypes.SecurityGroup
 securityGroupDecoder =
-    Decode.map4 SecurityGroup
+    Decode.map4 OSTypes.SecurityGroup
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
 
 
-securityGroupRuleDecoder : Decode.Decoder SecurityGroupRule
+securityGroupRuleDecoder : Decode.Decoder OSTypes.SecurityGroupRule
 securityGroupRuleDecoder =
-    Decode.map7 SecurityGroupRule
+    Decode.map7 OSTypes.SecurityGroupRule
         (Decode.field "id" Decode.string)
         (Decode.field "ethertype" Decode.string |> Decode.andThen securityGroupRuleEthertypeDecoder)
         (Decode.field "direction" Decode.string |> Decode.andThen securityGroupRuleDirectionDecoder)
@@ -1347,49 +1338,49 @@ securityGroupRuleDecoder =
         (Decode.field "remote_group_id" (Decode.nullable Decode.string))
 
 
-securityGroupRuleEthertypeDecoder : String -> Decode.Decoder SecurityGroupRuleEthertype
+securityGroupRuleEthertypeDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleEthertype
 securityGroupRuleEthertypeDecoder ethertype =
     case ethertype of
         "IPv4" ->
-            Decode.succeed Ipv4
+            Decode.succeed OSTypes.Ipv4
 
         "IPv6" ->
-            Decode.succeed Ipv6
+            Decode.succeed OSTypes.Ipv6
 
         _ ->
             Decode.fail "Ooooooops, unrecognised security group rule ethertype"
 
 
-securityGroupRuleDirectionDecoder : String -> Decode.Decoder SecurityGroupRuleDirection
+securityGroupRuleDirectionDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleDirection
 securityGroupRuleDirectionDecoder dir =
     case dir of
         "ingress" ->
-            Decode.succeed Ingress
+            Decode.succeed OSTypes.Ingress
 
         "egress" ->
-            Decode.succeed Egress
+            Decode.succeed OSTypes.Egress
 
         _ ->
             Decode.fail "Ooooooops, unrecognised security group rule direction"
 
 
-securityGroupRuleProtocolDecoder : String -> Decode.Decoder SecurityGroupRuleProtocol
+securityGroupRuleProtocolDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleProtocol
 securityGroupRuleProtocolDecoder prot =
     case prot of
         "any" ->
-            Decode.succeed AnyProtocol
+            Decode.succeed OSTypes.AnyProtocol
 
         "icmp" ->
-            Decode.succeed Icmp
+            Decode.succeed OSTypes.Icmp
 
         "icmpv6" ->
-            Decode.succeed Icmpv6
+            Decode.succeed OSTypes.Icmpv6
 
         "tcp" ->
-            Decode.succeed Tcp
+            Decode.succeed OSTypes.Tcp
 
         "udp" ->
-            Decode.succeed Udp
+            Decode.succeed OSTypes.Udp
 
         _ ->
             Decode.fail "Ooooooops, unrecognised security group rule protocol"
