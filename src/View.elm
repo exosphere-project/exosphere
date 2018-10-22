@@ -29,8 +29,13 @@ view model =
 
 elementView : Model -> Element.Element Msg
 elementView model =
-    Element.column exoColumnAttributes
-        [ viewProviderPicker model
+    Element.column
+        [ Element.padding 0
+        , Element.spacing 10
+        , Element.width Element.fill
+        ]
+        [ navBarView model
+        , viewProviderPicker model
         , case model.viewState of
             NonProviderView viewConstructor ->
                 case viewConstructor of
@@ -46,6 +51,59 @@ elementView model =
                         providerView model provider viewConstructor
         , viewMessages model
         ]
+
+
+navBarView : Model -> Element.Element Msg
+navBarView model =
+    let
+        navBarContainerAttributes =
+            [ Background.color (Element.rgb255 29 29 29)
+            , Element.width Element.fill
+            ]
+
+        -- TODO: Responsiveness - Depending on how wide the screen is, return Element.column for navBarContainerElement.
+        -- https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element#responsiveness
+        navBarContainerElement =
+            Element.row
+
+        navBarBrand =
+            Element.row
+                [ Element.padding 10
+                , Element.spacing 10
+                ]
+                [ Element.el
+                    [ Region.heading 1
+                    , Font.bold
+                    , Font.size 26
+                    , Font.color (Element.rgb 1 1 1)
+                    ]
+                    (Element.text "exosphere")
+                , Element.image [ Element.height (Element.px 40) ] { src = "assets/img/logo-alt.svg", description = "" }
+                ]
+
+        navBarRight =
+            Element.row
+                [ Element.alignRight ]
+                [ Element.el
+                    [ Font.color (Element.rgb255 209 209 209)
+                    ]
+                    (Element.text "Menu")
+                ]
+
+        navBarHeaderView =
+            Element.row
+                [ Element.padding 10
+                , Element.spacing 10
+                , Element.height (Element.px 58)
+                , Element.width Element.fill
+                ]
+                [ navBarBrand
+                , navBarRight
+                ]
+    in
+    navBarContainerElement
+        navBarContainerAttributes
+        [ navBarHeaderView ]
 
 
 providerView : Model -> Provider -> ProviderViewConstructor -> Element.Element Msg
@@ -107,13 +165,18 @@ viewLogin model =
     Element.column exoColumnAttributes
         [ Element.el
             heading2
-            (Element.text "Please log in")
+            (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
             exoRowAttributes
             [ viewLoginCredsEntry model
             , viewLoginOpenRcEntry model
             ]
-        , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ]) (uiButton { label = Element.text "Log in", onPress = Just RequestNewProviderToken })
+        , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+            (uiButton
+                { label = Element.text "Log In"
+                , onPress = Just RequestNewProviderToken
+                }
+            )
         ]
 
 
@@ -130,7 +193,7 @@ viewLoginCredsEntry model =
             [ Element.spacing 12
             ]
             { text = model.creds.authUrl
-            , placeholder = Just (Input.placeholder [] (Element.text "Auth URL e.g. https://mycloud.net:5000/v3"))
+            , placeholder = Just (Input.placeholder [] (Element.text "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"))
             , onChange = \u -> InputLoginField (AuthUrl u)
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
             }
@@ -138,7 +201,7 @@ viewLoginCredsEntry model =
             [ Element.spacing 12
             ]
             { text = model.creds.projectDomain
-            , placeholder = Just (Input.placeholder [] (Element.text "Project domain e.g. default"))
+            , placeholder = Just (Input.placeholder [] (Element.text "OS_PROJECT_DOMAIN_ID e.g. default"))
             , onChange = \d -> InputLoginField (ProjectDomain d)
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain")
             }
