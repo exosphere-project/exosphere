@@ -13,6 +13,7 @@
             "elm/http": "1.0.0",
             "elm/json": "1.0.0",
             "elm/regex": "1.0.0",
+            "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm-community/maybe-extra": "5.0.0",
             "elm-community/string-extra": "4.0.0",

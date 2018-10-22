@@ -73,7 +73,7 @@ update msg model =
                 ProviderView providerName ListProviderServers ->
                     update (ProviderMsg providerName RequestServers) model
 
-                ProviderView providerName (ServerDetail serverUuid) ->
+                ProviderView providerName (ServerDetail serverUuid _) ->
                     update (ProviderMsg providerName (RequestServerDetail serverUuid)) model
 
                 _ ->
@@ -199,7 +199,7 @@ processProviderSpecificMsg model provider msg =
                 ListProviderServers ->
                     ( newModel, Rest.requestServers provider )
 
-                ServerDetail serverUuid ->
+                ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
                         [ Rest.requestServerDetail provider serverUuid
@@ -228,8 +228,13 @@ processProviderSpecificMsg model provider msg =
         RequestDeleteServer server ->
             let
                 updateServer someServer =
-                    if someServer.uuid == server.uuid then
-                        { someServer | deletionAttempted = True }
+                    if someServer.osProps.uuid == server.osProps.uuid then
+                        {- TODO DRY with below -}
+                        let
+                            oldExoProps =
+                                someServer.exoProps
+                        in
+                        Server someServer.osProps { oldExoProps | deletionAttempted = True }
 
                     else
                         someServer
@@ -251,8 +256,13 @@ processProviderSpecificMsg model provider msg =
         RequestDeleteServers serversToDelete ->
             let
                 updateServer someServer =
-                    if List.member someServer.uuid (List.map .uuid serversToDelete) then
-                        { someServer | deletionAttempted = True }
+                    if List.member someServer.osProps.uuid (List.map (\s -> s.osProps.uuid) serversToDelete) then
+                        {- TODO DRY with above -}
+                        let
+                            oldExoProps =
+                                someServer.exoProps
+                        in
+                        Server someServer.osProps { oldExoProps | deletionAttempted = True }
 
                     else
                         someServer
@@ -274,8 +284,12 @@ processProviderSpecificMsg model provider msg =
         SelectServer server newSelectionState ->
             let
                 updateServer someServer =
-                    if someServer.uuid == server.uuid then
-                        { someServer | selected = newSelectionState }
+                    if someServer.osProps.uuid == server.osProps.uuid then
+                        let
+                            oldExoProps =
+                                someServer.exoProps
+                        in
+                        Server someServer.osProps { oldExoProps | selected = newSelectionState }
 
                     else
                         someServer
@@ -296,7 +310,11 @@ processProviderSpecificMsg model provider msg =
         SelectAllServers allServersSelected ->
             let
                 updateServer someServer =
-                    { someServer | selected = allServersSelected }
+                    let
+                        oldExoProps =
+                            someServer.exoProps
+                    in
+                    Server someServer.osProps { oldExoProps | selected = allServersSelected }
 
                 newProvider =
                     { provider | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers)) }

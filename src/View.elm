@@ -10,9 +10,11 @@ import Element.Region as Region
 import Filesize exposing (format)
 import Helpers
 import Html exposing (Html)
+import Icons exposing (..)
 import Maybe
 import RemoteData
 import String.Extra
+import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 
@@ -206,8 +208,8 @@ providerView model provider viewConstructor =
                 ListProviderServers ->
                     viewServers provider
 
-                ServerDetail serverUuid ->
-                    viewServerDetail provider serverUuid
+                ServerDetail serverUuid verboseStatus ->
+                    viewServerDetail provider serverUuid verboseStatus
 
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
@@ -439,13 +441,13 @@ viewServers provider =
                 False ->
                     let
                         noServersSelected =
-                            List.any .selected servers |> not
+                            List.any (\s -> s.exoProps.selected) servers |> not
 
                         allServersSelected =
-                            List.all .selected servers
+                            List.all (\s -> s.exoProps.selected) servers
 
                         selectedServers =
-                            List.filter .selected servers
+                            List.filter (\s -> s.exoProps.selected) servers
 
                         deleteButtonOnPress =
                             if noServersSelected == True then
@@ -470,8 +472,8 @@ viewServers provider =
                         ]
 
 
-viewServerDetail : Provider -> ServerUuid -> Element.Element Msg
-viewServerDetail provider serverUuid =
+viewServerDetail : Provider -> OSTypes.ServerUuid -> VerboseStatus -> Element.Element Msg
+viewServerDetail provider serverUuid verboseStatus =
     let
         maybeServer =
             Helpers.serverLookup provider serverUuid
@@ -481,12 +483,32 @@ viewServerDetail provider serverUuid =
             Element.text "No server found"
 
         Just server ->
-            case server.details of
+            case server.osProps.details of
                 Nothing ->
                     Element.text "Retrieving details??"
 
                 Just details ->
                     let
+                        friendlyOpenstackStatus =
+                            Debug.toString details.openstackStatus
+                                |> String.dropLeft 6
+
+                        friendlyPowerState =
+                            Debug.toString details.powerState
+                                |> String.dropLeft 5
+
+                        verboseStatusView =
+                            case verboseStatus of
+                                False ->
+                                    [ uiButton { onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid True))), label = Element.text "See detail" } ]
+
+                                True ->
+                                    [ Element.text "Detailed status"
+                                    , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                                    , compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                                    , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                                    ]
+
                         maybeFlavor =
                             Helpers.flavorLookup provider details.flavorUuid
 
@@ -549,38 +571,34 @@ viewServerDetail provider serverUuid =
                                                     ++ interactionLinksBase
                                                 )
 
-                                        Error ->
-                                            Element.column exoColumnAttributes
-                                                ([ Element.text "Unable to detect status of Terminal and Cockpit services. These links may work a few minutes after your server is active." ]
-                                                    ++ interactionLinksBase
-                                                )
-
                                 Nothing ->
                                     Element.text "Terminal and Cockpit services not ready yet."
-
-                        compactKVRow : String -> Element.Element Msg -> Element.Element Msg
-                        compactKVRow key value =
-                            Element.row
-                                (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
-                                [ Element.el [ Font.bold, Element.width (Element.px 200) ] (Element.paragraph [] [ Element.text key ])
-                                , Element.el [] value
-                                ]
                     in
                     Element.column exoColumnAttributes
                         [ Element.el
                             heading2
                             (Element.text "Server Details")
-                        , compactKVRow "Name" (Element.text server.name)
-                        , compactKVRow "UUID" (Element.text server.uuid)
+                        , compactKVRow "Name" (Element.text server.osProps.name)
+                        , compactKVRow
+                            "Status"
+                            (Element.column
+                                (exoColumnAttributes ++ [ Element.padding 0 ])
+                                ([ Element.row [ Font.bold ]
+                                    [ Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
+                                    , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+                                    ]
+                                 ]
+                                    ++ verboseStatusView
+                                )
+                            )
+                        , compactKVRow "UUID" (Element.text server.osProps.uuid)
                         , compactKVRow "Created on" (Element.text details.created)
-                        , compactKVRow "Status" (Element.text details.status)
-                        , compactKVRow "Power state" (Element.text (Debug.toString details.powerState))
                         , compactKVRow "Image" (Element.text imageText)
                         , compactKVRow "Flavor" (Element.text flavorText)
                         , compactKVRow "SSH Key Name" (Element.text details.keypairName)
                         , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
                         , Element.el heading2 (Element.text "Interact with server")
-                        , interactionLinks server.cockpitStatus
+                        , interactionLinks server.exoProps.cockpitStatus
                         ]
 
 
@@ -712,7 +730,7 @@ renderProviderPicker model provider =
             Element.text provider.name
 
 
-renderImage : GlobalDefaults -> Provider -> Image -> Element.Element Msg
+renderImage : GlobalDefaults -> Provider -> OSTypes.Image -> Element.Element Msg
 renderImage globalDefaults provider image =
     let
         size =
@@ -764,15 +782,15 @@ renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
     Element.column exoColumnAttributes
         [ Input.checkbox []
-            { checked = server.selected
+            { checked = server.exoProps.selected
             , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.name))
+            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
         , Element.row exoRowAttributes
-            [ Element.text ("UUID: " ++ server.uuid)
-            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.uuid))) }
-            , if server.deletionAttempted == True then
+            [ Element.text ("UUID: " ++ server.osProps.uuid)
+            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
+            , if server.exoProps.deletionAttempted == True then
                 Element.text "Deleting..."
 
               else
@@ -799,16 +817,24 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List IpAddress -> Element.Element Msg
+renderIpAddresses : List OSTypes.IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
-    Element.column exoColumnAttributes (List.map renderIpAddress ipAddresses)
+    Element.column (exoColumnAttributes ++ [ Element.padding 0 ]) (List.map renderIpAddress ipAddresses)
 
 
-renderIpAddress : IpAddress -> Element.Element Msg
+renderIpAddress : OSTypes.IpAddress -> Element.Element Msg
 renderIpAddress ipAddress =
-    Element.paragraph []
-        [ Element.text (Debug.toString ipAddress.openstackType ++ ": " ++ ipAddress.address)
-        ]
+    let
+        humanFriendlyIpType : OSTypes.IpAddressType -> String
+        humanFriendlyIpType ipType =
+            case ipType of
+                OSTypes.IpAddressFixed ->
+                    "Fixed IP"
+
+                OSTypes.IpAddressFloating ->
+                    "Floating IP"
+    in
+    compactKVSubRow (humanFriendlyIpType ipAddress.openstackType) (Element.text ipAddress.address)
 
 
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
@@ -1043,6 +1069,19 @@ viewUserDataInput provider createServerRequest =
         }
 
 
+friendlyCockpitReadiness : CockpitStatus -> String
+friendlyCockpitReadiness cockpitStatus =
+    case cockpitStatus of
+        NotChecked ->
+            "Not checked yet"
+
+        CheckedNotReady ->
+            "Checked but not ready yet (May become ready soon)"
+
+        Ready ->
+            "Ready"
+
+
 
 {- Elm UI Doodads -}
 
@@ -1104,3 +1143,21 @@ heading2 =
     , Font.bold
     , Font.size 24
     ]
+
+
+compactKVRow : String -> Element.Element Msg -> Element.Element Msg
+compactKVRow key value =
+    Element.row
+        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
+        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        , Element.el [] value
+        ]
+
+
+compactKVSubRow : String -> Element.Element Msg -> Element.Element Msg
+compactKVSubRow key value =
+    Element.row
+        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
+        [ Element.paragraph [ Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        , Element.el [] value
+        ]
