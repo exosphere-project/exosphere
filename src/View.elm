@@ -32,9 +32,11 @@ elementView : Model -> Element.Element Msg
 elementView model =
     let
         mainContentContainerView =
-            Element.column [ Element.padding 20 ]
-                [ viewProviderPicker model
-                , case model.viewState of
+            Element.column
+                [ Element.padding 10
+                , Element.alignTop
+                ]
+                [ case model.viewState of
                     NonProviderView viewConstructor ->
                         case viewConstructor of
                             Login ->
@@ -64,43 +66,52 @@ elementView model =
         ]
 
 
+getProviderTitle : Provider -> String
+getProviderTitle provider =
+    let
+        providerName =
+            provider.name
+
+        providerTitle =
+            Helpers.providerTitle providerName
+
+        humanCaseTitle =
+            String.Extra.humanize providerTitle
+
+        titleCaseTitle =
+            String.Extra.toTitleCase humanCaseTitle
+    in
+    titleCaseTitle
+
+
 navMenuView : Model -> Element.Element Msg
 navMenuView model =
     let
-        menuItem icon text =
-            Element.column
-                [ Element.width Element.fill
-                , Border.color (Element.rgb255 3 3 3)
-                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Element.spacing 15
-                , Element.paddingXY 15 30
-                ]
-                [ Element.row
-                    [ Element.spacing 15 ]
-                    [ Element.text icon
-                    , Element.el
-                        [ Font.size 18
-                        ]
-                        (Element.text text)
-                    ]
-                ]
-
-        getProviderTitle : Provider -> String
-        getProviderTitle provider =
+        menuItem : String -> String -> Maybe msg -> Element.Element msg
+        menuItem icon text onPress =
             let
-                providerName =
-                    provider.name
+                menuItemAttrs =
+                    [ Element.width Element.fill
+                    , Border.color (Element.rgb255 3 3 3)
+                    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                    , Element.spacing 15
+                    , Element.paddingXY 15 30
+                    ]
 
-                providerTitle =
-                    Helpers.providerTitle providerName
-
-                humanCaseTitle =
-                    String.Extra.humanize providerTitle
-
-                titleCaseTitle =
-                    String.Extra.toTitleCase humanCaseTitle
+                label =
+                    Element.column
+                        []
+                        [ Element.row
+                            [ Element.spacing 15 ]
+                            [ Element.text icon
+                            , Element.el
+                                [ Font.size 18
+                                ]
+                                (Element.text text)
+                            ]
+                        ]
             in
-            titleCaseTitle
+            Input.button menuItemAttrs { label = label, onPress = onPress }
 
         providerMenuItem : Provider -> Element.Element Msg
         providerMenuItem provider =
@@ -108,11 +119,14 @@ navMenuView model =
                 providerTitle =
                     getProviderTitle provider
             in
-            menuItem "" providerTitle
+            menuItem "" providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
 
         providerMenuItems : List Provider -> List (Element.Element Msg)
         providerMenuItems providers =
             List.map providerMenuItem providers
+
+        addProviderMenuItem =
+            menuItem "" "Add Provider" (Just (SetNonProviderView Login))
     in
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
@@ -120,9 +134,9 @@ navMenuView model =
         , Element.width (Element.px 240)
         , Element.height (Element.fill |> Element.minimum 800)
         ]
-        ([--        menuItem "" "Dashboard"
-         ]
-            ++ providerMenuItems model.providers
+        (providerMenuItems model.providers
+            ++ [ addProviderMenuItem
+               ]
         )
 
 
@@ -225,7 +239,7 @@ viewProviderPicker model =
 viewNav : Provider -> Element.Element Msg
 viewNav provider =
     Element.column exoColumnAttributes
-        [ Element.el heading2 (Element.text "Navigation")
+        [ Element.el heading2 (Element.text (getProviderTitle provider))
         , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
         , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
         ]
