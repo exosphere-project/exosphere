@@ -12,6 +12,7 @@ import Helpers
 import Html exposing (Html)
 import Maybe
 import RemoteData
+import String.Extra
 import Types.Types exposing (..)
 
 
@@ -83,6 +84,35 @@ navMenuView model =
                         (Element.text text)
                     ]
                 ]
+
+        getProviderTitle : Provider -> String
+        getProviderTitle provider =
+            let
+                providerName =
+                    provider.name
+
+                providerTitle =
+                    Helpers.providerTitle providerName
+
+                humanCaseTitle =
+                    String.Extra.humanize providerTitle
+
+                titleCaseTitle =
+                    String.Extra.toTitleCase humanCaseTitle
+            in
+            titleCaseTitle
+
+        providerMenuItem : Provider -> Element.Element Msg
+        providerMenuItem provider =
+            let
+                providerTitle =
+                    getProviderTitle provider
+            in
+            menuItem "" providerTitle
+
+        providerMenuItems : List Provider -> List (Element.Element Msg)
+        providerMenuItems providers =
+            List.map providerMenuItem providers
     in
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
@@ -90,8 +120,10 @@ navMenuView model =
         , Element.width (Element.px 240)
         , Element.height (Element.fill |> Element.minimum 800)
         ]
-        [ menuItem "" "Dashboard"
-        ]
+        ([--        menuItem "" "Dashboard"
+         ]
+            ++ providerMenuItems model.providers
+        )
 
 
 navBarView : Model -> Element.Element Msg
