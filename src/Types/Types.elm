@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), ViewState(..))
+module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -97,8 +97,12 @@ type NonProviderViewConstructor
 type ProviderViewConstructor
     = ListImages
     | ListProviderServers
-    | ServerDetail OSTypes.ServerUuid
+    | ServerDetail OSTypes.ServerUuid VerboseStatus
     | CreateServer CreateServerRequest
+
+
+type alias VerboseStatus =
+    Bool
 
 
 type LoginField

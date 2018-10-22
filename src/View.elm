@@ -208,8 +208,8 @@ providerView model provider viewConstructor =
                 ListProviderServers ->
                     viewServers provider
 
-                ServerDetail serverUuid ->
-                    viewServerDetail provider serverUuid
+                ServerDetail serverUuid verboseStatus ->
+                    viewServerDetail provider serverUuid verboseStatus
 
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
@@ -472,8 +472,8 @@ viewServers provider =
                         ]
 
 
-viewServerDetail : Provider -> OSTypes.ServerUuid -> Element.Element Msg
-viewServerDetail provider serverUuid =
+viewServerDetail : Provider -> OSTypes.ServerUuid -> VerboseStatus -> Element.Element Msg
+viewServerDetail provider serverUuid verboseStatus =
     let
         maybeServer =
             Helpers.serverLookup provider serverUuid
@@ -497,12 +497,17 @@ viewServerDetail provider serverUuid =
                             Debug.toString details.powerState
                                 |> String.dropLeft 5
 
-                        detailedStatus =
-                            [ Element.text "Detailed status"
-                            , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                            , compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                            , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
-                            ]
+                        verboseStatusView =
+                            case verboseStatus of
+                                False ->
+                                    [ uiButton { onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid True))), label = Element.text "See detail" } ]
+
+                                True ->
+                                    [ Element.text "Detailed status"
+                                    , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                                    , compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                                    , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                                    ]
 
                         maybeFlavor =
                             Helpers.flavorLookup provider details.flavorUuid
@@ -583,7 +588,7 @@ viewServerDetail provider serverUuid =
                                     , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
                                     ]
                                  ]
-                                    ++ detailedStatus
+                                    ++ verboseStatusView
                                 )
                             )
                         , compactKVRow "UUID" (Element.text server.osProps.uuid)
@@ -784,7 +789,7 @@ renderServer provider server =
             }
         , Element.row exoRowAttributes
             [ Element.text ("UUID: " ++ server.osProps.uuid)
-            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid))) }
+            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
             , if server.exoProps.deletionAttempted == True then
                 Element.text "Deleting..."
 

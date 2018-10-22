@@ -73,7 +73,7 @@ update msg model =
                 ProviderView providerName ListProviderServers ->
                     update (ProviderMsg providerName RequestServers) model
 
-                ProviderView providerName (ServerDetail serverUuid) ->
+                ProviderView providerName (ServerDetail serverUuid _) ->
                     update (ProviderMsg providerName (RequestServerDetail serverUuid)) model
 
                 _ ->
@@ -199,7 +199,7 @@ processProviderSpecificMsg model provider msg =
                 ListProviderServers ->
                     ( newModel, Rest.requestServers provider )
 
-                ServerDetail serverUuid ->
+                ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
                         [ Rest.requestServerDetail provider serverUuid
