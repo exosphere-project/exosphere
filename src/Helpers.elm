@@ -63,7 +63,7 @@ processOpenRc existingCreds openRc =
             { authUrl = alwaysRegex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
             , projectDomain = alwaysRegex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
             , projectName = alwaysRegex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
-            , userDomain = alwaysRegex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
+            , userDomain = alwaysRegex "export OS_USER_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
             , username = alwaysRegex "export OS_USERNAME=\"?([^\"\n]*)\"?"
             , password = alwaysRegex "export OS_PASSWORD=\"(.*)\""
             }
