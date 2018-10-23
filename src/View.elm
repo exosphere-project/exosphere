@@ -294,7 +294,7 @@ viewLoginCredsEntry model =
             { text = model.creds.projectDomain
             , placeholder = Just (Input.placeholder [] (Element.text "OS_PROJECT_DOMAIN_ID e.g. default"))
             , onChange = \d -> InputLoginField (ProjectDomain d)
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain")
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain (name or ID)")
             }
         , Input.text
             [ Element.spacing 12
@@ -310,7 +310,7 @@ viewLoginCredsEntry model =
             { text = model.creds.userDomain
             , placeholder = Just (Input.placeholder [] (Element.text "User domain e.g. default"))
             , onChange = \d -> InputLoginField (UserDomain d)
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Domain")
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Domain (name or ID)")
             }
         , Input.text
             [ Element.spacing 12

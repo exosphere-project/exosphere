@@ -1,4 +1,4 @@
-module Tests exposing (emptyCreds, processOpenRcSuite)
+module Tests exposing (emptyCreds, processOpenRcSuite, stringIsUuidOrDefaultSuite)
 
 -- Test related Modules
 -- Exosphere Modules Under Test
@@ -13,6 +13,36 @@ import Types.Types exposing (Creds)
 emptyCreds : Creds
 emptyCreds =
     Creds "" "" "" "" "" ""
+
+
+stringIsUuidOrDefaultSuite : Test
+stringIsUuidOrDefaultSuite =
+    describe "The Helpers.stringIsUuidOrDefault function"
+        [ test "accepts a valid UUID" <|
+            \_ ->
+                Expect.equal True (Helpers.stringIsUuidOrDefault "deadbeef-dead-dead-dead-beefbeefbeef")
+        , test "accepts a valid UUID with no hyphens" <|
+            \_ ->
+                Expect.equal True (Helpers.stringIsUuidOrDefault "deadbeefdeaddeaddeadbeefbeefbeef")
+        , test "accepts a UUID but with too many hyphens (we are forgiving here?)" <|
+            \_ ->
+                Expect.equal True (Helpers.stringIsUuidOrDefault "deadbe-ef-dead-dead-dead-beefbeef-bee-f")
+        , test "rejects a UUID that is too short" <|
+            \_ ->
+                Expect.equal False (Helpers.stringIsUuidOrDefault "deadbeef-dead-dead-dead-beefbeefbee")
+        , test "rejects a UUID with invalid characters" <|
+            \_ ->
+                Expect.equal False (Helpers.stringIsUuidOrDefault "deadbeef-dead-dead-dead-beefbeefbees")
+        , test "rejects a non-uuid" <|
+            \_ ->
+                Expect.equal False (Helpers.stringIsUuidOrDefault "gesnodulator")
+        , test "Accepts \"default\"" <|
+            \_ ->
+                Expect.equal True (Helpers.stringIsUuidOrDefault "default")
+        , test "Accepts \"Default\" (note upper case)" <|
+            \_ ->
+                Expect.equal True (Helpers.stringIsUuidOrDefault "Default")
+        ]
 
 
 processOpenRcSuite : Test
