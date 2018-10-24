@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, stringIsUuidOrDefault)
 
 import Debug
 import Maybe.Extra
@@ -30,6 +30,32 @@ processError model error =
     ( newModel, Cmd.none )
 
 
+stringIsUuidOrDefault : String -> Bool
+stringIsUuidOrDefault str =
+    -- We accept some login fields from user (e.g. Keystone domains) that could be a name or a UUID.
+    -- Further, OpenStack treats "default" as a special case that can be passed in UUID fields.
+    -- This function helps functions like Rest.requestAuthToken specify the right JSON field (name or ID).
+    let
+        stringIsUuid =
+            let
+                strNoHyphens =
+                    String.filter (\c -> c /= '-') str
+
+                isValidHex : Char -> Bool
+                isValidHex c =
+                    String.any (\h -> c == h) "0123456789abcdef"
+
+                isValidLength =
+                    String.length strNoHyphens == 32
+            in
+            String.all isValidHex strNoHyphens && isValidLength
+
+        stringIsDefault =
+            String.toLower str == "default"
+    in
+    stringIsUuid || stringIsDefault
+
+
 processOpenRc : Creds -> String -> Creds
 processOpenRc existingCreds openRc =
     let
@@ -37,7 +63,7 @@ processOpenRc existingCreds openRc =
             { authUrl = alwaysRegex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
             , projectDomain = alwaysRegex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
             , projectName = alwaysRegex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
-            , userDomain = alwaysRegex "export OS_USER_DOMAIN_NAME=\"?([^\"\n]*)\"?"
+            , userDomain = alwaysRegex "export OS_USER_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
             , username = alwaysRegex "export OS_USERNAME=\"?([^\"\n]*)\"?"
             , password = alwaysRegex "export OS_PASSWORD=\"(.*)\""
             }

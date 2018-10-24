@@ -20,6 +20,14 @@ import Types.Types exposing (..)
 requestAuthToken : Model -> Cmd Msg
 requestAuthToken model =
     let
+        idOrName str =
+            case Helpers.stringIsUuidOrDefault str of
+                True ->
+                    "id"
+
+                False ->
+                    "name"
+
         requestBody =
             Encode.object
                 [ ( "auth"
@@ -34,7 +42,7 @@ requestAuthToken model =
                                                 [ ( "name", Encode.string model.creds.username )
                                                 , ( "domain"
                                                   , Encode.object
-                                                        [ ( "id", Encode.string model.creds.userDomain )
+                                                        [ ( idOrName model.creds.userDomain, Encode.string model.creds.userDomain )
                                                         ]
                                                   )
                                                 , ( "password", Encode.string model.creds.password )
@@ -51,7 +59,7 @@ requestAuthToken model =
                                         [ ( "name", Encode.string model.creds.projectName )
                                         , ( "domain"
                                           , Encode.object
-                                                [ ( "id", Encode.string model.creds.projectDomain )
+                                                [ ( idOrName model.creds.projectDomain, Encode.string model.creds.projectDomain )
                                                 ]
                                           )
                                         ]
