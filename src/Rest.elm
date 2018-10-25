@@ -740,8 +740,40 @@ receiveFlavors model provider result =
                 newProvider =
                     { provider | flavors = flavors }
 
+                -- If we have a CreateServerRequest with no flavor UUID, populate it with the smallest flavor.
+                -- This is the start of a code smell because we need to reach way into the viewState to update
+                -- the createServerRequest. Good candidate for future refactoring to bring CreateServerRequest
+                -- outside of model.viewState.
+                -- This could also benefit from some "railway-oriented programming" to avoid repetition of
+                -- "otherwise just model.viewState" statments.
+                viewState =
+                    case model.viewState of
+                        ProviderView _ providerViewConstructor ->
+                            case providerViewConstructor of
+                                CreateServer createServerRequest ->
+                                    if createServerRequest.flavorUuid == "" then
+                                        let
+                                            maybeSmallestFlavor =
+                                                Helpers.sortedFlavors flavors |> List.head
+                                        in
+                                        case maybeSmallestFlavor of
+                                            Just smallestFlavor ->
+                                                ProviderView provider.name (CreateServer { createServerRequest | flavorUuid = smallestFlavor.uuid })
+
+                                            Nothing ->
+                                                model.viewState
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        _ ->
+                            model.viewState
+
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
             in
             ( newModel, Cmd.none )
 
@@ -757,8 +789,36 @@ receiveKeypairs model provider result =
                 newProvider =
                     { provider | keypairs = keypairs }
 
+                -- If we have a CreateServerRequest with no keypair name, populate it with the first keypair.
+                -- Same comments above (in receiveFlavors) apply here.
+                viewState =
+                    case model.viewState of
+                        ProviderView _ providerViewConstructor ->
+                            case providerViewConstructor of
+                                CreateServer createServerRequest ->
+                                    if createServerRequest.keypairName == "" then
+                                        let
+                                            maybeFirstKeypair =
+                                                keypairs |> List.head
+                                        in
+                                        case maybeFirstKeypair of
+                                            Just firstKeypair ->
+                                                ProviderView provider.name (CreateServer { createServerRequest | keypairName = firstKeypair.name })
+
+                                            Nothing ->
+                                                model.viewState
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        _ ->
+                            model.viewState
+
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
             in
             ( newModel, Cmd.none )
 
