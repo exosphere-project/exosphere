@@ -29,7 +29,7 @@ elm make src/Exosphere.elm
 
 Then browse to the compiled index.html.
 
-## Try Exosphere as Electron App
+## Build and Run Exosphere as Electron App
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
@@ -43,13 +43,13 @@ To compile and run the app:
 
 ```bash
 npm run electron-build
-npm run electron-start
+npm run electron-start-dev
 ```
 
 To watch for changes to `*.elm` files, auto-compile when they change, and hot-reloading of the app:
 
 ```bash
-npm run electron-watch
+npm run electron-watch-dev
 ```
 
 Based on the instructions found here:
@@ -70,8 +70,8 @@ app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
 
 Do not enable this by default.
 
-Until the permanent solution has been implemented, do not use the terminal or server dashboard functionality over 
-untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or 
+Until the permanent solution has been implemented, do not use the terminal or server dashboard functionality over
+untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or
 dashboard view.
 
 

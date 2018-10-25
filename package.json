@@ -9,7 +9,8 @@
     "elm:watch": "chokidar 'src/**/*.elm' -c 'npm run electron-build'",
     "electron-build": "elm make src/Exosphere.elm --output elm.js || true",
     "electron-start": "electron index.js",
-    "electron-watch": "npm run electron-start & npm run elm:watch & wait",
+    "electron-start-dev": "electron index-dev.js",
+    "electron-watch-dev": "npm run electron-start & npm run elm:watch & wait",
     "test": "elm-test",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
