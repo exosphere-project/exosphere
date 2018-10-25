@@ -749,7 +749,7 @@ renderImage globalDefaults provider image =
                 Nothing ->
                     "N/A"
     in
-    Element.column
+    Input.button
         (exoColumnAttributes
             ++ [ Element.width (Element.px 500)
                , Border.width 1
@@ -761,21 +761,24 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
-        , Element.el [] (uiButton { label = Element.text "Launch", onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData)))) })
-        , Element.row exoRowAttributes
-            [ Element.text "Status: "
-            , Element.text (Debug.toString image.status)
-            ]
-        , Element.row exoRowAttributes
-            [ Element.text "Size: "
-            , Element.text size
-            ]
-        , Element.row exoRowAttributes
-            [ Element.text "Tags: "
-            , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-            ]
-        ]
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData))))
+        , label =
+            Element.column exoColumnAttributes
+                [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
+                , Element.row exoRowAttributes
+                    [ Element.text "Status: "
+                    , Element.text (Debug.toString image.status)
+                    ]
+                , Element.row exoRowAttributes
+                    [ Element.text "Size: "
+                    , Element.text size
+                    ]
+                , Element.row exoRowAttributes
+                    [ Element.text "Tags: "
+                    , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+                    ]
+                ]
+        }
 
 
 renderServer : Provider -> Server -> Element.Element Msg
