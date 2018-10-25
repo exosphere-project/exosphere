@@ -584,7 +584,7 @@ viewServerDetail provider serverUuid verboseStatus =
                             (Element.column
                                 (exoColumnAttributes ++ [ Element.padding 0 ])
                                 ([ Element.row [ Font.bold ]
-                                    [ Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
+                                    [ Element.el [ Element.paddingEach { edges | right = 15 } ] (Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor)))
                                     , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
                                     ]
                                  ]
@@ -870,12 +870,7 @@ viewFlavorPicker provider createServerRequest =
                 }
 
         paddingRight =
-            Element.paddingEach
-                { top = 0
-                , right = 15
-                , bottom = 0
-                , left = 0
-                }
+            Element.paddingEach { edges | right = 15 }
 
         headerAttribs =
             [ paddingRight
@@ -1059,12 +1054,7 @@ viewUserDataInput provider createServerRequest =
         , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
         , label =
             Input.labelAbove
-                [ Element.paddingEach
-                    { top = 20
-                    , right = 0
-                    , bottom = 20
-                    , left = 0
-                    }
+                [ Element.paddingXY 20 0
                 , Font.bold
                 ]
                 (Element.text "User Data (Boot Script)")
@@ -1164,3 +1154,11 @@ compactKVSubRow key value =
         [ Element.paragraph [ Element.width (Element.px 200), Font.bold ] [ Element.text key ]
         , Element.el [] value
         ]
+
+
+edges =
+    { top = 0
+    , right = 0
+    , bottom = 0
+    , left = 0
+    }
