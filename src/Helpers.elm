@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, stringIsUuidOrDefault)
+module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
 
 import Debug
 import Maybe.Extra
@@ -405,3 +405,12 @@ getServerUiStatusColor status =
 
         ServerUiStatusRescued ->
             "red"
+
+
+sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
+sortedFlavors flavors =
+    flavors
+        |> List.sortBy .disk_ephemeral
+        |> List.sortBy .disk_root
+        |> List.sortBy .ram_mb
+        |> List.sortBy .vcpu

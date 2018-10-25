@@ -843,13 +843,6 @@ renderIpAddress ipAddress =
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewFlavorPicker provider createServerRequest =
     let
-        sortedFlavors =
-            provider.flavors
-                |> List.sortBy .disk_ephemeral
-                |> List.sortBy .disk_root
-                |> List.sortBy .ram_mb
-                |> List.sortBy .vcpu
-
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
         -- each containing just a single option.
@@ -948,7 +941,7 @@ viewFlavorPicker provider createServerRequest =
         [ Element.el [ Font.bold ] (Element.text "Size")
         , Element.table
             flavorEmptyHint
-            { data = sortedFlavors
+            { data = Helpers.sortedFlavors provider.flavors
             , columns = columns
             }
         , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
