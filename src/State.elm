@@ -2,6 +2,8 @@ module State exposing (init, subscriptions, update)
 
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
+import Json.Decode as Decode
+import LocalStorage
 import Maybe
 import Ports
 import RemoteData
@@ -15,8 +17,8 @@ import Types.Types exposing (..)
 {- Todo remove default creds once storing this in local storage -}
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
+init : Maybe Decode.Value -> ( Model, Cmd Msg )
+init maybeStoredState =
     let
         globalDefaults =
             { shellUserData =
@@ -39,22 +41,46 @@ chpasswd:
   expire: False
 """
             }
+
+        emptyStoredState : StoredState
+        emptyStoredState =
+            { providers = []
+            }
+
+        emptyModel : Model
+        emptyModel =
+            { messages = []
+            , viewState = NonProviderView Login
+            , providers = []
+            , creds = Creds "" "" "" "" "" ""
+            , imageFilterTag = Maybe.Just "distro-base"
+            , globalDefaults = globalDefaults
+            , toasties = Toasty.initialState
+            }
+
+        storedState : StoredState
+        storedState =
+            case maybeStoredState of
+                Nothing ->
+                    emptyStoredState
+
+                Just storedStateValue ->
+                    let
+                        decodedValueResult =
+                            Decode.decodeValue LocalStorage.decodeStoredState storedStateValue
+                    in
+                    case decodedValueResult of
+                        Result.Err _ ->
+                            emptyStoredState
+
+                        Result.Ok decodedValue ->
+                            decodedValue
+
+        hydratedModel : Model
+        hydratedModel =
+            LocalStorage.hydrateModelFromStoredState emptyModel storedState
     in
-    ( { messages = []
-      , viewState = NonProviderView Login
-      , providers = []
-      , creds =
-            Creds
-                "https://tombstone-cloud.cyverse.org:5000/v3/auth/tokens"
-                "default"
-                "demo"
-                "default"
-                "demo"
-                ""
-      , imageFilterTag = Maybe.Just "distro-base"
-      , globalDefaults = globalDefaults
-      , toasties = Toasty.initialState
-      }
+    ( hydratedModel
     , Cmd.none
     )
 
@@ -65,8 +91,8 @@ subscriptions _ =
     Time.every (10 * 1000) Tick
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
+updateUnderlying msg model =
     case msg of
         ToastyMsg subMsg ->
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
@@ -239,6 +265,20 @@ update msg model =
 
 
 --            Helpers.processError model password
+
+
+{-| We want to `setStorage` on every update. This function adds the setStorage
+command for every step of the update function.
+-}
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    let
+        ( newModel, cmds ) =
+            updateUnderlying msg model
+    in
+    ( newModel
+    , Cmd.batch [ Ports.setStorage (LocalStorage.generateStoredState newModel), cmds ]
+    )
 
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )

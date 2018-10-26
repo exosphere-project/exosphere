@@ -1,7 +1,32 @@
-module Types.Types exposing (CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, HttpRequestMethod(..), LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing
+    ( CockpitLoginStatus(..)
+    , CreateServerField(..)
+    , CreateServerRequest
+    , Creds
+    , Endpoints
+    , ExoServerProps
+    , FloatingIpState(..)
+    , GlobalDefaults
+    , HttpRequestMethod(..)
+    , LoginField(..)
+    , Model
+    , Msg(..)
+    , NewServerNetworkOptions(..)
+    , NonProviderViewConstructor(..)
+    , Provider
+    , ProviderName
+    , ProviderSpecificMsgConstructor(..)
+    , ProviderTitle
+    , ProviderViewConstructor(..)
+    , Server
+    , ServerUiStatus(..)
+    , StoredProvider
+    , StoredState
+    , VerboseStatus
+    , ViewState(..)
+    )
 
 import Http
-import Maybe
 import RemoteData exposing (WebData)
 import Time
 import Toasty
@@ -44,6 +69,13 @@ type alias Provider =
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
+    }
+
+
+type alias StoredProvider =
+    { name : ProviderName
+    , creds : Creds
+    , auth : OSTypes.AuthToken
     }
 
 
@@ -147,6 +179,11 @@ type alias Creds =
     , userDomain : String
     , username : String
     , password : String
+    }
+
+
+type alias StoredState =
+    { providers : List StoredProvider
     }
 
 

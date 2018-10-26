@@ -10,6 +10,7 @@ module Helpers.Helpers exposing
     , iso8601StringToPosix
     , modelUpdateProvider
     , newServerNetworkOptions
+    , posixToIso8601String
     , processError
     , processOpenRc
     , providePasswordHint
@@ -208,6 +209,12 @@ iso8601StringToPosix : String -> Result String Time.Posix
 iso8601StringToPosix str =
     ISO8601.fromString str
         |> Result.map ISO8601.toPosix
+
+
+posixToIso8601String : Time.Posix -> String
+posixToIso8601String posixTime =
+    ISO8601.fromPosix posixTime
+        |> ISO8601.toString
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints

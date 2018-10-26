@@ -1,4 +1,60 @@
-module Rest.Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateFloatingIp, receiveCreateServer, receiveDeleteFloatingIp, receiveDeleteServer, receiveFlavors, receiveFloatingIps, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateFloatingIp, requestCreateFloatingIpIfRequestable, requestCreateServer, requestDeleteFloatingIp, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIps, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest.Rest exposing
+    ( addFloatingIpInServerDetails
+    , createProvider
+    , decodeFlavors
+    , decodeFloatingIpCreation
+    , decodeImages
+    , decodeKeypairs
+    , decodeNetworks
+    , decodePorts
+    , decodeServerDetails
+    , decodeServers
+    , flavorDecoder
+    , getFloatingIpRequestPorts
+    , imageDecoder
+    , imageStatusDecoder
+    , ipAddressOpenstackTypeDecoder
+    , keypairDecoder
+    , networkDecoder
+    , openstackEndpointDecoder
+    , openstackEndpointInterfaceDecoder
+    , openstackServiceDecoder
+    , portDecoder
+    , receiveAuthToken
+    , receiveCockpitLoginStatus
+    , receiveCreateExoSecurityGroupAndRequestCreateRules
+    , receiveCreateFloatingIp
+    , receiveCreateServer
+    , receiveDeleteFloatingIp
+    , receiveDeleteServer
+    , receiveFlavors
+    , receiveFloatingIps
+    , receiveImages
+    , receiveKeypairs
+    , receiveNetworks
+    , receivePortsAndRequestFloatingIp
+    , receiveSecurityGroupsAndEnsureExoGroup
+    , receiveServerDetail
+    , receiveServers
+    , requestAuthToken
+    , requestCreateExoSecurityGroupRules
+    , requestCreateFloatingIp
+    , requestCreateFloatingIpIfRequestable
+    , requestCreateServer
+    , requestDeleteFloatingIp
+    , requestDeleteServer
+    , requestDeleteServers
+    , requestFlavors
+    , requestFloatingIps
+    , requestImages
+    , requestKeypairs
+    , requestNetworks
+    , requestServerDetail
+    , requestServers
+    , serverDecoder
+    , serverIpAddressDecoder
+    , serverPowerStateDecoder
+    )
 
 import Array
 import Base64
@@ -498,7 +554,7 @@ createProvider model creds response =
 
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
-                    , creds = Debug.log "creds" creds
+                    , creds = creds
                     , auth = authToken
 
                     -- Maybe todo, eliminate parallel data structures in auth and endpoints?
