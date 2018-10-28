@@ -1055,9 +1055,9 @@ viewUserDataInput provider createServerRequest =
         }
 
 
-friendlyCockpitReadiness : CockpitStatus -> String
-friendlyCockpitReadiness cockpitStatus =
-    case cockpitStatus of
+friendlyCockpitReadiness : CockpitLoginStatus -> String
+friendlyCockpitReadiness cockpitLoginStatus =
+    case cockpitLoginStatus of
         NotChecked ->
             "Not checked yet"
 

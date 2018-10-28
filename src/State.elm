@@ -408,5 +408,5 @@ processProviderSpecificMsg model provider msg =
             {- Todo this ignores the result of security group rule creation API call, we should display errors to user -}
             ( model, Cmd.none )
 
-        ReceiveCockpitStatus serverUuid result ->
-            Rest.receiveCockpitStatus model provider serverUuid result
+        ReceiveCockpitLoginStatus serverUuid result ->
+            Rest.receiveCockpitLoginStatus model provider serverUuid result
