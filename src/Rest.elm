@@ -1191,7 +1191,7 @@ serverDecoder =
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
 decodeServerDetails =
-    Decode.map7 OSTypes.ServerDetails
+    Decode.map8 OSTypes.ServerDetails
         (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
@@ -1209,6 +1209,7 @@ decodeServerDetails =
             , Decode.succeed []
             ]
         )
+        (Decode.at [ "server", "metadata" ] metadataDecoder)
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
@@ -1290,6 +1291,13 @@ ipAddressOpenstackTypeDecoder string =
 
         _ ->
             Decode.fail "oooooooops, unrecognised IP address type"
+
+
+metadataDecoder : Decode.Decoder (List OSTypes.MetadataItem)
+metadataDecoder =
+    {- There has got to be a better way to do this -}
+    Decode.keyValuePairs Decode.string
+        |> Decode.map (\pairs -> List.map (\pair -> OSTypes.MetadataItem (Tuple.first pair) (Tuple.second pair)) pairs)
 
 
 decodeFlavors : Decode.Decoder (List OSTypes.Flavor)

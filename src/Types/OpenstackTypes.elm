@@ -1,4 +1,4 @@
-module Types.OpenstackTypes exposing (Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), Keypair, Network, Port, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..))
+module Types.OpenstackTypes exposing (Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), Keypair, MetadataItem, Network, Port, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..))
 
 import Types.HelperTypes as HelperTypes
 
@@ -8,6 +8,15 @@ import Types.HelperTypes as HelperTypes
    Types that match structure of data returned from OpenStack API, used for
    decoding JSON and representing state of OpenStack resources.
 -}
+
+
+type alias MetadataItem =
+    { key : String
+    , value : String
+    }
+
+
+
 -- Keystone
 
 
@@ -139,6 +148,7 @@ type alias ServerDetails =
     , flavorUuid : FlavorUuid
     , keypairName : String
     , ipAddresses : List IpAddress
+    , metadata : List MetadataItem
     }
 
 
