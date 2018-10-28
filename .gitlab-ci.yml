@@ -16,6 +16,7 @@ elm_make:
     - npx elm make src/Exosphere.elm --output public/index.html
     - npx elm make src/Exosphere.elm --output public/elm.js
     - cp ports.js public/ports.js
+    - cp -R assets public
   artifacts:
     paths:
       - public
