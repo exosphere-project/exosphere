@@ -761,7 +761,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123"))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]

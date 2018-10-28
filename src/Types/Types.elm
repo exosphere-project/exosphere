@@ -59,6 +59,7 @@ type Msg
     | InputImageFilterTag String
     | OpenInBrowser String
     | OpenNewWindow String
+    | RandomPassword Provider String
 
 
 type ProviderSpecificMsgConstructor
@@ -194,6 +195,7 @@ type alias CreateServerRequest =
     , volBackedSizeGb : String
     , keypairName : String
     , userData : String
+    , exouserPassword : String
     }
 
 
