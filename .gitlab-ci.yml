@@ -13,10 +13,11 @@ elm_make:
   before_script:
     - npm install elm@0.19.0
   script:
-    - npx elm make src/Exosphere.elm --output public/index.html
     - npx elm make src/Exosphere.elm --output public/elm.js
+    - cp index.html public/index.html
     - cp ports.js public/ports.js
     - cp -R assets public
+    - cp -R fonts public
   artifacts:
     paths:
       - public
