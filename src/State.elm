@@ -1,6 +1,6 @@
 module State exposing (init, subscriptions, update)
 
-import Helpers
+import Helpers.Helpers as Helpers
 import Maybe
 import Ports
 import RemoteData

@@ -3,7 +3,7 @@ module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthTo
 import Array
 import Base64
 import Dict
-import Helpers
+import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode

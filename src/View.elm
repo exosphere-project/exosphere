@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
-import Helpers
+import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Icons exposing (..)
 import Maybe
