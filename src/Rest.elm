@@ -213,6 +213,8 @@ requestCreateServer provider createServerRequest =
             , ( "networks", Encode.string "auto" )
             , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
             , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+            , ( "adminPass", Encode.string createServerRequest.exouserPassword )
+            , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
             ]
 
         buildRequestOuterJson props =
