@@ -4,7 +4,7 @@ module Tests exposing (emptyCreds, processOpenRcSuite, stringIsUuidOrDefaultSuit
 -- Exosphere Modules Under Test
 
 import Expect exposing (Expectation)
-import Helpers
+import Helpers.Helpers as Helpers
 import Test exposing (..)
 import TestData
 import Types.Types exposing (Creds)

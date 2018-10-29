@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
-import Helpers
+import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Icons exposing (..)
 import Maybe
@@ -761,7 +761,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123"))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
@@ -1055,9 +1055,9 @@ viewUserDataInput provider createServerRequest =
         }
 
 
-friendlyCockpitReadiness : CockpitStatus -> String
-friendlyCockpitReadiness cockpitStatus =
-    case cockpitStatus of
+friendlyCockpitReadiness : CockpitLoginStatus -> String
+friendlyCockpitReadiness cockpitLoginStatus =
+    case cockpitLoginStatus of
         NotChecked ->
             "Not checked yet"
 

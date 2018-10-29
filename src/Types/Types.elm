@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -59,6 +59,7 @@ type Msg
     | InputImageFilterTag String
     | OpenInBrowser String
     | OpenNewWindow String
+    | RandomPassword Provider String
 
 
 type ProviderSpecificMsgConstructor
@@ -83,7 +84,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveSecurityGroups (Result Http.Error (List OSTypes.SecurityGroup))
     | ReceiveCreateExoSecurityGroup (Result Http.Error OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
-    | ReceiveCockpitStatus OSTypes.ServerUuid (Result Http.Error CockpitStatus)
+    | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
 
 
 type ViewState
@@ -143,7 +144,7 @@ type alias Creds =
 type alias ExoServerProps =
     { floatingIpState : FloatingIpState
     , selected : Bool
-    , cockpitStatus : CockpitStatus
+    , cockpitStatus : CockpitLoginStatus
     , deletionAttempted : Bool
     }
 
@@ -163,7 +164,7 @@ type FloatingIpState
     | Failed
 
 
-type CockpitStatus
+type CockpitLoginStatus
     = NotChecked
     | CheckedNotReady
     | Ready
@@ -194,6 +195,7 @@ type alias CreateServerRequest =
     , volBackedSizeGb : String
     , keypairName : String
     , userData : String
+    , exouserPassword : String
     }
 
 

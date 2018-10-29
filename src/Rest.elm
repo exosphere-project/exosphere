@@ -1,9 +1,9 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Array
 import Base64
 import Dict
-import Helpers
+import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -213,6 +213,8 @@ requestCreateServer provider createServerRequest =
             , ( "networks", Encode.string "auto" )
             , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
             , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+            , ( "adminPass", Encode.string createServerRequest.exouserPassword )
+            , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
             ]
 
         buildRequestOuterJson props =
@@ -516,22 +518,25 @@ requestCreateExoSecurityGroupRules model provider =
             ( model, Cmd.batch cmds )
 
 
-requestCockpitStatus : Provider -> OSTypes.ServerUuid -> String -> Cmd Msg
-requestCockpitStatus provider serverUuid ipAddress =
+requestCockpitLogin : Provider -> OSTypes.ServerUuid -> String -> String -> Cmd Msg
+requestCockpitLogin provider serverUuid password ipAddress =
     let
+        authHeaderValue =
+            "Basic " ++ Base64.encode ("exouser:" ++ password)
+
         request =
             Http.request
                 { method = "GET"
-                , headers = []
-                , url = "http://" ++ ipAddress ++ ":9090/ping"
+                , headers = [ Http.header "Authorization" authHeaderValue ]
+                , url = "http://" ++ ipAddress ++ ":9090/cockpit/login"
                 , body = Http.emptyBody
-                , expect = Http.expectJson cockpitStatusDecoder
+                , expect = Http.expectString
                 , timeout = Just 3000
-                , withCredentials = False
+                , withCredentials = True
                 }
 
         resultMsg provider2 serverUuid2 result =
-            ProviderMsg provider2.name (ReceiveCockpitStatus serverUuid2 result)
+            ProviderMsg provider2.name (ReceiveCockpitLoginStatus serverUuid2 result)
     in
     Http.send (resultMsg provider serverUuid) request
 
@@ -716,11 +721,21 @@ receiveServerDetail model provider serverUuid result =
                                     Helpers.getFloatingIp
                                         serverDetails.ipAddresses
                             in
+                            {- If we have a floating IP address and exouser password then try to log into Cockpit -}
                             case maybeFloatingIp of
                                 Just floatingIp ->
-                                    ( newModel
-                                    , requestCockpitStatus provider server.osProps.uuid floatingIp
-                                    )
+                                    case List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata |> List.head of
+                                        Just passwordMetaItem ->
+                                            let
+                                                password =
+                                                    passwordMetaItem.value
+                                            in
+                                            ( newModel
+                                            , requestCockpitLogin provider server.osProps.uuid password floatingIp
+                                            )
+
+                                        Nothing ->
+                                            Helpers.processError newModel "Server has no exouserPassword stored so we won't be able to log into Cockpit."
 
                                 Nothing ->
                                     Helpers.processError newModel "We should have a floating IP address here but we don't"
@@ -1037,8 +1052,8 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
             requestCreateExoSecurityGroupRules newModel newProvider
 
 
-receiveCockpitStatus : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error CockpitStatus -> ( Model, Cmd Msg )
-receiveCockpitStatus model provider serverUuid result =
+receiveCockpitLoginStatus : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveCockpitLoginStatus model provider serverUuid result =
     let
         maybeServer =
             List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
@@ -1055,11 +1070,12 @@ receiveCockpitStatus model provider serverUuid result =
             let
                 cockpitStatus =
                     case result of
+                        -- TODO more error chcking, e.g. handle case of invalid credentials rather than telling user "still not ready yet"
                         Err error ->
                             CheckedNotReady
 
-                        Ok status ->
-                            status
+                        Ok str ->
+                            Ready
 
                 oldExoProps =
                     server.exoProps
@@ -1189,7 +1205,7 @@ serverDecoder =
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
 decodeServerDetails =
-    Decode.map7 OSTypes.ServerDetails
+    Decode.map8 OSTypes.ServerDetails
         (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
         (Decode.at [ "server", "created" ] Decode.string)
         (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
@@ -1207,6 +1223,7 @@ decodeServerDetails =
             , Decode.succeed []
             ]
         )
+        (Decode.at [ "server", "metadata" ] metadataDecoder)
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
@@ -1288,6 +1305,13 @@ ipAddressOpenstackTypeDecoder string =
 
         _ ->
             Decode.fail "oooooooops, unrecognised IP address type"
+
+
+metadataDecoder : Decode.Decoder (List OSTypes.MetadataItem)
+metadataDecoder =
+    {- There has got to be a better way to do this -}
+    Decode.keyValuePairs Decode.string
+        |> Decode.map (\pairs -> List.map (\pair -> OSTypes.MetadataItem (Tuple.first pair) (Tuple.second pair)) pairs)
 
 
 decodeFlavors : Decode.Decoder (List OSTypes.Flavor)
@@ -1432,20 +1456,3 @@ securityGroupRuleProtocolDecoder prot =
 
         _ ->
             Decode.fail "Ooooooops, unrecognised security group rule protocol"
-
-
-cockpitStatusDecoder : Decode.Decoder CockpitStatus
-cockpitStatusDecoder =
-    let
-        serviceToCockpitStatus s =
-            let
-                _ =
-                    Debug.log "s" s
-            in
-            if s == "cockpit" then
-                Ready
-
-            else
-                CheckedNotReady
-    in
-    Decode.map serviceToCockpitStatus (Decode.field "service" Decode.string)

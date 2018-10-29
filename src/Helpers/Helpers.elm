@@ -1,4 +1,4 @@
-module Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
+module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
 
 import Debug
 import Maybe.Extra

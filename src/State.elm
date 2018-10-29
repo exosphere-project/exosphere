@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
-import Helpers
+import Helpers.Helpers as Helpers
+import Helpers.Random as RandomHelpers
 import Maybe
 import Ports
 import RemoteData
@@ -186,6 +187,45 @@ update msg model =
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 
+        RandomPassword provider password ->
+            -- This is the start of a code smell for two reasons:
+            -- 1. We have parallel data structures, storing password in userdata string and separately
+            -- 2. We must reach deep into model.viewState in order to change these fields
+            -- See also Rest.receiveFlavors
+            case model.viewState of
+                NonProviderView _ ->
+                    ( model, Cmd.none )
+
+                ProviderView providerName providerViewConstructor ->
+                    if providerName /= provider.name then
+                        ( model, Cmd.none )
+
+                    else
+                        case providerViewConstructor of
+                            CreateServer createServerRequest ->
+                                let
+                                    newUserData =
+                                        String.split "changeme123" createServerRequest.userData
+                                            |> String.join password
+
+                                    newCSR =
+                                        { createServerRequest
+                                            | userData = newUserData
+                                            , exouserPassword = password
+                                        }
+
+                                    newViewState =
+                                        ProviderView provider.name (CreateServer newCSR)
+                                in
+                                ( { model | viewState = newViewState }, Cmd.none )
+
+                            _ ->
+                                ( model, Cmd.none )
+
+
+
+--            Helpers.processError model password
+
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
 processProviderSpecificMsg model provider msg =
@@ -216,6 +256,7 @@ processProviderSpecificMsg model provider msg =
                     , Cmd.batch
                         [ Rest.requestFlavors provider
                         , Rest.requestKeypairs provider
+                        , RandomHelpers.generatePassword provider
                         ]
                     )
 
@@ -367,5 +408,5 @@ processProviderSpecificMsg model provider msg =
             {- Todo this ignores the result of security group rule creation API call, we should display errors to user -}
             ( model, Cmd.none )
 
-        ReceiveCockpitStatus serverUuid result ->
-            Rest.receiveCockpitStatus model provider serverUuid result
+        ReceiveCockpitLoginStatus serverUuid result ->
+            Rest.receiveCockpitLoginStatus model provider serverUuid result
