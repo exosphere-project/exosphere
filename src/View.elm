@@ -692,6 +692,7 @@ viewCreateServer provider createServerRequest =
                 ]
             , viewFlavorPicker provider createServerRequest
             , viewVolBackedPrompt provider createServerRequest
+            , viewNetworkPicker provider createServerRequest
             , viewKeypairPicker provider createServerRequest
             , viewUserDataInput provider createServerRequest
             , uiButton
@@ -761,7 +762,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123"))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123" ""))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
@@ -1013,6 +1014,27 @@ viewVolBackedPrompt provider createServerRequest =
             True ->
                 volSizeSlider
         ]
+
+
+viewNetworkPicker : Provider -> CreateServerRequest -> Element.Element Msg
+viewNetworkPicker provider createServerRequest =
+    let
+        networkAsOption network =
+            Input.option network.uuid (Element.text network.name)
+
+        networkEmptyHint =
+            if createServerRequest.networkUuid == "" then
+                [ hint "Please pick a network" ]
+
+            else
+                []
+    in
+    Input.radio networkEmptyHint
+        { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Network")
+        , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
+        , options = List.map networkAsOption provider.networks
+        , selected = Just createServerRequest.networkUuid
+        }
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg

@@ -210,7 +210,12 @@ requestCreateServer provider createServerRequest =
             [ ( "name", Encode.string instanceName )
             , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
             , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
-            , ( "networks", Encode.string "auto" )
+
+            -- TODO specify string "auto" if there are no private networks
+            , ( "networks"
+              , Encode.list Encode.object
+                    [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+              )
             , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
             , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
             , ( "adminPass", Encode.string createServerRequest.exouserPassword )
@@ -868,8 +873,37 @@ receiveNetworks model provider result =
                 newProvider =
                     { provider | networks = networks }
 
+                -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
+                -- Same comments above (in receiveFlavors) apply here.
+                -- TODO make better decisions here (e.g. auto-allocated network, no network)
+                viewState =
+                    case model.viewState of
+                        ProviderView _ providerViewConstructor ->
+                            case providerViewConstructor of
+                                CreateServer createServerRequest ->
+                                    if createServerRequest.networkUuid == "" then
+                                        let
+                                            maybeFirstNetwork =
+                                                networks |> List.head
+                                        in
+                                        case maybeFirstNetwork of
+                                            Just firstNetwork ->
+                                                ProviderView provider.name (CreateServer { createServerRequest | networkUuid = firstNetwork.uuid })
+
+                                            Nothing ->
+                                                model.viewState
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        _ ->
+                            model.viewState
+
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
             in
             ( newModel, Cmd.none )
 

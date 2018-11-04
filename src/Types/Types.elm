@@ -125,6 +125,7 @@ type CreateServerField
     | CreateServerKeypairName String
     | CreateServerVolBacked Bool
     | CreateServerVolBackedSize String
+    | CreateServerNetworkUuid OSTypes.NetworkUuid
 
 
 type alias Creds =
@@ -196,6 +197,7 @@ type alias CreateServerRequest =
     , keypairName : String
     , userData : String
     , exouserPassword : String
+    , networkUuid : OSTypes.NetworkUuid
     }
 
 
