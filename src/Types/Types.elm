@@ -30,6 +30,10 @@ type alias GlobalDefaults =
 type alias Provider =
     { name : ProviderName
     , authToken : AuthToken
+    , projectUuid : OSTypes.ProjectUuid
+    , projectName : OSTypes.ProjectName
+    , userUuid : OSTypes.UserUuid
+    , userName : OSTypes.UserName
     , endpoints : Endpoints
     , images : List OSTypes.Image
     , servers : WebData (List Server)

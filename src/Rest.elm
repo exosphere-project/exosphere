@@ -569,17 +569,21 @@ createProvider model response =
         Err error ->
             Helpers.processError model error
 
-        Ok serviceCatalog ->
+        Ok tokenDetails ->
             let
                 authToken =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
 
                 endpoints =
-                    Helpers.serviceCatalogToEndpoints serviceCatalog
+                    Helpers.serviceCatalogToEndpoints tokenDetails.catalog
 
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
                     , authToken = authToken
+                    , projectUuid = tokenDetails.projectUuid
+                    , projectName = tokenDetails.projectName
+                    , userUuid = tokenDetails.userUuid
+                    , userName = tokenDetails.userName
                     , endpoints = endpoints
                     , images = []
                     , servers = RemoteData.NotAsked
@@ -1141,9 +1145,14 @@ receiveCockpitLoginStatus model provider serverUuid result =
 {- JSON Decoders -}
 
 
-decodeAuthToken : Decode.Decoder OSTypes.ServiceCatalog
+decodeAuthToken : Decode.Decoder OSTypes.TokenDetails
 decodeAuthToken =
-    Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder)
+    Decode.map5 OSTypes.TokenDetails
+        (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
+        (Decode.at [ "token", "project", "id" ] Decode.string)
+        (Decode.at [ "token", "project", "name" ] Decode.string)
+        (Decode.at [ "token", "user", "id" ] Decode.string)
+        (Decode.at [ "token", "user", "name" ] Decode.string)
 
 
 openstackServiceDecoder : Decode.Decoder OSTypes.Service
