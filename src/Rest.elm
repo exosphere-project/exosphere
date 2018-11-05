@@ -1253,6 +1253,14 @@ serverDecoder =
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
 decodeServerDetails =
+    let
+        flattenAddressesObject kVPairs =
+            {- Takes a list of key-value pairs, the keys being network names and the values being OSTypes.IpAddress
+               Returns a flat list of OSTypes.IpAddress
+            -}
+            List.foldl (\kVPair resultList -> Tuple.second kVPair :: resultList) [] kVPairs
+                |> List.concat
+    in
     Decode.map8 OSTypes.ServerDetails
         (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
         (Decode.at [ "server", "created" ] Decode.string)
@@ -1267,7 +1275,7 @@ decodeServerDetails =
         (Decode.at [ "server", "flavor", "id" ] Decode.string)
         (Decode.at [ "server", "key_name" ] Decode.string)
         (Decode.oneOf
-            [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
+            [ Decode.at [ "server", "addresses" ] (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder)))
             , Decode.succeed []
             ]
         )
