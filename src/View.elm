@@ -692,6 +692,7 @@ viewCreateServer provider createServerRequest =
                 ]
             , viewFlavorPicker provider createServerRequest
             , viewVolBackedPrompt provider createServerRequest
+            , viewNetworkPicker provider createServerRequest
             , viewKeypairPicker provider createServerRequest
             , viewUserDataInput provider createServerRequest
             , uiButton
@@ -761,7 +762,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123"))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123" ""))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
@@ -1013,6 +1014,68 @@ viewVolBackedPrompt provider createServerRequest =
             True ->
                 volSizeSlider
         ]
+
+
+viewNetworkPicker : Provider -> CreateServerRequest -> Element.Element Msg
+viewNetworkPicker provider createServerRequest =
+    let
+        networkOptions =
+            Helpers.newServerNetworkOptions provider
+
+        contents =
+            case networkOptions of
+                NoNetsAutoAllocate ->
+                    [ Element.paragraph
+                        []
+                        [ Element.text "There are no networks associated with your project so Exosphere will ask OpenStack to create one for you and hope for the best." ]
+                    ]
+
+                OneNet net ->
+                    [ Element.paragraph
+                        []
+                        [ Element.text ("There is only one network, with name \"" ++ net.name ++ "\", so Exosphere will use that one.") ]
+                    ]
+
+                MultipleNetsWithGuess networks guessNet goodGuess ->
+                    let
+                        guessText =
+                            case goodGuess of
+                                True ->
+                                    Element.paragraph
+                                        []
+                                        [ Element.text
+                                            ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
+                                        ]
+
+                                False ->
+                                    Element.paragraph
+                                        []
+                                        [ Element.text "The selected network is a guess and might not be the best choice." ]
+
+                        networkAsInputOption network =
+                            Input.option network.uuid (Element.text network.name)
+
+                        networkEmptyHint =
+                            if createServerRequest.networkUuid == "" then
+                                [ hint "Please pick a network" ]
+
+                            else
+                                []
+                    in
+                    [ Input.radio networkEmptyHint
+                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
+                        , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
+                        , options = List.map networkAsInputOption provider.networks
+                        , selected = Just createServerRequest.networkUuid
+                        }
+                    , guessText
+                    ]
+    in
+    Element.column
+        exoColumnAttributes
+        ([ Element.el [ Font.bold ] (Element.text "Network") ]
+            ++ contents
+        )
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg

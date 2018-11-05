@@ -210,7 +210,15 @@ requestCreateServer provider createServerRequest =
             [ ( "name", Encode.string instanceName )
             , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
             , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
-            , ( "networks", Encode.string "auto" )
+            , case innerCreateServerRequest.networkUuid of
+                "auto" ->
+                    ( "networks", Encode.string "auto" )
+
+                netUuid ->
+                    ( "networks"
+                    , Encode.list Encode.object
+                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+                    )
             , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
             , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
             , ( "adminPass", Encode.string createServerRequest.exouserPassword )
@@ -561,17 +569,21 @@ createProvider model response =
         Err error ->
             Helpers.processError model error
 
-        Ok serviceCatalog ->
+        Ok tokenDetails ->
             let
                 authToken =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
 
                 endpoints =
-                    Helpers.serviceCatalogToEndpoints serviceCatalog
+                    Helpers.serviceCatalogToEndpoints tokenDetails.catalog
 
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
                     , authToken = authToken
+                    , projectUuid = tokenDetails.projectUuid
+                    , projectName = tokenDetails.projectName
+                    , userUuid = tokenDetails.userUuid
+                    , userName = tokenDetails.userName
                     , endpoints = endpoints
                     , images = []
                     , servers = RemoteData.NotAsked
@@ -868,8 +880,39 @@ receiveNetworks model provider result =
                 newProvider =
                     { provider | networks = networks }
 
+                -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
+                -- Same comments above (in receiveFlavors) apply here.
+                viewState =
+                    case model.viewState of
+                        ProviderView _ providerViewConstructor ->
+                            case providerViewConstructor of
+                                CreateServer createServerRequest ->
+                                    if createServerRequest.networkUuid == "" then
+                                        let
+                                            defaultNetUuid =
+                                                case Helpers.newServerNetworkOptions newProvider of
+                                                    NoNetsAutoAllocate ->
+                                                        "auto"
+
+                                                    OneNet net ->
+                                                        net.uuid
+
+                                                    MultipleNetsWithGuess _ guessNet _ ->
+                                                        guessNet.uuid
+                                        in
+                                        ProviderView provider.name (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        _ ->
+                            model.viewState
+
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
             in
             ( newModel, Cmd.none )
 
@@ -1102,9 +1145,14 @@ receiveCockpitLoginStatus model provider serverUuid result =
 {- JSON Decoders -}
 
 
-decodeAuthToken : Decode.Decoder OSTypes.ServiceCatalog
+decodeAuthToken : Decode.Decoder OSTypes.TokenDetails
 decodeAuthToken =
-    Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder)
+    Decode.map5 OSTypes.TokenDetails
+        (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
+        (Decode.at [ "token", "project", "id" ] Decode.string)
+        (Decode.at [ "token", "project", "name" ] Decode.string)
+        (Decode.at [ "token", "user", "id" ] Decode.string)
+        (Decode.at [ "token", "user", "name" ] Decode.string)
 
 
 openstackServiceDecoder : Decode.Decoder OSTypes.Service

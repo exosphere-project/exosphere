@@ -176,6 +176,9 @@ update msg model =
                         CreateServerVolBackedSize sizeStr ->
                             { createServerRequest | volBackedSizeGb = sizeStr }
 
+                        CreateServerNetworkUuid networkUuid ->
+                            { createServerRequest | networkUuid = networkUuid }
+
                 newViewState =
                     ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in
@@ -256,6 +259,7 @@ processProviderSpecificMsg model provider msg =
                     , Cmd.batch
                         [ Rest.requestFlavors provider
                         , Rest.requestKeypairs provider
+                        , Rest.requestNetworks provider
                         , RandomHelpers.generatePassword provider
                         ]
                     )

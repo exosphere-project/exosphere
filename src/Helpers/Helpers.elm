@@ -1,4 +1,4 @@
-module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
+module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, newServerNetworkOptions, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
 
 import Debug
 import Maybe.Extra
@@ -414,3 +414,54 @@ sortedFlavors flavors =
         |> List.sortBy .disk_root
         |> List.sortBy .ram_mb
         |> List.sortBy .vcpu
+
+
+newServerNetworkOptions : Provider -> NewServerNetworkOptions
+newServerNetworkOptions provider =
+    {- When creating a new server, make a reasonable choice of project network, if we can. -}
+    let
+        -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
+        projectNets =
+            provider.networks
+                |> List.filter (\n -> n.status == "ACTIVE")
+                |> List.filter (\n -> n.adminStateUp == True)
+                |> List.filter (\n -> n.isExternal == False)
+
+        maybeAutoAllocatedNet =
+            projectNets
+                |> List.filter (\n -> n.name == "auto_allocated_network")
+                |> List.head
+
+        maybeProjectNameNet =
+            projectNets
+                |> List.filter (\n -> String.contains provider.projectName n.name)
+                |> List.head
+    in
+    case projectNets of
+        -- If there is no suitable network then we specify "auto" and hope that OpenStack will create one for us
+        [] ->
+            NoNetsAutoAllocate
+
+        firstNet :: otherNets ->
+            case otherNets of
+                -- If there is only one network then we pick that one
+                [] ->
+                    OneNet firstNet
+
+                -- If there are multiple networks then we let user choose and try to guess a good default
+                _ ->
+                    let
+                        ( guessNet, goodGuess ) =
+                            case maybeAutoAllocatedNet of
+                                Just n ->
+                                    ( n, True )
+
+                                Nothing ->
+                                    case maybeProjectNameNet of
+                                        Just n ->
+                                            ( n, True )
+
+                                        Nothing ->
+                                            ( firstNet, False )
+                    in
+                    MultipleNetsWithGuess projectNets guessNet goodGuess

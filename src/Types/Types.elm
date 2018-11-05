@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -30,6 +30,10 @@ type alias GlobalDefaults =
 type alias Provider =
     { name : ProviderName
     , authToken : AuthToken
+    , projectUuid : OSTypes.ProjectUuid
+    , projectName : OSTypes.ProjectName
+    , userUuid : OSTypes.UserUuid
+    , userName : OSTypes.UserName
     , endpoints : Endpoints
     , images : List OSTypes.Image
     , servers : WebData (List Server)
@@ -125,6 +129,7 @@ type CreateServerField
     | CreateServerKeypairName String
     | CreateServerVolBacked Bool
     | CreateServerVolBackedSize String
+    | CreateServerNetworkUuid OSTypes.NetworkUuid
 
 
 type alias Creds =
@@ -196,6 +201,7 @@ type alias CreateServerRequest =
     , keypairName : String
     , userData : String
     , exouserPassword : String
+    , networkUuid : OSTypes.NetworkUuid
     }
 
 
@@ -209,3 +215,13 @@ type alias ProviderTitle =
 
 type alias AuthToken =
     String
+
+
+type NewServerNetworkOptions
+    = NoNetsAutoAllocate
+    | OneNet OSTypes.Network
+    | MultipleNetsWithGuess (List OSTypes.Network) OSTypes.Network GoodGuess
+
+
+type alias GoodGuess =
+    Bool
