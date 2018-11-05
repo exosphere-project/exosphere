@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -211,3 +211,9 @@ type alias ProviderTitle =
 
 type alias AuthToken =
     String
+
+
+type NewServerNetworkOptions
+    = NoNetsAutoAllocate
+    | OneNet OSTypes.Network
+    | MultipleNets (List OSTypes.Network)

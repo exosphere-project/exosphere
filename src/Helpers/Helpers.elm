@@ -1,4 +1,4 @@
-module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
+module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, newServerNetworkOptions, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
 
 import Debug
 import Maybe.Extra
@@ -414,3 +414,30 @@ sortedFlavors flavors =
         |> List.sortBy .disk_root
         |> List.sortBy .ram_mb
         |> List.sortBy .vcpu
+
+
+newServerNetworkOptions : List OSTypes.Network -> NewServerNetworkOptions
+newServerNetworkOptions networks =
+    {- When creating a new server, make a reasonable choice of project network, if we can. -}
+    let
+        -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
+        projectNets =
+            networks
+                |> List.filter (\n -> n.status == "ACTIVE")
+                |> List.filter (\n -> n.adminStateUp == True)
+                |> List.filter (\n -> n.isExternal == False)
+    in
+    case projectNets of
+        -- If there is no suitable network then we specify "auto" and hope that OpenStack will create one for us
+        [] ->
+            NoNetsAutoAllocate
+
+        firstNet :: otherNets ->
+            case otherNets of
+                -- If there is only one network then we pick that one
+                [] ->
+                    OneNet firstNet
+
+                -- If there are multiple networks then we ask the user to choose one
+                _ ->
+                    MultipleNets projectNets

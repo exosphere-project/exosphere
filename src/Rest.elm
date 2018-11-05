@@ -210,12 +210,15 @@ requestCreateServer provider createServerRequest =
             [ ( "name", Encode.string instanceName )
             , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
             , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
+            , case innerCreateServerRequest.networkUuid of
+                "auto" ->
+                    ( "networks", Encode.string "auto" )
 
-            -- TODO specify string "auto" if there are no private networks
-            , ( "networks"
-              , Encode.list Encode.object
-                    [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
-              )
+                netUuid ->
+                    ( "networks"
+                    , Encode.list Encode.object
+                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+                    )
             , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
             , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
             , ( "adminPass", Encode.string createServerRequest.exouserPassword )
@@ -875,7 +878,6 @@ receiveNetworks model provider result =
 
                 -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
                 -- Same comments above (in receiveFlavors) apply here.
-                -- TODO make better decisions here (e.g. auto-allocated network, no network)
                 viewState =
                     case model.viewState of
                         ProviderView _ providerViewConstructor ->
@@ -883,15 +885,18 @@ receiveNetworks model provider result =
                                 CreateServer createServerRequest ->
                                     if createServerRequest.networkUuid == "" then
                                         let
-                                            maybeFirstNetwork =
-                                                networks |> List.head
-                                        in
-                                        case maybeFirstNetwork of
-                                            Just firstNetwork ->
-                                                ProviderView provider.name (CreateServer { createServerRequest | networkUuid = firstNetwork.uuid })
+                                            defaultNetUuid =
+                                                case Helpers.newServerNetworkOptions networks of
+                                                    NoNetsAutoAllocate ->
+                                                        "auto"
 
-                                            Nothing ->
-                                                model.viewState
+                                                    OneNet net ->
+                                                        net.uuid
+
+                                                    MultipleNets projectNets ->
+                                                        projectNets |> List.head |> Maybe.map .uuid |> Maybe.withDefault ""
+                                        in
+                                        ProviderView provider.name (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
 
                                     else
                                         model.viewState

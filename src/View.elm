@@ -1019,22 +1019,41 @@ viewVolBackedPrompt provider createServerRequest =
 viewNetworkPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewNetworkPicker provider createServerRequest =
     let
-        networkAsOption network =
-            Input.option network.uuid (Element.text network.name)
+        networkOptions =
+            Helpers.newServerNetworkOptions provider.networks
 
-        networkEmptyHint =
-            if createServerRequest.networkUuid == "" then
-                [ hint "Please pick a network" ]
+        contents =
+            case networkOptions of
+                NoNetsAutoAllocate ->
+                    Element.text "There are no networks associated with your project so we will ask OpenStack to create one for you and hope for the best."
 
-            else
-                []
+                OneNet net ->
+                    Element.text ("There is only one network with name \"" ++ net.name ++ "\" so we will use that one.")
+
+                MultipleNets networks ->
+                    let
+                        networkAsInputOption network =
+                            Input.option network.uuid (Element.text network.name)
+
+                        networkEmptyHint =
+                            if createServerRequest.networkUuid == "" then
+                                [ hint "Please pick a network" ]
+
+                            else
+                                []
+                    in
+                    Input.radio networkEmptyHint
+                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
+                        , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
+                        , options = List.map networkAsInputOption provider.networks
+                        , selected = Just createServerRequest.networkUuid
+                        }
     in
-    Input.radio networkEmptyHint
-        { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Network")
-        , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
-        , options = List.map networkAsOption provider.networks
-        , selected = Just createServerRequest.networkUuid
-        }
+    Element.column
+        exoColumnAttributes
+        [ Element.el [ Font.bold ] (Element.text "Network")
+        , contents
+        ]
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg
