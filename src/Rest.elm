@@ -207,23 +207,33 @@ requestCreateServer provider createServerRequest =
                 |> List.map (generateServerName createServerRequest.name getServerCount)
 
         baseServerProps innerCreateServerRequest instanceName =
-            [ ( "name", Encode.string instanceName )
-            , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
-            , ( "key_name", Encode.string innerCreateServerRequest.keypairName )
-            , case innerCreateServerRequest.networkUuid of
-                "auto" ->
-                    ( "networks", Encode.string "auto" )
+            let
+                maybeKeypairJson =
+                    case innerCreateServerRequest.keypairName of
+                        Nothing ->
+                            []
 
-                netUuid ->
-                    ( "networks"
-                    , Encode.list Encode.object
-                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
-                    )
-            , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
-            , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-            , ( "adminPass", Encode.string createServerRequest.exouserPassword )
-            , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
-            ]
+                        Just keypairName ->
+                            [ ( "key_name", Encode.string keypairName ) ]
+            in
+            List.append
+                maybeKeypairJson
+                [ ( "name", Encode.string instanceName )
+                , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
+                , case innerCreateServerRequest.networkUuid of
+                    "auto" ->
+                        ( "networks", Encode.string "auto" )
+
+                    netUuid ->
+                        ( "networks"
+                        , Encode.list Encode.object
+                            [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+                        )
+                , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
+                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+                , ( "adminPass", Encode.string createServerRequest.exouserPassword )
+                , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
+                ]
 
         buildRequestOuterJson props =
             Encode.object [ ( "server", Encode.object props ) ]
@@ -816,36 +826,8 @@ receiveKeypairs model provider result =
                 newProvider =
                     { provider | keypairs = keypairs }
 
-                -- If we have a CreateServerRequest with no keypair name, populate it with the first keypair.
-                -- Same comments above (in receiveFlavors) apply here.
-                viewState =
-                    case model.viewState of
-                        ProviderView _ providerViewConstructor ->
-                            case providerViewConstructor of
-                                CreateServer createServerRequest ->
-                                    if createServerRequest.keypairName == "" then
-                                        let
-                                            maybeFirstKeypair =
-                                                keypairs |> List.head
-                                        in
-                                        case maybeFirstKeypair of
-                                            Just firstKeypair ->
-                                                ProviderView provider.name (CreateServer { createServerRequest | keypairName = firstKeypair.name })
-
-                                            Nothing ->
-                                                model.viewState
-
-                                    else
-                                        model.viewState
-
-                                _ ->
-                                    model.viewState
-
-                        _ ->
-                            model.viewState
-
                 newModel =
-                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
+                    Helpers.modelUpdateProvider model newProvider
             in
             ( newModel, Cmd.none )
 
@@ -1265,7 +1247,7 @@ decodeServerDetails =
             ]
         )
         (Decode.at [ "server", "flavor", "id" ] Decode.string)
-        (Decode.at [ "server", "key_name" ] Decode.string)
+        (Decode.at [ "server", "key_name" ] (Decode.nullable Decode.string))
         (Decode.oneOf
             [ Decode.at [ "server", "addresses", "auto_allocated_network" ] (Decode.list serverIpAddressDecoder)
             , Decode.succeed []

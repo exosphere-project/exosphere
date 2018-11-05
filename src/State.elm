@@ -168,7 +168,7 @@ update msg model =
                             { createServerRequest | flavorUuid = flavorUuid }
 
                         CreateServerKeypairName keypairName ->
-                            { createServerRequest | keypairName = keypairName }
+                            { createServerRequest | keypairName = Just keypairName }
 
                         CreateServerVolBacked volBacked ->
                             { createServerRequest | volBacked = volBacked }

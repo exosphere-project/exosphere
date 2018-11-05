@@ -172,7 +172,7 @@ type alias ServerDetails =
     , powerState : ServerPowerState
     , imageUuid : ImageUuid
     , flavorUuid : FlavorUuid
-    , keypairName : String
+    , keypairName : Maybe String
     , ipAddresses : List IpAddress
     , metadata : List MetadataItem
     }

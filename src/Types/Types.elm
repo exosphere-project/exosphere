@@ -198,7 +198,7 @@ type alias CreateServerRequest =
     , flavorUuid : OSTypes.FlavorUuid
     , volBacked : Bool
     , volBackedSizeGb : String
-    , keypairName : String
+    , keypairName : Maybe String
     , userData : String
     , exouserPassword : String
     , networkUuid : OSTypes.NetworkUuid
