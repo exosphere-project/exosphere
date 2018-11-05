@@ -1020,18 +1020,38 @@ viewNetworkPicker : Provider -> CreateServerRequest -> Element.Element Msg
 viewNetworkPicker provider createServerRequest =
     let
         networkOptions =
-            Helpers.newServerNetworkOptions provider.networks
+            Helpers.newServerNetworkOptions provider
 
         contents =
             case networkOptions of
                 NoNetsAutoAllocate ->
-                    Element.text "There are no networks associated with your project so we will ask OpenStack to create one for you and hope for the best."
+                    [ Element.paragraph
+                        []
+                        [ Element.text "There are no networks associated with your project so Exosphere will ask OpenStack to create one for you and hope for the best." ]
+                    ]
 
                 OneNet net ->
-                    Element.text ("There is only one network with name \"" ++ net.name ++ "\" so we will use that one.")
+                    [ Element.paragraph
+                        []
+                        [ Element.text ("There is only one network, with name \"" ++ net.name ++ "\", so Exosphere will use that one.") ]
+                    ]
 
-                MultipleNets networks ->
+                MultipleNetsWithGuess networks guessNet goodGuess ->
                     let
+                        guessText =
+                            case goodGuess of
+                                True ->
+                                    Element.paragraph
+                                        []
+                                        [ Element.text
+                                            ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
+                                        ]
+
+                                False ->
+                                    Element.paragraph
+                                        []
+                                        [ Element.text "The selected network is a guess and might not be the best choice." ]
+
                         networkAsInputOption network =
                             Input.option network.uuid (Element.text network.name)
 
@@ -1042,18 +1062,20 @@ viewNetworkPicker provider createServerRequest =
                             else
                                 []
                     in
-                    Input.radio networkEmptyHint
+                    [ Input.radio networkEmptyHint
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
                         , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
                         , options = List.map networkAsInputOption provider.networks
                         , selected = Just createServerRequest.networkUuid
                         }
+                    , guessText
+                    ]
     in
     Element.column
         exoColumnAttributes
-        [ Element.el [ Font.bold ] (Element.text "Network")
-        , contents
-        ]
+        ([ Element.el [ Font.bold ] (Element.text "Network") ]
+            ++ contents
+        )
 
 
 viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg

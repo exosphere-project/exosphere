@@ -416,16 +416,26 @@ sortedFlavors flavors =
         |> List.sortBy .vcpu
 
 
-newServerNetworkOptions : List OSTypes.Network -> NewServerNetworkOptions
-newServerNetworkOptions networks =
+newServerNetworkOptions : Provider -> NewServerNetworkOptions
+newServerNetworkOptions provider =
     {- When creating a new server, make a reasonable choice of project network, if we can. -}
     let
         -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
         projectNets =
-            networks
+            provider.networks
                 |> List.filter (\n -> n.status == "ACTIVE")
                 |> List.filter (\n -> n.adminStateUp == True)
                 |> List.filter (\n -> n.isExternal == False)
+
+        maybeAutoAllocatedNet =
+            projectNets
+                |> List.filter (\n -> n.name == "auto_allocated_network")
+                |> List.head
+
+        maybeProjectNameNet =
+            projectNets
+                |> List.filter (\n -> String.contains provider.projectName n.name)
+                |> List.head
     in
     case projectNets of
         -- If there is no suitable network then we specify "auto" and hope that OpenStack will create one for us
@@ -438,6 +448,20 @@ newServerNetworkOptions networks =
                 [] ->
                     OneNet firstNet
 
-                -- If there are multiple networks then we ask the user to choose one
+                -- If there are multiple networks then we let user choose and try to guess a good default
                 _ ->
-                    MultipleNets projectNets
+                    let
+                        ( guessNet, goodGuess ) =
+                            case maybeAutoAllocatedNet of
+                                Just n ->
+                                    ( n, True )
+
+                                Nothing ->
+                                    case maybeProjectNameNet of
+                                        Just n ->
+                                            ( n, True )
+
+                                        Nothing ->
+                                            ( firstNet, False )
+                    in
+                    MultipleNetsWithGuess projectNets guessNet goodGuess

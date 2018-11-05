@@ -890,15 +890,15 @@ receiveNetworks model provider result =
                                     if createServerRequest.networkUuid == "" then
                                         let
                                             defaultNetUuid =
-                                                case Helpers.newServerNetworkOptions networks of
+                                                case Helpers.newServerNetworkOptions newProvider of
                                                     NoNetsAutoAllocate ->
                                                         "auto"
 
                                                     OneNet net ->
                                                         net.uuid
 
-                                                    MultipleNets projectNets ->
-                                                        projectNets |> List.head |> Maybe.map .uuid |> Maybe.withDefault ""
+                                                    MultipleNetsWithGuess _ guessNet _ ->
+                                                        guessNet.uuid
                                         in
                                         ProviderView provider.name (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
 

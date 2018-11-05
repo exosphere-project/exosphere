@@ -220,4 +220,8 @@ type alias AuthToken =
 type NewServerNetworkOptions
     = NoNetsAutoAllocate
     | OneNet OSTypes.Network
-    | MultipleNets (List OSTypes.Network)
+    | MultipleNetsWithGuess (List OSTypes.Network) OSTypes.Network GoodGuess
+
+
+type alias GoodGuess =
+    Bool
