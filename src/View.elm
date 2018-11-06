@@ -595,7 +595,7 @@ viewServerDetail provider serverUuid verboseStatus =
                         , compactKVRow "Created on" (Element.text details.created)
                         , compactKVRow "Image" (Element.text imageText)
                         , compactKVRow "Flavor" (Element.text flavorText)
-                        , compactKVRow "SSH Key Name" (Element.text details.keypairName)
+                        , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
                         , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
                         , Element.el heading2 (Element.text "Interact with server")
                         , interactionLinks server.exoProps.cockpitStatus
@@ -627,9 +627,6 @@ viewCreateServer provider createServerRequest =
 
         requestIsValid =
             if createServerRequest.name == "" then
-                False
-
-            else if createServerRequest.keypairName == "" then
                 False
 
             else if createServerRequest.flavorUuid == "" then
@@ -762,7 +759,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" "" globalDefaults.shellUserData "changeme123" ""))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" ""))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
@@ -1084,19 +1081,24 @@ viewKeypairPicker provider createServerRequest =
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
-        keypairEmptyHint =
-            if createServerRequest.keypairName == "" then
-                [ hint "Please pick a keypair" ]
+        contents =
+            case provider.keypairs of
+                [] ->
+                    Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
 
-            else
-                []
+                keypairs ->
+                    Input.radio []
+                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
+                        , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
+                        , options = List.map keypairAsOption provider.keypairs
+                        , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
+                        }
     in
-    Input.radio keypairEmptyHint
-        { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "SSH Keypair")
-        , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
-        , options = List.map keypairAsOption provider.keypairs
-        , selected = Just createServerRequest.keypairName
-        }
+    Element.column
+        exoColumnAttributes
+        [ Element.el [ Font.bold ] (Element.text "SSH Keypair")
+        , contents
+        ]
 
 
 viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
