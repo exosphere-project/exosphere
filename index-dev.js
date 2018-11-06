@@ -5,7 +5,7 @@ const electron = require('electron')
 const app = electron.app // this is our app
 
 // Uncomment this for testing with self-signed certificates
-// app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
 
 const BrowserWindow = electron.BrowserWindow // This is a Module that creates windows
 
@@ -26,7 +26,7 @@ function createWindow () {
   mainWindow.loadURL(`file://${ __dirname }/electron-index-dev.html`);
 
   // open dev tools by default so we can see any console errors
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   mainWindow.on('closed', function () {
     mainWindow = null
