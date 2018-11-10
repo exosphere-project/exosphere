@@ -506,7 +506,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                     [ Element.text "Detailed status"
                                     , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                                     , compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                                    , compactKVSubRow "Terminal/Cockpit readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                                    , compactKVSubRow "Terminal/Dashboard readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
                                     ]
 
                         maybeFlavor =
@@ -549,7 +549,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                             , Element.row
                                                 exoRowAttributes
                                                 [ uiButton
-                                                    { label = Element.text "Launch Cockpit"
+                                                    { label = Element.text "Launch Dashboard"
                                                     , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090"))
                                                     }
                                                 , Element.text "Manage your server with an interactive dashboard!"
@@ -563,16 +563,16 @@ viewServerDetail provider serverUuid verboseStatus =
                                             Element.text "Status of terminal and cockpit not available yet."
 
                                         CheckedNotReady ->
-                                            Element.text "Terminal and Cockpit not ready yet."
+                                            Element.text "Terminal and Dashboard not ready yet."
 
                                         Ready ->
                                             Element.column exoColumnAttributes
-                                                ([ Element.text "Terminal and Cockpit are ready..." ]
+                                                ([ Element.text "Terminal and Dashboard are ready..." ]
                                                     ++ interactionLinksBase
                                                 )
 
                                 Nothing ->
-                                    Element.text "Terminal and Cockpit services not ready yet."
+                                    Element.text "Terminal and Dashboard services not ready yet."
                     in
                     Element.column exoColumnAttributes
                         [ Element.el
