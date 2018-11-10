@@ -759,7 +759,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" ""))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
@@ -1103,21 +1103,40 @@ viewKeypairPicker provider createServerRequest =
 
 viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
 viewUserDataInput provider createServerRequest =
-    Input.multiline
-        [ Element.width (Element.px 600)
-        , Element.height (Element.px 500)
-        ]
-        { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
-        , text = createServerRequest.userData
-        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
-        , label =
-            Input.labelAbove
-                [ Element.paddingXY 20 0
-                , Font.bold
+    Element.column
+        exoColumnAttributes
+        [ Input.radioRow []
+            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Advanced")
+            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerShowAdvanced new)
+            , options =
+                [ Input.option False (Element.text "Hide")
+                , Input.option True (Element.text "Show")
+
+                {- -}
                 ]
-                (Element.text "User Data (Boot Script)")
-        , spellcheck = False
-        }
+            , selected = Just createServerRequest.showAdvanced
+            }
+        , case createServerRequest.showAdvanced of
+            False ->
+                Element.none
+
+            True ->
+                Input.multiline
+                    [ Element.width (Element.px 600)
+                    , Element.height (Element.px 500)
+                    ]
+                    { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+                    , text = createServerRequest.userData
+                    , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+                    , label =
+                        Input.labelAbove
+                            [ Element.paddingXY 20 0
+                            , Font.bold
+                            ]
+                            (Element.text "User Data (Boot Script)")
+                    , spellcheck = False
+                    }
+        ]
 
 
 friendlyCockpitReadiness : CockpitLoginStatus -> String

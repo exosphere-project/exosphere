@@ -179,6 +179,9 @@ update msg model =
                         CreateServerNetworkUuid networkUuid ->
                             { createServerRequest | networkUuid = networkUuid }
 
+                        CreateServerShowAdvanced showAdvanced ->
+                            { createServerRequest | showAdvanced = showAdvanced }
+
                 newViewState =
                     ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in
