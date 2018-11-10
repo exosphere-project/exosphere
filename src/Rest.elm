@@ -757,7 +757,7 @@ receiveServerDetail model provider serverUuid result =
                                             )
 
                                         Nothing ->
-                                            Helpers.processError newModel "Server has no exouserPassword stored so we won't be able to log into Cockpit."
+                                            Helpers.processError newModel "Server has no exouserPassword stored so we won't be able to log into the dashboard."
 
                                 Nothing ->
                                     Helpers.processError newModel "We should have a floating IP address here but we don't"
