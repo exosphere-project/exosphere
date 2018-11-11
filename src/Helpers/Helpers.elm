@@ -1,6 +1,7 @@
-module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, modelUpdateProvider, newServerNetworkOptions, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
+module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, iso8601StringToPosix, modelUpdateProvider, newServerNetworkOptions, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
 
 import Debug
+import ISO8601
 import Maybe.Extra
 import Regex
 import RemoteData
@@ -150,6 +151,12 @@ providerNameFromUrl url =
 
         _ ->
             "placeholder-url-unparseable"
+
+
+iso8601StringToPosix : String -> Result String Time.Posix
+iso8601StringToPosix str =
+    ISO8601.fromString str
+        |> Result.map ISO8601.toPosix
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints

@@ -30,6 +30,7 @@ type alias GlobalDefaults =
 type alias Provider =
     { name : ProviderName
     , authToken : AuthToken
+    , tokenExpiresAt : Time.Posix
     , projectUuid : OSTypes.ProjectUuid
     , projectName : OSTypes.ProjectName
     , userUuid : OSTypes.UserUuid

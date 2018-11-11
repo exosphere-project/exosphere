@@ -590,6 +590,7 @@ createProvider model response =
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
                     , authToken = authToken
+                    , tokenExpiresAt = tokenDetails.expiresAt
                     , projectUuid = tokenDetails.projectUuid
                     , projectName = tokenDetails.projectName
                     , userUuid = tokenDetails.userUuid
@@ -1129,12 +1130,24 @@ receiveCockpitLoginStatus model provider serverUuid result =
 
 decodeAuthToken : Decode.Decoder OSTypes.TokenDetails
 decodeAuthToken =
-    Decode.map5 OSTypes.TokenDetails
+    let
+        iso8601StringToPosixDecodeError str =
+            case Helpers.iso8601StringToPosix str of
+                Ok posix ->
+                    Decode.succeed posix
+
+                Err error ->
+                    Decode.fail error
+    in
+    Decode.map6 OSTypes.TokenDetails
         (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
         (Decode.at [ "token", "project", "id" ] Decode.string)
         (Decode.at [ "token", "project", "name" ] Decode.string)
         (Decode.at [ "token", "user", "id" ] Decode.string)
         (Decode.at [ "token", "user", "name" ] Decode.string)
+        (Decode.at [ "token", "expires_at" ] Decode.string
+            |> Decode.andThen iso8601StringToPosixDecodeError
+        )
 
 
 openstackServiceDecoder : Decode.Decoder OSTypes.Service

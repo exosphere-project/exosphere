@@ -1,5 +1,6 @@
 module Types.OpenstackTypes exposing (Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), Keypair, MetadataItem, Network, NetworkUuid, Port, ProjectName, ProjectUuid, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..), TokenDetails, UserName, UserUuid)
 
+import Time
 import Types.HelperTypes as HelperTypes
 
 
@@ -27,6 +28,7 @@ type alias TokenDetails =
     , projectName : ProjectName
     , userUuid : UserUuid
     , userName : UserName
+    , expiresAt : Time.Posix
     }
 
 
