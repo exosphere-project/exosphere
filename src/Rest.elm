@@ -1,4 +1,4 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeAuthToken, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Array
 import Base64
@@ -91,7 +91,7 @@ requestImages provider =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.glance ++ "/v2/images?limit=999999"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeImages
@@ -111,7 +111,7 @@ requestServers provider =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.nova ++ "/servers"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeServers
@@ -131,7 +131,7 @@ requestServerDetail provider serverUuid =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.nova ++ "/servers/" ++ serverUuid
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeServerDetails
@@ -151,7 +151,7 @@ requestFlavors provider =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.nova ++ "/flavors/detail"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeFlavors
@@ -171,7 +171,7 @@ requestKeypairs provider =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.nova ++ "/os-keypairs"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeKeypairs
@@ -274,7 +274,7 @@ requestCreateServer provider createServerRequest =
                     Http.request
                         { method = "POST"
                         , headers =
-                            [ Http.header "X-Auth-Token" provider.authToken
+                            [ Http.header "X-Auth-Token" provider.auth.tokenValue
 
                             -- Microversion needed for automatic network provisioning
                             , Http.header "OpenStack-API-Version" "compute 2.38"
@@ -296,7 +296,7 @@ requestDeleteServer provider server =
         request =
             Http.request
                 { method = "DELETE"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid
                 , body = Http.emptyBody
                 , expect = Http.expectString
@@ -325,7 +325,7 @@ requestNetworks provider =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.neutron ++ "/v2.0/networks"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeNetworks
@@ -345,7 +345,7 @@ getFloatingIpRequestPorts provider server =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.neutron ++ "/v2.0/ports"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodePorts
@@ -414,7 +414,7 @@ requestFloatingIp model provider network port_ server =
         request =
             Http.request
                 { method = "POST"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.neutron ++ "/v2.0/floatingips"
                 , body = Http.jsonBody requestBody
                 , expect = Http.expectJson decodeFloatingIpCreation
@@ -437,7 +437,7 @@ requestSecurityGroups provider =
         request =
             Http.request
                 { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.neutron ++ "/v2.0/security-groups"
                 , body = Http.emptyBody
                 , expect = Http.expectJson decodeSecurityGroups
@@ -470,7 +470,7 @@ requestCreateExoSecurityGroup provider =
         request =
             Http.request
                 { method = "POST"
-                , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                 , url = provider.endpoints.neutron ++ "/v2.0/security-groups"
                 , body = Http.jsonBody requestBody
                 , expect = Http.expectJson decodeNewSecurityGroup
@@ -514,7 +514,7 @@ requestCreateExoSecurityGroupRules model provider =
                 buildRequest body =
                     Http.request
                         { method = "POST"
-                        , headers = [ Http.header "X-Auth-Token" provider.authToken ]
+                        , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
                         , url = provider.endpoints.neutron ++ "/v2.0/security-group-rules"
                         , body = Http.jsonBody body
                         , expect = Http.expectString
@@ -575,26 +575,26 @@ receiveAuthToken model responseResult =
 
 createProvider : Model -> Http.Response String -> ( Model, Cmd Msg )
 createProvider model response =
-    case Decode.decodeString decodeAuthToken response.body of
+    case Decode.decodeString decodeAuthTokenDetails response.body of
         Err error ->
             Helpers.processError model error
 
-        Ok tokenDetails ->
+        Ok tokenDetailsWithoutTokenString ->
             let
-                authToken =
+                authTokenString =
                     Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
 
+                authToken =
+                    tokenDetailsWithoutTokenString authTokenString
+
                 endpoints =
-                    Helpers.serviceCatalogToEndpoints tokenDetails.catalog
+                    Helpers.serviceCatalogToEndpoints authToken.catalog
 
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
-                    , authToken = authToken
-                    , tokenExpiresAt = tokenDetails.expiresAt
-                    , projectUuid = tokenDetails.projectUuid
-                    , projectName = tokenDetails.projectName
-                    , userUuid = tokenDetails.userUuid
-                    , userName = tokenDetails.userName
+                    , auth = authToken
+
+                    -- Maybe todo, eliminate parallel data structures in auth and endpoints?
                     , endpoints = endpoints
                     , images = []
                     , servers = RemoteData.NotAsked
@@ -1128,8 +1128,8 @@ receiveCockpitLoginStatus model provider serverUuid result =
 {- JSON Decoders -}
 
 
-decodeAuthToken : Decode.Decoder OSTypes.TokenDetails
-decodeAuthToken =
+decodeAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.AuthToken)
+decodeAuthTokenDetails =
     let
         iso8601StringToPosixDecodeError str =
             case Helpers.iso8601StringToPosix str of
@@ -1139,7 +1139,7 @@ decodeAuthToken =
                 Err error ->
                     Decode.fail error
     in
-    Decode.map6 OSTypes.TokenDetails
+    Decode.map6 OSTypes.AuthToken
         (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
         (Decode.at [ "token", "project", "id" ] Decode.string)
         (Decode.at [ "token", "project", "name" ] Decode.string)

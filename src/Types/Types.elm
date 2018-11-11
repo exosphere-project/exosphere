@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing (CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -29,12 +29,7 @@ type alias GlobalDefaults =
 
 type alias Provider =
     { name : ProviderName
-    , authToken : AuthToken
-    , tokenExpiresAt : Time.Posix
-    , projectUuid : OSTypes.ProjectUuid
-    , projectName : OSTypes.ProjectName
-    , userUuid : OSTypes.UserUuid
-    , userName : OSTypes.UserName
+    , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
     , servers : WebData (List Server)
@@ -211,10 +206,6 @@ type alias ProviderName =
 
 
 type alias ProviderTitle =
-    String
-
-
-type alias AuthToken =
     String
 
 
