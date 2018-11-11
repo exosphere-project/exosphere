@@ -92,8 +92,8 @@ update msg model =
         RequestNewProviderToken ->
             ( model, Rest.requestAuthToken model )
 
-        ReceiveAuthToken response ->
-            Rest.receiveAuthToken model response
+        ReceiveAuthToken creds response ->
+            Rest.receiveAuthToken model creds response
 
         ProviderMsg providerName innerMsg ->
             case Helpers.providerLookup model providerName of

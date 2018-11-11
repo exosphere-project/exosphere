@@ -82,7 +82,7 @@ requestAuthToken model =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send ReceiveAuthToken
+        |> Http.send (ReceiveAuthToken model.creds)
 
 
 requestImages : Provider -> Cmd Msg
@@ -563,18 +563,18 @@ requestCockpitLogin provider serverUuid password ipAddress =
 {- HTTP Response Handling -}
 
 
-receiveAuthToken : Model -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
-receiveAuthToken model responseResult =
+receiveAuthToken : Model -> Creds -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
+receiveAuthToken model creds responseResult =
     case responseResult of
         Err error ->
             Helpers.processError model error
 
         Ok response ->
-            createProvider model response
+            createProvider model creds response
 
 
-createProvider : Model -> Http.Response String -> ( Model, Cmd Msg )
-createProvider model response =
+createProvider : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
+createProvider model creds response =
     case Decode.decodeString decodeAuthTokenDetails response.body of
         Err error ->
             Helpers.processError model error
@@ -592,6 +592,7 @@ createProvider model response =
 
                 newProvider =
                     { name = Helpers.providerNameFromUrl model.creds.authUrl
+                    , creds = Debug.log "creds" creds
                     , auth = authToken
 
                     -- Maybe todo, eliminate parallel data structures in auth and endpoints?

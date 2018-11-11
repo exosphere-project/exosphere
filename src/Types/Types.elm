@@ -29,6 +29,7 @@ type alias GlobalDefaults =
 
 type alias Provider =
     { name : ProviderName
+    , creds : Creds
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -52,7 +53,7 @@ type Msg
     = Tick Time.Posix
     | SetNonProviderView NonProviderViewConstructor
     | RequestNewProviderToken
-    | ReceiveAuthToken (Result Http.Error (Http.Response String))
+    | ReceiveAuthToken Creds (Result Http.Error (Http.Response String))
     | ProviderMsg ProviderName ProviderSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
