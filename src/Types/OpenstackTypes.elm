@@ -144,6 +144,8 @@ type ServerStatus
     | ServerError
     | ServerBuilding
     | ServerRescued
+    | ServerShelved
+    | ServerShelvedOffloaded
 
 
 type ServerPowerState
