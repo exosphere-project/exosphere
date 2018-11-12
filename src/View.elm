@@ -779,22 +779,19 @@ renderImage globalDefaults provider image =
 
 renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
-    Element.column exoColumnAttributes
+    Element.row (exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
             { checked = server.exoProps.selected
             , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
-        , Element.row exoRowAttributes
-            [ Element.text ("UUID: " ++ server.osProps.uuid)
-            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
-            , if server.exoProps.deletionAttempted == True then
-                Element.text "Deleting..."
+        , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
+        , if server.exoProps.deletionAttempted == True then
+            Element.text "Deleting..."
 
-              else
-                uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
-            ]
+          else
+            uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
         ]
 
 
