@@ -273,8 +273,8 @@ processProviderSpecificMsg model provider msg =
                     provider.auth.expiresAt |> Time.posixToMillis
 
                 tokenExpired =
-                    -- Token expiring within 1 minute
-                    tokenExpireTimeMillis < currentTimeMillis + 60000
+                    -- Token expiring within 10 minutes
+                    tokenExpireTimeMillis < currentTimeMillis + 600000
             in
             case tokenExpired of
                 False ->
