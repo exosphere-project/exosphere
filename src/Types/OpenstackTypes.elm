@@ -1,5 +1,6 @@
-module Types.OpenstackTypes exposing (Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), Keypair, MetadataItem, Network, NetworkUuid, Port, ProjectName, ProjectUuid, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..), TokenDetails, UserName, UserUuid)
+module Types.OpenstackTypes exposing (AuthToken, AuthTokenString, Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), Keypair, MetadataItem, Network, NetworkUuid, Port, ProjectName, ProjectUuid, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..), UserName, UserUuid)
 
+import Time
 import Types.HelperTypes as HelperTypes
 
 
@@ -20,14 +21,19 @@ type alias MetadataItem =
 -- Keystone
 
 
-type alias TokenDetails =
-    {- This is currently used as an intermediary type by Rest.createProvider, candidate for future refactor -}
+type alias AuthToken =
     { catalog : ServiceCatalog
     , projectUuid : ProjectUuid
     , projectName : ProjectName
     , userUuid : UserUuid
     , userName : UserName
+    , expiresAt : Time.Posix
+    , tokenValue : AuthTokenString
     }
+
+
+type alias AuthTokenString =
+    String
 
 
 type alias ProjectUuid =

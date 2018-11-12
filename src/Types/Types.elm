@@ -1,4 +1,4 @@
-module Types.Types exposing (AuthToken, CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing (CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, HttpRequestMethod(..), LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -29,11 +29,8 @@ type alias GlobalDefaults =
 
 type alias Provider =
     { name : ProviderName
-    , authToken : AuthToken
-    , projectUuid : OSTypes.ProjectUuid
-    , projectName : OSTypes.ProjectName
-    , userUuid : OSTypes.UserUuid
-    , userName : OSTypes.UserName
+    , creds : Creds
+    , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
     , servers : WebData (List Server)
@@ -42,6 +39,7 @@ type alias Provider =
     , networks : List OSTypes.Network
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
+    , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     }
 
 
@@ -56,7 +54,7 @@ type Msg
     = Tick Time.Posix
     | SetNonProviderView NonProviderViewConstructor
     | RequestNewProviderToken
-    | ReceiveAuthToken (Result Http.Error (Http.Response String))
+    | ReceiveAuthToken Creds (Result Http.Error (Http.Response String))
     | ProviderMsg ProviderName ProviderSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
@@ -68,6 +66,7 @@ type Msg
 
 type ProviderSpecificMsgConstructor
     = SetProviderView ProviderViewConstructor
+    | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | SelectServer Server Bool
     | SelectAllServers Bool
     | RequestServers
@@ -216,10 +215,6 @@ type alias ProviderTitle =
     String
 
 
-type alias AuthToken =
-    String
-
-
 type NewServerNetworkOptions
     = NoNetsAutoAllocate
     | OneNet OSTypes.Network
@@ -228,3 +223,13 @@ type NewServerNetworkOptions
 
 type alias GoodGuess =
     Bool
+
+
+
+-- REST Types
+
+
+type HttpRequestMethod
+    = Get
+    | Post
+    | Delete
