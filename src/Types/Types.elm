@@ -125,6 +125,7 @@ type CreateServerField
     = CreateServerName String
     | CreateServerCount String
     | CreateServerUserData String
+    | CreateServerShowAdvancedOptions Bool
     | CreateServerSize String
     | CreateServerKeypairName String
     | CreateServerVolBacked Bool
@@ -203,6 +204,7 @@ type alias CreateServerRequest =
     , userData : String
     , exouserPassword : String
     , networkUuid : OSTypes.NetworkUuid
+    , showAdvancedOptions : Bool
     }
 
 
