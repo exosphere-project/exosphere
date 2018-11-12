@@ -7,6 +7,7 @@ import Ports
 import RemoteData
 import Rest
 import Time
+import Toasty
 import Types.Types exposing (..)
 
 
@@ -52,6 +53,7 @@ chpasswd:
                 ""
       , imageFilterTag = Maybe.Just "distro-base"
       , globalDefaults = globalDefaults
+      , toasties = Toasty.initialState
       }
     , Cmd.none
     )
@@ -66,6 +68,9 @@ subscriptions _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ToastyMsg subMsg ->
+            Toasty.update Helpers.toastConfig ToastyMsg subMsg model
+
         Tick _ ->
             case model.viewState of
                 NonProviderView _ ->
