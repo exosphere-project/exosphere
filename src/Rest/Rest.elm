@@ -11,7 +11,6 @@ import RemoteData
 import Rest.Helpers exposing (..)
 import Time
 import Types.OpenstackTypes as OSTypes
-import Types.RestTypes exposing (..)
 import Types.Types exposing (..)
 
 
@@ -19,8 +18,8 @@ import Types.Types exposing (..)
 {- HTTP Requests -}
 
 
-requestAuthToken : Model -> Cmd Msg
-requestAuthToken model =
+requestAuthToken : Creds -> Cmd Msg
+requestAuthToken creds =
     let
         idOrName str =
             case Helpers.stringIsUuidOrDefault str of
@@ -41,13 +40,13 @@ requestAuthToken model =
                                   , Encode.object
                                         [ ( "user"
                                           , Encode.object
-                                                [ ( "name", Encode.string model.creds.username )
+                                                [ ( "name", Encode.string creds.username )
                                                 , ( "domain"
                                                   , Encode.object
-                                                        [ ( idOrName model.creds.userDomain, Encode.string model.creds.userDomain )
+                                                        [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
                                                         ]
                                                   )
-                                                , ( "password", Encode.string model.creds.password )
+                                                , ( "password", Encode.string creds.password )
                                                 ]
                                           )
                                         ]
@@ -58,10 +57,10 @@ requestAuthToken model =
                           , Encode.object
                                 [ ( "project"
                                   , Encode.object
-                                        [ ( "name", Encode.string model.creds.projectName )
+                                        [ ( "name", Encode.string creds.projectName )
                                         , ( "domain"
                                           , Encode.object
-                                                [ ( idOrName model.creds.projectDomain, Encode.string model.creds.projectDomain )
+                                                [ ( idOrName creds.projectDomain, Encode.string creds.projectDomain )
                                                 ]
                                           )
                                         ]
@@ -76,7 +75,7 @@ requestAuthToken model =
     Http.request
         { method = "POST"
         , headers = []
-        , url = model.creds.authUrl
+        , url = creds.authUrl
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
@@ -84,7 +83,7 @@ requestAuthToken model =
         , timeout = Nothing
         , withCredentials = False
         }
-        |> Http.send (ReceiveAuthToken model.creds)
+        |> Http.send (ReceiveAuthToken creds)
 
 
 requestImages : Provider -> Cmd Msg
@@ -459,23 +458,24 @@ receiveAuthToken model creds responseResult =
             Helpers.processError model error
 
         Ok response ->
-            createProvider model creds response
+            -- If we don't have a provider then create one, if we do then update its OSTypes.AuthToken
+            case List.filter (\p -> p.creds.authUrl == creds.authUrl) model.providers |> List.head of
+                Nothing ->
+                    createProvider model creds response
+
+                Just provider ->
+                    providerUpdateAuthToken model provider response
 
 
 createProvider : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
 createProvider model creds response =
-    case Decode.decodeString decodeAuthTokenDetails response.body of
+    -- Create new provider
+    case decodeAuthToken response of
         Err error ->
             Helpers.processError model error
 
-        Ok tokenDetailsWithoutTokenString ->
+        Ok authToken ->
             let
-                authTokenString =
-                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
-
-                authToken =
-                    tokenDetailsWithoutTokenString authTokenString
-
                 endpoints =
                     Helpers.serviceCatalogToEndpoints authToken.catalog
 
@@ -493,6 +493,7 @@ createProvider model creds response =
                     , networks = []
                     , ports = []
                     , securityGroups = []
+                    , pendingCredentialedRequests = []
                     }
 
                 newProviders =
@@ -505,6 +506,43 @@ createProvider model creds response =
                     }
             in
             ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider ] )
+
+
+providerUpdateAuthToken : Model -> Provider -> Http.Response String -> ( Model, Cmd Msg )
+providerUpdateAuthToken model provider response =
+    -- Update auth token for existing provider
+    case decodeAuthToken response of
+        Err error ->
+            Helpers.processError model error
+
+        Ok authToken ->
+            let
+                newProvider =
+                    { provider | auth = authToken }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            sendPendingRequests newModel newProvider
+
+
+sendPendingRequests : Model -> Provider -> ( Model, Cmd Msg )
+sendPendingRequests model provider =
+    -- Fires any pending commands which were waiting for auth token renewal
+    -- This function assumes our token is valid (does not check for expiry).
+    let
+        -- Hydrate cmds with auth token
+        cmds =
+            List.map (\pqr -> pqr provider.auth.tokenValue) provider.pendingCredentialedRequests
+
+        -- Clear out pendingCredentialedRequests
+        newProvider =
+            { provider | pendingCredentialedRequests = [] }
+
+        newModel =
+            Helpers.modelUpdateProvider model newProvider
+    in
+    ( newModel, Cmd.batch cmds )
 
 
 receiveImages : Model -> Provider -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )
@@ -1016,6 +1054,20 @@ receiveCockpitLoginStatus model provider serverUuid result =
 
 
 {- JSON Decoders -}
+
+
+decodeAuthToken : Http.Response String -> Result String OSTypes.AuthToken
+decodeAuthToken response =
+    case Decode.decodeString decodeAuthTokenDetails response.body of
+        Err error ->
+            Err (Debug.toString error)
+
+        Ok tokenDetailsWithoutTokenString ->
+            let
+                authTokenString =
+                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
+            in
+            Ok (tokenDetailsWithoutTokenString authTokenString)
 
 
 decodeAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.AuthToken)

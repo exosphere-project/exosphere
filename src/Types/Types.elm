@@ -1,4 +1,4 @@
-module Types.Types exposing (CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing (CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, HttpRequestMethod(..), LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
 
 import Http
 import Maybe
@@ -39,6 +39,7 @@ type alias Provider =
     , networks : List OSTypes.Network
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
+    , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     }
 
 
@@ -65,6 +66,7 @@ type Msg
 
 type ProviderSpecificMsgConstructor
     = SetProviderView ProviderViewConstructor
+    | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | SelectServer Server Bool
     | SelectAllServers Bool
     | RequestServers
@@ -218,3 +220,13 @@ type NewServerNetworkOptions
 
 type alias GoodGuess =
     Bool
+
+
+
+-- REST Types
+
+
+type HttpRequestMethod
+    = Get
+    | Post
+    | Delete

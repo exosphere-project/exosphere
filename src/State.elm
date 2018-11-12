@@ -90,7 +90,7 @@ update msg model =
                     ( newModel, Cmd.none )
 
         RequestNewProviderToken ->
-            ( model, Rest.requestAuthToken model )
+            ( model, Rest.requestAuthToken model.creds )
 
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
@@ -263,6 +263,37 @@ processProviderSpecificMsg model provider msg =
                         , RandomHelpers.generatePassword provider
                         ]
                     )
+
+        ValidateTokenForCredentialedRequest requestNeedingToken posixTime ->
+            let
+                currentTimeMillis =
+                    posixTime |> Time.posixToMillis
+
+                tokenExpireTimeMillis =
+                    provider.auth.expiresAt |> Time.posixToMillis
+
+                tokenExpired =
+                    -- Token expiring within 1 minute
+                    tokenExpireTimeMillis < currentTimeMillis + 60000
+            in
+            case tokenExpired of
+                False ->
+                    -- Token still valid, fire the request with current token
+                    ( model, requestNeedingToken provider.auth.tokenValue )
+
+                True ->
+                    -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
+                    let
+                        newPQRs =
+                            requestNeedingToken :: provider.pendingCredentialedRequests
+
+                        newProvider =
+                            { provider | pendingCredentialedRequests = newPQRs }
+
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Rest.requestAuthToken newProvider.creds )
 
         RequestServers ->
             ( model, Rest.requestServers provider )
