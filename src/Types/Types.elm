@@ -187,6 +187,7 @@ type ServerUiStatus
     | ServerUiStatusSoftDeleted
     | ServerUiStatusError
     | ServerUiStatusRescued
+    | ServerUiStatusShelved
 
 
 type alias CreateServerRequest =

@@ -332,6 +332,12 @@ getServerUiStatus server =
                 OSTypes.ServerRescued ->
                     ServerUiStatusRescued
 
+                OSTypes.ServerShelved ->
+                    ServerUiStatusShelved
+
+                OSTypes.ServerShelvedOffloaded ->
+                    ServerUiStatusShelved
+
 
 getServerUiStatusStr : ServerUiStatus -> String
 getServerUiStatusStr status =
@@ -369,6 +375,9 @@ getServerUiStatusStr status =
         ServerUiStatusRescued ->
             "Rescued"
 
+        ServerUiStatusShelved ->
+            "Shelved"
+
 
 getServerUiStatusColor : ServerUiStatus -> String
 getServerUiStatusColor status =
@@ -405,6 +414,9 @@ getServerUiStatusColor status =
 
         ServerUiStatusRescued ->
             "red"
+
+        ServerUiStatusShelved ->
+            "gray"
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
