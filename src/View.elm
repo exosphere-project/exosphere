@@ -1105,18 +1105,18 @@ viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
 viewUserDataInput provider createServerRequest =
     Element.column
         exoColumnAttributes
-        [ Input.radioRow []
-            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Advanced")
-            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerShowAdvanced new)
+        [ Input.radioRow [ Element.spacing 10 ]
+            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
+            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerShowAdvancedOptions new)
             , options =
                 [ Input.option False (Element.text "Hide")
                 , Input.option True (Element.text "Show")
 
                 {- -}
                 ]
-            , selected = Just createServerRequest.showAdvanced
+            , selected = Just createServerRequest.showAdvancedOptions
             }
-        , case createServerRequest.showAdvanced of
+        , case createServerRequest.showAdvancedOptions of
             False ->
                 Element.none
 
