@@ -1,4 +1,4 @@
-module Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest.Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Array
 import Base64
@@ -8,8 +8,10 @@ import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import RemoteData
+import Rest.Helpers exposing (..)
 import Time
 import Types.OpenstackTypes as OSTypes
+import Types.RestTypes exposing (..)
 import Types.Types exposing (..)
 
 
@@ -87,102 +89,57 @@ requestAuthToken model =
 
 requestImages : Provider -> Cmd Msg
 requestImages provider =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.glance ++ "/v2/images?limit=999999"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeImages
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveImages result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.glance ++ "/v2/images?limit=999999")
+        Http.emptyBody
+        (Http.expectJson decodeImages)
+        (\result -> ProviderMsg provider.name (ReceiveImages result))
 
 
 requestServers : Provider -> Cmd Msg
 requestServers provider =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.nova ++ "/servers"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeServers
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveServers result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.nova ++ "/servers")
+        Http.emptyBody
+        (Http.expectJson decodeServers)
+        (\result -> ProviderMsg provider.name (ReceiveServers result))
 
 
 requestServerDetail : Provider -> OSTypes.ServerUuid -> Cmd Msg
 requestServerDetail provider serverUuid =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.nova ++ "/servers/" ++ serverUuid
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeServerDetails
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveServerDetail serverUuid result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.nova ++ "/servers/" ++ serverUuid)
+        Http.emptyBody
+        (Http.expectJson decodeServerDetails)
+        (\result -> ProviderMsg provider.name (ReceiveServerDetail serverUuid result))
 
 
 requestFlavors : Provider -> Cmd Msg
 requestFlavors provider =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.nova ++ "/flavors/detail"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeFlavors
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveFlavors result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.nova ++ "/flavors/detail")
+        Http.emptyBody
+        (Http.expectJson decodeFlavors)
+        (\result -> ProviderMsg provider.name (ReceiveFlavors result))
 
 
 requestKeypairs : Provider -> Cmd Msg
 requestKeypairs provider =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.nova ++ "/os-keypairs"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeKeypairs
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveKeypairs result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.nova ++ "/os-keypairs")
+        Http.emptyBody
+        (Http.expectJson decodeKeypairs)
+        (\result -> ProviderMsg provider.name (ReceiveKeypairs result))
 
 
 requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
@@ -263,51 +220,31 @@ requestCreateServer provider createServerRequest =
         requestBodies =
             instanceNames
                 |> List.map buildRequestBody
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveCreateServer result)
     in
     Cmd.batch
         (requestBodies
             |> List.map
                 (\requestBody ->
-                    Http.request
-                        { method = "POST"
-                        , headers =
-                            [ Http.header "X-Auth-Token" provider.auth.tokenValue
-
-                            -- Microversion needed for automatic network provisioning
-                            , Http.header "OpenStack-API-Version" "compute 2.38"
-                            ]
-                        , url = provider.endpoints.nova ++ "/servers"
-                        , body = Http.jsonBody requestBody
-                        , expect = Http.expectJson (Decode.field "server" serverDecoder)
-                        , timeout = Nothing
-                        , withCredentials = False
-                        }
-                        |> Http.send resultMsg
+                    openstackCredentialedRequest
+                        provider
+                        Post
+                        (provider.endpoints.nova ++ "/servers")
+                        (Http.jsonBody requestBody)
+                        (Http.expectJson (Decode.field "server" serverDecoder))
+                        (\result -> ProviderMsg provider.name (ReceiveCreateServer result))
                 )
         )
 
 
 requestDeleteServer : Provider -> Server -> Cmd Msg
 requestDeleteServer provider server =
-    let
-        request =
-            Http.request
-                { method = "DELETE"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid
-                , body = Http.emptyBody
-                , expect = Http.expectString
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveDeleteServer result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Delete
+        (provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
+        Http.emptyBody
+        Http.expectString
+        (\result -> ProviderMsg provider.name (ReceiveDeleteServer result))
 
 
 requestDeleteServers : Provider -> List Server -> Cmd Msg
@@ -321,42 +258,24 @@ requestDeleteServers provider serversToDelete =
 
 requestNetworks : Provider -> Cmd Msg
 requestNetworks provider =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.neutron ++ "/v2.0/networks"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeNetworks
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveNetworks result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.neutron ++ "/v2.0/networks")
+        Http.emptyBody
+        (Http.expectJson decodeNetworks)
+        (\result -> ProviderMsg provider.name (ReceiveNetworks result))
 
 
 getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
 getFloatingIpRequestPorts provider server =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.neutron ++ "/v2.0/ports"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodePorts
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (GetFloatingIpReceivePorts server.osProps.uuid result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.neutron ++ "/v2.0/ports")
+        Http.emptyBody
+        (Http.expectJson decodePorts)
+        (\result -> ProviderMsg provider.name (GetFloatingIpReceivePorts server.osProps.uuid result))
 
 
 requestFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
@@ -411,44 +330,27 @@ requestFloatingIp model provider network port_ server =
                   )
                 ]
 
-        request =
-            Http.request
-                { method = "POST"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.neutron ++ "/v2.0/floatingips"
-                , body = Http.jsonBody requestBody
-                , expect = Http.expectJson decodeFloatingIpCreation
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveFloatingIp server.osProps.uuid result)
-
-        cmd =
-            Http.send resultMsg request
+        requestCmd =
+            openstackCredentialedRequest
+                newProvider
+                Post
+                (provider.endpoints.neutron ++ "/v2.0/floatingips")
+                (Http.jsonBody requestBody)
+                (Http.expectJson decodeFloatingIpCreation)
+                (\result -> ProviderMsg provider.name (ReceiveFloatingIp server.osProps.uuid result))
     in
-    ( newModel, cmd )
+    ( newModel, requestCmd )
 
 
 requestSecurityGroups : Provider -> Cmd Msg
 requestSecurityGroups provider =
-    let
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.neutron ++ "/v2.0/security-groups"
-                , body = Http.emptyBody
-                , expect = Http.expectJson decodeSecurityGroups
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveSecurityGroups result)
-    in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.neutron ++ "/v2.0/security-groups")
+        Http.emptyBody
+        (Http.expectJson decodeSecurityGroups)
+        (\result -> ProviderMsg provider.name (ReceiveSecurityGroups result))
 
 
 requestCreateExoSecurityGroup : Provider -> Cmd Msg
@@ -466,22 +368,14 @@ requestCreateExoSecurityGroup provider =
                         ]
                   )
                 ]
-
-        request =
-            Http.request
-                { method = "POST"
-                , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                , url = provider.endpoints.neutron ++ "/v2.0/security-groups"
-                , body = Http.jsonBody requestBody
-                , expect = Http.expectJson decodeNewSecurityGroup
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-        resultMsg result =
-            ProviderMsg provider.name (ReceiveCreateExoSecurityGroup result)
     in
-    Http.send resultMsg request
+    openstackCredentialedRequest
+        provider
+        Post
+        (provider.endpoints.neutron ++ "/v2.0/security-groups")
+        (Http.jsonBody requestBody)
+        (Http.expectJson decodeNewSecurityGroup)
+        (\result -> ProviderMsg provider.name (ReceiveCreateExoSecurityGroup result))
 
 
 requestCreateExoSecurityGroupRules : Model -> Provider -> ( Model, Cmd Msg )
@@ -511,19 +405,14 @@ requestCreateExoSecurityGroupRules model provider =
                           )
                         ]
 
-                buildRequest body =
-                    Http.request
-                        { method = "POST"
-                        , headers = [ Http.header "X-Auth-Token" provider.auth.tokenValue ]
-                        , url = provider.endpoints.neutron ++ "/v2.0/security-group-rules"
-                        , body = Http.jsonBody body
-                        , expect = Http.expectString
-                        , timeout = Nothing
-                        , withCredentials = False
-                        }
-
-                resultMsg result =
-                    ProviderMsg provider.name (ReceiveCreateExoSecurityGroupRules result)
+                buildRequestCmd body =
+                    openstackCredentialedRequest
+                        provider
+                        Post
+                        (provider.endpoints.neutron ++ "/v2.0/security-group-rules")
+                        (Http.jsonBody body)
+                        Http.expectString
+                        (\result -> ProviderMsg provider.name (ReceiveCreateExoSecurityGroupRules result))
 
                 bodies =
                     [ makeRequestBody "22" "SSH"
@@ -531,7 +420,7 @@ requestCreateExoSecurityGroupRules model provider =
                     ]
 
                 cmds =
-                    List.map (\b -> Http.send resultMsg (buildRequest b)) bodies
+                    List.map (\b -> buildRequestCmd b) bodies
             in
             ( model, Cmd.batch cmds )
 

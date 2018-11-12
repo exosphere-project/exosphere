@@ -5,7 +5,7 @@ import Helpers.Random as RandomHelpers
 import Maybe
 import Ports
 import RemoteData
-import Rest
+import Rest.Rest as Rest
 import Time
 import Types.Types exposing (..)
 
