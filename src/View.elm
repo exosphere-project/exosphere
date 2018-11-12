@@ -40,12 +40,16 @@ elementView model =
             Element.column
                 [ Element.padding 10
                 , Element.alignTop
+                , Element.width Element.fill
                 ]
                 [ case model.viewState of
                     NonProviderView viewConstructor ->
                         case viewConstructor of
                             Login ->
                                 viewLogin model
+
+                            MessageLog ->
+                                viewMessageLog model
 
                     ProviderView providerName viewConstructor ->
                         case Helpers.providerLookup model providerName of
@@ -54,7 +58,6 @@ elementView model =
 
                             Just provider ->
                                 providerView model provider viewConstructor
-                , viewMessages model
                 , Element.html (Toasty.view Helpers.toastConfig toastView ToastyMsg model.toasties)
                 ]
     in
@@ -178,6 +181,9 @@ navMenuView model =
 
         addProviderMenuItem =
             menuItem "" "Add Provider" (Just (SetNonProviderView Login))
+
+        messageLogMenuItem =
+            menuItem "" "Message Log" (Just (SetNonProviderView MessageLog))
     in
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
@@ -187,6 +193,7 @@ navMenuView model =
         ]
         (providerMenuItems model.providers
             ++ [ addProviderMenuItem
+               , messageLogMenuItem
                ]
         )
 
@@ -273,11 +280,6 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewMessages : Model -> Element.Element Msg
-viewMessages model =
-    Element.column exoColumnAttributes (List.map renderMessage model.messages)
-
-
 viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
     Element.column exoColumnAttributes
@@ -317,6 +319,21 @@ viewLogin model =
                 , onPress = Just RequestNewProviderToken
                 }
             )
+        ]
+
+
+viewMessageLog : Model -> Element.Element Msg
+viewMessageLog model =
+    Element.column
+        exoColumnAttributes
+        [ Element.el
+            heading2
+            (Element.text "Messages")
+        , if List.isEmpty model.messages then
+            Element.text "(No Messages)"
+
+          else
+            Element.column exoColumnAttributes (List.map renderMessage model.messages)
         ]
 
 

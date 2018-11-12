@@ -94,6 +94,9 @@ update msg model =
                 Login ->
                     ( newModel, Cmd.none )
 
+                MessageLog ->
+                    ( newModel, Cmd.none )
+
         RequestNewProviderToken ->
             ( model, Rest.requestAuthToken model )
 

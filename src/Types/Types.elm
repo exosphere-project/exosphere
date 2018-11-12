@@ -102,6 +102,7 @@ type ViewState
 
 type NonProviderViewConstructor
     = Login
+    | MessageLog
 
 
 type ProviderViewConstructor
