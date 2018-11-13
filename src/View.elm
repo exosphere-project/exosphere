@@ -167,7 +167,7 @@ navBarView model =
                     , Font.color (Element.rgb 1 1 1)
                     ]
                     (Element.text "exosphere")
-                , Element.image [ Element.height (Element.px 40) ] { src = "assets/img/logo-alt.svg", description = "" }
+                , Element.image [ Element.height (Element.px 40) ] { src = "https://exosphere.gitlab.io/exosphere/img/logo-alt.svg", description = "" }
                 ]
 
         navBarRight =
