@@ -27,7 +27,7 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 - Completely standalone app, no custom backend/server required
 - App is engineered for ease of adoption, troubleshooting, and development
   - [No runtime exceptions!](https://elm-lang.org/)
-  - Open source and [open](https://gitlab.com/exosphere/exosphere/issues) [development](https://gitlab.com/exosphere/exosphere/merge_requests?scope=all&utf8=%E2%9C%93&state=merged) [process](https://gitlab.com/exosphere/exosphere/wikis/user-testing/Person-L-('L'-as-in-Andrew-Lenards-%F0%9F%99%87). Come hack with us!
+  - Open source and [open](https://gitlab.com/exosphere/exosphere/issues) [development](https://gitlab.com/exosphere/exosphere/merge_requests?scope=all&utf8=%E2%9C%93&state=merged) [process](https://gitlab.com/exosphere/exosphere/wikis/user-testing/Person-L-('L'-as-in-Andrew-Lenards-%F0%9F%99%87)). Come hack with us!
 
 **Soon:**
 - Support for the following as first-class resources:
