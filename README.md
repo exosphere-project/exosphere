@@ -41,36 +41,13 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 - Multi-cloud support (providers other than OpenStack)
 - Automated deployment of data processing clusters (Hadoop, Spark, etc.)
 
-## Collaborate
-
-[Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
-
 ## Try Exosphere
 
-Right now we recommend
+Right now we recommend trying Exosphere as an [Electron](https://electronjs.org/) app, rather than in a web browser.
 
-[Try Exosphere on GitLab Pages](https://exosphere.gitlab.io/exosphere/index.html)
+### Build and Run Exosphere as Electron App
 
-## Build and Run Exosphere
-
-First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
-
-Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
-
-```bash
-npm install
-```
-
-To compile the app:
-```
-elm make src/Exosphere.elm
-```
-
-Then browse to the compiled index.html.
-
-## Build and Run Exosphere as Electron App
-
-First [install node.js + npm](https://www.npmjs.com/get-npm). (On Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
 Then install the project's dependencies (including Elm & Electron). Convenience command to do this (run from the root of the exosphere repo):
 
@@ -95,6 +72,31 @@ Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
 
+### Try Exosphere in a browser (not currently recommended)
+
+[Try Exosphere on GitLab Pages](https://exosphere.gitlab.io/exosphere/index.html)
+
+#### Why is a Browser Not Recommended?
+
+Connecting to cloud providers from Exosphere running in a browser is currently problematic because of the same-origin policy (making cross-origin credentialed requests and viewing headers of the responses). A way around this is to 1. install a browser extension like [CORS Everywhere](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/), and/or(?) 2. Connect to an OpenStack cloud whose Keystone is configured to allow cross-origin requests. This works for testing/evaluation purposes but is not recommended for security reasons.
+
+#### Build and Run Exosphere (in a browser)
+
+First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
+
+Then install the project's dependencies (including Elm). Convenience command to do this (run from the root of the exosphere repo):
+
+```bash
+npm install
+```
+
+To compile the app:
+```
+elm make src/Exosphere.elm
+```
+
+Then browse to the compiled index.html.
+
 
 ### Note about self-signed certificates for terminal and server dashboard
 
@@ -109,10 +111,11 @@ app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
 
 Do not enable this by default.
 
-Until the permanent solution has been implemented, do not use the terminal or server dashboard functionality over
-untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or
-dashboard view.
+Until the permanent solution has been implemented, please do not use the terminal or server dashboard functionality over untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or dashboard view.
 
+## Collaborate
+
+[Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
 
 ## Package Exosphere as a distributable Electron app
 
@@ -141,15 +144,6 @@ Note:
 - Currently only tested with MacOS and Linux (Ubuntu 16.04) - need testing and instructions for Windows.
 - Add instructions for [code signing](https://www.electron.build/code-signing)  
 
-
-## Try Exosphere in browser
-
-Note: connecting to cloud providers from Exosphere running in a browser is currently problematic because of the same-origin policy (making cross-origin credentialed requests and viewing headers of the responses). A way around this is to 1. install a browser extension like [CORS Everywhere](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/), and 2. Connect to an OpenStack cloud whose Keystone is configured to allow cross-origin requests. This works for testing/evaluation purposes but is not recommended for security reasons.
-
-- First, [install Elm](https://guide.elm-lang.org/install.html)
-- Run `elm-reactor` from the root of this repository
-- Visit `http://localhost:8000/src/Exosphere.elm`
-
 ## Style Guide
 
 ### Imports
@@ -166,7 +160,7 @@ The imports in each section should be in alphabetical order.
 
 ## OpenStack and CORS
 
-In order to use Exosphere in a browser (as opposed to Electron), OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
+In order to use Exosphere in a browser as opposed to Electron (again, this is still not recommended), OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
 
 (todo describe security implications)
 
