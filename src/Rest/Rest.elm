@@ -1,4 +1,4 @@
-module Rest.Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest.Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateFloatingIp, requestCreateFloatingIpIfRequestable, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Array
 import Base64
@@ -277,8 +277,8 @@ getFloatingIpRequestPorts provider server =
         (\result -> ProviderMsg provider.name (GetFloatingIpReceivePorts server.osProps.uuid result))
 
 
-requestFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-requestFloatingIpIfRequestable model provider network port_ serverUuid =
+requestCreateFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
+requestCreateFloatingIpIfRequestable model provider network port_ serverUuid =
     let
         maybeServer =
             List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
@@ -291,14 +291,14 @@ requestFloatingIpIfRequestable model provider network port_ serverUuid =
         Just server ->
             case server.exoProps.floatingIpState of
                 Requestable ->
-                    requestFloatingIp model provider network port_ server
+                    requestCreateFloatingIp model provider network port_ server
 
                 _ ->
                     ( model, Cmd.none )
 
 
-requestFloatingIp : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
-requestFloatingIp model provider network port_ server =
+requestCreateFloatingIp : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
+requestCreateFloatingIp model provider network port_ server =
     let
         newServer =
             let
@@ -853,7 +853,7 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                 Just extNet ->
                     case maybePortForServer of
                         Just port_ ->
-                            requestFloatingIpIfRequestable
+                            requestCreateFloatingIpIfRequestable
                                 newModel
                                 newProvider
                                 extNet
