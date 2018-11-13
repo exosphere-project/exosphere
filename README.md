@@ -1,38 +1,40 @@
 # Exosphere
 
+User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
+
 ![development stage: alpha](https://img.shields.io/badge/stage-alpha-orange.svg)
 [![pipeline status](https://gitlab.com/exosphere/exosphere/badges/master/pipeline.svg)](https://gitlab.com/exosphere/exosphere/commits/master)
 ![hi mom!](https://img.shields.io/badge/hi-mom!-blue.svg)
 
-User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
-
-- **Do you have access to an OpenStack cloud?** Want a really nice way to use it?
+- **Do you have access to an OpenStack cloud?** Want a really pleasant way to use it?
 - **Are you a cloud operator?** Want to offer same to your users?
 
-Then read on!
+...then Exosphere may be for you!
 
 ## Features and Goals
 
 **Right now:**
-- The most user-friendly way for scientists and developers to manage cloud computers
+- The most user-friendly way to manage cloud computers on OpenStack
 - Works great for:
   - Compute-intensive workloads ("I need a really big computer")
-    - GPU instances
+    - Including GPU instances
   - Persistent servers ("I need this one to stick around for years")
   - Disposable experiments ("I need a place to try this thing")
 - Delivers on each instance:
   - One-click terminal, no knowledge of SSH required
   - One-click [graphical dashboard](https://cockpit-project.org/)
+- Use with any OpenStack cloud
 - Completely standalone app, no custom backend/server required
-- App is engineered for ease of deployment, troubleshooting, and development
-- Open source and [open](https://gitlab.com/exosphere/exosphere/issues) [development](https://gitlab.com/exosphere/exosphere/merge_requests?scope=all&utf8=%E2%9C%93&state=merged) [process](https://gitlab.com/exosphere/exosphere/wikis/user-testing/Person-L-('L'-as-in-Andrew-Lenards-%F0%9F%99%87). Come hack with us!
+- App is engineered for ease of adoption, troubleshooting, and development
+  - [No runtime exceptions!](https://elm-lang.org/)
+  - Open source and [open](https://gitlab.com/exosphere/exosphere/issues) [development](https://gitlab.com/exosphere/exosphere/merge_requests?scope=all&utf8=%E2%9C%93&state=merged) [process](https://gitlab.com/exosphere/exosphere/wikis/user-testing/Person-L-('L'-as-in-Andrew-Lenards-%F0%9F%99%87). Come hack with us!
 
 **Soon:**
 - Support for the following as first-class resources:
   - Docker and Singularity containers
   - Jupyter Notebooks
 - Compute cluster orchestration: head and worker nodes
-- One-click remote graphical session to your cloud instances (with support for 3D GPU acceleration), no knowledge of VNC/SSH/etc. required!
+- One-click remote graphical session to your cloud instances (with support for 3D GPU acceleration). No knowledge of VNC/SSH/etc. required!
 - Community-supported deployment automations for custom services and scientific workflows
 
 **Later:**
