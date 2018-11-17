@@ -181,9 +181,6 @@ navMenuView model =
 
         addProviderMenuItem =
             menuItem "" "Add Provider" (Just (SetNonProviderView Login))
-
-        messageLogMenuItem =
-            menuItem "" "Message Log" (Just (SetNonProviderView MessageLog))
     in
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
@@ -192,9 +189,7 @@ navMenuView model =
         , Element.height (Element.fill |> Element.minimum 800)
         ]
         (providerMenuItems model.providers
-            ++ [ addProviderMenuItem
-               , messageLogMenuItem
-               ]
+            ++ [ addProviderMenuItem ]
         )
 
 
@@ -233,6 +228,15 @@ navBarView model =
                     [ Font.color (Element.rgb255 209 209 209)
                     ]
                     (Element.text "")
+                , Element.el
+                    [ Font.color (Element.rgb255 209 209 209)
+                    ]
+                    (Input.button
+                        []
+                        { onPress = Just (SetNonProviderView MessageLog)
+                        , label = Element.el [] (Icons.bell 20)
+                        }
+                    )
 
                 -- This is where the right-hand side menu would go
                 ]
