@@ -607,7 +607,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                     "Unknown image"
 
                         maybeFloatingIp =
-                            Helpers.getFloatingIp details.ipAddresses
+                            Helpers.getServerFloatingIp details.ipAddresses
 
                         interactionLinks cockpitStatus =
                             case maybeFloatingIp of

@@ -40,6 +40,7 @@ type alias Provider =
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
     , networks : List OSTypes.Network
+    , floatingIps : List OSTypes.IpAddressWithUuid
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
@@ -82,12 +83,14 @@ type ProviderSpecificMsgConstructor
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
     | ReceiveCreateServer (Result Http.Error OSTypes.Server)
-    | ReceiveDeleteServer (Result Http.Error String)
+    | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue) (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))
     | ReceiveKeypairs (Result Http.Error (List OSTypes.Keypair))
     | ReceiveNetworks (Result Http.Error (List OSTypes.Network))
+    | ReceiveFloatingIps (Result Http.Error (List OSTypes.IpAddressWithUuid))
     | GetFloatingIpReceivePorts OSTypes.ServerUuid (Result Http.Error (List OSTypes.Port))
-    | ReceiveFloatingIp OSTypes.ServerUuid (Result Http.Error OSTypes.IpAddress)
+    | ReceiveCreateFloatingIp OSTypes.ServerUuid (Result Http.Error OSTypes.IpAddress)
+    | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid (Result Http.Error String)
     | ReceiveSecurityGroups (Result Http.Error (List OSTypes.SecurityGroup))
     | ReceiveCreateExoSecurityGroup (Result Http.Error OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)

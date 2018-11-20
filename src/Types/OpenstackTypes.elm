@@ -1,4 +1,4 @@
-module Types.OpenstackTypes exposing (AuthToken, AuthTokenString, Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), Keypair, MetadataItem, Network, NetworkUuid, Port, ProjectName, ProjectUuid, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..), UserName, UserUuid)
+module Types.OpenstackTypes exposing (AuthToken, AuthTokenString, Endpoint, EndpointInterface(..), Flavor, FlavorUuid, Image, ImageStatus(..), ImageUuid, IpAddress, IpAddressType(..), IpAddressUuid, IpAddressValue, IpAddressWithUuid, Keypair, MetadataItem, Network, NetworkUuid, Port, ProjectName, ProjectUuid, SecurityGroup, SecurityGroupRule, SecurityGroupRuleDirection(..), SecurityGroupRuleEthertype(..), SecurityGroupRuleProtocol(..), Server, ServerDetails, ServerPowerState(..), ServerStatus(..), ServerUuid, Service, ServiceCatalog, ServiceName(..), UserName, UserUuid)
 
 import Time
 import Types.HelperTypes as HelperTypes
@@ -191,9 +191,24 @@ type alias ServerDetails =
 
 
 type alias IpAddress =
-    { address : String
+    { address : IpAddressValue
     , openstackType : IpAddressType
     }
+
+
+type alias IpAddressWithUuid =
+    { uuid : IpAddressUuid
+    , address : IpAddressValue
+    , openstackType : IpAddressType
+    }
+
+
+type alias IpAddressValue =
+    String
+
+
+type alias IpAddressUuid =
+    HelperTypes.Uuid
 
 
 type IpAddressType

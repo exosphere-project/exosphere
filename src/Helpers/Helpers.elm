@@ -2,7 +2,7 @@ module Helpers.Helpers exposing
     ( checkFloatingIpState
     , flavorLookup
     , getExternalNetwork
-    , getFloatingIp
+    , getServerFloatingIp
     , getServerUiStatus
     , getServerUiStatusColor
     , getServerUiStatusStr
@@ -335,8 +335,8 @@ modelUpdateProvider model newProvider =
     { model | providers = newProviders }
 
 
-getFloatingIp : List OSTypes.IpAddress -> Maybe String
-getFloatingIp ipAddresses =
+getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
+getServerFloatingIp ipAddresses =
     let
         isFloating ipAddress =
             ipAddress.openstackType == OSTypes.IpAddressFloating
