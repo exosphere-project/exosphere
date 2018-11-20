@@ -452,7 +452,7 @@ processProviderSpecificMsg model provider msg =
                                     provider.floatingIps
                                         |> List.filter (\i -> i.address == ipAddress)
                                         |> List.head
-                                        |> Maybe.map .uuid
+                                        |> Maybe.andThen .uuid
                             in
                             case maybeFloatingIpUuid of
                                 Nothing ->

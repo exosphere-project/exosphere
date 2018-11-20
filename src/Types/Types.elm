@@ -40,7 +40,7 @@ type alias Provider =
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
     , networks : List OSTypes.Network
-    , floatingIps : List OSTypes.IpAddressWithUuid
+    , floatingIps : List OSTypes.IpAddress
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
@@ -87,7 +87,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))
     | ReceiveKeypairs (Result Http.Error (List OSTypes.Keypair))
     | ReceiveNetworks (Result Http.Error (List OSTypes.Network))
-    | ReceiveFloatingIps (Result Http.Error (List OSTypes.IpAddressWithUuid))
+    | ReceiveFloatingIps (Result Http.Error (List OSTypes.IpAddress))
     | GetFloatingIpReceivePorts OSTypes.ServerUuid (Result Http.Error (List OSTypes.Port))
     | ReceiveCreateFloatingIp OSTypes.ServerUuid (Result Http.Error OSTypes.IpAddress)
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid (Result Http.Error String)

@@ -881,7 +881,7 @@ receiveNetworks model provider result =
             ( newModel, Cmd.none )
 
 
-receiveFloatingIps : Model -> Provider -> Result Http.Error (List OSTypes.IpAddressWithUuid) -> ( Model, Cmd Msg )
+receiveFloatingIps : Model -> Provider -> Result Http.Error (List OSTypes.IpAddress) -> ( Model, Cmd Msg )
 receiveFloatingIps model provider result =
     case result of
         Err error ->
@@ -1025,7 +1025,7 @@ receiveDeleteFloatingIp model provider uuid result =
         Ok _ ->
             let
                 newFloatingIps =
-                    List.filter (\f -> f.uuid /= uuid) provider.floatingIps
+                    List.filter (\f -> f.uuid /= Just uuid) provider.floatingIps
 
                 newProvider =
                     { provider | floatingIps = newFloatingIps }
@@ -1376,7 +1376,8 @@ serverPowerStateDecoder int =
 
 serverIpAddressDecoder : Decode.Decoder OSTypes.IpAddress
 serverIpAddressDecoder =
-    Decode.map2 OSTypes.IpAddress
+    Decode.map3 OSTypes.IpAddress
+        (Decode.succeed Nothing)
         (Decode.field "addr" Decode.string)
         (Decode.field "OS-EXT-IPS:type" Decode.string
             |> Decode.andThen ipAddressOpenstackTypeDecoder
@@ -1447,15 +1448,15 @@ networkDecoder =
         (Decode.field "router:external" Decode.bool)
 
 
-decodeFloatingIps : Decode.Decoder (List OSTypes.IpAddressWithUuid)
+decodeFloatingIps : Decode.Decoder (List OSTypes.IpAddress)
 decodeFloatingIps =
     Decode.field "floatingips" (Decode.list floatingIpDecoder)
 
 
-floatingIpDecoder : Decode.Decoder OSTypes.IpAddressWithUuid
+floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
 floatingIpDecoder =
-    Decode.map3 OSTypes.IpAddressWithUuid
-        (Decode.field "id" Decode.string)
+    Decode.map3 OSTypes.IpAddress
+        (Decode.field "id" Decode.string |> Decode.map (\i -> Just i))
         (Decode.field "floating_ip_address" Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
 
@@ -1476,7 +1477,8 @@ portDecoder =
 
 decodeFloatingIpCreation : Decode.Decoder OSTypes.IpAddress
 decodeFloatingIpCreation =
-    Decode.map2 OSTypes.IpAddress
+    Decode.map3 OSTypes.IpAddress
+        (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
 
