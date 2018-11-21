@@ -5,7 +5,7 @@ import Helpers.Random as RandomHelpers
 import Maybe
 import Ports
 import RemoteData
-import Rest
+import Rest.Rest as Rest
 import Time
 import Toasty
 import Types.Types exposing (..)
@@ -98,10 +98,10 @@ update msg model =
                     ( newModel, Cmd.none )
 
         RequestNewProviderToken ->
-            ( model, Rest.requestAuthToken model )
+            ( model, Rest.requestAuthToken model.creds )
 
-        ReceiveAuthToken response ->
-            Rest.receiveAuthToken model response
+        ReceiveAuthToken creds response ->
+            Rest.receiveAuthToken model creds response
 
         ProviderMsg providerName innerMsg ->
             case Helpers.providerLookup model providerName of
@@ -187,6 +187,9 @@ update msg model =
                         CreateServerNetworkUuid networkUuid ->
                             { createServerRequest | networkUuid = networkUuid }
 
+                        CreateServerShowAdvancedOptions showAdvancedOptions ->
+                            { createServerRequest | showAdvancedOptions = showAdvancedOptions }
+
                 newViewState =
                     ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
             in
@@ -271,6 +274,37 @@ processProviderSpecificMsg model provider msg =
                         , RandomHelpers.generatePassword provider
                         ]
                     )
+
+        ValidateTokenForCredentialedRequest requestNeedingToken posixTime ->
+            let
+                currentTimeMillis =
+                    posixTime |> Time.posixToMillis
+
+                tokenExpireTimeMillis =
+                    provider.auth.expiresAt |> Time.posixToMillis
+
+                tokenExpired =
+                    -- Token expiring within 10 minutes
+                    tokenExpireTimeMillis < currentTimeMillis + 600000
+            in
+            case tokenExpired of
+                False ->
+                    -- Token still valid, fire the request with current token
+                    ( model, requestNeedingToken provider.auth.tokenValue )
+
+                True ->
+                    -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
+                    let
+                        newPQRs =
+                            requestNeedingToken :: provider.pendingCredentialedRequests
+
+                        newProvider =
+                            { provider | pendingCredentialedRequests = newPQRs }
+
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Rest.requestAuthToken newProvider.creds )
 
         RequestServers ->
             ( model, Rest.requestServers provider )

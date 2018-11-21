@@ -7,6 +7,7 @@ module Helpers.Helpers exposing
     , getServerUiStatusColor
     , getServerUiStatusStr
     , imageLookup
+    , iso8601StringToPosix
     , modelUpdateProvider
     , newServerNetworkOptions
     , processError
@@ -25,6 +26,7 @@ module Helpers.Helpers exposing
 import Debug
 import Html
 import Html.Attributes
+import ISO8601
 import Maybe.Extra
 import Regex
 import RemoteData
@@ -199,6 +201,12 @@ providerNameFromUrl url =
 
         _ ->
             "placeholder-url-unparseable"
+
+
+iso8601StringToPosix : String -> Result String Time.Posix
+iso8601StringToPosix str =
+    ISO8601.fromString str
+        |> Result.map ISO8601.toPosix
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints
@@ -381,6 +389,12 @@ getServerUiStatus server =
                 OSTypes.ServerRescued ->
                     ServerUiStatusRescued
 
+                OSTypes.ServerShelved ->
+                    ServerUiStatusShelved
+
+                OSTypes.ServerShelvedOffloaded ->
+                    ServerUiStatusShelved
+
 
 getServerUiStatusStr : ServerUiStatus -> String
 getServerUiStatusStr status =
@@ -417,6 +431,9 @@ getServerUiStatusStr status =
 
         ServerUiStatusRescued ->
             "Rescued"
+
+        ServerUiStatusShelved ->
+            "Shelved"
 
 
 getServerUiStatusColor : ServerUiStatus -> String
@@ -455,6 +472,9 @@ getServerUiStatusColor status =
         ServerUiStatusRescued ->
             "red"
 
+        ServerUiStatusShelved ->
+            "gray"
+
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
 sortedFlavors flavors =
@@ -483,7 +503,7 @@ newServerNetworkOptions provider =
 
         maybeProjectNameNet =
             projectNets
-                |> List.filter (\n -> String.contains provider.projectName n.name)
+                |> List.filter (\n -> String.contains provider.auth.projectName n.name)
                 |> List.head
     in
     case projectNets of

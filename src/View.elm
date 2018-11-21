@@ -218,7 +218,7 @@ navBarView model =
                     , Font.color (Element.rgb 1 1 1)
                     ]
                     (Element.text "exosphere")
-                , Element.image [ Element.height (Element.px 40) ] { src = "assets/img/logo-alt.svg", description = "" }
+                , Element.image [ Element.height (Element.px 40) ] { src = "https://exosphere.gitlab.io/exosphere/img/logo-alt.svg", description = "" }
                 ]
 
         navBarRight =
@@ -832,7 +832,7 @@ renderImage globalDefaults provider image =
                     }
                ]
         )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" ""))))
+        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))
         , label =
             Element.column exoColumnAttributes
                 [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
@@ -854,22 +854,19 @@ renderImage globalDefaults provider image =
 
 renderServer : Provider -> Server -> Element.Element Msg
 renderServer provider server =
-    Element.column exoColumnAttributes
+    Element.row (exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
             { checked = server.exoProps.selected
             , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
-        , Element.row exoRowAttributes
-            [ Element.text ("UUID: " ++ server.osProps.uuid)
-            , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
-            , if server.exoProps.deletionAttempted == True then
-                Element.text "Deleting..."
+        , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
+        , if server.exoProps.deletionAttempted == True then
+            Element.text "Deleting..."
 
-              else
-                uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
-            ]
+          else
+            uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
         ]
 
 
@@ -1176,21 +1173,40 @@ viewKeypairPicker provider createServerRequest =
 
 viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
 viewUserDataInput provider createServerRequest =
-    Input.multiline
-        [ Element.width (Element.px 600)
-        , Element.height (Element.px 500)
-        ]
-        { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
-        , text = createServerRequest.userData
-        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
-        , label =
-            Input.labelAbove
-                [ Element.paddingXY 20 0
-                , Font.bold
+    Element.column
+        exoColumnAttributes
+        [ Input.radioRow [ Element.spacing 10 ]
+            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
+            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerShowAdvancedOptions new)
+            , options =
+                [ Input.option False (Element.text "Hide")
+                , Input.option True (Element.text "Show")
+
+                {- -}
                 ]
-                (Element.text "User Data (Boot Script)")
-        , spellcheck = False
-        }
+            , selected = Just createServerRequest.showAdvancedOptions
+            }
+        , case createServerRequest.showAdvancedOptions of
+            False ->
+                Element.none
+
+            True ->
+                Input.multiline
+                    [ Element.width (Element.px 600)
+                    , Element.height (Element.px 500)
+                    ]
+                    { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+                    , text = createServerRequest.userData
+                    , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+                    , label =
+                        Input.labelAbove
+                            [ Element.paddingXY 20 0
+                            , Font.bold
+                            ]
+                            (Element.text "User Data (Boot Script)")
+                    , spellcheck = False
+                    }
+        ]
 
 
 friendlyCockpitReadiness : CockpitLoginStatus -> String
