@@ -10,10 +10,13 @@ import Element.Region as Region
 import Filesize exposing (format)
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
+import Html.Attributes
 import Icons exposing (..)
 import Maybe
 import RemoteData
 import String.Extra
+import Toasty
+import Toasty.Defaults
 import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
@@ -37,12 +40,16 @@ elementView model =
             Element.column
                 [ Element.padding 10
                 , Element.alignTop
+                , Element.width Element.fill
                 ]
                 [ case model.viewState of
                     NonProviderView viewConstructor ->
                         case viewConstructor of
                             Login ->
                                 viewLogin model
+
+                            MessageLog ->
+                                viewMessageLog model
 
                     ProviderView providerName viewConstructor ->
                         case Helpers.providerLookup model providerName of
@@ -51,7 +58,7 @@ elementView model =
 
                             Just provider ->
                                 providerView model provider viewConstructor
-                , viewMessages model
+                , Element.html (Toasty.view Helpers.toastConfig toastView ToastyMsg model.toasties)
                 ]
     in
     Element.column
@@ -84,6 +91,51 @@ getProviderTitle provider =
             String.Extra.toTitleCase humanCaseTitle
     in
     titleCaseTitle
+
+
+toastView : Toasty.Defaults.Toast -> Html Msg
+toastView toast =
+    let
+        toastElement =
+            case toast of
+                Toasty.Defaults.Success title message ->
+                    genericToast "toasty-success" title message
+
+                Toasty.Defaults.Warning title message ->
+                    genericToast "toasty-warning" title message
+
+                Toasty.Defaults.Error title message ->
+                    genericToast "toasty-error" title message
+    in
+    Element.layoutWith { options = [ Element.noStaticStyleSheet ] } [] toastElement
+
+
+genericToast : String -> String -> String -> Element.Element Msg
+genericToast variantClass title message =
+    Element.column
+        [ Element.htmlAttribute (Html.Attributes.class "toasty-container")
+        , Element.htmlAttribute (Html.Attributes.class variantClass)
+        , Element.padding 10
+        , Element.spacing 10
+        , Font.color (Element.rgb 1 1 1)
+        ]
+        [ Element.el
+            [ Region.heading 1
+            , Font.bold
+            , Font.size 14
+            ]
+            (Element.text title)
+        , if String.isEmpty message then
+            Element.text ""
+
+          else
+            Element.paragraph
+                [ Element.htmlAttribute (Html.Attributes.class "toasty-message")
+                , Font.size 12
+                ]
+                [ Element.text message
+                ]
+        ]
 
 
 navMenuView : Model -> Element.Element Msg
@@ -137,8 +189,7 @@ navMenuView model =
         , Element.height (Element.fill |> Element.minimum 800)
         ]
         (providerMenuItems model.providers
-            ++ [ addProviderMenuItem
-               ]
+            ++ [ addProviderMenuItem ]
         )
 
 
@@ -177,6 +228,20 @@ navBarView model =
                     [ Font.color (Element.rgb255 209 209 209)
                     ]
                     (Element.text "")
+                , Element.el
+                    [ Font.color (Element.rgb255 209 209 209)
+                    ]
+                    (Input.button
+                        []
+                        { onPress = Just (SetNonProviderView MessageLog)
+                        , label =
+                            Element.row
+                                exoRowAttributes
+                                [ Element.image [ Element.height (Element.px 20) ] { src = "assets/img/bell.svg", description = "" }
+                                , Element.text "Messages"
+                                ]
+                        }
+                    )
 
                 -- This is where the right-hand side menu would go
                 ]
@@ -224,11 +289,6 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewMessages : Model -> Element.Element Msg
-viewMessages model =
-    Element.column exoColumnAttributes (List.map renderMessage model.messages)
-
-
 viewProviderPicker : Model -> Element.Element Msg
 viewProviderPicker model =
     Element.column exoColumnAttributes
@@ -268,6 +328,21 @@ viewLogin model =
                 , onPress = Just RequestNewProviderToken
                 }
             )
+        ]
+
+
+viewMessageLog : Model -> Element.Element Msg
+viewMessageLog model =
+    Element.column
+        exoColumnAttributes
+        [ Element.el
+            heading2
+            (Element.text "Messages")
+        , if List.isEmpty model.messages then
+            Element.text "(No Messages)"
+
+          else
+            Element.column exoColumnAttributes (List.map renderMessage model.messages)
         ]
 
 

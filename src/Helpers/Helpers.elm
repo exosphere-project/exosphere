@@ -1,11 +1,38 @@
-module Helpers.Helpers exposing (checkFloatingIpState, flavorLookup, getExternalNetwork, getFloatingIp, getServerUiStatus, getServerUiStatusColor, getServerUiStatusStr, imageLookup, iso8601StringToPosix, modelUpdateProvider, newServerNetworkOptions, processError, processOpenRc, providePasswordHint, providerLookup, providerNameFromUrl, providerTitle, serverLookup, serviceCatalogToEndpoints, sortedFlavors, stringIsUuidOrDefault)
+module Helpers.Helpers exposing
+    ( checkFloatingIpState
+    , flavorLookup
+    , getExternalNetwork
+    , getFloatingIp
+    , getServerUiStatus
+    , getServerUiStatusColor
+    , getServerUiStatusStr
+    , imageLookup
+    , iso8601StringToPosix
+    , modelUpdateProvider
+    , newServerNetworkOptions
+    , processError
+    , processOpenRc
+    , providePasswordHint
+    , providerLookup
+    , providerNameFromUrl
+    , providerTitle
+    , serverLookup
+    , serviceCatalogToEndpoints
+    , sortedFlavors
+    , stringIsUuidOrDefault
+    , toastConfig
+    )
 
 import Debug
+import Html
+import Html.Attributes
 import ISO8601
 import Maybe.Extra
 import Regex
 import RemoteData
 import Time
+import Toasty
+import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
 import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
@@ -14,6 +41,26 @@ import Types.Types exposing (..)
 alwaysRegex : String -> Regex.Regex
 alwaysRegex regexStr =
     Regex.fromString regexStr |> Maybe.withDefault Regex.never
+
+
+toastConfig : Toasty.Config Msg
+toastConfig =
+    let
+        containerAttrs : List (Html.Attribute msg)
+        containerAttrs =
+            [ Html.Attributes.style "position" "fixed"
+            , Html.Attributes.style "top" "60"
+            , Html.Attributes.style "right" "0"
+            , Html.Attributes.style "width" "100%"
+            , Html.Attributes.style "max-width" "300px"
+            , Html.Attributes.style "list-style-type" "none"
+            , Html.Attributes.style "padding" "0"
+            , Html.Attributes.style "margin" "0"
+            ]
+    in
+    Toasty.Defaults.config
+        |> Toasty.delay 60000
+        |> Toasty.containerAttrs containerAttrs
 
 
 processError : Model -> a -> ( Model, Cmd Msg )
@@ -27,8 +74,11 @@ processError model error =
 
         newModel =
             { model | messages = newMsgs }
+
+        toast =
+            Toasty.Defaults.Error "Error" errorString
     in
-    ( newModel, Cmd.none )
+    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
 
 stringIsUuidOrDefault : String -> Bool

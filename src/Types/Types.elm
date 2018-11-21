@@ -4,6 +4,8 @@ import Http
 import Maybe
 import RemoteData exposing (WebData)
 import Time
+import Toasty
+import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
 import Types.OpenstackTypes as OSTypes
 
@@ -19,6 +21,7 @@ type alias Model =
     , creds : Creds
     , imageFilterTag : Maybe String
     , globalDefaults : GlobalDefaults
+    , toasties : Toasty.Stack Toasty.Defaults.Toast
     }
 
 
@@ -62,6 +65,7 @@ type Msg
     | OpenInBrowser String
     | OpenNewWindow String
     | RandomPassword Provider String
+    | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
 
 
 type ProviderSpecificMsgConstructor
@@ -97,6 +101,7 @@ type ViewState
 
 type NonProviderViewConstructor
     = Login
+    | MessageLog
 
 
 type ProviderViewConstructor

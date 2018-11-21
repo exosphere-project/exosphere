@@ -22,6 +22,7 @@
             "jweir/elm-iso8601": "5.0.2",
             "krisajenkins/remotedata": "5.0.0",
             "mdgriffith/elm-ui": "1.1.0",
+            "pablen/toasty": "1.2.0",
             "truqu/elm-base64": "2.0.4"
         },
         "indirect": {

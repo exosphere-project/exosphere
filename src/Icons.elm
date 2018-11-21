@@ -1,6 +1,8 @@
 module Icons exposing (roundRect)
 
+import Element
 import Html
+import Html.Attributes
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 
