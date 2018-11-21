@@ -234,7 +234,12 @@ navBarView model =
                     (Input.button
                         []
                         { onPress = Just (SetNonProviderView MessageLog)
-                        , label = Element.el [] (Icons.bell 20)
+                        , label =
+                            Element.row
+                                exoRowAttributes
+                                [ Element.image [ Element.height (Element.px 20) ] { src = "assets/img/bell.svg", description = "" }
+                                , Element.text "Messages"
+                                ]
                         }
                     )
 
