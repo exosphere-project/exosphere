@@ -16,6 +16,7 @@ module Helpers.Helpers exposing
     , providerLookup
     , providerNameFromUrl
     , providerTitle
+    , providerUpdateServer
     , serverLookup
     , serviceCatalogToEndpoints
     , sortedFlavors
@@ -333,6 +334,23 @@ modelUpdateProvider model newProvider =
             newProvider :: otherProviders
     in
     { model | providers = newProviders }
+
+
+providerUpdateServer : Provider -> Server -> Provider
+providerUpdateServer provider server =
+    let
+        otherServers =
+            List.filter
+                (\s -> s.osProps.uuid /= server.osProps.uuid)
+                (RemoteData.withDefault [] provider.servers)
+
+        newServers =
+            server :: otherServers
+
+        newServersSorted =
+            List.sortBy (\s -> s.osProps.name) newServers
+    in
+    { provider | servers = RemoteData.Success newServersSorted }
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
