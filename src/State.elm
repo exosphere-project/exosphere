@@ -254,7 +254,12 @@ processProviderSpecificMsg model provider msg =
                     ( newModel, Rest.requestImages provider )
 
                 ListProviderServers ->
-                    ( newModel, Rest.requestServers provider )
+                    ( newModel
+                    , Cmd.batch
+                        [ Rest.requestServers provider
+                        , Rest.requestFloatingIps provider
+                        ]
+                    )
 
                 ServerDetail serverUuid _ ->
                     ( newModel
@@ -431,18 +436,47 @@ processProviderSpecificMsg model provider msg =
         ReceiveCreateServer result ->
             Rest.receiveCreateServer model provider result
 
-        ReceiveDeleteServer _ ->
-            {- Todo this ignores the result of server deletion API call, we should display errors to user -}
-            update (ProviderMsg provider.name (SetProviderView ListProviderServers)) model
+        ReceiveDeleteServer serverUuid maybeIpAddress result ->
+            let
+                ( serverDeletedModel, newCmd ) =
+                    Rest.receiveDeleteServer model provider serverUuid result
+
+                ( deleteIpAddressModel, deleteIpAddressCmd ) =
+                    case maybeIpAddress of
+                        Nothing ->
+                            ( serverDeletedModel, Cmd.none )
+
+                        Just ipAddress ->
+                            let
+                                maybeFloatingIpUuid =
+                                    provider.floatingIps
+                                        |> List.filter (\i -> i.address == ipAddress)
+                                        |> List.head
+                                        |> Maybe.andThen .uuid
+                            in
+                            case maybeFloatingIpUuid of
+                                Nothing ->
+                                    Helpers.processError serverDeletedModel "Error: We should have found a floating IP address UUID but we didn't. This is probably a race condition that cmart is responsible for"
+
+                                Just uuid ->
+                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp provider uuid )
+            in
+            ( deleteIpAddressModel, Cmd.batch [ newCmd, deleteIpAddressCmd ] )
 
         ReceiveNetworks result ->
             Rest.receiveNetworks model provider result
 
+        ReceiveFloatingIps result ->
+            Rest.receiveFloatingIps model provider result
+
         GetFloatingIpReceivePorts serverUuid result ->
             Rest.receivePortsAndRequestFloatingIp model provider serverUuid result
 
-        ReceiveFloatingIp serverUuid result ->
-            Rest.receiveFloatingIp model provider serverUuid result
+        ReceiveCreateFloatingIp serverUuid result ->
+            Rest.receiveCreateFloatingIp model provider serverUuid result
+
+        ReceiveDeleteFloatingIp uuid result ->
+            Rest.receiveDeleteFloatingIp model provider uuid result
 
         ReceiveSecurityGroups result ->
             Rest.receiveSecurityGroupsAndEnsureExoGroup model provider result

@@ -1,4 +1,4 @@
-module Rest.Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateServer, receiveFlavors, receiveFloatingIp, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateServer, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIp, requestFloatingIpIfRequestable, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
+module Rest.Rest exposing (addFloatingIpInServerDetails, createProvider, decodeFlavors, decodeFloatingIpCreation, decodeImages, decodeKeypairs, decodeNetworks, decodePorts, decodeServerDetails, decodeServers, flavorDecoder, getFloatingIpRequestPorts, imageDecoder, imageStatusDecoder, ipAddressOpenstackTypeDecoder, keypairDecoder, networkDecoder, openstackEndpointDecoder, openstackEndpointInterfaceDecoder, openstackServiceDecoder, portDecoder, receiveAuthToken, receiveCockpitLoginStatus, receiveCreateExoSecurityGroupAndRequestCreateRules, receiveCreateFloatingIp, receiveCreateServer, receiveDeleteFloatingIp, receiveDeleteServer, receiveFlavors, receiveFloatingIps, receiveImages, receiveKeypairs, receiveNetworks, receivePortsAndRequestFloatingIp, receiveSecurityGroupsAndEnsureExoGroup, receiveServerDetail, receiveServers, requestAuthToken, requestCreateExoSecurityGroupRules, requestCreateFloatingIp, requestCreateFloatingIpIfRequestable, requestCreateServer, requestDeleteFloatingIp, requestDeleteServer, requestDeleteServers, requestFlavors, requestFloatingIps, requestImages, requestKeypairs, requestNetworks, requestServerDetail, requestServers, serverDecoder, serverIpAddressDecoder, serverPowerStateDecoder)
 
 import Array
 import Base64
@@ -237,13 +237,19 @@ requestCreateServer provider createServerRequest =
 
 requestDeleteServer : Provider -> Server -> Cmd Msg
 requestDeleteServer provider server =
+    let
+        maybeFloatingIp =
+            server.osProps.details
+                |> Maybe.map .ipAddresses
+                |> Maybe.andThen Helpers.getServerFloatingIp
+    in
     openstackCredentialedRequest
         provider
         Delete
         (provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         Http.expectString
-        (\result -> ProviderMsg provider.name (ReceiveDeleteServer result))
+        (\result -> ProviderMsg provider.name (ReceiveDeleteServer server.osProps.uuid maybeFloatingIp result))
 
 
 requestDeleteServers : Provider -> List Server -> Cmd Msg
@@ -266,6 +272,17 @@ requestNetworks provider =
         (\result -> ProviderMsg provider.name (ReceiveNetworks result))
 
 
+requestFloatingIps : Provider -> Cmd Msg
+requestFloatingIps provider =
+    openstackCredentialedRequest
+        provider
+        Get
+        (provider.endpoints.neutron ++ "/v2.0/floatingips")
+        Http.emptyBody
+        (Http.expectJson decodeFloatingIps)
+        (\result -> ProviderMsg provider.name (ReceiveFloatingIps result))
+
+
 getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
 getFloatingIpRequestPorts provider server =
     openstackCredentialedRequest
@@ -277,8 +294,8 @@ getFloatingIpRequestPorts provider server =
         (\result -> ProviderMsg provider.name (GetFloatingIpReceivePorts server.osProps.uuid result))
 
 
-requestFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-requestFloatingIpIfRequestable model provider network port_ serverUuid =
+requestCreateFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
+requestCreateFloatingIpIfRequestable model provider network port_ serverUuid =
     let
         maybeServer =
             List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
@@ -291,14 +308,14 @@ requestFloatingIpIfRequestable model provider network port_ serverUuid =
         Just server ->
             case server.exoProps.floatingIpState of
                 Requestable ->
-                    requestFloatingIp model provider network port_ server
+                    requestCreateFloatingIp model provider network port_ server
 
                 _ ->
                     ( model, Cmd.none )
 
 
-requestFloatingIp : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
-requestFloatingIp model provider network port_ server =
+requestCreateFloatingIp : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
+requestCreateFloatingIp model provider network port_ server =
     let
         newServer =
             let
@@ -336,9 +353,20 @@ requestFloatingIp model provider network port_ server =
                 (provider.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (Http.expectJson decodeFloatingIpCreation)
-                (\result -> ProviderMsg provider.name (ReceiveFloatingIp server.osProps.uuid result))
+                (\result -> ProviderMsg provider.name (ReceiveCreateFloatingIp server.osProps.uuid result))
     in
     ( newModel, requestCmd )
+
+
+requestDeleteFloatingIp : Provider -> OSTypes.IpAddressUuid -> Cmd Msg
+requestDeleteFloatingIp provider uuid =
+    openstackCredentialedRequest
+        provider
+        Delete
+        (provider.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
+        Http.emptyBody
+        Http.expectString
+        (\result -> ProviderMsg provider.name (ReceiveDeleteFloatingIp uuid result))
 
 
 requestSecurityGroups : Provider -> Cmd Msg
@@ -491,6 +519,7 @@ createProvider model creds response =
                     , flavors = []
                     , keypairs = []
                     , networks = []
+                    , floatingIps = []
                     , ports = []
                     , securityGroups = []
                     , pendingCredentialedRequests = []
@@ -505,7 +534,7 @@ createProvider model creds response =
                         , viewState = ProviderView newProvider.name ListProviderServers
                     }
             in
-            ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider ] )
+            ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider, requestFloatingIps newProvider ] )
 
 
 providerUpdateAuthToken : Model -> Provider -> Http.Response String -> ( Model, Cmd Msg )
@@ -569,7 +598,7 @@ receiveServers model provider result =
             Helpers.processError model error
 
         Ok newOpenstackServers ->
-            -- Enrich new list of servers with any exoProps from old list of servers
+            -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
             let
                 defaultExoProps =
                     ExoServerProps Unknown False NotChecked False
@@ -586,7 +615,11 @@ receiveServers model provider result =
                             Server newOpenstackServer defaultExoProps
 
                         Just oldServer ->
-                            Server newOpenstackServer oldServer.exoProps
+                            let
+                                oldDetails =
+                                    oldServer.osProps.details
+                            in
+                            Server { newOpenstackServer | details = oldDetails } oldServer.exoProps
 
                 newServers =
                     List.map enrichNewServer newOpenstackServers
@@ -669,7 +702,7 @@ receiveServerDetail model provider serverUuid result =
                         Success ->
                             let
                                 maybeFloatingIp =
-                                    Helpers.getFloatingIp
+                                    Helpers.getServerFloatingIp
                                         serverDetails.ipAddresses
                             in
                             {- If we have a floating IP address and exouser password then try to log into Cockpit -}
@@ -780,6 +813,26 @@ receiveCreateServer model provider result =
             )
 
 
+receiveDeleteServer : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveDeleteServer model provider serverUuid result =
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok _ ->
+            let
+                newServers =
+                    List.filter (\s -> s.osProps.uuid /= serverUuid) (RemoteData.withDefault [] provider.servers)
+
+                newProvider =
+                    { provider | servers = RemoteData.Success newServers }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            ( newModel, Cmd.none )
+
+
 receiveNetworks : Model -> Provider -> Result Http.Error (List OSTypes.Network) -> ( Model, Cmd Msg )
 receiveNetworks model provider result =
     case result of
@@ -828,6 +881,23 @@ receiveNetworks model provider result =
             ( newModel, Cmd.none )
 
 
+receiveFloatingIps : Model -> Provider -> Result Http.Error (List OSTypes.IpAddress) -> ( Model, Cmd Msg )
+receiveFloatingIps model provider result =
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok floatingIps ->
+            let
+                newProvider =
+                    { provider | floatingIps = floatingIps }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            ( newModel, Cmd.none )
+
+
 receivePortsAndRequestFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error (List OSTypes.Port) -> ( Model, Cmd Msg )
 receivePortsAndRequestFloatingIp model provider serverUuid result =
     case result of
@@ -853,7 +923,7 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                 Just extNet ->
                     case maybePortForServer of
                         Just port_ ->
-                            requestFloatingIpIfRequestable
+                            requestCreateFloatingIpIfRequestable
                                 newModel
                                 newProvider
                                 extNet
@@ -871,8 +941,8 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                         "We should have an external network here but we don't"
 
 
-receiveFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
-receiveFloatingIp model provider serverUuid result =
+receiveCreateFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveCreateFloatingIp model provider serverUuid result =
     let
         maybeServer =
             List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
@@ -944,6 +1014,26 @@ receiveFloatingIp model provider serverUuid result =
                             Helpers.modelUpdateProvider model newProvider
                     in
                     ( newModel, Cmd.none )
+
+
+receiveDeleteFloatingIp : Model -> Provider -> OSTypes.IpAddressUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveDeleteFloatingIp model provider uuid result =
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok _ ->
+            let
+                newFloatingIps =
+                    List.filter (\f -> f.uuid /= Just uuid) provider.floatingIps
+
+                newProvider =
+                    { provider | floatingIps = newFloatingIps }
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
+            in
+            ( newModel, Cmd.none )
 
 
 addFloatingIpInServerDetails : Maybe OSTypes.ServerDetails -> OSTypes.IpAddress -> Maybe OSTypes.ServerDetails
@@ -1286,7 +1376,8 @@ serverPowerStateDecoder int =
 
 serverIpAddressDecoder : Decode.Decoder OSTypes.IpAddress
 serverIpAddressDecoder =
-    Decode.map2 OSTypes.IpAddress
+    Decode.map3 OSTypes.IpAddress
+        (Decode.succeed Nothing)
         (Decode.field "addr" Decode.string)
         (Decode.field "OS-EXT-IPS:type" Decode.string
             |> Decode.andThen ipAddressOpenstackTypeDecoder
@@ -1357,6 +1448,19 @@ networkDecoder =
         (Decode.field "router:external" Decode.bool)
 
 
+decodeFloatingIps : Decode.Decoder (List OSTypes.IpAddress)
+decodeFloatingIps =
+    Decode.field "floatingips" (Decode.list floatingIpDecoder)
+
+
+floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
+floatingIpDecoder =
+    Decode.map3 OSTypes.IpAddress
+        (Decode.field "id" Decode.string |> Decode.map (\i -> Just i))
+        (Decode.field "floating_ip_address" Decode.string)
+        (Decode.succeed OSTypes.IpAddressFloating)
+
+
 decodePorts : Decode.Decoder (List OSTypes.Port)
 decodePorts =
     Decode.field "ports" (Decode.list portDecoder)
@@ -1373,7 +1477,8 @@ portDecoder =
 
 decodeFloatingIpCreation : Decode.Decoder OSTypes.IpAddress
 decodeFloatingIpCreation =
-    Decode.map2 OSTypes.IpAddress
+    Decode.map3 OSTypes.IpAddress
+        (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
 
