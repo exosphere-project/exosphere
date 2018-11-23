@@ -296,12 +296,7 @@ getFloatingIpRequestPorts provider server =
 
 requestCreateFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
 requestCreateFloatingIpIfRequestable model provider network port_ serverUuid =
-    let
-        maybeServer =
-            List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
-                |> List.head
-    in
-    case maybeServer of
+    case Helpers.serverLookup provider serverUuid of
         Nothing ->
             Helpers.processError model "We should have a server here but we don't"
 
@@ -324,14 +319,8 @@ requestCreateFloatingIp model provider network port_ server =
             in
             Server server.osProps { oldExoProps | floatingIpState = RequestedWaiting }
 
-        otherServers =
-            List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
-
-        newServers =
-            newServer :: otherServers
-
         newProvider =
-            { provider | servers = RemoteData.Success newServers }
+            Helpers.providerUpdateServer provider newServer
 
         newModel =
             Helpers.modelUpdateProvider model newProvider
@@ -605,12 +594,7 @@ receiveServers model provider result =
 
                 enrichNewServer : OSTypes.Server -> Server
                 enrichNewServer newOpenstackServer =
-                    let
-                        maybeMatchingOldServer =
-                            List.filter (\oldS -> oldS.osProps.uuid == newOpenstackServer.uuid) (RemoteData.withDefault [] provider.servers)
-                                |> List.head
-                    in
-                    case maybeMatchingOldServer of
+                    case Helpers.serverLookup provider newOpenstackServer.uuid of
                         Nothing ->
                             Server newOpenstackServer defaultExoProps
 
@@ -642,10 +626,7 @@ receiveServerDetail model provider serverUuid result =
         Ok serverDetails ->
             let
                 maybeServer =
-                    List.filter
-                        (\s -> s.osProps.uuid == serverUuid)
-                        (RemoteData.withDefault [] provider.servers)
-                        |> List.head
+                    Helpers.serverLookup provider serverUuid
             in
             case maybeServer of
                 Nothing ->
@@ -670,19 +651,8 @@ receiveServerDetail model provider serverUuid result =
                             in
                             Server { oldOSProps | details = Just serverDetails } { oldExoProps | floatingIpState = floatingIpState }
 
-                        otherServers =
-                            List.filter
-                                (\s -> s.osProps.uuid /= newServer.osProps.uuid)
-                                (RemoteData.withDefault [] provider.servers)
-
-                        newServers =
-                            newServer :: otherServers
-
-                        newServersSorted =
-                            List.sortBy (\s -> s.osProps.name) newServers
-
                         newProvider =
-                            { provider | servers = RemoteData.Success newServersSorted }
+                            Helpers.providerUpdateServer provider newServer
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider
@@ -943,12 +913,7 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
 
 receiveCreateFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
 receiveCreateFloatingIp model provider serverUuid result =
-    let
-        maybeServer =
-            List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
-                |> List.head
-    in
-    case maybeServer of
+    case Helpers.serverLookup provider serverUuid of
         Nothing ->
             Helpers.processError
                 model
@@ -966,14 +931,8 @@ receiveCreateFloatingIp model provider serverUuid result =
                             in
                             Server server.osProps { oldExoProps | floatingIpState = Failed }
 
-                        otherServers =
-                            List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
-
-                        newServers =
-                            newServer :: otherServers
-
                         newProvider =
-                            { provider | servers = RemoteData.Success newServers }
+                            Helpers.providerUpdateServer provider newServer
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider
@@ -999,16 +958,8 @@ receiveCreateFloatingIp model provider serverUuid result =
                                 { oldOSProps | details = details }
                                 { oldExoProps | floatingIpState = Success }
 
-                        otherServers =
-                            List.filter
-                                (\s -> s.osProps.uuid /= newServer.osProps.uuid)
-                                (RemoteData.withDefault [] provider.servers)
-
-                        newServers =
-                            newServer :: otherServers
-
                         newProvider =
-                            { provider | servers = RemoteData.Success newServers }
+                            Helpers.providerUpdateServer provider newServer
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider
@@ -1098,12 +1049,7 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
 
 receiveCockpitLoginStatus : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
 receiveCockpitLoginStatus model provider serverUuid result =
-    let
-        maybeServer =
-            List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers)
-                |> List.head
-    in
-    case maybeServer of
+    case Helpers.serverLookup provider serverUuid of
         Nothing ->
             Helpers.processError
                 model
@@ -1127,14 +1073,8 @@ receiveCockpitLoginStatus model provider serverUuid result =
                 newServer =
                     Server server.osProps { oldExoProps | cockpitStatus = cockpitStatus }
 
-                otherServers =
-                    List.filter (\s -> s.osProps.uuid /= newServer.osProps.uuid) (RemoteData.withDefault [] provider.servers)
-
-                newServers =
-                    newServer :: otherServers
-
                 newProvider =
-                    { provider | servers = RemoteData.Success newServers }
+                    Helpers.providerUpdateServer provider newServer
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
