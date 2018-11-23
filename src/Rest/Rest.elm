@@ -22,6 +22,7 @@ module Rest.Rest exposing
     , portDecoder
     , receiveAuthToken
     , receiveCockpitLoginStatus
+    , receiveConsoleUrl
     , receiveCreateExoSecurityGroupAndRequestCreateRules
     , receiveCreateFloatingIp
     , receiveCreateServer
@@ -37,6 +38,7 @@ module Rest.Rest exposing
     , receiveServerDetail
     , receiveServers
     , requestAuthToken
+    , requestConsoleUrl
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
     , requestCreateFloatingIpIfRequestable
@@ -173,6 +175,29 @@ requestServerDetail provider serverUuid =
         Http.emptyBody
         (Http.expectJson decodeServerDetails)
         (\result -> ProviderMsg provider.name (ReceiveServerDetail serverUuid result))
+
+
+requestConsoleUrl : Provider -> OSTypes.ServerUuid -> Cmd Msg
+requestConsoleUrl provider serverUuid =
+    -- This is a deprecated call, will eventually need to be updated
+    -- See https://gitlab.com/exosphere/exosphere/issues/183
+    let
+        body =
+            Encode.object
+                [ ( "os-getSPICEConsole"
+                  , Encode.object
+                        [ ( "type", Encode.string "spice-html5" )
+                        ]
+                  )
+                ]
+    in
+    openstackCredentialedRequest
+        provider
+        Post
+        (provider.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        (Http.jsonBody body)
+        (Http.expectJson decodeConsoleUrl)
+        (\result -> ProviderMsg provider.name (ReceiveConsoleUrl serverUuid result))
 
 
 requestFlavors : Provider -> Cmd Msg
@@ -692,11 +717,6 @@ receiveServerDetail model provider serverUuid result =
 
                 Just server ->
                     let
-                        floatingIpState =
-                            Helpers.checkFloatingIpState
-                                serverDetails
-                                server.exoProps.floatingIpState
-
                         newServer =
                             let
                                 oldOSProps =
@@ -712,46 +732,102 @@ receiveServerDetail model provider serverUuid result =
 
                         newModel =
                             Helpers.modelUpdateProvider model newProvider
-                    in
-                    case floatingIpState of
-                        Requestable ->
-                            ( newModel
-                            , Cmd.batch
-                                [ getFloatingIpRequestPorts
-                                    newProvider
-                                    newServer
-                                , requestNetworks
-                                    newProvider
-                                ]
-                            )
 
-                        Success ->
-                            let
-                                maybeFloatingIp =
-                                    Helpers.getServerFloatingIp
-                                        serverDetails.ipAddresses
-                            in
-                            {- If we have a floating IP address and exouser password then try to log into Cockpit -}
-                            case maybeFloatingIp of
-                                Just floatingIp ->
-                                    case List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata |> List.head of
-                                        Just passwordMetaItem ->
-                                            let
-                                                password =
-                                                    passwordMetaItem.value
-                                            in
-                                            ( newModel
-                                            , requestCockpitLogin provider server.osProps.uuid password floatingIp
-                                            )
+                        floatingIpState =
+                            Helpers.checkFloatingIpState
+                                serverDetails
+                                server.exoProps.floatingIpState
 
+                        requestFloatingIpCmds =
+                            case floatingIpState of
+                                Requestable ->
+                                    [ getFloatingIpRequestPorts newProvider newServer
+                                    , requestNetworks newProvider
+                                    ]
+
+                                _ ->
+                                    []
+
+                        requestConsoleUrlCmds =
+                            case serverDetails.openstackStatus of
+                                OSTypes.ServerActive ->
+                                    [ requestConsoleUrl provider serverUuid ]
+
+                                _ ->
+                                    [ Cmd.none ]
+
+                        requestCockpitLoginCmds =
+                            case floatingIpState of
+                                Success ->
+                                    let
+                                        maybeFloatingIp =
+                                            Helpers.getServerFloatingIp
+                                                serverDetails.ipAddresses
+                                    in
+                                    {- If we have a floating IP address and exouser password then try to log into Cockpit -}
+                                    case maybeFloatingIp of
+                                        Just floatingIp ->
+                                            case List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata |> List.head of
+                                                Just passwordMetaItem ->
+                                                    let
+                                                        password =
+                                                            passwordMetaItem.value
+                                                    in
+                                                    [ requestCockpitLogin newProvider server.osProps.uuid password floatingIp ]
+
+                                                Nothing ->
+                                                    [ Cmd.none ]
+
+                                        -- Maybe in the future show an error here? Missing metadata
                                         Nothing ->
-                                            Helpers.processError newModel "Server has no exouserPassword stored so we won't be able to log into the dashboard."
+                                            [ Cmd.none ]
 
-                                Nothing ->
-                                    Helpers.processError newModel "We should have a floating IP address here but we don't"
+                                -- Maybe in the future show an error here? Missing floating IP
+                                _ ->
+                                    [ Cmd.none ]
 
-                        _ ->
-                            ( newModel, Cmd.none )
+                        allCmds =
+                            [ requestFloatingIpCmds, requestConsoleUrlCmds, requestCockpitLoginCmds ]
+                                |> List.concat
+                                |> Cmd.batch
+                    in
+                    ( newModel, allCmds )
+
+
+receiveConsoleUrl : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl model provider serverUuid result =
+    case result of
+        Err error ->
+            Helpers.processError model error
+
+        Ok consoleUrl ->
+            let
+                maybeServer =
+                    Helpers.serverLookup provider serverUuid
+            in
+            case maybeServer of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                -- This is an error state (server not found) but probably not one worth throwing an error at the user over. Someone might have just deleted their server
+                Just server ->
+                    let
+                        oldOsProps =
+                            server.osProps
+
+                        newOsProps =
+                            { oldOsProps | consoleUrl = Just consoleUrl }
+
+                        newServer =
+                            { server | osProps = newOsProps }
+
+                        newProvider =
+                            Helpers.providerUpdateServer provider newServer
+
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Provider -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
@@ -1264,13 +1340,14 @@ decodeServers =
 
 serverDecoder : Decode.Decoder OSTypes.Server
 serverDecoder =
-    Decode.map3 OSTypes.Server
+    Decode.map4 OSTypes.Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string
             , Decode.succeed ""
             ]
         )
         (Decode.field "id" Decode.string)
+        (Decode.succeed Nothing)
         (Decode.succeed Nothing)
 
 
@@ -1398,6 +1475,11 @@ metadataDecoder =
     {- There has got to be a better way to do this -}
     Decode.keyValuePairs Decode.string
         |> Decode.map (\pairs -> List.map (\pair -> OSTypes.MetadataItem (Tuple.first pair) (Tuple.second pair)) pairs)
+
+
+decodeConsoleUrl : Decode.Decoder OSTypes.ConsoleUrl
+decodeConsoleUrl =
+    Decode.at [ "console", "url" ] Decode.string
 
 
 decodeFlavors : Decode.Decoder (List OSTypes.Flavor)

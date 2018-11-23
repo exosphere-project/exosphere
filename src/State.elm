@@ -471,6 +471,9 @@ processProviderSpecificMsg model provider msg =
         ReceiveServerDetail serverUuid result ->
             Rest.receiveServerDetail model provider serverUuid result
 
+        ReceiveConsoleUrl serverUuid result ->
+            Rest.receiveConsoleUrl model provider serverUuid result
+
         ReceiveFlavors result ->
             Rest.receiveFlavors model provider result
 

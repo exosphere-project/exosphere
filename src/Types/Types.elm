@@ -105,6 +105,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
+    | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
     | ReceiveCreateServer (Result Http.Error OSTypes.Server)
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue) (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))

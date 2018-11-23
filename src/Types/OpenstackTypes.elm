@@ -1,6 +1,7 @@
 module Types.OpenstackTypes exposing
     ( AuthToken
     , AuthTokenString
+    , ConsoleUrl
     , Endpoint
     , EndpointInterface(..)
     , Flavor
@@ -169,11 +170,16 @@ type alias Server =
     { name : String
     , uuid : ServerUuid
     , details : Maybe ServerDetails
+    , consoleUrl : Maybe ConsoleUrl
     }
 
 
 type alias ServerUuid =
     HelperTypes.Uuid
+
+
+type alias ConsoleUrl =
+    HelperTypes.Url
 
 
 type ServerStatus
