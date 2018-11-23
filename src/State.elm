@@ -3,7 +3,8 @@ module State exposing (init, subscriptions, update)
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Json.Decode as Decode
-import LocalStorage
+import LocalStorage.LocalStorage as LocalStorage
+import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import Ports
 import RemoteData
@@ -42,7 +43,7 @@ chpasswd:
 """
             }
 
-        emptyStoredState : StoredState
+        emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { providers = []
             }
@@ -58,7 +59,7 @@ chpasswd:
             , toasties = Toasty.initialState
             }
 
-        storedState : StoredState
+        storedState : LocalStorageTypes.StoredState
         storedState =
             case maybeStoredState of
                 Nothing ->
@@ -89,6 +90,23 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     -- 10 seconds
     Time.every (10 * 1000) Tick
+
+
+
+{- We want to `setStorage` on every update. This function adds the setStorage
+   command for every step of the update function.
+-}
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    let
+        ( newModel, cmds ) =
+            updateUnderlying msg model
+    in
+    ( newModel
+    , Cmd.batch [ Ports.setStorage (LocalStorage.generateStoredState newModel), cmds ]
+    )
 
 
 updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
@@ -265,20 +283,6 @@ updateUnderlying msg model =
 
 
 --            Helpers.processError model password
-
-
-{-| We want to `setStorage` on every update. This function adds the setStorage
-command for every step of the update function.
--}
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    let
-        ( newModel, cmds ) =
-            updateUnderlying msg model
-    in
-    ( newModel
-    , Cmd.batch [ Ports.setStorage (LocalStorage.generateStoredState newModel), cmds ]
-    )
 
 
 processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )

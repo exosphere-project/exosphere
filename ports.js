@@ -2,6 +2,7 @@
 
 // get a reference to the div where we will show our UI
 let container = document.getElementById('container')
+
 var storedState = localStorage.getItem('exosphere-save');
 var startingState = storedState ? JSON.parse(storedState) : null;
 

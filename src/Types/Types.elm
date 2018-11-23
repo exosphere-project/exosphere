@@ -20,8 +20,6 @@ module Types.Types exposing
     , ProviderViewConstructor(..)
     , Server
     , ServerUiStatus(..)
-    , StoredProvider
-    , StoredState
     , VerboseStatus
     , ViewState(..)
     )
@@ -69,13 +67,6 @@ type alias Provider =
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
-    }
-
-
-type alias StoredProvider =
-    { name : ProviderName
-    , creds : Creds
-    , auth : OSTypes.AuthToken
     }
 
 
@@ -179,11 +170,6 @@ type alias Creds =
     , userDomain : String
     , username : String
     , password : String
-    }
-
-
-type alias StoredState =
-    { providers : List StoredProvider
     }
 
 
