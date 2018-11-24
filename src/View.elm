@@ -606,10 +606,33 @@ viewServerDetail provider serverUuid verboseStatus =
                                 Nothing ->
                                     "Unknown image"
 
+                        consoleLink =
+                            case details.openstackStatus of
+                                OSTypes.ServerActive ->
+                                    case server.osProps.consoleUrl of
+                                        Nothing ->
+                                            Element.text "Requesting console link..."
+
+                                        Just consoleUrl ->
+                                            Element.column
+                                                exoColumnAttributes
+                                                [ uiButton
+                                                    { label = Element.text "Launch console"
+                                                    , onPress = Just (OpenNewWindow consoleUrl)
+                                                    }
+                                                , Element.paragraph [] [ Element.text "Launching the console is like connecting a monitor, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here." ]
+                                                ]
+
+                                OSTypes.ServerBuilding ->
+                                    Element.text "Server building, console not available yet."
+
+                                _ ->
+                                    Element.text "Console not available with server in this state."
+
                         maybeFloatingIp =
                             Helpers.getServerFloatingIp details.ipAddresses
 
-                        interactionLinks cockpitStatus =
+                        cockpitInteractionLinks cockpitStatus =
                             case maybeFloatingIp of
                                 Just floatingIp ->
                                     let
@@ -671,7 +694,8 @@ viewServerDetail provider serverUuid verboseStatus =
                         , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
                         , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
                         , Element.el heading2 (Element.text "Interact with server")
-                        , interactionLinks server.exoProps.cockpitStatus
+                        , consoleLink
+                        , cockpitInteractionLinks server.exoProps.cockpitStatus
                         ]
 
 
