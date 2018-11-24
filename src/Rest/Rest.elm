@@ -767,24 +767,20 @@ receiveServerDetail model provider serverUuid result =
                                     {- If we have a floating IP address and exouser password then try to log into Cockpit -}
                                     case maybeFloatingIp of
                                         Just floatingIp ->
-                                            case List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata |> List.head of
-                                                Just passwordMetaItem ->
-                                                    let
-                                                        password =
-                                                            passwordMetaItem.value
-                                                    in
+                                            case Helpers.getServerExouserPassword serverDetails of
+                                                Just password ->
                                                     [ requestCockpitLogin newProvider server.osProps.uuid password floatingIp ]
 
                                                 Nothing ->
-                                                    [ Cmd.none ]
+                                                    []
 
                                         -- Maybe in the future show an error here? Missing metadata
                                         Nothing ->
-                                            [ Cmd.none ]
+                                            []
 
                                 -- Maybe in the future show an error here? Missing floating IP
                                 _ ->
-                                    [ Cmd.none ]
+                                    []
 
                         allCmds =
                             [ requestFloatingIpCmds, requestConsoleUrlCmds, requestCockpitLoginCmds ]

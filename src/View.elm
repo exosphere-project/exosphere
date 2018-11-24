@@ -614,13 +614,25 @@ viewServerDetail provider serverUuid verboseStatus =
                                             Element.text "Requesting console link..."
 
                                         Just consoleUrl ->
+                                            let
+                                                passwordHint =
+                                                    case Helpers.getServerExouserPassword details of
+                                                        Just password ->
+                                                            Element.text ("Try logging in with username \"exouser\" and password \"" ++ password ++ "\".")
+
+                                                        Nothing ->
+                                                            Element.none
+                                            in
                                             Element.column
                                                 exoColumnAttributes
                                                 [ uiButton
                                                     { label = Element.text "Launch console"
                                                     , onPress = Just (OpenNewWindow consoleUrl)
                                                     }
-                                                , Element.paragraph [] [ Element.text "Launching the console is like connecting a monitor, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here." ]
+                                                , Element.paragraph []
+                                                    [ Element.text "Launching the console is like connecting a screen, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here."
+                                                    , passwordHint
+                                                    ]
                                                 ]
 
                                 OSTypes.ServerBuilding ->
