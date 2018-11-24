@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( checkFloatingIpState
     , flavorLookup
     , getExternalNetwork
+    , getServerExouserPassword
     , getServerFloatingIp
     , getServerUiStatus
     , getServerUiStatusColor
@@ -362,6 +363,13 @@ getServerFloatingIp ipAddresses =
     List.filter isFloating ipAddresses
         |> List.head
         |> Maybe.map .address
+
+
+getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
+getServerExouserPassword serverDetails =
+    List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+        |> List.head
+        |> Maybe.map .value
 
 
 getServerUiStatus : Server -> ServerUiStatus
