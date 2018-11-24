@@ -333,8 +333,11 @@ modelUpdateProvider model newProvider =
 
         newProviders =
             newProvider :: otherProviders
+
+        newProvidersSorted =
+            List.sortBy (\p -> p.name) newProviders
     in
-    { model | providers = newProviders }
+    { model | providers = newProvidersSorted }
 
 
 providerUpdateServer : Provider -> Server -> Provider
