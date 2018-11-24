@@ -1,7 +1,30 @@
-module Types.Types exposing (CockpitLoginStatus(..), CreateServerField(..), CreateServerRequest, Creds, Endpoints, ExoServerProps, FloatingIpState(..), GlobalDefaults, HttpRequestMethod(..), LoginField(..), Model, Msg(..), NewServerNetworkOptions(..), NonProviderViewConstructor(..), Provider, ProviderName, ProviderSpecificMsgConstructor(..), ProviderTitle, ProviderViewConstructor(..), Server, ServerUiStatus(..), VerboseStatus, ViewState(..))
+module Types.Types exposing
+    ( CockpitLoginStatus(..)
+    , CreateServerField(..)
+    , CreateServerRequest
+    , Creds
+    , Endpoints
+    , ExoServerProps
+    , FloatingIpState(..)
+    , GlobalDefaults
+    , HttpRequestMethod(..)
+    , LoginField(..)
+    , Model
+    , Msg(..)
+    , NewServerNetworkOptions(..)
+    , NonProviderViewConstructor(..)
+    , Provider
+    , ProviderName
+    , ProviderSpecificMsgConstructor(..)
+    , ProviderTitle
+    , ProviderViewConstructor(..)
+    , Server
+    , ServerUiStatus(..)
+    , VerboseStatus
+    , ViewState(..)
+    )
 
 import Http
-import Maybe
 import RemoteData exposing (WebData)
 import Time
 import Toasty

@@ -3,11 +3,14 @@
 // get a reference to the div where we will show our UI
 let container = document.getElementById('container')
 
+var storedState = localStorage.getItem('exosphere-save');
+var startingState = storedState ? JSON.parse(storedState) : null;
+
 // start the elm app in the container
 // and keep a reference for communicating with the app
 var app = Elm.Main.init({
     node: container,
-    flags: 0
+    flags: startingState
 });
 
 app.ports.openInBrowser.subscribe(function (url) {
@@ -36,4 +39,8 @@ app.ports.openNewWindow.subscribe(function (url) {
 
   // display the index.html file
   newWindow.loadURL(url);
+});
+
+app.ports.setStorage.subscribe(function(state) {
+  localStorage.setItem('exosphere-save', JSON.stringify(state));
 });
