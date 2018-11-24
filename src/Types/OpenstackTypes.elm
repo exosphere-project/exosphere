@@ -37,6 +37,7 @@ module Types.OpenstackTypes exposing
     , UserUuid
     )
 
+import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
 
@@ -170,7 +171,7 @@ type alias Server =
     { name : String
     , uuid : ServerUuid
     , details : Maybe ServerDetails
-    , consoleUrl : Maybe ConsoleUrl
+    , consoleUrl : WebData ConsoleUrl
     }
 
 

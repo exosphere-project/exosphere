@@ -792,38 +792,41 @@ receiveServerDetail model provider serverUuid result =
 
 receiveConsoleUrl : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
 receiveConsoleUrl model provider serverUuid result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+    let
+        maybeServer =
+            Helpers.serverLookup provider serverUuid
+    in
+    case maybeServer of
+        Nothing ->
+            ( model, Cmd.none )
 
-        Ok consoleUrl ->
+        -- This is an error state (server not found) but probably not one worth throwing an error at the user over. Someone might have just deleted their server
+        Just server ->
             let
-                maybeServer =
-                    Helpers.serverLookup provider serverUuid
+                consoleUrl =
+                    case result of
+                        Err error ->
+                            RemoteData.Failure error
+
+                        Ok url ->
+                            RemoteData.Success url
+
+                oldOsProps =
+                    server.osProps
+
+                newOsProps =
+                    { oldOsProps | consoleUrl = consoleUrl }
+
+                newServer =
+                    { server | osProps = newOsProps }
+
+                newProvider =
+                    Helpers.providerUpdateServer provider newServer
+
+                newModel =
+                    Helpers.modelUpdateProvider model newProvider
             in
-            case maybeServer of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                -- This is an error state (server not found) but probably not one worth throwing an error at the user over. Someone might have just deleted their server
-                Just server ->
-                    let
-                        oldOsProps =
-                            server.osProps
-
-                        newOsProps =
-                            { oldOsProps | consoleUrl = Just consoleUrl }
-
-                        newServer =
-                            { server | osProps = newOsProps }
-
-                        newProvider =
-                            Helpers.providerUpdateServer provider newServer
-
-                        newModel =
-                            Helpers.modelUpdateProvider model newProvider
-                    in
-                    ( newModel, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Provider -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
@@ -1344,7 +1347,7 @@ serverDecoder =
         )
         (Decode.field "id" Decode.string)
         (Decode.succeed Nothing)
-        (Decode.succeed Nothing)
+        (Decode.succeed RemoteData.NotAsked)
 
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails

@@ -11,6 +11,7 @@ import Filesize exposing (format)
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Html.Attributes
+import Http
 import Icons exposing (..)
 import Maybe
 import RemoteData
@@ -610,10 +611,37 @@ viewServerDetail provider serverUuid verboseStatus =
                             case details.openstackStatus of
                                 OSTypes.ServerActive ->
                                     case server.osProps.consoleUrl of
-                                        Nothing ->
+                                        RemoteData.NotAsked ->
+                                            Element.text "Console not available yet"
+
+                                        RemoteData.Loading ->
                                             Element.text "Requesting console link..."
 
-                                        Just consoleUrl ->
+                                        RemoteData.Failure error ->
+                                            let
+                                                genericError =
+                                                    Element.column exoColumnAttributes
+                                                        [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
+                                                        , Element.paragraph [] [ Element.text (Debug.toString error) ]
+                                                        ]
+                                            in
+                                            case error of
+                                                Http.BadStatus innerError ->
+                                                    if innerError.body == "{\"badRequest\": {\"message\": \"Unavailable console type spice-html5.\", \"code\": 400}}" then
+                                                        Element.paragraph []
+                                                            [ Element.text "Console unavailable due to cloud configuration."
+                                                            , Element.text " Try asking the administrator of "
+                                                            , Element.text provider.name
+                                                            , Element.text " to enable the SPICE+HTML5 console."
+                                                            ]
+
+                                                    else
+                                                        genericError
+
+                                                _ ->
+                                                    genericError
+
+                                        RemoteData.Success consoleUrl ->
                                             let
                                                 passwordHint =
                                                     case Helpers.getServerExouserPassword details of
