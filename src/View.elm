@@ -632,7 +632,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                                             [ Element.text "Console unavailable due to cloud configuration."
                                                             , Element.text " Try asking the administrator of "
                                                             , Element.text provider.name
-                                                            , Element.text " to enable the SPICE+HTML5 console."
+                                                            , Element.text " to enable the SPICE+HTML5 or NoVNC console."
                                                             ]
 
                                                     else
