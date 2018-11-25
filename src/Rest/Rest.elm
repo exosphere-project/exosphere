@@ -38,7 +38,7 @@ module Rest.Rest exposing
     , receiveServerDetail
     , receiveServers
     , requestAuthToken
-    , requestConsoleUrl
+    , requestConsoleUrls
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
     , requestCreateFloatingIpIfRequestable
@@ -177,27 +177,41 @@ requestServerDetail provider serverUuid =
         (\result -> ProviderMsg provider.name (ReceiveServerDetail serverUuid result))
 
 
-requestConsoleUrl : Provider -> OSTypes.ServerUuid -> Cmd Msg
-requestConsoleUrl provider serverUuid =
+requestConsoleUrls : Provider -> OSTypes.ServerUuid -> Cmd Msg
+requestConsoleUrls provider serverUuid =
     -- This is a deprecated call, will eventually need to be updated
     -- See https://gitlab.com/exosphere/exosphere/issues/183
     let
-        body =
-            Encode.object
-                [ ( "os-getSPICEConsole"
-                  , Encode.object
-                        [ ( "type", Encode.string "spice-html5" )
+        reqParams =
+            [ { objectName = "os-getVNCConsole"
+              , consoleType = "novnc"
+              }
+            , { objectName = "os-getSPICEConsole"
+              , consoleType = "spice-html5"
+              }
+            ]
+
+        buildReq params =
+            let
+                reqBody =
+                    Encode.object
+                        [ ( params.objectName
+                          , Encode.object
+                                [ ( "type", Encode.string params.consoleType )
+                                ]
+                          )
                         ]
-                  )
-                ]
+            in
+            openstackCredentialedRequest
+                provider
+                Post
+                (provider.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+                (Http.jsonBody reqBody)
+                (Http.expectJson decodeConsoleUrl)
+                (\result -> ProviderMsg provider.name (ReceiveConsoleUrl serverUuid result))
     in
-    openstackCredentialedRequest
-        provider
-        Post
-        (provider.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
-        (Http.jsonBody body)
-        (Http.expectJson decodeConsoleUrl)
-        (\result -> ProviderMsg provider.name (ReceiveConsoleUrl serverUuid result))
+    List.map buildReq reqParams
+        |> Cmd.batch
 
 
 requestFlavors : Provider -> Cmd Msg
@@ -751,7 +765,7 @@ receiveServerDetail model provider serverUuid result =
                         requestConsoleUrlCmds =
                             case serverDetails.openstackStatus of
                                 OSTypes.ServerActive ->
-                                    [ requestConsoleUrl provider serverUuid ]
+                                    [ requestConsoleUrls provider serverUuid ]
 
                                 _ ->
                                     [ Cmd.none ]
@@ -802,31 +816,37 @@ receiveConsoleUrl model provider serverUuid result =
 
         -- This is an error state (server not found) but probably not one worth throwing an error at the user over. Someone might have just deleted their server
         Just server ->
-            let
-                consoleUrl =
-                    case result of
-                        Err error ->
-                            RemoteData.Failure error
+            case server.osProps.consoleUrl of
+                RemoteData.Success _ ->
+                    -- Don't overwrite a potentially successful call to get console URL with a failed call
+                    ( model, Cmd.none )
 
-                        Ok url ->
-                            RemoteData.Success url
+                _ ->
+                    let
+                        consoleUrl =
+                            case result of
+                                Err error ->
+                                    RemoteData.Failure error
 
-                oldOsProps =
-                    server.osProps
+                                Ok url ->
+                                    RemoteData.Success url
 
-                newOsProps =
-                    { oldOsProps | consoleUrl = consoleUrl }
+                        oldOsProps =
+                            server.osProps
 
-                newServer =
-                    { server | osProps = newOsProps }
+                        newOsProps =
+                            { oldOsProps | consoleUrl = consoleUrl }
 
-                newProvider =
-                    Helpers.providerUpdateServer provider newServer
+                        newServer =
+                            { server | osProps = newOsProps }
 
-                newModel =
-                    Helpers.modelUpdateProvider model newProvider
-            in
-            ( newModel, Cmd.none )
+                        newProvider =
+                            Helpers.providerUpdateServer provider newServer
+
+                        newModel =
+                            Helpers.modelUpdateProvider model newProvider
+                    in
+                    ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Provider -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
