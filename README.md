@@ -7,7 +7,7 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 ![hi mom!](https://img.shields.io/badge/hi-mom!-blue.svg)
 
 - **Do you have access to an OpenStack cloud?** Want a really pleasant way to use it?
-- **Are you a cloud operator?** Want to offer same to your users?
+- **Are you a cloud operator?** Want an easy way to offer same to your users?
 
 ...then Exosphere may be for you!
 
