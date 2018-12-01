@@ -49,7 +49,22 @@ function createWindow () {
       { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
       { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
       { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
-    ]}
+    ]},
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Reload',
+          accelerator: 'Command+R',
+          click: function() { BrowserWindow.getFocusedWindow().reloadIgnoringCache(); }
+        },
+        {
+          label: 'Toggle DevTools',
+          accelerator: 'Alt+Command+I',
+          click: function() { BrowserWindow.getFocusedWindow().toggleDevTools(); }
+        },
+      ]
+    }
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
