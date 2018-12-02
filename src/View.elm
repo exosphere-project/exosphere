@@ -39,8 +39,7 @@ elementView model =
     let
         mainContentContainerView =
             Element.column
-                [ Element.padding 10
-                , Element.alignTop
+                [ Element.alignTop
                 , Element.width Element.fill
                 ]
                 [ case model.viewState of
@@ -142,28 +141,22 @@ genericToast variantClass title message =
 navMenuView : Model -> Element.Element Msg
 navMenuView model =
     let
-        menuItem : String -> String -> Maybe msg -> Element.Element msg
-        menuItem icon text onPress =
+        menuItem : String -> Maybe msg -> Element.Element msg
+        menuItem text onPress =
             let
                 menuItemAttrs =
                     [ Element.width Element.fill
                     , Border.color (Element.rgb255 3 3 3)
                     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                    , Element.spacing 15
-                    , Element.paddingXY 15 30
+                    , Element.paddingXY 10 12
                     ]
 
                 label =
                     Element.column
                         []
                         [ Element.row
-                            [ Element.spacing 15 ]
-                            [ Element.text icon
-                            , Element.el
-                                [ Font.size 18
-                                ]
-                                (Element.text text)
-                            ]
+                            [ Font.size 18 ]
+                            [ Element.paragraph [] [ Element.text text ] ]
                         ]
             in
             Input.button menuItemAttrs { label = label, onPress = onPress }
@@ -174,20 +167,20 @@ navMenuView model =
                 providerTitle =
                     getProviderTitle provider
             in
-            menuItem "" providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
+            menuItem providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
 
         providerMenuItems : List Provider -> List (Element.Element Msg)
         providerMenuItems providers =
             List.map providerMenuItem providers
 
         addProviderMenuItem =
-            menuItem "" "Add Provider" (Just (SetNonProviderView Login))
+            menuItem "Add Provider" (Just (SetNonProviderView Login))
     in
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
         , Font.color (Element.rgb255 209 209 209)
-        , Element.width (Element.px 240)
-        , Element.height (Element.fill |> Element.minimum 800)
+        , Element.width (Element.px 180)
+        , Element.height (Element.fill |> Element.minimum 600)
         ]
         (providerMenuItems model.providers
             ++ [ addProviderMenuItem ]
@@ -654,7 +647,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                             Element.column
                                                 exoColumnAttributes
                                                 [ uiButton
-                                                    { label = Element.text "Launch console"
+                                                    { label = Element.text "Console"
                                                     , onPress = Just (OpenNewWindow consoleUrl)
                                                     }
                                                 , Element.paragraph []
@@ -672,14 +665,14 @@ viewServerDetail provider serverUuid verboseStatus =
                         maybeFloatingIp =
                             Helpers.getServerFloatingIp details.ipAddresses
 
-                        cockpitInteractionLinks cockpitStatus =
+                        cockpitInteractionLinks =
                             case maybeFloatingIp of
                                 Just floatingIp ->
                                     let
                                         interactionLinksBase =
                                             [ Element.row exoRowAttributes
                                                 [ uiButton
-                                                    { label = Element.text "Launch Terminal"
+                                                    { label = Element.text "Terminal"
                                                     , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
                                                     }
                                                 , Element.text "Type commands in a shell!"
@@ -687,14 +680,14 @@ viewServerDetail provider serverUuid verboseStatus =
                                             , Element.row
                                                 exoRowAttributes
                                                 [ uiButton
-                                                    { label = Element.text "Launch Server Dashboard"
+                                                    { label = Element.text "Server Dashboard"
                                                     , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090"))
                                                     }
                                                 , Element.text "Manage your server with an interactive dashboard!"
                                                 ]
                                             ]
                                     in
-                                    case cockpitStatus of
+                                    case server.exoProps.cockpitStatus of
                                         NotChecked ->
                                             Element.text "Status of server dashboard and terminal not available yet."
 
@@ -708,34 +701,83 @@ viewServerDetail provider serverUuid verboseStatus =
                                                 )
 
                                 Nothing ->
-                                    Element.text "Server Dashboard and Terminal services not ready yet."
+                                    Element.text "Server Dashboard and Terminal not ready yet."
+
+                        resourceUsageGraphs =
+                            case maybeFloatingIp of
+                                Just floatingIp ->
+                                    case server.exoProps.cockpitStatus of
+                                        Ready ->
+                                            let
+                                                graphsUrl =
+                                                    "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
+                                            in
+                                            -- I am so sorry
+                                            Element.html
+                                                (Html.div
+                                                    [ Html.Attributes.style "position" "relative"
+                                                    , Html.Attributes.style "overflow" "hidden"
+                                                    , Html.Attributes.style "width" "550px"
+                                                    , Html.Attributes.style "height" "650px"
+                                                    ]
+                                                    [ Html.iframe
+                                                        [ Html.Attributes.style "position" "absolute"
+                                                        , Html.Attributes.style "top" "-320px"
+                                                        , Html.Attributes.style "left" "-30px"
+                                                        , Html.Attributes.style "width" "600px"
+                                                        , Html.Attributes.style "height" "1000px"
+
+                                                        -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
+                                                        -- This is not compliant HTML5 but still works
+                                                        , Html.Attributes.attribute "scrolling" "no"
+                                                        , Html.Attributes.src graphsUrl
+                                                        ]
+                                                        []
+                                                    ]
+                                                )
+
+                                        _ ->
+                                            Element.text "Graphs not ready yet."
+
+                                Nothing ->
+                                    Element.text "Graphs not ready yet."
                     in
-                    Element.column exoColumnAttributes
-                        [ Element.el
-                            heading2
-                            (Element.text "Server Details")
-                        , compactKVRow "Name" (Element.text server.osProps.name)
-                        , compactKVRow
-                            "Status"
-                            (Element.column
-                                (exoColumnAttributes ++ [ Element.padding 0 ])
-                                ([ Element.row [ Font.bold ]
-                                    [ Element.el [ Element.paddingEach { edges | right = 15 } ] (Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor)))
-                                    , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
-                                    ]
-                                 ]
-                                    ++ verboseStatusView
-                                )
+                    Element.wrappedRow []
+                        [ Element.column
+                            (Element.alignTop
+                                :: Element.width (Element.px 585)
+                                :: exoColumnAttributes
                             )
-                        , compactKVRow "UUID" (Element.text server.osProps.uuid)
-                        , compactKVRow "Created on" (Element.text details.created)
-                        , compactKVRow "Image" (Element.text imageText)
-                        , compactKVRow "Flavor" (Element.text flavorText)
-                        , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                        , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
-                        , Element.el heading2 (Element.text "Interact with server")
-                        , consoleLink
-                        , cockpitInteractionLinks server.exoProps.cockpitStatus
+                            [ Element.el
+                                heading2
+                                (Element.text "Server Details")
+                            , compactKVRow "Name" (Element.text server.osProps.name)
+                            , compactKVRow
+                                "Status"
+                                (Element.column
+                                    (exoColumnAttributes ++ [ Element.padding 0 ])
+                                    ([ Element.row [ Font.bold ]
+                                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] (Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor)))
+                                        , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+                                        ]
+                                     ]
+                                        ++ verboseStatusView
+                                    )
+                                )
+                            , compactKVRow "UUID" (Element.text server.osProps.uuid)
+                            , compactKVRow "Created on" (Element.text details.created)
+                            , compactKVRow "Image" (Element.text imageText)
+                            , compactKVRow "Flavor" (Element.text flavorText)
+                            , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
+                            , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
+                            , Element.el heading3 (Element.text "Interact with server")
+                            , consoleLink
+                            , cockpitInteractionLinks
+                            ]
+                        , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
+                            [ Element.el heading3 (Element.text "System Resource Usage")
+                            , resourceUsageGraphs
+                            ]
                         ]
 
 
@@ -1346,6 +1388,14 @@ heading2 =
     [ Region.heading 2
     , Font.bold
     , Font.size 24
+    ]
+
+
+heading3 : List (Element.Attribute Msg)
+heading3 =
+    [ Region.heading 3
+    , Font.bold
+    , Font.size 20
     ]
 
 
