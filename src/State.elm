@@ -1,5 +1,6 @@
 module State exposing (init, subscriptions, update)
 
+import Browser.Events
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Json.Decode as Decode
@@ -18,8 +19,8 @@ import Types.Types exposing (..)
 {- Todo remove default creds once storing this in local storage -}
 
 
-init : Maybe Decode.Value -> ( Model, Cmd Msg )
-init maybeStoredState =
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     let
         globalDefaults =
             { shellUserData =
@@ -52,6 +53,7 @@ chpasswd:
         emptyModel =
             { messages = []
             , viewState = NonProviderView Login
+            , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , providers = []
             , creds = Creds "" "" "" "" "" ""
             , imageFilterTag = Maybe.Just "distro-base"
@@ -61,7 +63,7 @@ chpasswd:
 
         storedState : LocalStorageTypes.StoredState
         storedState =
-            case maybeStoredState of
+            case flags.storedState of
                 Nothing ->
                     emptyStoredState
 
@@ -88,8 +90,11 @@ chpasswd:
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    -- 10 seconds
-    Time.every (10 * 1000) Tick
+    Sub.batch
+        [ -- 10 seconds
+          Time.every (10 * 1000) Tick
+        , Browser.Events.onResize MsgChangeWindowSize
+        ]
 
 
 
@@ -114,6 +119,9 @@ updateUnderlying msg model =
     case msg of
         ToastyMsg subMsg ->
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
+
+        MsgChangeWindowSize x y ->
+            ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
 
         Tick _ ->
             case model.viewState of
