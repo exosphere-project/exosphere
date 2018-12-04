@@ -55,6 +55,13 @@ Then install the project's dependencies (including Elm & Electron). Convenience 
 npm install
 ```
 
+git Sync the Git submodules:
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive
+```
+
 To compile and run the app:
 
 ```bash
@@ -88,6 +95,13 @@ Then install the project's dependencies (including Elm). Convenience command to 
 
 ```bash
 npm install
+```
+
+Sync the Git submodules:
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive
 ```
 
 To compile the app:
@@ -124,6 +138,8 @@ This uses [electron-builder](https://www.electron.build/). See the link for more
 ### On/For Mac OS X
 
 ```bash
+git submodule sync --recursive
+git submodule update --init --recursive
 npm install
 npm run electron-build
 npm run dist
@@ -134,6 +150,8 @@ npm run dist
 (Tested with Ubuntu 16.04)
 
 ```bash
+git submodule sync --recursive
+git submodule update --init --recursive
 npm install
 npm run electron-build
 npx electron-builder --linux deb tar.xz

@@ -8,6 +8,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
+import Framework.Button as Button
+import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Html.Attributes
@@ -524,6 +526,13 @@ viewServers provider =
 
                             else
                                 Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+
+                        deleteButtonModifiers =
+                            if noServersSelected == True then
+                                [ Modifier.Danger, Modifier.Disabled ]
+
+                            else
+                                [ Modifier.Danger ]
                     in
                     Element.column exoColumnAttributes
                         [ Element.el heading2 (Element.text "My Servers")
@@ -535,7 +544,7 @@ viewServers provider =
                                 , icon = Input.defaultCheckbox
                                 , label = Input.labelRight [] (Element.text "Select All")
                                 }
-                            , uiButton { label = Element.text "Delete", onPress = deleteButtonOnPress }
+                            , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
                         , Element.column exoColumnAttributes (List.map (renderServer provider) servers)
                         ]
