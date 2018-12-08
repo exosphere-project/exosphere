@@ -8,14 +8,19 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
+import Framework.Button as Button
+import Framework.Color
+import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Html.Attributes
 import Http
-import Icons exposing (..)
 import Maybe
 import RemoteData
 import String.Extra
+import Style.Widgets.Card as Card
+import Style.Widgets.Icon as Icon
+import Style.Widgets.MenuItem as MenuItem
 import Toasty
 import Toasty.Defaults
 import Types.OpenstackTypes as OSTypes
@@ -190,40 +195,41 @@ genericToast variantClass title message =
 navMenuView : Model -> Element.Element Msg
 navMenuView model =
     let
-        menuItem : String -> Maybe msg -> Element.Element msg
-        menuItem text onPress =
-            let
-                menuItemAttrs =
-                    [ Element.width Element.fill
-                    , Border.color (Element.rgb255 3 3 3)
-                    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                    , Element.paddingXY 10 12
-                    ]
-
-                label =
-                    Element.column
-                        []
-                        [ Element.row
-                            [ Font.size 18 ]
-                            [ Element.paragraph [] [ Element.text text ] ]
-                        ]
-            in
-            Input.button menuItemAttrs { label = label, onPress = onPress }
-
         providerMenuItem : Provider -> Element.Element Msg
         providerMenuItem provider =
             let
                 providerTitle =
                     getProviderTitle provider
+
+                status =
+                    case model.viewState of
+                        ProviderView p _ ->
+                            if p == provider.name then
+                                MenuItem.Active
+
+                            else
+                                MenuItem.Inactive
+
+                        _ ->
+                            MenuItem.Inactive
             in
-            menuItem providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
+            MenuItem.menuItem status providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
 
         providerMenuItems : List Provider -> List (Element.Element Msg)
         providerMenuItems providers =
             List.map providerMenuItem providers
 
         addProviderMenuItem =
-            menuItem "Add Provider" (Just (SetNonProviderView Login))
+            let
+                active =
+                    case model.viewState of
+                        NonProviderView Login ->
+                            MenuItem.Active
+
+                        _ ->
+                            MenuItem.Inactive
+            in
+            MenuItem.menuItem active "Add Provider" (Just (SetNonProviderView Login))
     in
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
@@ -283,7 +289,7 @@ navBarView model =
                         , label =
                             Element.row
                                 exoRowAttributes
-                                [ Element.image [ Element.height (Element.px 20) ] { src = "assets/img/bell.svg", description = "" }
+                                [ Icon.bell Framework.Color.white 20
                                 , Element.text "Messages"
                                 ]
                         }
@@ -576,6 +582,13 @@ viewServers provider =
 
                             else
                                 Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+
+                        deleteButtonModifiers =
+                            if noServersSelected == True then
+                                [ Modifier.Danger, Modifier.Disabled ]
+
+                            else
+                                [ Modifier.Danger ]
                     in
                     Element.column exoColumnAttributes
                         [ Element.el heading2 (Element.text "My Servers")
@@ -587,7 +600,7 @@ viewServers provider =
                                 , icon = Input.defaultCheckbox
                                 , label = Input.labelRight [] (Element.text "Select All")
                                 }
-                            , uiButton { label = Element.text "Delete", onPress = deleteButtonOnPress }
+                            , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
                         , Element.column exoColumnAttributes (List.map (renderServer provider) servers)
                         ]
@@ -809,7 +822,7 @@ viewServerDetail provider serverUuid verboseStatus =
                                 (Element.column
                                     (exoColumnAttributes ++ [ Element.padding 0 ])
                                     ([ Element.row [ Font.bold ]
-                                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] (Element.html (roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor)))
+                                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
                                         , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
                                         ]
                                      ]
@@ -978,36 +991,21 @@ renderImage globalDefaults provider image =
                 Nothing ->
                     "N/A"
     in
-    Input.button
-        (exoColumnAttributes
-            ++ [ Element.width (Element.px 500)
-               , Border.width 1
-               , Border.shadow
-                    { offset = ( 2, 2 )
-                    , size = 2
-                    , blur = 1
-                    , color = Element.rgba 0.3 0.3 0.3 0.6
-                    }
-               ]
-        )
-        { onPress = Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))
-        , label =
-            Element.column exoColumnAttributes
-                [ Element.paragraph [ Font.heavy ] [ Element.text image.name ]
-                , Element.row exoRowAttributes
-                    [ Element.text "Status: "
-                    , Element.text (Debug.toString image.status)
-                    ]
-                , Element.row exoRowAttributes
-                    [ Element.text "Size: "
-                    , Element.text size
-                    ]
-                , Element.row exoRowAttributes
-                    [ Element.text "Tags: "
-                    , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                    ]
+    Card.exoCard
+        image.name
+        size
+    <|
+        Element.column exoColumnAttributes
+            [ Element.row exoRowAttributes
+                [ Element.text "Status: "
+                , Element.text (Debug.toString image.status)
                 ]
-        }
+            , Element.row exoRowAttributes
+                [ Element.text "Tags: "
+                , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+                ]
+            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Launch")
+            ]
 
 
 renderServer : Provider -> Server -> Element.Element Msg

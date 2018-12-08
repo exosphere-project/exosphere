@@ -1,0 +1,3 @@
+[submodule "elm-style-framework"]
+	path = elm-style-framework
+	url = https://github.com/lucamug/elm-style-framework.git

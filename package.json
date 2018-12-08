@@ -11,6 +11,8 @@
     "electron-start": "electron index.js",
     "electron-start-dev": "electron index-dev.js",
     "electron-watch-dev": "npm run electron-start-dev & npm run elm:watch & wait",
+    "build-style-guide": "elm make src/Style/StyleGuide.elm --output=styleguide.html",
+    "live-style-guide": "elm-live src/Style/StyleGuide.elm --open --start-page styleguide.html -- --output=styleguide.html --debug",
     "test": "elm-test",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
@@ -30,7 +32,8 @@
     "chokidar-cli": "^1.2.0",
     "electron": "^1.8.2",
     "electron-builder": "^20.28.4",
-    "elm": "^0.19.0"
+    "elm": "^0.19.0",
+    "elm-live": "^3.3.0"
   },
   "repository": {
     "type": "git",
