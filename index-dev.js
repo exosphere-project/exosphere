@@ -36,6 +36,16 @@ function createWindow () {
   var template = [{
     label: "Exosphere",
     submenu: [
+      {
+        label: 'Reload (persist cache)',
+        accelerator: 'Command+R',
+        click: function() { BrowserWindow.getFocusedWindow().reload(); }
+      },
+      {
+        label: 'Reload (ignore cache)',
+        accelerator: 'Command+Shift+R',
+        click: function() { BrowserWindow.getFocusedWindow().reloadIgnoringCache(); }
+      },
       { label: "About Exosphere", selector: "orderFrontStandardAboutPanel:" },
       { type: "separator" },
       { label: "Quit", accelerator: "Command+Q", click: function() { app.quit(); }}
@@ -49,7 +59,17 @@ function createWindow () {
       { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
       { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
       { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
-    ]}
+    ]},
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'Alt+Command+I',
+          click: function() { BrowserWindow.getFocusedWindow().toggleDevTools(); }
+        },
+      ]
+    }
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
