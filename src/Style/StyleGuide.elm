@@ -4,9 +4,11 @@ import Color
 import Element
 import Element.Font as Font
 import Element.Region as Region
+import Framework.Modifier exposing (Modifier(..))
 import Html exposing (text)
 import Style.Widgets.Card exposing (..)
 import Style.Widgets.Icon exposing (..)
+import Style.Widgets.IconButton exposing (..)
 import Style.Widgets.MenuItem exposing (..)
 
 
@@ -27,6 +29,8 @@ widgets =
     , remove Color.black 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
+    , Element.text "Style.Widgets.IconButton.iconButton"
+    , iconButton [ Small, Danger ] Nothing (remove Color.white 16)
     ]
 
 
