@@ -27,6 +27,16 @@ import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 
+navMenuWidth : Int
+navMenuWidth =
+    180
+
+
+navBarHeight : Int
+navBarHeight =
+    70
+
+
 view : Model -> Html Msg
 view model =
     Element.layout
@@ -36,16 +46,25 @@ view model =
             , Font.sansSerif
             ]
         ]
-        (elementView model)
+        (elementView model.maybeWindowSize model)
 
 
-elementView : Model -> Element.Element Msg
-elementView model =
+elementView : Maybe WindowSize -> Model -> Element.Element Msg
+elementView maybeWindowSize model =
     let
         mainContentContainerView =
             Element.column
-                [ Element.alignTop
-                , Element.width Element.fill
+                [ Element.padding 10
+                , Element.alignTop
+                , Element.width <|
+                    case maybeWindowSize of
+                        Just windowSize ->
+                            Element.px (windowSize.width - navMenuWidth)
+
+                        Nothing ->
+                            Element.fill
+                , Element.height Element.fill
+                , Element.scrollbars
                 ]
                 [ case model.viewState of
                     NonProviderView viewConstructor ->
@@ -66,16 +85,46 @@ elementView model =
                 , Element.html (Toasty.view Helpers.toastConfig toastView ToastyMsg model.toasties)
                 ]
     in
-    Element.column
+    Element.row
         [ Element.padding 0
         , Element.spacing 0
         , Element.width Element.fill
-        , Element.height Element.fill
+        , Element.height <|
+            case maybeWindowSize of
+                Just windowSize ->
+                    Element.px windowSize.height
+
+                Nothing ->
+                    Element.fill
         ]
-        [ navBarView model
-        , Element.row []
-            [ navMenuView model
-            , mainContentContainerView
+        [ Element.column
+            [ Element.padding 0
+            , Element.spacing 0
+            , Element.width Element.fill
+            , Element.height <|
+                case maybeWindowSize of
+                    Just windowSize ->
+                        Element.px windowSize.height
+
+                    Nothing ->
+                        Element.fill
+            ]
+            [ navBarView model
+            , Element.row
+                [ Element.padding 0
+                , Element.spacing 0
+                , Element.width Element.fill
+                , Element.height <|
+                    case maybeWindowSize of
+                        Just windowSize ->
+                            Element.px (windowSize.height - navBarHeight)
+
+                        Nothing ->
+                            Element.fill
+                ]
+                [ navMenuView model
+                , mainContentContainerView
+                ]
             ]
         ]
 
@@ -185,8 +234,10 @@ navMenuView model =
     Element.column
         [ Background.color (Element.rgb255 41 46 52)
         , Font.color (Element.rgb255 209 209 209)
-        , Element.width (Element.px 180)
-        , Element.height (Element.fill |> Element.minimum 600)
+        , Element.width (Element.px navMenuWidth)
+        , Element.height Element.shrink
+        , Element.scrollbarY
+        , Element.height Element.fill
         ]
         (providerMenuItems model.providers
             ++ [ addProviderMenuItem ]
@@ -199,6 +250,7 @@ navBarView model =
         navBarContainerAttributes =
             [ Background.color (Element.rgb255 29 29 29)
             , Element.width Element.fill
+            , Element.height (Element.px navBarHeight)
             ]
 
         -- TODO: Responsiveness - Depending on how wide the screen is, return Element.column for navBarContainerElement.
@@ -250,7 +302,7 @@ navBarView model =
             Element.row
                 [ Element.padding 10
                 , Element.spacing 10
-                , Element.height (Element.px 70)
+                , Element.height (Element.px navBarHeight)
                 , Element.width Element.fill
                 ]
                 [ navBarBrand
