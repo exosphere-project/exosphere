@@ -10,7 +10,12 @@ var startingState = storedState ? JSON.parse(storedState) : null;
 // and keep a reference for communicating with the app
 var app = Elm.Main.init({
     node: container,
-    flags: startingState
+    flags:
+    {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        storedState: startingState
+    }
 });
 
 app.ports.openInBrowser.subscribe(function (url) {

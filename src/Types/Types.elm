@@ -5,6 +5,7 @@ module Types.Types exposing
     , Creds
     , Endpoints
     , ExoServerProps
+    , Flags
     , FloatingIpState(..)
     , GlobalDefaults
     , HttpRequestMethod(..)
@@ -22,9 +23,11 @@ module Types.Types exposing
     , ServerUiStatus(..)
     , VerboseStatus
     , ViewState(..)
+    , WindowSize
     )
 
 import Http
+import Json.Decode as Decode
 import RemoteData exposing (WebData)
 import Time
 import Toasty
@@ -37,9 +40,21 @@ import Types.OpenstackTypes as OSTypes
 {- App-Level Types -}
 
 
+type alias Flags =
+    { width : Int
+    , height : Int
+    , storedState : Maybe Decode.Value
+    }
+
+
+type alias WindowSize =
+    { width : Int, height : Int }
+
+
 type alias Model =
     { messages : List String
     , viewState : ViewState
+    , maybeWindowSize : Maybe WindowSize
     , providers : List Provider
     , creds : Creds
     , imageFilterTag : Maybe String
@@ -90,6 +105,7 @@ type Msg
     | OpenNewWindow String
     | RandomPassword Provider String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
+    | MsgChangeWindowSize Int Int
 
 
 type ProviderSpecificMsgConstructor
