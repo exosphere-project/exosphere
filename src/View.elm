@@ -20,6 +20,7 @@ import RemoteData
 import String.Extra
 import Style.Widgets.Card as Card
 import Style.Widgets.Icon as Icon
+import Style.Widgets.IconButton as IconButton
 import Style.Widgets.MenuItem as MenuItem
 import Toasty
 import Toasty.Defaults
@@ -1022,7 +1023,7 @@ renderServer provider server =
             Element.text "Deleting..."
 
           else
-            uiButton { label = Element.text "Delete", onPress = Just (ProviderMsg provider.name (RequestDeleteServer server)) }
+            IconButton.iconButton [ Modifier.Danger, Modifier.Small ] (Just (ProviderMsg provider.name (RequestDeleteServer server))) (Icon.remove Framework.Color.white 16)
         ]
 
 
