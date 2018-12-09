@@ -14,6 +14,7 @@ module Types.Types exposing
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProviderViewConstructor(..)
+    , PasswordVisibility(..)
     , Provider
     , ProviderName
     , ProviderSpecificMsgConstructor(..)
@@ -150,12 +151,17 @@ type NonProviderViewConstructor
 type ProviderViewConstructor
     = ListImages
     | ListProviderServers
-    | ServerDetail OSTypes.ServerUuid VerboseStatus
+    | ServerDetail OSTypes.ServerUuid VerboseStatus PasswordVisibility
     | CreateServer CreateServerRequest
 
 
 type alias VerboseStatus =
     Bool
+
+
+type PasswordVisibility
+    = PasswordShown
+    | PasswordHidden
 
 
 type LoginField

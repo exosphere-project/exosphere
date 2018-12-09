@@ -4,11 +4,13 @@ import Base64
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Filesize exposing (format)
 import Framework.Button as Button
+import Framework.Card as Card
 import Framework.Color
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
@@ -18,7 +20,7 @@ import Http
 import Maybe
 import RemoteData
 import String.Extra
-import Style.Widgets.Card as Card
+import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
 import Style.Widgets.MenuItem as MenuItem
@@ -326,8 +328,8 @@ providerView model provider viewConstructor =
                 ListProviderServers ->
                     viewServers provider
 
-                ServerDetail serverUuid verboseStatus ->
-                    viewServerDetail provider serverUuid verboseStatus
+                ServerDetail serverUuid verboseStatus passwordVisibility ->
+                    viewServerDetail provider serverUuid verboseStatus passwordVisibility
 
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
@@ -607,8 +609,8 @@ viewServers provider =
                         ]
 
 
-viewServerDetail : Provider -> OSTypes.ServerUuid -> VerboseStatus -> Element.Element Msg
-viewServerDetail provider serverUuid verboseStatus =
+viewServerDetail : Provider -> OSTypes.ServerUuid -> VerboseStatus -> PasswordVisibility -> Element.Element Msg
+viewServerDetail provider serverUuid verboseStatus passwordVisibility =
     let
         maybeServer =
             Helpers.serverLookup provider serverUuid
@@ -635,7 +637,7 @@ viewServerDetail provider serverUuid verboseStatus =
                         verboseStatusView =
                             case verboseStatus of
                                 False ->
-                                    [ uiButton { onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid True))), label = Element.text "See detail" } ]
+                                    [ uiButton { onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid True passwordVisibility))), label = Element.text "See detail" } ]
 
                                 True ->
                                     [ Element.text "Detailed status"
@@ -702,10 +704,39 @@ viewServerDetail provider serverUuid verboseStatus =
 
                                         RemoteData.Success consoleUrl ->
                                             let
+                                                flippyCardContents : PasswordVisibility -> String -> Element.Element Msg
+                                                flippyCardContents pwVizOnClick text =
+                                                    Element.el
+                                                        [ Events.onClick (ProviderMsg provider.name <| SetProviderView <| ServerDetail serverUuid verboseStatus pwVizOnClick)
+                                                        , Element.centerX
+                                                        , Element.centerY
+                                                        ]
+                                                        (Element.text text)
+
+                                                passwordFlippyCard password =
+                                                    Card.flipping
+                                                        { width = 250
+                                                        , height = 30
+                                                        , activeFront =
+                                                            case passwordVisibility of
+                                                                PasswordShown ->
+                                                                    False
+
+                                                                PasswordHidden ->
+                                                                    True
+                                                        , front = flippyCardContents PasswordShown "(click to view password)"
+                                                        , back = flippyCardContents PasswordHidden password
+                                                        }
+
                                                 passwordHint =
                                                     case Helpers.getServerExouserPassword details of
                                                         Just password ->
-                                                            Element.text ("Try logging in with username \"exouser\" and password \"" ++ password ++ "\".")
+                                                            Element.column
+                                                                [ Element.spacing 10
+                                                                ]
+                                                                [ Element.text "Try logging in with username \"exouser\" and the following password:"
+                                                                , passwordFlippyCard password
+                                                                ]
 
                                                         Nothing ->
                                                             Element.none
@@ -992,7 +1023,7 @@ renderImage globalDefaults provider image =
                 Nothing ->
                     "N/A"
     in
-    Card.exoCard
+    ExoCard.exoCard
         image.name
         size
     <|
@@ -1018,7 +1049,7 @@ renderServer provider server =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
-        , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False))) }
+        , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False PasswordHidden))) }
         , if server.exoProps.deletionAttempted == True then
             Element.text "Deleting..."
 
