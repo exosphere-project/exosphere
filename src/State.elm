@@ -131,7 +131,7 @@ updateUnderlying msg model =
                 ProviderView providerName ListProviderServers ->
                     update (ProviderMsg providerName RequestServers) model
 
-                ProviderView providerName (ServerDetail serverUuid _) ->
+                ProviderView providerName (ServerDetail serverUuid _ _) ->
                     update (ProviderMsg providerName (RequestServerDetail serverUuid)) model
 
                 _ ->
@@ -313,7 +313,7 @@ processProviderSpecificMsg model provider msg =
                         ]
                     )
 
-                ServerDetail serverUuid _ ->
+                ServerDetail serverUuid _ _ ->
                     ( newModel
                     , Cmd.batch
                         [ Rest.requestServerDetail provider serverUuid
