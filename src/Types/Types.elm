@@ -112,6 +112,7 @@ type Msg
 type ProviderSpecificMsgConstructor
     = SetProviderView ProviderViewConstructor
     | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
+    | RemoveProvider
     | SelectServer Server Bool
     | SelectAllServers Bool
     | RequestServers

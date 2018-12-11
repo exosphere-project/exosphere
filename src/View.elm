@@ -334,8 +334,11 @@ providerView model provider viewConstructor =
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
     in
-    Element.column exoColumnAttributes
-        [ viewNav provider
+    Element.column
+        (Element.width Element.fill
+            :: exoColumnAttributes
+        )
+        [ viewProviderNav provider
         , v
         ]
 
@@ -353,12 +356,23 @@ viewProviderPicker model =
         ]
 
 
-viewNav : Provider -> Element.Element Msg
-viewNav provider =
-    Element.column exoColumnAttributes
+viewProviderNav : Provider -> Element.Element Msg
+viewProviderNav provider =
+    Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el heading2 (Element.text (getProviderTitle provider))
-        , uiButton { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
-        , uiButton { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
+        , Element.row [ Element.width Element.fill, Element.spacing 10 ]
+            [ Element.el
+                []
+                (uiButton
+                    { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
+                )
+            , Element.el
+                []
+                (uiButton
+                    { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
+                )
+            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Muted ] (Just <| ProviderMsg provider.name RemoveProvider) "Remove Provider")
+            ]
         ]
 
 
