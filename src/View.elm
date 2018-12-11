@@ -347,15 +347,6 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewProviderPicker : Model -> Element.Element Msg
-viewProviderPicker model =
-    Element.column exoColumnAttributes
-        [ Element.el heading2 (Element.text "Providers")
-        , Element.column exoColumnAttributes (List.map (renderProviderPicker model) model.providers)
-        , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
-        ]
-
-
 viewProviderNav : Provider -> Element.Element Msg
 viewProviderNav provider =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
