@@ -186,7 +186,7 @@ providerNameFromUrl : HelperTypes.Url -> ProviderName
 providerNameFromUrl url =
     let
         r =
-            alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/"
+            alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/.*"
 
         matches =
             Regex.findAtMost 1 r url

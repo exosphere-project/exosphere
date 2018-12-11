@@ -133,7 +133,7 @@ requestAuthToken creds =
     Http.request
         { method = "POST"
         , headers = []
-        , url = creds.authUrl
+        , url = creds.authUrl ++ "/auth/tokens"
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
