@@ -363,6 +363,31 @@ processProviderSpecificMsg model provider msg =
                     in
                     ( newModel, Rest.requestAuthToken newProvider.creds )
 
+        RemoveProvider ->
+            let
+                newProviders =
+                    List.filter (\p -> p.name /= provider.name) model.providers
+
+                newViewState =
+                    case model.viewState of
+                        NonProviderView _ ->
+                            -- If we are not in a provider-specific view then stay there
+                            model.viewState
+
+                        ProviderView _ _ ->
+                            -- If we have any providers switch to the first one in the list, otherwise switch to login view
+                            case List.head newProviders of
+                                Just p ->
+                                    ProviderView p.name ListProviderServers
+
+                                Nothing ->
+                                    NonProviderView Login
+
+                newModel =
+                    { model | providers = newProviders, viewState = newViewState }
+            in
+            ( newModel, Cmd.none )
+
         RequestServers ->
             ( model, Rest.requestServers provider )
 
