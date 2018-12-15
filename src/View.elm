@@ -990,25 +990,6 @@ renderMessage message =
     Element.paragraph [] [ Element.text message ]
 
 
-renderProviderPicker : Model -> Provider -> Element.Element Msg
-renderProviderPicker model provider =
-    let
-        isSelected p =
-            case model.viewState of
-                NonProviderView _ ->
-                    False
-
-                ProviderView selectedProvName _ ->
-                    p.name == selectedProvName
-    in
-    case isSelected provider of
-        False ->
-            uiButton { label = Element.text provider.name, onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
-
-        True ->
-            Element.text provider.name
-
-
 renderImage : GlobalDefaults -> Provider -> OSTypes.Image -> Element.Element Msg
 renderImage globalDefaults provider image =
     let
