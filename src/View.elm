@@ -1004,10 +1004,11 @@ viewCreateServer provider createServerRequest =
             , viewNetworkPicker provider createServerRequest
             , viewKeypairPicker provider createServerRequest
             , viewUserDataInput provider createServerRequest
-            , Button.button
-                [ Modifier.Primary ]
-                createOnPress
-                "Create"
+            , Element.el [ Element.alignRight ] <|
+                Button.button
+                    [ Modifier.Primary ]
+                    createOnPress
+                    "Create"
             ]
         ]
 
@@ -1053,7 +1054,7 @@ renderImage globalDefaults provider image =
                 [ Element.text "Tags: "
                 , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
                 ]
-            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Launch")
+            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Choose")
             ]
 
 
