@@ -43,6 +43,10 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Try Exosphere
 
+> "It was very easy to build"
+> - Connor Osborn
+
+
 Right now we recommend trying Exosphere as an [Electron](https://electronjs.org/) app, rather than in a web browser.
 
 ### Build and Run Exosphere as Electron App

@@ -133,7 +133,13 @@ requestAuthToken creds =
     Http.request
         { method = "POST"
         , headers = []
-        , url = creds.authUrl ++ "/auth/tokens"
+        , url =
+            if String.contains "/auth/tokens" creds.authUrl then
+                -- We previously expected users to provide "/auth/tokens" to be in the Keystone Auth URL; this case statement avoids breaking the app for users who still have that
+                creds.authUrl
+
+            else
+                creds.authUrl ++ "/auth/tokens"
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
