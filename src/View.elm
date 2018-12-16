@@ -1170,12 +1170,23 @@ renderImage globalDefaults project image =
 
 renderServer : Project -> Server -> Element.Element Msg
 renderServer project server =
+    let
+        statusIcon =
+            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
+
+        checkBoxLabel : Server -> Element.Element Msg
+        checkBoxLabel aServer =
+            Element.row []
+                [ statusIcon
+                , Element.el [ Font.bold ] (Element.text server.osProps.name)
+                ]
+    in
     Element.row (exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
             { checked = server.exoProps.selected
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
+            , label = Input.labelRight [] (checkBoxLabel server)
             }
         , Button.button
             []

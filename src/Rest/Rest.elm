@@ -166,7 +166,7 @@ requestServers project =
     openstackCredentialedRequest
         project
         Get
-        (project.endpoints.nova ++ "/servers")
+        (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson decodeServers)
         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
@@ -1392,8 +1392,39 @@ serverDecoder =
             ]
         )
         (Decode.field "id" Decode.string)
-        (Decode.succeed Nothing)
+        (Decode.map (\x -> Just x) decodeListServerDetails)
         (Decode.succeed RemoteData.NotAsked)
+
+
+decodeListServerDetails : Decode.Decoder OSTypes.ServerDetails
+decodeListServerDetails =
+    let
+        flattenAddressesObject kVPairs =
+            {- Takes a list of key-value pairs, the keys being network names and the values being OSTypes.IpAddress
+               Returns a flat list of OSTypes.IpAddress
+            -}
+            List.foldl (\kVPair resultList -> Tuple.second kVPair :: resultList) [] kVPairs
+                |> List.concat
+    in
+    Decode.map8 OSTypes.ServerDetails
+        (Decode.at [ "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
+        (Decode.at [ "created" ] Decode.string)
+        (Decode.at [ "OS-EXT-STS:power_state" ] Decode.int
+            |> Decode.andThen serverPowerStateDecoder
+        )
+        (Decode.oneOf
+            [ Decode.at [ "image", "id" ] Decode.string
+            , Decode.succeed ""
+            ]
+        )
+        (Decode.at [ "flavor", "id" ] Decode.string)
+        (Decode.at [ "key_name" ] (Decode.nullable Decode.string))
+        (Decode.oneOf
+            [ Decode.at [ "addresses" ] (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder)))
+            , Decode.succeed []
+            ]
+        )
+        (Decode.at [ "metadata" ] metadataDecoder)
 
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
