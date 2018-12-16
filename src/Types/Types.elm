@@ -29,12 +29,12 @@ module Types.Types exposing
 
 import Http
 import Json.Decode as Decode
+import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Time
 import Toasty
 import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
-import Types.OpenstackTypes as OSTypes
 
 
 
@@ -120,6 +120,7 @@ type ProviderSpecificMsgConstructor
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
+    | RequestServerAction Server (Provider -> Server -> Cmd Msg)
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
@@ -137,6 +138,7 @@ type ProviderSpecificMsgConstructor
     | ReceiveCreateExoSecurityGroup (Result Http.Error OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
     | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
+    | ReceiveServerAction OSTypes.ServerUuid (Result Http.Error String)
 
 
 type ViewState

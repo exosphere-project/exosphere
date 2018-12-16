@@ -7,6 +7,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.ServerActions as ServerActions
 import Ports
 import RemoteData
 import Rest.Rest as Rest
@@ -422,6 +423,9 @@ processProviderSpecificMsg model provider msg =
             in
             ( newModel, Rest.requestDeleteServer newProvider server )
 
+        RequestServerAction server func ->
+            ( model, func provider server )
+
         ReceiveImages result ->
             Rest.receiveImages model provider result
 
@@ -570,3 +574,11 @@ processProviderSpecificMsg model provider msg =
 
         ReceiveCockpitLoginStatus serverUuid result ->
             Rest.receiveCockpitLoginStatus model provider serverUuid result
+
+        ReceiveServerAction serverUuid result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok _ ->
+                    ( model, Cmd.none )

@@ -19,6 +19,8 @@ import Html exposing (Html)
 import Html.Attributes
 import Http
 import Maybe
+import OpenStack.ServerActions as ServerActions
+import OpenStack.Types as OSTypes
 import RemoteData
 import String.Extra
 import Style.Widgets.Card as ExoCard
@@ -27,7 +29,6 @@ import Style.Widgets.IconButton as IconButton
 import Style.Widgets.MenuItem as MenuItem
 import Toasty
 import Toasty.Defaults
-import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 
@@ -837,6 +838,31 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                 Nothing ->
                                     Element.text "Server Dashboard and Terminal not ready yet."
 
+                        actions =
+                            let
+                                allowedActions =
+                                    ServerActions.getAllowed details.openstackStatus
+
+                                renderActionButton action =
+                                    Element.row
+                                        [ Element.spacing 10 ]
+                                        [ Element.el
+                                            [ Element.width <| Element.px 100 ]
+                                          <|
+                                            Button.button
+                                                action.selectMods
+                                                (Just <| ProviderMsg provider.name <| RequestServerAction server action.action)
+                                                action.name
+                                        , Element.text action.description
+                                        ]
+
+                                -- TODO hover text with description
+                            in
+                            Element.column
+                                [ Element.spacingXY 0 10 ]
+                            <|
+                                List.map renderActionButton allowedActions
+
                         resourceUsageGraphs =
                             case maybeFloatingIp of
                                 Just floatingIp ->
@@ -909,7 +935,9 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                             , cockpitInteractionLinks
                             ]
                         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
-                            [ Element.el heading3 (Element.text "System Resource Usage")
+                            [ Element.el heading3 (Element.text "Server Actions")
+                            , actions
+                            , Element.el heading3 (Element.text "System Resource Usage")
                             , resourceUsageGraphs
                             ]
                         ]

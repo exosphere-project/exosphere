@@ -1,10 +1,10 @@
 module Rest.Helpers exposing (openstackCredentialedRequest)
 
 import Http
+import OpenStack.Types as OSTypes
 import Task
 import Time
 import Types.HelperTypes exposing (..)
-import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 

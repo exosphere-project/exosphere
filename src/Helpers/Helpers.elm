@@ -30,13 +30,13 @@ import Html
 import Html.Attributes
 import ISO8601
 import Maybe.Extra
+import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
 import Time
 import Toasty
 import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
-import Types.OpenstackTypes as OSTypes
 import Types.Types exposing (..)
 
 

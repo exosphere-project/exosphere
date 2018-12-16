@@ -79,6 +79,9 @@ To watch for changes to `*.elm` files, auto-compile when they change, and hot-re
 npm run electron-watch-dev
 ```
 
+> "This watch mode is great"
+> - Connor Osborn
+
 Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>

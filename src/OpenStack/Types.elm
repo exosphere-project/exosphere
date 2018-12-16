@@ -1,4 +1,4 @@
-module Types.OpenstackTypes exposing
+module OpenStack.Types exposing
     ( AuthToken
     , AuthTokenString
     , ConsoleUrl

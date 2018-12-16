@@ -3,7 +3,7 @@ module LocalStorage.Types exposing
     , StoredState
     )
 
-import Types.OpenstackTypes as OSTypes
+import OpenStack.Types as OSTypes
 import Types.Types exposing (..)
 
 
