@@ -68,7 +68,6 @@ elementView maybeWindowSize model =
                             Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
-                , Background.color <| Element.rgb255 245 245 245
                 ]
                 [ case model.viewState of
                     NonProviderView viewConstructor ->
