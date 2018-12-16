@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Base64
+import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -235,7 +236,7 @@ navMenuView model =
             MenuItem.menuItem active "Add Provider" (Just (SetNonProviderView Login))
     in
     Element.column
-        [ Background.color (Element.rgb255 41 46 52)
+        [ Background.color <| Color.toElementColor <| Framework.Color.black_ter
         , Font.color (Element.rgb255 209 209 209)
         , Element.width (Element.px navMenuWidth)
         , Element.height Element.shrink
@@ -347,15 +348,6 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewProviderPicker : Model -> Element.Element Msg
-viewProviderPicker model =
-    Element.column exoColumnAttributes
-        [ Element.el heading2 (Element.text "Providers")
-        , Element.column exoColumnAttributes (List.map (renderProviderPicker model) model.providers)
-        , uiButton { label = Element.text "Add Provider", onPress = Just (SetNonProviderView Login) }
-        ]
-
-
 viewProviderNav : Provider -> Element.Element Msg
 viewProviderNav provider =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
@@ -363,15 +355,23 @@ viewProviderNav provider =
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
-                (uiButton
-                    { label = Element.text "My Servers", onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
+                (Button.button
+                    []
+                    (Just <|
+                        ProviderMsg provider.name <|
+                            SetProviderView ListProviderServers
+                    )
+                    "My Servers"
+                )
+            , Element.el []
+                (Button.button
+                    []
+                    (Just <| ProviderMsg provider.name <| SetProviderView ListImages)
+                    "Create Server"
                 )
             , Element.el
-                []
-                (uiButton
-                    { label = Element.text "Create Server", onPress = Just (ProviderMsg provider.name (SetProviderView ListImages)) }
-                )
-            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Muted ] (Just <| ProviderMsg provider.name RemoveProvider) "Remove Provider")
+                [ Element.alignRight ]
+                (Button.button [ Modifier.Muted ] (Just <| ProviderMsg provider.name RemoveProvider) "Remove Provider")
             ]
         ]
 
@@ -392,10 +392,10 @@ viewLogin model =
             , viewLoginOpenRcEntry model
             ]
         , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-            (uiButton
-                { label = Element.text "Log In"
-                , onPress = Just RequestNewProviderToken
-                }
+            (Button.button
+                [ Modifier.Primary ]
+                (Just RequestNewProviderToken)
+                "Log In"
             )
         ]
 
@@ -553,7 +553,7 @@ viewImages globalDefaults provider maybeFilterTag =
             , onChange = \t -> InputImageFilterTag t
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
             }
-        , uiButton { label = Element.text "Clear filter (show all)", onPress = Just (InputImageFilterTag "") }
+        , Button.button [] (Just <| InputImageFilterTag "") "Clear filter (show all)"
         , if noMatchWarning then
             Element.text "No matches found, showing all images"
 
@@ -651,7 +651,18 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                         verboseStatusView =
                             case verboseStatus of
                                 False ->
-                                    [ uiButton { onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid True passwordVisibility))), label = Element.text "See detail" } ]
+                                    [ Button.button
+                                        []
+                                        (Just <|
+                                            ProviderMsg provider.name <|
+                                                SetProviderView <|
+                                                    ServerDetail
+                                                        server.osProps.uuid
+                                                        True
+                                                        passwordVisibility
+                                        )
+                                        "See detail"
+                                    ]
 
                                 True ->
                                     [ Element.text "Detailed status"
@@ -757,10 +768,12 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                             in
                                             Element.column
                                                 exoColumnAttributes
-                                                [ uiButton
-                                                    { label = Element.text "Console"
-                                                    , onPress = Just (OpenNewWindow consoleUrl)
-                                                    }
+                                                [ Button.button
+                                                    []
+                                                    (Just <|
+                                                        OpenNewWindow consoleUrl
+                                                    )
+                                                    "Console"
                                                 , Element.paragraph []
                                                     [ Element.text "Launching the console is like connecting a screen, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here."
                                                     , passwordHint
@@ -782,18 +795,28 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                     let
                                         interactionLinksBase =
                                             [ Element.row exoRowAttributes
-                                                [ uiButton
-                                                    { label = Element.text "Terminal"
-                                                    , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/terminal.html"))
-                                                    }
+                                                [ Button.button
+                                                    []
+                                                    (Just <|
+                                                        OpenNewWindow <|
+                                                            "https://"
+                                                                ++ floatingIp
+                                                                ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                                    )
+                                                    "Type commands in a shell!"
                                                 , Element.text "Type commands in a shell!"
                                                 ]
                                             , Element.row
                                                 exoRowAttributes
-                                                [ uiButton
-                                                    { label = Element.text "Server Dashboard"
-                                                    , onPress = Just (OpenNewWindow ("https://" ++ floatingIp ++ ":9090"))
-                                                    }
+                                                [ Button.button
+                                                    []
+                                                    (Just <|
+                                                        OpenNewWindow <|
+                                                            "https://"
+                                                                ++ floatingIp
+                                                                ++ ":9090"
+                                                    )
+                                                    "Server Dashboard"
                                                 , Element.text "Manage your server with an interactive dashboard!"
                                                 ]
                                             ]
@@ -982,10 +1005,11 @@ viewCreateServer provider createServerRequest =
             , viewNetworkPicker provider createServerRequest
             , viewKeypairPicker provider createServerRequest
             , viewUserDataInput provider createServerRequest
-            , uiButton
-                { onPress = createOnPress
-                , label = Element.text "Create"
-                }
+            , Element.el [ Element.alignRight ] <|
+                Button.button
+                    [ Modifier.Primary ]
+                    createOnPress
+                    "Create"
             ]
         ]
 
@@ -997,25 +1021,6 @@ viewCreateServer provider createServerRequest =
 renderMessage : String -> Element.Element Msg
 renderMessage message =
     Element.paragraph [] [ Element.text message ]
-
-
-renderProviderPicker : Model -> Provider -> Element.Element Msg
-renderProviderPicker model provider =
-    let
-        isSelected p =
-            case model.viewState of
-                NonProviderView _ ->
-                    False
-
-                ProviderView selectedProvName _ ->
-                    p.name == selectedProvName
-    in
-    case isSelected provider of
-        False ->
-            uiButton { label = Element.text provider.name, onPress = Just (ProviderMsg provider.name (SetProviderView ListProviderServers)) }
-
-        True ->
-            Element.text provider.name
 
 
 renderImage : GlobalDefaults -> Provider -> OSTypes.Image -> Element.Element Msg
@@ -1050,7 +1055,7 @@ renderImage globalDefaults provider image =
                 [ Element.text "Tags: "
                 , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
                 ]
-            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Launch")
+            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Choose")
             ]
 
 
@@ -1063,7 +1068,14 @@ renderServer provider server =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
-        , uiButton { label = Element.text "Details", onPress = Just (ProviderMsg provider.name (SetProviderView (ServerDetail server.osProps.uuid False PasswordHidden))) }
+        , Button.button
+            []
+            (Just <|
+                ProviderMsg provider.name <|
+                    SetProviderView <|
+                        ServerDetail server.osProps.uuid False PasswordHidden
+            )
+            "Details"
         , if server.exoProps.deletionAttempted == True then
             Element.text "Deleting..."
 
@@ -1426,35 +1438,6 @@ friendlyCockpitReadiness cockpitLoginStatus =
 
 
 {- Elm UI Doodads -}
-
-
-uiButton : { onPress : Maybe Msg, label : Element.Element Msg } -> Element.Element Msg
-uiButton props =
-    let
-        disabledAttrs =
-            [ Border.color (Element.rgb 0.8 0.8 0.8)
-            , Font.color (Element.rgb 0.6 0.6 0.6)
-            ]
-
-        enabledAttrs =
-            [ Border.color (Element.rgb 0 0 0) ]
-
-        attrs =
-            if props.onPress == Nothing then
-                -- This should be where we decide what a disabled button looks like
-                disabledAttrs
-
-            else
-                enabledAttrs
-    in
-    Input.button
-        ([ Element.padding 5
-         , Border.rounded 6
-         , Border.width 1
-         ]
-            ++ attrs
-        )
-        props
 
 
 exoRowAttributes : List (Element.Attribute Msg)
