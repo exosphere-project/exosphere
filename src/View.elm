@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Base64
+import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -68,7 +69,6 @@ elementView maybeWindowSize model =
                             Element.fill
                 , Element.height Element.fill
                 , Element.scrollbars
-                , Background.color <| Element.rgb255 245 245 245
                 ]
                 [ case model.viewState of
                     NonProviderView viewConstructor ->
@@ -236,7 +236,7 @@ navMenuView model =
             MenuItem.menuItem active "Add Provider" (Just (SetNonProviderView Login))
     in
     Element.column
-        [ Background.color (Element.rgb255 41 46 52)
+        [ Background.color <| Color.toElementColor <| Framework.Color.black_ter
         , Font.color (Element.rgb255 209 209 209)
         , Element.width (Element.px navMenuWidth)
         , Element.height Element.shrink

@@ -29,13 +29,13 @@ menuItem state itemLabel onPress =
                 Active ->
                     ( Font.bold
                     , Framework.Color.white
-                    , Framework.Color.black_ter
+                    , Framework.Color.grey_darker
                     )
 
                 Inactive ->
                     ( Font.regular
-                    , Framework.Color.grey_lighter
-                    , Framework.Color.black_bis
+                    , Framework.Color.grey_light
+                    , Framework.Color.black_ter
                     )
 
         menuItemButtonAttrs =
