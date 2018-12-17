@@ -10,7 +10,7 @@ import Json.Encode as Encode
 import LocalStorage.Types exposing (..)
 import RemoteData
 import Time
-import Types.OpenstackTypes as OSTypes
+import OpenStack.Types as OSTypes
 import Types.Types as Types
 
 
