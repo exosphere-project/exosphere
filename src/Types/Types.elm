@@ -236,7 +236,7 @@ type CockpitLoginStatus
 type ServerUiStatus
     = ServerUiStatusUnknown
     | ServerUiStatusBuilding
-    | ServerUiStatusStarting
+    | ServerUiStatusPartiallyActive
     | ServerUiStatusReady
     | ServerUiStatusPaused
     | ServerUiStatusSuspended

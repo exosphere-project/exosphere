@@ -386,10 +386,10 @@ getServerUiStatus server =
                 OSTypes.ServerActive ->
                     case server.exoProps.cockpitStatus of
                         NotChecked ->
-                            ServerUiStatusStarting
+                            ServerUiStatusPartiallyActive
 
                         CheckedNotReady ->
-                            ServerUiStatusStarting
+                            ServerUiStatusPartiallyActive
 
                         Ready ->
                             ServerUiStatusReady
@@ -434,8 +434,8 @@ getServerUiStatusStr status =
         ServerUiStatusBuilding ->
             "Building"
 
-        ServerUiStatusStarting ->
-            "Starting"
+        ServerUiStatusPartiallyActive ->
+            "Partially Active"
 
         ServerUiStatusReady ->
             "Ready"
@@ -474,7 +474,7 @@ getServerUiStatusColor status =
         ServerUiStatusBuilding ->
             "yellow"
 
-        ServerUiStatusStarting ->
+        ServerUiStatusPartiallyActive ->
             "yellow"
 
         ServerUiStatusReady ->
