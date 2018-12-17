@@ -14,6 +14,7 @@ import Framework.Button as Button
 import Framework.Card as Card
 import Framework.Color
 import Framework.Modifier as Modifier
+import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Html.Attributes
@@ -838,7 +839,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                 Nothing ->
                                     Element.text "Server Dashboard and Terminal not ready yet."
 
-                        actions =
+                        actionButtons =
                             let
                                 allowedActions =
                                     ServerActions.getAllowed details.openstackStatus
@@ -851,7 +852,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                           <|
                                             Button.button
                                                 action.selectMods
-                                                (Just <| ProviderMsg provider.name <| RequestServerAction server action.action)
+                                                (Just <| ProviderMsg provider.name <| RequestServerAction server action.action action.targetStatus)
                                                 action.name
                                         , Element.text action.description
                                         ]
@@ -862,6 +863,20 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                 [ Element.spacingXY 0 10 ]
                             <|
                                 List.map renderActionButton allowedActions
+
+                        viewActions =
+                            case server.exoProps.targetOpenstackStatus of
+                                Nothing ->
+                                    actionButtons
+
+                                Just targetStatus ->
+                                    Element.el
+                                        [ Element.padding 10 ]
+                                    <|
+                                        Spinner.spinner
+                                            Spinner.Rotation
+                                            32
+                                            Framework.Color.black
 
                         resourceUsageGraphs =
                             case maybeFloatingIp of
@@ -936,7 +951,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                             ]
                         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
                             [ Element.el heading3 (Element.text "Server Actions")
-                            , actions
+                            , viewActions
                             , Element.el heading3 (Element.text "System Resource Usage")
                             , resourceUsageGraphs
                             ]

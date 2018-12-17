@@ -120,7 +120,7 @@ type ProviderSpecificMsgConstructor
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
-    | RequestServerAction Server (Provider -> Server -> Cmd Msg)
+    | RequestServerAction Server (Provider -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
@@ -208,6 +208,7 @@ type alias ExoServerProps =
     , selected : Bool
     , cockpitStatus : CockpitLoginStatus
     , deletionAttempted : Bool
+    , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     }
 
 

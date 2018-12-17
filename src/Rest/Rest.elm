@@ -65,10 +65,10 @@ import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (..)
 import Time
-import OpenStack.Types as OSTypes
 import Types.Types exposing (..)
 
 
@@ -691,7 +691,7 @@ receiveServers model provider result =
             -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
             let
                 defaultExoProps =
-                    ExoServerProps Unknown False NotChecked False
+                    ExoServerProps Unknown False NotChecked False Nothing
 
                 enrichNewServer : OSTypes.Server -> Server
                 enrichNewServer newOpenstackServer =
@@ -744,8 +744,23 @@ receiveServerDetail model provider serverUuid result =
 
                                 oldExoProps =
                                     server.exoProps
+
+                                newTargetOpenstackStatus =
+                                    case oldExoProps.targetOpenstackStatus of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just statuses ->
+                                            case List.member serverDetails.openstackStatus statuses of
+                                                True ->
+                                                    Nothing
+
+                                                False ->
+                                                    Just statuses
                             in
-                            Server { oldOSProps | details = Just serverDetails } { oldExoProps | floatingIpState = floatingIpState }
+                            Server
+                                { oldOSProps | details = Just serverDetails }
+                                { oldExoProps | floatingIpState = floatingIpState, targetOpenstackStatus = newTargetOpenstackStatus }
 
                         newProvider =
                             Helpers.providerUpdateServer provider newServer

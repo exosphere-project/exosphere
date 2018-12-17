@@ -17,6 +17,7 @@ type alias ServerAction =
     , allowedStatus : List OSTypes.ServerStatus
     , action : Provider -> Server -> Cmd Msg
     , selectMods : List Modifier.Modifier
+    , targetStatus : List OSTypes.ServerStatus
     }
 
 
@@ -40,6 +41,7 @@ actions =
             doAction <|
                 Json.Encode.object [ ( "os-start", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
+      , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Unpause"
       , description = "Restore paused server"
@@ -48,30 +50,35 @@ actions =
             doAction <|
                 Json.Encode.object [ ( "unpause", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
+      , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Resume"
       , description = "Resume suspended server"
       , allowedStatus = [ OSTypes.ServerSuspended ]
       , action = doAction <| Json.Encode.object [ ( "resume", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
+      , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Unshelve"
       , description = "Restore shelved server"
       , allowedStatus = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
-      , action = doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
+      , action = doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ])
       , selectMods = [ Modifier.Primary ]
+      , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Suspend"
       , description = "Save execution state to disk"
       , allowedStatus = [ OSTypes.ServerActive ]
       , action = doAction <| Json.Encode.object [ ( "suspend", Json.Encode.null ) ]
       , selectMods = []
+      , targetStatus = [ OSTypes.ServerSuspended ]
       }
     , { name = "Shelve"
       , description = "Shut down server and offload it from compute host"
       , allowedStatus = [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
       , action = doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
       , selectMods = []
+      , targetStatus = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       }
     , { name = "Reboot"
       , description = "Restart server"
@@ -87,6 +94,7 @@ actions =
                       )
                     ]
       , selectMods = [ Modifier.Warning ]
+      , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Delete"
       , description = "Destroy server"
@@ -104,6 +112,7 @@ actions =
             ]
       , action = Rest.requestDeleteServer
       , selectMods = [ Modifier.Danger ]
+      , targetStatus = [ OSTypes.ServerSoftDeleted ]
       }
 
     {-
@@ -113,6 +122,7 @@ actions =
          , allowedStatus = [ OSTypes.ServerActive ]
          , action = doAction <| Json.Encode.object [ ( "pause", Json.Encode.null ) ]
          , selectMods = []
+         , targetStatus = [ OSTypes.ServerPaused ]
          }
     -}
     {-
@@ -122,6 +132,7 @@ actions =
          , allowedStatus = [ OSTypes.ServerActive ]
          , action = doAction <| Json.Encode.object [ ( "os-stop", Json.Encode.null ) ]
          , selectMods = []
+         , targetStatus = [ OSTypes.ServerStopped ]
          }
     -}
     ]
