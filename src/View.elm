@@ -1187,6 +1187,24 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
 
         floatingIpAddress =
             fetchFirstIpAddressOfType OSTypes.IpAddressFloating
+
+        smallButtonStyle =
+            [ Font.size 10 ]
+
+        ipButton displayString subMsg =
+            Input.button
+                smallButtonStyle
+                { onPress =
+                    Just <|
+                        ProviderMsg provider.name <|
+                            SetProviderView <|
+                                ServerDetail
+                                    serverUuid
+                                    verboseStatus
+                                    passwordVisibility
+                                    subMsg
+                , label = Element.text displayString
+                }
     in
     case ipInfoLevel of
         IPDetails ->
@@ -1194,36 +1212,14 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
                 (exoColumnAttributes ++ [ Element.padding 0 ])
                 [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
                 , compactKVSubRow "Fixed IP" (Element.text fixedIpAddress)
-                , Button.button
-                    []
-                    (Just <|
-                        ProviderMsg provider.name <|
-                            SetProviderView <|
-                                ServerDetail
-                                    serverUuid
-                                    verboseStatus
-                                    passwordVisibility
-                                    IPSummary
-                    )
-                    "^"
+                , ipButton "^ IP summary" IPSummary
                 ]
 
         IPSummary ->
             Element.column
                 (exoColumnAttributes ++ [ Element.padding 0 ])
                 [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
-                , Button.button
-                    []
-                    (Just <|
-                        ProviderMsg provider.name <|
-                            SetProviderView <|
-                                ServerDetail
-                                    serverUuid
-                                    verboseStatus
-                                    passwordVisibility
-                                    IPDetails
-                    )
-                    "IP details"
+                , ipButton "> IP details" IPDetails
                 ]
 
 
