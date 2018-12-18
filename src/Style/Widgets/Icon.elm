@@ -50,15 +50,15 @@ remove_ cl size =
         ]
 
 
-roundRect : String -> Element.Element msg
-roundRect color =
+roundRect : Color.Color -> Int -> Element.Element msg
+roundRect cl size =
     Element.el [] <|
         Element.html <|
-            roundRect_ color
+            roundRect_ cl size
 
 
-roundRect_ : String -> Html.Html msg
-roundRect_ color =
+roundRect_ : Color.Color -> Int -> Html.Html msg
+roundRect_ cl size =
     Svg.svg
-        [ SA.width "60", SA.height "60", SA.viewBox "0 0 60 60" ]
-        [ Svg.rect [ SA.x "10", SA.y "10", SA.width "50", SA.height "50", SA.rx "15", SA.ry "15", SA.fill color ] [] ]
+        [ SA.width <| String.fromInt size, SA.height <| String.fromInt size, SA.viewBox "0 0 60 60" ]
+        [ Svg.rect [ SA.x "10", SA.y "10", SA.width "50", SA.height "50", SA.rx "15", SA.ry "15", SA.fill (Color.colorToHex cl) ] [] ]

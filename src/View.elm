@@ -680,7 +680,7 @@ viewServerDetail project serverUuid viewStateParams =
                                                     Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
 
                                                 Nothing ->
-                                                    Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor)
+                                                    Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
                             in
                             Element.column
                                 (exoColumnAttributes ++ [ Element.padding 0 ])
@@ -1172,7 +1172,7 @@ renderServer : Project -> Server -> Element.Element Msg
 renderServer project server =
     let
         statusIcon =
-            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
+            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
         checkBoxLabel : Server -> Element.Element Msg
         checkBoxLabel aServer =
@@ -1188,6 +1188,7 @@ renderServer project server =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (checkBoxLabel server)
             }
+        , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
         , Button.button
             []
             (Just <|

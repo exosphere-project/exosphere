@@ -27,7 +27,9 @@ module Helpers.Helpers exposing
     , toastConfig
     )
 
+import Color
 import Debug
+import Framework.Color
 import Html
 import Html.Attributes
 import ISO8601
@@ -480,44 +482,44 @@ getServerUiStatusStr status =
             "Shelved"
 
 
-getServerUiStatusColor : ServerUiStatus -> String
+getServerUiStatusColor : ServerUiStatus -> Color.Color
 getServerUiStatusColor status =
     case status of
         ServerUiStatusUnknown ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusBuilding ->
-            "yellow"
+            Framework.Color.yellow
 
         ServerUiStatusPartiallyActive ->
-            "yellow"
+            Framework.Color.yellow
 
         ServerUiStatusReady ->
-            "green"
+            Framework.Color.green
 
         ServerUiStatusPaused ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusSuspended ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusShutoff ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusStopped ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusSoftDeleted ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusError ->
-            "red"
+            Framework.Color.red
 
         ServerUiStatusRescued ->
-            "red"
+            Framework.Color.red
 
         ServerUiStatusShelved ->
-            "gray"
+            Framework.Color.grey
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
