@@ -1157,22 +1157,29 @@ getEffectiveUserDataSize createServerRequest =
 
 renderIpAddresses : List OSTypes.IpAddress -> Element.Element Msg
 renderIpAddresses ipAddresses =
-    Element.column (exoColumnAttributes ++ [ Element.padding 0 ]) (List.map renderIpAddress ipAddresses)
-
-
-renderIpAddress : OSTypes.IpAddress -> Element.Element Msg
-renderIpAddress ipAddress =
     let
-        humanFriendlyIpType : OSTypes.IpAddressType -> String
-        humanFriendlyIpType ipType =
-            case ipType of
-                OSTypes.IpAddressFixed ->
-                    "Fixed IP"
+        fetchFirstIpAddressOfType : OSTypes.IpAddressType -> String
+        fetchFirstIpAddressOfType ipAddressType =
+            ipAddresses
+                |> List.filter
+                    (\ipAddress ->
+                        ipAddress.openstackType == ipAddressType
+                    )
+                |> List.head
+                |> Maybe.map .address
+                |> Maybe.withDefault ""
 
-                OSTypes.IpAddressFloating ->
-                    "Floating IP"
+        fixedIpAddress =
+            fetchFirstIpAddressOfType OSTypes.IpAddressFixed
+
+        floatingIpAddress =
+            fetchFirstIpAddressOfType OSTypes.IpAddressFloating
     in
-    compactKVSubRow (humanFriendlyIpType ipAddress.openstackType) (Element.text ipAddress.address)
+    Element.column
+        (exoColumnAttributes ++ [ Element.padding 0 ])
+        [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
+        , compactKVSubRow "Fixed IP" (Element.text fixedIpAddress)
+        ]
 
 
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
