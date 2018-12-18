@@ -650,6 +650,31 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                             Debug.toString details.powerState
                                 |> String.dropLeft 5
 
+                        statusView =
+                            let
+                                graphic =
+                                    case details.openstackStatus of
+                                        OSTypes.ServerBuilding ->
+                                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
+
+                                        _ ->
+                                            case server.exoProps.targetOpenstackStatus of
+                                                Just _ ->
+                                                    Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
+
+                                                Nothing ->
+                                                    Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor)
+                            in
+                            Element.column
+                                (exoColumnAttributes ++ [ Element.padding 0 ])
+                                ([ Element.row [ Font.bold ]
+                                    [ Element.el [ Element.paddingEach { edges | right = 15 } ] graphic
+                                    , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+                                    ]
+                                 ]
+                                    ++ verboseStatusView
+                                )
+
                         verboseStatusView =
                             case verboseStatus of
                                 False ->
@@ -872,11 +897,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                 Just targetStatus ->
                                     Element.el
                                         [ Element.padding 10 ]
-                                    <|
-                                        Spinner.spinner
-                                            Spinner.Rotation
-                                            32
-                                            Framework.Color.black
+                                        Element.none
 
                         resourceUsageGraphs =
                             case maybeFloatingIp of
@@ -927,18 +948,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                 heading2
                                 (Element.text "Server Details")
                             , compactKVRow "Name" (Element.text server.osProps.name)
-                            , compactKVRow
-                                "Status"
-                                (Element.column
-                                    (exoColumnAttributes ++ [ Element.padding 0 ])
-                                    ([ Element.row [ Font.bold ]
-                                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor))
-                                        , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
-                                        ]
-                                     ]
-                                        ++ verboseStatusView
-                                    )
-                                )
+                            , compactKVRow "Status" statusView
                             , compactKVRow "UUID" (Element.text server.osProps.uuid)
                             , compactKVRow "Created on" (Element.text details.created)
                             , compactKVRow "Image" (Element.text imageText)
