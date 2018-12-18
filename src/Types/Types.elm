@@ -9,6 +9,7 @@ module Types.Types exposing
     , FloatingIpState(..)
     , GlobalDefaults
     , HttpRequestMethod(..)
+    , IPInfoLevel(..)
     , LoginField(..)
     , Model
     , Msg(..)
@@ -154,8 +155,13 @@ type NonProviderViewConstructor
 type ProviderViewConstructor
     = ListImages
     | ListProviderServers
-    | ServerDetail OSTypes.ServerUuid VerboseStatus PasswordVisibility
+    | ServerDetail OSTypes.ServerUuid VerboseStatus PasswordVisibility IPInfoLevel
     | CreateServer CreateServerRequest
+
+
+type IPInfoLevel
+    = IPDetails
+    | IPSummary
 
 
 type alias VerboseStatus =
