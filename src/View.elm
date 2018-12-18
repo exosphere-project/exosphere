@@ -1188,12 +1188,10 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
         floatingIpAddress =
             fetchFirstIpAddressOfType OSTypes.IpAddressFloating
 
-        smallButtonStyle =
-            [ Font.size 10 ]
-
-        ipButton displayString subMsg =
+        ipButton : String -> IPInfoLevel -> Element.Element Msg
+        ipButton displayString ipMsg =
             Input.button
-                smallButtonStyle
+                [ Font.size 10 ]
                 { onPress =
                     Just <|
                         ProviderMsg provider.name <|
@@ -1202,7 +1200,7 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
                                     serverUuid
                                     verboseStatus
                                     passwordVisibility
-                                    subMsg
+                                    ipMsg
                 , label = Element.text displayString
                 }
     in
