@@ -626,7 +626,7 @@ viewServers project =
                             else
                                 [ Modifier.Danger ]
                     in
-                    Element.column exoColumnAttributes
+                    Element.column (exoColumnAttributes ++ [ Element.width Element.fill ])
                         [ Element.el heading2 (Element.text "My Servers")
                         , Element.column (exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
                             [ Element.text "Bulk Actions"
@@ -638,7 +638,8 @@ viewServers project =
                                 }
                             , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
-                        , Element.column exoColumnAttributes (List.map (renderServer project) servers)
+                        , Element.column (exoColumnAttributes ++ [ Element.width Element.fill ])
+                            (List.map (renderServer project) servers)
                         ]
 
 
@@ -1188,7 +1189,7 @@ renderServer project server =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (checkBoxLabel server)
             }
-        , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+        , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
         , Button.button
             []
             (Just <|
