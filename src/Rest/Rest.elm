@@ -179,7 +179,7 @@ requestServerDetail project serverUuid =
         Get
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
-        (Http.expectJson decodeServerDetails)
+        (Http.expectJson <| Decode.at [ "server" ] decodeServerDetails)
         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerDetail serverUuid result))
 
 
@@ -1392,12 +1392,12 @@ serverDecoder =
             ]
         )
         (Decode.field "id" Decode.string)
-        (Decode.map (\x -> Just x) decodeListServerDetails)
+        (Decode.map (\x -> Just x) decodeServerDetails)
         (Decode.succeed RemoteData.NotAsked)
 
 
-decodeListServerDetails : Decode.Decoder OSTypes.ServerDetails
-decodeListServerDetails =
+decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
+decodeServerDetails =
     let
         flattenAddressesObject kVPairs =
             {- Takes a list of key-value pairs, the keys being network names and the values being OSTypes.IpAddress
@@ -1425,37 +1425,6 @@ decodeListServerDetails =
             ]
         )
         (Decode.at [ "metadata" ] metadataDecoder)
-
-
-decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
-decodeServerDetails =
-    let
-        flattenAddressesObject kVPairs =
-            {- Takes a list of key-value pairs, the keys being network names and the values being OSTypes.IpAddress
-               Returns a flat list of OSTypes.IpAddress
-            -}
-            List.foldl (\kVPair resultList -> Tuple.second kVPair :: resultList) [] kVPairs
-                |> List.concat
-    in
-    Decode.map8 OSTypes.ServerDetails
-        (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
-        (Decode.at [ "server", "created" ] Decode.string)
-        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
-            |> Decode.andThen serverPowerStateDecoder
-        )
-        (Decode.oneOf
-            [ Decode.at [ "server", "image", "id" ] Decode.string
-            , Decode.succeed ""
-            ]
-        )
-        (Decode.at [ "server", "flavor", "id" ] Decode.string)
-        (Decode.at [ "server", "key_name" ] (Decode.nullable Decode.string))
-        (Decode.oneOf
-            [ Decode.at [ "server", "addresses" ] (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder)))
-            , Decode.succeed []
-            ]
-        )
-        (Decode.at [ "server", "metadata" ] metadataDecoder)
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
