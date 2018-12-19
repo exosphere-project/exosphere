@@ -331,8 +331,8 @@ providerView model provider viewConstructor =
                 ListProviderServers ->
                     viewServers provider
 
-                ServerDetail serverUuid verboseStatus passwordVisibility ->
-                    viewServerDetail provider serverUuid verboseStatus passwordVisibility
+                ServerDetail serverUuid viewStateParams ->
+                    viewServerDetail provider serverUuid viewStateParams
 
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
@@ -625,8 +625,8 @@ viewServers provider =
                         ]
 
 
-viewServerDetail : Provider -> OSTypes.ServerUuid -> VerboseStatus -> PasswordVisibility -> Element.Element Msg
-viewServerDetail provider serverUuid verboseStatus passwordVisibility =
+viewServerDetail : Provider -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+viewServerDetail provider serverUuid viewStateParams =
     let
         maybeServer =
             Helpers.serverLookup provider serverUuid
@@ -676,7 +676,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                 )
 
                         verboseStatusView =
-                            case verboseStatus of
+                            case viewStateParams.verboseStatus of
                                 False ->
                                     [ Button.button
                                         []
@@ -685,8 +685,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                                 SetProviderView <|
                                                     ServerDetail
                                                         server.osProps.uuid
-                                                        True
-                                                        passwordVisibility
+                                                        { viewStateParams | verboseStatus = True }
                                         )
                                         "See detail"
                                     ]
@@ -759,7 +758,12 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                                 flippyCardContents : PasswordVisibility -> String -> Element.Element Msg
                                                 flippyCardContents pwVizOnClick text =
                                                     Element.el
-                                                        [ Events.onClick (ProviderMsg provider.name <| SetProviderView <| ServerDetail serverUuid verboseStatus pwVizOnClick)
+                                                        [ Events.onClick
+                                                            (ProviderMsg provider.name <|
+                                                                SetProviderView <|
+                                                                    ServerDetail serverUuid
+                                                                        { viewStateParams | passwordVisibility = pwVizOnClick }
+                                                            )
                                                         , Element.centerX
                                                         , Element.centerY
                                                         ]
@@ -770,7 +774,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                                                         { width = 250
                                                         , height = 30
                                                         , activeFront =
-                                                            case passwordVisibility of
+                                                            case viewStateParams.passwordVisibility of
                                                                 PasswordShown ->
                                                                     False
 
@@ -954,7 +958,13 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility =
                             , compactKVRow "Image" (Element.text imageText)
                             , compactKVRow "Flavor" (Element.text flavorText)
                             , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                            , compactKVRow "IP addresses" (renderIpAddresses details.ipAddresses)
+                            , compactKVRow "IP addresses"
+                                (renderIpAddresses
+                                    details.ipAddresses
+                                    provider
+                                    server.osProps.uuid
+                                    viewStateParams
+                                )
                             , Element.el heading3 (Element.text "Interact with server")
                             , consoleLink
                             , cockpitInteractionLinks
@@ -1126,7 +1136,12 @@ renderServer provider server =
             (Just <|
                 ProviderMsg provider.name <|
                     SetProviderView <|
-                        ServerDetail server.osProps.uuid False PasswordHidden
+                        ServerDetail
+                            server.osProps.uuid
+                            { verboseStatus = False
+                            , passwordVisibility = PasswordHidden
+                            , ipInfoLevel = IPSummary
+                            }
             )
             "Details"
         , if server.exoProps.deletionAttempted == True then
@@ -1155,24 +1170,71 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List OSTypes.IpAddress -> Element.Element Msg
-renderIpAddresses ipAddresses =
-    Element.column (exoColumnAttributes ++ [ Element.padding 0 ]) (List.map renderIpAddress ipAddresses)
-
-
-renderIpAddress : OSTypes.IpAddress -> Element.Element Msg
-renderIpAddress ipAddress =
+renderIpAddresses : List OSTypes.IpAddress -> Provider -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+renderIpAddresses ipAddresses provider serverUuid viewStateParams =
     let
-        humanFriendlyIpType : OSTypes.IpAddressType -> String
-        humanFriendlyIpType ipType =
-            case ipType of
-                OSTypes.IpAddressFixed ->
-                    "Fixed IP"
+        ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
+        ipAddressesOfType ipAddressType =
+            ipAddresses
+                |> List.filter
+                    (\ipAddress ->
+                        ipAddress.openstackType == ipAddressType
+                    )
 
-                OSTypes.IpAddressFloating ->
-                    "Floating IP"
+        fixedIpAddressRows =
+            ipAddressesOfType OSTypes.IpAddressFixed
+                |> List.map
+                    (\ipAddress ->
+                        compactKVSubRow "Fixed IP" (Element.text ipAddress.address)
+                    )
+
+        floatingIpAddressRows =
+            ipAddressesOfType OSTypes.IpAddressFloating
+                |> List.map
+                    (\ipAddress ->
+                        compactKVSubRow "Floating IP" (Element.text ipAddress.address)
+                    )
+
+        gray : Element.Color
+        gray =
+            Element.rgb255 219 219 219
+
+        ipButton : String -> String -> IPInfoLevel -> Element.Element Msg
+        ipButton displayButtonString displayLabel ipMsg =
+            Element.row
+                [ Element.spacing 3 ]
+                [ Input.button
+                    [ Font.size 10
+                    , Border.width 1
+                    , Border.rounded 20
+                    , Border.color gray
+                    , Element.padding 3
+                    ]
+                    { onPress =
+                        Just <|
+                            ProviderMsg provider.name <|
+                                SetProviderView <|
+                                    ServerDetail
+                                        serverUuid
+                                        { viewStateParams | ipInfoLevel = ipMsg }
+                    , label = Element.text displayButtonString
+                    }
+                , Element.el [ Font.size 10 ] (Element.text displayLabel)
+                ]
     in
-    compactKVSubRow (humanFriendlyIpType ipAddress.openstackType) (Element.text ipAddress.address)
+    case viewStateParams.ipInfoLevel of
+        IPDetails ->
+            Element.column
+                (exoColumnAttributes ++ [ Element.padding 0 ])
+                (floatingIpAddressRows
+                    ++ fixedIpAddressRows
+                    ++ [ ipButton "^" "IP summary" IPSummary ]
+                )
+
+        IPSummary ->
+            Element.column
+                (exoColumnAttributes ++ [ Element.padding 0 ])
+                (floatingIpAddressRows ++ [ ipButton ">" "IP details" IPDetails ])
 
 
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg

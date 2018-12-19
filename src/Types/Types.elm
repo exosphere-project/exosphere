@@ -9,6 +9,7 @@ module Types.Types exposing
     , FloatingIpState(..)
     , GlobalDefaults
     , HttpRequestMethod(..)
+    , IPInfoLevel(..)
     , LoginField(..)
     , Model
     , Msg(..)
@@ -24,6 +25,7 @@ module Types.Types exposing
     , ServerUiStatus(..)
     , VerboseStatus
     , ViewState(..)
+    , ViewStateParams
     , WindowSize
     )
 
@@ -154,8 +156,20 @@ type NonProviderViewConstructor
 type ProviderViewConstructor
     = ListImages
     | ListProviderServers
-    | ServerDetail OSTypes.ServerUuid VerboseStatus PasswordVisibility
+    | ServerDetail OSTypes.ServerUuid ViewStateParams
     | CreateServer CreateServerRequest
+
+
+type alias ViewStateParams =
+    { verboseStatus : VerboseStatus
+    , passwordVisibility : PasswordVisibility
+    , ipInfoLevel : IPInfoLevel
+    }
+
+
+type IPInfoLevel
+    = IPDetails
+    | IPSummary
 
 
 type alias VerboseStatus =
