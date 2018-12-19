@@ -1188,21 +1188,34 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
         floatingIpAddress =
             fetchFirstIpAddressOfType OSTypes.IpAddressFloating
 
-        ipButton : String -> IPInfoLevel -> Element.Element Msg
-        ipButton displayString ipMsg =
-            Input.button
-                [ Font.size 10 ]
-                { onPress =
-                    Just <|
-                        ProviderMsg provider.name <|
-                            SetProviderView <|
-                                ServerDetail
-                                    serverUuid
-                                    verboseStatus
-                                    passwordVisibility
-                                    ipMsg
-                , label = Element.text displayString
-                }
+        gray : Element.Color
+        gray =
+            Element.rgb255 219 219 219
+
+        ipButton : String -> String -> IPInfoLevel -> Element.Element Msg
+        ipButton displayButtonString displayLabel ipMsg =
+            Element.row
+                [ Element.spacing 3 ]
+                [ Input.button
+                    [ Font.size 10
+                    , Border.width 1
+                    , Border.rounded 20
+                    , Border.color gray
+                    , Element.padding 3
+                    ]
+                    { onPress =
+                        Just <|
+                            ProviderMsg provider.name <|
+                                SetProviderView <|
+                                    ServerDetail
+                                        serverUuid
+                                        verboseStatus
+                                        passwordVisibility
+                                        ipMsg
+                    , label = Element.text displayButtonString
+                    }
+                , Element.el [ Font.size 10 ] (Element.text displayLabel)
+                ]
     in
     case ipInfoLevel of
         IPDetails ->
@@ -1210,14 +1223,14 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
                 (exoColumnAttributes ++ [ Element.padding 0 ])
                 [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
                 , compactKVSubRow "Fixed IP" (Element.text fixedIpAddress)
-                , ipButton "^ IP summary" IPSummary
+                , ipButton "^" "IP summary" IPSummary
                 ]
 
         IPSummary ->
             Element.column
                 (exoColumnAttributes ++ [ Element.padding 0 ])
                 [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
-                , ipButton "> IP details" IPDetails
+                , ipButton ">" "IP details" IPDetails
                 ]
 
 
