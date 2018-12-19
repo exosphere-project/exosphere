@@ -331,8 +331,8 @@ providerView model provider viewConstructor =
                 ListProviderServers ->
                     viewServers provider
 
-                ServerDetail serverUuid verboseStatus passwordVisibility ipInfoLevel ->
-                    viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLevel
+                ServerDetail serverUuid viewStateParams ->
+                    viewServerDetail provider serverUuid viewStateParams
 
                 CreateServer createServerRequest ->
                     viewCreateServer provider createServerRequest
@@ -625,8 +625,8 @@ viewServers provider =
                         ]
 
 
-viewServerDetail : Provider -> OSTypes.ServerUuid -> VerboseStatus -> PasswordVisibility -> IPInfoLevel -> Element.Element Msg
-viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLevel =
+viewServerDetail : Provider -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+viewServerDetail provider serverUuid viewStateParams =
     let
         maybeServer =
             Helpers.serverLookup provider serverUuid
@@ -676,7 +676,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLeve
                                 )
 
                         verboseStatusView =
-                            case verboseStatus of
+                            case viewStateParams.verboseStatus of
                                 False ->
                                     [ Button.button
                                         []
@@ -685,9 +685,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLeve
                                                 SetProviderView <|
                                                     ServerDetail
                                                         server.osProps.uuid
-                                                        True
-                                                        passwordVisibility
-                                                        ipInfoLevel
+                                                        { viewStateParams | verboseStatus = True }
                                         )
                                         "See detail"
                                     ]
@@ -763,7 +761,8 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLeve
                                                         [ Events.onClick
                                                             (ProviderMsg provider.name <|
                                                                 SetProviderView <|
-                                                                    ServerDetail serverUuid verboseStatus pwVizOnClick ipInfoLevel
+                                                                    ServerDetail serverUuid
+                                                                        { viewStateParams | passwordVisibility = pwVizOnClick }
                                                             )
                                                         , Element.centerX
                                                         , Element.centerY
@@ -775,7 +774,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLeve
                                                         { width = 250
                                                         , height = 30
                                                         , activeFront =
-                                                            case passwordVisibility of
+                                                            case viewStateParams.passwordVisibility of
                                                                 PasswordShown ->
                                                                     False
 
@@ -964,9 +963,7 @@ viewServerDetail provider serverUuid verboseStatus passwordVisibility ipInfoLeve
                                     details.ipAddresses
                                     provider
                                     server.osProps.uuid
-                                    verboseStatus
-                                    passwordVisibility
-                                    ipInfoLevel
+                                    viewStateParams
                                 )
                             , Element.el heading3 (Element.text "Interact with server")
                             , consoleLink
@@ -1139,7 +1136,12 @@ renderServer provider server =
             (Just <|
                 ProviderMsg provider.name <|
                     SetProviderView <|
-                        ServerDetail server.osProps.uuid False PasswordHidden IPSummary
+                        ServerDetail
+                            server.osProps.uuid
+                            { verboseStatus = False
+                            , passwordVisibility = PasswordHidden
+                            , ipInfoLevel = IPSummary
+                            }
             )
             "Details"
         , if server.exoProps.deletionAttempted == True then
@@ -1168,8 +1170,8 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List OSTypes.IpAddress -> Provider -> OSTypes.ServerUuid -> VerboseStatus -> PasswordVisibility -> IPInfoLevel -> Element.Element Msg
-renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibility ipInfoLevel =
+renderIpAddresses : List OSTypes.IpAddress -> Provider -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+renderIpAddresses ipAddresses provider serverUuid viewStateParams =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
@@ -1214,15 +1216,13 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
                                 SetProviderView <|
                                     ServerDetail
                                         serverUuid
-                                        verboseStatus
-                                        passwordVisibility
-                                        ipMsg
+                                        { viewStateParams | ipInfoLevel = ipMsg }
                     , label = Element.text displayButtonString
                     }
                 , Element.el [ Font.size 10 ] (Element.text displayLabel)
                 ]
     in
-    case ipInfoLevel of
+    case viewStateParams.ipInfoLevel of
         IPDetails ->
             Element.column
                 (exoColumnAttributes ++ [ Element.padding 0 ])

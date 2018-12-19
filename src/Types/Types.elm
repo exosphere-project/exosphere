@@ -25,6 +25,7 @@ module Types.Types exposing
     , ServerUiStatus(..)
     , VerboseStatus
     , ViewState(..)
+    , ViewStateParams
     , WindowSize
     )
 
@@ -155,8 +156,15 @@ type NonProviderViewConstructor
 type ProviderViewConstructor
     = ListImages
     | ListProviderServers
-    | ServerDetail OSTypes.ServerUuid VerboseStatus PasswordVisibility IPInfoLevel
+    | ServerDetail OSTypes.ServerUuid ViewStateParams
     | CreateServer CreateServerRequest
+
+
+type alias ViewStateParams =
+    { verboseStatus : VerboseStatus
+    , passwordVisibility : PasswordVisibility
+    , ipInfoLevel : IPInfoLevel
+    }
 
 
 type IPInfoLevel
