@@ -1171,22 +1171,27 @@ getEffectiveUserDataSize createServerRequest =
 renderIpAddresses : List OSTypes.IpAddress -> Provider -> OSTypes.ServerUuid -> VerboseStatus -> PasswordVisibility -> IPInfoLevel -> Element.Element Msg
 renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibility ipInfoLevel =
     let
-        fetchFirstIpAddressOfType : OSTypes.IpAddressType -> String
-        fetchFirstIpAddressOfType ipAddressType =
+        ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
+        ipAddressesOfType ipAddressType =
             ipAddresses
                 |> List.filter
                     (\ipAddress ->
                         ipAddress.openstackType == ipAddressType
                     )
-                |> List.head
-                |> Maybe.map .address
-                |> Maybe.withDefault ""
 
-        fixedIpAddress =
-            fetchFirstIpAddressOfType OSTypes.IpAddressFixed
+        fixedIpAddressRows =
+            ipAddressesOfType OSTypes.IpAddressFixed
+                |> List.map
+                    (\ipAddress ->
+                        compactKVSubRow "Fixed IP" (Element.text ipAddress.address)
+                    )
 
-        floatingIpAddress =
-            fetchFirstIpAddressOfType OSTypes.IpAddressFloating
+        floatingIpAddressRows =
+            ipAddressesOfType OSTypes.IpAddressFloating
+                |> List.map
+                    (\ipAddress ->
+                        compactKVSubRow "Floating IP" (Element.text ipAddress.address)
+                    )
 
         gray : Element.Color
         gray =
@@ -1221,17 +1226,15 @@ renderIpAddresses ipAddresses provider serverUuid verboseStatus passwordVisibili
         IPDetails ->
             Element.column
                 (exoColumnAttributes ++ [ Element.padding 0 ])
-                [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
-                , compactKVSubRow "Fixed IP" (Element.text fixedIpAddress)
-                , ipButton "^" "IP summary" IPSummary
-                ]
+                (floatingIpAddressRows
+                    ++ fixedIpAddressRows
+                    ++ [ ipButton "^" "IP summary" IPSummary ]
+                )
 
         IPSummary ->
             Element.column
                 (exoColumnAttributes ++ [ Element.padding 0 ])
-                [ compactKVSubRow "Floating IP" (Element.text floatingIpAddress)
-                , ipButton ">" "IP details" IPDetails
-                ]
+                (floatingIpAddressRows ++ [ ipButton ">" "IP details" IPDetails ])
 
 
 viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
