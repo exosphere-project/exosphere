@@ -719,8 +719,13 @@ receiveServers model project result =
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
+
+                requestServersDetailsCommands =
+                    List.map (\s -> requestServerDetail project s.osProps.uuid) newServers
+
+
             in
-            ( newModel, Cmd.none )
+            ( newModel, Cmd.batch requestServersDetailsCommands )
 
 
 receiveServerDetail : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
