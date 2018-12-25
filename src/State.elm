@@ -400,85 +400,58 @@ processProviderSpecificMsg model provider msg =
 
         RequestDeleteServer server ->
             let
-                updateServer someServer =
-                    if someServer.osProps.uuid == server.osProps.uuid then
-                        {- TODO DRY with below -}
-                        let
-                            oldExoProps =
-                                someServer.exoProps
-                        in
-                        Server someServer.osProps { oldExoProps | deletionAttempted = True }
+                oldExoProps =
+                    server.exoProps
 
-                    else
-                        someServer
+                newServer =
+                    Server server.osProps { oldExoProps | deletionAttempted = True }
 
                 newProvider =
-                    { provider
-                        | servers =
-                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers))
-                    }
+                    Helpers.providerUpdateServer provider newServer
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-            ( newModel, Rest.requestDeleteServer newProvider server )
+            ( newModel, Rest.requestDeleteServer newProvider newServer )
 
         RequestServerAction server func targetStatus ->
             let
-                updateServer someServer =
-                    if someServer.osProps.uuid == server.osProps.uuid then
-                        {- TODO DRY with above and below -}
-                        let
-                            oldExoProps =
-                                someServer.exoProps
-                        in
-                        Server someServer.osProps { oldExoProps | targetOpenstackStatus = Just targetStatus }
+                oldExoProps =
+                    server.exoProps
 
-                    else
-                        someServer
+                newServer =
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just targetStatus }
 
                 newProvider =
-                    { provider
-                        | servers =
-                            RemoteData.Success
-                                (List.map updateServer (RemoteData.withDefault [] provider.servers))
-                    }
+                    Helpers.providerUpdateServer provider newServer
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-            ( newModel, func provider server )
+            ( newModel, func newProvider newServer )
 
         ReceiveImages result ->
             Rest.receiveImages model provider result
 
         RequestDeleteServers serversToDelete ->
             let
-                updateServer someServer =
-                    if List.member someServer.osProps.uuid (List.map (\s -> s.osProps.uuid) serversToDelete) then
-                        {- TODO DRY with above -}
-                        let
-                            oldExoProps =
-                                someServer.exoProps
-                        in
-                        Server someServer.osProps { oldExoProps | deletionAttempted = True }
+                markDeletionAttempted someServer =
+                    let
+                        oldExoProps =
+                            someServer.exoProps
+                    in
+                    Server someServer.osProps { oldExoProps | deletionAttempted = True }
 
-                    else
-                        someServer
+                newServers =
+                    List.map markDeletionAttempted serversToDelete
 
                 newProvider =
-                    { provider
-                        | servers =
-                            RemoteData.Success
-                                (List.map updateServer (RemoteData.withDefault [] provider.servers))
-                    }
+                    Helpers.providerUpdateServers provider newServers
 
                 newModel =
                     Helpers.modelUpdateProvider model newProvider
             in
-            ( newModel
-            , Rest.requestDeleteServers newProvider serversToDelete
-            )
+            ( newModel, Rest.requestDeleteServers newProvider serversToDelete )
 
         SelectServer server newSelectionState ->
             let

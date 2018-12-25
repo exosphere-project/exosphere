@@ -18,6 +18,7 @@ module Helpers.Helpers exposing
     , providerNameFromUrl
     , providerTitle
     , providerUpdateServer
+    , providerUpdateServers
     , serverLookup
     , serviceCatalogToEndpoints
     , sortedFlavors
@@ -355,6 +356,11 @@ providerUpdateServer provider server =
             List.sortBy (\s -> s.osProps.name) newServers
     in
     { provider | servers = RemoteData.Success newServersSorted }
+
+
+providerUpdateServers : Provider -> List Server -> Provider
+providerUpdateServers provider servers =
+    List.foldl (\s p -> providerUpdateServer p s) provider servers
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
