@@ -170,7 +170,7 @@ type alias FlavorUuid =
 type alias Server =
     { name : String
     , uuid : ServerUuid
-    , details : Maybe ServerDetails
+    , details : ServerDetails
     , consoleUrl : WebData ConsoleUrl
     }
 

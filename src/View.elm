@@ -657,346 +657,344 @@ viewServerDetail project serverUuid viewStateParams =
             Element.text "No server found"
 
         Just server ->
-            case server.osProps.details of
-                Nothing ->
-                    Element.text "Retrieving details??"
+            let
+                details =
+                    server.osProps.details
 
-                Just details ->
+                friendlyOpenstackStatus =
+                    Debug.toString details.openstackStatus
+                        |> String.dropLeft 6
+
+                friendlyPowerState =
+                    Debug.toString details.powerState
+                        |> String.dropLeft 5
+
+                statusView =
                     let
-                        friendlyOpenstackStatus =
-                            Debug.toString details.openstackStatus
-                                |> String.dropLeft 6
-
-                        friendlyPowerState =
-                            Debug.toString details.powerState
-                                |> String.dropLeft 5
-
-                        statusView =
-                            let
-                                graphic =
-                                    case details.openstackStatus of
-                                        OSTypes.ServerBuilding ->
-                                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
-
-                                        _ ->
-                                            case server.exoProps.targetOpenstackStatus of
-                                                Just _ ->
-                                                    Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
-
-                                                Nothing ->
-                                                    Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
-                            in
-                            Element.column
-                                (exoColumnAttributes ++ [ Element.padding 0 ])
-                                ([ Element.row [ Font.bold ]
-                                    [ Element.el [ Element.paddingEach { edges | right = 15 } ] graphic
-                                    , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
-                                    ]
-                                 ]
-                                    ++ verboseStatusView
-                                )
-
-                        verboseStatusView =
-                            case viewStateParams.verboseStatus of
-                                False ->
-                                    [ Button.button
-                                        []
-                                        (Just <|
-                                            ProjectMsg (Helpers.getProjectId project) <|
-                                                SetProjectView <|
-                                                    ServerDetail
-                                                        server.osProps.uuid
-                                                        { viewStateParams | verboseStatus = True }
-                                        )
-                                        "See detail"
-                                    ]
-
-                                True ->
-                                    [ Element.text "Detailed status"
-                                    , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                                    , compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                                    , compactKVSubRow "Server Dashboard/Terminal readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
-                                    ]
-
-                        maybeFlavor =
-                            Helpers.flavorLookup project details.flavorUuid
-
-                        flavorText =
-                            case maybeFlavor of
-                                Just flavor ->
-                                    flavor.name
-
-                                Nothing ->
-                                    "Unknown flavor"
-
-                        maybeImage =
-                            Helpers.imageLookup project details.imageUuid
-
-                        imageText =
-                            case maybeImage of
-                                Just image ->
-                                    image.name
-
-                                Nothing ->
-                                    "Unknown image"
-
-                        consoleLink =
+                        graphic =
                             case details.openstackStatus of
-                                OSTypes.ServerActive ->
-                                    case server.osProps.consoleUrl of
-                                        RemoteData.NotAsked ->
-                                            Element.text "Console not available yet"
-
-                                        RemoteData.Loading ->
-                                            Element.text "Requesting console link..."
-
-                                        RemoteData.Failure error ->
-                                            let
-                                                genericError =
-                                                    Element.column exoColumnAttributes
-                                                        [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
-                                                        , Element.paragraph [] [ Element.text (Debug.toString error) ]
-                                                        ]
-                                            in
-                                            case error of
-                                                Http.BadStatus innerError ->
-                                                    if innerError.body == "{\"badRequest\": {\"message\": \"Unavailable console type spice-html5.\", \"code\": 400}}" then
-                                                        Element.paragraph []
-                                                            [ Element.text "Console unavailable due to cloud configuration."
-                                                            , Element.text " Try asking the administrator of "
-                                                            , Element.text project.creds.projectName
-                                                            , Element.text " to enable the SPICE+HTML5 or NoVNC console."
-                                                            ]
-
-                                                    else
-                                                        genericError
-
-                                                _ ->
-                                                    genericError
-
-                                        RemoteData.Success consoleUrl ->
-                                            let
-                                                flippyCardContents : PasswordVisibility -> String -> Element.Element Msg
-                                                flippyCardContents pwVizOnClick text =
-                                                    Element.el
-                                                        [ Events.onClick
-                                                            (ProjectMsg (Helpers.getProjectId project) <|
-                                                                SetProjectView <|
-                                                                    ServerDetail serverUuid
-                                                                        { viewStateParams | passwordVisibility = pwVizOnClick }
-                                                            )
-                                                        , Element.centerX
-                                                        , Element.centerY
-                                                        ]
-                                                        (Element.text text)
-
-                                                passwordFlippyCard password =
-                                                    Card.flipping
-                                                        { width = 250
-                                                        , height = 30
-                                                        , activeFront =
-                                                            case viewStateParams.passwordVisibility of
-                                                                PasswordShown ->
-                                                                    False
-
-                                                                PasswordHidden ->
-                                                                    True
-                                                        , front = flippyCardContents PasswordShown "(click to view password)"
-                                                        , back = flippyCardContents PasswordHidden password
-                                                        }
-
-                                                passwordHint =
-                                                    case Helpers.getServerExouserPassword details of
-                                                        Just password ->
-                                                            Element.column
-                                                                [ Element.spacing 10
-                                                                ]
-                                                                [ Element.text "Try logging in with username \"exouser\" and the following password:"
-                                                                , passwordFlippyCard password
-                                                                ]
-
-                                                        Nothing ->
-                                                            Element.none
-                                            in
-                                            Element.column
-                                                exoColumnAttributes
-                                                [ Button.button
-                                                    []
-                                                    (Just <|
-                                                        OpenNewWindow consoleUrl
-                                                    )
-                                                    "Console"
-                                                , Element.paragraph []
-                                                    [ Element.text "Launching the console is like connecting a screen, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here."
-                                                    , passwordHint
-                                                    ]
-                                                ]
-
                                 OSTypes.ServerBuilding ->
-                                    Element.text "Server building, console not available yet."
+                                    Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
 
                                 _ ->
-                                    Element.text "Console not available with server in this state."
+                                    case server.exoProps.targetOpenstackStatus of
+                                        Just _ ->
+                                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
 
-                        maybeFloatingIp =
-                            Helpers.getServerFloatingIp details.ipAddresses
+                                        Nothing ->
+                                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
+                    in
+                    Element.column
+                        (exoColumnAttributes ++ [ Element.padding 0 ])
+                        ([ Element.row [ Font.bold ]
+                            [ Element.el [ Element.paddingEach { edges | right = 15 } ] graphic
+                            , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+                            ]
+                         ]
+                            ++ verboseStatusView
+                        )
 
-                        cockpitInteractionLinks =
-                            case maybeFloatingIp of
-                                Just floatingIp ->
+                verboseStatusView =
+                    case viewStateParams.verboseStatus of
+                        False ->
+                            [ Button.button
+                                []
+                                (Just <|
+                                            ProjectMsg (Helpers.getProjectId project) <|
+                                                SetProjectView <|
+                                            ServerDetail
+                                                server.osProps.uuid
+                                                { viewStateParams | verboseStatus = True }
+                                )
+                                "See detail"
+                            ]
+
+                        True ->
+                            [ Element.text "Detailed status"
+                            , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                            , compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                            , compactKVSubRow "Server Dashboard/Terminal readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                            ]
+
+                maybeFlavor =
+                            Helpers.flavorLookup project details.flavorUuid
+
+                flavorText =
+                    case maybeFlavor of
+                        Just flavor ->
+                            flavor.name
+
+                        Nothing ->
+                            "Unknown flavor"
+
+                maybeImage =
+                            Helpers.imageLookup project details.imageUuid
+
+                imageText =
+                    case maybeImage of
+                        Just image ->
+                            image.name
+
+                        Nothing ->
+                            "Unknown image"
+
+                consoleLink =
+                    case details.openstackStatus of
+                        OSTypes.ServerActive ->
+                            case server.osProps.consoleUrl of
+                                RemoteData.NotAsked ->
+                                    Element.text "Console not available yet"
+
+                                RemoteData.Loading ->
+                                    Element.text "Requesting console link..."
+
+                                RemoteData.Failure error ->
                                     let
-                                        interactionLinksBase =
-                                            [ Element.row exoRowAttributes
-                                                [ Button.button
-                                                    []
-                                                    (Just <|
-                                                        OpenNewWindow <|
-                                                            "https://"
-                                                                ++ floatingIp
-                                                                ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                                    )
-                                                    "Type commands in a shell!"
-                                                , Element.text "Type commands in a shell!"
-                                                ]
-                                            , Element.row
-                                                exoRowAttributes
-                                                [ Button.button
-                                                    []
-                                                    (Just <|
-                                                        OpenNewWindow <|
-                                                            "https://"
-                                                                ++ floatingIp
-                                                                ++ ":9090"
-                                                    )
-                                                    "Server Dashboard"
-                                                , Element.text "Manage your server with an interactive dashboard!"
-                                                ]
-                                            ]
-                                    in
-                                    case server.exoProps.cockpitStatus of
-                                        NotChecked ->
-                                            Element.text "Status of server dashboard and terminal not available yet."
-
-                                        CheckedNotReady ->
-                                            Element.text "Server Dashboard and Terminal not ready yet."
-
-                                        Ready ->
+                                        genericError =
                                             Element.column exoColumnAttributes
-                                                ([ Element.text "Server Dashboard and Terminal are ready..." ]
-                                                    ++ interactionLinksBase
-                                                )
-
-                                Nothing ->
-                                    Element.text "Server Dashboard and Terminal not ready yet."
-
-                        actionButtons =
-                            let
-                                allowedActions =
-                                    ServerActions.getAllowed details.openstackStatus
-
-                                renderActionButton action =
-                                    Element.row
-                                        [ Element.spacing 10 ]
-                                        [ Element.el
-                                            [ Element.width <| Element.px 100 ]
-                                          <|
-                                            Button.button
-                                                action.selectMods
-                                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
-                                                action.name
-                                        , Element.text action.description
-                                        ]
-
-                                -- TODO hover text with description
-                            in
-                            Element.column
-                                [ Element.spacingXY 0 10 ]
-                            <|
-                                List.map renderActionButton allowedActions
-
-                        viewActions =
-                            case server.exoProps.targetOpenstackStatus of
-                                Nothing ->
-                                    actionButtons
-
-                                Just targetStatus ->
-                                    Element.el
-                                        [ Element.padding 10 ]
-                                        Element.none
-
-                        resourceUsageGraphs =
-                            case maybeFloatingIp of
-                                Just floatingIp ->
-                                    case server.exoProps.cockpitStatus of
-                                        Ready ->
-                                            let
-                                                graphsUrl =
-                                                    "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
-                                            in
-                                            -- I am so sorry
-                                            Element.html
-                                                (Html.div
-                                                    [ Html.Attributes.style "position" "relative"
-                                                    , Html.Attributes.style "overflow" "hidden"
-                                                    , Html.Attributes.style "width" "550px"
-                                                    , Html.Attributes.style "height" "650px"
+                                                [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
+                                                , Element.paragraph [] [ Element.text (Debug.toString error) ]
+                                                ]
+                                    in
+                                    case error of
+                                        Http.BadStatus innerError ->
+                                            if innerError.body == "{\"badRequest\": {\"message\": \"Unavailable console type spice-html5.\", \"code\": 400}}" then
+                                                Element.paragraph []
+                                                    [ Element.text "Console unavailable due to cloud configuration."
+                                                    , Element.text " Try asking the administrator of "
+                                                            , Element.text project.creds.projectName
+                                                    , Element.text " to enable the SPICE+HTML5 or NoVNC console."
                                                     ]
-                                                    [ Html.iframe
-                                                        [ Html.Attributes.style "position" "absolute"
-                                                        , Html.Attributes.style "top" "-320px"
-                                                        , Html.Attributes.style "left" "-30px"
-                                                        , Html.Attributes.style "width" "600px"
-                                                        , Html.Attributes.style "height" "1000px"
 
-                                                        -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
-                                                        -- This is not compliant HTML5 but still works
-                                                        , Html.Attributes.attribute "scrolling" "no"
-                                                        , Html.Attributes.src graphsUrl
-                                                        ]
-                                                        []
-                                                    ]
-                                                )
+                                            else
+                                                genericError
 
                                         _ ->
-                                            Element.text "Graphs not ready yet."
+                                            genericError
 
-                                Nothing ->
-                                    Element.text "Graphs not ready yet."
+                                RemoteData.Success consoleUrl ->
+                                    let
+                                        flippyCardContents : PasswordVisibility -> String -> Element.Element Msg
+                                        flippyCardContents pwVizOnClick text =
+                                            Element.el
+                                                [ Events.onClick
+                                                            (ProjectMsg (Helpers.getProjectId project) <|
+                                                                SetProjectView <|
+                                                            ServerDetail serverUuid
+                                                                { viewStateParams | passwordVisibility = pwVizOnClick }
+                                                    )
+                                                , Element.centerX
+                                                , Element.centerY
+                                                ]
+                                                (Element.text text)
+
+                                        passwordFlippyCard password =
+                                            Card.flipping
+                                                { width = 250
+                                                , height = 30
+                                                , activeFront =
+                                                    case viewStateParams.passwordVisibility of
+                                                        PasswordShown ->
+                                                            False
+
+                                                        PasswordHidden ->
+                                                            True
+                                                , front = flippyCardContents PasswordShown "(click to view password)"
+                                                , back = flippyCardContents PasswordHidden password
+                                                }
+
+                                        passwordHint =
+                                            case Helpers.getServerExouserPassword details of
+                                                Just password ->
+                                                    Element.column
+                                                        [ Element.spacing 10
+                                                        ]
+                                                        [ Element.text "Try logging in with username \"exouser\" and the following password:"
+                                                        , passwordFlippyCard password
+                                                        ]
+
+                                                Nothing ->
+                                                    Element.none
+                                    in
+                                    Element.column
+                                        exoColumnAttributes
+                                        [ Button.button
+                                            []
+                                            (Just <|
+                                                OpenNewWindow consoleUrl
+                                            )
+                                            "Console"
+                                        , Element.paragraph []
+                                            [ Element.text "Launching the console is like connecting a screen, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here."
+                                            , passwordHint
+                                            ]
+                                        ]
+
+                        OSTypes.ServerBuilding ->
+                            Element.text "Server building, console not available yet."
+
+                        _ ->
+                            Element.text "Console not available with server in this state."
+
+                maybeFloatingIp =
+                    Helpers.getServerFloatingIp details.ipAddresses
+
+                cockpitInteractionLinks =
+                    case maybeFloatingIp of
+                        Just floatingIp ->
+                            let
+                                interactionLinksBase =
+                                    [ Element.row exoRowAttributes
+                                        [ Button.button
+                                            []
+                                            (Just <|
+                                                OpenNewWindow <|
+                                                    "https://"
+                                                        ++ floatingIp
+                                                        ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                            )
+                                            "Type commands in a shell!"
+                                        , Element.text "Type commands in a shell!"
+                                        ]
+                                    , Element.row
+                                        exoRowAttributes
+                                        [ Button.button
+                                            []
+                                            (Just <|
+                                                OpenNewWindow <|
+                                                    "https://"
+                                                        ++ floatingIp
+                                                        ++ ":9090"
+                                            )
+                                            "Server Dashboard"
+                                        , Element.text "Manage your server with an interactive dashboard!"
+                                        ]
+                                    ]
+                            in
+                            case server.exoProps.cockpitStatus of
+                                NotChecked ->
+                                    Element.text "Status of server dashboard and terminal not available yet."
+
+                                CheckedNotReady ->
+                                    Element.text "Server Dashboard and Terminal not ready yet."
+
+                                Ready ->
+                                    Element.column exoColumnAttributes
+                                        ([ Element.text "Server Dashboard and Terminal are ready..." ]
+                                            ++ interactionLinksBase
+                                        )
+
+                        Nothing ->
+                            Element.text "Server Dashboard and Terminal not ready yet."
+
+                actionButtons =
+                    let
+                        allowedActions =
+                            ServerActions.getAllowed details.openstackStatus
+
+                        renderActionButton action =
+                            Element.row
+                                [ Element.spacing 10 ]
+                                [ Element.el
+                                    [ Element.width <| Element.px 100 ]
+                                  <|
+                                    Button.button
+                                        action.selectMods
+                                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
+                                        action.name
+                                , Element.text action.description
+                                ]
+
+                        -- TODO hover text with description
                     in
-                    Element.wrappedRow []
-                        [ Element.column
-                            (Element.alignTop
-                                :: Element.width (Element.px 585)
-                                :: exoColumnAttributes
-                            )
-                            [ Element.el
-                                heading2
-                                (Element.text "Server Details")
-                            , compactKVRow "Name" (Element.text server.osProps.name)
-                            , compactKVRow "Status" statusView
-                            , compactKVRow "UUID" (Element.text server.osProps.uuid)
-                            , compactKVRow "Created on" (Element.text details.created)
-                            , compactKVRow "Image" (Element.text imageText)
-                            , compactKVRow "Flavor" (Element.text flavorText)
-                            , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                            , compactKVRow "IP addresses"
-                                (renderIpAddresses
-                                    details.ipAddresses
+                    Element.column
+                        [ Element.spacingXY 0 10 ]
+                    <|
+                        List.map renderActionButton allowedActions
+
+                viewActions =
+                    case server.exoProps.targetOpenstackStatus of
+                        Nothing ->
+                            actionButtons
+
+                        Just targetStatus ->
+                            Element.el
+                                [ Element.padding 10 ]
+                                Element.none
+
+                resourceUsageGraphs =
+                    case maybeFloatingIp of
+                        Just floatingIp ->
+                            case server.exoProps.cockpitStatus of
+                                Ready ->
+                                    let
+                                        graphsUrl =
+                                            "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
+                                    in
+                                    -- I am so sorry
+                                    Element.html
+                                        (Html.div
+                                            [ Html.Attributes.style "position" "relative"
+                                            , Html.Attributes.style "overflow" "hidden"
+                                            , Html.Attributes.style "width" "550px"
+                                            , Html.Attributes.style "height" "650px"
+                                            ]
+                                            [ Html.iframe
+                                                [ Html.Attributes.style "position" "absolute"
+                                                , Html.Attributes.style "top" "-320px"
+                                                , Html.Attributes.style "left" "-30px"
+                                                , Html.Attributes.style "width" "600px"
+                                                , Html.Attributes.style "height" "1000px"
+
+                                                -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
+                                                -- This is not compliant HTML5 but still works
+                                                , Html.Attributes.attribute "scrolling" "no"
+                                                , Html.Attributes.src graphsUrl
+                                                ]
+                                                []
+                                            ]
+                                        )
+
+                                _ ->
+                                    Element.text "Graphs not ready yet."
+
+                        Nothing ->
+                            Element.text "Graphs not ready yet."
+            in
+            Element.wrappedRow []
+                [ Element.column
+                    (Element.alignTop
+                        :: Element.width (Element.px 585)
+                        :: exoColumnAttributes
+                    )
+                    [ Element.el
+                        heading2
+                        (Element.text "Server Details")
+                    , compactKVRow "Name" (Element.text server.osProps.name)
+                    , compactKVRow "Status" statusView
+                    , compactKVRow "UUID" (Element.text server.osProps.uuid)
+                    , compactKVRow "Created on" (Element.text details.created)
+                    , compactKVRow "Image" (Element.text imageText)
+                    , compactKVRow "Flavor" (Element.text flavorText)
+                    , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
+                    , compactKVRow "IP addresses"
+                        (renderIpAddresses
+                            details.ipAddresses
                                     project
-                                    server.osProps.uuid
-                                    viewStateParams
-                                )
-                            , Element.el heading3 (Element.text "Interact with server")
-                            , consoleLink
-                            , cockpitInteractionLinks
-                            ]
-                        , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
-                            [ Element.el heading3 (Element.text "Server Actions")
-                            , viewActions
-                            , Element.el heading3 (Element.text "System Resource Usage")
-                            , resourceUsageGraphs
-                            ]
-                        ]
+                            server.osProps.uuid
+                            viewStateParams
+                        )
+                    , Element.el heading3 (Element.text "Interact with server")
+                    , consoleLink
+                    , cockpitInteractionLinks
+                    ]
+                , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
+                    [ Element.el heading3 (Element.text "Server Actions")
+                    , viewActions
+                    , Element.el heading3 (Element.text "System Resource Usage")
+                    , resourceUsageGraphs
+                    ]
+                ]
 
 
 hint : String -> Element.Attribute msg
