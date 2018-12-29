@@ -1,5 +1,5 @@
 module LocalStorage.Types exposing
-    ( StoredProvider
+    ( StoredProject
     , StoredState
     )
 
@@ -7,13 +7,13 @@ import OpenStack.Types as OSTypes
 import Types.Types exposing (..)
 
 
-type alias StoredProvider =
-    { name : ProviderName
+type alias StoredProject =
+    { name : ProjectName
     , creds : Creds
     , auth : OSTypes.AuthToken
     }
 
 
 type alias StoredState =
-    { providers : List StoredProvider
+    { projects : List StoredProject
     }

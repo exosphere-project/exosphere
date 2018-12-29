@@ -21,8 +21,8 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : Provider -> HttpRequestMethod -> Url -> Http.Body -> Http.Expect a -> (Result Http.Error a -> Msg) -> Cmd Msg
-openstackCredentialedRequest provider method url requestBody expect resultMsg =
+openstackCredentialedRequest : Project -> HttpRequestMethod -> Url -> Http.Body -> Http.Expect a -> (Result Http.Error a -> Msg) -> Cmd Msg
+openstackCredentialedRequest project method url requestBody expect resultMsg =
     {-
        In order to ensure request is made with a valid token, perform a task
        which checks the time to see if our auth token is still valid or has
@@ -48,5 +48,5 @@ openstackCredentialedRequest provider method url requestBody expect resultMsg =
             Http.send resultMsg request
     in
     Task.perform
-        (\posixTime -> ProviderMsg provider.name (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
+        (\posixTime -> ProjectMsg project.name (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
         Time.now

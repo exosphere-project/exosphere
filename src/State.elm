@@ -47,15 +47,15 @@ chpasswd:
 
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
-            { providers = []
+            { projects = []
             }
 
         emptyModel : Model
         emptyModel =
             { messages = []
-            , viewState = NonProviderView Login
+            , viewState = NonProjectView Login
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
-            , providers = []
+            , projects = []
             , creds = Creds "" "" "" "" "" ""
             , imageFilterTag = Maybe.Just "distro-base"
             , globalDefaults = globalDefaults
@@ -126,43 +126,43 @@ updateUnderlying msg model =
 
         Tick _ ->
             case model.viewState of
-                NonProviderView _ ->
+                NonProjectView _ ->
                     ( model, Cmd.none )
 
-                ProviderView providerName ListProviderServers ->
-                    update (ProviderMsg providerName RequestServers) model
+                ProjectView projectName ListProjectServers ->
+                    update (ProjectMsg projectName RequestServers) model
 
-                ProviderView providerName (ServerDetail serverUuid _) ->
-                    update (ProviderMsg providerName (RequestServerDetail serverUuid)) model
+                ProjectView projectName (ServerDetail serverUuid _) ->
+                    update (ProjectMsg projectName (RequestServerDetail serverUuid)) model
 
                 _ ->
                     ( model, Cmd.none )
 
-        SetNonProviderView nonProviderViewConstructor ->
+        SetNonProjectView nonProjectViewConstructor ->
             let
                 newModel =
-                    { model | viewState = NonProviderView nonProviderViewConstructor }
+                    { model | viewState = NonProjectView nonProjectViewConstructor }
             in
-            case nonProviderViewConstructor of
+            case nonProjectViewConstructor of
                 Login ->
                     ( newModel, Cmd.none )
 
                 MessageLog ->
                     ( newModel, Cmd.none )
 
-        RequestNewProviderToken ->
+        RequestNewProjectToken ->
             ( model, Rest.requestAuthToken model.creds )
 
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
 
-        ProviderMsg providerName innerMsg ->
-            case Helpers.providerLookup model providerName of
+        ProjectMsg projectName innerMsg ->
+            case Helpers.projectLookup model projectName of
                 Nothing ->
-                    Helpers.processError model "Provider not found"
+                    Helpers.processError model "Project not found"
 
-                Just provider ->
-                    processProviderSpecificMsg model provider innerMsg
+                Just project ->
+                    processProjectSpecificMsg model project innerMsg
 
         {- Form inputs -}
         InputLoginField loginField ->
@@ -244,7 +244,7 @@ updateUnderlying msg model =
                             { createServerRequest | showAdvancedOptions = showAdvancedOptions }
 
                 newViewState =
-                    ProviderView createServerRequest.providerName (CreateServer newCreateServerRequest)
+                    ProjectView createServerRequest.projectName (CreateServer newCreateServerRequest)
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
@@ -254,21 +254,21 @@ updateUnderlying msg model =
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 
-        RandomPassword provider password ->
+        RandomPassword project password ->
             -- This is the start of a code smell for two reasons:
             -- 1. We have parallel data structures, storing password in userdata string and separately
             -- 2. We must reach deep into model.viewState in order to change these fields
             -- See also Rest.receiveFlavors
             case model.viewState of
-                NonProviderView _ ->
+                NonProjectView _ ->
                     ( model, Cmd.none )
 
-                ProviderView providerName providerViewConstructor ->
-                    if providerName /= provider.name then
+                ProjectView projectName projectViewConstructor ->
+                    if projectName /= project.name then
                         ( model, Cmd.none )
 
                     else
-                        case providerViewConstructor of
+                        case projectViewConstructor of
                             CreateServer createServerRequest ->
                                 let
                                     newUserData =
@@ -282,7 +282,7 @@ updateUnderlying msg model =
                                         }
 
                                     newViewState =
-                                        ProviderView provider.name (CreateServer newCSR)
+                                        ProjectView project.name (CreateServer newCSR)
                                 in
                                 ( { model | viewState = newViewState }, Cmd.none )
 
@@ -294,42 +294,42 @@ updateUnderlying msg model =
 --            Helpers.processError model password
 
 
-processProviderSpecificMsg : Model -> Provider -> ProviderSpecificMsgConstructor -> ( Model, Cmd Msg )
-processProviderSpecificMsg model provider msg =
+processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
+processProjectSpecificMsg model project msg =
     case msg of
-        SetProviderView providerViewConstructor ->
+        SetProjectView projectViewConstructor ->
             let
                 newModel =
-                    { model | viewState = ProviderView provider.name providerViewConstructor }
+                    { model | viewState = ProjectView project.name projectViewConstructor }
             in
-            case providerViewConstructor of
+            case projectViewConstructor of
                 ListImages ->
-                    ( newModel, Rest.requestImages provider )
+                    ( newModel, Rest.requestImages project )
 
-                ListProviderServers ->
+                ListProjectServers ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServers provider
-                        , Rest.requestFloatingIps provider
+                        [ Rest.requestServers project
+                        , Rest.requestFloatingIps project
                         ]
                     )
 
                 ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServerDetail provider serverUuid
-                        , Rest.requestFlavors provider
-                        , Rest.requestImages provider
+                        [ Rest.requestServerDetail project serverUuid
+                        , Rest.requestFlavors project
+                        , Rest.requestImages project
                         ]
                     )
 
                 CreateServer createServerRequest ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestFlavors provider
-                        , Rest.requestKeypairs provider
-                        , Rest.requestNetworks provider
-                        , RandomHelpers.generatePassword provider
+                        [ Rest.requestFlavors project
+                        , Rest.requestKeypairs project
+                        , Rest.requestNetworks project
+                        , RandomHelpers.generatePassword project
                         ]
                     )
 
@@ -339,7 +339,7 @@ processProviderSpecificMsg model provider msg =
                     posixTime |> Time.posixToMillis
 
                 tokenExpireTimeMillis =
-                    provider.auth.expiresAt |> Time.posixToMillis
+                    project.auth.expiresAt |> Time.posixToMillis
 
                 tokenExpired =
                     -- Token expiring within 10 minutes
@@ -348,55 +348,55 @@ processProviderSpecificMsg model provider msg =
             case tokenExpired of
                 False ->
                     -- Token still valid, fire the request with current token
-                    ( model, requestNeedingToken provider.auth.tokenValue )
+                    ( model, requestNeedingToken project.auth.tokenValue )
 
                 True ->
                     -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
                     let
                         newPQRs =
-                            requestNeedingToken :: provider.pendingCredentialedRequests
+                            requestNeedingToken :: project.pendingCredentialedRequests
 
-                        newProvider =
-                            { provider | pendingCredentialedRequests = newPQRs }
+                        newProject =
+                            { project | pendingCredentialedRequests = newPQRs }
 
                         newModel =
-                            Helpers.modelUpdateProvider model newProvider
+                            Helpers.modelUpdateProject model newProject
                     in
-                    ( newModel, Rest.requestAuthToken newProvider.creds )
+                    ( newModel, Rest.requestAuthToken newProject.creds )
 
-        RemoveProvider ->
+        RemoveProject ->
             let
-                newProviders =
-                    List.filter (\p -> p.name /= provider.name) model.providers
+                newProjects =
+                    List.filter (\p -> p.name /= project.name) model.projects
 
                 newViewState =
                     case model.viewState of
-                        NonProviderView _ ->
-                            -- If we are not in a provider-specific view then stay there
+                        NonProjectView _ ->
+                            -- If we are not in a project-specific view then stay there
                             model.viewState
 
-                        ProviderView _ _ ->
-                            -- If we have any providers switch to the first one in the list, otherwise switch to login view
-                            case List.head newProviders of
+                        ProjectView _ _ ->
+                            -- If we have any projects switch to the first one in the list, otherwise switch to login view
+                            case List.head newProjects of
                                 Just p ->
-                                    ProviderView p.name ListProviderServers
+                                    ProjectView p.name ListProjectServers
 
                                 Nothing ->
-                                    NonProviderView Login
+                                    NonProjectView Login
 
                 newModel =
-                    { model | providers = newProviders, viewState = newViewState }
+                    { model | projects = newProjects, viewState = newViewState }
             in
             ( newModel, Cmd.none )
 
         RequestServers ->
-            ( model, Rest.requestServers provider )
+            ( model, Rest.requestServers project )
 
         RequestServerDetail serverUuid ->
-            ( model, Rest.requestServerDetail provider serverUuid )
+            ( model, Rest.requestServerDetail project serverUuid )
 
         RequestCreateServer createServerRequest ->
-            ( model, Rest.requestCreateServer provider createServerRequest )
+            ( model, Rest.requestCreateServer project createServerRequest )
 
         RequestDeleteServer server ->
             let
@@ -406,13 +406,13 @@ processProviderSpecificMsg model provider msg =
                 newServer =
                     Server server.osProps { oldExoProps | deletionAttempted = True }
 
-                newProvider =
-                    Helpers.providerUpdateServer provider newServer
+                newProject =
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServer newProvider newServer )
+            ( newModel, Rest.requestDeleteServer newProject newServer )
 
         RequestServerAction server func targetStatus ->
             let
@@ -422,16 +422,16 @@ processProviderSpecificMsg model provider msg =
                 newServer =
                     Server server.osProps { oldExoProps | targetOpenstackStatus = Just targetStatus }
 
-                newProvider =
-                    Helpers.providerUpdateServer provider newServer
+                newProject =
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
-            ( newModel, func newProvider newServer )
+            ( newModel, func newProject newServer )
 
         ReceiveImages result ->
-            Rest.receiveImages model provider result
+            Rest.receiveImages model project result
 
         RequestDeleteServers serversToDelete ->
             let
@@ -445,13 +445,13 @@ processProviderSpecificMsg model provider msg =
                 newServers =
                     List.map markDeletionAttempted serversToDelete
 
-                newProvider =
-                    Helpers.providerUpdateServers provider newServers
+                newProject =
+                    Helpers.projectUpdateServers project newServers
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServers newProvider serversToDelete )
+            ( newModel, Rest.requestDeleteServers newProject serversToDelete )
 
         SelectServer server newSelectionState ->
             let
@@ -466,14 +466,14 @@ processProviderSpecificMsg model provider msg =
                     else
                         someServer
 
-                newProvider =
-                    { provider
+                newProject =
+                    { project
                         | servers =
-                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers))
+                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers))
                     }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel
             , Cmd.none
@@ -488,45 +488,45 @@ processProviderSpecificMsg model provider msg =
                     in
                     Server someServer.osProps { oldExoProps | selected = allServersSelected }
 
-                newProvider =
-                    { provider | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] provider.servers)) }
+                newProject =
+                    { project | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers)) }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel
             , Cmd.none
             )
 
         ReceiveServers result ->
-            Rest.receiveServers model provider result
+            Rest.receiveServers model project result
 
         ReceiveServerDetail serverUuid result ->
-            Rest.receiveServerDetail model provider serverUuid result
+            Rest.receiveServerDetail model project serverUuid result
 
         ReceiveConsoleUrl serverUuid result ->
-            Rest.receiveConsoleUrl model provider serverUuid result
+            Rest.receiveConsoleUrl model project serverUuid result
 
         ReceiveFlavors result ->
-            Rest.receiveFlavors model provider result
+            Rest.receiveFlavors model project result
 
         ReceiveKeypairs result ->
-            Rest.receiveKeypairs model provider result
+            Rest.receiveKeypairs model project result
 
         ReceiveCreateServer result ->
-            Rest.receiveCreateServer model provider result
+            Rest.receiveCreateServer model project result
 
         ReceiveDeleteServer serverUuid maybeIpAddress result ->
             let
                 ( serverDeletedModel, newCmd ) =
                     let
                         viewState =
-                            ProviderView provider.name ListProviderServers
+                            ProjectView project.name ListProjectServers
 
                         newModel =
                             { model | viewState = viewState }
                     in
-                    Rest.receiveDeleteServer newModel provider serverUuid result
+                    Rest.receiveDeleteServer newModel project serverUuid result
 
                 ( deleteIpAddressModel, deleteIpAddressCmd ) =
                     case maybeIpAddress of
@@ -536,7 +536,7 @@ processProviderSpecificMsg model provider msg =
                         Just ipAddress ->
                             let
                                 maybeFloatingIpUuid =
-                                    provider.floatingIps
+                                    project.floatingIps
                                         |> List.filter (\i -> i.address == ipAddress)
                                         |> List.head
                                         |> Maybe.andThen .uuid
@@ -546,37 +546,37 @@ processProviderSpecificMsg model provider msg =
                                     Helpers.processError serverDeletedModel "Error: We should have found a floating IP address UUID but we didn't. This is probably a race condition that cmart is responsible for"
 
                                 Just uuid ->
-                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp provider uuid )
+                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp project uuid )
             in
             ( deleteIpAddressModel, Cmd.batch [ newCmd, deleteIpAddressCmd ] )
 
         ReceiveNetworks result ->
-            Rest.receiveNetworks model provider result
+            Rest.receiveNetworks model project result
 
         ReceiveFloatingIps result ->
-            Rest.receiveFloatingIps model provider result
+            Rest.receiveFloatingIps model project result
 
         GetFloatingIpReceivePorts serverUuid result ->
-            Rest.receivePortsAndRequestFloatingIp model provider serverUuid result
+            Rest.receivePortsAndRequestFloatingIp model project serverUuid result
 
         ReceiveCreateFloatingIp serverUuid result ->
-            Rest.receiveCreateFloatingIp model provider serverUuid result
+            Rest.receiveCreateFloatingIp model project serverUuid result
 
         ReceiveDeleteFloatingIp uuid result ->
-            Rest.receiveDeleteFloatingIp model provider uuid result
+            Rest.receiveDeleteFloatingIp model project uuid result
 
         ReceiveSecurityGroups result ->
-            Rest.receiveSecurityGroupsAndEnsureExoGroup model provider result
+            Rest.receiveSecurityGroupsAndEnsureExoGroup model project result
 
         ReceiveCreateExoSecurityGroup result ->
-            Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model provider result
+            Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model project result
 
         ReceiveCreateExoSecurityGroupRules _ ->
             {- Todo this ignores the result of security group rule creation API call, we should display errors to user -}
             ( model, Cmd.none )
 
         ReceiveCockpitLoginStatus serverUuid result ->
-            Rest.receiveCockpitLoginStatus model provider serverUuid result
+            Rest.receiveCockpitLoginStatus model project serverUuid result
 
         ReceiveServerAction serverUuid result ->
             case result of

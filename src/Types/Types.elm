@@ -14,13 +14,13 @@ module Types.Types exposing
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
-    , NonProviderViewConstructor(..)
+    , NonProjectViewConstructor(..)
     , PasswordVisibility(..)
-    , Provider
-    , ProviderName
-    , ProviderSpecificMsgConstructor(..)
-    , ProviderTitle
-    , ProviderViewConstructor(..)
+    , Project
+    , ProjectName
+    , ProjectSpecificMsgConstructor(..)
+    , ProjectTitle
+    , ProjectViewConstructor(..)
     , Server
     , ServerUiStatus(..)
     , VerboseStatus
@@ -58,7 +58,7 @@ type alias Model =
     { messages : List String
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
-    , providers : List Provider
+    , projects : List Project
     , creds : Creds
     , imageFilterTag : Maybe String
     , globalDefaults : GlobalDefaults
@@ -71,8 +71,8 @@ type alias GlobalDefaults =
     }
 
 
-type alias Provider =
-    { name : ProviderName
+type alias Project =
+    { name : ProjectName
     , creds : Creds
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
@@ -97,24 +97,24 @@ type alias Endpoints =
 
 type Msg
     = Tick Time.Posix
-    | SetNonProviderView NonProviderViewConstructor
-    | RequestNewProviderToken
+    | SetNonProjectView NonProjectViewConstructor
+    | RequestNewProjectToken
     | ReceiveAuthToken Creds (Result Http.Error (Http.Response String))
-    | ProviderMsg ProviderName ProviderSpecificMsgConstructor
+    | ProjectMsg ProjectName ProjectSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
     | OpenInBrowser String
     | OpenNewWindow String
-    | RandomPassword Provider String
+    | RandomPassword Project String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
     | MsgChangeWindowSize Int Int
 
 
-type ProviderSpecificMsgConstructor
-    = SetProviderView ProviderViewConstructor
+type ProjectSpecificMsgConstructor
+    = SetProjectView ProjectViewConstructor
     | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
-    | RemoveProvider
+    | RemoveProject
     | SelectServer Server Bool
     | SelectAllServers Bool
     | RequestServers
@@ -122,7 +122,7 @@ type ProviderSpecificMsgConstructor
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
-    | RequestServerAction Server (Provider -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
+    | RequestServerAction Server (Project -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
@@ -144,18 +144,18 @@ type ProviderSpecificMsgConstructor
 
 
 type ViewState
-    = NonProviderView NonProviderViewConstructor
-    | ProviderView ProviderName ProviderViewConstructor
+    = NonProjectView NonProjectViewConstructor
+    | ProjectView ProjectName ProjectViewConstructor
 
 
-type NonProviderViewConstructor
+type NonProjectViewConstructor
     = Login
     | MessageLog
 
 
-type ProviderViewConstructor
+type ProjectViewConstructor
     = ListImages
-    | ListProviderServers
+    | ListProjectServers
     | ServerDetail OSTypes.ServerUuid ViewStateParams
     | CreateServer CreateServerRequest
 
@@ -264,7 +264,7 @@ type ServerUiStatus
 
 type alias CreateServerRequest =
     { name : String
-    , providerName : ProviderName
+    , projectName : ProjectName
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
     , count : String
@@ -279,11 +279,11 @@ type alias CreateServerRequest =
     }
 
 
-type alias ProviderName =
+type alias ProjectName =
     String
 
 
-type alias ProviderTitle =
+type alias ProjectTitle =
     String
 
 
