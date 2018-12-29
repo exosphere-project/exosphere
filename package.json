@@ -21,7 +21,7 @@
   "author": {
     "email": "dont@spam.me"
   },
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "build": {
     "appId": "exosphere-project.exosphere",
     "mac": {
