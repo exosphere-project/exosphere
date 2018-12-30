@@ -541,6 +541,53 @@ requestCreateExoSecurityGroupRules model project =
             ( model, Cmd.batch cmds )
 
 
+requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
+requestConsoleUrlIfRequestable project server =
+    case server.osProps.details.openstackStatus of
+        OSTypes.ServerActive ->
+            requestConsoleUrls project server.osProps.uuid
+
+        _ ->
+            Cmd.none
+
+
+requestCockpitIfRequestable : Project -> Server -> Cmd Msg
+requestCockpitIfRequestable project server =
+    let
+        serverDetails =
+            server.osProps.details
+
+        floatingIpState =
+            Helpers.checkFloatingIpState
+                serverDetails
+                server.exoProps.floatingIpState
+    in
+    case floatingIpState of
+        Success ->
+            let
+                maybeFloatingIp =
+                    Helpers.getServerFloatingIp
+                        serverDetails.ipAddresses
+            in
+            {- If we have a floating IP address and exouser password then try to log into Cockpit -}
+            case maybeFloatingIp of
+                Just floatingIp ->
+                    case Helpers.getServerExouserPassword serverDetails of
+                        Just password ->
+                            requestCockpitLogin project server.osProps.uuid password floatingIp
+
+                        Nothing ->
+                            Cmd.none
+
+                -- Maybe in the future show an error here? Missing metadata
+                Nothing ->
+                    Cmd.none
+
+        -- Maybe in the future show an error here? Missing floating IP
+        _ ->
+            Cmd.none
+
+
 requestCockpitLogin : Project -> OSTypes.ServerUuid -> String -> String -> Cmd Msg
 requestCockpitLogin project serverUuid password ipAddress =
     let
@@ -685,75 +732,6 @@ receiveImages model project result =
             ( newModel, Cmd.none )
 
 
-requestConsoleUrlCmd : Project -> Server -> Cmd Msg
-requestConsoleUrlCmd project server =
-    case server.osProps.details.openstackStatus of
-        OSTypes.ServerActive ->
-            requestConsoleUrls project server.osProps.uuid
-
-        _ ->
-            Cmd.none
-
-
-requestFloatingIpCmd : Project -> Server -> Cmd Msg
-requestFloatingIpCmd project server =
-    let
-        serverDetails =
-            server.osProps.details
-
-        floatingIpState =
-            Helpers.checkFloatingIpState
-                serverDetails
-                server.exoProps.floatingIpState
-    in
-    case floatingIpState of
-        Requestable ->
-            [ getFloatingIpRequestPorts project server
-            , requestNetworks project
-            ]
-                |> Cmd.batch
-
-        _ ->
-            Cmd.none
-
-
-requestCockpitCmd : Project -> Server -> Cmd Msg
-requestCockpitCmd project server =
-    let
-        serverDetails =
-            server.osProps.details
-
-        floatingIpState =
-            Helpers.checkFloatingIpState
-                serverDetails
-                server.exoProps.floatingIpState
-    in
-    case floatingIpState of
-        Success ->
-            let
-                maybeFloatingIp =
-                    Helpers.getServerFloatingIp
-                        serverDetails.ipAddresses
-            in
-            {- If we have a floating IP address and exouser password then try to log into Cockpit -}
-            case maybeFloatingIp of
-                Just floatingIp ->
-                    case Helpers.getServerExouserPassword serverDetails of
-                        Just password ->
-                            requestCockpitLogin project server.osProps.uuid password floatingIp
-
-                        Nothing ->
-                            Cmd.none
-
-                -- Maybe in the future show an error here? Missing metadata
-                Nothing ->
-                    Cmd.none
-
-        -- Maybe in the future show an error here? Missing floating IP
-        _ ->
-            Cmd.none
-
-
 receiveServers : Model -> Project -> Result Http.Error (List OSTypes.Server) -> ( Model, Cmd Msg )
 receiveServers model project result =
     case result of
@@ -792,7 +770,7 @@ receiveServers model project result =
                     Helpers.modelUpdateProject model newProject
 
                 requestCockpitCommands =
-                    List.map (requestCockpitCmd project) newServersSorted
+                    List.map (requestCockpitIfRequestable project) newServersSorted
                         |> Cmd.batch
             in
             ( newModel, requestCockpitCommands )
@@ -854,13 +832,21 @@ receiveServer model project serverUuid result =
                             Helpers.modelUpdateProject model newProject
 
                         floatingIpCmd =
-                            requestFloatingIpCmd newProject newServer
+                            case floatingIpState of
+                                Requestable ->
+                                    [ getFloatingIpRequestPorts newProject newServer
+                                    , requestNetworks project
+                                    ]
+                                        |> Cmd.batch
+
+                                _ ->
+                                    Cmd.none
 
                         consoleUrlCmd =
-                            requestConsoleUrlCmd newProject newServer
+                            requestConsoleUrlIfRequestable newProject newServer
 
                         cockpitLoginCmd =
-                            requestCockpitCmd newProject newServer
+                            requestCockpitIfRequestable newProject newServer
 
                         allCmds =
                             [ floatingIpCmd, consoleUrlCmd, cockpitLoginCmd ]
