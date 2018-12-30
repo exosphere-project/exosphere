@@ -638,7 +638,7 @@ viewServers project =
                                 }
                             , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
-                        , Element.column (exoColumnAttributes ++ [ Element.width Element.fill ])
+                        , Element.column (exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
                             (List.map (renderServer project) servers)
                         ]
 
