@@ -8,8 +8,7 @@ import Types.Types exposing (..)
 
 
 type alias StoredProject =
-    { name : ProjectName
-    , creds : Creds
+    { creds : Creds
     , auth : OSTypes.AuthToken
     }
 

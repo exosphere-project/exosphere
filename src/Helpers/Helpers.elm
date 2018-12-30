@@ -2,11 +2,13 @@ module Helpers.Helpers exposing
     ( checkFloatingIpState
     , flavorLookup
     , getExternalNetwork
+    , getProjectId
     , getServerExouserPassword
     , getServerFloatingIp
     , getServerUiStatus
     , getServerUiStatusColor
     , getServerUiStatusStr
+    , hostnameFromUrl
     , imageLookup
     , iso8601StringToPosix
     , modelUpdateProject
@@ -14,8 +16,6 @@ module Helpers.Helpers exposing
     , processError
     , processOpenRc
     , projectLookup
-    , projectNameFromUrl
-    , projectTitle
     , projectUpdateServer
     , projectUpdateServers
     , providePasswordHint
@@ -23,6 +23,7 @@ module Helpers.Helpers exposing
     , serviceCatalogToEndpoints
     , sortedFlavors
     , stringIsUuidOrDefault
+    , titleFromHostname
     , toastConfig
     )
 
@@ -34,6 +35,7 @@ import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import String.Extra
 import Time
 import Toasty
 import Toasty.Defaults
@@ -160,31 +162,8 @@ providePasswordHint username password =
         []
 
 
-projectTitle : ProjectName -> ProjectTitle
-projectTitle projectName =
-    let
-        r =
-            alwaysRegex "^(.*?)\\..*"
-
-        matches =
-            Regex.findAtMost 1 r projectName
-
-        maybeMaybeTitle =
-            matches
-                |> List.head
-                |> Maybe.map (\x -> x.submatches)
-                |> Maybe.andThen List.head
-    in
-    case maybeMaybeTitle of
-        Just (Just title) ->
-            title
-
-        _ ->
-            projectName
-
-
-projectNameFromUrl : HelperTypes.Url -> ProjectName
-projectNameFromUrl url =
+hostnameFromUrl : HelperTypes.Url -> String
+hostnameFromUrl url =
     let
         r =
             alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/.*"
@@ -204,6 +183,29 @@ projectNameFromUrl url =
 
         _ ->
             "placeholder-url-unparseable"
+
+
+titleFromHostname : String -> String
+titleFromHostname hostname =
+    let
+        r =
+            alwaysRegex "^(.*?)\\..*"
+
+        matches =
+            Regex.findAtMost 1 r hostname
+
+        maybeMaybeTitle =
+            matches
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+    in
+    case maybeMaybeTitle of
+        Just (Just title) ->
+            title
+
+        _ ->
+            hostname
 
 
 iso8601StringToPosix : String -> Result String Time.Posix
@@ -302,12 +304,17 @@ serverLookup project serverUuid =
     List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] project.servers) |> List.head
 
 
-projectLookup : Model -> ProjectName -> Maybe Project
-projectLookup model projectName =
-    List.filter
-        (\p -> p.name == projectName)
-        model.projects
+projectLookup : Model -> ProjectIdentifier -> Maybe Project
+projectLookup model projectIdentifier =
+    model.projects
+        |> List.filter (\p -> p.creds.projectName == projectIdentifier.name)
+        |> List.filter (\p -> p.creds.authUrl == projectIdentifier.authUrl)
         |> List.head
+
+
+getProjectId : Project -> ProjectIdentifier
+getProjectId project =
+    ProjectIdentifier project.creds.projectName project.creds.authUrl
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
@@ -330,13 +337,15 @@ modelUpdateProject : Model -> Project -> Model
 modelUpdateProject model newProject =
     let
         otherProjects =
-            List.filter (\p -> p.name /= newProject.name) model.projects
+            List.filter (\p -> getProjectId p /= getProjectId newProject) model.projects
 
         newProjects =
             newProject :: otherProjects
 
         newProjectsSorted =
-            List.sortBy (\p -> p.name) newProjects
+            newProjects
+                |> List.sortBy (\p -> p.creds.projectName)
+                |> List.sortBy (\p -> hostnameFromUrl p.creds.authUrl)
     in
     { model | projects = newProjectsSorted }
 

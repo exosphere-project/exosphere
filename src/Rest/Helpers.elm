@@ -1,5 +1,6 @@
 module Rest.Helpers exposing (openstackCredentialedRequest)
 
+import Helpers.Helpers as Helpers
 import Http
 import OpenStack.Types as OSTypes
 import Task
@@ -48,5 +49,5 @@ openstackCredentialedRequest project method url requestBody expect resultMsg =
             Http.send resultMsg request
     in
     Task.perform
-        (\posixTime -> ProjectMsg project.name (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
+        (\posixTime -> ProjectMsg (Helpers.getProjectId project) (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
         Time.now

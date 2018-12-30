@@ -25,8 +25,7 @@ generateStoredState model =
 
 generateStoredProject : Types.Project -> StoredProject
 generateStoredProject project =
-    { name = project.name
-    , creds = project.creds
+    { creds = project.creds
     , auth = project.auth
     }
 
@@ -43,15 +42,14 @@ hydrateModelFromStoredState model storedState =
                     Types.NonProjectView Types.Login
 
                 firstProject :: _ ->
-                    Types.ProjectView firstProject.name Types.ListProjectServers
+                    Types.ProjectView (Helpers.getProjectId firstProject) Types.ListProjectServers
     in
     { model | projects = projects, viewState = viewState }
 
 
 hydrateProjectFromStoredProject : StoredProject -> Types.Project
 hydrateProjectFromStoredProject storedProject =
-    { name = storedProject.name
-    , creds = storedProject.creds
+    { creds = storedProject.creds
     , auth = storedProject.auth
     , endpoints = Helpers.serviceCatalogToEndpoints storedProject.auth.catalog
     , images = []
@@ -76,8 +74,7 @@ encodeStoredState storedState =
         storedProjectEncode : StoredProject -> Encode.Value
         storedProjectEncode storedProject =
             Encode.object
-                [ ( "name", Encode.string storedProject.name )
-                , ( "creds", encodeCreds storedProject.creds )
+                [ ( "creds", encodeCreds storedProject.creds )
                 , ( "auth", encodeAuthToken storedProject.auth )
                 ]
     in
@@ -170,8 +167,7 @@ decodeStoredState =
 
 storedProjectDecode : Decode.Decoder StoredProject
 storedProjectDecode =
-    Decode.map3 StoredProject
-        (Decode.field "name" Decode.string)
+    Decode.map2 StoredProject
         (Decode.field "creds" credsDecode)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
 

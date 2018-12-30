@@ -156,8 +156,8 @@ updateUnderlying msg model =
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
 
-        ProjectMsg projectName innerMsg ->
-            case Helpers.projectLookup model projectName of
+        ProjectMsg projectIdentifier innerMsg ->
+            case Helpers.projectLookup model projectIdentifier of
                 Nothing ->
                     Helpers.processError model "Project not found"
 
@@ -244,7 +244,7 @@ updateUnderlying msg model =
                             { createServerRequest | showAdvancedOptions = showAdvancedOptions }
 
                 newViewState =
-                    ProjectView createServerRequest.projectName (CreateServer newCreateServerRequest)
+                    ProjectView createServerRequest.projectId (CreateServer newCreateServerRequest)
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
@@ -263,8 +263,8 @@ updateUnderlying msg model =
                 NonProjectView _ ->
                     ( model, Cmd.none )
 
-                ProjectView projectName projectViewConstructor ->
-                    if projectName /= project.name then
+                ProjectView projectId projectViewConstructor ->
+                    if projectId /= Helpers.getProjectId project then
                         ( model, Cmd.none )
 
                     else
@@ -282,7 +282,7 @@ updateUnderlying msg model =
                                         }
 
                                     newViewState =
-                                        ProjectView project.name (CreateServer newCSR)
+                                        ProjectView projectId (CreateServer newCSR)
                                 in
                                 ( { model | viewState = newViewState }, Cmd.none )
 
@@ -300,7 +300,7 @@ processProjectSpecificMsg model project msg =
         SetProjectView projectViewConstructor ->
             let
                 newModel =
-                    { model | viewState = ProjectView project.name projectViewConstructor }
+                    { model | viewState = ProjectView (Helpers.getProjectId project) projectViewConstructor }
             in
             case projectViewConstructor of
                 ListImages ->
@@ -367,7 +367,7 @@ processProjectSpecificMsg model project msg =
         RemoveProject ->
             let
                 newProjects =
-                    List.filter (\p -> p.name /= project.name) model.projects
+                    List.filter (\p -> Helpers.getProjectId p /= Helpers.getProjectId project) model.projects
 
                 newViewState =
                     case model.viewState of
@@ -379,7 +379,7 @@ processProjectSpecificMsg model project msg =
                             -- If we have any projects switch to the first one in the list, otherwise switch to login view
                             case List.head newProjects of
                                 Just p ->
-                                    ProjectView p.name ListProjectServers
+                                    ProjectView (Helpers.getProjectId p) ListProjectServers
 
                                 Nothing ->
                                     NonProjectView Login
@@ -521,7 +521,7 @@ processProjectSpecificMsg model project msg =
                 ( serverDeletedModel, newCmd ) =
                     let
                         viewState =
-                            ProjectView project.name ListProjectServers
+                            ProjectView (Helpers.getProjectId project) ListProjectServers
 
                         newModel =
                             { model | viewState = viewState }

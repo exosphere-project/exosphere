@@ -17,6 +17,7 @@ module Types.Types exposing
     , NonProjectViewConstructor(..)
     , PasswordVisibility(..)
     , Project
+    , ProjectIdentifier
     , ProjectName
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
@@ -72,8 +73,7 @@ type alias GlobalDefaults =
 
 
 type alias Project =
-    { name : ProjectName
-    , creds : Creds
+    { creds : Creds
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -85,6 +85,13 @@ type alias Project =
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
+    }
+
+
+type alias ProjectIdentifier =
+    -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
+    { name : ProjectName
+    , authUrl : HelperTypes.Url
     }
 
 
@@ -100,7 +107,7 @@ type Msg
     | SetNonProjectView NonProjectViewConstructor
     | RequestNewProjectToken
     | ReceiveAuthToken Creds (Result Http.Error (Http.Response String))
-    | ProjectMsg ProjectName ProjectSpecificMsgConstructor
+    | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
@@ -145,7 +152,7 @@ type ProjectSpecificMsgConstructor
 
 type ViewState
     = NonProjectView NonProjectViewConstructor
-    | ProjectView ProjectName ProjectViewConstructor
+    | ProjectView ProjectIdentifier ProjectViewConstructor
 
 
 type NonProjectViewConstructor
@@ -264,7 +271,7 @@ type ServerUiStatus
 
 type alias CreateServerRequest =
     { name : String
-    , projectName : ProjectName
+    , projectId : ProjectIdentifier
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
     , count : String

@@ -23,7 +23,6 @@ import Maybe
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
-import String.Extra
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
@@ -135,24 +134,6 @@ elementView maybeWindowSize model =
         ]
 
 
-getProjectTitle : Project -> String
-getProjectTitle project =
-    let
-        projectName =
-            project.name
-
-        projectTitle =
-            Helpers.projectTitle projectName
-
-        humanCaseTitle =
-            String.Extra.humanize projectTitle
-
-        titleCaseTitle =
-            String.Extra.toTitleCase humanCaseTitle
-    in
-    titleCaseTitle
-
-
 toastView : Toasty.Defaults.Toast -> Html Msg
 toastView toast =
     let
@@ -198,6 +179,36 @@ genericToast variantClass title message =
         ]
 
 
+projectTitleForNavMenu : Model -> Project -> String
+projectTitleForNavMenu model project =
+    -- If we have multiple projects on the same provider then append the project name to the provider name
+    let
+        providerTitle =
+            project.creds.authUrl
+                |> Helpers.hostnameFromUrl
+                |> Helpers.titleFromHostname
+
+        multipleProjects =
+            let
+                projectCountOnSameProvider =
+                    let
+                        projectsOnSameProvider : Project -> Project -> Bool
+                        projectsOnSameProvider proj1 proj2 =
+                            Helpers.hostnameFromUrl proj1.creds.authUrl == Helpers.hostnameFromUrl proj2.creds.authUrl
+                    in
+                    List.filter (projectsOnSameProvider project) model.projects
+                        |> List.length
+            in
+            projectCountOnSameProvider > 1
+    in
+    case multipleProjects of
+        True ->
+            providerTitle ++ String.fromChar '\n' ++ project.creds.projectName
+
+        False ->
+            providerTitle
+
+
 navMenuView : Model -> Element.Element Msg
 navMenuView model =
     let
@@ -205,12 +216,12 @@ navMenuView model =
         projectMenuItem project =
             let
                 projectTitle =
-                    getProjectTitle project
+                    projectTitleForNavMenu model project
 
                 status =
                     case model.viewState of
                         ProjectView p _ ->
-                            if p == project.name then
+                            if p == Helpers.getProjectId project then
                                 MenuItem.Active
 
                             else
@@ -219,7 +230,7 @@ navMenuView model =
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem status projectTitle (Just (ProjectMsg project.name (SetProjectView ListProjectServers)))
+            MenuItem.menuItem status projectTitle (Just (ProjectMsg (Helpers.getProjectId project) (SetProjectView ListProjectServers)))
 
         projectMenuItems : List Project -> List (Element.Element Msg)
         projectMenuItems projects =
@@ -353,14 +364,20 @@ projectView model project viewConstructor =
 viewProjectNav : Project -> Element.Element Msg
 viewProjectNav project =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
-        [ Element.el heading2 (Element.text (getProjectTitle project))
+        [ Element.el
+            heading2
+          <|
+            Element.text <|
+                Helpers.hostnameFromUrl project.creds.authUrl
+                    ++ " - "
+                    ++ project.creds.projectName
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
                 (Button.button
                     []
                     (Just <|
-                        ProjectMsg project.name <|
+                        ProjectMsg (Helpers.getProjectId project) <|
                             SetProjectView ListProjectServers
                     )
                     "My Servers"
@@ -368,12 +385,12 @@ viewProjectNav project =
             , Element.el []
                 (Button.button
                     []
-                    (Just <| ProjectMsg project.name <| SetProjectView ListImages)
+                    (Just <| ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListImages)
                     "Create Server"
                 )
             , Element.el
                 [ Element.alignRight ]
-                (Button.button [ Modifier.Muted ] (Just <| ProjectMsg project.name RemoveProject) "Remove Project")
+                (Button.button [ Modifier.Muted ] (Just <| ProjectMsg (Helpers.getProjectId project) RemoveProject) "Remove Project")
             ]
         ]
 
@@ -600,7 +617,7 @@ viewServers project =
                                 Nothing
 
                             else
-                                Just (ProjectMsg project.name (RequestDeleteServers selectedServers))
+                                Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers selectedServers))
 
                         deleteButtonModifiers =
                             if noServersSelected == True then
@@ -615,7 +632,7 @@ viewServers project =
                             [ Element.text "Bulk Actions"
                             , Input.checkbox []
                                 { checked = allServersSelected
-                                , onChange = \new -> ProjectMsg project.name (SelectAllServers new)
+                                , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
                                 , icon = Input.defaultCheckbox
                                 , label = Input.labelRight [] (Element.text "Select All")
                                 }
@@ -681,7 +698,7 @@ viewServerDetail project serverUuid viewStateParams =
                                     [ Button.button
                                         []
                                         (Just <|
-                                            ProjectMsg project.name <|
+                                            ProjectMsg (Helpers.getProjectId project) <|
                                                 SetProjectView <|
                                                     ServerDetail
                                                         server.osProps.uuid
@@ -743,7 +760,7 @@ viewServerDetail project serverUuid viewStateParams =
                                                         Element.paragraph []
                                                             [ Element.text "Console unavailable due to cloud configuration."
                                                             , Element.text " Try asking the administrator of "
-                                                            , Element.text project.name
+                                                            , Element.text project.creds.projectName
                                                             , Element.text " to enable the SPICE+HTML5 or NoVNC console."
                                                             ]
 
@@ -759,7 +776,7 @@ viewServerDetail project serverUuid viewStateParams =
                                                 flippyCardContents pwVizOnClick text =
                                                     Element.el
                                                         [ Events.onClick
-                                                            (ProjectMsg project.name <|
+                                                            (ProjectMsg (Helpers.getProjectId project) <|
                                                                 SetProjectView <|
                                                                     ServerDetail serverUuid
                                                                         { viewStateParams | passwordVisibility = pwVizOnClick }
@@ -881,7 +898,7 @@ viewServerDetail project serverUuid viewStateParams =
                                           <|
                                             Button.button
                                                 action.selectMods
-                                                (Just <| ProjectMsg project.name <| RequestServerAction server action.action action.targetStatus)
+                                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
                                                 action.name
                                         , Element.text action.description
                                         ]
@@ -1013,7 +1030,7 @@ viewCreateServer project createServerRequest =
 
         createOnPress =
             if requestIsValid == True then
-                Just (ProjectMsg project.name (RequestCreateServer createServerRequest))
+                Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
 
             else
                 Nothing
@@ -1118,7 +1135,36 @@ renderImage globalDefaults project image =
                 [ Element.text "Tags: "
                 , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
                 ]
-            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProjectMsg project.name (SetProjectView (CreateServer (CreateServerRequest image.name project.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Choose")
+            , Element.el
+                [ Element.alignRight ]
+                (Button.button
+                    [ Modifier.Primary ]
+                    (Just
+                        (ProjectMsg
+                            (Helpers.getProjectId project)
+                            (SetProjectView
+                                (CreateServer
+                                    (CreateServerRequest
+                                        image.name
+                                        (Helpers.getProjectId project)
+                                        image.uuid
+                                        image.name
+                                        "1"
+                                        ""
+                                        False
+                                        ""
+                                        Nothing
+                                        globalDefaults.shellUserData
+                                        "changeme123"
+                                        ""
+                                        False
+                                    )
+                                )
+                            )
+                        )
+                    )
+                    "Choose"
+                )
             ]
 
 
@@ -1127,14 +1173,14 @@ renderServer project server =
     Element.row (exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
             { checked = server.exoProps.selected
-            , onChange = \new -> ProjectMsg project.name (SelectServer server new)
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
         , Button.button
             []
             (Just <|
-                ProjectMsg project.name <|
+                ProjectMsg (Helpers.getProjectId project) <|
                     SetProjectView <|
                         ServerDetail
                             server.osProps.uuid
@@ -1148,7 +1194,7 @@ renderServer project server =
             Element.text "Deleting..."
 
           else
-            IconButton.iconButton [ Modifier.Danger, Modifier.Small ] (Just (ProjectMsg project.name (RequestDeleteServer server))) (Icon.remove Framework.Color.white 16)
+            IconButton.iconButton [ Modifier.Danger, Modifier.Small ] (Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server))) (Icon.remove Framework.Color.white 16)
         ]
 
 
@@ -1212,7 +1258,7 @@ renderIpAddresses ipAddresses project serverUuid viewStateParams =
                     ]
                     { onPress =
                         Just <|
-                            ProjectMsg project.name <|
+                            ProjectMsg (Helpers.getProjectId project) <|
                                 SetProjectView <|
                                     ServerDetail
                                         serverUuid

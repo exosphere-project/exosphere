@@ -1,6 +1,7 @@
 module OpenStack.ServerActions exposing (getAllowed)
 
 import Framework.Modifier as Modifier
+import Helpers.Helpers as Helpers
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -146,4 +147,4 @@ doAction body project server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         Http.expectString
-        (\result -> ProjectMsg project.name (ReceiveServerAction server.osProps.uuid result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerAction server.osProps.uuid result))
