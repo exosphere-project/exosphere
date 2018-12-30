@@ -1,6 +1,6 @@
 module Rest.Rest exposing
     ( addFloatingIpInServerDetails
-    , createProvider
+    , createProject
     , decodeFlavors
     , decodeFloatingIpCreation
     , decodeImages
@@ -150,41 +150,41 @@ requestAuthToken creds =
         |> Http.send (ReceiveAuthToken creds)
 
 
-requestImages : Provider -> Cmd Msg
-requestImages provider =
+requestImages : Project -> Cmd Msg
+requestImages project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.glance ++ "/v2/images?limit=999999")
+        (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
         (Http.expectJson decodeImages)
-        (\result -> ProviderMsg provider.name (ReceiveImages result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveImages result))
 
 
-requestServers : Provider -> Cmd Msg
-requestServers provider =
+requestServers : Project -> Cmd Msg
+requestServers project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.nova ++ "/servers")
+        (project.endpoints.nova ++ "/servers")
         Http.emptyBody
         (Http.expectJson decodeServers)
-        (\result -> ProviderMsg provider.name (ReceiveServers result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
 
 
-requestServerDetail : Provider -> OSTypes.ServerUuid -> Cmd Msg
-requestServerDetail provider serverUuid =
+requestServerDetail : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServerDetail project serverUuid =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.nova ++ "/servers/" ++ serverUuid)
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson decodeServerDetails)
-        (\result -> ProviderMsg provider.name (ReceiveServerDetail serverUuid result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerDetail serverUuid result))
 
 
-requestConsoleUrls : Provider -> OSTypes.ServerUuid -> Cmd Msg
-requestConsoleUrls provider serverUuid =
+requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestConsoleUrls project serverUuid =
     -- This is a deprecated call, will eventually need to be updated
     -- See https://gitlab.com/exosphere/exosphere/issues/183
     let
@@ -209,41 +209,41 @@ requestConsoleUrls provider serverUuid =
                         ]
             in
             openstackCredentialedRequest
-                provider
+                project
                 Post
-                (provider.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+                (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (Http.expectJson decodeConsoleUrl)
-                (\result -> ProviderMsg provider.name (ReceiveConsoleUrl serverUuid result))
+                (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveConsoleUrl serverUuid result))
     in
     List.map buildReq reqParams
         |> Cmd.batch
 
 
-requestFlavors : Provider -> Cmd Msg
-requestFlavors provider =
+requestFlavors : Project -> Cmd Msg
+requestFlavors project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.nova ++ "/flavors/detail")
+        (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (Http.expectJson decodeFlavors)
-        (\result -> ProviderMsg provider.name (ReceiveFlavors result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFlavors result))
 
 
-requestKeypairs : Provider -> Cmd Msg
-requestKeypairs provider =
+requestKeypairs : Project -> Cmd Msg
+requestKeypairs project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.nova ++ "/os-keypairs")
+        (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (Http.expectJson decodeKeypairs)
-        (\result -> ProviderMsg provider.name (ReceiveKeypairs result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveKeypairs result))
 
 
-requestCreateServer : Provider -> CreateServerRequest -> Cmd Msg
-requestCreateServer provider createServerRequest =
+requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
+requestCreateServer project createServerRequest =
     let
         getServerCount =
             Maybe.withDefault 1 (String.toInt createServerRequest.count)
@@ -326,18 +326,18 @@ requestCreateServer provider createServerRequest =
             |> List.map
                 (\requestBody ->
                     openstackCredentialedRequest
-                        provider
+                        project
                         Post
-                        (provider.endpoints.nova ++ "/servers")
+                        (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (Http.expectJson (Decode.field "server" serverDecoder))
-                        (\result -> ProviderMsg provider.name (ReceiveCreateServer result))
+                        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
                 )
         )
 
 
-requestDeleteServer : Provider -> Server -> Cmd Msg
-requestDeleteServer provider server =
+requestDeleteServer : Project -> Server -> Cmd Msg
+requestDeleteServer project server =
     let
         maybeFloatingIp =
             server.osProps.details
@@ -345,73 +345,73 @@ requestDeleteServer provider server =
                 |> Maybe.andThen Helpers.getServerFloatingIp
     in
     openstackCredentialedRequest
-        provider
+        project
         Delete
-        (provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
+        (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         Http.expectString
-        (\result -> ProviderMsg provider.name (ReceiveDeleteServer server.osProps.uuid maybeFloatingIp result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteServer server.osProps.uuid maybeFloatingIp result))
 
 
-requestDeleteServers : Provider -> List Server -> Cmd Msg
-requestDeleteServers provider serversToDelete =
+requestDeleteServers : Project -> List Server -> Cmd Msg
+requestDeleteServers project serversToDelete =
     let
         deleteRequests =
-            List.map (requestDeleteServer provider) serversToDelete
+            List.map (requestDeleteServer project) serversToDelete
     in
     Cmd.batch deleteRequests
 
 
-requestNetworks : Provider -> Cmd Msg
-requestNetworks provider =
+requestNetworks : Project -> Cmd Msg
+requestNetworks project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.neutron ++ "/v2.0/networks")
+        (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson decodeNetworks)
-        (\result -> ProviderMsg provider.name (ReceiveNetworks result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveNetworks result))
 
 
-requestFloatingIps : Provider -> Cmd Msg
-requestFloatingIps provider =
+requestFloatingIps : Project -> Cmd Msg
+requestFloatingIps project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.neutron ++ "/v2.0/floatingips")
+        (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
         (Http.expectJson decodeFloatingIps)
-        (\result -> ProviderMsg provider.name (ReceiveFloatingIps result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFloatingIps result))
 
 
-getFloatingIpRequestPorts : Provider -> Server -> Cmd Msg
-getFloatingIpRequestPorts provider server =
+getFloatingIpRequestPorts : Project -> Server -> Cmd Msg
+getFloatingIpRequestPorts project server =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.neutron ++ "/v2.0/ports")
+        (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson decodePorts)
-        (\result -> ProviderMsg provider.name (GetFloatingIpReceivePorts server.osProps.uuid result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (GetFloatingIpReceivePorts server.osProps.uuid result))
 
 
-requestCreateFloatingIpIfRequestable : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-requestCreateFloatingIpIfRequestable model provider network port_ serverUuid =
-    case Helpers.serverLookup provider serverUuid of
+requestCreateFloatingIpIfRequestable : Model -> Project -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
+requestCreateFloatingIpIfRequestable model project network port_ serverUuid =
+    case Helpers.serverLookup project serverUuid of
         Nothing ->
             Helpers.processError model "We should have a server here but we don't"
 
         Just server ->
             case server.exoProps.floatingIpState of
                 Requestable ->
-                    requestCreateFloatingIp model provider network port_ server
+                    requestCreateFloatingIp model project network port_ server
 
                 _ ->
                     ( model, Cmd.none )
 
 
-requestCreateFloatingIp : Model -> Provider -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
-requestCreateFloatingIp model provider network port_ server =
+requestCreateFloatingIp : Model -> Project -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
+requestCreateFloatingIp model project network port_ server =
     let
         newServer =
             let
@@ -420,11 +420,11 @@ requestCreateFloatingIp model provider network port_ server =
             in
             Server server.osProps { oldExoProps | floatingIpState = RequestedWaiting }
 
-        newProvider =
-            Helpers.providerUpdateServer provider newServer
+        newProject =
+            Helpers.projectUpdateServer project newServer
 
         newModel =
-            Helpers.modelUpdateProvider model newProvider
+            Helpers.modelUpdateProject model newProject
 
         requestBody =
             Encode.object
@@ -438,40 +438,40 @@ requestCreateFloatingIp model provider network port_ server =
 
         requestCmd =
             openstackCredentialedRequest
-                newProvider
+                newProject
                 Post
-                (provider.endpoints.neutron ++ "/v2.0/floatingips")
+                (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (Http.expectJson decodeFloatingIpCreation)
-                (\result -> ProviderMsg provider.name (ReceiveCreateFloatingIp server.osProps.uuid result))
+                (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateFloatingIp server.osProps.uuid result))
     in
     ( newModel, requestCmd )
 
 
-requestDeleteFloatingIp : Provider -> OSTypes.IpAddressUuid -> Cmd Msg
-requestDeleteFloatingIp provider uuid =
+requestDeleteFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
+requestDeleteFloatingIp project uuid =
     openstackCredentialedRequest
-        provider
+        project
         Delete
-        (provider.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
+        (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
         Http.expectString
-        (\result -> ProviderMsg provider.name (ReceiveDeleteFloatingIp uuid result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteFloatingIp uuid result))
 
 
-requestSecurityGroups : Provider -> Cmd Msg
-requestSecurityGroups provider =
+requestSecurityGroups : Project -> Cmd Msg
+requestSecurityGroups project =
     openstackCredentialedRequest
-        provider
+        project
         Get
-        (provider.endpoints.neutron ++ "/v2.0/security-groups")
+        (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (Http.expectJson decodeSecurityGroups)
-        (\result -> ProviderMsg provider.name (ReceiveSecurityGroups result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveSecurityGroups result))
 
 
-requestCreateExoSecurityGroup : Provider -> Cmd Msg
-requestCreateExoSecurityGroup provider =
+requestCreateExoSecurityGroup : Project -> Cmd Msg
+requestCreateExoSecurityGroup project =
     let
         desc =
             "Security group for instances launched via Exosphere"
@@ -487,19 +487,19 @@ requestCreateExoSecurityGroup provider =
                 ]
     in
     openstackCredentialedRequest
-        provider
+        project
         Post
-        (provider.endpoints.neutron ++ "/v2.0/security-groups")
+        (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (Http.expectJson decodeNewSecurityGroup)
-        (\result -> ProviderMsg provider.name (ReceiveCreateExoSecurityGroup result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroup result))
 
 
-requestCreateExoSecurityGroupRules : Model -> Provider -> ( Model, Cmd Msg )
-requestCreateExoSecurityGroupRules model provider =
+requestCreateExoSecurityGroupRules : Model -> Project -> ( Model, Cmd Msg )
+requestCreateExoSecurityGroupRules model project =
     let
         maybeSecurityGroup =
-            List.filter (\g -> g.name == "exosphere") provider.securityGroups |> List.head
+            List.filter (\g -> g.name == "exosphere") project.securityGroups |> List.head
     in
     case maybeSecurityGroup of
         Nothing ->
@@ -524,12 +524,12 @@ requestCreateExoSecurityGroupRules model provider =
 
                 buildRequestCmd body =
                     openstackCredentialedRequest
-                        provider
+                        project
                         Post
-                        (provider.endpoints.neutron ++ "/v2.0/security-group-rules")
+                        (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                         (Http.jsonBody body)
                         Http.expectString
-                        (\result -> ProviderMsg provider.name (ReceiveCreateExoSecurityGroupRules result))
+                        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroupRules result))
 
                 bodies =
                     [ makeRequestBody "22" "SSH"
@@ -542,8 +542,8 @@ requestCreateExoSecurityGroupRules model provider =
             ( model, Cmd.batch cmds )
 
 
-requestCockpitLogin : Provider -> OSTypes.ServerUuid -> String -> String -> Cmd Msg
-requestCockpitLogin provider serverUuid password ipAddress =
+requestCockpitLogin : Project -> OSTypes.ServerUuid -> String -> String -> Cmd Msg
+requestCockpitLogin project serverUuid password ipAddress =
     let
         authHeaderValue =
             "Basic " ++ Base64.encode ("exouser:" ++ password)
@@ -559,10 +559,10 @@ requestCockpitLogin provider serverUuid password ipAddress =
                 , withCredentials = True
                 }
 
-        resultMsg provider2 serverUuid2 result =
-            ProviderMsg provider2.name (ReceiveCockpitLoginStatus serverUuid2 result)
+        resultMsg project2 serverUuid2 result =
+            ProjectMsg (Helpers.getProjectId project2) (ReceiveCockpitLoginStatus serverUuid2 result)
     in
-    Http.send (resultMsg provider serverUuid) request
+    Http.send (resultMsg project serverUuid) request
 
 
 
@@ -576,18 +576,24 @@ receiveAuthToken model creds responseResult =
             Helpers.processError model error
 
         Ok response ->
-            -- If we don't have a provider then create one, if we do then update its OSTypes.AuthToken
-            case List.filter (\p -> p.creds.authUrl == creds.authUrl) model.providers |> List.head of
+            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+            case
+                model.projects
+                    |> List.filter (\p -> p.creds.authUrl == creds.authUrl)
+                    |> List.filter (\p -> p.creds.projectName == creds.projectName)
+                    |> List.head
+            of
                 Nothing ->
-                    createProvider model creds response
+                    createProject model creds response
 
-                Just provider ->
-                    providerUpdateAuthToken model provider response
+                Just project ->
+                    projectUpdateAuthToken model project response
 
 
-createProvider : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
-createProvider model creds response =
-    -- Create new provider
+createProject : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
+createProject model creds response =
+    -- Create new project
     case decodeAuthToken response of
         Err error ->
             Helpers.processError model error
@@ -597,9 +603,8 @@ createProvider model creds response =
                 endpoints =
                     Helpers.serviceCatalogToEndpoints authToken.catalog
 
-                newProvider =
-                    { name = Helpers.providerNameFromUrl model.creds.authUrl
-                    , creds = creds
+                newProject =
+                    { creds = creds
                     , auth = authToken
 
                     -- Maybe todo, eliminate parallel data structures in auth and endpoints?
@@ -615,74 +620,74 @@ createProvider model creds response =
                     , pendingCredentialedRequests = []
                     }
 
-                newProviders =
-                    newProvider :: model.providers
+                newProjects =
+                    newProject :: model.projects
 
                 newModel =
                     { model
-                        | providers = newProviders
-                        , viewState = ProviderView newProvider.name ListProviderServers
+                        | projects = newProjects
+                        , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
                     }
             in
-            ( newModel, Cmd.batch [ requestServers newProvider, requestSecurityGroups newProvider, requestFloatingIps newProvider ] )
+            ( newModel, Cmd.batch [ requestServers newProject, requestSecurityGroups newProject, requestFloatingIps newProject ] )
 
 
-providerUpdateAuthToken : Model -> Provider -> Http.Response String -> ( Model, Cmd Msg )
-providerUpdateAuthToken model provider response =
-    -- Update auth token for existing provider
+projectUpdateAuthToken : Model -> Project -> Http.Response String -> ( Model, Cmd Msg )
+projectUpdateAuthToken model project response =
+    -- Update auth token for existing project
     case decodeAuthToken response of
         Err error ->
             Helpers.processError model error
 
         Ok authToken ->
             let
-                newProvider =
-                    { provider | auth = authToken }
+                newProject =
+                    { project | auth = authToken }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
-            sendPendingRequests newModel newProvider
+            sendPendingRequests newModel newProject
 
 
-sendPendingRequests : Model -> Provider -> ( Model, Cmd Msg )
-sendPendingRequests model provider =
+sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
+sendPendingRequests model project =
     -- Fires any pending commands which were waiting for auth token renewal
     -- This function assumes our token is valid (does not check for expiry).
     let
         -- Hydrate cmds with auth token
         cmds =
-            List.map (\pqr -> pqr provider.auth.tokenValue) provider.pendingCredentialedRequests
+            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
 
         -- Clear out pendingCredentialedRequests
-        newProvider =
-            { provider | pendingCredentialedRequests = [] }
+        newProject =
+            { project | pendingCredentialedRequests = [] }
 
         newModel =
-            Helpers.modelUpdateProvider model newProvider
+            Helpers.modelUpdateProject model newProject
     in
     ( newModel, Cmd.batch cmds )
 
 
-receiveImages : Model -> Provider -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )
-receiveImages model provider result =
+receiveImages : Model -> Project -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )
+receiveImages model project result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok images ->
             let
-                newProvider =
-                    { provider | images = images }
+                newProject =
+                    { project | images = images }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
 
-receiveServers : Model -> Provider -> Result Http.Error (List OSTypes.Server) -> ( Model, Cmd Msg )
-receiveServers model provider result =
+receiveServers : Model -> Project -> Result Http.Error (List OSTypes.Server) -> ( Model, Cmd Msg )
+receiveServers model project result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -695,7 +700,7 @@ receiveServers model provider result =
 
                 enrichNewServer : OSTypes.Server -> Server
                 enrichNewServer newOpenstackServer =
-                    case Helpers.serverLookup provider newOpenstackServer.uuid of
+                    case Helpers.serverLookup project newOpenstackServer.uuid of
                         Nothing ->
                             Server newOpenstackServer defaultExoProps
 
@@ -709,17 +714,17 @@ receiveServers model provider result =
                 newServers =
                     List.map enrichNewServer newOpenstackServers
 
-                newProvider =
-                    { provider | servers = RemoteData.Success newServers }
+                newProject =
+                    { project | servers = RemoteData.Success newServers }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
 
-receiveServerDetail : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetail model provider serverUuid result =
+receiveServerDetail : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
+receiveServerDetail model project serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -727,7 +732,7 @@ receiveServerDetail model provider serverUuid result =
         Ok serverDetails ->
             let
                 maybeServer =
-                    Helpers.serverLookup provider serverUuid
+                    Helpers.serverLookup project serverUuid
             in
             case maybeServer of
                 Nothing ->
@@ -762,11 +767,11 @@ receiveServerDetail model provider serverUuid result =
                                 { oldOSProps | details = Just serverDetails }
                                 { oldExoProps | floatingIpState = floatingIpState, targetOpenstackStatus = newTargetOpenstackStatus }
 
-                        newProvider =
-                            Helpers.providerUpdateServer provider newServer
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
 
                         newModel =
-                            Helpers.modelUpdateProvider model newProvider
+                            Helpers.modelUpdateProject model newProject
 
                         floatingIpState =
                             Helpers.checkFloatingIpState
@@ -776,8 +781,8 @@ receiveServerDetail model provider serverUuid result =
                         requestFloatingIpCmds =
                             case floatingIpState of
                                 Requestable ->
-                                    [ getFloatingIpRequestPorts newProvider newServer
-                                    , requestNetworks newProvider
+                                    [ getFloatingIpRequestPorts newProject newServer
+                                    , requestNetworks newProject
                                     ]
 
                                 _ ->
@@ -786,7 +791,7 @@ receiveServerDetail model provider serverUuid result =
                         requestConsoleUrlCmds =
                             case serverDetails.openstackStatus of
                                 OSTypes.ServerActive ->
-                                    [ requestConsoleUrls provider serverUuid ]
+                                    [ requestConsoleUrls project serverUuid ]
 
                                 _ ->
                                     [ Cmd.none ]
@@ -804,7 +809,7 @@ receiveServerDetail model provider serverUuid result =
                                         Just floatingIp ->
                                             case Helpers.getServerExouserPassword serverDetails of
                                                 Just password ->
-                                                    [ requestCockpitLogin newProvider server.osProps.uuid password floatingIp ]
+                                                    [ requestCockpitLogin newProject server.osProps.uuid password floatingIp ]
 
                                                 Nothing ->
                                                     []
@@ -825,11 +830,11 @@ receiveServerDetail model provider serverUuid result =
                     ( newModel, allCmds )
 
 
-receiveConsoleUrl : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
-receiveConsoleUrl model provider serverUuid result =
+receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl model project serverUuid result =
     let
         maybeServer =
-            Helpers.serverLookup provider serverUuid
+            Helpers.serverLookup project serverUuid
     in
     case maybeServer of
         Nothing ->
@@ -861,25 +866,25 @@ receiveConsoleUrl model provider serverUuid result =
                         newServer =
                             { server | osProps = newOsProps }
 
-                        newProvider =
-                            Helpers.providerUpdateServer provider newServer
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
 
                         newModel =
-                            Helpers.modelUpdateProvider model newProvider
+                            Helpers.modelUpdateProject model newProject
                     in
                     ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Provider -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
-receiveFlavors model provider result =
+receiveFlavors : Model -> Project -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
+receiveFlavors model project result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok flavors ->
             let
-                newProvider =
-                    { provider | flavors = flavors }
+                newProject =
+                    { project | flavors = flavors }
 
                 -- If we have a CreateServerRequest with no flavor UUID, populate it with the smallest flavor.
                 -- This is the start of a code smell because we need to reach way into the viewState to update
@@ -889,8 +894,8 @@ receiveFlavors model provider result =
                 -- "otherwise just model.viewState" statments.
                 viewState =
                     case model.viewState of
-                        ProviderView _ providerViewConstructor ->
-                            case providerViewConstructor of
+                        ProjectView _ projectViewConstructor ->
+                            case projectViewConstructor of
                                 CreateServer createServerRequest ->
                                     if createServerRequest.flavorUuid == "" then
                                         let
@@ -899,7 +904,7 @@ receiveFlavors model provider result =
                                         in
                                         case maybeSmallestFlavor of
                                             Just smallestFlavor ->
-                                                ProviderView provider.name (CreateServer { createServerRequest | flavorUuid = smallestFlavor.uuid })
+                                                ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | flavorUuid = smallestFlavor.uuid })
 
                                             Nothing ->
                                                 model.viewState
@@ -914,30 +919,30 @@ receiveFlavors model provider result =
                             model.viewState
 
                 newModel =
-                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
+                    Helpers.modelUpdateProject { model | viewState = viewState } newProject
             in
             ( newModel, Cmd.none )
 
 
-receiveKeypairs : Model -> Provider -> Result Http.Error (List OSTypes.Keypair) -> ( Model, Cmd Msg )
-receiveKeypairs model provider result =
+receiveKeypairs : Model -> Project -> Result Http.Error (List OSTypes.Keypair) -> ( Model, Cmd Msg )
+receiveKeypairs model project result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok keypairs ->
             let
-                newProvider =
-                    { provider | keypairs = keypairs }
+                newProject =
+                    { project | keypairs = keypairs }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
 
-receiveCreateServer : Model -> Provider -> Result Http.Error OSTypes.Server -> ( Model, Cmd Msg )
-receiveCreateServer model provider result =
+receiveCreateServer : Model -> Project -> Result Http.Error OSTypes.Server -> ( Model, Cmd Msg )
+receiveCreateServer model project result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -945,18 +950,18 @@ receiveCreateServer model provider result =
         Ok _ ->
             let
                 newModel =
-                    { model | viewState = ProviderView provider.name ListProviderServers }
+                    { model | viewState = ProjectView (Helpers.getProjectId project) ListProjectServers }
             in
             ( newModel
             , Cmd.batch
-                [ requestServers provider
-                , requestNetworks provider
+                [ requestServers project
+                , requestNetworks project
                 ]
             )
 
 
-receiveDeleteServer : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
-receiveDeleteServer model provider serverUuid result =
+receiveDeleteServer : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveDeleteServer model project serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -964,39 +969,39 @@ receiveDeleteServer model provider serverUuid result =
         Ok _ ->
             let
                 newServers =
-                    List.filter (\s -> s.osProps.uuid /= serverUuid) (RemoteData.withDefault [] provider.servers)
+                    List.filter (\s -> s.osProps.uuid /= serverUuid) (RemoteData.withDefault [] project.servers)
 
-                newProvider =
-                    { provider | servers = RemoteData.Success newServers }
+                newProject =
+                    { project | servers = RemoteData.Success newServers }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
 
-receiveNetworks : Model -> Provider -> Result Http.Error (List OSTypes.Network) -> ( Model, Cmd Msg )
-receiveNetworks model provider result =
+receiveNetworks : Model -> Project -> Result Http.Error (List OSTypes.Network) -> ( Model, Cmd Msg )
+receiveNetworks model project result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok networks ->
             let
-                newProvider =
-                    { provider | networks = networks }
+                newProject =
+                    { project | networks = networks }
 
                 -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
                 -- Same comments above (in receiveFlavors) apply here.
                 viewState =
                     case model.viewState of
-                        ProviderView _ providerViewConstructor ->
-                            case providerViewConstructor of
+                        ProjectView _ projectViewConstructor ->
+                            case projectViewConstructor of
                                 CreateServer createServerRequest ->
                                     if createServerRequest.networkUuid == "" then
                                         let
                                             defaultNetUuid =
-                                                case Helpers.newServerNetworkOptions newProvider of
+                                                case Helpers.newServerNetworkOptions newProject of
                                                     NoNetsAutoAllocate ->
                                                         "auto"
 
@@ -1006,7 +1011,7 @@ receiveNetworks model provider result =
                                                     MultipleNetsWithGuess _ guessNet _ ->
                                                         guessNet.uuid
                                         in
-                                        ProviderView provider.name (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
+                                        ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
 
                                     else
                                         model.viewState
@@ -1018,44 +1023,44 @@ receiveNetworks model provider result =
                             model.viewState
 
                 newModel =
-                    Helpers.modelUpdateProvider { model | viewState = viewState } newProvider
+                    Helpers.modelUpdateProject { model | viewState = viewState } newProject
             in
             ( newModel, Cmd.none )
 
 
-receiveFloatingIps : Model -> Provider -> Result Http.Error (List OSTypes.IpAddress) -> ( Model, Cmd Msg )
-receiveFloatingIps model provider result =
+receiveFloatingIps : Model -> Project -> Result Http.Error (List OSTypes.IpAddress) -> ( Model, Cmd Msg )
+receiveFloatingIps model project result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok floatingIps ->
             let
-                newProvider =
-                    { provider | floatingIps = floatingIps }
+                newProject =
+                    { project | floatingIps = floatingIps }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
 
-receivePortsAndRequestFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error (List OSTypes.Port) -> ( Model, Cmd Msg )
-receivePortsAndRequestFloatingIp model provider serverUuid result =
+receivePortsAndRequestFloatingIp : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error (List OSTypes.Port) -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp model project serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
 
         Ok ports ->
             let
-                newProvider =
-                    { provider | ports = ports }
+                newProject =
+                    { project | ports = ports }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
 
                 maybeExtNet =
-                    Helpers.getExternalNetwork newProvider
+                    Helpers.getExternalNetwork newProject
 
                 maybePortForServer =
                     List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
@@ -1067,7 +1072,7 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                         Just port_ ->
                             requestCreateFloatingIpIfRequestable
                                 newModel
-                                newProvider
+                                newProject
                                 extNet
                                 port_
                                 serverUuid
@@ -1083,9 +1088,9 @@ receivePortsAndRequestFloatingIp model provider serverUuid result =
                         "We should have an external network here but we don't"
 
 
-receiveCreateFloatingIp : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
-receiveCreateFloatingIp model provider serverUuid result =
-    case Helpers.serverLookup provider serverUuid of
+receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveCreateFloatingIp model project serverUuid result =
+    case Helpers.serverLookup project serverUuid of
         Nothing ->
             Helpers.processError
                 model
@@ -1103,11 +1108,11 @@ receiveCreateFloatingIp model provider serverUuid result =
                             in
                             Server server.osProps { oldExoProps | floatingIpState = Failed }
 
-                        newProvider =
-                            Helpers.providerUpdateServer provider newServer
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
 
                         newModel =
-                            Helpers.modelUpdateProvider model newProvider
+                            Helpers.modelUpdateProject model newProject
                     in
                     Helpers.processError newModel error
 
@@ -1130,17 +1135,17 @@ receiveCreateFloatingIp model provider serverUuid result =
                                 { oldOSProps | details = details }
                                 { oldExoProps | floatingIpState = Success }
 
-                        newProvider =
-                            Helpers.providerUpdateServer provider newServer
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
 
                         newModel =
-                            Helpers.modelUpdateProvider model newProvider
+                            Helpers.modelUpdateProject model newProject
                     in
                     ( newModel, Cmd.none )
 
 
-receiveDeleteFloatingIp : Model -> Provider -> OSTypes.IpAddressUuid -> Result Http.Error String -> ( Model, Cmd Msg )
-receiveDeleteFloatingIp model provider uuid result =
+receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveDeleteFloatingIp model project uuid result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -1148,13 +1153,13 @@ receiveDeleteFloatingIp model provider uuid result =
         Ok _ ->
             let
                 newFloatingIps =
-                    List.filter (\f -> f.uuid /= Just uuid) provider.floatingIps
+                    List.filter (\f -> f.uuid /= Just uuid) project.floatingIps
 
-                newProvider =
-                    { provider | floatingIps = newFloatingIps }
+                newProject =
+                    { project | floatingIps = newFloatingIps }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
@@ -1173,8 +1178,8 @@ addFloatingIpInServerDetails maybeDetails ipAddress =
             Just { details | ipAddresses = newIps }
 
 
-receiveSecurityGroupsAndEnsureExoGroup : Model -> Provider -> Result Http.Error (List OSTypes.SecurityGroup) -> ( Model, Cmd Msg )
-receiveSecurityGroupsAndEnsureExoGroup model provider result =
+receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> Result Http.Error (List OSTypes.SecurityGroup) -> ( Model, Cmd Msg )
+receiveSecurityGroupsAndEnsureExoGroup model project result =
     {- Create an "exosphere" security group unless one already exists -}
     case result of
         Err error ->
@@ -1182,11 +1187,11 @@ receiveSecurityGroupsAndEnsureExoGroup model provider result =
 
         Ok securityGroups ->
             let
-                newProvider =
-                    { provider | securityGroups = securityGroups }
+                newProject =
+                    { project | securityGroups = securityGroups }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
 
                 cmds =
                     case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
@@ -1194,13 +1199,13 @@ receiveSecurityGroupsAndEnsureExoGroup model provider result =
                             []
 
                         Nothing ->
-                            [ requestCreateExoSecurityGroup newProvider ]
+                            [ requestCreateExoSecurityGroup newProject ]
             in
             ( newModel, Cmd.batch cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Provider -> Result Http.Error OSTypes.SecurityGroup -> ( Model, Cmd Msg )
-receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
+receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Project -> Result Http.Error OSTypes.SecurityGroup -> ( Model, Cmd Msg )
+receiveCreateExoSecurityGroupAndRequestCreateRules model project result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -1208,20 +1213,20 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model provider result =
         Ok newSecGroup ->
             let
                 newSecGroups =
-                    newSecGroup :: provider.securityGroups
+                    newSecGroup :: project.securityGroups
 
-                newProvider =
-                    { provider | securityGroups = newSecGroups }
+                newProject =
+                    { project | securityGroups = newSecGroups }
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
-            requestCreateExoSecurityGroupRules newModel newProvider
+            requestCreateExoSecurityGroupRules newModel newProject
 
 
-receiveCockpitLoginStatus : Model -> Provider -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
-receiveCockpitLoginStatus model provider serverUuid result =
-    case Helpers.serverLookup provider serverUuid of
+receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveCockpitLoginStatus model project serverUuid result =
+    case Helpers.serverLookup project serverUuid of
         Nothing ->
             Helpers.processError
                 model
@@ -1245,11 +1250,11 @@ receiveCockpitLoginStatus model provider serverUuid result =
                 newServer =
                     Server server.osProps { oldExoProps | cockpitStatus = cockpitStatus }
 
-                newProvider =
-                    Helpers.providerUpdateServer provider newServer
+                newProject =
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
-                    Helpers.modelUpdateProvider model newProvider
+                    Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 

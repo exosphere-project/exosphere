@@ -1,6 +1,7 @@
 module OpenStack.ServerActions exposing (getAllowed)
 
 import Framework.Modifier as Modifier
+import Helpers.Helpers as Helpers
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -15,7 +16,7 @@ type alias ServerAction =
 
     -- Todo enforce uniqueness by using a different collection (something like a Set, except ServerAction types aren't "comparable")
     , allowedStatus : List OSTypes.ServerStatus
-    , action : Provider -> Server -> Cmd Msg
+    , action : Project -> Server -> Cmd Msg
     , selectMods : List Modifier.Modifier
     , targetStatus : List OSTypes.ServerStatus
     }
@@ -138,12 +139,12 @@ actions =
     ]
 
 
-doAction : Json.Encode.Value -> Provider -> Server -> Cmd Msg
-doAction body provider server =
+doAction : Json.Encode.Value -> Project -> Server -> Cmd Msg
+doAction body project server =
     openstackCredentialedRequest
-        provider
+        project
         Post
-        (provider.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
+        (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         Http.expectString
-        (\result -> ProviderMsg provider.name (ReceiveServerAction server.osProps.uuid result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerAction server.osProps.uuid result))

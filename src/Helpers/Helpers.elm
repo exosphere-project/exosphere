@@ -2,27 +2,28 @@ module Helpers.Helpers exposing
     ( checkFloatingIpState
     , flavorLookup
     , getExternalNetwork
+    , getProjectId
     , getServerExouserPassword
     , getServerFloatingIp
     , getServerUiStatus
     , getServerUiStatusColor
     , getServerUiStatusStr
+    , hostnameFromUrl
     , imageLookup
     , iso8601StringToPosix
-    , modelUpdateProvider
+    , modelUpdateProject
     , newServerNetworkOptions
     , processError
     , processOpenRc
+    , projectLookup
+    , projectUpdateServer
+    , projectUpdateServers
     , providePasswordHint
-    , providerLookup
-    , providerNameFromUrl
-    , providerTitle
-    , providerUpdateServer
-    , providerUpdateServers
     , serverLookup
     , serviceCatalogToEndpoints
     , sortedFlavors
     , stringIsUuidOrDefault
+    , titleFromHostname
     , toastConfig
     )
 
@@ -34,6 +35,7 @@ import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import String.Extra
 import Time
 import Toasty
 import Toasty.Defaults
@@ -160,31 +162,8 @@ providePasswordHint username password =
         []
 
 
-providerTitle : ProviderName -> ProviderTitle
-providerTitle providerName =
-    let
-        r =
-            alwaysRegex "^(.*?)\\..*"
-
-        matches =
-            Regex.findAtMost 1 r providerName
-
-        maybeMaybeTitle =
-            matches
-                |> List.head
-                |> Maybe.map (\x -> x.submatches)
-                |> Maybe.andThen List.head
-    in
-    case maybeMaybeTitle of
-        Just (Just title) ->
-            title
-
-        _ ->
-            providerName
-
-
-providerNameFromUrl : HelperTypes.Url -> ProviderName
-providerNameFromUrl url =
+hostnameFromUrl : HelperTypes.Url -> String
+hostnameFromUrl url =
     let
         r =
             alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/.*"
@@ -204,6 +183,29 @@ providerNameFromUrl url =
 
         _ ->
             "placeholder-url-unparseable"
+
+
+titleFromHostname : String -> String
+titleFromHostname hostname =
+    let
+        r =
+            alwaysRegex "^(.*?)\\..*"
+
+        matches =
+            Regex.findAtMost 1 r hostname
+
+        maybeMaybeTitle =
+            matches
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+    in
+    case maybeMaybeTitle of
+        Just (Just title) ->
+            title
+
+        _ ->
+            hostname
 
 
 iso8601StringToPosix : String -> Result String Time.Posix
@@ -254,9 +256,9 @@ getPublicEndpointFromService maybeService =
             Nothing
 
 
-getExternalNetwork : Provider -> Maybe OSTypes.Network
-getExternalNetwork provider =
-    List.filter (\n -> n.isExternal) provider.networks |> List.head
+getExternalNetwork : Project -> Maybe OSTypes.Network
+getExternalNetwork project =
+    List.filter (\n -> n.isExternal) project.networks |> List.head
 
 
 checkFloatingIpState : OSTypes.ServerDetails -> FloatingIpState -> FloatingIpState
@@ -297,57 +299,64 @@ checkFloatingIpState serverDetails floatingIpState =
                 NotRequestable
 
 
-serverLookup : Provider -> OSTypes.ServerUuid -> Maybe Server
-serverLookup provider serverUuid =
-    List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] provider.servers) |> List.head
+serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
+serverLookup project serverUuid =
+    List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] project.servers) |> List.head
 
 
-providerLookup : Model -> ProviderName -> Maybe Provider
-providerLookup model providerName =
-    List.filter
-        (\p -> p.name == providerName)
-        model.providers
+projectLookup : Model -> ProjectIdentifier -> Maybe Project
+projectLookup model projectIdentifier =
+    model.projects
+        |> List.filter (\p -> p.creds.projectName == projectIdentifier.name)
+        |> List.filter (\p -> p.creds.authUrl == projectIdentifier.authUrl)
         |> List.head
 
 
-flavorLookup : Provider -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
-flavorLookup provider flavorUuid =
+getProjectId : Project -> ProjectIdentifier
+getProjectId project =
+    ProjectIdentifier project.creds.projectName project.creds.authUrl
+
+
+flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
+flavorLookup project flavorUuid =
     List.filter
         (\f -> f.uuid == flavorUuid)
-        provider.flavors
+        project.flavors
         |> List.head
 
 
-imageLookup : Provider -> OSTypes.ImageUuid -> Maybe OSTypes.Image
-imageLookup provider imageUuid =
+imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
+imageLookup project imageUuid =
     List.filter
         (\i -> i.uuid == imageUuid)
-        provider.images
+        project.images
         |> List.head
 
 
-modelUpdateProvider : Model -> Provider -> Model
-modelUpdateProvider model newProvider =
+modelUpdateProject : Model -> Project -> Model
+modelUpdateProject model newProject =
     let
-        otherProviders =
-            List.filter (\p -> p.name /= newProvider.name) model.providers
+        otherProjects =
+            List.filter (\p -> getProjectId p /= getProjectId newProject) model.projects
 
-        newProviders =
-            newProvider :: otherProviders
+        newProjects =
+            newProject :: otherProjects
 
-        newProvidersSorted =
-            List.sortBy (\p -> p.name) newProviders
+        newProjectsSorted =
+            newProjects
+                |> List.sortBy (\p -> p.creds.projectName)
+                |> List.sortBy (\p -> hostnameFromUrl p.creds.authUrl)
     in
-    { model | providers = newProvidersSorted }
+    { model | projects = newProjectsSorted }
 
 
-providerUpdateServer : Provider -> Server -> Provider
-providerUpdateServer provider server =
+projectUpdateServer : Project -> Server -> Project
+projectUpdateServer project server =
     let
         otherServers =
             List.filter
                 (\s -> s.osProps.uuid /= server.osProps.uuid)
-                (RemoteData.withDefault [] provider.servers)
+                (RemoteData.withDefault [] project.servers)
 
         newServers =
             server :: otherServers
@@ -355,12 +364,12 @@ providerUpdateServer provider server =
         newServersSorted =
             List.sortBy (\s -> s.osProps.name) newServers
     in
-    { provider | servers = RemoteData.Success newServersSorted }
+    { project | servers = RemoteData.Success newServersSorted }
 
 
-providerUpdateServers : Provider -> List Server -> Provider
-providerUpdateServers provider servers =
-    List.foldl (\s p -> providerUpdateServer p s) provider servers
+projectUpdateServers : Project -> List Server -> Project
+projectUpdateServers project servers =
+    List.foldl (\s p -> projectUpdateServer p s) project servers
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
@@ -520,13 +529,13 @@ sortedFlavors flavors =
         |> List.sortBy .vcpu
 
 
-newServerNetworkOptions : Provider -> NewServerNetworkOptions
-newServerNetworkOptions provider =
+newServerNetworkOptions : Project -> NewServerNetworkOptions
+newServerNetworkOptions project =
     {- When creating a new server, make a reasonable choice of project network, if we can. -}
     let
         -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
         projectNets =
-            provider.networks
+            project.networks
                 |> List.filter (\n -> n.status == "ACTIVE")
                 |> List.filter (\n -> n.adminStateUp == True)
                 |> List.filter (\n -> n.isExternal == False)
@@ -538,7 +547,7 @@ newServerNetworkOptions provider =
 
         maybeProjectNameNet =
             projectNets
-                |> List.filter (\n -> String.contains provider.auth.projectName n.name)
+                |> List.filter (\n -> String.contains project.auth.projectName n.name)
                 |> List.head
     in
     case projectNets of

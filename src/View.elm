@@ -23,7 +23,6 @@ import Maybe
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
-import String.Extra
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
@@ -73,7 +72,7 @@ elementView maybeWindowSize model =
                 , Element.scrollbars
                 ]
                 [ case model.viewState of
-                    NonProviderView viewConstructor ->
+                    NonProjectView viewConstructor ->
                         case viewConstructor of
                             Login ->
                                 viewLogin model
@@ -81,13 +80,13 @@ elementView maybeWindowSize model =
                             MessageLog ->
                                 viewMessageLog model
 
-                    ProviderView providerName viewConstructor ->
-                        case Helpers.providerLookup model providerName of
+                    ProjectView projectName viewConstructor ->
+                        case Helpers.projectLookup model projectName of
                             Nothing ->
-                                Element.text "Oops! Provider not found"
+                                Element.text "Oops! Project not found"
 
-                            Just provider ->
-                                providerView model provider viewConstructor
+                            Just project ->
+                                projectView model project viewConstructor
                 , Element.html (Toasty.view Helpers.toastConfig toastView ToastyMsg model.toasties)
                 ]
     in
@@ -135,24 +134,6 @@ elementView maybeWindowSize model =
         ]
 
 
-getProviderTitle : Provider -> String
-getProviderTitle provider =
-    let
-        providerName =
-            provider.name
-
-        providerTitle =
-            Helpers.providerTitle providerName
-
-        humanCaseTitle =
-            String.Extra.humanize providerTitle
-
-        titleCaseTitle =
-            String.Extra.toTitleCase humanCaseTitle
-    in
-    titleCaseTitle
-
-
 toastView : Toasty.Defaults.Toast -> Html Msg
 toastView toast =
     let
@@ -198,19 +179,49 @@ genericToast variantClass title message =
         ]
 
 
+projectTitleForNavMenu : Model -> Project -> String
+projectTitleForNavMenu model project =
+    -- If we have multiple projects on the same provider then append the project name to the provider name
+    let
+        providerTitle =
+            project.creds.authUrl
+                |> Helpers.hostnameFromUrl
+                |> Helpers.titleFromHostname
+
+        multipleProjects =
+            let
+                projectCountOnSameProvider =
+                    let
+                        projectsOnSameProvider : Project -> Project -> Bool
+                        projectsOnSameProvider proj1 proj2 =
+                            Helpers.hostnameFromUrl proj1.creds.authUrl == Helpers.hostnameFromUrl proj2.creds.authUrl
+                    in
+                    List.filter (projectsOnSameProvider project) model.projects
+                        |> List.length
+            in
+            projectCountOnSameProvider > 1
+    in
+    case multipleProjects of
+        True ->
+            providerTitle ++ String.fromChar '\n' ++ project.creds.projectName
+
+        False ->
+            providerTitle
+
+
 navMenuView : Model -> Element.Element Msg
 navMenuView model =
     let
-        providerMenuItem : Provider -> Element.Element Msg
-        providerMenuItem provider =
+        projectMenuItem : Project -> Element.Element Msg
+        projectMenuItem project =
             let
-                providerTitle =
-                    getProviderTitle provider
+                projectTitle =
+                    projectTitleForNavMenu model project
 
                 status =
                     case model.viewState of
-                        ProviderView p _ ->
-                            if p == provider.name then
+                        ProjectView p _ ->
+                            if p == Helpers.getProjectId project then
                                 MenuItem.Active
 
                             else
@@ -219,23 +230,23 @@ navMenuView model =
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem status providerTitle (Just (ProviderMsg provider.name (SetProviderView ListProviderServers)))
+            MenuItem.menuItem status projectTitle (Just (ProjectMsg (Helpers.getProjectId project) (SetProjectView ListProjectServers)))
 
-        providerMenuItems : List Provider -> List (Element.Element Msg)
-        providerMenuItems providers =
-            List.map providerMenuItem providers
+        projectMenuItems : List Project -> List (Element.Element Msg)
+        projectMenuItems projects =
+            List.map projectMenuItem projects
 
-        addProviderMenuItem =
+        addProjectMenuItem =
             let
                 active =
                     case model.viewState of
-                        NonProviderView Login ->
+                        NonProjectView Login ->
                             MenuItem.Active
 
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem active "Add Provider" (Just (SetNonProviderView Login))
+            MenuItem.menuItem active "Add Project" (Just (SetNonProjectView Login))
     in
     Element.column
         [ Background.color <| Color.toElementColor <| Framework.Color.black_ter
@@ -245,8 +256,8 @@ navMenuView model =
         , Element.scrollbarY
         , Element.height Element.fill
         ]
-        (providerMenuItems model.providers
-            ++ [ addProviderMenuItem ]
+        (projectMenuItems model.projects
+            ++ [ addProjectMenuItem ]
         )
 
 
@@ -291,7 +302,7 @@ navBarView model =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProviderView MessageLog)
+                        { onPress = Just (SetNonProjectView MessageLog)
                         , label =
                             Element.row
                                 exoRowAttributes
@@ -320,28 +331,28 @@ navBarView model =
         [ navBarHeaderView ]
 
 
-providerView : Model -> Provider -> ProviderViewConstructor -> Element.Element Msg
-providerView model provider viewConstructor =
+projectView : Model -> Project -> ProjectViewConstructor -> Element.Element Msg
+projectView model project viewConstructor =
     let
         v =
             case viewConstructor of
                 ListImages ->
-                    viewImagesIfLoaded model.globalDefaults provider model.imageFilterTag
+                    viewImagesIfLoaded model.globalDefaults project model.imageFilterTag
 
-                ListProviderServers ->
-                    viewServers provider
+                ListProjectServers ->
+                    viewServers project
 
                 ServerDetail serverUuid viewStateParams ->
-                    viewServerDetail provider serverUuid viewStateParams
+                    viewServerDetail project serverUuid viewStateParams
 
                 CreateServer createServerRequest ->
-                    viewCreateServer provider createServerRequest
+                    viewCreateServer project createServerRequest
     in
     Element.column
         (Element.width Element.fill
             :: exoColumnAttributes
         )
-        [ viewProviderNav provider
+        [ viewProjectNav project
         , v
         ]
 
@@ -350,30 +361,36 @@ providerView model provider viewConstructor =
 {- Sub-views for most/all pages -}
 
 
-viewProviderNav : Provider -> Element.Element Msg
-viewProviderNav provider =
+viewProjectNav : Project -> Element.Element Msg
+viewProjectNav project =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
-        [ Element.el heading2 (Element.text (getProviderTitle provider))
+        [ Element.el
+            heading2
+          <|
+            Element.text <|
+                Helpers.hostnameFromUrl project.creds.authUrl
+                    ++ " - "
+                    ++ project.creds.projectName
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
                 (Button.button
                     []
                     (Just <|
-                        ProviderMsg provider.name <|
-                            SetProviderView ListProviderServers
+                        ProjectMsg (Helpers.getProjectId project) <|
+                            SetProjectView ListProjectServers
                     )
                     "My Servers"
                 )
             , Element.el []
                 (Button.button
                     []
-                    (Just <| ProviderMsg provider.name <| SetProviderView ListImages)
+                    (Just <| ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListImages)
                     "Create Server"
                 )
             , Element.el
                 [ Element.alignRight ]
-                (Button.button [ Modifier.Muted ] (Just <| ProviderMsg provider.name RemoveProvider) "Remove Provider")
+                (Button.button [ Modifier.Muted ] (Just <| ProjectMsg (Helpers.getProjectId project) RemoveProject) "Remove Project")
             ]
         ]
 
@@ -396,7 +413,7 @@ viewLogin model =
         , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Button.button
                 [ Modifier.Primary ]
-                (Just RequestNewProviderToken)
+                (Just RequestNewProjectToken)
                 "Log In"
             )
         ]
@@ -513,18 +530,18 @@ viewLoginOpenRcEntry model =
         ]
 
 
-viewImagesIfLoaded : GlobalDefaults -> Provider -> Maybe String -> Element.Element Msg
-viewImagesIfLoaded globalDefaults provider maybeFilterTag =
-    case List.isEmpty provider.images of
+viewImagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
+viewImagesIfLoaded globalDefaults project maybeFilterTag =
+    case List.isEmpty project.images of
         True ->
             Element.text "Images loading"
 
         False ->
-            viewImages globalDefaults provider maybeFilterTag
+            viewImages globalDefaults project maybeFilterTag
 
 
-viewImages : GlobalDefaults -> Provider -> Maybe String -> Element.Element Msg
-viewImages globalDefaults provider maybeFilterTag =
+viewImages : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
+viewImages globalDefaults project maybeFilterTag =
     let
         imageContainsTag tag image =
             List.member tag image.tags
@@ -532,10 +549,10 @@ viewImages globalDefaults provider maybeFilterTag =
         filteredImages =
             case maybeFilterTag of
                 Nothing ->
-                    provider.images
+                    project.images
 
                 Just filterTag ->
-                    List.filter (imageContainsTag filterTag) provider.images
+                    List.filter (imageContainsTag filterTag) project.images
 
         noMatchWarning =
             (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
@@ -545,7 +562,7 @@ viewImages globalDefaults provider maybeFilterTag =
                 filteredImages
 
             else
-                provider.images
+                project.images
     in
     Element.column exoColumnAttributes
         [ Element.el heading2 (Element.text "Choose an image")
@@ -563,13 +580,13 @@ viewImages globalDefaults provider maybeFilterTag =
             Element.none
         , Element.wrappedRow
             (exoRowAttributes ++ [ Element.spacing 15 ])
-            (List.map (renderImage globalDefaults provider) displayedImages)
+            (List.map (renderImage globalDefaults project) displayedImages)
         ]
 
 
-viewServers : Provider -> Element.Element Msg
-viewServers provider =
-    case provider.servers of
+viewServers : Project -> Element.Element Msg
+viewServers project =
+    case project.servers of
         RemoteData.NotAsked ->
             Element.paragraph [] [ Element.text "Please wait..." ]
 
@@ -600,7 +617,7 @@ viewServers provider =
                                 Nothing
 
                             else
-                                Just (ProviderMsg provider.name (RequestDeleteServers selectedServers))
+                                Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers selectedServers))
 
                         deleteButtonModifiers =
                             if noServersSelected == True then
@@ -615,21 +632,21 @@ viewServers provider =
                             [ Element.text "Bulk Actions"
                             , Input.checkbox []
                                 { checked = allServersSelected
-                                , onChange = \new -> ProviderMsg provider.name (SelectAllServers new)
+                                , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
                                 , icon = Input.defaultCheckbox
                                 , label = Input.labelRight [] (Element.text "Select All")
                                 }
                             , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
-                        , Element.column exoColumnAttributes (List.map (renderServer provider) servers)
+                        , Element.column exoColumnAttributes (List.map (renderServer project) servers)
                         ]
 
 
-viewServerDetail : Provider -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-viewServerDetail provider serverUuid viewStateParams =
+viewServerDetail : Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+viewServerDetail project serverUuid viewStateParams =
     let
         maybeServer =
-            Helpers.serverLookup provider serverUuid
+            Helpers.serverLookup project serverUuid
     in
     case maybeServer of
         Nothing ->
@@ -681,8 +698,8 @@ viewServerDetail provider serverUuid viewStateParams =
                                     [ Button.button
                                         []
                                         (Just <|
-                                            ProviderMsg provider.name <|
-                                                SetProviderView <|
+                                            ProjectMsg (Helpers.getProjectId project) <|
+                                                SetProjectView <|
                                                     ServerDetail
                                                         server.osProps.uuid
                                                         { viewStateParams | verboseStatus = True }
@@ -698,7 +715,7 @@ viewServerDetail provider serverUuid viewStateParams =
                                     ]
 
                         maybeFlavor =
-                            Helpers.flavorLookup provider details.flavorUuid
+                            Helpers.flavorLookup project details.flavorUuid
 
                         flavorText =
                             case maybeFlavor of
@@ -709,7 +726,7 @@ viewServerDetail provider serverUuid viewStateParams =
                                     "Unknown flavor"
 
                         maybeImage =
-                            Helpers.imageLookup provider details.imageUuid
+                            Helpers.imageLookup project details.imageUuid
 
                         imageText =
                             case maybeImage of
@@ -743,7 +760,7 @@ viewServerDetail provider serverUuid viewStateParams =
                                                         Element.paragraph []
                                                             [ Element.text "Console unavailable due to cloud configuration."
                                                             , Element.text " Try asking the administrator of "
-                                                            , Element.text provider.name
+                                                            , Element.text project.creds.projectName
                                                             , Element.text " to enable the SPICE+HTML5 or NoVNC console."
                                                             ]
 
@@ -759,8 +776,8 @@ viewServerDetail provider serverUuid viewStateParams =
                                                 flippyCardContents pwVizOnClick text =
                                                     Element.el
                                                         [ Events.onClick
-                                                            (ProviderMsg provider.name <|
-                                                                SetProviderView <|
+                                                            (ProjectMsg (Helpers.getProjectId project) <|
+                                                                SetProjectView <|
                                                                     ServerDetail serverUuid
                                                                         { viewStateParams | passwordVisibility = pwVizOnClick }
                                                             )
@@ -881,7 +898,7 @@ viewServerDetail provider serverUuid viewStateParams =
                                           <|
                                             Button.button
                                                 action.selectMods
-                                                (Just <| ProviderMsg provider.name <| RequestServerAction server action.action action.targetStatus)
+                                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
                                                 action.name
                                         , Element.text action.description
                                         ]
@@ -961,7 +978,7 @@ viewServerDetail provider serverUuid viewStateParams =
                             , compactKVRow "IP addresses"
                                 (renderIpAddresses
                                     details.ipAddresses
-                                    provider
+                                    project
                                     server.osProps.uuid
                                     viewStateParams
                                 )
@@ -991,8 +1008,8 @@ hint hintText =
         )
 
 
-viewCreateServer : Provider -> CreateServerRequest -> Element.Element Msg
-viewCreateServer provider createServerRequest =
+viewCreateServer : Project -> CreateServerRequest -> Element.Element Msg
+viewCreateServer project createServerRequest =
     let
         serverNameEmptyHint =
             if createServerRequest.name == "" then
@@ -1013,7 +1030,7 @@ viewCreateServer provider createServerRequest =
 
         createOnPress =
             if requestIsValid == True then
-                Just (ProviderMsg provider.name (RequestCreateServer createServerRequest))
+                Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
 
             else
                 Nothing
@@ -1063,11 +1080,11 @@ viewCreateServer provider createServerRequest =
                         Input.defaultThumb
                     }
                 ]
-            , viewFlavorPicker provider createServerRequest
-            , viewVolBackedPrompt provider createServerRequest
-            , viewNetworkPicker provider createServerRequest
-            , viewKeypairPicker provider createServerRequest
-            , viewUserDataInput provider createServerRequest
+            , viewFlavorPicker project createServerRequest
+            , viewVolBackedPrompt project createServerRequest
+            , viewNetworkPicker project createServerRequest
+            , viewKeypairPicker project createServerRequest
+            , viewUserDataInput project createServerRequest
             , Element.el [ Element.alignRight ] <|
                 Button.button
                     [ Modifier.Primary ]
@@ -1086,8 +1103,8 @@ renderMessage message =
     Element.paragraph [] [ Element.text message ]
 
 
-renderImage : GlobalDefaults -> Provider -> OSTypes.Image -> Element.Element Msg
-renderImage globalDefaults provider image =
+renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
+renderImage globalDefaults project image =
     let
         size =
             case image.size of
@@ -1118,24 +1135,53 @@ renderImage globalDefaults provider image =
                 [ Element.text "Tags: "
                 , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
                 ]
-            , Element.el [ Element.alignRight ] (Button.button [ Modifier.Primary ] (Just (ProviderMsg provider.name (SetProviderView (CreateServer (CreateServerRequest image.name provider.name image.uuid image.name "1" "" False "" Nothing globalDefaults.shellUserData "changeme123" "" False))))) "Choose")
+            , Element.el
+                [ Element.alignRight ]
+                (Button.button
+                    [ Modifier.Primary ]
+                    (Just
+                        (ProjectMsg
+                            (Helpers.getProjectId project)
+                            (SetProjectView
+                                (CreateServer
+                                    (CreateServerRequest
+                                        image.name
+                                        (Helpers.getProjectId project)
+                                        image.uuid
+                                        image.name
+                                        "1"
+                                        ""
+                                        False
+                                        ""
+                                        Nothing
+                                        globalDefaults.shellUserData
+                                        "changeme123"
+                                        ""
+                                        False
+                                    )
+                                )
+                            )
+                        )
+                    )
+                    "Choose"
+                )
             ]
 
 
-renderServer : Provider -> Server -> Element.Element Msg
-renderServer provider server =
+renderServer : Project -> Server -> Element.Element Msg
+renderServer project server =
     Element.row (exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
             { checked = server.exoProps.selected
-            , onChange = \new -> ProviderMsg provider.name (SelectServer server new)
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.el [ Font.bold ] (Element.text server.osProps.name))
             }
         , Button.button
             []
             (Just <|
-                ProviderMsg provider.name <|
-                    SetProviderView <|
+                ProjectMsg (Helpers.getProjectId project) <|
+                    SetProjectView <|
                         ServerDetail
                             server.osProps.uuid
                             { verboseStatus = False
@@ -1148,7 +1194,7 @@ renderServer provider server =
             Element.text "Deleting..."
 
           else
-            IconButton.iconButton [ Modifier.Danger, Modifier.Small ] (Just (ProviderMsg provider.name (RequestDeleteServer server))) (Icon.remove Framework.Color.white 16)
+            IconButton.iconButton [ Modifier.Danger, Modifier.Small ] (Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server))) (Icon.remove Framework.Color.white 16)
         ]
 
 
@@ -1170,8 +1216,8 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List OSTypes.IpAddress -> Provider -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-renderIpAddresses ipAddresses provider serverUuid viewStateParams =
+renderIpAddresses : List OSTypes.IpAddress -> Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+renderIpAddresses ipAddresses project serverUuid viewStateParams =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
@@ -1212,8 +1258,8 @@ renderIpAddresses ipAddresses provider serverUuid viewStateParams =
                     ]
                     { onPress =
                         Just <|
-                            ProviderMsg provider.name <|
-                                SetProviderView <|
+                            ProjectMsg (Helpers.getProjectId project) <|
+                                SetProjectView <|
                                     ServerDetail
                                         serverUuid
                                         { viewStateParams | ipInfoLevel = ipMsg }
@@ -1237,8 +1283,8 @@ renderIpAddresses ipAddresses provider serverUuid viewStateParams =
                 (floatingIpAddressRows ++ [ ipButton ">" "IP details" IPDetails ])
 
 
-viewFlavorPicker : Provider -> CreateServerRequest -> Element.Element Msg
-viewFlavorPicker provider createServerRequest =
+viewFlavorPicker : Project -> CreateServerRequest -> Element.Element Msg
+viewFlavorPicker project createServerRequest =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -1314,7 +1360,7 @@ viewFlavorPicker provider createServerRequest =
             ]
 
         zeroRootDiskExplainText =
-            case List.filter (\f -> f.disk_root == 0) provider.flavors |> List.head of
+            case List.filter (\f -> f.disk_root == 0) project.flavors |> List.head of
                 Just _ ->
                     "* No default root disk size is defined for this server size, see below"
 
@@ -1333,18 +1379,18 @@ viewFlavorPicker provider createServerRequest =
         [ Element.el [ Font.bold ] (Element.text "Size")
         , Element.table
             flavorEmptyHint
-            { data = Helpers.sortedFlavors provider.flavors
+            { data = Helpers.sortedFlavors project.flavors
             , columns = columns
             }
         , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
         ]
 
 
-viewVolBackedPrompt : Provider -> CreateServerRequest -> Element.Element Msg
-viewVolBackedPrompt provider createServerRequest =
+viewVolBackedPrompt : Project -> CreateServerRequest -> Element.Element Msg
+viewVolBackedPrompt project createServerRequest =
     let
         maybeFlavor =
-            List.filter (\f -> f.uuid == createServerRequest.flavorUuid) provider.flavors
+            List.filter (\f -> f.uuid == createServerRequest.flavorUuid) project.flavors
                 |> List.head
 
         flavorRootDiskSize =
@@ -1412,11 +1458,11 @@ viewVolBackedPrompt provider createServerRequest =
         ]
 
 
-viewNetworkPicker : Provider -> CreateServerRequest -> Element.Element Msg
-viewNetworkPicker provider createServerRequest =
+viewNetworkPicker : Project -> CreateServerRequest -> Element.Element Msg
+viewNetworkPicker project createServerRequest =
     let
         networkOptions =
-            Helpers.newServerNetworkOptions provider
+            Helpers.newServerNetworkOptions project
 
         contents =
             case networkOptions of
@@ -1461,7 +1507,7 @@ viewNetworkPicker provider createServerRequest =
                     [ Input.radio networkEmptyHint
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
                         , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
-                        , options = List.map networkAsInputOption provider.networks
+                        , options = List.map networkAsInputOption project.networks
                         , selected = Just createServerRequest.networkUuid
                         }
                     , guessText
@@ -1474,14 +1520,14 @@ viewNetworkPicker provider createServerRequest =
         )
 
 
-viewKeypairPicker : Provider -> CreateServerRequest -> Element.Element Msg
-viewKeypairPicker provider createServerRequest =
+viewKeypairPicker : Project -> CreateServerRequest -> Element.Element Msg
+viewKeypairPicker project createServerRequest =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
         contents =
-            case provider.keypairs of
+            case project.keypairs of
                 [] ->
                     Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
 
@@ -1489,7 +1535,7 @@ viewKeypairPicker provider createServerRequest =
                     Input.radio []
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
                         , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
-                        , options = List.map keypairAsOption provider.keypairs
+                        , options = List.map keypairAsOption project.keypairs
                         , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
                         }
     in
@@ -1500,8 +1546,8 @@ viewKeypairPicker provider createServerRequest =
         ]
 
 
-viewUserDataInput : Provider -> CreateServerRequest -> Element.Element Msg
-viewUserDataInput provider createServerRequest =
+viewUserDataInput : Project -> CreateServerRequest -> Element.Element Msg
+viewUserDataInput project createServerRequest =
     Element.column
         exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]

@@ -8,52 +8,50 @@ import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (..)
+import OpenStack.Types as OSTypes
 import RemoteData
 import Time
-import OpenStack.Types as OSTypes
 import Types.Types as Types
 
 
 generateStoredState : Types.Model -> Encode.Value
 generateStoredState model =
     let
-        strippedProviders =
-            List.map generateStoredProvider model.providers
+        strippedProjects =
+            List.map generateStoredProject model.projects
     in
-    encodeStoredState { providers = strippedProviders }
+    encodeStoredState { projects = strippedProjects }
 
 
-generateStoredProvider : Types.Provider -> StoredProvider
-generateStoredProvider provider =
-    { name = provider.name
-    , creds = provider.creds
-    , auth = provider.auth
+generateStoredProject : Types.Project -> StoredProject
+generateStoredProject project =
+    { creds = project.creds
+    , auth = project.auth
     }
 
 
 hydrateModelFromStoredState : Types.Model -> StoredState -> Types.Model
 hydrateModelFromStoredState model storedState =
     let
-        providers =
-            List.map hydrateProviderFromStoredProvider storedState.providers
+        projects =
+            List.map hydrateProjectFromStoredProject storedState.projects
 
         viewState =
-            case providers of
+            case projects of
                 [] ->
-                    Types.NonProviderView Types.Login
+                    Types.NonProjectView Types.Login
 
-                firstProvider :: _ ->
-                    Types.ProviderView firstProvider.name Types.ListProviderServers
+                firstProject :: _ ->
+                    Types.ProjectView (Helpers.getProjectId firstProject) Types.ListProjectServers
     in
-    { model | providers = providers, viewState = viewState }
+    { model | projects = projects, viewState = viewState }
 
 
-hydrateProviderFromStoredProvider : StoredProvider -> Types.Provider
-hydrateProviderFromStoredProvider storedProvider =
-    { name = storedProvider.name
-    , creds = storedProvider.creds
-    , auth = storedProvider.auth
-    , endpoints = Helpers.serviceCatalogToEndpoints storedProvider.auth.catalog
+hydrateProjectFromStoredProject : StoredProject -> Types.Project
+hydrateProjectFromStoredProject storedProject =
+    { creds = storedProject.creds
+    , auth = storedProject.auth
+    , endpoints = Helpers.serviceCatalogToEndpoints storedProject.auth.catalog
     , images = []
     , servers = RemoteData.NotAsked
     , flavors = []
@@ -73,17 +71,16 @@ hydrateProviderFromStoredProvider storedProvider =
 encodeStoredState : StoredState -> Encode.Value
 encodeStoredState storedState =
     let
-        storedProviderEncode : StoredProvider -> Encode.Value
-        storedProviderEncode storedProvider =
+        storedProjectEncode : StoredProject -> Encode.Value
+        storedProjectEncode storedProject =
             Encode.object
-                [ ( "name", Encode.string storedProvider.name )
-                , ( "creds", encodeCreds storedProvider.creds )
-                , ( "auth", encodeAuthToken storedProvider.auth )
+                [ ( "creds", encodeCreds storedProject.creds )
+                , ( "auth", encodeAuthToken storedProject.auth )
                 ]
     in
     Encode.object
-        [ ( "0"
-          , Encode.object [ ( "providers", Encode.list storedProviderEncode storedState.providers ) ]
+        [ ( "1"
+          , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
         ]
 
@@ -158,13 +155,19 @@ encodeEndpointInterface endpointInterface =
 
 decodeStoredState : Decode.Decoder StoredState
 decodeStoredState =
-    Decode.map StoredState (Decode.at [ "0", "providers" ] (Decode.list storedProviderDecode))
+    Decode.map
+        StoredState
+        (Decode.oneOf
+            -- Todo turn this into an actual migration
+            [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode)
+            , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode)
+            ]
+        )
 
 
-storedProviderDecode : Decode.Decoder StoredProvider
-storedProviderDecode =
-    Decode.map3 StoredProvider
-        (Decode.field "name" Decode.string)
+storedProjectDecode : Decode.Decoder StoredProject
+storedProjectDecode =
+    Decode.map2 StoredProject
         (Decode.field "creds" credsDecode)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
 
