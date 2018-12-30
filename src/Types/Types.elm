@@ -134,7 +134,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServer OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
-    | ReceiveCreateServer (Result Http.Error OSTypes.Server)
+    | ReceiveCreateServer (Result Http.Error OSTypes.ServerUuid)
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue) (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))
     | ReceiveKeypairs (Result Http.Error (List OSTypes.Keypair))

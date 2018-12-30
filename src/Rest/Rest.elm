@@ -320,6 +320,10 @@ requestCreateServer project createServerRequest =
         requestBodies =
             instanceNames
                 |> List.map buildRequestBody
+
+        serverUuidDecoder : Decode.Decoder OSTypes.ServerUuid
+        serverUuidDecoder =
+            Decode.field "id" Decode.string
     in
     Cmd.batch
         (requestBodies
@@ -330,7 +334,7 @@ requestCreateServer project createServerRequest =
                         Post
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
-                        (Http.expectJson (Decode.field "server" serverDecoder))
+                        (Http.expectJson (Decode.field "server" serverUuidDecoder))
                         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
                 )
         )
@@ -966,7 +970,7 @@ receiveKeypairs model project result =
             ( newModel, Cmd.none )
 
 
-receiveCreateServer : Model -> Project -> Result Http.Error OSTypes.Server -> ( Model, Cmd Msg )
+receiveCreateServer : Model -> Project -> Result Http.Error OSTypes.ServerUuid -> ( Model, Cmd Msg )
 receiveCreateServer model project result =
     case result of
         Err error ->
