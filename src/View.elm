@@ -596,16 +596,13 @@ viewServers project =
         RemoteData.Failure e ->
             Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
-        RemoteData.Success unSortedServers ->
-            case List.isEmpty unSortedServers of
+        RemoteData.Success servers ->
+            case List.isEmpty servers of
                 True ->
                     Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
                 False ->
                     let
-                        servers =
-                            List.sortBy (\s -> s.osProps.name) unSortedServers
-
                         noServersSelected =
                             List.any (\s -> s.exoProps.selected) servers |> not
 

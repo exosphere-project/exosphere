@@ -782,14 +782,17 @@ receiveServers model project result =
                 newServers =
                     List.map enrichNewServer newOpenstackServers
 
+                newServersSorted =
+                    List.sortBy (\s -> s.osProps.name) newServers
+
                 newProject =
-                    { project | servers = RemoteData.Success newServers }
+                    { project | servers = RemoteData.Success newServersSorted }
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
 
                 requestCockpitCommands =
-                    List.map (requestCockpitCmd project) newServers
+                    List.map (requestCockpitCmd project) newServersSorted
                         |> Cmd.batch
             in
             ( newModel, requestCockpitCommands )
