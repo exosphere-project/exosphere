@@ -133,7 +133,7 @@ updateUnderlying msg model =
                     update (ProjectMsg projectName RequestServers) model
 
                 ProjectView projectName (ServerDetail serverUuid _) ->
-                    update (ProjectMsg projectName (RequestServerDetail serverUuid)) model
+                    update (ProjectMsg projectName (RequestServer serverUuid)) model
 
                 _ ->
                     ( model, Cmd.none )
@@ -317,7 +317,7 @@ processProjectSpecificMsg model project msg =
                 ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServerDetail project serverUuid
+                        [ Rest.requestServer project serverUuid
                         , Rest.requestFlavors project
                         , Rest.requestImages project
                         ]
@@ -392,8 +392,8 @@ processProjectSpecificMsg model project msg =
         RequestServers ->
             ( model, Rest.requestServers project )
 
-        RequestServerDetail serverUuid ->
-            ( model, Rest.requestServerDetail project serverUuid )
+        RequestServer serverUuid ->
+            ( model, Rest.requestServer project serverUuid )
 
         RequestCreateServer createServerRequest ->
             ( model, Rest.requestCreateServer project createServerRequest )
@@ -501,8 +501,8 @@ processProjectSpecificMsg model project msg =
         ReceiveServers result ->
             Rest.receiveServers model project result
 
-        ReceiveServerDetail serverUuid result ->
-            Rest.receiveServerDetail model project serverUuid result
+        ReceiveServer serverUuid result ->
+            Rest.receiveServer model project serverUuid result
 
         ReceiveConsoleUrl serverUuid result ->
             Rest.receiveConsoleUrl model project serverUuid result

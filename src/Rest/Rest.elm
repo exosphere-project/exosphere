@@ -35,7 +35,7 @@ module Rest.Rest exposing
     , receiveNetworks
     , receivePortsAndRequestFloatingIp
     , receiveSecurityGroupsAndEnsureExoGroup
-    , receiveServerDetail
+    , receiveServer
     , receiveServers
     , requestAuthToken
     , requestConsoleUrls
@@ -51,7 +51,7 @@ module Rest.Rest exposing
     , requestImages
     , requestKeypairs
     , requestNetworks
-    , requestServerDetail
+    , requestServer
     , requestServers
     , serverDecoder
     , serverIpAddressDecoder
@@ -172,15 +172,15 @@ requestServers project =
         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
 
 
-requestServerDetail : Project -> OSTypes.ServerUuid -> Cmd Msg
-requestServerDetail project serverUuid =
+requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServer project serverUuid =
     openstackCredentialedRequest
         project
         Get
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson <| Decode.at [ "server" ] decodeServerDetails)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerDetail serverUuid result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServer serverUuid result))
 
 
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -798,8 +798,8 @@ receiveServers model project result =
             ( newModel, requestCockpitCommands )
 
 
-receiveServerDetail : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetail model project serverUuid result =
+receiveServer : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
+receiveServer model project serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
