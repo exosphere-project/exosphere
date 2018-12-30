@@ -152,6 +152,8 @@ npm run electron-build
 npm run dist
 ```
 
+To launch Exosphere from the OS X package, [you may need to right-click and then "Open"](https://www.iclarified.com/28180/how-to-open-applications-from-unidentified-developers-in-mac-os-x-mountain-lion), because it is an "un-signed" application.
+
 ### On/For Linux
 
 (Tested with Ubuntu 16.04)
