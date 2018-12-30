@@ -35,7 +35,7 @@ module Rest.Rest exposing
     , receiveNetworks
     , receivePortsAndRequestFloatingIp
     , receiveSecurityGroupsAndEnsureExoGroup
-    , receiveServerDetail
+    , receiveServer
     , receiveServers
     , requestAuthToken
     , requestConsoleUrls
@@ -51,7 +51,7 @@ module Rest.Rest exposing
     , requestImages
     , requestKeypairs
     , requestNetworks
-    , requestServerDetail
+    , requestServer
     , requestServers
     , serverDecoder
     , serverIpAddressDecoder
@@ -166,21 +166,21 @@ requestServers project =
     openstackCredentialedRequest
         project
         Get
-        (project.endpoints.nova ++ "/servers")
+        (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson decodeServers)
         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
 
 
-requestServerDetail : Project -> OSTypes.ServerUuid -> Cmd Msg
-requestServerDetail project serverUuid =
+requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServer project serverUuid =
     openstackCredentialedRequest
         project
         Get
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
-        (Http.expectJson decodeServerDetails)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerDetail serverUuid result))
+        (Http.expectJson <| Decode.at [ "server" ] decodeServerDetails)
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServer serverUuid result))
 
 
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -320,6 +320,10 @@ requestCreateServer project createServerRequest =
         requestBodies =
             instanceNames
                 |> List.map buildRequestBody
+
+        serverUuidDecoder : Decode.Decoder OSTypes.ServerUuid
+        serverUuidDecoder =
+            Decode.field "id" Decode.string
     in
     Cmd.batch
         (requestBodies
@@ -330,7 +334,7 @@ requestCreateServer project createServerRequest =
                         Post
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
-                        (Http.expectJson (Decode.field "server" serverDecoder))
+                        (Http.expectJson (Decode.field "server" serverUuidDecoder))
                         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
                 )
         )
@@ -339,10 +343,9 @@ requestCreateServer project createServerRequest =
 requestDeleteServer : Project -> Server -> Cmd Msg
 requestDeleteServer project server =
     let
-        maybeFloatingIp =
-            server.osProps.details
-                |> Maybe.map .ipAddresses
-                |> Maybe.andThen Helpers.getServerFloatingIp
+        getFloatingIp =
+            server.osProps.details.ipAddresses
+                |> Helpers.getServerFloatingIp
     in
     openstackCredentialedRequest
         project
@@ -350,7 +353,7 @@ requestDeleteServer project server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         Http.expectString
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteServer server.osProps.uuid maybeFloatingIp result))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteServer server.osProps.uuid getFloatingIp result))
 
 
 requestDeleteServers : Project -> List Server -> Cmd Msg
@@ -542,6 +545,53 @@ requestCreateExoSecurityGroupRules model project =
             ( model, Cmd.batch cmds )
 
 
+requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
+requestConsoleUrlIfRequestable project server =
+    case server.osProps.details.openstackStatus of
+        OSTypes.ServerActive ->
+            requestConsoleUrls project server.osProps.uuid
+
+        _ ->
+            Cmd.none
+
+
+requestCockpitIfRequestable : Project -> Server -> Cmd Msg
+requestCockpitIfRequestable project server =
+    let
+        serverDetails =
+            server.osProps.details
+
+        floatingIpState =
+            Helpers.checkFloatingIpState
+                serverDetails
+                server.exoProps.floatingIpState
+    in
+    case floatingIpState of
+        Success ->
+            let
+                maybeFloatingIp =
+                    Helpers.getServerFloatingIp
+                        serverDetails.ipAddresses
+            in
+            {- If we have a floating IP address and exouser password then try to log into Cockpit -}
+            case maybeFloatingIp of
+                Just floatingIp ->
+                    case Helpers.getServerExouserPassword serverDetails of
+                        Just password ->
+                            requestCockpitLogin project server.osProps.uuid password floatingIp
+
+                        Nothing ->
+                            Cmd.none
+
+                -- Maybe in the future show an error here? Missing metadata
+                Nothing ->
+                    Cmd.none
+
+        -- Maybe in the future show an error here? Missing floating IP
+        _ ->
+            Cmd.none
+
+
 requestCockpitLogin : Project -> OSTypes.ServerUuid -> String -> String -> Cmd Msg
 requestCockpitLogin project serverUuid password ipAddress =
     let
@@ -714,17 +764,24 @@ receiveServers model project result =
                 newServers =
                     List.map enrichNewServer newOpenstackServers
 
+                newServersSorted =
+                    List.sortBy (\s -> s.osProps.name) newServers
+
                 newProject =
-                    { project | servers = RemoteData.Success newServers }
+                    { project | servers = RemoteData.Success newServersSorted }
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
+
+                requestCockpitCommands =
+                    List.map (requestCockpitIfRequestable project) newServersSorted
+                        |> Cmd.batch
             in
-            ( newModel, Cmd.none )
+            ( newModel, requestCockpitCommands )
 
 
-receiveServerDetail : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
-receiveServerDetail model project serverUuid result =
+receiveServer : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
+receiveServer model project serverUuid result =
     case result of
         Err error ->
             Helpers.processError model error
@@ -742,6 +799,11 @@ receiveServerDetail model project serverUuid result =
 
                 Just server ->
                     let
+                        floatingIpState =
+                            Helpers.checkFloatingIpState
+                                serverDetails
+                                server.exoProps.floatingIpState
+
                         newServer =
                             let
                                 oldOSProps =
@@ -764,7 +826,7 @@ receiveServerDetail model project serverUuid result =
                                                     Just statuses
                             in
                             Server
-                                { oldOSProps | details = Just serverDetails }
+                                { oldOSProps | details = serverDetails }
                                 { oldExoProps | floatingIpState = floatingIpState, targetOpenstackStatus = newTargetOpenstackStatus }
 
                         newProject =
@@ -773,58 +835,25 @@ receiveServerDetail model project serverUuid result =
                         newModel =
                             Helpers.modelUpdateProject model newProject
 
-                        floatingIpState =
-                            Helpers.checkFloatingIpState
-                                serverDetails
-                                server.exoProps.floatingIpState
-
-                        requestFloatingIpCmds =
+                        floatingIpCmd =
                             case floatingIpState of
                                 Requestable ->
                                     [ getFloatingIpRequestPorts newProject newServer
-                                    , requestNetworks newProject
+                                    , requestNetworks project
                                     ]
+                                        |> Cmd.batch
 
                                 _ ->
-                                    []
+                                    Cmd.none
 
-                        requestConsoleUrlCmds =
-                            case serverDetails.openstackStatus of
-                                OSTypes.ServerActive ->
-                                    [ requestConsoleUrls project serverUuid ]
+                        consoleUrlCmd =
+                            requestConsoleUrlIfRequestable newProject newServer
 
-                                _ ->
-                                    [ Cmd.none ]
-
-                        requestCockpitLoginCmds =
-                            case floatingIpState of
-                                Success ->
-                                    let
-                                        maybeFloatingIp =
-                                            Helpers.getServerFloatingIp
-                                                serverDetails.ipAddresses
-                                    in
-                                    {- If we have a floating IP address and exouser password then try to log into Cockpit -}
-                                    case maybeFloatingIp of
-                                        Just floatingIp ->
-                                            case Helpers.getServerExouserPassword serverDetails of
-                                                Just password ->
-                                                    [ requestCockpitLogin newProject server.osProps.uuid password floatingIp ]
-
-                                                Nothing ->
-                                                    []
-
-                                        -- Maybe in the future show an error here? Missing metadata
-                                        Nothing ->
-                                            []
-
-                                -- Maybe in the future show an error here? Missing floating IP
-                                _ ->
-                                    []
+                        cockpitLoginCmd =
+                            requestCockpitIfRequestable newProject newServer
 
                         allCmds =
-                            [ requestFloatingIpCmds, requestConsoleUrlCmds, requestCockpitLoginCmds ]
-                                |> List.concat
+                            [ floatingIpCmd, consoleUrlCmd, cockpitLoginCmd ]
                                 |> Cmd.batch
                     in
                     ( newModel, allCmds )
@@ -941,7 +970,7 @@ receiveKeypairs model project result =
             ( newModel, Cmd.none )
 
 
-receiveCreateServer : Model -> Project -> Result Http.Error OSTypes.Server -> ( Model, Cmd Msg )
+receiveCreateServer : Model -> Project -> Result Http.Error OSTypes.ServerUuid -> ( Model, Cmd Msg )
 receiveCreateServer model project result =
     case result of
         Err error ->
@@ -1164,18 +1193,13 @@ receiveDeleteFloatingIp model project uuid result =
             ( newModel, Cmd.none )
 
 
-addFloatingIpInServerDetails : Maybe OSTypes.ServerDetails -> OSTypes.IpAddress -> Maybe OSTypes.ServerDetails
-addFloatingIpInServerDetails maybeDetails ipAddress =
-    case maybeDetails of
-        Nothing ->
-            Nothing
-
-        Just details ->
-            let
-                newIps =
-                    ipAddress :: details.ipAddresses
-            in
-            Just { details | ipAddresses = newIps }
+addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
+addFloatingIpInServerDetails details ipAddress =
+    let
+        newIps =
+            ipAddress :: details.ipAddresses
+    in
+    { details | ipAddresses = newIps }
 
 
 receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> Result Http.Error (List OSTypes.SecurityGroup) -> ( Model, Cmd Msg )
@@ -1392,7 +1416,7 @@ serverDecoder =
             ]
         )
         (Decode.field "id" Decode.string)
-        (Decode.succeed Nothing)
+        decodeServerDetails
         (Decode.succeed RemoteData.NotAsked)
 
 
@@ -1407,24 +1431,24 @@ decodeServerDetails =
                 |> List.concat
     in
     Decode.map8 OSTypes.ServerDetails
-        (Decode.at [ "server", "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
-        (Decode.at [ "server", "created" ] Decode.string)
-        (Decode.at [ "server", "OS-EXT-STS:power_state" ] Decode.int
+        (Decode.at [ "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
+        (Decode.at [ "created" ] Decode.string)
+        (Decode.at [ "OS-EXT-STS:power_state" ] Decode.int
             |> Decode.andThen serverPowerStateDecoder
         )
         (Decode.oneOf
-            [ Decode.at [ "server", "image", "id" ] Decode.string
+            [ Decode.at [ "image", "id" ] Decode.string
             , Decode.succeed ""
             ]
         )
-        (Decode.at [ "server", "flavor", "id" ] Decode.string)
-        (Decode.at [ "server", "key_name" ] (Decode.nullable Decode.string))
+        (Decode.at [ "flavor", "id" ] Decode.string)
+        (Decode.at [ "key_name" ] (Decode.nullable Decode.string))
         (Decode.oneOf
-            [ Decode.at [ "server", "addresses" ] (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder)))
+            [ Decode.at [ "addresses" ] (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder)))
             , Decode.succeed []
             ]
         )
-        (Decode.at [ "server", "metadata" ] metadataDecoder)
+        (Decode.at [ "metadata" ] metadataDecoder)
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus

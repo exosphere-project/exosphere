@@ -125,16 +125,16 @@ type ProjectSpecificMsgConstructor
     | SelectServer Server Bool
     | SelectAllServers Bool
     | RequestServers
-    | RequestServerDetail OSTypes.ServerUuid
+    | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
     | RequestServerAction Server (Project -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
-    | ReceiveServerDetail OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
+    | ReceiveServer OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
-    | ReceiveCreateServer (Result Http.Error OSTypes.Server)
+    | ReceiveCreateServer (Result Http.Error OSTypes.ServerUuid)
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue) (Result Http.Error String)
     | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))
     | ReceiveKeypairs (Result Http.Error (List OSTypes.Keypair))

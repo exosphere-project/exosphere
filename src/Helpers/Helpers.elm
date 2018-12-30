@@ -27,7 +27,9 @@ module Helpers.Helpers exposing
     , toastConfig
     )
 
+import Color
 import Debug
+import Framework.Color
 import Html
 import Html.Attributes
 import ISO8601
@@ -392,52 +394,47 @@ getServerExouserPassword serverDetails =
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
-    case server.osProps.details of
-        Nothing ->
-            ServerUiStatusUnknown
+    case server.osProps.details.openstackStatus of
+        OSTypes.ServerActive ->
+            case server.exoProps.cockpitStatus of
+                NotChecked ->
+                    ServerUiStatusPartiallyActive
 
-        Just details ->
-            case details.openstackStatus of
-                OSTypes.ServerActive ->
-                    case server.exoProps.cockpitStatus of
-                        NotChecked ->
-                            ServerUiStatusPartiallyActive
+                CheckedNotReady ->
+                    ServerUiStatusPartiallyActive
 
-                        CheckedNotReady ->
-                            ServerUiStatusPartiallyActive
+                Ready ->
+                    ServerUiStatusReady
 
-                        Ready ->
-                            ServerUiStatusReady
+        OSTypes.ServerPaused ->
+            ServerUiStatusPaused
 
-                OSTypes.ServerPaused ->
-                    ServerUiStatusPaused
+        OSTypes.ServerSuspended ->
+            ServerUiStatusSuspended
 
-                OSTypes.ServerSuspended ->
-                    ServerUiStatusSuspended
+        OSTypes.ServerShutoff ->
+            ServerUiStatusShutoff
 
-                OSTypes.ServerShutoff ->
-                    ServerUiStatusShutoff
+        OSTypes.ServerStopped ->
+            ServerUiStatusStopped
 
-                OSTypes.ServerStopped ->
-                    ServerUiStatusStopped
+        OSTypes.ServerSoftDeleted ->
+            ServerUiStatusSoftDeleted
 
-                OSTypes.ServerSoftDeleted ->
-                    ServerUiStatusSoftDeleted
+        OSTypes.ServerError ->
+            ServerUiStatusError
 
-                OSTypes.ServerError ->
-                    ServerUiStatusError
+        OSTypes.ServerBuilding ->
+            ServerUiStatusBuilding
 
-                OSTypes.ServerBuilding ->
-                    ServerUiStatusBuilding
+        OSTypes.ServerRescued ->
+            ServerUiStatusRescued
 
-                OSTypes.ServerRescued ->
-                    ServerUiStatusRescued
+        OSTypes.ServerShelved ->
+            ServerUiStatusShelved
 
-                OSTypes.ServerShelved ->
-                    ServerUiStatusShelved
-
-                OSTypes.ServerShelvedOffloaded ->
-                    ServerUiStatusShelved
+        OSTypes.ServerShelvedOffloaded ->
+            ServerUiStatusShelved
 
 
 getServerUiStatusStr : ServerUiStatus -> String
@@ -480,44 +477,44 @@ getServerUiStatusStr status =
             "Shelved"
 
 
-getServerUiStatusColor : ServerUiStatus -> String
+getServerUiStatusColor : ServerUiStatus -> Color.Color
 getServerUiStatusColor status =
     case status of
         ServerUiStatusUnknown ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusBuilding ->
-            "yellow"
+            Framework.Color.yellow
 
         ServerUiStatusPartiallyActive ->
-            "yellow"
+            Framework.Color.yellow
 
         ServerUiStatusReady ->
-            "green"
+            Framework.Color.green
 
         ServerUiStatusPaused ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusSuspended ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusShutoff ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusStopped ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusSoftDeleted ->
-            "gray"
+            Framework.Color.grey
 
         ServerUiStatusError ->
-            "red"
+            Framework.Color.red
 
         ServerUiStatusRescued ->
-            "red"
+            Framework.Color.red
 
         ServerUiStatusShelved ->
-            "gray"
+            Framework.Color.grey
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
