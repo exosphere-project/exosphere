@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
-    ( checkFloatingIpState
+    ( authUrlWithPortAndVersion
+    , checkFloatingIpState
     , flavorLookup
     , getExternalNetwork
     , getProjectId
@@ -43,6 +44,7 @@ import Toasty
 import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
+import Url
 
 
 alwaysRegex : String -> Regex.Regex
@@ -144,6 +146,59 @@ processOpenRc existingCreds openRc =
         (newField regexes.userDomain existingCreds.userDomain)
         (newField regexes.username existingCreds.username)
         (newField regexes.password existingCreds.password)
+
+
+authUrlWithPortAndVersion : HelperTypes.Url -> HelperTypes.Url
+authUrlWithPortAndVersion authUrlStr =
+    -- If user does not provide a port and path in OpenStack auth URL then we guess port 5000 and path "/v3"
+    let
+        authUrlStrWithProto =
+            -- If user doesn't provide a protocol then we add one so that the URL will actually parse
+            case String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr of
+                True ->
+                    authUrlStr
+
+                False ->
+                    "https://" ++ authUrlStr
+
+        maybeAuthUrl =
+            Url.fromString authUrlStrWithProto
+    in
+    case maybeAuthUrl of
+        Nothing ->
+            -- We can't parse this URL so we just return it unmodified
+            authUrlStr
+
+        Just authUrl ->
+            let
+                port_ =
+                    case authUrl.port_ of
+                        Just _ ->
+                            authUrl.port_
+
+                        Nothing ->
+                            Just 5000
+
+                path =
+                    case authUrl.path of
+                        "" ->
+                            "/v3"
+
+                        "/" ->
+                            "/v3"
+
+                        _ ->
+                            authUrl.path
+            in
+            Url.toString <|
+                Url.Url
+                    authUrl.protocol
+                    authUrl.host
+                    port_
+                    path
+                    -- Query and fragment may not be needed / accepted by OpenStack
+                    authUrl.query
+                    authUrl.fragment
 
 
 providePasswordHint : String -> String -> List { styleKey : String, styleValue : String }
