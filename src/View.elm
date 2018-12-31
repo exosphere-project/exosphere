@@ -522,7 +522,7 @@ viewLoginOpenRcEntry model =
             , Font.size 12
             ]
             { onChange = \o -> InputLoginField (OpenRc o)
-            , text = "export..."
+            , text = ""
             , placeholder = Nothing
             , label = Input.labelLeft [] Element.none
             , spellcheck = False
