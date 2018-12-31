@@ -1,6 +1,6 @@
 {
   "name": "exosphere",
-  "version": "2018.12.09",
+  "version": "2018.12.30",
   "productName": "Exosphere",
   "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
   "main": "index.js",
@@ -29,11 +29,11 @@
     }
   },
   "devDependencies": {
-    "chokidar-cli": "^1.2.0",
-    "electron": "^1.8.2",
-    "electron-builder": "^20.28.4",
+    "chokidar-cli": "^1.2.1",
+    "electron": "^1.8.8",
+    "electron-builder": "^20.38.4",
     "elm": "^0.19.0",
-    "elm-live": "^3.3.0"
+    "elm-live": "^3.4.0"
   },
   "repository": {
     "type": "git",
