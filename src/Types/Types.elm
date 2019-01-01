@@ -11,6 +11,7 @@ module Types.Types exposing
     , HttpRequestMethod(..)
     , HumanReadableServerName
     , IPInfoLevel(..)
+    , InstanceName
     , LoginField(..)
     , Model
     , Msg(..)
@@ -117,6 +118,7 @@ type Msg
     | RandomPassword Project String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
     | MsgChangeWindowSize Int Int
+    | PrepareCreateServerRequest InstanceName Project CreateServerRequest
 
 
 type ProjectSpecificMsgConstructor
@@ -226,6 +228,10 @@ type alias HumanReadableServerName =
     , adjective : String
     , name : String
     }
+
+
+type alias InstanceName =
+    String
 
 
 

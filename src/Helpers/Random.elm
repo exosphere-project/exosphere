@@ -19,32 +19,23 @@ generatePassword provider =
 generateHumanReadableServerName : Random.Generator HumanReadableServerName
 generateHumanReadableServerName =
     let
-        randomAdverb =
+        randomWord wordlist default =
             Random.map
                 (\a ->
                     case a of
                         ( maybeString, _ ) ->
-                            maybeString |> Maybe.withDefault "foo"
+                            maybeString |> Maybe.withDefault default
                 )
-                (RandomList.choose adverbs)
+                (RandomList.choose wordlist)
+
+        randomAdverb =
+            randomWord adverbs "foo"
 
         randomAdjective =
-            Random.map
-                (\a ->
-                    case a of
-                        ( maybeString, _ ) ->
-                            maybeString |> Maybe.withDefault "foo"
-                )
-                (RandomList.choose adjectives)
+            randomWord adjectives "bar"
 
         randomName =
-            Random.map
-                (\a ->
-                    case a of
-                        ( maybeString, _ ) ->
-                            maybeString |> Maybe.withDefault "foo"
-                )
-                (RandomList.choose names)
+            randomWord names "baz"
     in
     Random.map3 HumanReadableServerName randomAdverb randomAdjective randomName
 

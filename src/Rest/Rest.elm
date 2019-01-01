@@ -15,6 +15,7 @@ module Rest.Rest exposing
     , imageStatusDecoder
     , ipAddressOpenstackTypeDecoder
     , keypairDecoder
+    , nameToRequest
     , networkDecoder
     , openstackEndpointDecoder
     , openstackEndpointInterfaceDecoder
@@ -284,10 +285,6 @@ baseServerProps createServerRequest instanceName =
         ]
 
 
-type alias InstanceName =
-    String
-
-
 buildRequestBody : CreateServerRequest -> InstanceName -> Encode.Value
 buildRequestBody createServerRequest instanceName =
     let
@@ -326,31 +323,36 @@ humanReadableServerNameToInstanceName humanReadableServerName =
     humanReadableServerName.adverb ++ "_" ++ humanReadableServerName.adjective ++ "_" ++ humanReadableServerName.name
 
 
+nameToRequest : InstanceName -> Project -> CreateServerRequest -> Cmd Msg
+nameToRequest instanceName project createServerRequest =
+    openstackCredentialedRequest
+        project
+        Post
+        (project.endpoints.nova ++ "/servers")
+        (Http.jsonBody (buildRequestBody createServerRequest instanceName))
+        (Http.expectJson (Decode.field "server" serverUuidDecoder))
+        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
+
+
 requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
 requestCreateServer project createServerRequest =
     let
         serverCount =
             Maybe.withDefault 1 (String.toInt createServerRequest.count)
 
-        nameToRequest : HumanReadableServerName -> Cmd Msg
-        nameToRequest humanReadableServerName =
-            let
-                instanceName =
-                    humanReadableServerNameToInstanceName humanReadableServerName
-            in
-            openstackCredentialedRequest
-                project
-                Post
-                (project.endpoints.nova ++ "/servers")
-                (Http.jsonBody (buildRequestBody createServerRequest instanceName))
-                (Http.expectJson (Decode.field "server" serverUuidDecoder))
-                (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
-
         abc : a -> Cmd Msg
         abc =
             \_ ->
-                Random.generate nameToRequest Helpers.Random.generateHumanReadableServerName
+                Random.generate
+                    (\name ->
+                        PrepareCreateServerRequest
+                            (humanReadableServerNameToInstanceName name)
+                            project
+                            createServerRequest
+                    )
+                    Helpers.Random.generateHumanReadableServerName
 
+        -- Random.generate (\name ->  nameToRequest project) Helpers.Random.generateHumanReadableServerName
         requests : List (Cmd Msg)
         requests =
             serverCount

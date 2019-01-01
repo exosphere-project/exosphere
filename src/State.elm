@@ -118,6 +118,9 @@ update msg model =
 updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
 updateUnderlying msg model =
     case msg of
+        PrepareCreateServerRequest instanceName project createServerRequest ->
+            ( model, Rest.nameToRequest instanceName project createServerRequest )
+
         ToastyMsg subMsg ->
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
 
