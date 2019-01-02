@@ -22,11 +22,7 @@ generateServerName createServerRequest =
     let
         randomWord wordlist default =
             Random.map
-                (\a ->
-                    case a of
-                        ( maybeString, _ ) ->
-                            maybeString |> Maybe.withDefault default
-                )
+                (Tuple.first >> Maybe.withDefault default)
                 (RandomList.choose wordlist)
 
         randomAdverb =
