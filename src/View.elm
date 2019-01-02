@@ -16,12 +16,14 @@ import Framework.Color
 import Framework.Modifier as Modifier
 import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
+import Helpers.Random
 import Html exposing (Html)
 import Html.Attributes
 import Http
 import Maybe
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
+import Random
 import RemoteData
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
@@ -697,8 +699,8 @@ viewServerDetail project serverUuid viewStateParams =
                             [ Button.button
                                 []
                                 (Just <|
-                                            ProjectMsg (Helpers.getProjectId project) <|
-                                                SetProjectView <|
+                                    ProjectMsg (Helpers.getProjectId project) <|
+                                        SetProjectView <|
                                             ServerDetail
                                                 server.osProps.uuid
                                                 { viewStateParams | verboseStatus = True }
@@ -714,7 +716,7 @@ viewServerDetail project serverUuid viewStateParams =
                             ]
 
                 maybeFlavor =
-                            Helpers.flavorLookup project details.flavorUuid
+                    Helpers.flavorLookup project details.flavorUuid
 
                 flavorText =
                     case maybeFlavor of
@@ -725,7 +727,7 @@ viewServerDetail project serverUuid viewStateParams =
                             "Unknown flavor"
 
                 maybeImage =
-                            Helpers.imageLookup project details.imageUuid
+                    Helpers.imageLookup project details.imageUuid
 
                 imageText =
                     case maybeImage of
@@ -759,7 +761,7 @@ viewServerDetail project serverUuid viewStateParams =
                                                 Element.paragraph []
                                                     [ Element.text "Console unavailable due to cloud configuration."
                                                     , Element.text " Try asking the administrator of "
-                                                            , Element.text project.creds.projectName
+                                                    , Element.text project.creds.projectName
                                                     , Element.text " to enable the SPICE+HTML5 or NoVNC console."
                                                     ]
 
@@ -775,8 +777,8 @@ viewServerDetail project serverUuid viewStateParams =
                                         flippyCardContents pwVizOnClick text =
                                             Element.el
                                                 [ Events.onClick
-                                                            (ProjectMsg (Helpers.getProjectId project) <|
-                                                                SetProjectView <|
+                                                    (ProjectMsg (Helpers.getProjectId project) <|
+                                                        SetProjectView <|
                                                             ServerDetail serverUuid
                                                                 { viewStateParams | passwordVisibility = pwVizOnClick }
                                                     )
@@ -897,7 +899,7 @@ viewServerDetail project serverUuid viewStateParams =
                                   <|
                                     Button.button
                                         action.selectMods
-                                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
+                                        (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
                                         action.name
                                 , Element.text action.description
                                 ]
@@ -977,7 +979,7 @@ viewServerDetail project serverUuid viewStateParams =
                     , compactKVRow "IP addresses"
                         (renderIpAddresses
                             details.ipAddresses
-                                    project
+                            project
                             server.osProps.uuid
                             viewStateParams
                         )
@@ -1120,6 +1122,22 @@ renderImage globalDefaults project image =
 
                 Nothing ->
                     "N/A"
+
+        createServerRequest =
+            CreateServerRequest
+                image.name
+                (Helpers.getProjectId project)
+                image.uuid
+                image.name
+                "1"
+                ""
+                False
+                ""
+                Nothing
+                globalDefaults.shellUserData
+                "changeme123"
+                ""
+                False
     in
     ExoCard.exoCard
         image.name
@@ -1141,25 +1159,7 @@ renderImage globalDefaults project image =
                     (Just
                         (ProjectMsg
                             (Helpers.getProjectId project)
-                            (SetProjectView
-                                (CreateServer
-                                    (CreateServerRequest
-                                        image.name
-                                        (Helpers.getProjectId project)
-                                        image.uuid
-                                        image.name
-                                        "1"
-                                        ""
-                                        False
-                                        ""
-                                        Nothing
-                                        globalDefaults.shellUserData
-                                        "changeme123"
-                                        ""
-                                        False
-                                    )
-                                )
-                            )
+                            (SetProjectView (CreateServer createServerRequest))
                         )
                     )
                     "Choose"

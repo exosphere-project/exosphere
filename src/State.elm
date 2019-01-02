@@ -9,6 +9,7 @@ import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import OpenStack.ServerActions as ServerActions
 import Ports
+import Random
 import RemoteData
 import Rest.Rest as Rest
 import Time
@@ -118,9 +119,6 @@ update msg model =
 updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
 updateUnderlying msg model =
     case msg of
-        PrepareCreateServerRequest instanceName project createServerRequest ->
-            ( model, Rest.nameToRequest instanceName project createServerRequest )
-
         ToastyMsg subMsg ->
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
 
@@ -333,6 +331,15 @@ processProjectSpecificMsg model project msg =
                         , Rest.requestKeypairs project
                         , Rest.requestNetworks project
                         , RandomHelpers.generatePassword project
+                        , Random.generate
+                            (\name ->
+                                let
+                                    instanceName =
+                                        RandomHelpers.humanReadableServerNameToInstanceName name
+                                in
+                                InputCreateServerField createServerRequest (CreateServerName instanceName)
+                            )
+                            RandomHelpers.generateHumanReadableServerName
                         ]
                     )
 

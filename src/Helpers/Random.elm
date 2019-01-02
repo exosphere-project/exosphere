@@ -1,4 +1,4 @@
-module Helpers.Random exposing (generateHumanReadableServerName, generatePassword)
+module Helpers.Random exposing (generateHumanReadableServerName, generatePassword, humanReadableServerNameToInstanceName)
 
 import Random
 import Random.Char as RandomChar
@@ -38,6 +38,11 @@ generateHumanReadableServerName =
             randomWord names "baz"
     in
     Random.map3 HumanReadableServerName randomAdverb randomAdjective randomName
+
+
+humanReadableServerNameToInstanceName : HumanReadableServerName -> InstanceName
+humanReadableServerNameToInstanceName humanReadableServerName =
+    humanReadableServerName.adverb ++ "_" ++ humanReadableServerName.adjective ++ "_" ++ humanReadableServerName.name
 
 
 adjectives =

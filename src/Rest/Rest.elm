@@ -15,7 +15,6 @@ module Rest.Rest exposing
     , imageStatusDecoder
     , ipAddressOpenstackTypeDecoder
     , keypairDecoder
-    , nameToRequest
     , networkDecoder
     , openstackEndpointDecoder
     , openstackEndpointInterfaceDecoder
@@ -245,121 +244,102 @@ requestKeypairs project =
         (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveKeypairs result))
 
 
-generateIndexedServerName : String -> Int -> Int -> String
-generateIndexedServerName baseName serverCount index =
-    if serverCount == 1 then
-        baseName
-
-    else
-        baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt serverCount
-
-
-baseServerProps : CreateServerRequest -> String -> List ( String, Encode.Value )
-baseServerProps createServerRequest instanceName =
-    let
-        maybeKeypairJson =
-            case createServerRequest.keypairName of
-                Nothing ->
-                    []
-
-                Just keypairName ->
-                    [ ( "key_name", Encode.string keypairName ) ]
-    in
-    List.append
-        maybeKeypairJson
-        [ ( "name", Encode.string instanceName )
-        , ( "flavorRef", Encode.string createServerRequest.flavorUuid )
-        , case createServerRequest.networkUuid of
-            "auto" ->
-                ( "networks", Encode.string "auto" )
-
-            netUuid ->
-                ( "networks"
-                , Encode.list Encode.object
-                    [ [ ( "uuid", Encode.string createServerRequest.networkUuid ) ] ]
-                )
-        , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
-        , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-        , ( "adminPass", Encode.string createServerRequest.exouserPassword )
-        , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
-        ]
-
-
-buildRequestBody : CreateServerRequest -> InstanceName -> Encode.Value
-buildRequestBody createServerRequest instanceName =
-    let
-        buildRequestOuterJson props =
-            Encode.object [ ( "server", Encode.object props ) ]
-    in
-    case createServerRequest.volBacked of
-        False ->
-            ( "imageRef", Encode.string createServerRequest.imageUuid )
-                :: baseServerProps createServerRequest instanceName
-                |> buildRequestOuterJson
-
-        True ->
-            ( "block_device_mapping_v2"
-            , Encode.list Encode.object
-                [ [ ( "boot_index", Encode.string "0" )
-                  , ( "uuid", Encode.string createServerRequest.imageUuid )
-                  , ( "source_type", Encode.string "image" )
-                  , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
-                  , ( "destination_type", Encode.string "volume" )
-                  , ( "delete_on_termination", Encode.bool True )
-                  ]
-                ]
-            )
-                :: baseServerProps createServerRequest instanceName
-                |> buildRequestOuterJson
-
-
-serverUuidDecoder : Decode.Decoder OSTypes.ServerUuid
-serverUuidDecoder =
-    Decode.field "id" Decode.string
-
-
-humanReadableServerNameToInstanceName : HumanReadableServerName -> InstanceName
-humanReadableServerNameToInstanceName humanReadableServerName =
-    humanReadableServerName.adverb ++ "_" ++ humanReadableServerName.adjective ++ "_" ++ humanReadableServerName.name
-
-
-nameToRequest : InstanceName -> Project -> CreateServerRequest -> Cmd Msg
-nameToRequest instanceName project createServerRequest =
-    openstackCredentialedRequest
-        project
-        Post
-        (project.endpoints.nova ++ "/servers")
-        (Http.jsonBody (buildRequestBody createServerRequest instanceName))
-        (Http.expectJson (Decode.field "server" serverUuidDecoder))
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
-
-
 requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
 requestCreateServer project createServerRequest =
     let
-        serverCount =
+        getServerCount =
             Maybe.withDefault 1 (String.toInt createServerRequest.count)
 
-        abc : a -> Cmd Msg
-        abc =
-            \_ ->
-                Random.generate
-                    (\name ->
-                        PrepareCreateServerRequest
-                            (humanReadableServerNameToInstanceName name)
-                            project
-                            createServerRequest
-                    )
-                    Helpers.Random.generateHumanReadableServerName
+        instanceNumbers =
+            List.range 1 getServerCount
 
-        -- Random.generate (\name ->  nameToRequest project) Helpers.Random.generateHumanReadableServerName
-        requests : List (Cmd Msg)
-        requests =
-            serverCount
-                |> List.range 1
-                |> List.map abc
+        generateServerName : String -> Int -> Int -> String
+        generateServerName baseName serverCount index =
+            if serverCount == 1 then
+                baseName
+
+            else
+                baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt getServerCount
+
+        instanceNames =
+            instanceNumbers
+                |> List.map (generateServerName createServerRequest.name getServerCount)
+
+        baseServerProps innerCreateServerRequest instanceName =
+            let
+                maybeKeypairJson =
+                    case innerCreateServerRequest.keypairName of
+                        Nothing ->
+                            []
+
+                        Just keypairName ->
+                            [ ( "key_name", Encode.string keypairName ) ]
+            in
+            List.append
+                maybeKeypairJson
+                [ ( "name", Encode.string instanceName )
+                , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
+                , case innerCreateServerRequest.networkUuid of
+                    "auto" ->
+                        ( "networks", Encode.string "auto" )
+
+                    netUuid ->
+                        ( "networks"
+                        , Encode.list Encode.object
+                            [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+                        )
+                , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
+                , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
+                , ( "adminPass", Encode.string createServerRequest.exouserPassword )
+                , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
+                ]
+
+        buildRequestOuterJson props =
+            Encode.object [ ( "server", Encode.object props ) ]
+
+        buildRequestBody instanceName =
+            case createServerRequest.volBacked of
+                False ->
+                    ( "imageRef", Encode.string createServerRequest.imageUuid )
+                        :: baseServerProps createServerRequest instanceName
+                        |> buildRequestOuterJson
+
+                True ->
+                    ( "block_device_mapping_v2"
+                    , Encode.list Encode.object
+                        [ [ ( "boot_index", Encode.string "0" )
+                          , ( "uuid", Encode.string createServerRequest.imageUuid )
+                          , ( "source_type", Encode.string "image" )
+                          , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
+                          , ( "destination_type", Encode.string "volume" )
+                          , ( "delete_on_termination", Encode.bool True )
+                          ]
+                        ]
+                    )
+                        :: baseServerProps createServerRequest instanceName
+                        |> buildRequestOuterJson
+
+        requestBodies =
+            instanceNames
+                |> List.map buildRequestBody
+
+        serverUuidDecoder : Decode.Decoder OSTypes.ServerUuid
+        serverUuidDecoder =
+            Decode.field "id" Decode.string
     in
-    Cmd.batch requests
+    Cmd.batch
+        (requestBodies
+            |> List.map
+                (\requestBody ->
+                    openstackCredentialedRequest
+                        project
+                        Post
+                        (project.endpoints.nova ++ "/servers")
+                        (Http.jsonBody requestBody)
+                        (Http.expectJson (Decode.field "server" serverUuidDecoder))
+                        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
+                )
+        )
 
 
 requestDeleteServer : Project -> Server -> Cmd Msg

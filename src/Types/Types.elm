@@ -118,7 +118,6 @@ type Msg
     | RandomPassword Project String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
     | MsgChangeWindowSize Int Int
-    | PrepareCreateServerRequest InstanceName Project CreateServerRequest
 
 
 type ProjectSpecificMsgConstructor
