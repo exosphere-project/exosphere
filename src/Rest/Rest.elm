@@ -62,12 +62,10 @@ import Array
 import Base64
 import Dict
 import Helpers.Helpers as Helpers
-import Helpers.Random
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
-import Random
 import RemoteData
 import Rest.Helpers exposing (..)
 import Time

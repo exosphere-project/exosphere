@@ -1,4 +1,4 @@
-module Helpers.Random exposing (generateHumanReadableServerName, generatePassword, humanReadableServerNameToInstanceName)
+module Helpers.Random exposing (generatePassword, generateServerName)
 
 import Random
 import Random.Char as RandomChar
@@ -8,16 +8,17 @@ import Random.String as RandomString
 import Types.Types exposing (..)
 
 
-generatePassword provider =
-    Random.generate (RandomPassword provider) (RandomString.string 16 RandomChar.english)
+generatePassword : Project -> Cmd Msg
+generatePassword project =
+    Random.generate (RandomPassword project) (RandomString.string 16 RandomChar.english)
 
 
 
 -- from https://github.com/dustinkirkland/petname/tree/master/usr/share/petname/small
 
 
-generateHumanReadableServerName : Random.Generator HumanReadableServerName
-generateHumanReadableServerName =
+generateServerName : CreateServerRequest -> Cmd Msg
+generateServerName createServerRequest =
     let
         randomWord wordlist default =
             Random.map
@@ -36,13 +37,21 @@ generateHumanReadableServerName =
 
         randomName =
             randomWord names "baz"
+
+        nameGenerator =
+            Random.map3
+                (\adverb adjective name ->
+                    adverb ++ "_" ++ adjective ++ "_" ++ name
+                )
+                randomAdverb
+                randomAdjective
+                randomName
     in
-    Random.map3 HumanReadableServerName randomAdverb randomAdjective randomName
-
-
-humanReadableServerNameToInstanceName : HumanReadableServerName -> InstanceName
-humanReadableServerNameToInstanceName humanReadableServerName =
-    humanReadableServerName.adverb ++ "_" ++ humanReadableServerName.adjective ++ "_" ++ humanReadableServerName.name
+    Random.generate
+        (\instanceName ->
+            InputCreateServerField createServerRequest (CreateServerName instanceName)
+        )
+        nameGenerator
 
 
 adjectives =

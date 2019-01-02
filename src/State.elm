@@ -9,7 +9,6 @@ import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import OpenStack.ServerActions as ServerActions
 import Ports
-import Random
 import RemoteData
 import Rest.Rest as Rest
 import Time
@@ -331,15 +330,7 @@ processProjectSpecificMsg model project msg =
                         , Rest.requestKeypairs project
                         , Rest.requestNetworks project
                         , RandomHelpers.generatePassword project
-                        , Random.generate
-                            (\name ->
-                                let
-                                    instanceName =
-                                        RandomHelpers.humanReadableServerNameToInstanceName name
-                                in
-                                InputCreateServerField createServerRequest (CreateServerName instanceName)
-                            )
-                            RandomHelpers.generateHumanReadableServerName
+                        , RandomHelpers.generateServerName createServerRequest
                         ]
                     )
 

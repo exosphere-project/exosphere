@@ -16,14 +16,12 @@ import Framework.Color
 import Framework.Modifier as Modifier
 import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
-import Helpers.Random
 import Html exposing (Html)
 import Html.Attributes
 import Http
 import Maybe
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
-import Random
 import RemoteData
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
@@ -1122,22 +1120,6 @@ renderImage globalDefaults project image =
 
                 Nothing ->
                     "N/A"
-
-        createServerRequest =
-            CreateServerRequest
-                image.name
-                (Helpers.getProjectId project)
-                image.uuid
-                image.name
-                "1"
-                ""
-                False
-                ""
-                Nothing
-                globalDefaults.shellUserData
-                "changeme123"
-                ""
-                False
     in
     ExoCard.exoCard
         image.name
@@ -1159,7 +1141,25 @@ renderImage globalDefaults project image =
                     (Just
                         (ProjectMsg
                             (Helpers.getProjectId project)
-                            (SetProjectView (CreateServer createServerRequest))
+                            (SetProjectView
+                                (CreateServer
+                                    (CreateServerRequest
+                                        image.name
+                                        (Helpers.getProjectId project)
+                                        image.uuid
+                                        image.name
+                                        "1"
+                                        ""
+                                        False
+                                        ""
+                                        Nothing
+                                        globalDefaults.shellUserData
+                                        "changeme123"
+                                        ""
+                                        False
+                                    )
+                                )
+                            )
                         )
                     )
                     "Choose"

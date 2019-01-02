@@ -9,9 +9,7 @@ module Types.Types exposing
     , FloatingIpState(..)
     , GlobalDefaults
     , HttpRequestMethod(..)
-    , HumanReadableServerName
     , IPInfoLevel(..)
-    , InstanceName
     , LoginField(..)
     , Model
     , Msg(..)
@@ -220,17 +218,6 @@ type alias Creds =
     , username : String
     , password : String
     }
-
-
-type alias HumanReadableServerName =
-    { adverb : String
-    , adjective : String
-    , name : String
-    }
-
-
-type alias InstanceName =
-    String
 
 
 
