@@ -151,7 +151,15 @@ updateUnderlying msg model =
                     ( newModel, Cmd.none )
 
         RequestNewProjectToken ->
-            ( model, Rest.requestAuthToken model.creds )
+            let
+                -- If user does not provide a port number and path (API version) then we guess it
+                oldCreds =
+                    model.creds
+
+                newCreds =
+                    { oldCreds | authUrl = Helpers.authUrlWithPortAndVersion oldCreds.authUrl }
+            in
+            ( model, Rest.requestAuthToken newCreds )
 
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
