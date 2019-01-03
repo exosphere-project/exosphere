@@ -697,8 +697,8 @@ viewServerDetail project serverUuid viewStateParams =
                             [ Button.button
                                 []
                                 (Just <|
-                                            ProjectMsg (Helpers.getProjectId project) <|
-                                                SetProjectView <|
+                                    ProjectMsg (Helpers.getProjectId project) <|
+                                        SetProjectView <|
                                             ServerDetail
                                                 server.osProps.uuid
                                                 { viewStateParams | verboseStatus = True }
@@ -714,7 +714,7 @@ viewServerDetail project serverUuid viewStateParams =
                             ]
 
                 maybeFlavor =
-                            Helpers.flavorLookup project details.flavorUuid
+                    Helpers.flavorLookup project details.flavorUuid
 
                 flavorText =
                     case maybeFlavor of
@@ -725,7 +725,7 @@ viewServerDetail project serverUuid viewStateParams =
                             "Unknown flavor"
 
                 maybeImage =
-                            Helpers.imageLookup project details.imageUuid
+                    Helpers.imageLookup project details.imageUuid
 
                 imageText =
                     case maybeImage of
@@ -759,7 +759,7 @@ viewServerDetail project serverUuid viewStateParams =
                                                 Element.paragraph []
                                                     [ Element.text "Console unavailable due to cloud configuration."
                                                     , Element.text " Try asking the administrator of "
-                                                            , Element.text project.creds.projectName
+                                                    , Element.text project.creds.projectName
                                                     , Element.text " to enable the SPICE+HTML5 or NoVNC console."
                                                     ]
 
@@ -775,8 +775,8 @@ viewServerDetail project serverUuid viewStateParams =
                                         flippyCardContents pwVizOnClick text =
                                             Element.el
                                                 [ Events.onClick
-                                                            (ProjectMsg (Helpers.getProjectId project) <|
-                                                                SetProjectView <|
+                                                    (ProjectMsg (Helpers.getProjectId project) <|
+                                                        SetProjectView <|
                                                             ServerDetail serverUuid
                                                                 { viewStateParams | passwordVisibility = pwVizOnClick }
                                                     )
@@ -897,7 +897,7 @@ viewServerDetail project serverUuid viewStateParams =
                                   <|
                                     Button.button
                                         action.selectMods
-                                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
+                                        (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
                                         action.name
                                 , Element.text action.description
                                 ]
@@ -977,7 +977,7 @@ viewServerDetail project serverUuid viewStateParams =
                     , compactKVRow "IP addresses"
                         (renderIpAddresses
                             details.ipAddresses
-                                    project
+                            project
                             server.osProps.uuid
                             viewStateParams
                         )

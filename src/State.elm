@@ -337,7 +337,14 @@ processProjectSpecificMsg model project msg =
                         [ Rest.requestFlavors project
                         , Rest.requestKeypairs project
                         , Rest.requestNetworks project
-                        , RandomHelpers.generatePassword project
+                        , RandomHelpers.generatePassword
+                            (\password ->
+                                RandomPassword project password
+                            )
+                        , RandomHelpers.generateServerName
+                            (\serverName ->
+                                InputCreateServerField createServerRequest (CreateServerName serverName)
+                            )
                         ]
                     )
 
