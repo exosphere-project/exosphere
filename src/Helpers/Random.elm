@@ -6,22 +6,34 @@ import Random.Char as RandomChar
 import Random.Extra as RandomExtra
 import Random.List as RandomList
 import Random.String as RandomString
-import Types.Types exposing (..)
 
 
-generatePassword : (String -> Msg) -> Cmd Msg
+randomWord : List String -> String -> Random.Generator String
+randomWord wordlist default =
+    Random.map
+        (Tuple.first >> Maybe.withDefault default)
+        (RandomList.choose wordlist)
+
+
+generatePassword : (String -> msg) -> Cmd msg
 generatePassword toMsg =
-    Random.generate toMsg (RandomString.string 16 RandomChar.english)
+    let
+        passwordGenerator =
+            Random.map4
+                (\foo bar baz qux ->
+                    foo ++ "-" ++ bar ++ "-" ++ baz ++ "-" ++ qux
+                )
+                (randomWord PetNames.mediumNames "foo")
+                (randomWord PetNames.mediumNames "bar")
+                (randomWord PetNames.mediumNames "baz")
+                (randomWord PetNames.names "qux")
+    in
+    Random.generate toMsg passwordGenerator
 
 
-generateServerName : (String -> Msg) -> Cmd Msg
+generateServerName : (String -> msg) -> Cmd msg
 generateServerName toMsg =
     let
-        randomWord wordlist default =
-            Random.map
-                (Tuple.first >> Maybe.withDefault default)
-                (RandomList.choose wordlist)
-
         randomAdverb =
             randomWord PetNames.adverbs "foo"
 
