@@ -15,19 +15,32 @@ randomWord wordlist default =
         (RandomList.choose wordlist)
 
 
+randomPhrase : List String -> List String -> List String -> Random.Generator String
+randomPhrase adverbs adjectives names =
+    Random.map3
+        (\adverb adjective name ->
+            adverb ++ "-" ++ adjective ++ "-" ++ name
+        )
+        (randomWord adverbs "foo")
+        (randomWord adjectives "bar")
+        (randomWord names "baz")
+
+
+randomMediumPhrase : Random.Generator String
+randomMediumPhrase =
+    randomPhrase PetNames.mediumAdverbs PetNames.mediumAdjectives PetNames.mediumNames
+
+
 generatePassword : (String -> msg) -> Cmd msg
 generatePassword toMsg =
     let
         passwordGenerator =
-            Random.map5
-                (\foo bar baz qux quux ->
-                    foo ++ "-" ++ bar ++ "-" ++ baz ++ "-" ++ qux ++ "-" ++ quux
+            Random.map2
+                (\phrase1 phrase2 ->
+                    phrase1 ++ "-" ++ phrase2
                 )
-                (randomWord PetNames.mediumNames "foo")
-                (randomWord PetNames.mediumNames "bar")
-                (randomWord PetNames.mediumNames "baz")
-                (randomWord PetNames.mediumNames "qux")
-                (randomWord PetNames.names "quux")
+                randomMediumPhrase
+                randomMediumPhrase
     in
     Random.generate toMsg passwordGenerator
 
