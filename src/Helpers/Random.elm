@@ -19,14 +19,15 @@ generatePassword : (String -> msg) -> Cmd msg
 generatePassword toMsg =
     let
         passwordGenerator =
-            Random.map4
-                (\foo bar baz qux ->
-                    foo ++ "-" ++ bar ++ "-" ++ baz ++ "-" ++ qux
+            Random.map5
+                (\foo bar baz qux quux ->
+                    foo ++ "-" ++ bar ++ "-" ++ baz ++ "-" ++ qux ++ "-" ++ quux
                 )
                 (randomWord PetNames.mediumNames "foo")
                 (randomWord PetNames.mediumNames "bar")
                 (randomWord PetNames.mediumNames "baz")
-                (randomWord PetNames.names "qux")
+                (randomWord PetNames.mediumNames "qux")
+                (randomWord PetNames.names "quux")
     in
     Random.generate toMsg passwordGenerator
 
