@@ -783,11 +783,14 @@ viewServerDetail project serverUuid viewStateParams =
                                                 , Element.centerX
                                                 , Element.centerY
                                                 ]
-                                                (Element.text text)
+                                                (Element.el
+                                                    [ Element.centerX ]
+                                                    (Element.text text)
+                                                )
 
                                         passwordFlippyCard password =
                                             Card.flipping
-                                                { width = 250
+                                                { width = 550
                                                 , height = 30
                                                 , activeFront =
                                                     case viewStateParams.passwordVisibility of
