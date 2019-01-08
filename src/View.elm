@@ -733,7 +733,7 @@ viewServerDetail project serverUuid viewStateParams =
                             image.name
 
                         Nothing ->
-                            "Unknown image"
+                            "N/A"
 
                 consoleLink =
                     case details.openstackStatus of
