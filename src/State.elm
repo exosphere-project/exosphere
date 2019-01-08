@@ -84,9 +84,12 @@ chpasswd:
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState emptyModel storedState
     in
-    ( hydratedModel
-    , Cmd.none
-    )
+    case hydratedModel.viewState of
+        ProjectView projectName ListProjectServers ->
+            update (ProjectMsg projectName RequestServers) hydratedModel
+
+        _ ->
+            ( hydratedModel, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
