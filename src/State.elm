@@ -561,7 +561,7 @@ processProjectSpecificMsg model project msg =
                             in
                             case maybeFloatingIpUuid of
                                 Nothing ->
-                                    Helpers.processError serverDeletedModel "Error: We should have found a floating IP address UUID but we didn't. This is probably a race condition that cmart is responsible for"
+                                    ( serverDeletedModel, Cmd.none )
 
                                 Just uuid ->
                                     ( serverDeletedModel, Rest.requestDeleteFloatingIp project uuid )
