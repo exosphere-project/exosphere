@@ -22,7 +22,7 @@ widgets =
     , menuItem Active "Active menu item" Nothing
     , menuItem Inactive "Inactive menu item" Nothing
     , Element.text "Style.Widgets.Icon.roundRect"
-    , roundRect "blue"
+    , roundRect Color.black 40
     , Element.text "Style.Widgets.Icon.bell"
     , bell Color.black 40
     , Element.text "Style.Widgets.Icon.remove"
