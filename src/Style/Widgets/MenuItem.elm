@@ -41,7 +41,7 @@ menuItem state itemLabel onPress =
             , Border.color (toElementColor <| Framework.Color.black)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
-            , Element.paddingXY 10 12
+            , Element.paddingXY 15 24
             , Background.color (toElementColor <| backgroundColor)
             , Font.color (toElementColor <| fontColor)
             ]
@@ -69,7 +69,7 @@ menuItem state itemLabel onPress =
                 [ Element.row
                     []
                     [ Element.paragraph
-                        [ Font.size 18
+                        [ Font.size 15
                         , fontWeight
                         ]
                         [ Element.text itemLabel ]
