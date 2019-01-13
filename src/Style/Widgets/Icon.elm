@@ -2,7 +2,6 @@ module Style.Widgets.Icon exposing (bell, remove, roundRect)
 
 import Color
 import Element
-import Framework.Color exposing (black)
 import Html
 import Svg
 import Svg.Attributes as SA

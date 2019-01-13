@@ -68,7 +68,6 @@ import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (..)
-import Time
 import Types.Types exposing (..)
 
 

@@ -1,11 +1,9 @@
 module Style.Widgets.IconButton exposing (iconButton)
 
-import Element exposing (Element, text)
+import Element exposing (Element)
 import Element.Input as Input
 import Framework.Button
-import Framework.Color
 import Framework.Modifier exposing (Modifier(..))
-import Style.Widgets.Icon as Icon
 
 
 {-| Generate an Input.button element with an icon and no text label
