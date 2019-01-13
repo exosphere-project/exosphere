@@ -19,7 +19,6 @@ module Helpers.Helpers exposing
     , projectLookup
     , projectUpdateServer
     , projectUpdateServers
-    , providePasswordHint
     , serverLookup
     , serviceCatalogToEndpoints
     , sortedFlavors
@@ -199,24 +198,6 @@ authUrlWithPortAndVersion authUrlStr =
                     -- Query and fragment may not be needed / accepted by OpenStack
                     authUrl.query
                     authUrl.fragment
-
-
-providePasswordHint : String -> String -> List { styleKey : String, styleValue : String }
-providePasswordHint username password =
-    let
-        checks =
-            [ not <| String.isEmpty username
-            , String.isEmpty password
-            , username /= "demo"
-            ]
-    in
-    if List.all (\p -> p) checks then
-        [ { styleKey = "border-color", styleValue = "rgba(239, 130, 17, 0.8)" }
-        , { styleKey = "background-color", styleValue = "rgba(245, 234, 234, 0.7)" }
-        ]
-
-    else
-        []
 
 
 hostnameFromUrl : HelperTypes.Url -> String
