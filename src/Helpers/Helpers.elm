@@ -37,7 +37,6 @@ import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
-import String.Extra
 import Time
 import Toasty
 import Toasty.Defaults

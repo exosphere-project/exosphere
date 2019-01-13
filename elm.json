@@ -21,7 +21,6 @@
             "elm/url": "1.0.0",
             "elm-community/maybe-extra": "5.0.0",
             "elm-community/random-extra": "3.0.0",
-            "elm-community/string-extra": "4.0.0",
             "jweir/elm-iso8601": "5.0.2",
             "krisajenkins/remotedata": "5.0.0",
             "mdgriffith/elm-ui": "1.1.0",
