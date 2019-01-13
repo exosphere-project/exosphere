@@ -2,10 +2,7 @@ module Helpers.Random exposing (generatePassword, generateServerName)
 
 import Helpers.PetNames as PetNames
 import Random
-import Random.Char as RandomChar
-import Random.Extra as RandomExtra
 import Random.List as RandomList
-import Random.String as RandomString
 
 
 randomWord : List String -> String -> Random.Generator String

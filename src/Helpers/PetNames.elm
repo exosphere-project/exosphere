@@ -3,6 +3,7 @@ module Helpers.PetNames exposing (adjectives, adverbs, mediumAdjectives, mediumA
 -- from https://github.com/dustinkirkland/petname/tree/master/usr/share/petname/small
 
 
+adjectives : List String
 adjectives =
     [ "able"
     , "above"
@@ -456,6 +457,7 @@ adjectives =
     ]
 
 
+adverbs : List String
 adverbs =
     [ "abnormally"
     , "absolutely"
@@ -721,6 +723,7 @@ adverbs =
     ]
 
 
+names : List String
 names =
     [ "ox"
     , "ant"
@@ -1185,6 +1188,7 @@ names =
 -- from https://raw.githubusercontent.com/dustinkirkland/petname/master/usr/share/petname/medium/
 
 
+mediumNames : List String
 mediumNames =
     [ "aardvark"
     , "aardwolf"
@@ -2249,6 +2253,7 @@ mediumNames =
     ]
 
 
+mediumAdjectives : List String
 mediumAdjectives =
     [ "abiding"
     , "able"
@@ -3451,6 +3456,7 @@ mediumAdjectives =
     ]
 
 
+mediumAdverbs : List String
 mediumAdverbs =
     [ "abjectly"
     , "ably"

@@ -1180,7 +1180,7 @@ renderServer project server =
         checkBoxLabel aServer =
             Element.row []
                 [ statusIcon
-                , Element.el [ Font.bold ] (Element.text server.osProps.name)
+                , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
     in
     Element.row (exoRowAttributes ++ [ Element.width Element.fill ])

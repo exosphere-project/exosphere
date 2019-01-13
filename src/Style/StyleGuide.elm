@@ -5,7 +5,7 @@ import Element
 import Element.Font as Font
 import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
-import Html exposing (text)
+import Html
 import Style.Widgets.Card exposing (..)
 import Style.Widgets.Icon exposing (..)
 import Style.Widgets.IconButton exposing (..)
@@ -22,7 +22,7 @@ widgets =
     , menuItem Active "Active menu item" Nothing
     , menuItem Inactive "Inactive menu item" Nothing
     , Element.text "Style.Widgets.Icon.roundRect"
-    , roundRect "blue"
+    , roundRect Color.black 40
     , Element.text "Style.Widgets.Icon.bell"
     , bell Color.black 40
     , Element.text "Style.Widgets.Icon.remove"
@@ -47,6 +47,7 @@ intro =
     ]
 
 
+main : Html.Html msg
 main =
     Element.layout [] <|
         Element.column
