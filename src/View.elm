@@ -203,7 +203,7 @@ projectTitleForNavMenu model project =
     in
     case multipleProjects of
         True ->
-            providerTitle ++ String.fromChar '\n' ++ project.creds.projectName
+            providerTitle ++ String.fromChar '\n' ++ "(" ++ project.creds.projectName ++ ")"
 
         False ->
             providerTitle
