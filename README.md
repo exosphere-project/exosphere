@@ -13,6 +13,9 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Features and Goals
 
+(See also values-goals.md for what drives the Exosphere project!) 
+
+
 **Right now:**
 - The most user-friendly way to manage cloud computers on OpenStack
 - Works great for:
