@@ -655,16 +655,19 @@ viewServerDetail project serverUuid viewStateParams =
 
                     flavorText =
                         Helpers.flavorLookup project details.flavorUuid
+                            |> Maybe.map .name
                             |> Maybe.withDefault "Unknown flavor"
-                            << Maybe.map .name
 
                     imageText =
                         Helpers.imageLookup project details.imageUuid
+                            |> Maybe.map .name
                             |> Maybe.withDefault "N/A"
-                            << Maybe.map .name
 
                     maybeFloatingIp =
                         Helpers.getServerFloatingIp details.ipAddresses
+
+                    projectId =
+                        Helpers.getProjectId project
                 in
                 Element.wrappedRow []
                     [ Element.column
@@ -676,7 +679,7 @@ viewServerDetail project serverUuid viewStateParams =
                             heading2
                             (Element.text "Server Details")
                         , compactKVRow "Name" (Element.text server.osProps.name)
-                        , compactKVRow "Status" (serverStatusView project server viewStateParams)
+                        , compactKVRow "Status" (serverStatusView projectId server viewStateParams)
                         , compactKVRow "UUID" (Element.text server.osProps.uuid)
                         , compactKVRow "Created on" (Element.text details.created)
                         , compactKVRow "Image" (Element.text imageText)
@@ -685,7 +688,7 @@ viewServerDetail project serverUuid viewStateParams =
                         , compactKVRow "IP addresses"
                             (renderIpAddresses
                                 details.ipAddresses
-                                project
+                                projectId
                                 server.osProps.uuid
                                 viewStateParams
                             )
@@ -695,7 +698,7 @@ viewServerDetail project serverUuid viewStateParams =
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
                         [ Element.el heading3 (Element.text "Server Actions")
-                        , actionsView project server
+                        , actionsView projectId server
                         , Element.el heading3 (Element.text "System Resource Usage")
                         , resourceUsageGraphsView server.exoProps.cockpitStatus maybeFloatingIp
                         ]
@@ -703,8 +706,8 @@ viewServerDetail project serverUuid viewStateParams =
             )
 
 
-serverStatusView : Project -> Server -> ViewStateParams -> Element.Element Msg
-serverStatusView project server viewStateParams =
+serverStatusView : ProjectIdentifier -> Server -> ViewStateParams -> Element.Element Msg
+serverStatusView projectId server viewStateParams =
     let
         details =
             server.osProps.details
@@ -718,18 +721,21 @@ serverStatusView project server viewStateParams =
                 |> String.dropLeft 5
 
         graphicView =
+            let
+                graphic =
+                    case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
+                        ( OSTypes.ServerBuilding, _ ) ->
+                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
+
+                        ( _, Just _ ) ->
+                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
+
+                        ( _, Nothing ) ->
+                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
+            in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]
-                (case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
-                    ( OSTypes.ServerBuilding, _ ) ->
-                        Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
-
-                    ( _, Just _ ) ->
-                        Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
-
-                    ( _, Nothing ) ->
-                        Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
-                )
+                graphic
 
         verboseStatusView =
             case viewStateParams.verboseStatus of
@@ -737,7 +743,7 @@ serverStatusView project server viewStateParams =
                     [ Button.button
                         []
                         (Just <|
-                            ProjectMsg (Helpers.getProjectId project) <|
+                            ProjectMsg projectId <|
                                 SetProjectView <|
                                     ServerDetail
                                         server.osProps.uuid
@@ -752,12 +758,19 @@ serverStatusView project server viewStateParams =
                     , compactKVSubRow "Power state" (Element.text friendlyPowerState)
                     , compactKVSubRow "Server Dashboard/Terminal readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
                     ]
+
+        statusStringView =
+            Element.text
+                (server
+                    |> Helpers.getServerUiStatus
+                    |> Helpers.getServerUiStatusStr
+                )
     in
     Element.column
         (exoColumnAttributes ++ [ Element.padding 0 ])
         ([ Element.row [ Font.bold ]
             [ graphicView
-            , Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr)
+            , statusStringView
             ]
          ]
             ++ verboseStatusView
@@ -838,17 +851,16 @@ consoleLinkView project server serverUuid viewStateParams =
                                 }
 
                         passwordHint =
-                            case Helpers.getServerExouserPassword details of
-                                Just password ->
-                                    Element.column
-                                        [ Element.spacing 10
-                                        ]
-                                        [ Element.text "Try logging in with username \"exouser\" and the following password:"
-                                        , passwordFlippyCard password
-                                        ]
-
-                                Nothing ->
-                                    Element.none
+                            Helpers.getServerExouserPassword details
+                                |> Maybe.withDefault Element.none
+                                << Maybe.map
+                                    (\password ->
+                                        Element.column
+                                            [ Element.spacing 10 ]
+                                            [ Element.text "Try logging in with username \"exouser\" and the following password:"
+                                            , passwordFlippyCard password
+                                            ]
+                                    )
                     in
                     Element.column
                         exoColumnAttributes
@@ -859,7 +871,9 @@ consoleLinkView project server serverUuid viewStateParams =
                             )
                             "Console"
                         , Element.paragraph []
-                            [ Element.text "Launching the console is like connecting a screen, mouse, and keyboard to your server. If your server has a desktop environment then you can interact with it here."
+                            [ Element.text <|
+                                "Launching the console is like connecting a screen, mouse, and keyboard to your server. "
+                                    ++ "If your server has a desktop environment then you can interact with it here."
                             , passwordHint
                             ]
                         ]
@@ -877,35 +891,6 @@ cockpitInteractionView cockpitStatus maybeFloatingIp =
         |> Maybe.withDefault (Element.text "Server Dashboard and Terminal not ready yet.")
         << Maybe.map
             (\floatingIp ->
-                let
-                    interactionLinksBase =
-                        [ Element.row exoRowAttributes
-                            [ Button.button
-                                []
-                                (Just <|
-                                    OpenNewWindow <|
-                                        "https://"
-                                            ++ floatingIp
-                                            ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                )
-                                "Type commands in a shell!"
-                            , Element.text "Type commands in a shell!"
-                            ]
-                        , Element.row
-                            exoRowAttributes
-                            [ Button.button
-                                []
-                                (Just <|
-                                    OpenNewWindow <|
-                                        "https://"
-                                            ++ floatingIp
-                                            ++ ":9090"
-                                )
-                                "Server Dashboard"
-                            , Element.text "Manage your server with an interactive dashboard!"
-                            ]
-                        ]
-                in
                 case cockpitStatus of
                     NotChecked ->
                         Element.text "Status of server dashboard and terminal not available yet."
@@ -915,9 +900,33 @@ cockpitInteractionView cockpitStatus maybeFloatingIp =
 
                     Ready ->
                         Element.column exoColumnAttributes
-                            ([ Element.text "Server Dashboard and Terminal are ready..." ]
-                                ++ interactionLinksBase
-                            )
+                            [ Element.text "Server Dashboard and Terminal are ready..."
+                            , Element.row exoRowAttributes
+                                [ Button.button
+                                    []
+                                    (Just <|
+                                        OpenNewWindow <|
+                                            "https://"
+                                                ++ floatingIp
+                                                ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                    )
+                                    "Type commands in a shell!"
+                                , Element.text "Type commands in a shell!"
+                                ]
+                            , Element.row
+                                exoRowAttributes
+                                [ Button.button
+                                    []
+                                    (Just <|
+                                        OpenNewWindow <|
+                                            "https://"
+                                                ++ floatingIp
+                                                ++ ":9090"
+                                    )
+                                    "Server Dashboard"
+                                , Element.text "Manage your server with an interactive dashboard!"
+                                ]
+                            ]
             )
 
 
@@ -965,8 +974,8 @@ resourceUsageGraphsView cockpitStatus maybeFloatingIp =
             )
 
 
-actionsView : Project -> Server -> Element.Element Msg
-actionsView project server =
+actionsView : ProjectIdentifier -> Server -> Element.Element Msg
+actionsView projectId server =
     let
         details =
             server.osProps.details
@@ -985,7 +994,7 @@ actionsView project server =
                           <|
                             Button.button
                                 action.selectMods
-                                (Just <| ProjectMsg (Helpers.getProjectId project) <| RequestServerAction server action.action action.targetStatus)
+                                (Just <| ProjectMsg projectId <| RequestServerAction server action.action action.targetStatus)
                                 action.name
                         , Element.text action.description
                         ]
@@ -1236,8 +1245,8 @@ getEffectiveUserDataSize createServerRequest =
         ++ "/16384 allowed bytes (Base64 encoded)"
 
 
-renderIpAddresses : List OSTypes.IpAddress -> Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-renderIpAddresses ipAddresses project serverUuid viewStateParams =
+renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
@@ -1278,7 +1287,7 @@ renderIpAddresses ipAddresses project serverUuid viewStateParams =
                     ]
                     { onPress =
                         Just <|
-                            ProjectMsg (Helpers.getProjectId project) <|
+                            ProjectMsg projectId <|
                                 SetProjectView <|
                                     ServerDetail
                                         serverUuid
