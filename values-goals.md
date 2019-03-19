@@ -4,7 +4,7 @@
 
 - We do
   - Reduce incidental complexity (cognitive load) of managing cloud compute workloads
-  - Support open infrastructure ecosystems (e.g. OpenStack)
+  - Support non-proprietary infrastructure ecosystems (e.g. OpenStack)
   - Give people useful tools, rather than exploit them or tie them to a platform
 - We are NOT doing
   - Building a capital-P Platform
@@ -13,14 +13,29 @@
 
 ### Who we're doing it for
 
-- Users (currently mostly researchers who need cloud computing)
+- Users
+  - People who need a friendly way to manage:
+    - Big/fast computers
+    - Computers that are on and available 24/7
+    - Disposable computers to try "this one thing"
+    - Containers, functions, or data (independently of "computers")
+  - In order to:
+    - Store, analyze, visualize, curate, and share their data
+    - Develop and deploy software and services
+    - ??? Surprise us!
 - Cloud Operators
-- Developers
+- Exosphere Contributors
+  - Exosphere Developers
+  - Those in the community who interact with the project
+
+"Markets" served:
+- Researchers who have access to institutional cloud resources (e.g. [Jetstream Cloud](https://jetstream-cloud.org))
+- Users and operators of OpenStack public/private cloud services
 
 
 ### How we're doing it
 
-- User-, operator-, developer-friendly
+- User-, operator-, contributor-friendly
   - Build things that others find rewarding to consume, troubleshoot, repair, and extend
   - [D] Keeping the internal complexity of project as low as possible, thus making it easier for contributors to participate and reducing the scope for error
   - Developer tooling that is rewarding to use
@@ -38,11 +53,11 @@
 
 ### What we're definitely doing
 
-(benefits U for users, O for operators, D for developers)
+(benefits U for users, O for operators, C for Exosphere contributors)
 
 - [U] Build an app that delivers the most user-friendly way to interact with non-proprietary cloud infrastructure
 - [UO] Provide a consistent UX across infrastructures operated by different groups
-- [UOD] Client is really easy to consume and offer
+- [UOC] Client is really easy to consume and offer
 - [U] Build a client that can be pointed at infrastructure operated by anyone
   - (as opposed to building a platform or walled garden)
 - [U] Empower people to use Exosphere along with other tools to manage the same resources, with minimal cost of switching
@@ -52,11 +67,11 @@
   - No need for app to have god-mode cloud admin access
   - Small, well-defined set of dependencies and "moving parts"
   - CI+CD scans app dependencies and alerts on known vulnerabilities
-- [UOD] Stability
+- [UOC] Stability
   - Reliable instance provisioning minimizes user frustration and operator support burden
   - No runtime exceptions in client
   - No custom backend (for core functionality) where things break between client and infrastructure
-- [D] Velocity/pleasure of Development
+- [C] Velocity/pleasure of Development
   - Extremely short tweak-test cycle for entire app (a couple of seconds)
   - Continuous deployment
     - Allows rapid iteration on user feedback, quick bug fixes, and cheap experimentation
