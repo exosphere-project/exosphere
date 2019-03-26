@@ -1462,6 +1462,9 @@ serverOpenstackStatusDecoder status =
         "active" ->
             Decode.succeed OSTypes.ServerActive
 
+        "reboot" ->
+            Decode.succeed OSTypes.ServerReboot
+
         "shutoff" ->
             Decode.succeed OSTypes.ServerShutoff
 

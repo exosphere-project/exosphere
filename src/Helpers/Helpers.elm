@@ -444,6 +444,9 @@ getServerUiStatus server =
         OSTypes.ServerPaused ->
             ServerUiStatusPaused
 
+        OSTypes.ServerReboot ->
+            ServerUiStatusReboot
+
         OSTypes.ServerSuspended ->
             ServerUiStatusSuspended
 
@@ -490,6 +493,9 @@ getServerUiStatusStr status =
         ServerUiStatusPaused ->
             "Paused"
 
+        ServerUiStatusReboot ->
+            "Reboot"
+
         ServerUiStatusSuspended ->
             "Suspended"
 
@@ -526,6 +532,9 @@ getServerUiStatusColor status =
 
         ServerUiStatusReady ->
             Framework.Color.green
+
+        ServerUiStatusReboot ->
+            Framework.Color.yellow
 
         ServerUiStatusPaused ->
             Framework.Color.grey

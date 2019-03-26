@@ -187,6 +187,7 @@ type ServerStatus
     = ServerPaused
     | ServerSuspended
     | ServerActive
+    | ServerReboot
     | ServerShutoff
     | ServerStopped
     | ServerSoftDeleted
