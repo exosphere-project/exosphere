@@ -169,7 +169,8 @@ updateUnderlying msg model =
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
                 Nothing ->
-                    Helpers.processError model "Project not found"
+                    -- Project not found, may have been removed, nothing to do
+                    ( model, Cmd.none )
 
                 Just project ->
                     processProjectSpecificMsg model project innerMsg
@@ -298,10 +299,6 @@ updateUnderlying msg model =
 
                             _ ->
                                 ( model, Cmd.none )
-
-
-
---            Helpers.processError model password
 
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )

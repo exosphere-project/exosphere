@@ -401,7 +401,8 @@ requestCreateFloatingIpIfRequestable : Model -> Project -> OSTypes.Network -> OS
 requestCreateFloatingIpIfRequestable model project network port_ serverUuid =
     case Helpers.serverLookup project serverUuid of
         Nothing ->
-            Helpers.processError model "We should have a server here but we don't"
+            -- Server not found, may have been deleted, nothing to do
+            ( model, Cmd.none )
 
         Just server ->
             case server.exoProps.floatingIpState of
@@ -505,7 +506,8 @@ requestCreateExoSecurityGroupRules model project =
     in
     case maybeSecurityGroup of
         Nothing ->
-            Helpers.processError model "Error: expecting to find an Exosphere security group but none was found."
+            -- No security group found, may have been deleted? Nothing to do
+            ( model, Cmd.none )
 
         Just group ->
             let
@@ -1120,9 +1122,8 @@ receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> Result Http.
 receiveCreateFloatingIp model project serverUuid result =
     case Helpers.serverLookup project serverUuid of
         Nothing ->
-            Helpers.processError
-                model
-                "We should have a server here but we don't"
+            -- No server found, may have been deleted, nothing to do
+            ( model, Cmd.none )
 
         Just server ->
             {- This repeats a lot of code in receiveCockpitStatus, badly needs a refactor -}
@@ -1251,9 +1252,8 @@ receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Htt
 receiveCockpitLoginStatus model project serverUuid result =
     case Helpers.serverLookup project serverUuid of
         Nothing ->
-            Helpers.processError
-                model
-                "We should have a server here but we don't"
+            -- No server found, may have been deleted, nothing to do
+            ( model, Cmd.none )
 
         Just server ->
             {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
