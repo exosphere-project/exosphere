@@ -260,6 +260,7 @@ type ServerUiStatus
     | ServerUiStatusPartiallyActive
     | ServerUiStatusReady
     | ServerUiStatusPaused
+    | ServerUiStatusReboot
     | ServerUiStatusSuspended
     | ServerUiStatusShutoff
     | ServerUiStatusStopped
