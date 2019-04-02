@@ -756,7 +756,7 @@ serverStatusView projectId server viewStateParams =
                     [ Element.text "Detailed status"
                     , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                     , compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                    , compactKVSubRow "Server Dashboard/Terminal readiness" (Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus))
+                    , compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
                     ]
 
         statusStringView =
@@ -1681,7 +1681,7 @@ compactKVSubRow : String -> Element.Element Msg -> Element.Element Msg
 compactKVSubRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
-        [ Element.paragraph [ Element.width (Element.px 200), Font.bold ] [ Element.text key ]
+        [ Element.paragraph [ Element.width (Element.px 175), Font.bold ] [ Element.text key ]
         , Element.el [] value
         ]
 
