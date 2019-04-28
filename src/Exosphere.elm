@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser exposing (element)
 import State
 import Types.Types exposing (Flags, Model, Msg)
-import View
+import View.View exposing (view)
 
 
 
@@ -14,7 +14,7 @@ main : Program Flags Model Msg
 main =
     element
         { init = State.init
-        , view = View.view
+        , view = view
         , update = State.update
         , subscriptions = State.subscriptions
         }

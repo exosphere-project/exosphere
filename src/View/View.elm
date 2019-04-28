@@ -1,4 +1,4 @@
-module View exposing (view)
+module View.View exposing (view)
 
 import Base64
 import Color
@@ -9,7 +9,6 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Filesize exposing (format)
 import Framework.Button as Button
 import Framework.Card as Card
 import Framework.Color
@@ -29,6 +28,8 @@ import Style.Widgets.MenuItem as MenuItem
 import Toasty
 import Toasty.Defaults
 import Types.Types exposing (..)
+import View.Helpers as VH exposing (edges)
+import View.Images
 
 
 navMenuWidth : Int
@@ -304,7 +305,7 @@ navBarView model =
                         { onPress = Just (SetNonProjectView MessageLog)
                         , label =
                             Element.row
-                                exoRowAttributes
+                                VH.exoRowAttributes
                                 [ Icon.bell Framework.Color.white 20
                                 , Element.text "Messages"
                                 ]
@@ -336,7 +337,7 @@ projectView model project viewConstructor =
         v =
             case viewConstructor of
                 ListImages ->
-                    viewImagesIfLoaded model.globalDefaults project model.imageFilterTag
+                    View.Images.viewImagesIfLoaded model.globalDefaults project model.imageFilterTag
 
                 ListProjectServers ->
                     viewServers project
@@ -349,7 +350,7 @@ projectView model project viewConstructor =
     in
     Element.column
         (Element.width Element.fill
-            :: exoColumnAttributes
+            :: VH.exoColumnAttributes
         )
         [ viewProjectNav project
         , v
@@ -364,7 +365,7 @@ viewProjectNav : Project -> Element.Element Msg
 viewProjectNav project =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
-            heading2
+            VH.heading2
           <|
             Element.text <|
                 Helpers.hostnameFromUrl project.creds.authUrl
@@ -400,16 +401,16 @@ viewProjectNav project =
 
 viewLogin : Model -> Element.Element Msg
 viewLogin model =
-    Element.column exoColumnAttributes
+    Element.column VH.exoColumnAttributes
         [ Element.el
-            heading2
+            VH.heading2
             (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
-            exoRowAttributes
+            VH.exoRowAttributes
             [ viewLoginCredsEntry model
             , viewLoginOpenRcEntry model
             ]
-        , Element.el (exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+        , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Button.button
                 [ Modifier.Primary ]
                 (Just RequestNewProjectToken)
@@ -421,22 +422,22 @@ viewLogin model =
 viewMessageLog : Model -> Element.Element Msg
 viewMessageLog model =
     Element.column
-        exoColumnAttributes
+        VH.exoColumnAttributes
         [ Element.el
-            heading2
+            VH.heading2
             (Element.text "Messages")
         , if List.isEmpty model.messages then
             Element.text "(No Messages)"
 
           else
-            Element.column exoColumnAttributes (List.map renderMessage model.messages)
+            Element.column VH.exoColumnAttributes (List.map renderMessage model.messages)
         ]
 
 
 viewLoginCredsEntry : Model -> Element.Element Msg
 viewLoginCredsEntry model =
     Element.column
-        (exoColumnAttributes
+        (VH.exoColumnAttributes
             ++ [ Element.width (Element.px 500)
                , Element.alignTop
                ]
@@ -497,7 +498,7 @@ viewLoginCredsEntry model =
 viewLoginOpenRcEntry : Model -> Element.Element Msg
 viewLoginOpenRcEntry model =
     Element.column
-        (exoColumnAttributes
+        (VH.exoColumnAttributes
             ++ [ Element.spacing 15
                , Element.height (Element.fill |> Element.minimum 250)
                ]
@@ -526,60 +527,6 @@ viewLoginOpenRcEntry model =
             , label = Input.labelLeft [] Element.none
             , spellcheck = False
             }
-        ]
-
-
-viewImagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
-viewImagesIfLoaded globalDefaults project maybeFilterTag =
-    case List.isEmpty project.images of
-        True ->
-            Element.text "Images loading"
-
-        False ->
-            viewImages globalDefaults project maybeFilterTag
-
-
-viewImages : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
-viewImages globalDefaults project maybeFilterTag =
-    let
-        imageContainsTag tag image =
-            List.member tag image.tags
-
-        filteredImages =
-            case maybeFilterTag of
-                Nothing ->
-                    project.images
-
-                Just filterTag ->
-                    List.filter (imageContainsTag filterTag) project.images
-
-        noMatchWarning =
-            (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
-
-        displayedImages =
-            if noMatchWarning == False then
-                filteredImages
-
-            else
-                project.images
-    in
-    Element.column exoColumnAttributes
-        [ Element.el heading2 (Element.text "Choose an image")
-        , Input.text []
-            { text = Maybe.withDefault "" maybeFilterTag
-            , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
-            , onChange = \t -> InputImageFilterTag t
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
-            }
-        , Button.button [] (Just <| InputImageFilterTag "") "Clear filter (show all)"
-        , if noMatchWarning then
-            Element.text "No matches found, showing all images"
-
-          else
-            Element.none
-        , Element.wrappedRow
-            (exoRowAttributes ++ [ Element.spacing 15 ])
-            (List.map (renderImage globalDefaults project) displayedImages)
         ]
 
 
@@ -625,9 +572,9 @@ viewServers project =
                             else
                                 [ Modifier.Danger ]
                     in
-                    Element.column (exoColumnAttributes ++ [ Element.width Element.fill ])
-                        [ Element.el heading2 (Element.text "My Servers")
-                        , Element.column (exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
+                    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                        [ Element.el VH.heading2 (Element.text "My Servers")
+                        , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
                             [ Element.text "Bulk Actions"
                             , Input.checkbox []
                                 { checked = allServersSelected
@@ -637,7 +584,7 @@ viewServers project =
                                 }
                             , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
-                        , Element.column (exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
+                        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
                             (List.map (renderServer project) servers)
                         ]
 
@@ -672,33 +619,33 @@ viewServerDetail project serverUuid viewStateParams =
                     [ Element.column
                         (Element.alignTop
                             :: Element.width (Element.px 585)
-                            :: exoColumnAttributes
+                            :: VH.exoColumnAttributes
                         )
                         [ Element.el
-                            heading2
+                            VH.heading2
                             (Element.text "Server Details")
-                        , compactKVRow "Name" (Element.text server.osProps.name)
-                        , compactKVRow "Status" (serverStatusView projectId server viewStateParams)
-                        , compactKVRow "UUID" (Element.text server.osProps.uuid)
-                        , compactKVRow "Created on" (Element.text details.created)
-                        , compactKVRow "Image" (Element.text imageText)
-                        , compactKVRow "Flavor" (Element.text flavorText)
-                        , compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                        , compactKVRow "IP addresses"
+                        , VH.compactKVRow "Name" (Element.text server.osProps.name)
+                        , VH.compactKVRow "Status" (serverStatusView projectId server viewStateParams)
+                        , VH.compactKVRow "UUID" (Element.text server.osProps.uuid)
+                        , VH.compactKVRow "Created on" (Element.text details.created)
+                        , VH.compactKVRow "Image" (Element.text imageText)
+                        , VH.compactKVRow "Flavor" (Element.text flavorText)
+                        , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
+                        , VH.compactKVRow "IP addresses"
                             (renderIpAddresses
                                 details.ipAddresses
                                 projectId
                                 server.osProps.uuid
                                 viewStateParams
                             )
-                        , Element.el heading3 (Element.text "Interact with server")
+                        , Element.el VH.heading3 (Element.text "Interact with server")
                         , consoleLinkView project server serverUuid viewStateParams
                         , cockpitInteractionView server.exoProps.cockpitStatus maybeFloatingIp
                         ]
-                    , Element.column (Element.alignTop :: Element.width (Element.px 585) :: exoColumnAttributes)
-                        [ Element.el heading3 (Element.text "Server Actions")
+                    , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
+                        [ Element.el VH.heading3 (Element.text "Server Actions")
                         , actionsView projectId server
-                        , Element.el heading3 (Element.text "System Resource Usage")
+                        , Element.el VH.heading3 (Element.text "System Resource Usage")
                         , resourceUsageGraphsView server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     ]
@@ -753,9 +700,9 @@ serverStatusView projectId server viewStateParams =
 
                 True ->
                     [ Element.text "Detailed status"
-                    , compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                    , compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                    , compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
+                    , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                    , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                    , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
                     ]
 
         statusStringView =
@@ -766,7 +713,7 @@ serverStatusView projectId server viewStateParams =
                 )
     in
     Element.column
-        (exoColumnAttributes ++ [ Element.padding 0 ])
+        (VH.exoColumnAttributes ++ [ Element.padding 0 ])
         ([ Element.row [ Font.bold ]
             [ graphicView
             , statusStringView
@@ -792,7 +739,7 @@ consoleLinkView project server serverUuid viewStateParams =
                     Element.text "Requesting console link..."
 
                 RemoteData.Failure error ->
-                    Element.column exoColumnAttributes
+                    Element.column VH.exoColumnAttributes
                         [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
                         , Element.paragraph [] [ Element.text (Debug.toString error) ]
                         ]
@@ -844,7 +791,7 @@ consoleLinkView project server serverUuid viewStateParams =
                                     )
                     in
                     Element.column
-                        exoColumnAttributes
+                        VH.exoColumnAttributes
                         [ Button.button
                             []
                             (Just <|
@@ -880,9 +827,9 @@ cockpitInteractionView cockpitStatus maybeFloatingIp =
                         Element.text "Server Dashboard and Terminal not ready yet."
 
                     Ready ->
-                        Element.column exoColumnAttributes
+                        Element.column VH.exoColumnAttributes
                             [ Element.text "Server Dashboard and Terminal are ready..."
-                            , Element.row exoRowAttributes
+                            , Element.row VH.exoRowAttributes
                                 [ Button.button
                                     []
                                     (Just <|
@@ -895,7 +842,7 @@ cockpitInteractionView cockpitStatus maybeFloatingIp =
                                 , Element.text "Type commands in a shell!"
                                 ]
                             , Element.row
-                                exoRowAttributes
+                                VH.exoRowAttributes
                                 [ Button.button
                                     []
                                     (Just <|
@@ -1033,12 +980,12 @@ viewCreateServer project createServerRequest =
             else
                 Nothing
     in
-    Element.row exoRowAttributes
+    Element.row VH.exoRowAttributes
         [ Element.column
-            (exoColumnAttributes
+            (VH.exoColumnAttributes
                 ++ [ Element.width (Element.px 600) ]
             )
-            [ Element.el heading2 (Element.text "Create Server")
+            [ Element.el VH.heading2 (Element.text "Create Server")
             , Input.text
                 ([ Element.spacing 12
                  ]
@@ -1049,8 +996,8 @@ viewCreateServer project createServerRequest =
                 , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
-            , Element.row exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
-            , Element.row exoRowAttributes
+            , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
+            , Element.row VH.exoRowAttributes
                 [ Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.count)
                 , Input.slider
                     [ Element.height (Element.px 30)
@@ -1101,71 +1048,6 @@ renderMessage message =
     Element.paragraph [] [ Element.text message ]
 
 
-renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
-renderImage globalDefaults project image =
-    let
-        size =
-            case image.size of
-                Just s ->
-                    format s
-
-                Nothing ->
-                    "N/A"
-
-        checksum =
-            case image.checksum of
-                Just c ->
-                    c
-
-                Nothing ->
-                    "N/A"
-    in
-    ExoCard.exoCard
-        image.name
-        size
-    <|
-        Element.column exoColumnAttributes
-            [ Element.row exoRowAttributes
-                [ Element.text "Status: "
-                , Element.text (Debug.toString image.status)
-                ]
-            , Element.row exoRowAttributes
-                [ Element.text "Tags: "
-                , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                ]
-            , Element.el
-                [ Element.alignRight ]
-                (Button.button
-                    [ Modifier.Primary ]
-                    (Just
-                        (ProjectMsg
-                            (Helpers.getProjectId project)
-                            (SetProjectView
-                                (CreateServer
-                                    (CreateServerRequest
-                                        image.name
-                                        (Helpers.getProjectId project)
-                                        image.uuid
-                                        image.name
-                                        "1"
-                                        ""
-                                        False
-                                        ""
-                                        Nothing
-                                        globalDefaults.shellUserData
-                                        "changeme123"
-                                        ""
-                                        False
-                                    )
-                                )
-                            )
-                        )
-                    )
-                    "Choose"
-                )
-            ]
-
-
 renderServer : Project -> Server -> Element.Element Msg
 renderServer project server =
     let
@@ -1179,7 +1061,7 @@ renderServer project server =
                 , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
     in
-    Element.row (exoRowAttributes ++ [ Element.width Element.fill ])
+    Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
             { checked = server.exoProps.selected
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
@@ -1241,14 +1123,14 @@ renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
             ipAddressesOfType OSTypes.IpAddressFixed
                 |> List.map
                     (\ipAddress ->
-                        compactKVSubRow "Fixed IP" (Element.text ipAddress.address)
+                        VH.compactKVSubRow "Fixed IP" (Element.text ipAddress.address)
                     )
 
         floatingIpAddressRows =
             ipAddressesOfType OSTypes.IpAddressFloating
                 |> List.map
                     (\ipAddress ->
-                        compactKVSubRow "Floating IP" (Element.text ipAddress.address)
+                        VH.compactKVSubRow "Floating IP" (Element.text ipAddress.address)
                     )
 
         gray : Element.Color
@@ -1281,7 +1163,7 @@ renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
     case viewStateParams.ipInfoLevel of
         IPDetails ->
             Element.column
-                (exoColumnAttributes ++ [ Element.padding 0 ])
+                (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 (floatingIpAddressRows
                     ++ fixedIpAddressRows
                     ++ [ ipButton "^" "IP summary" IPSummary ]
@@ -1289,7 +1171,7 @@ renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
 
         IPSummary ->
             Element.column
-                (exoColumnAttributes ++ [ Element.padding 0 ])
+                (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 (floatingIpAddressRows ++ [ ipButton ">" "IP details" IPDetails ])
 
 
@@ -1385,7 +1267,7 @@ viewFlavorPicker project createServerRequest =
                 []
     in
     Element.column
-        exoColumnAttributes
+        VH.exoColumnAttributes
         [ Element.el [ Font.bold ] (Element.text "Size")
         , Element.table
             flavorEmptyHint
@@ -1447,7 +1329,7 @@ viewVolBackedPrompt project createServerRequest =
                     Input.defaultThumb
                 }
     in
-    Element.column exoColumnAttributes
+    Element.column VH.exoColumnAttributes
         [ Input.radio []
             { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
             , onChange = \new -> InputCreateServerField createServerRequest (CreateServerVolBacked new)
@@ -1524,7 +1406,7 @@ viewNetworkPicker project createServerRequest =
                     ]
     in
     Element.column
-        exoColumnAttributes
+        VH.exoColumnAttributes
         ([ Element.el [ Font.bold ] (Element.text "Network") ]
             ++ contents
         )
@@ -1550,7 +1432,7 @@ viewKeypairPicker project createServerRequest =
                         }
     in
     Element.column
-        exoColumnAttributes
+        VH.exoColumnAttributes
         [ Element.el [ Font.bold ] (Element.text "SSH Keypair")
         , contents
         ]
@@ -1559,7 +1441,7 @@ viewKeypairPicker project createServerRequest =
 viewUserDataInput : Project -> CreateServerRequest -> Element.Element Msg
 viewUserDataInput project createServerRequest =
     Element.column
-        exoColumnAttributes
+        VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
             , onChange = \new -> InputCreateServerField createServerRequest (CreateServerShowAdvancedOptions new)
@@ -1605,71 +1487,3 @@ friendlyCockpitReadiness cockpitLoginStatus =
 
         Ready ->
             "Ready"
-
-
-
-{- Elm UI Doodads -}
-
-
-exoRowAttributes : List (Element.Attribute Msg)
-exoRowAttributes =
-    exoElementAttributes
-
-
-exoColumnAttributes : List (Element.Attribute Msg)
-exoColumnAttributes =
-    exoElementAttributes
-
-
-exoElementAttributes : List (Element.Attribute Msg)
-exoElementAttributes =
-    exoPaddingSpacingAttributes
-
-
-exoPaddingSpacingAttributes : List (Element.Attribute Msg)
-exoPaddingSpacingAttributes =
-    [ Element.padding 10
-    , Element.spacing 10
-    ]
-
-
-heading2 : List (Element.Attribute Msg)
-heading2 =
-    [ Region.heading 2
-    , Font.bold
-    , Font.size 24
-    ]
-
-
-heading3 : List (Element.Attribute Msg)
-heading3 =
-    [ Region.heading 3
-    , Font.bold
-    , Font.size 20
-    ]
-
-
-compactKVRow : String -> Element.Element Msg -> Element.Element Msg
-compactKVRow key value =
-    Element.row
-        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
-        [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.bold ] [ Element.text key ]
-        , Element.el [] value
-        ]
-
-
-compactKVSubRow : String -> Element.Element Msg -> Element.Element Msg
-compactKVSubRow key value =
-    Element.row
-        (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
-        [ Element.paragraph [ Element.width (Element.px 175), Font.bold ] [ Element.text key ]
-        , Element.el [] value
-        ]
-
-
-edges =
-    { top = 0
-    , right = 0
-    , bottom = 0
-    , left = 0
-    }
