@@ -202,18 +202,6 @@ You can also build a "static" style guide by running `npm run build-style-guide`
 - Add example usages of your widget in `src/Style/StyleGuide.elm`
 - Preview your widget examples in the style guide (see above) to ensure they look as intended
 
-### Imports
-
-In the spirit of [PEP 8](https://www.python.org/dev/peps/pep-0008/), each file should import modules grouped into sections as follows:
-
-1. Elm Standard libraries
-2. Community libraries
-3. Local app-specific libraries/imports
-
-Unlike Python/PEP8 you will not be able to separate each section with a space because elm-format will remove the spaces. The spaces are not an Elm convention.
-
-The imports in each section should be in alphabetical order.
-
 ## OpenStack and CORS
 
 In order to use Exosphere in a browser as opposed to Electron (again, this is still not recommended), OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
