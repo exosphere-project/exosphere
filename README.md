@@ -141,6 +141,8 @@ Until the permanent solution has been implemented, please do not use the termina
 
 [Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
 
+See also contributing.md for contributor guidelines.
+
 ## Package Exosphere as a distributable Electron app
 
 This uses [electron-builder](https://www.electron.build/). See the link for more information.
