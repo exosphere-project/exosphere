@@ -141,6 +141,8 @@ Until the permanent solution has been implemented, please do not use the termina
 
 [Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
 
+See also contributing.md for contributor guidelines.
+
 ## Package Exosphere as a distributable Electron app
 
 This uses [electron-builder](https://www.electron.build/). See the link for more information.
@@ -201,18 +203,6 @@ You can also build a "static" style guide by running `npm run build-style-guide`
 - Create a module for your widget (or update an existing module) in `src/Style/Widgets`
 - Add example usages of your widget in `src/Style/StyleGuide.elm`
 - Preview your widget examples in the style guide (see above) to ensure they look as intended
-
-### Imports
-
-In the spirit of [PEP 8](https://www.python.org/dev/peps/pep-0008/), each file should import modules grouped into sections as follows:
-
-1. Elm Standard libraries
-2. Community libraries
-3. Local app-specific libraries/imports
-
-Unlike Python/PEP8 you will not be able to separate each section with a space because elm-format will remove the spaces. The spaces are not an Elm convention.
-
-The imports in each section should be in alphabetical order.
 
 ## OpenStack and CORS
 
