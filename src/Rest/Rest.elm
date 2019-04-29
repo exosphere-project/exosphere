@@ -142,11 +142,10 @@ requestAuthToken creds =
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
-        , expect = Http.expectStringResponse (\response -> Ok response)
+        , expect = Http.expectString (ReceiveAuthToken creds)
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> Http.send (ReceiveAuthToken creds)
 
 
 requestImages : Project -> Cmd Msg
@@ -156,8 +155,7 @@ requestImages project =
         Get
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
-        (Http.expectJson decodeImages)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveImages result))
+        (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveImages result)) decodeImages)
 
 
 requestServers : Project -> Cmd Msg
@@ -599,21 +597,18 @@ requestCockpitLogin project serverUuid password ipAddress =
         authHeaderValue =
             "Basic " ++ Base64.encode ("exouser:" ++ password)
 
-        request =
-            Http.request
-                { method = "GET"
-                , headers = [ Http.header "Authorization" authHeaderValue ]
-                , url = "http://" ++ ipAddress ++ ":9090/cockpit/login"
-                , body = Http.emptyBody
-                , expect = Http.expectString
-                , timeout = Just 3000
-                , withCredentials = True
-                }
-
         resultMsg project2 serverUuid2 result =
             ProjectMsg (Helpers.getProjectId project2) (ReceiveCockpitLoginStatus serverUuid2 result)
     in
-    Http.send (resultMsg project serverUuid) request
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" authHeaderValue ]
+        , url = "http://" ++ ipAddress ++ ":9090/cockpit/login"
+        , body = Http.emptyBody
+        , expect = Http.expectString (resultMsg project serverUuid)
+        , timeout = Just 3000
+        , tracker = Nothing
+        }
 
 
 
