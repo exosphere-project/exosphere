@@ -23,11 +23,7 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-
---openstackCredentialedRequest : Project -> HttpRequestMethod -> Url -> Http.Body -> Http.Expect a -> (Result Http.Error a -> Msg) -> Cmd Msg
--- TODO: Fix the signature
-
-
+openstackCredentialedRequest : Project -> HttpRequestMethod -> Url -> Http.Body -> Http.Expect a -> Cmd Msg
 openstackCredentialedRequest project method url requestBody expect =
     {-
        In order to ensure request is made with a valid token, perform a task
@@ -49,7 +45,6 @@ openstackCredentialedRequest project method url requestBody expect =
                 , tracker = Nothing
                 }
     in
-    -- TODO: Use Http.task instead of Task.perform
     Task.perform
         (\posixTime -> ProjectMsg (Helpers.getProjectId project) (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
         Time.now
