@@ -142,7 +142,26 @@ requestAuthToken creds =
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
-        , expect = Http.expectString (ReceiveAuthToken creds)
+        , expect =
+            Http.expectStringResponse
+                (ReceiveAuthToken creds)
+                (\response ->
+                    case response of
+                        Http.BadUrl_ url ->
+                            Err (Http.BadUrl url)
+
+                        Http.Timeout_ ->
+                            Err Http.Timeout
+
+                        Http.NetworkError_ ->
+                            Err Http.NetworkError
+
+                        Http.BadStatus_ metadata body ->
+                            Err (Http.BadStatus metadata.statusCode)
+
+                        Http.GoodStatus_ metadata body ->
+                            Ok ( metadata, body )
+                )
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -165,8 +184,10 @@ requestServers project =
         Get
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
-        (Http.expectJson decodeServers)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
+            decodeServers
+        )
 
 
 requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -176,8 +197,10 @@ requestServer project serverUuid =
         Get
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
-        (Http.expectJson <| Decode.at [ "server" ] decodeServerDetails)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServer serverUuid result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServer serverUuid result))
+            (Decode.at [ "server" ] decodeServerDetails)
+        )
 
 
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -210,8 +233,10 @@ requestConsoleUrls project serverUuid =
                 Post
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
-                (Http.expectJson decodeConsoleUrl)
-                (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveConsoleUrl serverUuid result))
+                (Http.expectJson
+                    (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveConsoleUrl serverUuid result))
+                    decodeConsoleUrl
+                )
     in
     List.map buildReq reqParams
         |> Cmd.batch
@@ -224,8 +249,10 @@ requestFlavors project =
         Get
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
-        (Http.expectJson decodeFlavors)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFlavors result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFlavors result))
+            decodeFlavors
+        )
 
 
 requestKeypairs : Project -> Cmd Msg
@@ -235,8 +262,10 @@ requestKeypairs project =
         Get
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
-        (Http.expectJson decodeKeypairs)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveKeypairs result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveKeypairs result))
+            decodeKeypairs
+        )
 
 
 requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
@@ -331,8 +360,10 @@ requestCreateServer project createServerRequest =
                         Post
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
-                        (Http.expectJson (Decode.field "server" serverUuidDecoder))
-                        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
+                        (Http.expectJson
+                            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
+                            (Decode.field "server" serverUuidDecoder)
+                        )
                 )
         )
 
@@ -349,8 +380,9 @@ requestDeleteServer project server =
         Delete
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
-        Http.expectString
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteServer server.osProps.uuid getFloatingIp result))
+        (Http.expectString
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteServer server.osProps.uuid getFloatingIp result))
+        )
 
 
 requestDeleteServers : Project -> List Server -> Cmd Msg
@@ -369,8 +401,10 @@ requestNetworks project =
         Get
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
-        (Http.expectJson decodeNetworks)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveNetworks result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveNetworks result))
+            decodeNetworks
+        )
 
 
 requestFloatingIps : Project -> Cmd Msg
@@ -380,8 +414,10 @@ requestFloatingIps project =
         Get
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
-        (Http.expectJson decodeFloatingIps)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFloatingIps result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFloatingIps result))
+            decodeFloatingIps
+        )
 
 
 getFloatingIpRequestPorts : Project -> Server -> Cmd Msg
@@ -391,8 +427,10 @@ getFloatingIpRequestPorts project server =
         Get
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
-        (Http.expectJson decodePorts)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (GetFloatingIpReceivePorts server.osProps.uuid result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (GetFloatingIpReceivePorts server.osProps.uuid result))
+            decodePorts
+        )
 
 
 requestCreateFloatingIpIfRequestable : Model -> Project -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
@@ -443,8 +481,10 @@ requestCreateFloatingIp model project network port_ server =
                 Post
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
-                (Http.expectJson decodeFloatingIpCreation)
-                (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateFloatingIp server.osProps.uuid result))
+                (Http.expectJson
+                    (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateFloatingIp server.osProps.uuid result))
+                    decodeFloatingIpCreation
+                )
     in
     ( newModel, requestCmd )
 
@@ -456,8 +496,9 @@ requestDeleteFloatingIp project uuid =
         Delete
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
-        Http.expectString
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteFloatingIp uuid result))
+        (Http.expectString
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteFloatingIp uuid result))
+        )
 
 
 requestSecurityGroups : Project -> Cmd Msg
@@ -467,8 +508,10 @@ requestSecurityGroups project =
         Get
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
-        (Http.expectJson decodeSecurityGroups)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveSecurityGroups result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveSecurityGroups result))
+            decodeSecurityGroups
+        )
 
 
 requestCreateExoSecurityGroup : Project -> Cmd Msg
@@ -492,8 +535,10 @@ requestCreateExoSecurityGroup project =
         Post
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
-        (Http.expectJson decodeNewSecurityGroup)
-        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroup result))
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroup result))
+            decodeNewSecurityGroup
+        )
 
 
 requestCreateExoSecurityGroupRules : Model -> Project -> ( Model, Cmd Msg )
@@ -530,8 +575,9 @@ requestCreateExoSecurityGroupRules model project =
                         Post
                         (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                         (Http.jsonBody body)
-                        Http.expectString
-                        (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroupRules result))
+                        (Http.expectString
+                            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroupRules result))
+                        )
 
                 bodies =
                     [ makeRequestBody "22" "SSH"
@@ -615,13 +661,13 @@ requestCockpitLogin project serverUuid password ipAddress =
 {- HTTP Response Handling -}
 
 
-receiveAuthToken : Model -> Creds -> Result Http.Error (Http.Response String) -> ( Model, Cmd Msg )
+receiveAuthToken : Model -> Creds -> Result Http.Error ( Http.Metadata, String ) -> ( Model, Cmd Msg )
 receiveAuthToken model creds responseResult =
     case responseResult of
         Err error ->
             Helpers.processError model error
 
-        Ok response ->
+        Ok ( metadata, response ) ->
             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
             case
@@ -631,10 +677,10 @@ receiveAuthToken model creds responseResult =
                     |> List.head
             of
                 Nothing ->
-                    createProject model creds response
+                    createProject model creds (Http.GoodStatus_ metadata response)
 
                 Just project ->
-                    projectUpdateAuthToken model project response
+                    projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
 
 
 createProject : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
@@ -1283,16 +1329,24 @@ receiveCockpitLoginStatus model project serverUuid result =
 
 decodeAuthToken : Http.Response String -> Result String OSTypes.AuthToken
 decodeAuthToken response =
-    case Decode.decodeString decodeAuthTokenDetails response.body of
-        Err error ->
-            Err (Debug.toString error)
+    case response of
+        Http.GoodStatus_ metadata body ->
+            case Decode.decodeString decodeAuthTokenDetails body of
+                Ok tokenDetailsWithoutTokenString ->
+                    let
+                        authTokenString =
+                            Maybe.withDefault "" (Dict.get "X-Subject-Token" metadata.headers)
+                    in
+                    Ok (tokenDetailsWithoutTokenString authTokenString)
 
-        Ok tokenDetailsWithoutTokenString ->
-            let
-                authTokenString =
-                    Maybe.withDefault "" (Dict.get "X-Subject-Token" response.headers)
-            in
-            Ok (tokenDetailsWithoutTokenString authTokenString)
+                Err error ->
+                    Err (Debug.toString error)
+
+        Http.BadStatus_ metadata body ->
+            Err (Debug.toString body)
+
+        _ ->
+            Err (Debug.toString "foo")
 
 
 decodeAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.AuthToken)
