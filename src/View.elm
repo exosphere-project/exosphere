@@ -801,8 +801,8 @@ consoleLinkView project server serverUuid viewStateParams =
                                 ]
                     in
                     case error of
-                        Http.BadStatus innerError ->
-                            if innerError.body == "{\"badRequest\": {\"message\": \"Unavailable console type spice-html5.\", \"code\": 400}}" then
+                        Http.BadStatus_ metadata body ->
+                            if body == "{\"badRequest\": {\"message\": \"Unavailable console type spice-html5.\", \"code\": 400}}" then
                                 Element.paragraph []
                                     [ Element.text "Console unavailable due to cloud configuration."
                                     , Element.text " Try asking the administrator of "

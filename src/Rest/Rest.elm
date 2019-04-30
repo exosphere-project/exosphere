@@ -160,7 +160,7 @@ requestAuthToken creds =
                             Err (Http.BadStatus metadata.statusCode)
 
                         Http.GoodStatus_ metadata body ->
-                            Ok metadata.header
+                            Ok ( metadata, body )
                 )
         , timeout = Nothing
         , tracker = Nothing
@@ -661,13 +661,13 @@ requestCockpitLogin project serverUuid password ipAddress =
 {- HTTP Response Handling -}
 
 
-receiveAuthToken : Model -> Creds -> Result Http.Error String -> ( Model, Cmd Msg )
+receiveAuthToken : Model -> Creds -> Result Http.Error ( Http.Metadata, String ) -> ( Model, Cmd Msg )
 receiveAuthToken model creds responseResult =
     case responseResult of
         Err error ->
             Helpers.processError model error
 
-        Ok response ->
+        Ok ( metadata, response ) ->
             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
             case
@@ -677,10 +677,10 @@ receiveAuthToken model creds responseResult =
                     |> List.head
             of
                 Nothing ->
-                    createProject model creds response
+                    createProject model creds (Http.GoodStatus_ metadata response)
 
                 Just project ->
-                    projectUpdateAuthToken model project response
+                    projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
 
 
 createProject : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
