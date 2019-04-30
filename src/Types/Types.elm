@@ -106,7 +106,7 @@ type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
     | RequestNewProjectToken
-    | ReceiveAuthToken Creds (Result Http.Error (Http.Response String))
+    | ReceiveAuthToken Creds (Result Http.Error String)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
