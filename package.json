@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "elm": "elm make src/Exosphere.elm || true",
-    "elm:watch": "chokidar 'src/**/*.elm' -c 'clear; reset; date; date; date; date; date; date; date; date; date; date; date; date; date; date; date; date; date; date; date; npm run electron-build'",
+    "elm:watch": "chokidar 'src/**/*.elm' -c 'npm run electron-build'",
     "electron-build": "elm make src/Exosphere.elm --output elm.js || true",
     "electron-start": "electron index.js",
     "electron-start-dev": "electron index-dev.js",
