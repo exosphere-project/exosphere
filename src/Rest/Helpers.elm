@@ -23,7 +23,6 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : Project -> HttpRequestMethod -> Url -> Http.Body -> Http.Expect a -> Cmd Msg
 openstackCredentialedRequest project method url requestBody expect =
     {-
        In order to ensure request is made with a valid token, perform a task
