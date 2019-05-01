@@ -18,7 +18,6 @@ import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Html.Attributes
-import Http
 import Maybe
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes

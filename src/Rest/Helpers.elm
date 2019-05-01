@@ -2,11 +2,9 @@ module Rest.Helpers exposing (openstackCredentialedRequest)
 
 import Helpers.Helpers as Helpers
 import Http
-import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Task
 import Time
-import Types.HelperTypes exposing (..)
 import Types.Types exposing (..)
 
 

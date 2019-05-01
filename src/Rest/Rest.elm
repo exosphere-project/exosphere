@@ -156,7 +156,7 @@ requestAuthToken creds =
                         Http.NetworkError_ ->
                             Err Http.NetworkError
 
-                        Http.BadStatus_ metadata body ->
+                        Http.BadStatus_ metadata _ ->
                             Err (Http.BadStatus metadata.statusCode)
 
                         Http.GoodStatus_ metadata body ->
@@ -1342,7 +1342,7 @@ decodeAuthToken response =
                 Err error ->
                     Err (Debug.toString error)
 
-        Http.BadStatus_ metadata body ->
+        Http.BadStatus_ _ body ->
             Err (Debug.toString body)
 
         _ ->
