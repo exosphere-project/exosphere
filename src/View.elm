@@ -18,7 +18,6 @@ import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
 import Html.Attributes
-import Http
 import Maybe
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
@@ -793,28 +792,10 @@ consoleLinkView project server serverUuid viewStateParams =
                     Element.text "Requesting console link..."
 
                 RemoteData.Failure error ->
-                    let
-                        genericError =
-                            Element.column exoColumnAttributes
-                                [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
-                                , Element.paragraph [] [ Element.text (Debug.toString error) ]
-                                ]
-                    in
-                    case error of
-                        Http.BadStatus innerError ->
-                            if innerError.body == "{\"badRequest\": {\"message\": \"Unavailable console type spice-html5.\", \"code\": 400}}" then
-                                Element.paragraph []
-                                    [ Element.text "Console unavailable due to cloud configuration."
-                                    , Element.text " Try asking the administrator of "
-                                    , Element.text project.creds.projectName
-                                    , Element.text " to enable the SPICE+HTML5 or NoVNC console."
-                                    ]
-
-                            else
-                                genericError
-
-                        _ ->
-                            genericError
+                    Element.column exoColumnAttributes
+                        [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
+                        , Element.paragraph [] [ Element.text (Debug.toString error) ]
+                        ]
 
                 RemoteData.Success consoleUrl ->
                     let

@@ -5,7 +5,6 @@ import Http
 import OpenStack.Types as OSTypes
 import Task
 import Time
-import Types.HelperTypes exposing (..)
 import Types.Types exposing (..)
 
 
@@ -22,8 +21,7 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : Project -> HttpRequestMethod -> Url -> Http.Body -> Http.Expect a -> (Result Http.Error a -> Msg) -> Cmd Msg
-openstackCredentialedRequest project method url requestBody expect resultMsg =
+openstackCredentialedRequest project method url requestBody expect =
     {-
        In order to ensure request is made with a valid token, perform a task
        which checks the time to see if our auth token is still valid or has
@@ -34,19 +32,15 @@ openstackCredentialedRequest project method url requestBody expect resultMsg =
     let
         tokenToRequestCmd : OSTypes.AuthTokenString -> Cmd Msg
         tokenToRequestCmd token =
-            let
-                request =
-                    Http.request
-                        { method = httpRequestMethodStr method
-                        , headers = [ Http.header "X-Auth-Token" token ]
-                        , url = url
-                        , body = requestBody
-                        , expect = expect
-                        , timeout = Nothing
-                        , withCredentials = False
-                        }
-            in
-            Http.send resultMsg request
+            Http.request
+                { method = httpRequestMethodStr method
+                , headers = [ Http.header "X-Auth-Token" token ]
+                , url = url
+                , body = requestBody
+                , expect = expect
+                , timeout = Nothing
+                , tracker = Nothing
+                }
     in
     Task.perform
         (\posixTime -> ProjectMsg (Helpers.getProjectId project) (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
