@@ -8,6 +8,8 @@ module View.Helpers exposing
     , exoRowAttributes
     , heading2
     , heading3
+    , hint
+    , renderMessage
     )
 
 import Element
@@ -82,3 +84,21 @@ edges =
     , bottom = 0
     , left = 0
     }
+
+
+hint : String -> Element.Attribute msg
+hint hintText =
+    Element.below
+        (Element.el
+            [ Font.color (Element.rgb 1 0 0)
+            , Font.size 14
+            , Element.alignRight
+            , Element.moveDown 6
+            ]
+            (Element.text hintText)
+        )
+
+
+renderMessage : String -> Element.Element Msg
+renderMessage message =
+    Element.paragraph [] [ Element.text message ]
