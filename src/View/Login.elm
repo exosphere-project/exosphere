@@ -17,8 +17,8 @@ viewLogin model =
             (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
             VH.exoRowAttributes
-            [ viewLoginCredsEntry model
-            , viewLoginOpenRcEntry model
+            [ loginCredsEntry model
+            , loginOpenRcEntry model
             ]
         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Button.button
@@ -29,8 +29,8 @@ viewLogin model =
         ]
 
 
-viewLoginCredsEntry : Model -> Element.Element Msg
-viewLoginCredsEntry model =
+loginCredsEntry : Model -> Element.Element Msg
+loginCredsEntry model =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.width (Element.px 500)
@@ -90,8 +90,8 @@ viewLoginCredsEntry model =
         ]
 
 
-viewLoginOpenRcEntry : Model -> Element.Element Msg
-viewLoginOpenRcEntry model =
+loginOpenRcEntry : Model -> Element.Element Msg
+loginOpenRcEntry model =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15

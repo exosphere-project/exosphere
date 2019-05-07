@@ -50,7 +50,7 @@ elementView maybeWindowSize model =
                                 View.Login.viewLogin model
 
                             MessageLog ->
-                                View.Messages.viewMessageLog model
+                                View.Messages.messageLog model
 
                     ProjectView projectName viewConstructor ->
                         case Helpers.projectLookup model projectName of
@@ -58,8 +58,8 @@ elementView maybeWindowSize model =
                                 Element.text "Oops! Project not found"
 
                             Just project ->
-                                View.Project.projectView model project viewConstructor
-                , Element.html (Toasty.view Helpers.toastConfig View.Toast.toastView ToastyMsg model.toasties)
+                                View.Project.project model project viewConstructor
+                , Element.html (Toasty.view Helpers.toastConfig View.Toast.toast ToastyMsg model.toasties)
                 ]
     in
     Element.row
@@ -86,7 +86,7 @@ elementView maybeWindowSize model =
                     Nothing ->
                         Element.fill
             ]
-            [ View.Nav.navBarView model
+            [ View.Nav.navBar model
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
@@ -99,7 +99,7 @@ elementView maybeWindowSize model =
                         Nothing ->
                             Element.fill
                 ]
-                [ View.Nav.navMenuView model
+                [ View.Nav.navMenu model
                 , mainContentContainerView
                 ]
             ]

@@ -1,4 +1,4 @@
-module View.Nav exposing (navBarHeight, navBarView, navMenuView, navMenuWidth)
+module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 
 import Color
 import Element
@@ -25,8 +25,8 @@ navBarHeight =
     70
 
 
-navMenuView : Model -> Element.Element Msg
-navMenuView model =
+navMenu : Model -> Element.Element Msg
+navMenu model =
     let
         projectMenuItem : Project -> Element.Element Msg
         projectMenuItem project =
@@ -107,8 +107,8 @@ projectTitleForNavMenu model project =
             providerTitle
 
 
-navBarView : Model -> Element.Element Msg
-navBarView model =
+navBar : Model -> Element.Element Msg
+navBar model =
     let
         navBarContainerAttributes =
             [ Background.color (Element.rgb255 29 29 29)

@@ -1,4 +1,4 @@
-module View.CreateServer exposing (viewCreateServer)
+module View.CreateServer exposing (createServer)
 
 import Element
 import Element.Background as Background
@@ -13,8 +13,8 @@ import Types.Types exposing (..)
 import View.Helpers as VH exposing (edges)
 
 
-viewCreateServer : Project -> CreateServerRequest -> Element.Element Msg
-viewCreateServer project createServerRequest =
+createServer : Project -> CreateServerRequest -> Element.Element Msg
+createServer project createServerRequest =
     let
         serverNameEmptyHint =
             if createServerRequest.name == "" then
@@ -85,11 +85,11 @@ viewCreateServer project createServerRequest =
                         Input.defaultThumb
                     }
                 ]
-            , viewFlavorPicker project createServerRequest
-            , viewVolBackedPrompt project createServerRequest
-            , viewNetworkPicker project createServerRequest
-            , viewKeypairPicker project createServerRequest
-            , viewUserDataInput project createServerRequest
+            , flavorPicker project createServerRequest
+            , volBackedPrompt project createServerRequest
+            , networkPicker project createServerRequest
+            , keypairPicker project createServerRequest
+            , userDataInput project createServerRequest
             , Element.el [ Element.alignRight ] <|
                 Button.button
                     [ Modifier.Primary ]
@@ -99,8 +99,8 @@ viewCreateServer project createServerRequest =
         ]
 
 
-viewFlavorPicker : Project -> CreateServerRequest -> Element.Element Msg
-viewFlavorPicker project createServerRequest =
+flavorPicker : Project -> CreateServerRequest -> Element.Element Msg
+flavorPicker project createServerRequest =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -202,8 +202,8 @@ viewFlavorPicker project createServerRequest =
         ]
 
 
-viewVolBackedPrompt : Project -> CreateServerRequest -> Element.Element Msg
-viewVolBackedPrompt project createServerRequest =
+volBackedPrompt : Project -> CreateServerRequest -> Element.Element Msg
+volBackedPrompt project createServerRequest =
     let
         maybeFlavor =
             List.filter (\f -> f.uuid == createServerRequest.flavorUuid) project.flavors
@@ -274,8 +274,8 @@ viewVolBackedPrompt project createServerRequest =
         ]
 
 
-viewNetworkPicker : Project -> CreateServerRequest -> Element.Element Msg
-viewNetworkPicker project createServerRequest =
+networkPicker : Project -> CreateServerRequest -> Element.Element Msg
+networkPicker project createServerRequest =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -336,8 +336,8 @@ viewNetworkPicker project createServerRequest =
         )
 
 
-viewKeypairPicker : Project -> CreateServerRequest -> Element.Element Msg
-viewKeypairPicker project createServerRequest =
+keypairPicker : Project -> CreateServerRequest -> Element.Element Msg
+keypairPicker project createServerRequest =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
@@ -362,8 +362,8 @@ viewKeypairPicker project createServerRequest =
         ]
 
 
-viewUserDataInput : Project -> CreateServerRequest -> Element.Element Msg
-viewUserDataInput project createServerRequest =
+userDataInput : Project -> CreateServerRequest -> Element.Element Msg
+userDataInput project createServerRequest =
     Element.column
         VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]

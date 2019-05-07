@@ -1,4 +1,4 @@
-module View.Images exposing (viewImagesIfLoaded)
+module View.Images exposing (imagesIfLoaded)
 
 import Element
 import Element.Font as Font
@@ -13,18 +13,18 @@ import Types.Types exposing (..)
 import View.Helpers as VH
 
 
-viewImagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
-viewImagesIfLoaded globalDefaults project maybeFilterTag =
+imagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
+imagesIfLoaded globalDefaults project maybeFilterTag =
     case List.isEmpty project.images of
         True ->
             Element.text "Images loading"
 
         False ->
-            viewImages globalDefaults project maybeFilterTag
+            images globalDefaults project maybeFilterTag
 
 
-viewImages : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
-viewImages globalDefaults project maybeFilterTag =
+images : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
+images globalDefaults project maybeFilterTag =
     let
         imageContainsTag tag image =
             List.member tag image.tags

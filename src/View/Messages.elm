@@ -1,12 +1,12 @@
-module View.Messages exposing (viewMessageLog)
+module View.Messages exposing (messageLog)
 
 import Element
 import Types.Types exposing (..)
 import View.Helpers as VH
 
 
-viewMessageLog : Model -> Element.Element Msg
-viewMessageLog model =
+messageLog : Model -> Element.Element Msg
+messageLog model =
     Element.column
         VH.exoColumnAttributes
         [ Element.el

@@ -1,4 +1,4 @@
-module View.Project exposing (projectView)
+module View.Project exposing (project)
 
 import Element
 import Framework.Button as Button
@@ -12,49 +12,49 @@ import View.Images
 import View.Servers
 
 
-projectView : Model -> Project -> ProjectViewConstructor -> Element.Element Msg
-projectView model project viewConstructor =
+project : Model -> Project -> ProjectViewConstructor -> Element.Element Msg
+project model p viewConstructor =
     let
         v =
             case viewConstructor of
                 ListImages ->
-                    View.Images.viewImagesIfLoaded model.globalDefaults project model.imageFilterTag
+                    View.Images.imagesIfLoaded model.globalDefaults p model.imageFilterTag
 
                 ListProjectServers ->
-                    View.Servers.viewServers project
+                    View.Servers.servers p
 
                 ServerDetail serverUuid viewStateParams ->
-                    View.Servers.viewServerDetail project serverUuid viewStateParams
+                    View.Servers.serverDetail p serverUuid viewStateParams
 
                 CreateServer createServerRequest ->
-                    View.CreateServer.viewCreateServer project createServerRequest
+                    View.CreateServer.createServer p createServerRequest
     in
     Element.column
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ viewProjectNav project
+        [ projectNav p
         , v
         ]
 
 
-viewProjectNav : Project -> Element.Element Msg
-viewProjectNav project =
+projectNav : Project -> Element.Element Msg
+projectNav p =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
           <|
             Element.text <|
-                Helpers.hostnameFromUrl project.creds.authUrl
+                Helpers.hostnameFromUrl p.creds.authUrl
                     ++ " - "
-                    ++ project.creds.projectName
+                    ++ p.creds.projectName
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
                 (Button.button
                     []
                     (Just <|
-                        ProjectMsg (Helpers.getProjectId project) <|
+                        ProjectMsg (Helpers.getProjectId p) <|
                             SetProjectView ListProjectServers
                     )
                     "My Servers"
@@ -62,11 +62,11 @@ viewProjectNav project =
             , Element.el []
                 (Button.button
                     []
-                    (Just <| ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListImages)
+                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView ListImages)
                     "Create Server"
                 )
             , Element.el
                 [ Element.alignRight ]
-                (Button.button [ Modifier.Muted ] (Just <| ProjectMsg (Helpers.getProjectId project) RemoveProject) "Remove Project")
+                (Button.button [ Modifier.Muted ] (Just <| ProjectMsg (Helpers.getProjectId p) RemoveProject) "Remove Project")
             ]
         ]

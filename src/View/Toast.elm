@@ -1,4 +1,4 @@
-module View.Toast exposing (toastView)
+module View.Toast exposing (toast)
 
 import Element
 import Element.Font as Font
@@ -9,11 +9,11 @@ import Toasty.Defaults
 import Types.Types exposing (..)
 
 
-toastView : Toasty.Defaults.Toast -> Html Msg
-toastView toast =
+toast : Toasty.Defaults.Toast -> Html Msg
+toast t =
     let
         toastElement =
-            case toast of
+            case t of
                 Toasty.Defaults.Success title message ->
                     genericToast "toasty-success" title message
 

@@ -1,4 +1,4 @@
-module View.Servers exposing (viewServerDetail, viewServers)
+module View.Servers exposing (serverDetail, servers)
 
 import Element
 import Element.Border as Border
@@ -22,8 +22,8 @@ import Types.Types exposing (..)
 import View.Helpers as VH exposing (edges)
 
 
-viewServers : Project -> Element.Element Msg
-viewServers project =
+servers : Project -> Element.Element Msg
+servers project =
     case project.servers of
         RemoteData.NotAsked ->
             Element.paragraph [] [ Element.text "Please wait..." ]
@@ -34,21 +34,21 @@ viewServers project =
         RemoteData.Failure e ->
             Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
-        RemoteData.Success servers ->
-            case List.isEmpty servers of
+        RemoteData.Success someServers ->
+            case List.isEmpty someServers of
                 True ->
                     Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
                 False ->
                     let
                         noServersSelected =
-                            List.any (\s -> s.exoProps.selected) servers |> not
+                            List.any (\s -> s.exoProps.selected) someServers |> not
 
                         allServersSelected =
-                            List.all (\s -> s.exoProps.selected) servers
+                            List.all (\s -> s.exoProps.selected) someServers
 
                         selectedServers =
-                            List.filter (\s -> s.exoProps.selected) servers
+                            List.filter (\s -> s.exoProps.selected) someServers
 
                         deleteButtonOnPress =
                             if noServersSelected == True then
@@ -77,12 +77,12 @@ viewServers project =
                             , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                             ]
                         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-                            (List.map (renderServer project) servers)
+                            (List.map (renderServer project) someServers)
                         ]
 
 
-viewServerDetail : Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-viewServerDetail project serverUuid viewStateParams =
+serverDetail : Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+serverDetail project serverUuid viewStateParams =
     Helpers.serverLookup project serverUuid
         |> Maybe.withDefault (Element.text "No server found")
         << Maybe.map
@@ -117,7 +117,7 @@ viewServerDetail project serverUuid viewStateParams =
                             VH.heading2
                             (Element.text "Server Details")
                         , VH.compactKVRow "Name" (Element.text server.osProps.name)
-                        , VH.compactKVRow "Status" (serverStatusView projectId server viewStateParams)
+                        , VH.compactKVRow "Status" (serverStatus projectId server viewStateParams)
                         , VH.compactKVRow "UUID" (Element.text server.osProps.uuid)
                         , VH.compactKVRow "Created on" (Element.text details.created)
                         , VH.compactKVRow "Image" (Element.text imageText)
@@ -131,21 +131,21 @@ viewServerDetail project serverUuid viewStateParams =
                                 viewStateParams
                             )
                         , Element.el VH.heading3 (Element.text "Interact with server")
-                        , consoleLinkView project server serverUuid viewStateParams
-                        , cockpitInteractionView server.exoProps.cockpitStatus maybeFloatingIp
+                        , consoleLink project server serverUuid viewStateParams
+                        , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
                         [ Element.el VH.heading3 (Element.text "Server Actions")
-                        , actionsView projectId server
+                        , actions projectId server
                         , Element.el VH.heading3 (Element.text "System Resource Usage")
-                        , resourceUsageGraphsView server.exoProps.cockpitStatus maybeFloatingIp
+                        , resourceUsageGraphs server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     ]
             )
 
 
-serverStatusView : ProjectIdentifier -> Server -> ViewStateParams -> Element.Element Msg
-serverStatusView projectId server viewStateParams =
+serverStatus : ProjectIdentifier -> Server -> ViewStateParams -> Element.Element Msg
+serverStatus projectId server viewStateParams =
     let
         details =
             server.osProps.details
@@ -158,9 +158,9 @@ serverStatusView projectId server viewStateParams =
             Debug.toString details.powerState
                 |> String.dropLeft 5
 
-        graphicView =
+        graphic =
             let
-                graphic =
+                g =
                     case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
                         ( OSTypes.ServerBuilding, _ ) ->
                             Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
@@ -173,9 +173,9 @@ serverStatusView projectId server viewStateParams =
             in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]
-                graphic
+                g
 
-        verboseStatusView =
+        verboseStatus =
             case viewStateParams.verboseStatus of
                 False ->
                     [ Button.button
@@ -197,7 +197,7 @@ serverStatusView projectId server viewStateParams =
                     , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
                     ]
 
-        statusStringView =
+        statusString =
             Element.text
                 (server
                     |> Helpers.getServerUiStatus
@@ -207,16 +207,16 @@ serverStatusView projectId server viewStateParams =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.padding 0 ])
         ([ Element.row [ Font.bold ]
-            [ graphicView
-            , statusStringView
+            [ graphic
+            , statusString
             ]
          ]
-            ++ verboseStatusView
+            ++ verboseStatus
         )
 
 
-consoleLinkView : Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-consoleLinkView project server serverUuid viewStateParams =
+consoleLink : Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+consoleLink project server serverUuid viewStateParams =
     let
         details =
             server.osProps.details
@@ -305,8 +305,8 @@ consoleLinkView project server serverUuid viewStateParams =
             Element.text "Console not available with server in this state."
 
 
-cockpitInteractionView : CockpitLoginStatus -> Maybe String -> Element.Element Msg
-cockpitInteractionView cockpitStatus maybeFloatingIp =
+cockpitInteraction : CockpitLoginStatus -> Maybe String -> Element.Element Msg
+cockpitInteraction cockpitStatus maybeFloatingIp =
     maybeFloatingIp
         |> Maybe.withDefault (Element.text "Server Dashboard and Terminal not ready yet.")
         << Maybe.map
@@ -350,8 +350,8 @@ cockpitInteractionView cockpitStatus maybeFloatingIp =
             )
 
 
-actionsView : ProjectIdentifier -> Server -> Element.Element Msg
-actionsView projectId server =
+actions : ProjectIdentifier -> Server -> Element.Element Msg
+actions projectId server =
     let
         details =
             server.osProps.details
@@ -388,8 +388,8 @@ actionsView projectId server =
                 Element.none
 
 
-resourceUsageGraphsView : CockpitLoginStatus -> Maybe String -> Element.Element Msg
-resourceUsageGraphsView cockpitStatus maybeFloatingIp =
+resourceUsageGraphs : CockpitLoginStatus -> Maybe String -> Element.Element Msg
+resourceUsageGraphs cockpitStatus maybeFloatingIp =
     maybeFloatingIp
         |> Maybe.withDefault (Element.text "Graphs not ready yet.")
         << Maybe.map
