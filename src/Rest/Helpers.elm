@@ -5,22 +5,23 @@ import Http
 import OpenStack.Types as OSTypes
 import Task
 import Time
-import Types.Types exposing (..)
+import Types.Types as TT
 
 
-httpRequestMethodStr : HttpRequestMethod -> String
+httpRequestMethodStr : TT.HttpRequestMethod -> String
 httpRequestMethodStr method =
     case method of
-        Get ->
+        TT.Get ->
             "GET"
 
-        Post ->
+        TT.Post ->
             "POST"
 
-        Delete ->
+        TT.Delete ->
             "DELETE"
 
 
+openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
 openstackCredentialedRequest project method url requestBody expect =
     {-
        In order to ensure request is made with a valid token, perform a task
@@ -30,7 +31,7 @@ openstackCredentialedRequest project method url requestBody expect =
 
     -}
     let
-        tokenToRequestCmd : OSTypes.AuthTokenString -> Cmd Msg
+        tokenToRequestCmd : OSTypes.AuthTokenString -> Cmd TT.Msg
         tokenToRequestCmd token =
             Http.request
                 { method = httpRequestMethodStr method
@@ -43,5 +44,5 @@ openstackCredentialedRequest project method url requestBody expect =
                 }
     in
     Task.perform
-        (\posixTime -> ProjectMsg (Helpers.getProjectId project) (ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
+        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
         Time.now
