@@ -1,6 +1,5 @@
 module View.View exposing (view)
 
-import Base64
 import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
@@ -105,25 +104,3 @@ elementView maybeWindowSize model =
                 ]
             ]
         ]
-
-
-
-{- View Helpers -}
-
-
-getEffectiveUserDataSize : CreateServerRequest -> String
-getEffectiveUserDataSize createServerRequest =
-    let
-        rawLength =
-            String.length createServerRequest.userData
-
-        base64Value =
-            Base64.encode createServerRequest.userData
-
-        base64Length =
-            String.length base64Value
-    in
-    String.fromInt rawLength
-        ++ " characters,  "
-        ++ String.fromInt base64Length
-        ++ "/16384 allowed bytes (Base64 encoded)"
