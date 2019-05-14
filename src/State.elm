@@ -146,10 +146,7 @@ updateUnderlying msg model =
                     { model | viewState = NonProjectView nonProjectViewConstructor }
             in
             case nonProjectViewConstructor of
-                Login ->
-                    ( newModel, Cmd.none )
-
-                MessageLog ->
+                _ ->
                     ( newModel, Cmd.none )
 
         RequestNewProjectToken ->

@@ -1,5 +1,6 @@
 module View.Helpers exposing
-    ( compactKVRow
+    ( browserLink
+    , compactKVRow
     , compactKVSubRow
     , edges
     , exoColumnAttributes
@@ -12,10 +13,14 @@ module View.Helpers exposing
     , renderMessage
     )
 
+import Color
 import Element
+import Element.Events
 import Element.Font as Font
 import Element.Region as Region
-import Types.Types exposing (Msg)
+import Framework.Color
+import Types.HelperTypes
+import Types.Types exposing (..)
 
 
 
@@ -102,3 +107,16 @@ hint hintText =
 renderMessage : String -> Element.Element Msg
 renderMessage message =
     Element.paragraph [] [ Element.text message ]
+
+
+browserLink : Types.HelperTypes.Url -> String -> Element.Element Msg
+browserLink url str =
+    Element.el
+        [ Element.Events.onClick <|
+            OpenInBrowser
+                url
+        , Font.color <| Color.toElementColor <| Framework.Color.blue
+        , Font.underline
+        ]
+    <|
+        Element.text str
