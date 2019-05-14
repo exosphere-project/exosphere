@@ -31,6 +31,7 @@ users:
     shell: /bin/bash
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    {ssh-authorized-keys}
 packages:
   - cockpit
 runcmd:
