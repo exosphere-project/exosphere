@@ -25,6 +25,8 @@ widgets =
     , roundRect Color.black 40
     , Element.text "Style.Widgets.Icon.bell"
     , bell Color.black 40
+    , Element.text "Style.Widgets.Icon.question"
+    , question Color.black 40
     , Element.text "Style.Widgets.Icon.remove"
     , remove Color.black 40
     , Element.text "Style.Widgets.Card.exoCard"

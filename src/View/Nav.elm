@@ -138,7 +138,7 @@ navBar model =
 
         navBarRight =
             Element.row
-                [ Element.alignRight, Element.paddingXY 20 0 ]
+                [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
                 [ Element.el
                     [ Font.color (Element.rgb255 209 209 209)
                     ]
@@ -151,9 +151,23 @@ navBar model =
                         { onPress = Just (SetNonProjectView MessageLog)
                         , label =
                             Element.row
-                                VH.exoRowAttributes
+                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
                                 [ Icon.bell Framework.Color.white 20
                                 , Element.text "Messages"
+                                ]
+                        }
+                    )
+                , Element.el
+                    [ Font.color (Element.rgb255 209 209 209)
+                    ]
+                    (Input.button
+                        []
+                        { onPress = Just (SetNonProjectView HelpAbout)
+                        , label =
+                            Element.row
+                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
+                                [ Icon.question Framework.Color.white 20
+                                , Element.text "Help / About"
                                 ]
                         }
                     )

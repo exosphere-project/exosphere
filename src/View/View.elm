@@ -7,6 +7,7 @@ import Html exposing (Html)
 import Maybe
 import Toasty
 import Types.Types exposing (..)
+import View.HelpAbout
 import View.Login
 import View.Messages
 import View.Nav
@@ -51,6 +52,9 @@ elementView maybeWindowSize model =
 
                             MessageLog ->
                                 View.Messages.messageLog model
+
+                            HelpAbout ->
+                                View.HelpAbout.helpAbout
 
                     ProjectView projectName viewConstructor ->
                         case Helpers.projectLookup model projectName of

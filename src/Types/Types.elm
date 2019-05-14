@@ -158,6 +158,7 @@ type ViewState
 type NonProjectViewConstructor
     = Login
     | MessageLog
+    | HelpAbout
 
 
 type ProjectViewConstructor
