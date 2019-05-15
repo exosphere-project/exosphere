@@ -573,26 +573,31 @@ sortedFlavors flavors =
 
 renderUserDataTemplate : Project -> CreateServerRequest -> String
 renderUserDataTemplate project createServerRequest =
+    {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
     let
-        keypairName =
-            createServerRequest.keypairName |> Maybe.withDefault ""
+        maybePublicKey : Maybe String
+        maybePublicKey =
+            case createServerRequest.keypairName of
+                Just keypairName ->
+                    project.keypairs
+                        |> List.filter (\kp -> kp.name == keypairName)
+                        |> List.head
+                        |> Maybe.map .publicKey
 
-        selectedProjectKeypairPublicKey =
-            project.keypairs
-                |> List.filter (\kp -> List.member kp.name [ keypairName ])
-                |> List.head
-                |> Maybe.map .publicKey
-
-        keypairYaml =
-            case selectedProjectKeypairPublicKey of
                 Nothing ->
-                    ""
+                    Nothing
 
+        authorizedKeysYaml : String
+        authorizedKeysYaml =
+            case maybePublicKey of
                 Just selectedPublicKey ->
                     "ssh-authorized-keys:\n      - " ++ selectedPublicKey
 
+                Nothing ->
+                    ""
+
         renderedUserData =
-            String.replace "{ssh-authorized-keys}\n" keypairYaml createServerRequest.userData
+            String.replace "{ssh-authorized-keys}\n" authorizedKeysYaml createServerRequest.userData
     in
     renderedUserData
 
