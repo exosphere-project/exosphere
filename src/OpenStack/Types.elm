@@ -153,6 +153,13 @@ type ImageStatus
 -- Nova
 
 
+type alias Keypair =
+    { name : String
+    , publicKey : String
+    , fingerprint : String
+    }
+
+
 type alias Flavor =
     { uuid : FlavorUuid
     , name : String
@@ -252,13 +259,6 @@ type alias IpAddressUuid =
 type IpAddressType
     = IpAddressFixed
     | IpAddressFloating
-
-
-type alias Keypair =
-    { name : String
-    , publicKey : String
-    , fingerprint : String
-    }
 
 
 type alias Network =
