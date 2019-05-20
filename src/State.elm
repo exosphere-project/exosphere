@@ -31,6 +31,7 @@ users:
     shell: /bin/bash
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    {ssh-authorized-keys}
 packages:
   - cockpit
 runcmd:
@@ -39,7 +40,7 @@ runcmd:
   - systemctl daemon-reload
 chpasswd:
   list: |
-    exouser:changeme123
+    exouser:{exouser-password}
   expire: False
 """
             }
@@ -280,7 +281,7 @@ updateUnderlying msg model =
                             CreateServer createServerRequest ->
                                 let
                                     newUserData =
-                                        String.split "changeme123" createServerRequest.userData
+                                        String.split "{exouser-password}" createServerRequest.userData
                                             |> String.join password
 
                                     newCSR =

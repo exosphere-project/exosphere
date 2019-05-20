@@ -19,6 +19,7 @@ module Helpers.Helpers exposing
     , projectLookup
     , projectUpdateServer
     , projectUpdateServers
+    , renderUserDataTemplate
     , serverLookup
     , serviceCatalogToEndpoints
     , sortedFlavors
@@ -568,6 +569,37 @@ sortedFlavors flavors =
         |> List.sortBy .disk_root
         |> List.sortBy .ram_mb
         |> List.sortBy .vcpu
+
+
+renderUserDataTemplate : Project -> CreateServerRequest -> String
+renderUserDataTemplate project createServerRequest =
+    {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
+    let
+        maybePublicKey : Maybe String
+        maybePublicKey =
+            case createServerRequest.keypairName of
+                Just keypairName ->
+                    project.keypairs
+                        |> List.filter (\kp -> kp.name == keypairName)
+                        |> List.head
+                        |> Maybe.map .publicKey
+
+                Nothing ->
+                    Nothing
+
+        authorizedKeysYaml : String
+        authorizedKeysYaml =
+            case maybePublicKey of
+                Just selectedPublicKey ->
+                    "ssh-authorized-keys:\n      - " ++ selectedPublicKey
+
+                Nothing ->
+                    ""
+
+        renderedUserData =
+            String.replace "{ssh-authorized-keys}\n" authorizedKeysYaml createServerRequest.userData
+    in
+    renderedUserData
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions

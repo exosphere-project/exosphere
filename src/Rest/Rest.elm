@@ -285,6 +285,9 @@ requestCreateServer project createServerRequest =
             else
                 baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt getServerCount
 
+        renderedUserData =
+            Helpers.renderUserDataTemplate project createServerRequest
+
         instanceNames =
             instanceNumbers
                 |> List.map (generateServerName createServerRequest.name getServerCount)
@@ -312,7 +315,7 @@ requestCreateServer project createServerRequest =
                         , Encode.list Encode.object
                             [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
                         )
-                , ( "user_data", Encode.string (Base64.encode innerCreateServerRequest.userData) )
+                , ( "user_data", Encode.string (Base64.encode renderedUserData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
                 , ( "adminPass", Encode.string createServerRequest.exouserPassword )
                 , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
