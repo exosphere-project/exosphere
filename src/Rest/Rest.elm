@@ -128,18 +128,24 @@ requestAuthToken creds =
                         ]
                   )
                 ]
-    in
-    {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
-    Http.request
-        { method = "POST"
-        , headers = []
-        , url =
+
+        authUrl =
             if String.contains "/auth/tokens" creds.authUrl then
                 -- We previously expected users to provide "/auth/tokens" to be in the Keystone Auth URL; this case statement avoids breaking the app for users who still have that
                 creds.authUrl
 
             else
                 creds.authUrl ++ "/auth/tokens"
+
+        ( proxyUrl, headers ) =
+            -- TODO don't hard-code proxy server URL, specify it in global defaults or something
+            proxyifyRequest "https://dogfood.exosphere.app/proxy" authUrl
+    in
+    {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
+    Http.request
+        { method = "POST"
+        , headers = headers
+        , url = proxyUrl
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
