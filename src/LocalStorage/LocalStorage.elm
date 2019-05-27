@@ -56,6 +56,7 @@ hydrateProjectFromStoredProject storedProject =
     , servers = RemoteData.NotAsked
     , flavors = []
     , keypairs = []
+    , volumes = RemoteData.NotAsked
     , networks = []
     , floatingIps = []
     , ports = []

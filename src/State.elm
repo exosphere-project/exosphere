@@ -7,6 +7,8 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.ServerVolumes as OSSvrVols
+import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
 import Rest.Rest as Rest
@@ -132,14 +134,28 @@ updateUnderlying msg model =
                 NonProjectView _ ->
                     ( model, Cmd.none )
 
-                ProjectView projectName ListProjectServers ->
-                    update (ProjectMsg projectName RequestServers) model
+                ProjectView projectName projectViewState ->
+                    case Helpers.projectLookup model projectName of
+                        Nothing ->
+                            {- Should this throw an error? -}
+                            ( model, Cmd.none )
 
-                ProjectView projectName (ServerDetail serverUuid _) ->
-                    update (ProjectMsg projectName (RequestServer serverUuid)) model
+                        Just project ->
+                            case projectViewState of
+                                ListProjectServers ->
+                                    update (ProjectMsg projectName RequestServers) model
 
-                _ ->
-                    ( model, Cmd.none )
+                                ServerDetail serverUuid _ ->
+                                    update (ProjectMsg projectName (RequestServer serverUuid)) model
+
+                                ListProjectVolumes ->
+                                    ( model, OSVolumes.requestVolumes project )
+
+                                VolumeDetail _ ->
+                                    ( model, OSVolumes.requestVolumes project )
+
+                                _ ->
+                                    ( model, Cmd.none )
 
         SetNonProjectView nonProjectViewConstructor ->
             let
@@ -325,6 +341,7 @@ processProjectSpecificMsg model project msg =
                         [ Rest.requestServer project serverUuid
                         , Rest.requestFlavors project
                         , Rest.requestImages project
+                        , OSVolumes.requestVolumes project
                         ]
                     )
 
@@ -344,6 +361,26 @@ processProjectSpecificMsg model project msg =
                             )
                         ]
                     )
+
+                ListProjectVolumes ->
+                    ( newModel, OSVolumes.requestVolumes project )
+
+                VolumeDetail _ ->
+                    ( newModel, Cmd.none )
+
+                AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
+                    ( newModel
+                    , Cmd.batch
+                        [ Rest.requestServers project
+                        , OSVolumes.requestVolumes project
+                        ]
+                    )
+
+                MountVolInstructions _ ->
+                    ( newModel, Cmd.none )
+
+                CreateVolume _ _ ->
+                    ( newModel, Cmd.none )
 
         ValidateTokenForCredentialedRequest requestNeedingToken posixTime ->
             let
@@ -441,6 +478,38 @@ processProjectSpecificMsg model project msg =
                     Helpers.modelUpdateProject model newProject
             in
             ( newModel, func newProject newServer )
+
+        RequestCreateVolume name size ->
+            let
+                createVolumeRequest =
+                    { name = name
+                    , size = size
+                    }
+            in
+            ( model, OSVolumes.requestCreateVolume project createVolumeRequest )
+
+        RequestDeleteVolume volumeUuid ->
+            ( model, OSVolumes.requestDeleteVolume project volumeUuid )
+
+        RequestAttachVolume serverUuid volumeUuid ->
+            ( model, OSSvrVols.requestAttachVolume project serverUuid volumeUuid )
+
+        RequestDetachVolume volumeUuid ->
+            let
+                maybeVolume =
+                    OSVolumes.volumeLookup project volumeUuid
+
+                maybeServerUuid =
+                    maybeVolume
+                        |> Maybe.map (Helpers.getServersWithVolAttached project)
+                        |> Maybe.andThen List.head
+            in
+            case maybeServerUuid of
+                Just serverUuid ->
+                    ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+
+                Nothing ->
+                    Helpers.processError model "Could not determine server UUID"
 
         ReceiveImages result ->
             Rest.receiveImages model project result
@@ -597,3 +666,53 @@ processProjectSpecificMsg model project msg =
 
                 Ok _ ->
                     ( model, Cmd.none )
+
+        ReceiveCreateVolume result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok _ ->
+                    {- Should we add new volume to model now? -}
+                    update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
+
+        ReceiveVolumes result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok volumes ->
+                    let
+                        newProject =
+                            { project | volumes = RemoteData.succeed volumes }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    ( newModel, Cmd.none )
+
+        ReceiveDeleteVolume result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok _ ->
+                    ( model, OSVolumes.requestVolumes project )
+
+        ReceiveAttachVolume result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok attachment ->
+                    {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
+                    update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| MountVolInstructions attachment) model
+
+        ReceiveDetachVolume result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok _ ->
+                    {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
+                    update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model

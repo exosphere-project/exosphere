@@ -10,6 +10,7 @@ module View.Helpers exposing
     , heading2
     , heading3
     , hint
+    , possiblyUntitledResource
     , renderMessage
     )
 
@@ -120,3 +121,13 @@ browserLink url str =
         ]
     <|
         Element.text str
+
+
+possiblyUntitledResource : String -> String -> String
+possiblyUntitledResource name resourceType =
+    case name of
+        "" ->
+            "(Untitled " ++ resourceType ++ ")"
+
+        _ ->
+            name
