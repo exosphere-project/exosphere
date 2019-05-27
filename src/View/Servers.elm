@@ -1,5 +1,6 @@
 module View.Servers exposing (serverDetail, servers)
 
+import Color
 import Element
 import Element.Border as Border
 import Element.Events as Events
@@ -130,6 +131,7 @@ serverDetail project serverUuid viewStateParams =
                                 server.osProps.uuid
                                 viewStateParams
                             )
+                        , VH.compactKVRow "Volumes Attached" (serverVolumes project server)
                         , Element.el VH.heading3 (Element.text "Interact with server")
                         , consoleLink project server serverUuid viewStateParams
                         , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
@@ -552,3 +554,55 @@ friendlyCockpitReadiness cockpitLoginStatus =
 
         Ready ->
             "Ready"
+
+
+serverVolumes : Project -> Server -> Element.Element Msg
+serverVolumes project server =
+    let
+        vols =
+            Helpers.getVolsAttachedToServer project server
+
+        isBootVol v =
+            v.attachments
+                |> List.map .device
+                |> List.member "/dev/vda"
+    in
+    case List.length vols of
+        0 ->
+            Element.text "(none)"
+
+        _ ->
+            let
+                volDetailsButton v =
+                    Input.button
+                        [ Border.width 1
+                        , Border.rounded 6
+                        , Border.color <| Color.toElementColor <| Framework.Color.grey
+                        , Element.padding 3
+                        ]
+                        { onPress =
+                            Just
+                                (ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (SetProjectView <| VolumeDetail v.uuid)
+                                )
+                        , label = Icon.rightArrow Framework.Color.grey 16
+                        }
+
+                renderVolume v =
+                    Element.row VH.exoRowAttributes
+                        [ Element.text <| VH.possiblyUntitledResource v.name "volume"
+                        , case isBootVol v of
+                            True ->
+                                Element.el
+                                    [ Font.color <| Color.toElementColor <| Framework.Color.grey ]
+                                <|
+                                    Element.text "Boot volume"
+
+                            False ->
+                                Element.none
+                        , volDetailsButton v
+                        ]
+            in
+            Element.column [ Element.spacing 3, Font.size 14 ]
+                (vols |> List.map renderVolume)

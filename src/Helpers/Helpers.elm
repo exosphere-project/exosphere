@@ -9,6 +9,8 @@ module Helpers.Helpers exposing
     , getServerUiStatus
     , getServerUiStatusColor
     , getServerUiStatusStr
+    , getServersWithVolAttached
+    , getVolsAttachedToServer
     , hostnameFromUrl
     , imageLookup
     , iso8601StringToPosix
@@ -26,6 +28,7 @@ module Helpers.Helpers exposing
     , stringIsUuidOrDefault
     , titleFromHostname
     , toastConfig
+    , volumeIsAttachedToServer
     )
 
 import Color
@@ -255,6 +258,7 @@ iso8601StringToPosix str =
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints
 serviceCatalogToEndpoints catalog =
     Endpoints
+        (getServicePublicUrl "cinderv3" catalog)
         (getServicePublicUrl "glance" catalog)
         (getServicePublicUrl "nova" catalog)
         (getServicePublicUrl "neutron" catalog)
@@ -651,3 +655,27 @@ newServerNetworkOptions project =
                                             ( firstNet, False )
                     in
                     MultipleNetsWithGuess projectNets guessNet goodGuess
+
+
+
+{- Future todo come up with some rational scheme for whether these functions should accept the full resource types (e.g. Volume) or just an identifier (e.g. VolumeUuid) -}
+
+
+getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
+getVolsAttachedToServer project server =
+    project.volumes
+        |> RemoteData.withDefault []
+        |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
+
+
+volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
+volumeIsAttachedToServer volumeUuid server =
+    server.osProps.details.volumesAttached
+        |> List.filter (\v -> v == volumeUuid)
+        |> List.isEmpty
+        |> not
+
+
+getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
+getServersWithVolAttached project volume =
+    volume.attachments |> List.map .serverUuid

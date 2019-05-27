@@ -5,11 +5,14 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Maybe
+import OpenStack.Types as OSTypes
 import Types.Types exposing (..)
+import View.AttachVolume
 import View.CreateServer
 import View.Helpers as VH
 import View.Images
 import View.Servers
+import View.Volumes
 
 
 project : Model -> Project -> ProjectViewConstructor -> Element.Element Msg
@@ -28,6 +31,21 @@ project model p viewConstructor =
 
                 CreateServer createServerRequest ->
                     View.CreateServer.createServer p createServerRequest
+
+                ListProjectVolumes ->
+                    View.Volumes.volumes p
+
+                VolumeDetail volumeUuid ->
+                    View.Volumes.volumeDetailView p volumeUuid
+
+                CreateVolume volName volSizeStr ->
+                    View.Volumes.createVolume p volName volSizeStr
+
+                AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
+                    View.AttachVolume.attachVolume p maybeServerUuid maybeVolumeUuid
+
+                MountVolInstructions attachment ->
+                    View.AttachVolume.mountVolInstructions p attachment
     in
     Element.column
         (Element.width Element.fill
@@ -48,6 +66,8 @@ projectNav p =
                 Helpers.hostnameFromUrl p.creds.authUrl
                     ++ " - "
                     ++ p.creds.projectName
+
+        {- TODO nest these somehow, perhaps put the "create server" and "create volume" buttons as a dropdown under a big "Create" button -}
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
@@ -64,6 +84,19 @@ projectNav p =
                     []
                     (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView ListImages)
                     "Create Server"
+                )
+            , Element.el []
+                (Button.button
+                    []
+                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView ListProjectVolumes)
+                    "My Volumes"
+                )
+            , Element.el []
+                {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
+                (Button.button
+                    []
+                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| CreateVolume "" "10")
+                    "Create Volume"
                 )
             , Element.el
                 [ Element.alignRight ]

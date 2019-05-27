@@ -2,6 +2,7 @@ module OpenStack.Types exposing
     ( AuthToken
     , AuthTokenString
     , ConsoleUrl
+    , CreateVolumeRequest
     , Endpoint
     , EndpointInterface(..)
     , Flavor
@@ -35,6 +36,13 @@ module OpenStack.Types exposing
     , ServiceName(..)
     , UserName
     , UserUuid
+    , Volume
+    , VolumeAttachment
+    , VolumeAttachmentDevice
+    , VolumeName
+    , VolumeSize
+    , VolumeStatus(..)
+    , VolumeUuid
     )
 
 import RemoteData exposing (WebData)
@@ -217,7 +225,6 @@ type ServerPowerState
 
 {- Todo add to ServerDetail:
    - Metadata
-   - Volumes
    - Security Groups
    - Etc
 
@@ -234,7 +241,82 @@ type alias ServerDetails =
     , keypairName : Maybe String
     , ipAddresses : List IpAddress
     , metadata : List MetadataItem
+    , volumesAttached : List VolumeUuid
     }
+
+
+
+-- Cinder
+
+
+type alias Volume =
+    { name : VolumeName
+    , uuid : VolumeUuid
+    , status : VolumeStatus
+    , size : VolumeSize
+    , description : Maybe VolumeDescription
+    , attachments : List VolumeAttachment
+    }
+
+
+type alias CreateVolumeRequest =
+    { name : VolumeName
+    , size : VolumeSize
+    }
+
+
+type VolumeStatus
+    = Creating
+    | Available
+    | Reserved
+    | Attaching
+    | Detaching
+    | InUse
+    | Maintenance
+    | Deleting
+    | AwaitingTransfer
+    | Error
+    | ErrorDeleting
+    | BackingUp
+    | RestoringBackup
+    | ErrorBackingUp
+    | ErrorRestoring
+    | ErrorExtending
+    | Downloading
+    | Uploading
+    | Retyping
+    | Extending
+
+
+type alias VolumeAttachment =
+    { serverUuid : ServerUuid
+    , attachmentUuid : AttachmentUuid
+    , device : VolumeAttachmentDevice
+    }
+
+
+type alias VolumeUuid =
+    HelperTypes.Uuid
+
+
+type alias VolumeDescription =
+    String
+
+
+type alias VolumeName =
+    String
+
+
+type alias VolumeSize =
+    Int
+
+
+type alias AttachmentUuid =
+    HelperTypes.Uuid
+
+
+type alias VolumeAttachmentDevice =
+    String
 
 
 

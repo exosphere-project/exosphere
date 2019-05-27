@@ -80,6 +80,7 @@ type alias Project =
     , servers : WebData (List Server)
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
+    , volumes : WebData (List OSTypes.Volume)
     , networks : List OSTypes.Network
     , floatingIps : List OSTypes.IpAddress
     , ports : List OSTypes.Port
@@ -96,7 +97,8 @@ type alias ProjectIdentifier =
 
 
 type alias Endpoints =
-    { glance : HelperTypes.Url
+    { cinder : HelperTypes.Url
+    , glance : HelperTypes.Url
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     }
@@ -130,6 +132,10 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
     | RequestServerAction Server (Project -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
+    | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
+    | RequestDeleteVolume OSTypes.VolumeUuid
+    | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
+    | RequestDetachVolume OSTypes.VolumeUuid
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServer OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
@@ -148,6 +154,11 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
     | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
     | ReceiveServerAction OSTypes.ServerUuid (Result Http.Error String)
+    | ReceiveCreateVolume (Result Http.Error OSTypes.Volume)
+    | ReceiveVolumes (Result Http.Error (List OSTypes.Volume))
+    | ReceiveDeleteVolume (Result Http.Error String)
+    | ReceiveAttachVolume (Result Http.Error OSTypes.VolumeAttachment)
+    | ReceiveDetachVolume (Result Http.Error String)
 
 
 type ViewState
@@ -164,8 +175,13 @@ type NonProjectViewConstructor
 type ProjectViewConstructor
     = ListImages
     | ListProjectServers
+    | ListProjectVolumes
     | ServerDetail OSTypes.ServerUuid ViewStateParams
+    | VolumeDetail OSTypes.VolumeUuid
     | CreateServer CreateServerRequest
+    | CreateVolume OSTypes.VolumeName String
+    | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
+    | MountVolInstructions OSTypes.VolumeAttachment
 
 
 type alias ViewStateParams =

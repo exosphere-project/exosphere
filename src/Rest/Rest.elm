@@ -64,6 +64,7 @@ import Dict
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -708,6 +709,7 @@ createProject model creds response =
                     , servers = RemoteData.NotAsked
                     , flavors = []
                     , keypairs = []
+                    , volumes = RemoteData.NotAsked
                     , networks = []
                     , floatingIps = []
                     , ports = []
@@ -1481,25 +1483,16 @@ decodeServerDetails =
             List.foldl (\kVPair resultList -> Tuple.second kVPair :: resultList) [] kVPairs
                 |> List.concat
     in
-    Decode.map8 OSTypes.ServerDetails
-        (Decode.at [ "status" ] Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
-        (Decode.at [ "created" ] Decode.string)
-        (Decode.at [ "OS-EXT-STS:power_state" ] Decode.int
-            |> Decode.andThen serverPowerStateDecoder
-        )
-        (Decode.oneOf
-            [ Decode.at [ "image", "id" ] Decode.string
-            , Decode.succeed ""
-            ]
-        )
-        (Decode.at [ "flavor", "id" ] Decode.string)
-        (Decode.at [ "key_name" ] (Decode.nullable Decode.string))
-        (Decode.oneOf
-            [ Decode.at [ "addresses" ] (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder)))
-            , Decode.succeed []
-            ]
-        )
-        (Decode.at [ "metadata" ] metadataDecoder)
+    Decode.succeed OSTypes.ServerDetails
+        |> Pipeline.required "status" (Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
+        |> Pipeline.required "created" Decode.string
+        |> Pipeline.required "OS-EXT-STS:power_state" (Decode.int |> Decode.andThen serverPowerStateDecoder)
+        |> Pipeline.optionalAt [ "image", "id" ] Decode.string ""
+        |> Pipeline.requiredAt [ "flavor", "id" ] Decode.string
+        |> Pipeline.optional "key_name" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.optional "addresses" (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder))) []
+        |> Pipeline.required "metadata" metadataDecoder
+        |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
