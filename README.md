@@ -1,10 +1,11 @@
+**New: Exosphere meeting, Mondays at 1600 UTC** on [https://meet.jit.si/exosphere](https://meet.jit.si/exosphere). Chat with the developers, get onboarded, help us set priorities and shape the future!
+
 # Exosphere
 
 User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
 
 ![development stage: alpha](https://img.shields.io/badge/stage-alpha-orange.svg)
 [![pipeline status](https://gitlab.com/exosphere/exosphere/badges/master/pipeline.svg)](https://gitlab.com/exosphere/exosphere/commits/master)
-![hi mom!](https://img.shields.io/badge/hi-mom!-blue.svg)
 
 - **Do you have access to an OpenStack cloud?** Want a really pleasant way to use it?
 - **Are you a cloud operator?** Want an easy way to offer same to your users?
@@ -139,7 +140,9 @@ Until the permanent solution has been implemented, please do not use the termina
 
 ## Collaborate
 
-[Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
+[Exosphere Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
+
+Exosphere meeting happens Mondays at 1600 UTC on [https://meet.jit.si/exosphere](https://meet.jit.si/exosphere).
 
 See also contributing.md for contributor guidelines.
 
