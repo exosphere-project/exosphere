@@ -6,11 +6,12 @@ import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest)
+import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 
 
-requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
-requestAttachVolume project serverUuid volumeUuid =
+requestAttachVolume : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
+requestAttachVolume project maybeProxyUrl serverUuid volumeUuid =
     let
         body =
             Json.Encode.object
@@ -23,16 +24,18 @@ requestAttachVolume project serverUuid volumeUuid =
     in
     openstackCredentialedRequest
         project
+        maybeProxyUrl
         Post
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
         (Http.jsonBody body)
         (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveAttachVolume result)) (Decode.field "volumeAttachment" <| novaVolumeAttachmentDecoder))
 
 
-requestDetachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
-requestDetachVolume project serverUuid volumeUuid =
+requestDetachVolume : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
+requestDetachVolume project maybeProxyUrl serverUuid volumeUuid =
     openstackCredentialedRequest
         project
+        maybeProxyUrl
         Delete
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody

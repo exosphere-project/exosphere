@@ -14,7 +14,8 @@ var app = Elm.Main.init({
     {
         width: window.innerWidth,
         height: window.innerHeight,
-        storedState: startingState
+        storedState: startingState,
+        proxyUrl: null
     }
 });
 

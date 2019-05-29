@@ -7,6 +7,7 @@ import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest)
 import Rest.Rest as Rest
+import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 
 
@@ -16,7 +17,7 @@ type alias ServerAction =
 
     -- Todo enforce uniqueness by using a different collection (something like a Set, except ServerAction types aren't "comparable")
     , allowedStatus : List OSTypes.ServerStatus
-    , action : Project -> Server -> Cmd Msg
+    , action : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
     , selectMods : List Modifier.Modifier
     , targetStatus : List OSTypes.ServerStatus
     }
@@ -139,10 +140,11 @@ actions =
     ]
 
 
-doAction : Json.Encode.Value -> Project -> Server -> Cmd Msg
-doAction body project server =
+doAction : Json.Encode.Value -> Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
+doAction body project maybeProxyUrl server =
     openstackCredentialedRequest
         project
+        maybeProxyUrl
         Post
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)

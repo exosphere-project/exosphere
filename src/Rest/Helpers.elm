@@ -5,6 +5,7 @@ import Http
 import OpenStack.Types as OSTypes
 import Task
 import Time
+import Types.HelperTypes as HelperTypes
 import Types.Types as TT
 import Url
 
@@ -22,8 +23,8 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
-openstackCredentialedRequest project method url requestBody expect =
+openstackCredentialedRequest : TT.Project -> Maybe HelperTypes.Url -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
+openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody expect =
     {-
        In order to ensure request is made with a valid token, perform a task
        which checks the time to see if our auth token is still valid or has
@@ -32,16 +33,20 @@ openstackCredentialedRequest project method url requestBody expect =
 
     -}
     let
-        ( proxyUrl, headers ) =
-            -- TODO don't hard-code proxy server URL, specify it in global defaults or something
-            proxyifyRequest "https://dogfood.exosphere.app/proxy" url
+        ( url, headers ) =
+            case maybeProxyUrl of
+                Just proxyUrl ->
+                    proxyifyRequest proxyUrl origUrl
+
+                Nothing ->
+                    ( origUrl, [] )
 
         tokenToRequestCmd : OSTypes.AuthTokenString -> Cmd TT.Msg
         tokenToRequestCmd token =
             Http.request
                 { method = httpRequestMethodStr method
                 , headers = [ Http.header "X-Auth-Token" token ] ++ headers
-                , url = proxyUrl
+                , url = url
                 , body = requestBody
                 , expect = expect
                 , timeout = Nothing
