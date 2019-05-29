@@ -5,10 +5,24 @@ import Types.Types exposing (..)
 import View.Helpers as VH
 
 
-helpAbout : Element.Element Msg
-helpAbout =
+helpAbout : Model -> Element.Element Msg
+helpAbout model =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30 ])
-        [ Element.el VH.heading2 <| Element.text "Getting Help"
+        [ Element.el VH.heading2 <| Element.text "About Exosphere"
+        , Element.paragraph []
+            [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
+            , VH.browserLink "https://gitlab.com/exosphere/exosphere/blob/master/README.md" "README on GitLab"
+            , Element.text "."
+            ]
+        , Element.el VH.heading2 <| Element.text "App Config Info"
+        , Element.paragraph [] <|
+            case model.proxyUrl of
+                Nothing ->
+                    [ Element.text "You are not using a proxy server." ]
+
+                Just proxyUrl ->
+                    [ Element.text ("You are using a proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack is passing through this server.") ]
+        , Element.el VH.heading2 <| Element.text "Getting Help"
         , Element.paragraph []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
             , VH.browserLink
@@ -19,11 +33,5 @@ helpAbout =
                 "https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5"
                 "Exosphere Chat"
             , Element.text ". Sign in there with your email or GitHub account."
-            ]
-        , Element.el VH.heading2 <| Element.text "About Exosphere"
-        , Element.paragraph []
-            [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-            , VH.browserLink "https://gitlab.com/exosphere/exosphere/blob/master/README.md" "README on GitLab"
-            , Element.text "."
             ]
         ]

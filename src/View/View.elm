@@ -54,7 +54,7 @@ elementView maybeWindowSize model =
                                 View.Messages.messageLog model
 
                             HelpAbout ->
-                                View.HelpAbout.helpAbout
+                                View.HelpAbout.helpAbout model
 
                     ProjectView projectName viewConstructor ->
                         case Helpers.projectLookup model projectName of
