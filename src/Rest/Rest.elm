@@ -1375,10 +1375,27 @@ decodeAuthToken response =
             case Decode.decodeString decodeAuthTokenDetails body of
                 Ok tokenDetailsWithoutTokenString ->
                     let
-                        authTokenString =
-                            Maybe.withDefault "" (Dict.get "X-Subject-Token" metadata.headers)
+                        authTokenFromHeader : Result String String
+                        authTokenFromHeader =
+                            case Dict.get "X-Subject-Token" metadata.headers of
+                                Just token ->
+                                    Ok token
+
+                                Nothing ->
+                                    -- https://github.com/elm/http/issues/31
+                                    case Dict.get "x-subject-token" metadata.headers of
+                                        Just token2 ->
+                                            Ok token2
+
+                                        Nothing ->
+                                            Err "Could not find an auth token in response headers"
                     in
-                    Ok (tokenDetailsWithoutTokenString authTokenString)
+                    case authTokenFromHeader of
+                        Ok authTokenString ->
+                            Ok (tokenDetailsWithoutTokenString authTokenString)
+
+                        Err errStr ->
+                            Err errStr
 
                 Err error ->
                     Err (Debug.toString error)
