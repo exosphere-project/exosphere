@@ -12,11 +12,12 @@ import Json.Encode
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (openstackCredentialedRequest)
+import Types.HelperTypes as HelperTypes
 import Types.Types exposing (..)
 
 
-requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd Msg
-requestCreateVolume project createVolumeRequest =
+requestCreateVolume : Project -> Maybe HelperTypes.Url -> OSTypes.CreateVolumeRequest -> Cmd Msg
+requestCreateVolume project maybeProxyUrl createVolumeRequest =
     let
         body =
             Json.Encode.object
@@ -30,26 +31,29 @@ requestCreateVolume project createVolumeRequest =
     in
     openstackCredentialedRequest
         project
+        maybeProxyUrl
         Post
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
         (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateVolume result)) (Decode.field "volume" <| volumeDecoder))
 
 
-requestVolumes : Project -> Cmd Msg
-requestVolumes project =
+requestVolumes : Project -> Maybe HelperTypes.Url -> Cmd Msg
+requestVolumes project maybeProxyUrl =
     openstackCredentialedRequest
         project
+        maybeProxyUrl
         Get
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
         (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveVolumes result)) (Decode.field "volumes" (Decode.list volumeDecoder)))
 
 
-requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd Msg
-requestDeleteVolume project volumeUuid =
+requestDeleteVolume : Project -> Maybe HelperTypes.Url -> OSTypes.VolumeUuid -> Cmd Msg
+requestDeleteVolume project maybeProxyUrl volumeUuid =
     openstackCredentialedRequest
         project
+        maybeProxyUrl
         Delete
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody

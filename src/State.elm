@@ -62,6 +62,7 @@ chpasswd:
             , imageFilterTag = Maybe.Just "distro-base"
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
+            , proxyUrl = flags.proxyUrl
             }
 
         storedState : LocalStorageTypes.StoredState
@@ -149,10 +150,10 @@ updateUnderlying msg model =
                                     update (ProjectMsg projectName (RequestServer serverUuid)) model
 
                                 ListProjectVolumes ->
-                                    ( model, OSVolumes.requestVolumes project )
+                                    ( model, OSVolumes.requestVolumes project model.proxyUrl )
 
                                 VolumeDetail _ ->
-                                    ( model, OSVolumes.requestVolumes project )
+                                    ( model, OSVolumes.requestVolumes project model.proxyUrl )
 
                                 _ ->
                                     ( model, Cmd.none )
@@ -175,7 +176,7 @@ updateUnderlying msg model =
                 newCreds =
                     { oldCreds | authUrl = Helpers.authUrlWithPortAndVersion oldCreds.authUrl }
             in
-            ( model, Rest.requestAuthToken newCreds )
+            ( model, Rest.requestAuthToken model.proxyUrl newCreds )
 
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
@@ -325,32 +326,33 @@ processProjectSpecificMsg model project msg =
             in
             case projectViewConstructor of
                 ListImages ->
-                    ( newModel, Rest.requestImages project )
+                    ( newModel, Rest.requestImages project model.proxyUrl )
 
                 ListProjectServers ->
                     ( newModel
-                    , Cmd.batch
-                        [ Rest.requestServers project
-                        , Rest.requestFloatingIps project
-                        ]
+                    , [ Rest.requestServers
+                      , Rest.requestFloatingIps
+                      ]
+                        |> List.map (\x -> x project model.proxyUrl)
+                        |> Cmd.batch
                     )
 
                 ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServer project serverUuid
-                        , Rest.requestFlavors project
-                        , Rest.requestImages project
-                        , OSVolumes.requestVolumes project
+                        [ Rest.requestServer project model.proxyUrl serverUuid
+                        , Rest.requestFlavors project model.proxyUrl
+                        , Rest.requestImages project model.proxyUrl
+                        , OSVolumes.requestVolumes project model.proxyUrl
                         ]
                     )
 
                 CreateServer createServerRequest ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestFlavors project
-                        , Rest.requestKeypairs project
-                        , Rest.requestNetworks project
+                        [ Rest.requestFlavors project model.proxyUrl
+                        , Rest.requestKeypairs project model.proxyUrl
+                        , Rest.requestNetworks project model.proxyUrl
                         , RandomHelpers.generatePassword
                             (\password ->
                                 RandomPassword project password
@@ -363,7 +365,7 @@ processProjectSpecificMsg model project msg =
                     )
 
                 ListProjectVolumes ->
-                    ( newModel, OSVolumes.requestVolumes project )
+                    ( newModel, OSVolumes.requestVolumes project model.proxyUrl )
 
                 VolumeDetail _ ->
                     ( newModel, Cmd.none )
@@ -371,8 +373,8 @@ processProjectSpecificMsg model project msg =
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServers project
-                        , OSVolumes.requestVolumes project
+                        [ Rest.requestServers project model.proxyUrl
+                        , OSVolumes.requestVolumes project model.proxyUrl
                         ]
                     )
 
@@ -411,7 +413,7 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    ( newModel, Rest.requestAuthToken newProject.creds )
+                    ( newModel, Rest.requestAuthToken model.proxyUrl newProject.creds )
 
         RemoveProject ->
             let
@@ -439,13 +441,13 @@ processProjectSpecificMsg model project msg =
             ( newModel, Cmd.none )
 
         RequestServers ->
-            ( model, Rest.requestServers project )
+            ( model, Rest.requestServers project model.proxyUrl )
 
         RequestServer serverUuid ->
-            ( model, Rest.requestServer project serverUuid )
+            ( model, Rest.requestServer project model.proxyUrl serverUuid )
 
         RequestCreateServer createServerRequest ->
-            ( model, Rest.requestCreateServer project createServerRequest )
+            ( model, Rest.requestCreateServer project model.proxyUrl createServerRequest )
 
         RequestDeleteServer server ->
             let
@@ -461,7 +463,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServer newProject newServer )
+            ( newModel, Rest.requestDeleteServer newProject model.proxyUrl newServer )
 
         RequestServerAction server func targetStatus ->
             let
@@ -477,7 +479,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, func newProject newServer )
+            ( newModel, func newProject model.proxyUrl newServer )
 
         RequestCreateVolume name size ->
             let
@@ -486,13 +488,13 @@ processProjectSpecificMsg model project msg =
                     , size = size
                     }
             in
-            ( model, OSVolumes.requestCreateVolume project createVolumeRequest )
+            ( model, OSVolumes.requestCreateVolume project model.proxyUrl createVolumeRequest )
 
         RequestDeleteVolume volumeUuid ->
-            ( model, OSVolumes.requestDeleteVolume project volumeUuid )
+            ( model, OSVolumes.requestDeleteVolume project model.proxyUrl volumeUuid )
 
         RequestAttachVolume serverUuid volumeUuid ->
-            ( model, OSSvrVols.requestAttachVolume project serverUuid volumeUuid )
+            ( model, OSSvrVols.requestAttachVolume project model.proxyUrl serverUuid volumeUuid )
 
         RequestDetachVolume volumeUuid ->
             let
@@ -506,7 +508,7 @@ processProjectSpecificMsg model project msg =
             in
             case maybeServerUuid of
                 Just serverUuid ->
-                    ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+                    ( model, OSSvrVols.requestDetachVolume project model.proxyUrl serverUuid volumeUuid )
 
                 Nothing ->
                     Helpers.processError model "Could not determine server UUID"
@@ -532,7 +534,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServers newProject serversToDelete )
+            ( newModel, Rest.requestDeleteServers newProject model.proxyUrl serversToDelete )
 
         SelectServer server newSelectionState ->
             let
@@ -627,7 +629,7 @@ processProjectSpecificMsg model project msg =
                                     ( serverDeletedModel, Cmd.none )
 
                                 Just uuid ->
-                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp project uuid )
+                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp project model.proxyUrl uuid )
             in
             ( deleteIpAddressModel, Cmd.batch [ newCmd, deleteIpAddressCmd ] )
 
@@ -697,7 +699,7 @@ processProjectSpecificMsg model project msg =
                     Helpers.processError model error
 
                 Ok _ ->
-                    ( model, OSVolumes.requestVolumes project )
+                    ( model, OSVolumes.requestVolumes project model.proxyUrl )
 
         ReceiveAttachVolume result ->
             case result of

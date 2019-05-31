@@ -47,13 +47,15 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Try Exosphere
 
-> "It was very easy to build"
-> - Connor Osborn
+The easiest way is at <https://dogfood.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).
 
+If you want to try all app features, you can run Exosphere locally using [Electron](https://electronjs.org/).
 
-Right now we recommend trying Exosphere as an [Electron](https://electronjs.org/) app, rather than in a web browser.
 
 ### Build and Run Exosphere as Electron App
+
+> "It was very easy to build"
+> - Connor Osborn
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
@@ -90,15 +92,10 @@ Based on the instructions found here:
 
 <https://medium.com/@ezekeal/building-an-electron-app-with-elm-part-1-boilerplate-3416a730731f>
 
-### Try Exosphere in a browser (not currently recommended)
 
-[Try Exosphere on GitLab Pages](https://exosphere.gitlab.io/exosphere/index.html)
+### Build Exosphere and Run in a Browser
 
-#### Why is a Browser Not Recommended?
-
-Connecting to cloud providers from Exosphere running in a browser is currently problematic because of the same-origin policy (making cross-origin credentialed requests and viewing headers of the responses). A way around this is to 1. install a browser extension like [CORS Everywhere](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/), and/or(?) 2. Connect to an OpenStack cloud whose Keystone is configured to allow cross-origin requests. This works for testing/evaluation purposes but is not recommended for security reasons.
-
-#### Build and Run Exosphere (in a browser)
+If you are building Exosphere for consumption in a web browser, please also see docs/cors-proxy.md.
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
@@ -117,10 +114,10 @@ git submodule update --init --recursive
 
 To compile the app:
 ```
-elm make src/Exosphere.elm
+elm make src/Exosphere.elm --output elm.js
 ```
 
-Then browse to the compiled index.html.
+Then browse to index.html.
 
 
 ### Note about self-signed certificates for terminal and server dashboard
@@ -206,26 +203,3 @@ You can also build a "static" style guide by running `npm run build-style-guide`
 - Create a module for your widget (or update an existing module) in `src/Style/Widgets`
 - Add example usages of your widget in `src/Style/StyleGuide.elm`
 - Preview your widget examples in the style guide (see above) to ensure they look as intended
-
-## OpenStack and CORS
-
-In order to use Exosphere in a browser as opposed to Electron (again, this is still not recommended), OpenStack services must be configured to allow cross-origin requests. This is because Exosphere is served from a different domain than the OpenStack APIs.
-
-(todo describe security implications)
-
-The OpenStack admin guide has a great page on how to enable CORS across OpenStack services. This guide was removed but is fortunately [still accessible via Wayback Machine](https://web.archive.org/web/20160305193201/http://docs.openstack.org/admin-guide-cloud/cross_project_cors.html).
-
-At minimum, need the following in glance.conf, keystone.conf, and neutron.conf:
-
-```
-[cors]
-allowed_origin: *
-```
-
-The following in nova.conf:
-
-```
-[cors]
-allowed_origin = *
-allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Custom-Header,OpenStack-API-Version,X-Auth-Token
-```

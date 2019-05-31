@@ -48,6 +48,7 @@ type alias Flags =
     { width : Int
     , height : Int
     , storedState : Maybe Decode.Value
+    , proxyUrl : Maybe HelperTypes.Url
     }
 
 
@@ -64,6 +65,7 @@ type alias Model =
     , imageFilterTag : Maybe String
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
+    , proxyUrl : Maybe HelperTypes.Url
     }
 
 
@@ -131,7 +133,7 @@ type ProjectSpecificMsgConstructor
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
-    | RequestServerAction Server (Project -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
+    | RequestServerAction Server (Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
