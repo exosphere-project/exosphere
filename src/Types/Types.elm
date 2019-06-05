@@ -49,6 +49,7 @@ type alias Flags =
     , height : Int
     , storedState : Maybe Decode.Value
     , proxyUrl : Maybe HelperTypes.Url
+    , isElectron : Bool
     }
 
 
@@ -66,6 +67,7 @@ type alias Model =
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
     , proxyUrl : Maybe HelperTypes.Url
+    , isElectron : Bool
     }
 
 

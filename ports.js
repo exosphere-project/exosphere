@@ -6,6 +6,10 @@ let container = document.getElementById('container')
 var storedState = localStorage.getItem('exosphere-save');
 var startingState = storedState ? JSON.parse(storedState) : null;
 
+// Determine if running in Electron, per https://github.com/electron/electron/issues/2288#issuecomment-337858978
+var userAgent = navigator.userAgent.toLowerCase();
+var isElectron = (userAgent.indexOf(' electron/') > -1);
+
 // start the elm app in the container
 // and keep a reference for communicating with the app
 var app = Elm.Main.init({
@@ -15,7 +19,8 @@ var app = Elm.Main.init({
         width: window.innerWidth,
         height: window.innerHeight,
         storedState: startingState,
-        proxyUrl: null
+        proxyUrl: null,
+        isElectron: isElectron
     }
 });
 

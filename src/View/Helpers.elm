@@ -110,17 +110,33 @@ renderMessage message =
     Element.paragraph [] [ Element.text message ]
 
 
-browserLink : Types.HelperTypes.Url -> String -> Element.Element Msg
-browserLink url str =
-    Element.el
-        [ Element.Events.onClick <|
-            OpenInBrowser
-                url
-        , Font.color <| Color.toElementColor <| Framework.Color.blue
-        , Font.underline
-        ]
-    <|
-        Element.text str
+browserLink : Bool -> Types.HelperTypes.Url -> String -> Element.Element Msg
+browserLink isElectron url str =
+    let
+        linkAttribs =
+            [ Font.color <| Color.toElementColor <| Framework.Color.blue
+            , Font.underline
+            , Element.pointer
+            ]
+    in
+    case isElectron of
+        True ->
+            Element.el
+                (linkAttribs
+                    ++ [ Element.Events.onClick <|
+                            OpenInBrowser
+                                url
+                       ]
+                )
+            <|
+                Element.text str
+
+        False ->
+            Element.newTabLink
+                linkAttribs
+                { url = url
+                , label = Element.text str
+                }
 
 
 possiblyUntitledResource : String -> String -> String

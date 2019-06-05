@@ -63,6 +63,7 @@ chpasswd:
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , proxyUrl = flags.proxyUrl
+            , isElectron = flags.isElectron
             }
 
         storedState : LocalStorageTypes.StoredState
