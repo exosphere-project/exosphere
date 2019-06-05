@@ -21,6 +21,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
 import Types.Types exposing (..)
 import View.Helpers as VH exposing (edges)
+import View.Types
 
 
 servers : Project -> Element.Element Msg
@@ -82,8 +83,8 @@ servers project =
                         ]
 
 
-serverDetail : Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-serverDetail project serverUuid viewStateParams =
+serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+serverDetail appIsElectron project serverUuid viewStateParams =
     Helpers.serverLookup project serverUuid
         |> Maybe.withDefault (Element.text "No server found")
         << Maybe.map
@@ -133,7 +134,7 @@ serverDetail project serverUuid viewStateParams =
                             )
                         , VH.compactKVRow "Volumes Attached" (serverVolumes project server)
                         , Element.el VH.heading3 (Element.text "Interact with server")
-                        , consoleLink project server serverUuid viewStateParams
+                        , consoleLink appIsElectron project server serverUuid viewStateParams
                         , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
@@ -217,8 +218,8 @@ serverStatus projectId server viewStateParams =
         )
 
 
-consoleLink : Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
-consoleLink project server serverUuid viewStateParams =
+consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+consoleLink appIsElectron project server serverUuid viewStateParams =
     let
         details =
             server.osProps.details
@@ -286,12 +287,10 @@ consoleLink project server serverUuid viewStateParams =
                     in
                     Element.column
                         VH.exoColumnAttributes
-                        [ Button.button
-                            []
-                            (Just <|
-                                OpenNewWindow consoleUrl
-                            )
-                            "Console"
+                        [ VH.browserLink
+                            appIsElectron
+                            consoleUrl
+                            (View.Types.BrowserLinkFancyLabel (Button.button [] Nothing "Console"))
                         , Element.paragraph []
                             [ Element.text <|
                                 "Launching the console is like connecting a screen, mouse, and keyboard to your server. "
