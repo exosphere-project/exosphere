@@ -47,10 +47,7 @@ createServer project createServerRequest =
             )
             [ Element.el VH.heading2 (Element.text "Create Server")
             , Input.text
-                ([ Element.spacing 12
-                 ]
-                    ++ serverNameEmptyHint
-                )
+                (Element.spacing 12 :: serverNameEmptyHint)
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
@@ -328,9 +325,7 @@ networkPicker project createServerRequest =
     in
     Element.column
         VH.exoColumnAttributes
-        ([ Element.el [ Font.bold ] (Element.text "Network") ]
-            ++ contents
-        )
+        (Element.el [ Font.bold ] (Element.text "Network") :: contents)
 
 
 keypairPicker : Project -> CreateServerRequest -> Element.Element Msg
