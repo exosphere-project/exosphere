@@ -8,7 +8,6 @@ import Element.Input as Input
 import Element.Region as Region
 import Framework.Color
 import Helpers.Helpers as Helpers
-import Maybe
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Types exposing (..)

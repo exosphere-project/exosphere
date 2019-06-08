@@ -4,7 +4,6 @@ import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
-import Maybe
 import Toasty
 import Types.Types exposing (..)
 import View.HelpAbout

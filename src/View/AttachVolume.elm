@@ -12,7 +12,6 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Types.Types exposing (..)
 import View.Helpers as VH
-import View.Volumes
 
 
 attachVolume : Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
