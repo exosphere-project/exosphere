@@ -632,28 +632,27 @@ newServerNetworkOptions project =
             NoNetsAutoAllocate
 
         firstNet :: otherNets ->
-            case otherNets of
+            if List.isEmpty otherNets then
                 -- If there is only one network then we pick that one
-                [] ->
-                    OneNet firstNet
+                OneNet firstNet
 
+            else
                 -- If there are multiple networks then we let user choose and try to guess a good default
-                _ ->
-                    let
-                        ( guessNet, goodGuess ) =
-                            case maybeAutoAllocatedNet of
-                                Just n ->
-                                    ( n, True )
+                let
+                    ( guessNet, goodGuess ) =
+                        case maybeAutoAllocatedNet of
+                            Just n ->
+                                ( n, True )
 
-                                Nothing ->
-                                    case maybeProjectNameNet of
-                                        Just n ->
-                                            ( n, True )
+                            Nothing ->
+                                case maybeProjectNameNet of
+                                    Just n ->
+                                        ( n, True )
 
-                                        Nothing ->
-                                            ( firstNet, False )
-                    in
-                    MultipleNetsWithGuess projectNets guessNet goodGuess
+                                    Nothing ->
+                                        ( firstNet, False )
+                in
+                MultipleNetsWithGuess projectNets guessNet goodGuess
 
 
 

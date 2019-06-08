@@ -29,7 +29,7 @@ volumes project =
             RemoteData.Loading ->
                 Element.text "Loading volumes..."
 
-            RemoteData.Failure error ->
+            RemoteData.Failure _ ->
                 Element.text "Error loading volumes :("
 
             RemoteData.Success vols ->

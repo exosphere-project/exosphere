@@ -323,15 +323,14 @@ requestCreateServer project maybeProxyUrl createServerRequest =
                 maybeKeypairJson
                 [ ( "name", Encode.string instanceName )
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
-                , case innerCreateServerRequest.networkUuid of
-                    "auto" ->
-                        ( "networks", Encode.string "auto" )
+                , if innerCreateServerRequest.networkUuid == "auto" then
+                    ( "networks", Encode.string "auto" )
 
-                    netUuid ->
-                        ( "networks"
-                        , Encode.list Encode.object
-                            [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
-                        )
+                  else
+                    ( "networks"
+                    , Encode.list Encode.object
+                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+                    )
                 , ( "user_data", Encode.string (Base64.encode renderedUserData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
                 , ( "adminPass", Encode.string createServerRequest.exouserPassword )
@@ -1340,10 +1339,10 @@ receiveCockpitLoginStatus model project serverUuid result =
                 cockpitStatus =
                     case result of
                         -- TODO more error chcking, e.g. handle case of invalid credentials rather than telling user "still not ready yet"
-                        Err error ->
+                        Err _ ->
                             CheckedNotReady
 
-                        Ok str ->
+                        Ok _ ->
                             Ready
 
                 oldExoProps =

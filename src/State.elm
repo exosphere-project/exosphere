@@ -371,7 +371,7 @@ processProjectSpecificMsg model project msg =
                 VolumeDetail _ ->
                     ( newModel, Cmd.none )
 
-                AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
+                AttachVolumeModal _ _ ->
                     ( newModel
                     , Cmd.batch
                         [ Rest.requestServers project model.proxyUrl
@@ -661,7 +661,7 @@ processProjectSpecificMsg model project msg =
         ReceiveCockpitLoginStatus serverUuid result ->
             Rest.receiveCockpitLoginStatus model project serverUuid result
 
-        ReceiveServerAction serverUuid result ->
+        ReceiveServerAction _ result ->
             case result of
                 Err error ->
                     Helpers.processError model error

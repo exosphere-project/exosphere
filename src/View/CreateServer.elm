@@ -289,7 +289,7 @@ networkPicker project createServerRequest =
                         [ Element.text ("There is only one network, with name \"" ++ net.name ++ "\", so Exosphere will use that one.") ]
                     ]
 
-                MultipleNetsWithGuess networks guessNet goodGuess ->
+                MultipleNetsWithGuess _ guessNet goodGuess ->
                     let
                         guessText =
                             if goodGuess then
@@ -335,17 +335,16 @@ keypairPicker project createServerRequest =
             Input.option keypair.name (Element.text keypair.name)
 
         contents =
-            case project.keypairs of
-                [] ->
-                    Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
+            if List.isEmpty project.keypairs then
+                Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
 
-                keypairs ->
-                    Input.radio []
-                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
-                        , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
-                        , options = List.map keypairAsOption project.keypairs
-                        , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
-                        }
+            else
+                Input.radio []
+                    { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
+                    , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
+                    , options = List.map keypairAsOption project.keypairs
+                    , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
+                    }
     in
     Element.column
         VH.exoColumnAttributes
