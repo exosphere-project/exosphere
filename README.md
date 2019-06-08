@@ -1,5 +1,3 @@
-**New: Exosphere meeting, Mondays at 1600 UTC** on [https://meet.jit.si/exosphere](https://meet.jit.si/exosphere). Chat with the developers, get onboarded, help us set priorities and shape the future!
-
 # Exosphere
 
 User-friendly, extensible client for cloud computing. Currently targeting OpenStack.
@@ -7,14 +5,18 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 ![development stage: alpha](https://img.shields.io/badge/stage-alpha-orange.svg)
 [![pipeline status](https://gitlab.com/exosphere/exosphere/badges/master/pipeline.svg)](https://gitlab.com/exosphere/exosphere/commits/master)
 
+**New: [Try Exosphere in your web browser](https://try.exosphere.app/exosphere/)**
+
+**New: Exosphere meeting, Mondays at 1600 UTC** on [https://meet.jit.si/exosphere](https://meet.jit.si/exosphere). Chat with the developers, get onboarded, help us set priorities and shape the future!
+
+## Features and Goals
+
 - **Do you have access to an OpenStack cloud?** Want a really pleasant way to use it?
 - **Are you a cloud operator?** Want an easy way to offer same to your users?
 
 ...then Exosphere may be for you!
 
-## Features and Goals
-
-(See also values-goals.md for what drives the Exosphere project!) 
+(See also values-goals.md for what drives the Exosphere project.) 
 
 
 **Right now:**
@@ -47,7 +49,7 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Try Exosphere
 
-The easiest way is at <https://dogfood.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).
+The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).
 
 If you want to try all app features, you can run Exosphere locally using [Electron](https://electronjs.org/).
 
