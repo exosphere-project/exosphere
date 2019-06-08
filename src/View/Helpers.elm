@@ -22,6 +22,7 @@ import Element.Region as Region
 import Framework.Color
 import Types.HelperTypes
 import Types.Types exposing (..)
+import View.Types
 
 
 
@@ -110,17 +111,41 @@ renderMessage message =
     Element.paragraph [] [ Element.text message ]
 
 
-browserLink : Types.HelperTypes.Url -> String -> Element.Element Msg
-browserLink url str =
-    Element.el
-        [ Element.Events.onClick <|
-            OpenInBrowser
-                url
-        , Font.color <| Color.toElementColor <| Framework.Color.blue
-        , Font.underline
-        ]
-    <|
-        Element.text str
+browserLink : Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink isElectron url label =
+    let
+        linkAttribs =
+            [ Font.color <| Color.toElementColor <| Framework.Color.blue
+            , Font.underline
+            , Element.pointer
+            ]
+
+        renderedLabel =
+            case label of
+                View.Types.BrowserLinkTextLabel str ->
+                    { attribs = linkAttribs
+                    , contents = Element.text str
+                    }
+
+                View.Types.BrowserLinkFancyLabel el ->
+                    { attribs = []
+                    , contents = el
+                    }
+    in
+    case isElectron of
+        True ->
+            Element.el
+                (renderedLabel.attribs
+                    ++ [ Element.Events.onClick (OpenInBrowser url) ]
+                )
+                renderedLabel.contents
+
+        False ->
+            Element.newTabLink
+                renderedLabel.attribs
+                { url = url
+                , label = renderedLabel.contents
+                }
 
 
 possiblyUntitledResource : String -> String -> String

@@ -27,7 +27,7 @@ project model p viewConstructor =
                     View.Servers.servers p
 
                 ServerDetail serverUuid viewStateParams ->
-                    View.Servers.serverDetail p serverUuid viewStateParams
+                    View.Servers.serverDetail model.isElectron p serverUuid viewStateParams
 
                 CreateServer createServerRequest ->
                     View.CreateServer.createServer p createServerRequest
