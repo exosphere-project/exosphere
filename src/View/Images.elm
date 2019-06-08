@@ -76,14 +76,6 @@ renderImage globalDefaults project image =
 
                 Nothing ->
                     "N/A"
-
-        checksum =
-            case image.checksum of
-                Just c ->
-                    c
-
-                Nothing ->
-                    "N/A"
     in
     ExoCard.exoCard
         image.name

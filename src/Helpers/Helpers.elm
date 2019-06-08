@@ -676,5 +676,5 @@ volumeIsAttachedToServer volumeUuid server =
 
 
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
-getServersWithVolAttached project volume =
+getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid

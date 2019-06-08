@@ -91,7 +91,7 @@ loginCredsEntry model =
 
 
 loginOpenRcEntry : Model -> Element.Element Msg
-loginOpenRcEntry model =
+loginOpenRcEntry _ =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15

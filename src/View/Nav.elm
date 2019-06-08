@@ -106,7 +106,7 @@ projectTitleForNavMenu model project =
 
 
 navBar : Model -> Element.Element Msg
-navBar model =
+navBar _ =
     let
         navBarContainerAttributes =
             [ Background.color (Element.rgb255 29 29 29)

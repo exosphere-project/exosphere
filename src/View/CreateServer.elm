@@ -360,7 +360,7 @@ keypairPicker project createServerRequest =
 
 
 userDataInput : Project -> CreateServerRequest -> Element.Element Msg
-userDataInput project createServerRequest =
+userDataInput _ createServerRequest =
     Element.column
         VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
