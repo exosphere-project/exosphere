@@ -14,7 +14,6 @@ import RemoteData
 import Rest.Rest as Rest
 import Time
 import Toasty
-import Toasty.Defaults
 import Types.Types exposing (..)
 
 
