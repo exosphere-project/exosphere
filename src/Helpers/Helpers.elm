@@ -156,12 +156,11 @@ authUrlWithPortAndVersion authUrlStr =
     let
         authUrlStrWithProto =
             -- If user doesn't provide a protocol then we add one so that the URL will actually parse
-            case String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr of
-                True ->
-                    authUrlStr
+            if String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr then
+                authUrlStr
 
-                False ->
-                    "https://" ++ authUrlStr
+            else
+                "https://" ++ authUrlStr
 
         maybeAuthUrl =
             Url.fromString authUrlStrWithProto

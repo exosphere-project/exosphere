@@ -397,24 +397,23 @@ processProjectSpecificMsg model project msg =
                     -- Token expiring within 10 minutes
                     tokenExpireTimeMillis < currentTimeMillis + 600000
             in
-            case tokenExpired of
-                False ->
-                    -- Token still valid, fire the request with current token
-                    ( model, requestNeedingToken project.auth.tokenValue )
+            if not tokenExpired then
+                -- Token still valid, fire the request with current token
+                ( model, requestNeedingToken project.auth.tokenValue )
 
-                True ->
-                    -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
-                    let
-                        newPQRs =
-                            requestNeedingToken :: project.pendingCredentialedRequests
+            else
+                -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
+                let
+                    newPQRs =
+                        requestNeedingToken :: project.pendingCredentialedRequests
 
-                        newProject =
-                            { project | pendingCredentialedRequests = newPQRs }
+                    newProject =
+                        { project | pendingCredentialedRequests = newPQRs }
 
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-                    in
-                    ( newModel, Rest.requestAuthToken model.proxyUrl newProject.creds )
+                    newModel =
+                        Helpers.modelUpdateProject model newProject
+                in
+                ( newModel, Rest.requestAuthToken model.proxyUrl newProject.creds )
 
         RemoveProject ->
             let

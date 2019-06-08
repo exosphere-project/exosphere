@@ -113,12 +113,11 @@ flavorPicker project createServerRequest =
                 , onChange = \f -> InputCreateServerField createServerRequest (CreateServerSize f)
                 , options = [ Input.option flavor.uuid (Element.text " ") ]
                 , selected =
-                    case flavor.uuid == createServerRequest.flavorUuid of
-                        True ->
-                            Just flavor.uuid
+                    if flavor.uuid == createServerRequest.flavorUuid then
+                        Just flavor.uuid
 
-                        False ->
-                            Nothing
+                    else
+                        Nothing
                 }
 
         paddingRight =
@@ -265,12 +264,11 @@ volBackedPrompt project createServerRequest =
                 ]
             , selected = Just createServerRequest.volBacked
             }
-        , case createServerRequest.volBacked of
-            False ->
-                Element.none
+        , if not createServerRequest.volBacked then
+            Element.none
 
-            True ->
-                volSizeSlider
+          else
+            volSizeSlider
         ]
 
 
@@ -297,18 +295,17 @@ networkPicker project createServerRequest =
                 MultipleNetsWithGuess networks guessNet goodGuess ->
                     let
                         guessText =
-                            case goodGuess of
-                                True ->
-                                    Element.paragraph
-                                        []
-                                        [ Element.text
-                                            ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
-                                        ]
+                            if goodGuess then
+                                Element.paragraph
+                                    []
+                                    [ Element.text
+                                        ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
+                                    ]
 
-                                False ->
-                                    Element.paragraph
-                                        []
-                                        [ Element.text "The selected network is a guess and might not be the best choice." ]
+                            else
+                                Element.paragraph
+                                    []
+                                    [ Element.text "The selected network is a guess and might not be the best choice." ]
 
                         networkAsInputOption network =
                             Input.option network.uuid (Element.text network.name)
@@ -377,24 +374,23 @@ userDataInput project createServerRequest =
                 ]
             , selected = Just createServerRequest.showAdvancedOptions
             }
-        , case createServerRequest.showAdvancedOptions of
-            False ->
-                Element.none
+        , if not createServerRequest.showAdvancedOptions then
+            Element.none
 
-            True ->
-                Input.multiline
-                    [ Element.width (Element.px 600)
-                    , Element.height (Element.px 500)
-                    ]
-                    { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
-                    , text = createServerRequest.userData
-                    , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
-                    , label =
-                        Input.labelAbove
-                            [ Element.paddingXY 20 0
-                            , Font.bold
-                            ]
-                            (Element.text "User Data (Boot Script)")
-                    , spellcheck = False
-                    }
+          else
+            Input.multiline
+                [ Element.width (Element.px 600)
+                , Element.height (Element.px 500)
+                ]
+                { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+                , text = createServerRequest.userData
+                , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+                , label =
+                    Input.labelAbove
+                        [ Element.paddingXY 20 0
+                        , Font.bold
+                        ]
+                        (Element.text "User Data (Boot Script)")
+                , spellcheck = False
+                }
         ]

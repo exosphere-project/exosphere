@@ -81,12 +81,11 @@ requestAuthToken : Maybe HelperTypes.Url -> Creds -> Cmd Msg
 requestAuthToken maybeProxyUrl creds =
     let
         idOrName str =
-            case Helpers.stringIsUuidOrDefault str of
-                True ->
-                    "id"
+            if Helpers.stringIsUuidOrDefault str then
+                "id"
 
-                False ->
-                    "name"
+            else
+                "name"
 
         requestBody =
             Encode.object
@@ -343,26 +342,25 @@ requestCreateServer project maybeProxyUrl createServerRequest =
             Encode.object [ ( "server", Encode.object props ) ]
 
         buildRequestBody instanceName =
-            case createServerRequest.volBacked of
-                False ->
-                    ( "imageRef", Encode.string createServerRequest.imageUuid )
-                        :: baseServerProps createServerRequest instanceName
-                        |> buildRequestOuterJson
+            if not createServerRequest.volBacked then
+                ( "imageRef", Encode.string createServerRequest.imageUuid )
+                    :: baseServerProps createServerRequest instanceName
+                    |> buildRequestOuterJson
 
-                True ->
-                    ( "block_device_mapping_v2"
-                    , Encode.list Encode.object
-                        [ [ ( "boot_index", Encode.string "0" )
-                          , ( "uuid", Encode.string createServerRequest.imageUuid )
-                          , ( "source_type", Encode.string "image" )
-                          , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
-                          , ( "destination_type", Encode.string "volume" )
-                          , ( "delete_on_termination", Encode.bool True )
-                          ]
-                        ]
-                    )
-                        :: baseServerProps createServerRequest instanceName
-                        |> buildRequestOuterJson
+            else
+                ( "block_device_mapping_v2"
+                , Encode.list Encode.object
+                    [ [ ( "boot_index", Encode.string "0" )
+                      , ( "uuid", Encode.string createServerRequest.imageUuid )
+                      , ( "source_type", Encode.string "image" )
+                      , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
+                      , ( "destination_type", Encode.string "volume" )
+                      , ( "delete_on_termination", Encode.bool True )
+                      ]
+                    ]
+                )
+                    :: baseServerProps createServerRequest instanceName
+                    |> buildRequestOuterJson
 
         requestBodies =
             instanceNames
@@ -899,12 +897,11 @@ receiveServer model project serverUuid result =
                                             Nothing
 
                                         Just statuses ->
-                                            case List.member serverDetails.openstackStatus statuses of
-                                                True ->
-                                                    Nothing
+                                            if List.member serverDetails.openstackStatus statuses then
+                                                Nothing
 
-                                                False ->
-                                                    Just statuses
+                                            else
+                                                Just statuses
                             in
                             Server
                                 { oldOSProps | details = serverDetails }

@@ -15,12 +15,11 @@ import View.Helpers as VH
 
 imagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
 imagesIfLoaded globalDefaults project maybeFilterTag =
-    case List.isEmpty project.images of
-        True ->
-            Element.text "Images loading"
+    if List.isEmpty project.images then
+        Element.text "Images loading"
 
-        False ->
-            images globalDefaults project maybeFilterTag
+    else
+        images globalDefaults project maybeFilterTag
 
 
 images : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg

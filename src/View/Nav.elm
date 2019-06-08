@@ -99,12 +99,11 @@ projectTitleForNavMenu model project =
             in
             projectCountOnSameProvider > 1
     in
-    case multipleProjects of
-        True ->
-            providerTitle ++ String.fromChar '\n' ++ "(" ++ project.creds.projectName ++ ")"
+    if multipleProjects then
+        providerTitle ++ String.fromChar '\n' ++ "(" ++ project.creds.projectName ++ ")"
 
-        False ->
-            providerTitle
+    else
+        providerTitle
 
 
 navBar : Model -> Element.Element Msg
