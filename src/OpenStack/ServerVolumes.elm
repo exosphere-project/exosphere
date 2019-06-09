@@ -7,7 +7,13 @@ import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest)
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( HttpRequestMethod(..)
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        )
 
 
 requestAttachVolume : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg

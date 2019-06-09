@@ -6,7 +6,7 @@ import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Toasty.Defaults
-import Types.Types exposing (..)
+import Types.Types exposing (Msg)
 
 
 toast : Toasty.Defaults.Toast -> Html Msg

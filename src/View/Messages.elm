@@ -1,7 +1,7 @@
 module View.Messages exposing (messageLog)
 
 import Element
-import Types.Types exposing (..)
+import Types.Types exposing (Model, Msg(..))
 import View.Helpers as VH
 
 

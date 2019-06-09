@@ -6,10 +6,10 @@ import Element.Font as Font
 import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
 import Html
-import Style.Widgets.Card exposing (..)
-import Style.Widgets.Icon exposing (..)
-import Style.Widgets.IconButton exposing (..)
-import Style.Widgets.MenuItem exposing (..)
+import Style.Widgets.Card exposing (exoCard)
+import Style.Widgets.Icon exposing (bell, question, remove, roundRect)
+import Style.Widgets.IconButton exposing (iconButton)
+import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 
 
 

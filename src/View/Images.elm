@@ -9,7 +9,15 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Widgets.Card as ExoCard
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CreateServerRequest
+        , GlobalDefaults
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        )
 import View.Helpers as VH
 
 

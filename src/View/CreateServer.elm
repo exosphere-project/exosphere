@@ -9,7 +9,15 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Maybe
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CreateServerField(..)
+        , CreateServerRequest
+        , Msg(..)
+        , NewServerNetworkOptions(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        )
 import View.Helpers as VH exposing (edges)
 
 

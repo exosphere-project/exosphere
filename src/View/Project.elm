@@ -4,9 +4,16 @@ import Element
 import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
-import Maybe
-import OpenStack.Types as OSTypes
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( Model
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , ViewState(..)
+        )
 import View.AttachVolume
 import View.CreateServer
 import View.Helpers as VH

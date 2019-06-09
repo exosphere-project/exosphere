@@ -21,7 +21,7 @@ import Element.Font as Font
 import Element.Region as Region
 import Framework.Color
 import Types.HelperTypes
-import Types.Types exposing (..)
+import Types.Types exposing (Msg(..))
 import View.Types
 
 

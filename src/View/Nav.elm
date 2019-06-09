@@ -10,7 +10,16 @@ import Framework.Color
 import Helpers.Helpers as Helpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( Model
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , ViewState(..)
+        )
 import View.Helpers as VH
 
 

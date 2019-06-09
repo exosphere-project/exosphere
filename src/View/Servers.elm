@@ -12,14 +12,28 @@ import Framework.Color
 import Framework.Modifier as Modifier
 import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
-import Html exposing (Html)
+import Html
 import Html.Attributes
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CockpitLoginStatus(..)
+        , IPInfoLevel(..)
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , PasswordVisibility(..)
+        , Project
+        , ProjectIdentifier
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , Server
+        , ViewState(..)
+        , ViewStateParams
+        )
 import View.Helpers as VH exposing (edges)
 import View.Types
 

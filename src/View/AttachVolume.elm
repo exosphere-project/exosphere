@@ -10,7 +10,15 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( IPInfoLevel(..)
+        , Msg(..)
+        , PasswordVisibility(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        )
 import View.Helpers as VH
 
 

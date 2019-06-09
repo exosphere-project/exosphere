@@ -13,7 +13,13 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
 import Style.Widgets.Card as ExoCard
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        )
 import View.Helpers as VH
 
 
