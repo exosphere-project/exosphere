@@ -132,20 +132,19 @@ browserLink isElectron url label =
                     , contents = el
                     }
     in
-    case isElectron of
-        True ->
-            Element.el
-                (renderedLabel.attribs
-                    ++ [ Element.Events.onClick (OpenInBrowser url) ]
-                )
-                renderedLabel.contents
+    if isElectron then
+        Element.el
+            (renderedLabel.attribs
+                ++ [ Element.Events.onClick (OpenInBrowser url) ]
+            )
+            renderedLabel.contents
 
-        False ->
-            Element.newTabLink
-                renderedLabel.attribs
-                { url = url
-                , label = renderedLabel.contents
-                }
+    else
+        Element.newTabLink
+            renderedLabel.attribs
+            { url = url
+            , label = renderedLabel.contents
+            }
 
 
 possiblyUntitledResource : String -> String -> String
