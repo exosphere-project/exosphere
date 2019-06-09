@@ -397,7 +397,7 @@ actions projectId server =
             <|
                 List.map renderActionButton allowedActions
 
-        Just targetStatus ->
+        Just _ ->
             Element.el
                 [ Element.padding 10 ]
                 Element.none
