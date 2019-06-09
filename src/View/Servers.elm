@@ -221,12 +221,11 @@ serverStatus projectId server viewStateParams =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-        ([ Element.row [ Font.bold ]
+        (Element.row [ Font.bold ]
             [ graphic
             , statusString
             ]
-         ]
-            ++ verboseStatus
+            :: verboseStatus
         )
 
 
