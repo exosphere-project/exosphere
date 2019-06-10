@@ -1,6 +1,7 @@
 {
     "checks" : {
-        "TriggerWords": false
+        "TriggerWords": false,
+        "SingleFieldRecord": false
     },
     "excludedPaths" : [
         "elm-style-framework"
