@@ -45,7 +45,7 @@ openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody ex
         tokenToRequestCmd token =
             Http.request
                 { method = httpRequestMethodStr method
-                , headers = [ Http.header "X-Auth-Token" token ] ++ headers
+                , headers = Http.header "X-Auth-Token" token :: headers
                 , url = url
                 , body = requestBody
                 , expect = expect

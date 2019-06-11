@@ -4,7 +4,7 @@ module LocalStorage.Types exposing
     )
 
 import OpenStack.Types as OSTypes
-import Types.Types exposing (..)
+import Types.Types exposing (Creds)
 
 
 type alias StoredProject =

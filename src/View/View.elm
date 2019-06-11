@@ -4,9 +4,15 @@ import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
 import Html exposing (Html)
-import Maybe
 import Toasty
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( Model
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , ViewState(..)
+        , WindowSize
+        )
 import View.HelpAbout
 import View.Login
 import View.Messages

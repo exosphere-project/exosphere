@@ -10,9 +10,16 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( IPInfoLevel(..)
+        , Msg(..)
+        , PasswordVisibility(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        )
 import View.Helpers as VH
-import View.Volumes
 
 
 attachVolume : Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
@@ -65,18 +72,17 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
                                     |> Maybe.map (Helpers.volumeIsAttachedToServer volumeUuid)
                                     |> Maybe.withDefault False
                         in
-                        case volAttachedToServer of
-                            True ->
-                                { attribs = [ Modifier.Disabled ]
-                                , onPress = Nothing
-                                , warnText = Just "This volume is already attached to this server."
-                                }
+                        if volAttachedToServer then
+                            { attribs = [ Modifier.Disabled ]
+                            , onPress = Nothing
+                            , warnText = Just "This volume is already attached to this server."
+                            }
 
-                            False ->
-                                { attribs = [ Modifier.Primary ]
-                                , onPress = Just <| ProjectMsg (Helpers.getProjectId project) (RequestAttachVolume serverUuid volumeUuid)
-                                , warnText = Nothing
-                                }
+                        else
+                            { attribs = [ Modifier.Primary ]
+                            , onPress = Just <| ProjectMsg (Helpers.getProjectId project) (RequestAttachVolume serverUuid volumeUuid)
+                            , warnText = Nothing
+                            }
 
                     _ ->
                         {- User hasn't selected a server and volume yet so we keep the button disabled but don't yell at him/her -}

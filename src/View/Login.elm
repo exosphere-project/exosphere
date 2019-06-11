@@ -5,7 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
-import Types.Types exposing (..)
+import Types.Types exposing (LoginField(..), Model, Msg(..))
 import View.Helpers as VH
 
 
@@ -91,7 +91,7 @@ loginCredsEntry model =
 
 
 loginOpenRcEntry : Model -> Element.Element Msg
-loginOpenRcEntry model =
+loginOpenRcEntry _ =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15

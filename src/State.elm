@@ -14,7 +14,25 @@ import RemoteData
 import Rest.Rest as Rest
 import Time
 import Toasty
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CockpitLoginStatus(..)
+        , CreateServerField(..)
+        , Creds
+        , Flags
+        , FloatingIpState(..)
+        , HttpRequestMethod(..)
+        , LoginField(..)
+        , Model
+        , Msg(..)
+        , NewServerNetworkOptions(..)
+        , NonProjectViewConstructor(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , Server
+        , ViewState(..)
+        )
 
 
 
@@ -371,7 +389,7 @@ processProjectSpecificMsg model project msg =
                 VolumeDetail _ ->
                     ( newModel, Cmd.none )
 
-                AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
+                AttachVolumeModal _ _ ->
                     ( newModel
                     , Cmd.batch
                         [ Rest.requestServers project model.proxyUrl
@@ -397,24 +415,23 @@ processProjectSpecificMsg model project msg =
                     -- Token expiring within 10 minutes
                     tokenExpireTimeMillis < currentTimeMillis + 600000
             in
-            case tokenExpired of
-                False ->
-                    -- Token still valid, fire the request with current token
-                    ( model, requestNeedingToken project.auth.tokenValue )
+            if not tokenExpired then
+                -- Token still valid, fire the request with current token
+                ( model, requestNeedingToken project.auth.tokenValue )
 
-                True ->
-                    -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
-                    let
-                        newPQRs =
-                            requestNeedingToken :: project.pendingCredentialedRequests
+            else
+                -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
+                let
+                    newPQRs =
+                        requestNeedingToken :: project.pendingCredentialedRequests
 
-                        newProject =
-                            { project | pendingCredentialedRequests = newPQRs }
+                    newProject =
+                        { project | pendingCredentialedRequests = newPQRs }
 
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-                    in
-                    ( newModel, Rest.requestAuthToken model.proxyUrl newProject.creds )
+                    newModel =
+                        Helpers.modelUpdateProject model newProject
+                in
+                ( newModel, Rest.requestAuthToken model.proxyUrl newProject.creds )
 
         RemoveProject ->
             let
@@ -662,7 +679,7 @@ processProjectSpecificMsg model project msg =
         ReceiveCockpitLoginStatus serverUuid result ->
             Rest.receiveCockpitLoginStatus model project serverUuid result
 
-        ReceiveServerAction serverUuid result ->
+        ReceiveServerAction _ result ->
             case result of
                 Err error ->
                     Helpers.processError model error

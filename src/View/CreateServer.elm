@@ -9,7 +9,15 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Maybe
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CreateServerField(..)
+        , CreateServerRequest
+        , Msg(..)
+        , NewServerNetworkOptions(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        )
 import View.Helpers as VH exposing (edges)
 
 
@@ -47,10 +55,7 @@ createServer project createServerRequest =
             )
             [ Element.el VH.heading2 (Element.text "Create Server")
             , Input.text
-                ([ Element.spacing 12
-                 ]
-                    ++ serverNameEmptyHint
-                )
+                (Element.spacing 12 :: serverNameEmptyHint)
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
@@ -113,12 +118,11 @@ flavorPicker project createServerRequest =
                 , onChange = \f -> InputCreateServerField createServerRequest (CreateServerSize f)
                 , options = [ Input.option flavor.uuid (Element.text " ") ]
                 , selected =
-                    case flavor.uuid == createServerRequest.flavorUuid of
-                        True ->
-                            Just flavor.uuid
+                    if flavor.uuid == createServerRequest.flavorUuid then
+                        Just flavor.uuid
 
-                        False ->
-                            Nothing
+                    else
+                        Nothing
                 }
 
         paddingRight =
@@ -265,12 +269,11 @@ volBackedPrompt project createServerRequest =
                 ]
             , selected = Just createServerRequest.volBacked
             }
-        , case createServerRequest.volBacked of
-            False ->
-                Element.none
+        , if not createServerRequest.volBacked then
+            Element.none
 
-            True ->
-                volSizeSlider
+          else
+            volSizeSlider
         ]
 
 
@@ -294,21 +297,20 @@ networkPicker project createServerRequest =
                         [ Element.text ("There is only one network, with name \"" ++ net.name ++ "\", so Exosphere will use that one.") ]
                     ]
 
-                MultipleNetsWithGuess networks guessNet goodGuess ->
+                MultipleNetsWithGuess _ guessNet goodGuess ->
                     let
                         guessText =
-                            case goodGuess of
-                                True ->
-                                    Element.paragraph
-                                        []
-                                        [ Element.text
-                                            ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
-                                        ]
+                            if goodGuess then
+                                Element.paragraph
+                                    []
+                                    [ Element.text
+                                        ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
+                                    ]
 
-                                False ->
-                                    Element.paragraph
-                                        []
-                                        [ Element.text "The selected network is a guess and might not be the best choice." ]
+                            else
+                                Element.paragraph
+                                    []
+                                    [ Element.text "The selected network is a guess and might not be the best choice." ]
 
                         networkAsInputOption network =
                             Input.option network.uuid (Element.text network.name)
@@ -331,9 +333,7 @@ networkPicker project createServerRequest =
     in
     Element.column
         VH.exoColumnAttributes
-        ([ Element.el [ Font.bold ] (Element.text "Network") ]
-            ++ contents
-        )
+        (Element.el [ Font.bold ] (Element.text "Network") :: contents)
 
 
 keypairPicker : Project -> CreateServerRequest -> Element.Element Msg
@@ -343,17 +343,16 @@ keypairPicker project createServerRequest =
             Input.option keypair.name (Element.text keypair.name)
 
         contents =
-            case project.keypairs of
-                [] ->
-                    Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
+            if List.isEmpty project.keypairs then
+                Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
 
-                keypairs ->
-                    Input.radio []
-                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
-                        , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
-                        , options = List.map keypairAsOption project.keypairs
-                        , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
-                        }
+            else
+                Input.radio []
+                    { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
+                    , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
+                    , options = List.map keypairAsOption project.keypairs
+                    , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
+                    }
     in
     Element.column
         VH.exoColumnAttributes
@@ -363,7 +362,7 @@ keypairPicker project createServerRequest =
 
 
 userDataInput : Project -> CreateServerRequest -> Element.Element Msg
-userDataInput project createServerRequest =
+userDataInput _ createServerRequest =
     Element.column
         VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
@@ -377,24 +376,23 @@ userDataInput project createServerRequest =
                 ]
             , selected = Just createServerRequest.showAdvancedOptions
             }
-        , case createServerRequest.showAdvancedOptions of
-            False ->
-                Element.none
+        , if not createServerRequest.showAdvancedOptions then
+            Element.none
 
-            True ->
-                Input.multiline
-                    [ Element.width (Element.px 600)
-                    , Element.height (Element.px 500)
-                    ]
-                    { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
-                    , text = createServerRequest.userData
-                    , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
-                    , label =
-                        Input.labelAbove
-                            [ Element.paddingXY 20 0
-                            , Font.bold
-                            ]
-                            (Element.text "User Data (Boot Script)")
-                    , spellcheck = False
-                    }
+          else
+            Input.multiline
+                [ Element.width (Element.px 600)
+                , Element.height (Element.px 500)
+                ]
+                { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+                , text = createServerRequest.userData
+                , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+                , label =
+                    Input.labelAbove
+                        [ Element.paddingXY 20 0
+                        , Font.bold
+                        ]
+                        (Element.text "User Data (Boot Script)")
+                , spellcheck = False
+                }
         ]

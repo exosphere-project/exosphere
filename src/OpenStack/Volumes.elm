@@ -13,7 +13,13 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (openstackCredentialedRequest)
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( HttpRequestMethod(..)
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        )
 
 
 requestCreateVolume : Project -> Maybe HelperTypes.Url -> OSTypes.CreateVolumeRequest -> Cmd Msg

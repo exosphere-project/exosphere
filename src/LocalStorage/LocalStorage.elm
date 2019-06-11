@@ -7,7 +7,7 @@ module LocalStorage.LocalStorage exposing
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (..)
+import LocalStorage.Types exposing (StoredProject, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time

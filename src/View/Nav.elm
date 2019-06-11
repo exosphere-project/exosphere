@@ -8,10 +8,18 @@ import Element.Input as Input
 import Element.Region as Region
 import Framework.Color
 import Helpers.Helpers as Helpers
-import Maybe
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( Model
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , ViewState(..)
+        )
 import View.Helpers as VH
 
 
@@ -99,16 +107,15 @@ projectTitleForNavMenu model project =
             in
             projectCountOnSameProvider > 1
     in
-    case multipleProjects of
-        True ->
-            providerTitle ++ String.fromChar '\n' ++ "(" ++ project.creds.projectName ++ ")"
+    if multipleProjects then
+        providerTitle ++ String.fromChar '\n' ++ "(" ++ project.creds.projectName ++ ")"
 
-        False ->
-            providerTitle
+    else
+        providerTitle
 
 
 navBar : Model -> Element.Element Msg
-navBar model =
+navBar _ =
     let
         navBarContainerAttributes =
             [ Background.color (Element.rgb255 29 29 29)

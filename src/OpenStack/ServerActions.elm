@@ -8,7 +8,14 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest)
 import Rest.Rest as Rest
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( HttpRequestMethod(..)
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , Server
+        )
 
 
 type alias ServerAction =

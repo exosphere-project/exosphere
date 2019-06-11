@@ -12,14 +12,28 @@ import Framework.Color
 import Framework.Modifier as Modifier
 import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
-import Html exposing (Html)
+import Html
 import Html.Attributes
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CockpitLoginStatus(..)
+        , IPInfoLevel(..)
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , PasswordVisibility(..)
+        , Project
+        , ProjectIdentifier
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , Server
+        , ViewState(..)
+        , ViewStateParams
+        )
 import View.Helpers as VH exposing (edges)
 import View.Types
 
@@ -37,50 +51,49 @@ servers project =
             Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
         RemoteData.Success someServers ->
-            case List.isEmpty someServers of
-                True ->
-                    Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
+            if List.isEmpty someServers then
+                Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
-                False ->
-                    let
-                        noServersSelected =
-                            List.any (\s -> s.exoProps.selected) someServers |> not
+            else
+                let
+                    noServersSelected =
+                        List.any (\s -> s.exoProps.selected) someServers |> not
 
-                        allServersSelected =
-                            List.all (\s -> s.exoProps.selected) someServers
+                    allServersSelected =
+                        List.all (\s -> s.exoProps.selected) someServers
 
-                        selectedServers =
-                            List.filter (\s -> s.exoProps.selected) someServers
+                    selectedServers =
+                        List.filter (\s -> s.exoProps.selected) someServers
 
-                        deleteButtonOnPress =
-                            if noServersSelected == True then
-                                Nothing
+                    deleteButtonOnPress =
+                        if noServersSelected == True then
+                            Nothing
 
-                            else
-                                Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers selectedServers))
+                        else
+                            Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers selectedServers))
 
-                        deleteButtonModifiers =
-                            if noServersSelected == True then
-                                [ Modifier.Danger, Modifier.Disabled ]
+                    deleteButtonModifiers =
+                        if noServersSelected == True then
+                            [ Modifier.Danger, Modifier.Disabled ]
 
-                            else
-                                [ Modifier.Danger ]
-                    in
-                    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                        [ Element.el VH.heading2 (Element.text "My Servers")
-                        , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
-                            [ Element.text "Bulk Actions"
-                            , Input.checkbox []
-                                { checked = allServersSelected
-                                , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
-                                , icon = Input.defaultCheckbox
-                                , label = Input.labelRight [] (Element.text "Select All")
-                                }
-                            , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
-                            ]
-                        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-                            (List.map (renderServer project) someServers)
+                        else
+                            [ Modifier.Danger ]
+                in
+                Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                    [ Element.el VH.heading2 (Element.text "My Servers")
+                    , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
+                        [ Element.text "Bulk Actions"
+                        , Input.checkbox []
+                            { checked = allServersSelected
+                            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
+                            , icon = Input.defaultCheckbox
+                            , label = Input.labelRight [] (Element.text "Select All")
+                            }
+                        , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                         ]
+                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
+                        (List.map (renderServer project) someServers)
+                    ]
 
 
 serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
@@ -179,26 +192,25 @@ serverStatus projectId server viewStateParams =
                 g
 
         verboseStatus =
-            case viewStateParams.verboseStatus of
-                False ->
-                    [ Button.button
-                        []
-                        (Just <|
-                            ProjectMsg projectId <|
-                                SetProjectView <|
-                                    ServerDetail
-                                        server.osProps.uuid
-                                        { viewStateParams | verboseStatus = True }
-                        )
-                        "See detail"
-                    ]
+            if viewStateParams.verboseStatus then
+                [ Element.text "Detailed status"
+                , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
+                , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
+                ]
 
-                True ->
-                    [ Element.text "Detailed status"
-                    , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                    , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                    , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
-                    ]
+            else
+                [ Button.button
+                    []
+                    (Just <|
+                        ProjectMsg projectId <|
+                            SetProjectView <|
+                                ServerDetail
+                                    server.osProps.uuid
+                                    { viewStateParams | verboseStatus = True }
+                    )
+                    "See detail"
+                ]
 
         statusString =
             Element.text
@@ -209,12 +221,11 @@ serverStatus projectId server viewStateParams =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-        ([ Element.row [ Font.bold ]
+        (Element.row [ Font.bold ]
             [ graphic
             , statusString
             ]
-         ]
-            ++ verboseStatus
+            :: verboseStatus
         )
 
 
@@ -383,7 +394,7 @@ actions projectId server =
             <|
                 List.map renderActionButton allowedActions
 
-        Just targetStatus ->
+        Just _ ->
             Element.el
                 [ Element.padding 10 ]
                 Element.none
@@ -591,15 +602,14 @@ serverVolumes project server =
                 renderVolume v =
                     Element.row VH.exoRowAttributes
                         [ Element.text <| VH.possiblyUntitledResource v.name "volume"
-                        , case isBootVol v of
-                            True ->
-                                Element.el
-                                    [ Font.color <| Color.toElementColor <| Framework.Color.grey ]
-                                <|
-                                    Element.text "Boot volume"
+                        , if isBootVol v then
+                            Element.el
+                                [ Font.color <| Color.toElementColor <| Framework.Color.grey ]
+                            <|
+                                Element.text "Boot volume"
 
-                            False ->
-                                Element.none
+                          else
+                            Element.none
                         , volDetailsButton v
                         ]
             in

@@ -21,7 +21,7 @@ import Element.Font as Font
 import Element.Region as Region
 import Framework.Color
 import Types.HelperTypes
-import Types.Types exposing (..)
+import Types.Types exposing (Msg(..))
 import View.Types
 
 
@@ -85,6 +85,15 @@ compactKVSubRow key value =
         ]
 
 
+type alias Edges =
+    { top : Int
+    , right : Int
+    , bottom : Int
+    , left : Int
+    }
+
+
+edges : Edges
 edges =
     { top = 0
     , right = 0
@@ -132,20 +141,19 @@ browserLink isElectron url label =
                     , contents = el
                     }
     in
-    case isElectron of
-        True ->
-            Element.el
-                (renderedLabel.attribs
-                    ++ [ Element.Events.onClick (OpenInBrowser url) ]
-                )
-                renderedLabel.contents
+    if isElectron then
+        Element.el
+            (renderedLabel.attribs
+                ++ [ Element.Events.onClick (OpenInBrowser url) ]
+            )
+            renderedLabel.contents
 
-        False ->
-            Element.newTabLink
-                renderedLabel.attribs
-                { url = url
-                , label = renderedLabel.contents
-                }
+    else
+        Element.newTabLink
+            renderedLabel.attribs
+            { url = url
+            , label = renderedLabel.contents
+            }
 
 
 possiblyUntitledResource : String -> String -> String

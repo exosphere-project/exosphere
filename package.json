@@ -14,6 +14,8 @@
     "build-style-guide": "elm make src/Style/StyleGuide.elm --output=styleguide.html",
     "live-style-guide": "elm-live src/Style/StyleGuide.elm --open --start-page styleguide.html -- --output=styleguide.html --debug",
     "test": "elm-test",
+    "elm:format": "elm-format --validate src",
+    "elm:analyse": "elm-analyse",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -29,11 +31,13 @@
     }
   },
   "devDependencies": {
-    "chokidar-cli": "^1.2.1",
+    "chokidar-cli": "^1.2.2",
     "electron": "^1.8.8",
-    "electron-builder": "^20.38.4",
+    "electron-builder": "^20.43.0",
     "elm": "^0.19.0",
-    "elm-live": "^3.4.0"
+    "elm-analyse": "^0.16.4",
+    "elm-format": "^0.8.1",
+    "elm-live": "^3.4.1"
   },
   "repository": {
     "type": "git",

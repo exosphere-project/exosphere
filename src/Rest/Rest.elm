@@ -68,9 +68,25 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (..)
+import Rest.Helpers exposing (openstackCredentialedRequest, proxyifyRequest)
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CockpitLoginStatus(..)
+        , CreateServerRequest
+        , Creds
+        , ExoServerProps
+        , FloatingIpState(..)
+        , HttpRequestMethod(..)
+        , Model
+        , Msg(..)
+        , NewServerNetworkOptions(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , Server
+        , ViewState(..)
+        )
 
 
 
@@ -81,12 +97,11 @@ requestAuthToken : Maybe HelperTypes.Url -> Creds -> Cmd Msg
 requestAuthToken maybeProxyUrl creds =
     let
         idOrName str =
-            case Helpers.stringIsUuidOrDefault str of
-                True ->
-                    "id"
+            if Helpers.stringIsUuidOrDefault str then
+                "id"
 
-                False ->
-                    "name"
+            else
+                "name"
 
         requestBody =
             Encode.object
@@ -324,15 +339,14 @@ requestCreateServer project maybeProxyUrl createServerRequest =
                 maybeKeypairJson
                 [ ( "name", Encode.string instanceName )
                 , ( "flavorRef", Encode.string innerCreateServerRequest.flavorUuid )
-                , case innerCreateServerRequest.networkUuid of
-                    "auto" ->
-                        ( "networks", Encode.string "auto" )
+                , if innerCreateServerRequest.networkUuid == "auto" then
+                    ( "networks", Encode.string "auto" )
 
-                    netUuid ->
-                        ( "networks"
-                        , Encode.list Encode.object
-                            [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
-                        )
+                  else
+                    ( "networks"
+                    , Encode.list Encode.object
+                        [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
+                    )
                 , ( "user_data", Encode.string (Base64.encode renderedUserData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
                 , ( "adminPass", Encode.string createServerRequest.exouserPassword )
@@ -343,26 +357,25 @@ requestCreateServer project maybeProxyUrl createServerRequest =
             Encode.object [ ( "server", Encode.object props ) ]
 
         buildRequestBody instanceName =
-            case createServerRequest.volBacked of
-                False ->
-                    ( "imageRef", Encode.string createServerRequest.imageUuid )
-                        :: baseServerProps createServerRequest instanceName
-                        |> buildRequestOuterJson
+            if not createServerRequest.volBacked then
+                ( "imageRef", Encode.string createServerRequest.imageUuid )
+                    :: baseServerProps createServerRequest instanceName
+                    |> buildRequestOuterJson
 
-                True ->
-                    ( "block_device_mapping_v2"
-                    , Encode.list Encode.object
-                        [ [ ( "boot_index", Encode.string "0" )
-                          , ( "uuid", Encode.string createServerRequest.imageUuid )
-                          , ( "source_type", Encode.string "image" )
-                          , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
-                          , ( "destination_type", Encode.string "volume" )
-                          , ( "delete_on_termination", Encode.bool True )
-                          ]
-                        ]
-                    )
-                        :: baseServerProps createServerRequest instanceName
-                        |> buildRequestOuterJson
+            else
+                ( "block_device_mapping_v2"
+                , Encode.list Encode.object
+                    [ [ ( "boot_index", Encode.string "0" )
+                      , ( "uuid", Encode.string createServerRequest.imageUuid )
+                      , ( "source_type", Encode.string "image" )
+                      , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
+                      , ( "destination_type", Encode.string "volume" )
+                      , ( "delete_on_termination", Encode.bool True )
+                      ]
+                    ]
+                )
+                    :: baseServerProps createServerRequest instanceName
+                    |> buildRequestOuterJson
 
         requestBodies =
             instanceNames
@@ -899,12 +912,11 @@ receiveServer model project serverUuid result =
                                             Nothing
 
                                         Just statuses ->
-                                            case List.member serverDetails.openstackStatus statuses of
-                                                True ->
-                                                    Nothing
+                                            if List.member serverDetails.openstackStatus statuses then
+                                                Nothing
 
-                                                False ->
-                                                    Just statuses
+                                            else
+                                                Just statuses
                             in
                             Server
                                 { oldOSProps | details = serverDetails }
@@ -1343,10 +1355,10 @@ receiveCockpitLoginStatus model project serverUuid result =
                 cockpitStatus =
                     case result of
                         -- TODO more error chcking, e.g. handle case of invalid credentials rather than telling user "still not ready yet"
-                        Err error ->
+                        Err _ ->
                             CheckedNotReady
 
-                        Ok str ->
+                        Ok _ ->
                             Ready
 
                 oldExoProps =

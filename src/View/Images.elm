@@ -9,18 +9,25 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Widgets.Card as ExoCard
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CreateServerRequest
+        , GlobalDefaults
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        )
 import View.Helpers as VH
 
 
 imagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
 imagesIfLoaded globalDefaults project maybeFilterTag =
-    case List.isEmpty project.images of
-        True ->
-            Element.text "Images loading"
+    if List.isEmpty project.images then
+        Element.text "Images loading"
 
-        False ->
-            images globalDefaults project maybeFilterTag
+    else
+        images globalDefaults project maybeFilterTag
 
 
 images : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
@@ -74,14 +81,6 @@ renderImage globalDefaults project image =
             case image.size of
                 Just s ->
                     Filesize.format s
-
-                Nothing ->
-                    "N/A"
-
-        checksum =
-            case image.checksum of
-                Just c ->
-                    c
 
                 Nothing ->
                     "N/A"

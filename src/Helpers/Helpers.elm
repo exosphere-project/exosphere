@@ -45,7 +45,21 @@ import Time
 import Toasty
 import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (..)
+import Types.Types
+    exposing
+        ( CockpitLoginStatus(..)
+        , CreateServerRequest
+        , Creds
+        , Endpoints
+        , FloatingIpState(..)
+        , Model
+        , Msg(..)
+        , NewServerNetworkOptions(..)
+        , Project
+        , ProjectIdentifier
+        , Server
+        , ServerUiStatus(..)
+        )
 import Url
 
 
@@ -156,12 +170,11 @@ authUrlWithPortAndVersion authUrlStr =
     let
         authUrlStrWithProto =
             -- If user doesn't provide a protocol then we add one so that the URL will actually parse
-            case String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr of
-                True ->
-                    authUrlStr
+            if String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr then
+                authUrlStr
 
-                False ->
-                    "https://" ++ authUrlStr
+            else
+                "https://" ++ authUrlStr
 
         maybeAuthUrl =
             Url.fromString authUrlStrWithProto
@@ -266,19 +279,10 @@ serviceCatalogToEndpoints catalog =
 
 getServicePublicUrl : String -> OSTypes.ServiceCatalog -> HelperTypes.Url
 getServicePublicUrl serviceName catalog =
-    let
-        maybeService =
-            getServiceFromCatalog serviceName catalog
-
-        maybePublicEndpoint =
-            getPublicEndpointFromService maybeService
-    in
-    case maybePublicEndpoint of
-        Just endpoint ->
-            endpoint.url
-
-        Nothing ->
-            ""
+    getServiceFromCatalog serviceName catalog
+        |> Maybe.andThen getPublicEndpointFromService
+        |> Maybe.map .url
+        |> Maybe.withDefault ""
 
 
 getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service
@@ -287,15 +291,10 @@ getServiceFromCatalog serviceName catalog =
         |> List.head
 
 
-getPublicEndpointFromService : Maybe OSTypes.Service -> Maybe OSTypes.Endpoint
-getPublicEndpointFromService maybeService =
-    case maybeService of
-        Just service ->
-            List.filter (\e -> e.interface == OSTypes.Public) service.endpoints
-                |> List.head
-
-        Nothing ->
-            Nothing
+getPublicEndpointFromService : OSTypes.Service -> Maybe OSTypes.Endpoint
+getPublicEndpointFromService service =
+    List.filter (\e -> e.interface == OSTypes.Public) service.endpoints
+        |> List.head
 
 
 getExternalNetwork : Project -> Maybe OSTypes.Network
@@ -579,31 +578,26 @@ renderUserDataTemplate : Project -> CreateServerRequest -> String
 renderUserDataTemplate project createServerRequest =
     {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
     let
-        maybePublicKey : Maybe String
-        maybePublicKey =
-            case createServerRequest.keypairName of
-                Just keypairName ->
-                    project.keypairs
-                        |> List.filter (\kp -> kp.name == keypairName)
-                        |> List.head
-                        |> Maybe.map .publicKey
+        getPublicKeyFromKeypairName : String -> Maybe String
+        getPublicKeyFromKeypairName keypairName =
+            project.keypairs
+                |> List.filter (\kp -> kp.name == keypairName)
+                |> List.head
+                |> Maybe.map .publicKey
 
-                Nothing ->
-                    Nothing
+        generateYamlFromPublicKey : String -> String
+        generateYamlFromPublicKey selectedPublicKey =
+            "ssh-authorized-keys:\n      - " ++ selectedPublicKey
 
-        authorizedKeysYaml : String
-        authorizedKeysYaml =
-            case maybePublicKey of
-                Just selectedPublicKey ->
-                    "ssh-authorized-keys:\n      - " ++ selectedPublicKey
-
-                Nothing ->
-                    ""
-
-        renderedUserData =
-            String.replace "{ssh-authorized-keys}\n" authorizedKeysYaml createServerRequest.userData
+        renderUserData : String -> String
+        renderUserData authorizedKeyYaml =
+            String.replace "{ssh-authorized-keys}\n" authorizedKeyYaml createServerRequest.userData
     in
-    renderedUserData
+    createServerRequest.keypairName
+        |> Maybe.andThen getPublicKeyFromKeypairName
+        |> Maybe.map generateYamlFromPublicKey
+        |> Maybe.withDefault ""
+        |> renderUserData
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions
@@ -633,28 +627,27 @@ newServerNetworkOptions project =
             NoNetsAutoAllocate
 
         firstNet :: otherNets ->
-            case otherNets of
+            if List.isEmpty otherNets then
                 -- If there is only one network then we pick that one
-                [] ->
-                    OneNet firstNet
+                OneNet firstNet
 
+            else
                 -- If there are multiple networks then we let user choose and try to guess a good default
-                _ ->
-                    let
-                        ( guessNet, goodGuess ) =
-                            case maybeAutoAllocatedNet of
-                                Just n ->
-                                    ( n, True )
+                let
+                    ( guessNet, goodGuess ) =
+                        case maybeAutoAllocatedNet of
+                            Just n ->
+                                ( n, True )
 
-                                Nothing ->
-                                    case maybeProjectNameNet of
-                                        Just n ->
-                                            ( n, True )
+                            Nothing ->
+                                case maybeProjectNameNet of
+                                    Just n ->
+                                        ( n, True )
 
-                                        Nothing ->
-                                            ( firstNet, False )
-                    in
-                    MultipleNetsWithGuess projectNets guessNet goodGuess
+                                    Nothing ->
+                                        ( firstNet, False )
+                in
+                MultipleNetsWithGuess projectNets guessNet goodGuess
 
 
 
@@ -677,5 +670,5 @@ volumeIsAttachedToServer volumeUuid server =
 
 
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
-getServersWithVolAttached project volume =
+getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid

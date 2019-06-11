@@ -1,7 +1,7 @@
 module Style.Widgets.Card exposing (exoCard)
 
 import Color
-import Element exposing (..)
+import Element exposing (Element)
 import Framework.Card as Card
 import Framework.Color
 
