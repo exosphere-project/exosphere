@@ -7,7 +7,8 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 **New: [Try Exosphere in your web browser](https://try.exosphere.app/exosphere/)**
 
-**New: Exosphere meeting, Mondays at 1600 UTC** on [https://meet.jit.si/exosphere](https://meet.jit.si/exosphere). Chat with the developers, get onboarded, help us set priorities and shape the future!
+**Update: Weekly Exosphere meetings are on hiatus for summer & life things - restarting in August 2019**
+You'll be able to chat with the developers, get onboarded, help us set priorities and shape the future!
 
 ## Features and Goals
 
