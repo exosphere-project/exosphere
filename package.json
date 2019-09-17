@@ -17,7 +17,7 @@
     "elm:format": "elm-format --validate src",
     "elm:analyse": "elm-analyse",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder -c.extraMetadata.main=electron-index.js"
   },
   "postinstall": "electron-builder install-app-deps",
   "author": {
