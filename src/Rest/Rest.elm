@@ -597,7 +597,7 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
 
         Just group ->
             let
-                makeRequestBody port_number desc =
+                makeRequestBodyTcp port_number desc =
                     Encode.object
                         [ ( "security_group_rule"
                           , Encode.object
@@ -607,6 +607,19 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
                                 , ( "protocol", Encode.string "tcp" )
                                 , ( "port_range_min", Encode.string port_number )
                                 , ( "port_range_max", Encode.string port_number )
+                                , ( "description", Encode.string desc )
+                                ]
+                          )
+                        ]
+
+                makeRequestBodyIcmp desc =
+                    Encode.object
+                        [ ( "security_group_rule"
+                          , Encode.object
+                                [ ( "security_group_id", Encode.string group.uuid )
+                                , ( "ethertype", Encode.string "IPv4" )
+                                , ( "direction", Encode.string "ingress" )
+                                , ( "protocol", Encode.string "icmp" )
                                 , ( "description", Encode.string desc )
                                 ]
                           )
@@ -624,8 +637,9 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
                         )
 
                 bodies =
-                    [ makeRequestBody "22" "SSH"
-                    , makeRequestBody "9090" "Cockpit"
+                    [ makeRequestBodyTcp "22" "SSH"
+                    , makeRequestBodyTcp "9090" "Cockpit"
+                    , makeRequestBodyIcmp "Ping"
                     ]
 
                 cmds =
