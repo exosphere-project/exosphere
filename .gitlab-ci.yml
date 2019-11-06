@@ -25,9 +25,6 @@ elm_make:
     paths:
       - public
 
-# Waiting for elm-analyse to support Elm 0.19:
-# https://github.com/stil4m/elm-analyse/issues/176
-
 elm_analyse:
   stage: test
   cache:
