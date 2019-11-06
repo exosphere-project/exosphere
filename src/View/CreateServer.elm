@@ -35,11 +35,8 @@ createServer project createServerRequest =
             if createServerRequest.name == "" then
                 False
 
-            else if createServerRequest.flavorUuid == "" then
-                False
-
             else
-                True
+                not (createServerRequest.flavorUuid == "")
 
         createOnPress =
             if requestIsValid == True then
