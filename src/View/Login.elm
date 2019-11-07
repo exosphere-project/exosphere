@@ -7,6 +7,7 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Types.Types exposing (JetstreamCreds, JetstreamLoginField(..), JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds, OpenstackLoginField(..))
 import View.Helpers as VH
+import View.Types
 
 
 viewLoginPicker : Element.Element Msg
@@ -160,25 +161,26 @@ loginOpenstackOpenRcEntry _ openstackCreds =
         ]
 
 
-viewLoginJetstream : JetstreamCreds -> Element.Element Msg
-viewLoginJetstream jetstreamCreds =
+viewLoginJetstream : Model -> JetstreamCreds -> Element.Element Msg
+viewLoginJetstream model jetstreamCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2
             (Element.text "Add a Jetstream Cloud Account")
+        , jetstreamLoginText model
         , Element.column VH.exoColumnAttributes
             [ Input.text
                 [ Element.spacing 12
                 ]
                 { text = jetstreamCreds.jetstreamProjectName
-                , placeholder = Just (Input.placeholder [] (Element.text "TG-whatever"))
+                , placeholder = Just (Input.placeholder [] (Element.text "TG-******"))
                 , onChange = \pn -> InputJetstreamLoginField jetstreamCreds (JetstreamProjectName pn)
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project/Allocation Name")
+                , label = Input.labelAbove [ Font.size 14 ] (Element.text "Allocation Name")
                 }
             , Input.text
                 [ Element.spacing 12
                 ]
                 { text = jetstreamCreds.taccUsername
-                , placeholder = Nothing
+                , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                 , onChange = \un -> InputJetstreamLoginField jetstreamCreds (TaccUsername un)
                 , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
                 }
@@ -206,5 +208,58 @@ viewLoginJetstream jetstreamCreds =
                     (Just (JetstreamLogin jetstreamCreds))
                     "Log In"
                 )
+            ]
+        ]
+
+
+jetstreamLoginText : Model -> Element.Element Msg
+jetstreamLoginText model =
+    Element.column VH.exoColumnAttributes
+        [ Element.paragraph
+            []
+            [ Element.text "To use Exosphere with "
+            , VH.browserLink model.isElectron "https://jetstream-cloud.org" <| View.Types.BrowserLinkTextLabel "Jetstream Cloud"
+            , Element.text ", you need access to a Jetstream allocation. Possible ways to get this:"
+            ]
+        , Element.paragraph
+            []
+            [ Element.text "- Request access to the Exosphere Trial Allocation; please create an account on "
+            , VH.browserLink model.isElectron "https://portal.xsede.org" <| View.Types.BrowserLinkTextLabel "XSEDE User Portal"
+            , Element.text ", then "
+            , VH.browserLink model.isElectron "https://gitlab.com/exosphere/exosphere/issues/new" <| View.Types.BrowserLinkTextLabel "create an issue"
+            , Element.text " asking for access and providing your XSEDE username."
+            ]
+        , Element.paragraph
+            []
+            [ Element.text "- If you know someone else who already has an allocation, they can add you to it. (See \"How do I let other XSEDE accounts use my allocation?\" on "
+            , VH.browserLink model.isElectron "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/537460937/Jetstream+Allocations+FAQ" <| View.Types.BrowserLinkTextLabel "this FAQ"
+            , Element.text ")"
+            ]
+        , Element.paragraph
+            []
+            [ Element.text "- "
+            , VH.browserLink model.isElectron "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/49184781/Jetstream+Allocations" <| View.Types.BrowserLinkTextLabel "Apply for your own Startup Allocation"
+            ]
+        , Element.paragraph [] []
+        , Element.paragraph
+            []
+            [ Element.text "Once you have access to an allocation, collect these things:"
+            ]
+        , Element.paragraph
+            []
+            [ Element.text "1. Your allocation name (begins with `TG-`); log into "
+            , VH.browserLink model.isElectron "https://portal.xsede.org" <| View.Types.BrowserLinkTextLabel "XSEDE User Portal"
+            , Element.text " and see it in your "
+            , VH.browserLink model.isElectron "https://portal.xsede.org/group/xup/allocations/usage" <| View.Types.BrowserLinkTextLabel "allocations"
+            ]
+        , Element.paragraph
+            []
+            [ Element.text "2. TACC username (usually looks like 'tg******'); "
+            , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username" <| View.Types.BrowserLinkTextLabel "look up your TACC username"
+            ]
+        , Element.paragraph
+            []
+            [ Element.text "3. TACC password; "
+            , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset" <| View.Types.BrowserLinkTextLabel "set your TACC password"
             ]
         ]
