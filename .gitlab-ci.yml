@@ -51,7 +51,7 @@ deploy_pages:
   dependencies:
     - elm_make
   script:
-    - file public/index.html
+    - touch public/index.html
   artifacts:
     paths:
       - public
