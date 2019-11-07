@@ -39,7 +39,7 @@ hydrateModelFromStoredState model storedState =
         viewState =
             case projects of
                 [] ->
-                    Types.NonProjectView <| Types.Login <| Types.OpenstackCreds "" "" "" "" "" ""
+                    Types.NonProjectView Types.LoginPicker
 
                 firstProject :: _ ->
                     Types.ProjectView (Helpers.getProjectId firstProject) Types.ListProjectServers

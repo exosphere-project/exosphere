@@ -73,7 +73,7 @@ chpasswd:
         emptyModel : Model
         emptyModel =
             { messages = []
-            , viewState = NonProjectView <| Login <| OpenstackCreds "" "" "" "" "" ""
+            , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
             , imageFilterTag = Maybe.Just "distro-base"
@@ -232,7 +232,7 @@ updateUnderlying msg model =
                             Helpers.processOpenRc openstackCreds openRc
 
                 newViewState =
-                    NonProjectView <| Login openstackCreds
+                    NonProjectView <| LoginOpenstack openstackCreds
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
@@ -444,7 +444,7 @@ processProjectSpecificMsg model project msg =
                                     ProjectView (Helpers.getProjectId p) ListProjectServers
 
                                 Nothing ->
-                                    NonProjectView <| Login <| OpenstackCreds "" "" "" "" "" ""
+                                    NonProjectView <| LoginPicker
 
                 newModel =
                     { model | projects = newProjects, viewState = newViewState }

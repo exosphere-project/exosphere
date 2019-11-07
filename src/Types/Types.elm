@@ -172,7 +172,8 @@ type ViewState
 
 
 type NonProjectViewConstructor
-    = Login OpenstackCreds
+    = LoginPicker
+    | LoginOpenstack OpenstackCreds
     | MessageLog
     | HelpAbout
 

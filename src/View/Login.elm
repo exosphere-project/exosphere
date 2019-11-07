@@ -1,16 +1,38 @@
-module View.Login exposing (viewLogin)
+module View.Login exposing (viewLoginOpenstack, viewLoginPicker)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
-import Types.Types exposing (LoginField(..), Model, Msg(..), OpenstackCreds)
+import Types.Types exposing (LoginField(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds)
 import View.Helpers as VH
 
 
-viewLogin : Model -> OpenstackCreds -> Element.Element Msg
-viewLogin model openstackCreds =
+viewLoginPicker : Element.Element Msg
+viewLoginPicker =
+    Element.column VH.exoColumnAttributes
+        [ Element.text "Choose a login method"
+        , Element.row VH.exoRowAttributes
+            [ Element.column VH.exoColumnAttributes
+                [ Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
+                , Button.button
+                    []
+                    (Just
+                        (SetNonProjectView
+                            (LoginOpenstack
+                                (OpenstackCreds "" "" "" "" "" "")
+                            )
+                        )
+                    )
+                    "Add OpenStack Account"
+                ]
+            ]
+        ]
+
+
+viewLoginOpenstack : Model -> OpenstackCreds -> Element.Element Msg
+viewLoginOpenstack model openstackCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el
             VH.heading2
