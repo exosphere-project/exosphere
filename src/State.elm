@@ -21,13 +21,11 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
-        , JetstreamCreds
         , JetstreamLoginField(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
-        , OpenstackCreds
         , OpenstackLoginField(..)
         , Project
         , ProjectSpecificMsgConstructor(..)

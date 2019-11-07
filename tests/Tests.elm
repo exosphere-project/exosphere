@@ -7,12 +7,12 @@ import Expect exposing (Expectation)
 import Helpers.Helpers as Helpers
 import Test exposing (..)
 import TestData
-import Types.Types exposing (Creds)
+import Types.Types exposing (OpenstackCreds)
 
 
-emptyCreds : Creds
+emptyCreds : OpenstackCreds
 emptyCreds =
-    Creds "" "" "" "" "" ""
+    OpenstackCreds "" "" "" "" "" ""
 
 
 stringIsUuidOrDefaultSuite : Test
@@ -100,7 +100,7 @@ processOpenRcSuite =
                 TestData.openrcPreV3
                     |> Helpers.processOpenRc emptyCreds
                     |> Expect.equal
-                        (Creds
+                        (OpenstackCreds
                             "https://cell.alliance.rebel:35357/v3"
                             "default"
                             "cloud-riders"
@@ -113,7 +113,7 @@ processOpenRcSuite =
                 TestData.openrcV3withComments
                     |> Helpers.processOpenRc emptyCreds
                     |> Expect.equal
-                        (Creds
+                        (OpenstackCreds
                             "https://cell.alliance.rebel:5000/v3"
                             "default"
                             "cloud-riders"
@@ -126,7 +126,7 @@ processOpenRcSuite =
                 TestData.openrcV3
                     |> Helpers.processOpenRc emptyCreds
                     |> Expect.equal
-                        (Creds
+                        (OpenstackCreds
                             "https://cell.alliance.rebel:5000/v3"
                             "default"
                             "cloud-riders"

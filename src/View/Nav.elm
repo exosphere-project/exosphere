@@ -15,7 +15,6 @@ import Types.Types
         ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
-        , OpenstackCreds
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)

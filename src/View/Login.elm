@@ -7,7 +7,6 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Types.Types exposing (JetstreamCreds, JetstreamLoginField(..), JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds, OpenstackLoginField(..))
 import View.Helpers as VH
-import View.Types
 
 
 viewLoginPicker : Element.Element Msg
@@ -161,8 +160,8 @@ loginOpenstackOpenRcEntry _ openstackCreds =
         ]
 
 
-viewLoginJetstream : Model -> JetstreamCreds -> Element.Element Msg
-viewLoginJetstream model jetstreamCreds =
+viewLoginJetstream : JetstreamCreds -> Element.Element Msg
+viewLoginJetstream jetstreamCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2
             (Element.text "Add a Jetstream Cloud Account")
