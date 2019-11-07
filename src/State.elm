@@ -18,7 +18,6 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , CreateServerField(..)
-        , Creds
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
@@ -27,6 +26,7 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
+        , OpenstackCreds
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
@@ -76,7 +76,7 @@ chpasswd:
             , viewState = NonProjectView Login
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
-            , creds = Creds "" "" "" "" "" ""
+            , creds = OpenstackCreds "" "" "" "" "" ""
             , imageFilterTag = Maybe.Just "distro-base"
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState

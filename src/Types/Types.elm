@@ -2,7 +2,6 @@ module Types.Types exposing
     ( CockpitLoginStatus(..)
     , CreateServerField(..)
     , CreateServerRequest
-    , Creds
     , Endpoints
     , ExoServerProps
     , Flags
@@ -15,6 +14,7 @@ module Types.Types exposing
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
+    , OpenstackCreds
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -64,7 +64,7 @@ type alias Model =
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , projects : List Project
-    , creds : Creds
+    , creds : OpenstackCreds
     , imageFilterTag : Maybe String
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
@@ -79,7 +79,7 @@ type alias GlobalDefaults =
 
 
 type alias Project =
-    { creds : Creds
+    { creds : OpenstackCreds
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -114,7 +114,7 @@ type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
     | RequestNewProjectToken
-    | ReceiveAuthToken Creds (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputLoginField LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
@@ -233,7 +233,7 @@ type CreateServerField
     | CreateServerNetworkUuid OSTypes.NetworkUuid
 
 
-type alias Creds =
+type alias OpenstackCreds =
     { authUrl : String
     , projectDomain : String
     , projectName : String

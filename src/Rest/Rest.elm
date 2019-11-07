@@ -74,13 +74,13 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , CreateServerRequest
-        , Creds
         , ExoServerProps
         , FloatingIpState(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
+        , OpenstackCreds
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
@@ -93,7 +93,7 @@ import Types.Types
 {- HTTP Requests -}
 
 
-requestAuthToken : Maybe HelperTypes.Url -> Creds -> Cmd Msg
+requestAuthToken : Maybe HelperTypes.Url -> OpenstackCreds -> Cmd Msg
 requestAuthToken maybeProxyUrl creds =
     let
         idOrName str =
@@ -719,7 +719,7 @@ requestCockpitLogin project serverUuid password ipAddress =
 {- HTTP Response Handling -}
 
 
-receiveAuthToken : Model -> Creds -> Result Http.Error ( Http.Metadata, String ) -> ( Model, Cmd Msg )
+receiveAuthToken : Model -> OpenstackCreds -> Result Http.Error ( Http.Metadata, String ) -> ( Model, Cmd Msg )
 receiveAuthToken model creds responseResult =
     case responseResult of
         Err error ->
@@ -741,7 +741,7 @@ receiveAuthToken model creds responseResult =
                     projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
 
 
-createProject : Model -> Creds -> Http.Response String -> ( Model, Cmd Msg )
+createProject : Model -> OpenstackCreds -> Http.Response String -> ( Model, Cmd Msg )
 createProject model creds response =
     -- Create new project
     case decodeAuthToken response of

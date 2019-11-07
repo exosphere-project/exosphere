@@ -49,12 +49,12 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , CreateServerRequest
-        , Creds
         , Endpoints
         , FloatingIpState(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
+        , OpenstackCreds
         , Project
         , ProjectIdentifier
         , Server
@@ -132,7 +132,7 @@ stringIsUuidOrDefault str =
     stringIsUuid || stringIsDefault
 
 
-processOpenRc : Creds -> String -> Creds
+processOpenRc : OpenstackCreds -> String -> OpenstackCreds
 processOpenRc existingCreds openRc =
     let
         regexes =
@@ -155,7 +155,7 @@ processOpenRc existingCreds openRc =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
     in
-    Creds
+    OpenstackCreds
         (newField regexes.authUrl existingCreds.authUrl)
         (newField regexes.projectDomain existingCreds.projectDomain)
         (newField regexes.projectName existingCreds.projectName)

@@ -86,7 +86,7 @@ encodeStoredState storedState =
         ]
 
 
-encodeCreds : Types.Creds -> Encode.Value
+encodeCreds : Types.OpenstackCreds -> Encode.Value
 encodeCreds creds =
     Encode.object
         [ ( "authUrl", Encode.string creds.authUrl )
@@ -173,9 +173,9 @@ storedProjectDecode =
         (Decode.field "auth" decodeStoredAuthTokenDetails)
 
 
-credsDecode : Decode.Decoder Types.Creds
+credsDecode : Decode.Decoder Types.OpenstackCreds
 credsDecode =
-    Decode.map6 Types.Creds
+    Decode.map6 Types.OpenstackCreds
         (Decode.field "authUrl" Decode.string)
         (Decode.field "projectDomain" Decode.string)
         (Decode.field "projectName" Decode.string)
