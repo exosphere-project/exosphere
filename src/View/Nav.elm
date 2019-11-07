@@ -64,13 +64,19 @@ navMenu model =
             let
                 active =
                     case model.viewState of
-                        NonProjectView Login ->
+                        NonProjectView LoginPicker ->
+                            MenuItem.Active
+
+                        NonProjectView (LoginOpenstack _) ->
+                            MenuItem.Active
+
+                        NonProjectView (LoginJetstream _) ->
                             MenuItem.Active
 
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem active "Add Project" (Just (SetNonProjectView Login))
+            MenuItem.menuItem active "Add Project" (Just (SetNonProjectView LoginPicker))
     in
     Element.column
         [ Background.color <| Color.toElementColor <| Framework.Color.black_ter

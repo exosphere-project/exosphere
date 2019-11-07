@@ -53,8 +53,14 @@ elementView maybeWindowSize model =
                 [ case model.viewState of
                     NonProjectView viewConstructor ->
                         case viewConstructor of
-                            Login ->
-                                View.Login.viewLogin model
+                            LoginPicker ->
+                                View.Login.viewLoginPicker
+
+                            LoginOpenstack openstackCreds ->
+                                View.Login.viewLoginOpenstack model openstackCreds
+
+                            LoginJetstream jetstreamCreds ->
+                                View.Login.viewLoginJetstream model jetstreamCreds
 
                             MessageLog ->
                                 View.Messages.messageLog model

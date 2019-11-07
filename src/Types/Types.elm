@@ -2,7 +2,6 @@ module Types.Types exposing
     ( CockpitLoginStatus(..)
     , CreateServerField(..)
     , CreateServerRequest
-    , Creds
     , Endpoints
     , ExoServerProps
     , Flags
@@ -10,11 +9,15 @@ module Types.Types exposing
     , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
-    , LoginField(..)
+    , JetstreamCreds
+    , JetstreamLoginField(..)
+    , JetstreamProvider(..)
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
+    , OpenstackCreds
+    , OpenstackLoginField(..)
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -64,7 +67,6 @@ type alias Model =
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , projects : List Project
-    , creds : Creds
     , imageFilterTag : Maybe String
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
@@ -79,7 +81,7 @@ type alias GlobalDefaults =
 
 
 type alias Project =
-    { creds : Creds
+    { creds : OpenstackCreds
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -113,10 +115,12 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
-    | RequestNewProjectToken
-    | ReceiveAuthToken Creds (Result Http.Error ( Http.Metadata, String ))
+    | RequestNewProjectToken OpenstackCreds
+    | JetstreamLogin JetstreamCreds
+    | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputLoginField LoginField
+    | InputOpenstackLoginField OpenstackCreds OpenstackLoginField
+    | InputJetstreamLoginField JetstreamCreds JetstreamLoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
     | OpenInBrowser String
@@ -173,7 +177,9 @@ type ViewState
 
 
 type NonProjectViewConstructor
-    = Login
+    = LoginPicker
+    | LoginOpenstack OpenstackCreds
+    | LoginJetstream JetstreamCreds
     | MessageLog
     | HelpAbout
 
@@ -211,7 +217,7 @@ type PasswordVisibility
     | PasswordHidden
 
 
-type LoginField
+type OpenstackLoginField
     = AuthUrl String
     | ProjectDomain String
     | ProjectName String
@@ -233,7 +239,7 @@ type CreateServerField
     | CreateServerNetworkUuid OSTypes.NetworkUuid
 
 
-type alias Creds =
+type alias OpenstackCreds =
     { authUrl : String
     , projectDomain : String
     , projectName : String
@@ -241,6 +247,26 @@ type alias Creds =
     , username : String
     , password : String
     }
+
+
+type JetstreamLoginField
+    = JetstreamProviderChoice JetstreamProvider
+    | JetstreamProjectName String
+    | TaccUsername String
+    | TaccPassword String
+
+
+type alias JetstreamCreds =
+    { jetstreamProviderChoice : JetstreamProvider
+    , jetstreamProjectName : String
+    , taccUsername : String
+    , taccPassword : String
+    }
+
+
+type JetstreamProvider
+    = IUCloud
+    | TACCCloud
 
 
 

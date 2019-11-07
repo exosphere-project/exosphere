@@ -14,6 +14,7 @@ module Helpers.Helpers exposing
     , hostnameFromUrl
     , imageLookup
     , iso8601StringToPosix
+    , jetstreamToOpenstackCreds
     , modelUpdateProject
     , newServerNetworkOptions
     , processError
@@ -49,12 +50,14 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , CreateServerRequest
-        , Creds
         , Endpoints
         , FloatingIpState(..)
+        , JetstreamCreds
+        , JetstreamProvider(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
+        , OpenstackCreds
         , Project
         , ProjectIdentifier
         , Server
@@ -132,7 +135,7 @@ stringIsUuidOrDefault str =
     stringIsUuid || stringIsDefault
 
 
-processOpenRc : Creds -> String -> Creds
+processOpenRc : OpenstackCreds -> String -> OpenstackCreds
 processOpenRc existingCreds openRc =
     let
         regexes =
@@ -155,7 +158,7 @@ processOpenRc existingCreds openRc =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
     in
-    Creds
+    OpenstackCreds
         (newField regexes.authUrl existingCreds.authUrl)
         (newField regexes.projectDomain existingCreds.projectDomain)
         (newField regexes.projectName existingCreds.projectName)
@@ -672,3 +675,27 @@ volumeIsAttachedToServer volumeUuid server =
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
 getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
+
+
+jetstreamToOpenstackCreds : JetstreamCreds -> OpenstackCreds
+jetstreamToOpenstackCreds jetstreamCreds =
+    let
+        authUrlBase =
+            case jetstreamCreds.jetstreamProviderChoice of
+                {- TODO should we hard-code these elsewhere? -}
+                IUCloud ->
+                    "iu.jetstream-cloud.org"
+
+                TACCCloud ->
+                    "tacc.jetstream-cloud.org"
+
+        authUrl =
+            "https://" ++ authUrlBase ++ ":5000/v3/auth/tokens"
+    in
+    OpenstackCreds
+        authUrl
+        "tacc"
+        jetstreamCreds.jetstreamProjectName
+        "tacc"
+        jetstreamCreds.taccUsername
+        jetstreamCreds.taccPassword
