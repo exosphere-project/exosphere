@@ -15,6 +15,7 @@ import Types.Types
         ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
+        , OpenstackCreds
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
@@ -64,13 +65,13 @@ navMenu model =
             let
                 active =
                     case model.viewState of
-                        NonProjectView Login ->
+                        NonProjectView (Login _) ->
                             MenuItem.Active
 
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem active "Add Project" (Just (SetNonProjectView Login))
+            MenuItem.menuItem active "Add Project" (Just (SetNonProjectView <| Login <| OpenstackCreds "" "" "" "" "" ""))
     in
     Element.column
         [ Background.color <| Color.toElementColor <| Framework.Color.black_ter

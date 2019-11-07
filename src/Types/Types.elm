@@ -64,7 +64,6 @@ type alias Model =
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , projects : List Project
-    , creds : OpenstackCreds
     , imageFilterTag : Maybe String
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
@@ -113,10 +112,10 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
-    | RequestNewProjectToken
+    | RequestNewProjectToken OpenstackCreds
     | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputLoginField LoginField
+    | InputOpenstackLoginField OpenstackCreds LoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
     | OpenInBrowser String
@@ -173,7 +172,7 @@ type ViewState
 
 
 type NonProjectViewConstructor
-    = Login
+    = Login OpenstackCreds
     | MessageLog
     | HelpAbout
 

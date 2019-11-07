@@ -73,10 +73,9 @@ chpasswd:
         emptyModel : Model
         emptyModel =
             { messages = []
-            , viewState = NonProjectView Login
+            , viewState = NonProjectView <| Login <| OpenstackCreds "" "" "" "" "" ""
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
-            , creds = OpenstackCreds "" "" "" "" "" ""
             , imageFilterTag = Maybe.Just "distro-base"
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
@@ -186,16 +185,13 @@ updateUnderlying msg model =
                 _ ->
                     ( newModel, Cmd.none )
 
-        RequestNewProjectToken ->
+        RequestNewProjectToken openstackCreds ->
             let
                 -- If user does not provide a port number and path (API version) then we guess it
-                oldCreds =
-                    model.creds
-
-                newCreds =
-                    { oldCreds | authUrl = Helpers.authUrlWithPortAndVersion oldCreds.authUrl }
+                newOpenstackCreds =
+                    { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.requestAuthToken model.proxyUrl newCreds )
+            ( model, Rest.requestAuthToken model.proxyUrl newOpenstackCreds )
 
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
@@ -210,38 +206,35 @@ updateUnderlying msg model =
                     processProjectSpecificMsg model project innerMsg
 
         {- Form inputs -}
-        InputLoginField loginField ->
+        InputOpenstackLoginField openstackCreds loginField ->
             let
-                creds =
-                    model.creds
-
                 newCreds =
                     case loginField of
                         AuthUrl authUrl ->
-                            { creds | authUrl = authUrl }
+                            { openstackCreds | authUrl = authUrl }
 
                         ProjectDomain projectDomain ->
-                            { creds | projectDomain = projectDomain }
+                            { openstackCreds | projectDomain = projectDomain }
 
                         ProjectName projectName ->
-                            { creds | projectName = projectName }
+                            { openstackCreds | projectName = projectName }
 
                         UserDomain userDomain ->
-                            { creds | userDomain = userDomain }
+                            { openstackCreds | userDomain = userDomain }
 
                         Username username ->
-                            { creds | username = username }
+                            { openstackCreds | username = username }
 
                         Password password ->
-                            { creds | password = password }
+                            { openstackCreds | password = password }
 
                         OpenRc openRc ->
-                            Helpers.processOpenRc creds openRc
+                            Helpers.processOpenRc openstackCreds openRc
 
-                newModel =
-                    { model | creds = newCreds }
+                newViewState =
+                    NonProjectView <| Login openstackCreds
             in
-            ( newModel, Cmd.none )
+            ( { model | viewState = newViewState }, Cmd.none )
 
         InputImageFilterTag inputTag ->
             let
@@ -451,7 +444,7 @@ processProjectSpecificMsg model project msg =
                                     ProjectView (Helpers.getProjectId p) ListProjectServers
 
                                 Nothing ->
-                                    NonProjectView Login
+                                    NonProjectView <| Login <| OpenstackCreds "" "" "" "" "" ""
 
                 newModel =
                     { model | projects = newProjects, viewState = newViewState }
