@@ -70,6 +70,9 @@ navMenu model =
                         NonProjectView (LoginOpenstack _) ->
                             MenuItem.Active
 
+                        NonProjectView (LoginJetstream _) ->
+                            MenuItem.Active
+
                         _ ->
                             MenuItem.Inactive
             in
