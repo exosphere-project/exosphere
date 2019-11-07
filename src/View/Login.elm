@@ -5,7 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
-import Types.Types exposing (LoginField(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds)
+import Types.Types exposing (Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds, OpenstackLoginField(..))
 import View.Helpers as VH
 
 

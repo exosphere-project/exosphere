@@ -21,12 +21,12 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
-        , LoginField(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
         , OpenstackCreds
+        , OpenstackLoginField(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)

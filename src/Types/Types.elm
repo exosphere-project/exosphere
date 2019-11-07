@@ -9,12 +9,12 @@ module Types.Types exposing
     , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
-    , LoginField(..)
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
     , OpenstackCreds
+    , OpenstackLoginField(..)
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -115,7 +115,7 @@ type Msg
     | RequestNewProjectToken OpenstackCreds
     | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputOpenstackLoginField OpenstackCreds LoginField
+    | InputOpenstackLoginField OpenstackCreds OpenstackLoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
     | OpenInBrowser String
@@ -211,7 +211,7 @@ type PasswordVisibility
     | PasswordHidden
 
 
-type LoginField
+type OpenstackLoginField
     = AuthUrl String
     | ProjectDomain String
     | ProjectName String
