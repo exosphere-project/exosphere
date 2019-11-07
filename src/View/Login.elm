@@ -1,12 +1,13 @@
-module View.Login exposing (viewLoginOpenstack, viewLoginPicker)
+module View.Login exposing (viewLoginJetstream, viewLoginOpenstack, viewLoginPicker)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
-import Types.Types exposing (Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds, OpenstackLoginField(..))
+import Types.Types exposing (JetstreamCreds, JetstreamLoginField(..), JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds, OpenstackLoginField(..))
 import View.Helpers as VH
+import View.Types
 
 
 viewLoginPicker : Element.Element Msg
@@ -27,6 +28,19 @@ viewLoginPicker =
                     )
                     "Add OpenStack Account"
                 ]
+            , Element.column VH.exoColumnAttributes
+                [ Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
+                , Button.button
+                    []
+                    (Just
+                        (SetNonProjectView
+                            (LoginJetstream
+                                (JetstreamCreds TACCCloud "" "" "")
+                            )
+                        )
+                    )
+                    "Add Jetstream Cloud Account"
+                ]
             ]
         ]
 
@@ -39,8 +53,8 @@ viewLoginOpenstack model openstackCreds =
             (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
             VH.exoRowAttributes
-            [ loginCredsEntry model openstackCreds
-            , loginOpenRcEntry model openstackCreds
+            [ loginOpenstackCredsEntry model openstackCreds
+            , loginOpenstackOpenRcEntry model openstackCreds
             ]
         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Button.button
@@ -51,8 +65,8 @@ viewLoginOpenstack model openstackCreds =
         ]
 
 
-loginCredsEntry : Model -> OpenstackCreds -> Element.Element Msg
-loginCredsEntry model openstackCreds =
+loginOpenstackCredsEntry : Model -> OpenstackCreds -> Element.Element Msg
+loginOpenstackCredsEntry _ openstackCreds =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.width (Element.px 500)
@@ -112,8 +126,8 @@ loginCredsEntry model openstackCreds =
         ]
 
 
-loginOpenRcEntry : Model -> OpenstackCreds -> Element.Element Msg
-loginOpenRcEntry _ openstackCreds =
+loginOpenstackOpenRcEntry : Model -> OpenstackCreds -> Element.Element Msg
+loginOpenstackOpenRcEntry _ openstackCreds =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15
@@ -144,4 +158,54 @@ loginOpenRcEntry _ openstackCreds =
             , label = Input.labelLeft [] Element.none
             , spellcheck = False
             }
+        ]
+
+
+viewLoginJetstream : Model -> JetstreamCreds -> Element.Element Msg
+viewLoginJetstream model jetstreamCreds =
+    Element.column VH.exoColumnAttributes
+        [ Element.el VH.heading2
+            (Element.text "Add a Jetstream Cloud Account")
+        , Element.column VH.exoColumnAttributes
+            [ Input.text
+                [ Element.spacing 12
+                ]
+                { text = jetstreamCreds.jetstreamProjectName
+                , placeholder = Just (Input.placeholder [] (Element.text "TG-whatever"))
+                , onChange = \pn -> InputJetstreamLoginField jetstreamCreds (JetstreamProjectName pn)
+                , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project/Allocation Name")
+                }
+            , Input.text
+                [ Element.spacing 12
+                ]
+                { text = jetstreamCreds.taccUsername
+                , placeholder = Nothing
+                , onChange = \un -> InputJetstreamLoginField jetstreamCreds (TaccUsername un)
+                , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
+                }
+            , Input.currentPassword
+                [ Element.spacing 12
+                ]
+                { text = jetstreamCreds.taccPassword
+                , placeholder = Nothing
+                , onChange = \pw -> InputJetstreamLoginField jetstreamCreds (TaccPassword pw)
+                , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
+                , show = False
+                }
+            , Input.radio []
+                { label = Input.labelAbove [] (Element.text "Provider")
+                , onChange = \x -> InputJetstreamLoginField jetstreamCreds (JetstreamProviderChoice x)
+                , options =
+                    [ Input.option IUCloud (Element.text "IU Cloud")
+                    , Input.option TACCCloud (Element.text "TACC Cloud")
+                    ]
+                , selected = Just jetstreamCreds.jetstreamProviderChoice
+                }
+            , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                (Button.button
+                    [ Modifier.Primary ]
+                    (Just (JetstreamLogin jetstreamCreds))
+                    "Log In"
+                )
+            ]
         ]

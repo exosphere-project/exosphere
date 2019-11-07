@@ -14,6 +14,7 @@ module Helpers.Helpers exposing
     , hostnameFromUrl
     , imageLookup
     , iso8601StringToPosix
+    , jetstreamToOpenstackCreds
     , modelUpdateProject
     , newServerNetworkOptions
     , processError
@@ -51,6 +52,8 @@ import Types.Types
         , CreateServerRequest
         , Endpoints
         , FloatingIpState(..)
+        , JetstreamCreds
+        , JetstreamProvider(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -672,3 +675,27 @@ volumeIsAttachedToServer volumeUuid server =
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
 getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
+
+
+jetstreamToOpenstackCreds : JetstreamCreds -> OpenstackCreds
+jetstreamToOpenstackCreds jetstreamCreds =
+    let
+        authUrlBase =
+            case jetstreamCreds.jetstreamProviderChoice of
+                {- TODO should we hard-code these elsewhere? -}
+                IUCloud ->
+                    "iu.jetstream-cloud.org"
+
+                TACCCloud ->
+                    "tacc.jetstream-cloud.org"
+
+        authUrl =
+            "https://" ++ authUrlBase ++ ":5000/v3/auth/tokens"
+    in
+    OpenstackCreds
+        authUrl
+        "tacc"
+        jetstreamCreds.jetstreamProjectName
+        "tacc"
+        jetstreamCreds.taccUsername
+        jetstreamCreds.taccPassword

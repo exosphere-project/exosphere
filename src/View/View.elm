@@ -59,6 +59,9 @@ elementView maybeWindowSize model =
                             LoginOpenstack openstackCreds ->
                                 View.Login.viewLoginOpenstack model openstackCreds
 
+                            LoginJetstream jetstreamCreds ->
+                                View.Login.viewLoginJetstream model jetstreamCreds
+
                             MessageLog ->
                                 View.Messages.messageLog model
 

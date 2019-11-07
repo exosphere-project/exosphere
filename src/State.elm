@@ -21,6 +21,8 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , JetstreamCreds
+        , JetstreamLoginField(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -193,6 +195,13 @@ updateUnderlying msg model =
             in
             ( model, Rest.requestAuthToken model.proxyUrl newOpenstackCreds )
 
+        JetstreamLogin jetstreamCreds ->
+            let
+                openstackCreds =
+                    Helpers.jetstreamToOpenstackCreds jetstreamCreds
+            in
+            ( model, Rest.requestAuthToken model.proxyUrl openstackCreds )
+
         ReceiveAuthToken creds response ->
             Rest.receiveAuthToken model creds response
 
@@ -232,7 +241,28 @@ updateUnderlying msg model =
                             Helpers.processOpenRc openstackCreds openRc
 
                 newViewState =
-                    NonProjectView <| LoginOpenstack openstackCreds
+                    NonProjectView <| LoginOpenstack newCreds
+            in
+            ( { model | viewState = newViewState }, Cmd.none )
+
+        InputJetstreamLoginField jetstreamCreds loginField ->
+            let
+                newCreds =
+                    case loginField of
+                        JetstreamProviderChoice provider ->
+                            { jetstreamCreds | jetstreamProviderChoice = provider }
+
+                        JetstreamProjectName projectName ->
+                            { jetstreamCreds | jetstreamProjectName = projectName }
+
+                        TaccUsername username ->
+                            { jetstreamCreds | taccUsername = username }
+
+                        TaccPassword password ->
+                            { jetstreamCreds | taccPassword = password }
+
+                newViewState =
+                    NonProjectView <| LoginJetstream newCreds
             in
             ( { model | viewState = newViewState }, Cmd.none )
 

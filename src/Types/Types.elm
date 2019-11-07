@@ -9,6 +9,9 @@ module Types.Types exposing
     , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
+    , JetstreamCreds
+    , JetstreamLoginField(..)
+    , JetstreamProvider(..)
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
@@ -113,9 +116,11 @@ type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
     | RequestNewProjectToken OpenstackCreds
+    | JetstreamLogin JetstreamCreds
     | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenstackLoginField OpenstackCreds OpenstackLoginField
+    | InputJetstreamLoginField JetstreamCreds JetstreamLoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
     | OpenInBrowser String
@@ -174,6 +179,7 @@ type ViewState
 type NonProjectViewConstructor
     = LoginPicker
     | LoginOpenstack OpenstackCreds
+    | LoginJetstream JetstreamCreds
     | MessageLog
     | HelpAbout
 
@@ -241,6 +247,26 @@ type alias OpenstackCreds =
     , username : String
     , password : String
     }
+
+
+type JetstreamLoginField
+    = JetstreamProviderChoice JetstreamProvider
+    | JetstreamProjectName String
+    | TaccUsername String
+    | TaccPassword String
+
+
+type alias JetstreamCreds =
+    { jetstreamProviderChoice : JetstreamProvider
+    , jetstreamProjectName : String
+    , taccUsername : String
+    , taccPassword : String
+    }
+
+
+type JetstreamProvider
+    = IUCloud
+    | TACCCloud
 
 
 
