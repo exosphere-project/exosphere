@@ -146,9 +146,10 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                                 viewStateParams
                             )
                         , VH.compactKVRow "Volumes Attached" (serverVolumes project server)
-                        , Element.el VH.heading3 (Element.text "Interact with server")
-                        , consoleLink appIsElectron project server serverUuid viewStateParams
-                        , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
+                        , Element.el VH.heading2 (Element.text "Interact with server")
+                        , VH.compactKVRow "SSH" <| sshInstructions maybeFloatingIp
+                        , VH.compactKVRow "Console" <| consoleLink appIsElectron project server serverUuid viewStateParams
+                        , VH.compactKVRow "Terminal / Dashboard" <| cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
                         [ Element.el VH.heading3 (Element.text "Server Actions")
@@ -227,6 +228,20 @@ serverStatus projectId server viewStateParams =
             ]
             :: verboseStatus
         )
+
+
+sshInstructions : Maybe String -> Element.Element Msg
+sshInstructions maybeFloatingIp =
+    case maybeFloatingIp of
+        Nothing ->
+            Element.none
+
+        Just floatingIp ->
+            Element.paragraph
+                []
+                [ Element.text "exouser@"
+                , Element.text floatingIp
+                ]
 
 
 consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
