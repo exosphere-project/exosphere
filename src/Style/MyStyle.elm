@@ -9,7 +9,7 @@ import Dict
 configuration : Dict.Dict String String
 configuration =
     Dict.fromList
-        [ ( "font_url", "https://exosphere.gitlab.io/exosphere/fonts/open-sans-regular-400.css" )
+        [ ( "font_url", "https://try.exosphere.app/exosphere/fonts/open-sans-regular-400.css" )
         , ( "font_typeface", "Open Sans" )
         , ( "font_fallback", "sans-serif" )
         , ( "primary", "#0088ce" )

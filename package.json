@@ -1,6 +1,6 @@
 {
   "name": "exosphere",
-  "version": "2019.11.05",
+  "version": "2019.11.07",
   "productName": "Exosphere",
   "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
   "main": "electron-index.js",
