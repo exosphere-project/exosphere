@@ -46,7 +46,7 @@ elm_test:
   script:
     - npx elm-test
 
-deploy_pages:
+pages:
   stage: deploy
   dependencies:
     - elm_make
