@@ -82,6 +82,7 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , OpenstackCreds
         , Project
+        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
@@ -729,10 +730,7 @@ receiveAuthToken model creds responseResult =
             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
             case
-                model.projects
-                    |> List.filter (\p -> p.creds.authUrl == creds.authUrl)
-                    |> List.filter (\p -> p.creds.projectName == creds.projectName)
-                    |> List.head
+                Helpers.projectLookup model <| ProjectIdentifier creds.authUrl creds.projectName
             of
                 Nothing ->
                     createProject model creds (Http.GoodStatus_ metadata response)
