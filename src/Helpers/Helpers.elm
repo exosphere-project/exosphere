@@ -621,7 +621,7 @@ newServerNetworkOptions project =
 
         maybeProjectNameNet =
             projectNets
-                |> List.filter (\n -> String.contains project.auth.projectName n.name)
+                |> List.filter (\n -> String.contains project.auth.project.name n.name)
                 |> List.head
     in
     case projectNets of

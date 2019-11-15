@@ -80,7 +80,7 @@ encodeStoredState storedState =
                 ]
     in
     Encode.object
-        [ ( "1"
+        [ ( "2"
           , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
         ]
@@ -102,10 +102,30 @@ encodeAuthToken : OSTypes.AuthToken -> Encode.Value
 encodeAuthToken authToken =
     Encode.object
         [ ( "catalog", encodeCatalog authToken.catalog )
-        , ( "projectUuid", Encode.string authToken.projectUuid )
-        , ( "projectName", Encode.string authToken.projectName )
-        , ( "userUuid", Encode.string authToken.userUuid )
-        , ( "username", Encode.string authToken.userName )
+        , ( "project"
+          , Encode.object
+                [ ( "name", Encode.string authToken.project.name )
+                , ( "uuid", Encode.string authToken.project.uuid )
+                ]
+          )
+        , ( "projectDomain"
+          , Encode.object
+                [ ( "name", Encode.string authToken.projectDomain.name )
+                , ( "uuid", Encode.string authToken.projectDomain.uuid )
+                ]
+          )
+        , ( "user"
+          , Encode.object
+                [ ( "name", Encode.string authToken.user.name )
+                , ( "uuid", Encode.string authToken.user.uuid )
+                ]
+          )
+        , ( "userDomain"
+          , Encode.object
+                [ ( "name", Encode.string authToken.userDomain.name )
+                , ( "uuid", Encode.string authToken.userDomain.uuid )
+                ]
+          )
         , ( "expiresAt", Encode.int (Time.posixToMillis authToken.expiresAt) )
         , ( "tokenValue", Encode.string authToken.tokenValue )
         ]
@@ -160,10 +180,18 @@ decodeStoredState =
         StoredState
         (Decode.oneOf
             -- Todo turn this into an actual migration
-            [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode)
-            , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode)
+            [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
+            , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
+            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode)
             ]
         )
+
+
+storedProjectDecode1 : Decode.Decoder StoredProject
+storedProjectDecode1 =
+    Decode.map2 StoredProject
+        (Decode.field "creds" credsDecode)
+        (Decode.field "auth" decodeStoredAuthTokenDetails1)
 
 
 storedProjectDecode : Decode.Decoder StoredProject
@@ -184,18 +212,49 @@ credsDecode =
         (Decode.field "password" Decode.string)
 
 
-decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.AuthToken
-decodeStoredAuthTokenDetails =
+decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.AuthToken
+decodeStoredAuthTokenDetails1 =
     Decode.map7 OSTypes.AuthToken
         (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
-        (Decode.field "projectUuid" Decode.string)
-        (Decode.field "projectName" Decode.string)
-        (Decode.field "userUuid" Decode.string)
-        (Decode.field "username" Decode.string)
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.field "projectName" Decode.string)
+            (Decode.field "projectUuid" Decode.string)
+        )
+        -- Can't determine project domain name/uuid here so we populate empty
+        (Decode.succeed <| OSTypes.NameAndUuid "" "")
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.field "username" Decode.string)
+            (Decode.field "userUuid" Decode.string)
+        )
+        -- Can't determine user domain name/uuid here so we populate empty
+        (Decode.succeed <| OSTypes.NameAndUuid "" "")
         (Decode.field "expiresAt" Decode.int
             |> Decode.map Time.millisToPosix
         )
         (Decode.field "tokenValue" Decode.string)
+
+
+decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.AuthToken
+decodeStoredAuthTokenDetails =
+    Decode.map7 OSTypes.AuthToken
+        (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
+        (Decode.field "project" decodeNameAndId)
+        (Decode.field "projectDomain" decodeNameAndId)
+        (Decode.field "user" decodeNameAndId)
+        (Decode.field "userDomain" decodeNameAndId)
+        (Decode.field "expiresAt" Decode.int
+            |> Decode.map Time.millisToPosix
+        )
+        (Decode.field "tokenValue" Decode.string)
+
+
+decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
+decodeNameAndId =
+    Decode.map2 OSTypes.NameAndUuid
+        (Decode.field "name" Decode.string)
+        (Decode.field "uuid" Decode.string)
 
 
 openstackStoredServiceDecoder : Decode.Decoder OSTypes.Service

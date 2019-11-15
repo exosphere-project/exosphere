@@ -1444,10 +1444,26 @@ decodeAuthTokenDetails =
     in
     Decode.map6 OSTypes.AuthToken
         (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
-        (Decode.at [ "token", "project", "id" ] Decode.string)
-        (Decode.at [ "token", "project", "name" ] Decode.string)
-        (Decode.at [ "token", "user", "id" ] Decode.string)
-        (Decode.at [ "token", "user", "name" ] Decode.string)
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "project", "name" ] Decode.string)
+            (Decode.at [ "token", "project", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "project", "domain", "name" ] Decode.string)
+            (Decode.at [ "token", "project", "domain", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "domain", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
+        )
         (Decode.at [ "token", "expires_at" ] Decode.string
             |> Decode.andThen iso8601StringToPosixDecodeError
         )

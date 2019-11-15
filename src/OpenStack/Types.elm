@@ -16,11 +16,10 @@ module OpenStack.Types exposing
     , IpAddressValue
     , Keypair
     , MetadataItem
+    , NameAndUuid
     , Network
     , NetworkUuid
     , Port
-    , ProjectName
-    , ProjectUuid
     , SecurityGroup
     , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
@@ -34,8 +33,6 @@ module OpenStack.Types exposing
     , Service
     , ServiceCatalog
     , ServiceName(..)
-    , UserName
-    , UserUuid
     , Volume
     , VolumeAttachment
     , VolumeAttachmentDevice
@@ -69,10 +66,10 @@ type alias MetadataItem =
 
 type alias AuthToken =
     { catalog : ServiceCatalog
-    , projectUuid : ProjectUuid
-    , projectName : ProjectName
-    , userUuid : UserUuid
-    , userName : UserName
+    , project : NameAndUuid
+    , projectDomain : NameAndUuid
+    , user : NameAndUuid
+    , userDomain : NameAndUuid
     , expiresAt : Time.Posix
     , tokenValue : AuthTokenString
     }
@@ -82,20 +79,10 @@ type alias AuthTokenString =
     String
 
 
-type alias ProjectUuid =
-    HelperTypes.Uuid
-
-
-type alias ProjectName =
-    String
-
-
-type alias UserUuid =
-    HelperTypes.Uuid
-
-
-type alias UserName =
-    String
+type alias NameAndUuid =
+    { name : String
+    , uuid : HelperTypes.Uuid
+    }
 
 
 type alias ServiceCatalog =
