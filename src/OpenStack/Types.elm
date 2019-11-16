@@ -32,7 +32,6 @@ module OpenStack.Types exposing
     , ServerUuid
     , Service
     , ServiceCatalog
-    , ServiceName(..)
     , Volume
     , VolumeAttachment
     , VolumeAttachmentDevice
@@ -94,12 +93,6 @@ type alias Service =
     , type_ : String
     , endpoints : List Endpoint
     }
-
-
-type ServiceName
-    = Glance
-    | Nova
-    | Neutron
 
 
 type alias Endpoint =
