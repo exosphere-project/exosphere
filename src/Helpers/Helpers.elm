@@ -220,25 +220,16 @@ authUrlWithPortAndVersion authUrlStr =
 
 
 hostnameFromUrl : HelperTypes.Url -> String
-hostnameFromUrl url =
+hostnameFromUrl urlStr =
     let
-        r =
-            alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/.*"
-
-        matches =
-            Regex.findAtMost 1 r url
-
-        maybeMaybeName =
-            matches
-                |> List.head
-                |> Maybe.map (\x -> x.submatches)
-                |> Maybe.andThen List.head
+        maybeUrl =
+            Url.fromString urlStr
     in
-    case maybeMaybeName of
-        Just (Just name) ->
-            name
+    case maybeUrl of
+        Just url ->
+            url.host
 
-        _ ->
+        Nothing ->
             "placeholder-url-unparseable"
 
 
