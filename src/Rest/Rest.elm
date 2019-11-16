@@ -1,6 +1,6 @@
 module Rest.Rest exposing
     ( addFloatingIpInServerDetails
-    , createProject
+    , decodeAuthToken
     , decodeFlavors
     , decodeFloatingIpCreation
     , decodeImages
@@ -20,7 +20,6 @@ module Rest.Rest exposing
     , openstackEndpointInterfaceDecoder
     , openstackServiceDecoder
     , portDecoder
-    , receiveAuthToken
     , receiveCockpitLoginStatus
     , receiveConsoleUrl
     , receiveCreateExoSecurityGroupAndRequestCreateRules
@@ -51,6 +50,7 @@ module Rest.Rest exposing
     , requestImages
     , requestKeypairs
     , requestNetworks
+    , requestSecurityGroups
     , requestServer
     , requestServers
     , serverDecoder
@@ -718,111 +718,6 @@ requestCockpitLogin project serverUuid password ipAddress =
 
 
 {- HTTP Response Handling -}
-
-
-receiveAuthToken : Model -> OpenstackCreds -> Result Http.Error ( Http.Metadata, String ) -> ( Model, Cmd Msg )
-receiveAuthToken model creds responseResult =
-    case responseResult of
-        Err error ->
-            Helpers.processError model error
-
-        Ok ( metadata, response ) ->
-            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-            case
-                Helpers.projectLookup model <| ProjectIdentifier creds.authUrl creds.projectName
-            of
-                Nothing ->
-                    createProject model creds (Http.GoodStatus_ metadata response)
-
-                Just project ->
-                    projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
-
-
-createProject : Model -> OpenstackCreds -> Http.Response String -> ( Model, Cmd Msg )
-createProject model creds response =
-    -- Create new project
-    case decodeAuthToken response of
-        Err error ->
-            Helpers.processError model error
-
-        Ok authToken ->
-            let
-                endpoints =
-                    Helpers.serviceCatalogToEndpoints authToken.catalog
-
-                newProject =
-                    { password = creds.password
-                    , auth = authToken
-
-                    -- Maybe todo, eliminate parallel data structures in auth and endpoints?
-                    , endpoints = endpoints
-                    , images = []
-                    , servers = RemoteData.NotAsked
-                    , flavors = []
-                    , keypairs = []
-                    , volumes = RemoteData.NotAsked
-                    , networks = []
-                    , floatingIps = []
-                    , ports = []
-                    , securityGroups = []
-                    , pendingCredentialedRequests = []
-                    }
-
-                newProjects =
-                    newProject :: model.projects
-
-                newModel =
-                    { model
-                        | projects = newProjects
-                        , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
-                    }
-            in
-            ( newModel
-            , [ requestServers
-              , requestSecurityGroups
-              , requestFloatingIps
-              ]
-                |> List.map (\x -> x newProject model.proxyUrl)
-                |> Cmd.batch
-            )
-
-
-projectUpdateAuthToken : Model -> Project -> Http.Response String -> ( Model, Cmd Msg )
-projectUpdateAuthToken model project response =
-    -- Update auth token for existing project
-    case decodeAuthToken response of
-        Err error ->
-            Helpers.processError model error
-
-        Ok authToken ->
-            let
-                newProject =
-                    { project | auth = authToken }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            sendPendingRequests newModel newProject
-
-
-sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
-sendPendingRequests model project =
-    -- Fires any pending commands which were waiting for auth token renewal
-    -- This function assumes our token is valid (does not check for expiry).
-    let
-        -- Hydrate cmds with auth token
-        cmds =
-            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
-
-        -- Clear out pendingCredentialedRequests
-        newProject =
-            { project | pendingCredentialedRequests = [] }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.batch cmds )
 
 
 receiveImages : Model -> Project -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )

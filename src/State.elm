@@ -3,6 +3,7 @@ module State exposing (init, subscriptions, update)
 import Browser.Events
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
+import Http
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
@@ -29,6 +30,7 @@ import Types.Types
         , OpenstackCreds
         , OpenstackLoginField(..)
         , Project
+        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
@@ -201,9 +203,24 @@ updateUnderlying msg model =
             in
             ( model, Rest.requestAuthToken model.proxyUrl openstackCreds )
 
-        ReceiveAuthToken creds response ->
-            Rest.receiveAuthToken model creds response
+        ReceiveAuthToken creds responseResult ->
+            case responseResult of
+                Err error ->
+                    Helpers.processError model error
 
+                Ok ( metadata, response ) ->
+                    -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                    -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                    case
+                        Helpers.projectLookup model <| ProjectIdentifier creds.authUrl creds.projectName
+                    of
+                        Nothing ->
+                            createProject model creds (Http.GoodStatus_ metadata response)
+
+                        Just project ->
+                            projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
+
+        -- Rest.receiveAuthToken model creds response
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
                 Nothing ->
@@ -767,3 +784,89 @@ processProjectSpecificMsg model project msg =
                 Ok _ ->
                     {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
                     update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
+
+
+createProject : Model -> OpenstackCreds -> Http.Response String -> ( Model, Cmd Msg )
+createProject model creds response =
+    -- Create new project
+    case Rest.decodeAuthToken response of
+        Err error ->
+            Helpers.processError model error
+
+        Ok authToken ->
+            let
+                endpoints =
+                    Helpers.serviceCatalogToEndpoints authToken.catalog
+
+                newProject =
+                    { password = creds.password
+                    , auth = authToken
+
+                    -- Maybe todo, eliminate parallel data structures in auth and endpoints?
+                    , endpoints = endpoints
+                    , images = []
+                    , servers = RemoteData.NotAsked
+                    , flavors = []
+                    , keypairs = []
+                    , volumes = RemoteData.NotAsked
+                    , networks = []
+                    , floatingIps = []
+                    , ports = []
+                    , securityGroups = []
+                    , pendingCredentialedRequests = []
+                    }
+
+                newProjects =
+                    newProject :: model.projects
+
+                newModel =
+                    { model
+                        | projects = newProjects
+                        , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
+                    }
+            in
+            ( newModel
+            , [ Rest.requestServers
+              , Rest.requestSecurityGroups
+              , Rest.requestFloatingIps
+              ]
+                |> List.map (\x -> x newProject model.proxyUrl)
+                |> Cmd.batch
+            )
+
+
+projectUpdateAuthToken : Model -> Project -> Http.Response String -> ( Model, Cmd Msg )
+projectUpdateAuthToken model project response =
+    -- Update auth token for existing project
+    case Rest.decodeAuthToken response of
+        Err error ->
+            Helpers.processError model error
+
+        Ok authToken ->
+            let
+                newProject =
+                    { project | auth = authToken }
+
+                newModel =
+                    Helpers.modelUpdateProject model newProject
+            in
+            sendPendingRequests newModel newProject
+
+
+sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
+sendPendingRequests model project =
+    -- Fires any pending commands which were waiting for auth token renewal
+    -- This function assumes our token is valid (does not check for expiry).
+    let
+        -- Hydrate cmds with auth token
+        cmds =
+            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
+
+        -- Clear out pendingCredentialedRequests
+        newProject =
+            { project | pendingCredentialedRequests = [] }
+
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.batch cmds )
