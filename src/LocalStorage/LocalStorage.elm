@@ -25,7 +25,7 @@ generateStoredState model =
 
 generateStoredProject : Types.Project -> StoredProject
 generateStoredProject project =
-    { creds = project.creds
+    { password = project.password
     , auth = project.auth
     }
 
@@ -49,7 +49,7 @@ hydrateModelFromStoredState model storedState =
 
 hydrateProjectFromStoredProject : StoredProject -> Types.Project
 hydrateProjectFromStoredProject storedProject =
-    { creds = storedProject.creds
+    { password = storedProject.password
     , auth = storedProject.auth
     , endpoints = Helpers.serviceCatalogToEndpoints storedProject.auth.catalog
     , images = []
@@ -75,26 +75,14 @@ encodeStoredState storedState =
         storedProjectEncode : StoredProject -> Encode.Value
         storedProjectEncode storedProject =
             Encode.object
-                [ ( "creds", encodeCreds storedProject.creds )
+                [ ( "password", Encode.string storedProject.password )
                 , ( "auth", encodeAuthToken storedProject.auth )
                 ]
     in
     Encode.object
-        [ ( "2"
+        [ ( "3"
           , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
-        ]
-
-
-encodeCreds : Types.OpenstackCreds -> Encode.Value
-encodeCreds creds =
-    Encode.object
-        [ ( "authUrl", Encode.string creds.authUrl )
-        , ( "projectDomain", Encode.string creds.projectDomain )
-        , ( "projectName", Encode.string creds.projectName )
-        , ( "userDomain", Encode.string creds.userDomain )
-        , ( "username", Encode.string creds.username )
-        , ( "password", Encode.string creds.password )
         ]
 
 
@@ -182,7 +170,8 @@ decodeStoredState =
             -- Todo turn this into an actual migration
             [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
             , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
-            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode)
+            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
+            , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode3)
             ]
         )
 
@@ -190,26 +179,22 @@ decodeStoredState =
 storedProjectDecode1 : Decode.Decoder StoredProject
 storedProjectDecode1 =
     Decode.map2 StoredProject
-        (Decode.field "creds" credsDecode)
+        (Decode.at [ "creds", "password" ] Decode.string)
         (Decode.field "auth" decodeStoredAuthTokenDetails1)
 
 
-storedProjectDecode : Decode.Decoder StoredProject
-storedProjectDecode =
+storedProjectDecode2 : Decode.Decoder StoredProject
+storedProjectDecode2 =
     Decode.map2 StoredProject
-        (Decode.field "creds" credsDecode)
+        (Decode.at [ "creds", "password" ] Decode.string)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
 
 
-credsDecode : Decode.Decoder Types.OpenstackCreds
-credsDecode =
-    Decode.map6 Types.OpenstackCreds
-        (Decode.field "authUrl" Decode.string)
-        (Decode.field "projectDomain" Decode.string)
-        (Decode.field "projectName" Decode.string)
-        (Decode.field "userDomain" Decode.string)
-        (Decode.field "username" Decode.string)
+storedProjectDecode3 : Decode.Decoder StoredProject
+storedProjectDecode3 =
+    Decode.map2 StoredProject
         (Decode.field "password" Decode.string)
+        (Decode.field "auth" decodeStoredAuthTokenDetails)
 
 
 decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.AuthToken

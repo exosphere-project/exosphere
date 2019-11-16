@@ -26,6 +26,7 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
+        , OpenstackCreds
         , OpenstackLoginField(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -451,8 +452,17 @@ processProjectSpecificMsg model project msg =
 
                     newModel =
                         Helpers.modelUpdateProject model newProject
+
+                    temporaryCreds =
+                        OpenstackCreds
+                            newProject.endpoints.keystone
+                            newProject.auth.projectDomain.name
+                            newProject.auth.project.name
+                            newProject.auth.userDomain.name
+                            newProject.auth.user.name
+                            newProject.password
                 in
-                ( newModel, Rest.requestAuthToken model.proxyUrl newProject.creds )
+                ( newModel, Rest.requestAuthToken model.proxyUrl temporaryCreds )
 
         RemoveProject ->
             let

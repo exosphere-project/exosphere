@@ -4,11 +4,10 @@ module LocalStorage.Types exposing
     )
 
 import OpenStack.Types as OSTypes
-import Types.Types exposing (OpenstackCreds)
 
 
 type alias StoredProject =
-    { creds : OpenstackCreds
+    { password : String
     , auth : OSTypes.AuthToken
     }
 

@@ -70,9 +70,9 @@ projectNav p =
             VH.heading2
           <|
             Element.text <|
-                Helpers.hostnameFromUrl p.creds.authUrl
+                Helpers.hostnameFromUrl p.endpoints.keystone
                     ++ " - "
-                    ++ p.creds.projectName
+                    ++ p.auth.project.name
 
         {- TODO nest these somehow, perhaps put the "create server" and "create volume" buttons as a dropdown under a big "Create" button -}
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]

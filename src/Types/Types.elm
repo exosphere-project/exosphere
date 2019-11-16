@@ -81,7 +81,7 @@ type alias GlobalDefaults =
 
 
 type alias Project =
-    { creds : OpenstackCreds
+    { password : String
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -107,6 +107,7 @@ type alias ProjectIdentifier =
 type alias Endpoints =
     { cinder : HelperTypes.Url
     , glance : HelperTypes.Url
+    , keystone : HelperTypes.Url
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     }

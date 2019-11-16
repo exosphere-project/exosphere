@@ -267,6 +267,7 @@ serviceCatalogToEndpoints catalog =
     Endpoints
         (getServicePublicUrl "cinderv3" catalog)
         (getServicePublicUrl "glance" catalog)
+        (getServicePublicUrl "keystone" catalog)
         (getServicePublicUrl "nova" catalog)
         (getServicePublicUrl "neutron" catalog)
 
@@ -342,14 +343,14 @@ serverLookup project serverUuid =
 projectLookup : Model -> ProjectIdentifier -> Maybe Project
 projectLookup model projectIdentifier =
     model.projects
-        |> List.filter (\p -> p.creds.projectName == projectIdentifier.name)
-        |> List.filter (\p -> p.creds.authUrl == projectIdentifier.authUrl)
+        |> List.filter (\p -> p.auth.project.name == projectIdentifier.name)
+        |> List.filter (\p -> p.endpoints.keystone == projectIdentifier.authUrl)
         |> List.head
 
 
 getProjectId : Project -> ProjectIdentifier
 getProjectId project =
-    ProjectIdentifier project.creds.projectName project.creds.authUrl
+    ProjectIdentifier project.auth.project.name project.endpoints.keystone
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
@@ -379,8 +380,8 @@ modelUpdateProject model newProject =
 
         newProjectsSorted =
             newProjects
-                |> List.sortBy (\p -> p.creds.projectName)
-                |> List.sortBy (\p -> hostnameFromUrl p.creds.authUrl)
+                |> List.sortBy (\p -> p.auth.project.name)
+                |> List.sortBy (\p -> hostnameFromUrl p.endpoints.keystone)
     in
     { model | projects = newProjectsSorted }
 

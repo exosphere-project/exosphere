@@ -752,7 +752,7 @@ createProject model creds response =
                     Helpers.serviceCatalogToEndpoints authToken.catalog
 
                 newProject =
-                    { creds = creds
+                    { password = creds.password
                     , auth = authToken
 
                     -- Maybe todo, eliminate parallel data structures in auth and endpoints?
