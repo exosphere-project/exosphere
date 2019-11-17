@@ -199,6 +199,7 @@ decodeStoredState =
         )
 
 
+strToNameAndUuid : String -> OSTypes.NameAndUuid
 strToNameAndUuid s =
     case Helpers.stringIsUuidOrDefault s of
         True ->

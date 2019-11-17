@@ -82,7 +82,6 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , OpenstackCreds
         , Project
-        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
