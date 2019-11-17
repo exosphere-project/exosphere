@@ -1,5 +1,7 @@
 module OpenStack.Types exposing
-    ( AuthToken
+    ( ApplicationCredentialSecret
+    , ApplicationCredentialUuid
+    , AuthToken
     , AuthTokenString
     , ConsoleUrl
     , CreateVolumeRequest
@@ -75,6 +77,14 @@ type alias AuthToken =
 
 
 type alias AuthTokenString =
+    String
+
+
+type alias ApplicationCredentialUuid =
+    String
+
+
+type alias ApplicationCredentialSecret =
     String
 
 

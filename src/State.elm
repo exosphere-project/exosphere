@@ -31,6 +31,7 @@ import Types.Types
         , OpenstackLoginField(..)
         , Project
         , ProjectIdentifier
+        , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
@@ -471,6 +472,16 @@ processProjectSpecificMsg model project msg =
                         Helpers.modelUpdateProject model newProject
 
                     temporaryCreds =
+                        let
+                            -- TODO undo this ugly temporary hack once we support Application Credentials
+                            secret =
+                                case newProject.secret of
+                                    Password_ p ->
+                                        p
+
+                                    ApplicationCredential id secret_ ->
+                                        ""
+                        in
                         OpenstackCreds
                             newProject.endpoints.keystone
                             (if String.isEmpty newProject.auth.projectDomain.name then
@@ -487,7 +498,7 @@ processProjectSpecificMsg model project msg =
                                 newProject.auth.userDomain.uuid
                             )
                             newProject.auth.user.name
-                            newProject.password
+                            secret
                 in
                 ( newModel, Rest.requestAuthToken model.proxyUrl temporaryCreds )
 
@@ -809,7 +820,8 @@ createProject model creds response =
                     Helpers.serviceCatalogToEndpoints authToken.catalog
 
                 newProject =
-                    { password = creds.password
+                    -- TODO let this also be an applicationcredential
+                    { secret = Password_ creds.password
                     , auth = authToken
 
                     -- Maybe todo, eliminate parallel data structures in auth and endpoints?

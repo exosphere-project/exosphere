@@ -22,6 +22,7 @@ module Types.Types exposing
     , Project
     , ProjectIdentifier
     , ProjectName
+    , ProjectSecret(..)
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
     , ProjectViewConstructor(..)
@@ -81,7 +82,7 @@ type alias GlobalDefaults =
 
 
 type alias Project =
-    { password : String
+    { secret : ProjectSecret
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -102,6 +103,15 @@ type alias ProjectIdentifier =
     { name : ProjectName
     , authUrl : HelperTypes.Url
     }
+
+
+
+-- TODO deconflict this Password with the Password in OpenstackCreds
+
+
+type ProjectSecret
+    = Password_ HelperTypes.Password
+    | ApplicationCredential OSTypes.ApplicationCredentialUuid OSTypes.ApplicationCredentialSecret
 
 
 type alias Endpoints =

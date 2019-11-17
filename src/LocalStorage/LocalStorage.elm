@@ -25,7 +25,7 @@ generateStoredState model =
 
 generateStoredProject : Types.Project -> StoredProject
 generateStoredProject project =
-    { password = project.password
+    { secret = project.secret
     , auth = project.auth
     }
 
@@ -49,7 +49,7 @@ hydrateModelFromStoredState model storedState =
 
 hydrateProjectFromStoredProject : StoredProject -> Types.Project
 hydrateProjectFromStoredProject storedProject =
-    { password = storedProject.password
+    { secret = storedProject.secret
     , auth = storedProject.auth
     , endpoints = Helpers.serviceCatalogToEndpoints storedProject.auth.catalog
     , images = []
@@ -72,15 +72,31 @@ hydrateProjectFromStoredProject storedProject =
 encodeStoredState : StoredState -> Encode.Value
 encodeStoredState storedState =
     let
+        secretEncode : Types.ProjectSecret -> Encode.Value
+        secretEncode secret =
+            case secret of
+                Types.Password_ p ->
+                    Encode.object
+                        [ ( "secretType", Encode.string "password" )
+                        , ( "password", Encode.string p )
+                        ]
+
+                Types.ApplicationCredential id secret_ ->
+                    Encode.object
+                        [ ( "secretType", Encode.string "applicationCredential" )
+                        , ( "appCredentialId", Encode.string id )
+                        , ( "appCredentialSecret", Encode.string secret_ )
+                        ]
+
         storedProjectEncode : StoredProject -> Encode.Value
         storedProjectEncode storedProject =
             Encode.object
-                [ ( "password", Encode.string storedProject.password )
+                [ ( "secret", secretEncode storedProject.secret )
                 , ( "auth", encodeAuthToken storedProject.auth )
                 ]
     in
     Encode.object
-        [ ( "3"
+        [ ( "4"
           , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
         ]
@@ -170,8 +186,15 @@ decodeStoredState =
             -- Todo turn this into an actual migration
             [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
             , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
+
+            -- Added user/project domain (name and uuid) to AuthToken
             , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
+
+            -- Removed OpenstackCreds from Project type
             , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode3)
+
+            -- Added ApplicationCredential
+            , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode4)
             ]
         )
 
@@ -199,7 +222,7 @@ storedProject1Or2ToStoredProject sp =
                 sp.auth.tokenValue
     in
     StoredProject
-        sp.password
+        (Types.Password_ sp.password)
         authToken
 
 
@@ -234,8 +257,37 @@ storedProjectDecode2 =
 storedProjectDecode3 : Decode.Decoder StoredProject
 storedProjectDecode3 =
     Decode.map2 StoredProject
-        (Decode.field "password" Decode.string)
+        (Decode.field "password" Decode.string |> Decode.map Types.Password_)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
+
+
+storedProjectDecode4 : Decode.Decoder StoredProject
+storedProjectDecode4 =
+    Decode.map2 StoredProject
+        (Decode.field "secret" decodeProjectSecret)
+        (Decode.field "auth" decodeStoredAuthTokenDetails)
+
+
+decodeProjectSecret : Decode.Decoder Types.ProjectSecret
+decodeProjectSecret =
+    let
+        -- https://thoughtbot.com/blog/5-common-json-decoders#5---conditional-decoding-based-on-a-field
+        projectSecretFromType : String -> Decode.Decoder Types.ProjectSecret
+        projectSecretFromType typeStr =
+            case typeStr of
+                "password" ->
+                    Decode.field "password" Decode.string |> Decode.map Types.Password_
+
+                "applicationCredential" ->
+                    Decode.map2
+                        Types.ApplicationCredential
+                        (Decode.field "appCredentialId" Decode.string)
+                        (Decode.field "appCredentialSecret" Decode.string)
+
+                _ ->
+                    Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
+    in
+    Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
 
 
 decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.AuthToken
