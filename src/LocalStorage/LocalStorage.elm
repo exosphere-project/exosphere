@@ -7,7 +7,7 @@ module LocalStorage.LocalStorage exposing
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject1Or2, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
@@ -176,18 +176,59 @@ decodeStoredState =
         )
 
 
+strToNameAndUuid s =
+    case Helpers.stringIsUuidOrDefault s of
+        True ->
+            OSTypes.NameAndUuid "" s
+
+        False ->
+            OSTypes.NameAndUuid s ""
+
+
+storedProject1Or2ToStoredProject : StoredProject1Or2 -> StoredProject
+storedProject1Or2ToStoredProject sp =
+    let
+        authToken =
+            OSTypes.AuthToken
+                sp.auth.catalog
+                sp.auth.project
+                sp.projDomain
+                sp.auth.user
+                sp.userDomain
+                sp.auth.expiresAt
+                sp.auth.tokenValue
+    in
+    StoredProject
+        sp.password
+        authToken
+
+
 storedProjectDecode1 : Decode.Decoder StoredProject
 storedProjectDecode1 =
-    Decode.map2 StoredProject
+    Decode.map4 StoredProject1Or2
         (Decode.at [ "creds", "password" ] Decode.string)
         (Decode.field "auth" decodeStoredAuthTokenDetails1)
+        (Decode.map strToNameAndUuid <|
+            Decode.at [ "creds", "projectDomain" ] Decode.string
+        )
+        (Decode.map strToNameAndUuid <|
+            Decode.at [ "creds", "userDomain" ] Decode.string
+        )
+        |> Decode.map storedProject1Or2ToStoredProject
 
 
 storedProjectDecode2 : Decode.Decoder StoredProject
 storedProjectDecode2 =
-    Decode.map2 StoredProject
+    Decode.map4 StoredProject1Or2
         (Decode.at [ "creds", "password" ] Decode.string)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
+        (Decode.map strToNameAndUuid <|
+            Decode.at [ "creds", "projectDomain" ] Decode.string
+        )
+        (Decode.map strToNameAndUuid <|
+            Decode.at [ "creds", "userDomain" ] Decode.string
+        )
+        |> Decode.map storedProject1Or2ToStoredProject
 
 
 storedProjectDecode3 : Decode.Decoder StoredProject

@@ -473,9 +473,19 @@ processProjectSpecificMsg model project msg =
                     temporaryCreds =
                         OpenstackCreds
                             newProject.endpoints.keystone
-                            newProject.auth.projectDomain.name
+                            (if String.isEmpty newProject.auth.projectDomain.name then
+                                newProject.auth.projectDomain.name
+
+                             else
+                                newProject.auth.projectDomain.uuid
+                            )
                             newProject.auth.project.name
-                            newProject.auth.userDomain.name
+                            (if String.isEmpty newProject.auth.userDomain.name then
+                                newProject.auth.userDomain.name
+
+                             else
+                                newProject.auth.userDomain.uuid
+                            )
                             newProject.auth.user.name
                             newProject.password
                 in

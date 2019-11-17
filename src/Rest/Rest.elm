@@ -88,6 +88,7 @@ import Types.Types
         , Server
         , ViewState(..)
         )
+import Url
 
 
 
@@ -146,21 +147,26 @@ requestAuthToken maybeProxyUrl creds =
                   )
                 ]
 
-        correctedUrlPath =
-            if String.contains "/auth/tokens" creds.authUrl then
-                -- We previously expected users to provide "/auth/tokens" to be in the Keystone Auth URL; this case statement avoids breaking the app for users who still have that
-                creds.authUrl
+        correctedUrl =
+            let
+                maybeUrl =
+                    Url.fromString creds.authUrl
+            in
+            case maybeUrl of
+                -- Cannot parse URL, so uh, don't make changes to it. We should never be here
+                Nothing ->
+                    creds.authUrl
 
-            else
-                creds.authUrl ++ "/auth/tokens"
+                Just url_ ->
+                    { url_ | path = "/v3/auth/tokens" } |> Url.toString
 
         ( url, headers ) =
             case maybeProxyUrl of
                 Nothing ->
-                    ( correctedUrlPath, [] )
+                    ( correctedUrl, [] )
 
                 Just proxyUrl ->
-                    proxyifyRequest proxyUrl correctedUrlPath
+                    proxyifyRequest proxyUrl correctedUrl
     in
     {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
     Http.request
