@@ -476,7 +476,7 @@ processProjectSpecificMsg model project msg =
                             -- TODO undo this ugly temporary hack once we support Application Credentials
                             secret =
                                 case newProject.secret of
-                                    Password_ p ->
+                                    OpenstackPassword p ->
                                         p
 
                                     ApplicationCredential id secret_ ->
@@ -821,7 +821,7 @@ createProject model creds response =
 
                 newProject =
                     -- TODO let this also be an applicationcredential
-                    { secret = Password_ creds.password
+                    { secret = OpenstackPassword creds.password
                     , auth = authToken
 
                     -- Maybe todo, eliminate parallel data structures in auth and endpoints?

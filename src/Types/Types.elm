@@ -105,12 +105,8 @@ type alias ProjectIdentifier =
     }
 
 
-
--- TODO deconflict this Password with the Password in OpenstackCreds
-
-
 type ProjectSecret
-    = Password_ HelperTypes.Password
+    = OpenstackPassword HelperTypes.Password
     | ApplicationCredential OSTypes.ApplicationCredentialUuid OSTypes.ApplicationCredentialSecret
 
 

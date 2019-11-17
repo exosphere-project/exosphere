@@ -75,7 +75,7 @@ encodeStoredState storedState =
         secretEncode : Types.ProjectSecret -> Encode.Value
         secretEncode secret =
             case secret of
-                Types.Password_ p ->
+                Types.OpenstackPassword p ->
                     Encode.object
                         [ ( "secretType", Encode.string "password" )
                         , ( "password", Encode.string p )
@@ -223,7 +223,7 @@ storedProject1Or2ToStoredProject sp =
                 sp.auth.tokenValue
     in
     StoredProject
-        (Types.Password_ sp.password)
+        (Types.OpenstackPassword sp.password)
         authToken
 
 
@@ -258,7 +258,7 @@ storedProjectDecode2 =
 storedProjectDecode3 : Decode.Decoder StoredProject
 storedProjectDecode3 =
     Decode.map2 StoredProject
-        (Decode.field "password" Decode.string |> Decode.map Types.Password_)
+        (Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
 
 
@@ -277,7 +277,7 @@ decodeProjectSecret =
         projectSecretFromType typeStr =
             case typeStr of
                 "password" ->
-                    Decode.field "password" Decode.string |> Decode.map Types.Password_
+                    Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword
 
                 "applicationCredential" ->
                     Decode.map2
