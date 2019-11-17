@@ -479,7 +479,7 @@ processProjectSpecificMsg model project msg =
                                     OpenstackPassword p ->
                                         p
 
-                                    ApplicationCredential id secret_ ->
+                                    ApplicationCredential _ _ ->
                                         ""
                         in
                         OpenstackCreds

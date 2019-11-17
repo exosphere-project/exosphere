@@ -201,12 +201,11 @@ decodeStoredState =
 
 strToNameAndUuid : String -> OSTypes.NameAndUuid
 strToNameAndUuid s =
-    case Helpers.stringIsUuidOrDefault s of
-        True ->
-            OSTypes.NameAndUuid "" s
+    if Helpers.stringIsUuidOrDefault s then
+        OSTypes.NameAndUuid "" s
 
-        False ->
-            OSTypes.NameAndUuid s ""
+    else
+        OSTypes.NameAndUuid s ""
 
 
 storedProject1Or2ToStoredProject : StoredProject1Or2 -> StoredProject
