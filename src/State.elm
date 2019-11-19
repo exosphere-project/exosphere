@@ -485,17 +485,17 @@ processProjectSpecificMsg model project msg =
                         OpenstackCreds
                             newProject.endpoints.keystone
                             (if String.isEmpty newProject.auth.projectDomain.name then
-                                newProject.auth.projectDomain.name
+                                newProject.auth.projectDomain.uuid
 
                              else
-                                newProject.auth.projectDomain.uuid
+                                newProject.auth.projectDomain.name
                             )
                             newProject.auth.project.name
                             (if String.isEmpty newProject.auth.userDomain.name then
-                                newProject.auth.userDomain.name
+                                newProject.auth.userDomain.uuid
 
                              else
-                                newProject.auth.userDomain.uuid
+                                newProject.auth.userDomain.name
                             )
                             newProject.auth.user.name
                             secret
