@@ -107,7 +107,12 @@ type alias ProjectIdentifier =
 
 type ProjectSecret
     = OpenstackPassword HelperTypes.Password
-    | ApplicationCredential OSTypes.ApplicationCredentialUuid OSTypes.ApplicationCredentialSecret
+    | ApplicationCredential OSTypes.ApplicationCredential
+
+
+type RequestAuthTokenInput
+    = PasswordInput OpenstackCreds
+    | AppCredentialInput Project OSTypes.ApplicationCredential
 
 
 type alias Endpoints =

@@ -1,5 +1,6 @@
 module OpenStack.Types exposing
-    ( ApplicationCredentialSecret
+    ( ApplicationCredential
+    , ApplicationCredentialSecret
     , ApplicationCredentialUuid
     , AuthToken
     , AuthTokenString
@@ -78,6 +79,12 @@ type alias AuthToken =
 
 type alias AuthTokenString =
     String
+
+
+type alias ApplicationCredential =
+    { uuid : ApplicationCredentialUuid
+    , secret : ApplicationCredentialSecret
+    }
 
 
 type alias ApplicationCredentialUuid =

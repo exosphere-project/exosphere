@@ -81,11 +81,11 @@ encodeStoredState storedState =
                         , ( "password", Encode.string p )
                         ]
 
-                Types.ApplicationCredential id secret_ ->
+                Types.ApplicationCredential appCred ->
                     Encode.object
                         [ ( "secretType", Encode.string "applicationCredential" )
-                        , ( "appCredentialId", Encode.string id )
-                        , ( "appCredentialSecret", Encode.string secret_ )
+                        , ( "appCredentialId", Encode.string appCred.uuid )
+                        , ( "appCredentialSecret", Encode.string appCred.secret )
                         ]
 
         storedProjectEncode : StoredProject -> Encode.Value
@@ -280,9 +280,10 @@ decodeProjectSecret =
 
                 "applicationCredential" ->
                     Decode.map2
-                        Types.ApplicationCredential
+                        OSTypes.ApplicationCredential
                         (Decode.field "appCredentialId" Decode.string)
                         (Decode.field "appCredentialSecret" Decode.string)
+                        |> Decode.map Types.ApplicationCredential
 
                 _ ->
                     Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
