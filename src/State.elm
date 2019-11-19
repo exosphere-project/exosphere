@@ -75,8 +75,8 @@ chpasswd:
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
-            , imageFilterTag = Maybe.Just "distro-base"
-            , imageFilterSearchText = Maybe.Just "JS-API-Featured-"
+            , imageFilterTag = Maybe.Nothing
+            , imageFilterSearchText = Maybe.Nothing
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , proxyUrl = flags.proxyUrl
