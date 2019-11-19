@@ -36,6 +36,7 @@ module Rest.Rest exposing
     , receiveSecurityGroupsAndEnsureExoGroup
     , receiveServer
     , receiveServers
+    , requestAppCredential
     , requestAuthToken
     , requestConsoleUrls
     , requestCreateExoSecurityGroupRules
@@ -68,7 +69,13 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (openstackCredentialedRequest, proxyifyRequest)
+import Rest.Helpers
+    exposing
+        ( keystoneUrlWithVersion
+        , openstackCredentialedRequest
+        , proxyifyRequest
+        )
+import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -80,10 +87,10 @@ import Types.Types
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , OpenstackCreds
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , RequestAuthTokenInput(..)
         , Server
         , ViewState(..)
         )
@@ -94,8 +101,8 @@ import Url
 {- HTTP Requests -}
 
 
-requestAuthToken : Maybe HelperTypes.Url -> OpenstackCreds -> Cmd Msg
-requestAuthToken maybeProxyUrl creds =
+requestAuthToken : Maybe HelperTypes.Url -> RequestAuthTokenInput -> Cmd Msg
+requestAuthToken maybeProxyUrl input =
     let
         idOrName str =
             if Helpers.stringIsUuidOrDefault str then
@@ -105,37 +112,18 @@ requestAuthToken maybeProxyUrl creds =
                 "name"
 
         requestBody =
-            Encode.object
-                [ ( "auth"
-                  , Encode.object
-                        [ ( "identity"
+            case input of
+                AppCredentialInput _ appCred ->
+                    Encode.object
+                        [ ( "auth"
                           , Encode.object
-                                [ ( "methods", Encode.list Encode.string [ "password" ] )
-                                , ( "password"
+                                [ ( "identity"
                                   , Encode.object
-                                        [ ( "user"
+                                        [ ( "methods", Encode.list Encode.string [ "application_credential" ] )
+                                        , ( "application_credential"
                                           , Encode.object
-                                                [ ( "name", Encode.string creds.username )
-                                                , ( "domain"
-                                                  , Encode.object
-                                                        [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
-                                                        ]
-                                                  )
-                                                , ( "password", Encode.string creds.password )
-                                                ]
-                                          )
-                                        ]
-                                  )
-                                ]
-                          )
-                        , ( "scope"
-                          , Encode.object
-                                [ ( "project"
-                                  , Encode.object
-                                        [ ( "name", Encode.string creds.projectName )
-                                        , ( "domain"
-                                          , Encode.object
-                                                [ ( idOrName creds.projectDomain, Encode.string creds.projectDomain )
+                                                [ ( "id", Encode.string appCred.uuid )
+                                                , ( "secret", Encode.string appCred.secret )
                                                 ]
                                           )
                                         ]
@@ -143,18 +131,66 @@ requestAuthToken maybeProxyUrl creds =
                                 ]
                           )
                         ]
-                  )
-                ]
+
+                PasswordInput creds ->
+                    Encode.object
+                        [ ( "auth"
+                          , Encode.object
+                                [ ( "identity"
+                                  , Encode.object
+                                        [ ( "methods", Encode.list Encode.string [ "password" ] )
+                                        , ( "password"
+                                          , Encode.object
+                                                [ ( "user"
+                                                  , Encode.object
+                                                        [ ( "name", Encode.string creds.username )
+                                                        , ( "domain"
+                                                          , Encode.object
+                                                                [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
+                                                                ]
+                                                          )
+                                                        , ( "password", Encode.string creds.password )
+                                                        ]
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                , ( "scope"
+                                  , Encode.object
+                                        [ ( "project"
+                                          , Encode.object
+                                                [ ( "name", Encode.string creds.projectName )
+                                                , ( "domain"
+                                                  , Encode.object
+                                                        [ ( idOrName creds.projectDomain, Encode.string creds.projectDomain )
+                                                        ]
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+
+        inputUrl =
+            case input of
+                PasswordInput creds ->
+                    creds.authUrl
+
+                AppCredentialInput project _ ->
+                    project.endpoints.keystone
 
         correctedUrl =
             let
                 maybeUrl =
-                    Url.fromString creds.authUrl
+                    Url.fromString inputUrl
             in
             case maybeUrl of
                 -- Cannot parse URL, so uh, don't make changes to it. We should never be here
                 Nothing ->
-                    creds.authUrl
+                    inputUrl
 
                 Just url_ ->
                     { url_ | path = "/v3/auth/tokens" } |> Url.toString
@@ -177,7 +213,7 @@ requestAuthToken maybeProxyUrl creds =
         {- Todo handle no response? -}
         , expect =
             Http.expectStringResponse
-                (ReceiveAuthToken creds)
+                (ReceiveAuthToken input)
                 (\response ->
                     case response of
                         Http.BadUrl_ url_ ->
@@ -198,6 +234,37 @@ requestAuthToken maybeProxyUrl creds =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+requestAppCredential : Project -> Maybe HelperTypes.Url -> Time.Posix -> Cmd Msg
+requestAppCredential project maybeProxyUrl posixTime =
+    let
+        appCredentialName =
+            "exosphere-" ++ (String.fromInt <| Time.posixToMillis posixTime)
+
+        requestBody =
+            Encode.object
+                [ ( "application_credential"
+                  , Encode.object
+                        {- TODO this needs to be unique, perhaps with a timestamp -}
+                        [ ( "name", Encode.string appCredentialName )
+                        ]
+                  )
+                ]
+
+        urlWithVersion =
+            keystoneUrlWithVersion project.endpoints.keystone
+    in
+    openstackCredentialedRequest
+        project
+        maybeProxyUrl
+        Post
+        (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
+        (Http.jsonBody requestBody)
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveAppCredential result))
+            decodeAppCredential
+        )
 
 
 requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
@@ -1367,6 +1434,13 @@ decodeAuthTokenDetails =
         (Decode.at [ "token", "expires_at" ] Decode.string
             |> Decode.andThen iso8601StringToPosixDecodeError
         )
+
+
+decodeAppCredential : Decode.Decoder OSTypes.ApplicationCredential
+decodeAppCredential =
+    Decode.map2 OSTypes.ApplicationCredential
+        (Decode.at [ "application_credential", "id" ] Decode.string)
+        (Decode.at [ "application_credential", "secret" ] Decode.string)
 
 
 openstackServiceDecoder : Decode.Decoder OSTypes.Service

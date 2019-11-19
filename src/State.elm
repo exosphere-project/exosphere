@@ -13,6 +13,7 @@ import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
 import Rest.Rest as Rest
+import Task
 import Time
 import Toasty
 import Types.Types
@@ -34,6 +35,7 @@ import Types.Types
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , RequestAuthTokenInput(..)
         , Server
         , ViewState(..)
         )
@@ -108,13 +110,34 @@ chpasswd:
         hydratedModel : Model
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState emptyModel storedState
+
+        -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
+        projectsNeedingAppCredentials : List Project
+        projectsNeedingAppCredentials =
+            let
+                projectNeedsAppCredential p =
+                    case p.secret of
+                        OpenstackPassword _ ->
+                            True
+
+                        ApplicationCredential _ ->
+                            False
+            in
+            List.filter projectNeedsAppCredential hydratedModel.projects
+
+        getAppCredentialCmds =
+            List.map getTimeForAppCredential projectsNeedingAppCredentials
     in
     case hydratedModel.viewState of
         ProjectView projectName ListProjectServers ->
-            update (ProjectMsg projectName RequestServers) hydratedModel
+            let
+                ( newModel, newCmds ) =
+                    update (ProjectMsg projectName RequestServers) hydratedModel
+            in
+            ( newModel, Cmd.batch (newCmds :: getAppCredentialCmds) )
 
         _ ->
-            ( hydratedModel, Cmd.none )
+            ( hydratedModel, Cmd.batch getAppCredentialCmds )
 
 
 subscriptions : Model -> Sub Msg
@@ -195,31 +218,58 @@ updateUnderlying msg model =
                 newOpenstackCreds =
                     { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.requestAuthToken model.proxyUrl newOpenstackCreds )
+            ( model, Rest.requestAuthToken model.proxyUrl <| Types.Types.PasswordInput newOpenstackCreds )
 
         JetstreamLogin jetstreamCreds ->
             let
                 openstackCreds =
                     Helpers.jetstreamToOpenstackCreds jetstreamCreds
             in
-            ( model, Rest.requestAuthToken model.proxyUrl openstackCreds )
+            ( model, Rest.requestAuthToken model.proxyUrl <| PasswordInput openstackCreds )
 
-        ReceiveAuthToken creds responseResult ->
+        ReceiveAuthToken authTokenInput responseResult ->
             case responseResult of
                 Err error ->
                     Helpers.processError model error
 
                 Ok ( metadata, response ) ->
+                    let
+                        projectId =
+                            case authTokenInput of
+                                PasswordInput creds ->
+                                    ProjectIdentifier creds.authUrl creds.projectName
+
+                                AppCredentialInput project _ ->
+                                    ProjectIdentifier project.endpoints.keystone project.auth.project.name
+                    in
                     -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                     -- This code ensures we don't end up with duplicate projects on the same provider in our model.
                     case
-                        Helpers.projectLookup model <| ProjectIdentifier creds.authUrl creds.projectName
+                        Helpers.projectLookup model <| projectId
                     of
                         Nothing ->
-                            createProject model creds (Http.GoodStatus_ metadata response)
+                            case authTokenInput of
+                                PasswordInput creds ->
+                                    createProject model creds (Http.GoodStatus_ metadata response)
+
+                                AppCredentialInput _ _ ->
+                                    Helpers.processError model "We should have a project here but we don't"
 
                         Just project ->
-                            projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
+                            -- If we obtained this auth token with a password then get an application credential
+                            let
+                                appCredCmd =
+                                    case authTokenInput of
+                                        AppCredentialInput _ _ ->
+                                            Cmd.none
+
+                                        PasswordInput _ ->
+                                            getTimeForAppCredential project
+
+                                ( newModel, updateTokenCmd ) =
+                                    projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
+                            in
+                            ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
         -- Rest.receiveAuthToken model creds response
         ProjectMsg projectIdentifier innerMsg ->
@@ -471,36 +521,32 @@ processProjectSpecificMsg model project msg =
                     newModel =
                         Helpers.modelUpdateProject model newProject
 
-                    temporaryCreds =
-                        let
-                            -- TODO undo this ugly temporary hack once we support Application Credentials
-                            secret =
-                                case newProject.secret of
-                                    OpenstackPassword p ->
-                                        p
+                    authTokenInput =
+                        case newProject.secret of
+                            OpenstackPassword password ->
+                                PasswordInput <|
+                                    OpenstackCreds
+                                        newProject.endpoints.keystone
+                                        (if String.isEmpty newProject.auth.projectDomain.name then
+                                            newProject.auth.projectDomain.uuid
 
-                                    ApplicationCredential _ _ ->
-                                        ""
-                        in
-                        OpenstackCreds
-                            newProject.endpoints.keystone
-                            (if String.isEmpty newProject.auth.projectDomain.name then
-                                newProject.auth.projectDomain.uuid
+                                         else
+                                            newProject.auth.projectDomain.name
+                                        )
+                                        newProject.auth.project.name
+                                        (if String.isEmpty newProject.auth.userDomain.name then
+                                            newProject.auth.userDomain.uuid
 
-                             else
-                                newProject.auth.projectDomain.name
-                            )
-                            newProject.auth.project.name
-                            (if String.isEmpty newProject.auth.userDomain.name then
-                                newProject.auth.userDomain.uuid
+                                         else
+                                            newProject.auth.userDomain.name
+                                        )
+                                        newProject.auth.user.name
+                                        password
 
-                             else
-                                newProject.auth.userDomain.name
-                            )
-                            newProject.auth.user.name
-                            secret
+                            ApplicationCredential appCred ->
+                                AppCredentialInput newProject appCred
                 in
-                ( newModel, Rest.requestAuthToken model.proxyUrl temporaryCreds )
+                ( newModel, Rest.requestAuthToken model.proxyUrl authTokenInput )
 
         RemoveProject ->
             let
@@ -806,6 +852,21 @@ processProjectSpecificMsg model project msg =
                     {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
                     update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
 
+        ReceiveAppCredential result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok appCredential ->
+                    let
+                        newProject =
+                            { project | secret = ApplicationCredential appCredential }
+                    in
+                    ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
+        RequestAppCredential posix ->
+            ( model, Rest.requestAppCredential project model.proxyUrl posix )
+
 
 createProject : Model -> OpenstackCreds -> Http.Response String -> ( Model, Cmd Msg )
 createProject model creds response =
@@ -820,7 +881,6 @@ createProject model creds response =
                     Helpers.serviceCatalogToEndpoints authToken.catalog
 
                 newProject =
-                    -- TODO let this also be an applicationcredential
                     { secret = OpenstackPassword creds.password
                     , auth = authToken
 
@@ -853,6 +913,7 @@ createProject model creds response =
               , Rest.requestFloatingIps
               ]
                 |> List.map (\x -> x newProject model.proxyUrl)
+                |> (\l -> getTimeForAppCredential newProject :: l)
                 |> Cmd.batch
             )
 
@@ -892,3 +953,8 @@ sendPendingRequests model project =
             Helpers.modelUpdateProject model newProject
     in
     ( newModel, Cmd.batch cmds )
+
+
+getTimeForAppCredential : Project -> Cmd Msg
+getTimeForAppCredential project =
+    Task.perform (\posixTime -> ProjectMsg (Helpers.getProjectId project) (RequestAppCredential posixTime)) Time.now

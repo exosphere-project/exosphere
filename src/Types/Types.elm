@@ -26,6 +26,7 @@ module Types.Types exposing
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
     , ProjectViewConstructor(..)
+    , RequestAuthTokenInput(..)
     , Server
     , ServerUiStatus(..)
     , VerboseStatus
@@ -129,7 +130,7 @@ type Msg
     | SetNonProjectView NonProjectViewConstructor
     | RequestNewProjectToken OpenstackCreds
     | JetstreamLogin JetstreamCreds
-    | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveAuthToken RequestAuthTokenInput (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenstackLoginField OpenstackCreds OpenstackLoginField
     | InputJetstreamLoginField JetstreamCreds JetstreamLoginField
@@ -144,7 +145,9 @@ type Msg
 
 type ProjectSpecificMsgConstructor
     = SetProjectView ProjectViewConstructor
+    | ReceiveAppCredential (Result Http.Error OSTypes.ApplicationCredential)
     | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
+    | RequestAppCredential Time.Posix
     | RemoveProject
     | SelectServer Server Bool
     | SelectAllServers Bool

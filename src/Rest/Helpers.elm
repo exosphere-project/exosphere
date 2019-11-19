@@ -1,4 +1,8 @@
-module Rest.Helpers exposing (openstackCredentialedRequest, proxyifyRequest)
+module Rest.Helpers exposing
+    ( keystoneUrlWithVersion
+    , openstackCredentialedRequest
+    , proxyifyRequest
+    )
 
 import Helpers.Helpers as Helpers
 import Http
@@ -98,3 +102,19 @@ proxyifyRequest proxyServerUrl requestUrlStr =
       , Http.header "exo-proxy-orig-port" <| String.fromInt origPort
       ]
     )
+
+
+keystoneUrlWithVersion : String -> String
+keystoneUrlWithVersion inputUrl =
+    -- Some clouds have a service catalog specifying "/v3" in the path of the Keystone admin API, whereas some don't, so we need to add it.
+    case Url.fromString inputUrl of
+        Nothing ->
+            -- Cannot parse URL, return as-is
+            inputUrl
+
+        Just url ->
+            if String.contains "/v3" url.path then
+                inputUrl
+
+            else
+                Url.toString { url | path = "/v3" }
