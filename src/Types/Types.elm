@@ -125,7 +125,7 @@ type Msg
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | InputImageFilterTag String
-      --    | InputImageFilterText String
+    | InputImageFilterSearchText String
     | OpenInBrowser String
     | OpenNewWindow String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)

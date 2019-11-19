@@ -71,6 +71,12 @@ images globalDefaults project maybeFilterTag maybeFilterSearchText =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Choose an image")
         , Input.text []
+            { text = Maybe.withDefault "" maybeFilterSearchText
+            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+            , onChange = \t -> InputImageFilterSearchText t
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
+            }
+        , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
             , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
             , onChange = \t -> InputImageFilterTag t

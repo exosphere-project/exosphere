@@ -299,6 +299,20 @@ updateUnderlying msg model =
             in
             ( newModel, Cmd.none )
 
+        InputImageFilterSearchText inputSearchText ->
+            let
+                maybeSearchText =
+                    if inputSearchText == "" then
+                        Nothing
+
+                    else
+                        Just inputSearchText
+
+                newModel =
+                    { model | imageFilterSearchText = maybeSearchText }
+            in
+            ( newModel, Cmd.none )
+
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
 
