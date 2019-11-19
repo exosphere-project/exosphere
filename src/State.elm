@@ -76,6 +76,7 @@ chpasswd:
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
             , imageFilterTag = Maybe.Just "distro-base"
+            , imageFilterSearchText = Maybe.Just "JS-API-Featured-"
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , proxyUrl = flags.proxyUrl
