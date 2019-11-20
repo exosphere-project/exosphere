@@ -5,7 +5,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
-import Types.Types exposing (JetstreamCreds, JetstreamLoginField(..), JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackCreds, OpenstackLoginField(..))
+import OpenStack.Types as OSTypes
+import Types.Types exposing (JetstreamCreds, JetstreamLoginField(..), JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackLoginField(..))
 import View.Helpers as VH
 import View.Types
 
@@ -22,7 +23,7 @@ viewLoginPicker =
                     (Just
                         (SetNonProjectView
                             (LoginOpenstack
-                                (OpenstackCreds "" "" "" "" "" "")
+                                (OSTypes.OpenstackLogin "" "" "" "" "" "")
                             )
                         )
                     )
@@ -45,7 +46,7 @@ viewLoginPicker =
         ]
 
 
-viewLoginOpenstack : Model -> OpenstackCreds -> Element.Element Msg
+viewLoginOpenstack : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
 viewLoginOpenstack model openstackCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el
@@ -65,7 +66,7 @@ viewLoginOpenstack model openstackCreds =
         ]
 
 
-loginOpenstackCredsEntry : Model -> OpenstackCreds -> Element.Element Msg
+loginOpenstackCredsEntry : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
 loginOpenstackCredsEntry _ openstackCreds =
     Element.column
         (VH.exoColumnAttributes
@@ -126,7 +127,7 @@ loginOpenstackCredsEntry _ openstackCreds =
         ]
 
 
-loginOpenstackOpenRcEntry : Model -> OpenstackCreds -> Element.Element Msg
+loginOpenstackOpenRcEntry : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
 loginOpenstackOpenRcEntry _ openstackCreds =
     Element.column
         (VH.exoColumnAttributes

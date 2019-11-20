@@ -1,6 +1,6 @@
 module Rest.Rest exposing
     ( addFloatingIpInServerDetails
-    , createProject
+    , decodeAuthToken
     , decodeFlavors
     , decodeFloatingIpCreation
     , decodeImages
@@ -20,7 +20,6 @@ module Rest.Rest exposing
     , openstackEndpointInterfaceDecoder
     , openstackServiceDecoder
     , portDecoder
-    , receiveAuthToken
     , receiveCockpitLoginStatus
     , receiveConsoleUrl
     , receiveCreateExoSecurityGroupAndRequestCreateRules
@@ -37,6 +36,7 @@ module Rest.Rest exposing
     , receiveSecurityGroupsAndEnsureExoGroup
     , receiveServer
     , receiveServers
+    , requestAppCredential
     , requestAuthToken
     , requestConsoleUrls
     , requestCreateExoSecurityGroupRules
@@ -51,6 +51,7 @@ module Rest.Rest exposing
     , requestImages
     , requestKeypairs
     , requestNetworks
+    , requestSecurityGroups
     , requestServer
     , requestServers
     , serverDecoder
@@ -68,7 +69,13 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (openstackCredentialedRequest, proxyifyRequest)
+import Rest.Helpers
+    exposing
+        ( keystoneUrlWithVersion
+        , openstackCredentialedRequest
+        , proxyifyRequest
+        )
+import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -80,21 +87,21 @@ import Types.Types
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , OpenstackCreds
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
         , ViewState(..)
         )
+import Url
 
 
 
 {- HTTP Requests -}
 
 
-requestAuthToken : Maybe HelperTypes.Url -> OpenstackCreds -> Cmd Msg
-requestAuthToken maybeProxyUrl creds =
+requestAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
+requestAuthToken maybeProxyUrl input =
     let
         idOrName str =
             if Helpers.stringIsUuidOrDefault str then
@@ -104,37 +111,18 @@ requestAuthToken maybeProxyUrl creds =
                 "name"
 
         requestBody =
-            Encode.object
-                [ ( "auth"
-                  , Encode.object
-                        [ ( "identity"
+            case input of
+                OSTypes.AppCreds _ appCred ->
+                    Encode.object
+                        [ ( "auth"
                           , Encode.object
-                                [ ( "methods", Encode.list Encode.string [ "password" ] )
-                                , ( "password"
+                                [ ( "identity"
                                   , Encode.object
-                                        [ ( "user"
+                                        [ ( "methods", Encode.list Encode.string [ "application_credential" ] )
+                                        , ( "application_credential"
                                           , Encode.object
-                                                [ ( "name", Encode.string creds.username )
-                                                , ( "domain"
-                                                  , Encode.object
-                                                        [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
-                                                        ]
-                                                  )
-                                                , ( "password", Encode.string creds.password )
-                                                ]
-                                          )
-                                        ]
-                                  )
-                                ]
-                          )
-                        , ( "scope"
-                          , Encode.object
-                                [ ( "project"
-                                  , Encode.object
-                                        [ ( "name", Encode.string creds.projectName )
-                                        , ( "domain"
-                                          , Encode.object
-                                                [ ( idOrName creds.projectDomain, Encode.string creds.projectDomain )
+                                                [ ( "id", Encode.string appCred.uuid )
+                                                , ( "secret", Encode.string appCred.secret )
                                                 ]
                                           )
                                         ]
@@ -142,36 +130,97 @@ requestAuthToken maybeProxyUrl creds =
                                 ]
                           )
                         ]
-                  )
-                ]
 
-        correctedUrlPath =
-            if String.contains "/auth/tokens" creds.authUrl then
-                -- We previously expected users to provide "/auth/tokens" to be in the Keystone Auth URL; this case statement avoids breaking the app for users who still have that
-                creds.authUrl
+                OSTypes.PasswordCreds creds ->
+                    Encode.object
+                        [ ( "auth"
+                          , Encode.object
+                                [ ( "identity"
+                                  , Encode.object
+                                        [ ( "methods", Encode.list Encode.string [ "password" ] )
+                                        , ( "password"
+                                          , Encode.object
+                                                [ ( "user"
+                                                  , Encode.object
+                                                        [ ( "name", Encode.string creds.username )
+                                                        , ( "domain"
+                                                          , Encode.object
+                                                                [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
+                                                                ]
+                                                          )
+                                                        , ( "password", Encode.string creds.password )
+                                                        ]
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                , ( "scope"
+                                  , Encode.object
+                                        [ ( "project"
+                                          , Encode.object
+                                                [ ( "name", Encode.string creds.projectName )
+                                                , ( "domain"
+                                                  , Encode.object
+                                                        [ ( idOrName creds.projectDomain, Encode.string creds.projectDomain )
+                                                        ]
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
 
-            else
-                creds.authUrl ++ "/auth/tokens"
+        inputUrl =
+            case input of
+                OSTypes.PasswordCreds creds ->
+                    creds.authUrl
 
-        ( url, headers ) =
+                OSTypes.AppCreds url _ ->
+                    url
+
+        correctedUrl =
+            let
+                maybeUrl =
+                    Url.fromString inputUrl
+            in
+            case maybeUrl of
+                -- Cannot parse URL, so uh, don't make changes to it. We should never be here
+                Nothing ->
+                    inputUrl
+
+                Just url_ ->
+                    { url_ | path = "/v3/auth/tokens" } |> Url.toString
+
+        ( finalUrl, headers ) =
             case maybeProxyUrl of
                 Nothing ->
-                    ( correctedUrlPath, [] )
+                    ( correctedUrl, [] )
 
                 Just proxyUrl ->
-                    proxyifyRequest proxyUrl correctedUrlPath
+                    proxyifyRequest proxyUrl correctedUrl
+
+        maybePassword =
+            case input of
+                OSTypes.PasswordCreds c ->
+                    Just c.password
+
+                _ ->
+                    Nothing
     in
     {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
     Http.request
         { method = "POST"
         , headers = headers
-        , url = url
+        , url = finalUrl
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
         , expect =
             Http.expectStringResponse
-                (ReceiveAuthToken creds)
+                (ReceiveAuthToken maybePassword)
                 (\response ->
                     case response of
                         Http.BadUrl_ url_ ->
@@ -192,6 +241,37 @@ requestAuthToken maybeProxyUrl creds =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+requestAppCredential : Project -> Maybe HelperTypes.Url -> Time.Posix -> Cmd Msg
+requestAppCredential project maybeProxyUrl posixTime =
+    let
+        appCredentialName =
+            "exosphere-" ++ (String.fromInt <| Time.posixToMillis posixTime)
+
+        requestBody =
+            Encode.object
+                [ ( "application_credential"
+                  , Encode.object
+                        {- TODO this needs to be unique, perhaps with a timestamp -}
+                        [ ( "name", Encode.string appCredentialName )
+                        ]
+                  )
+                ]
+
+        urlWithVersion =
+            keystoneUrlWithVersion project.endpoints.keystone
+    in
+    openstackCredentialedRequest
+        project
+        maybeProxyUrl
+        Post
+        (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
+        (Http.jsonBody requestBody)
+        (Http.expectJson
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveAppCredential result))
+            decodeAppCredential
+        )
 
 
 requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
@@ -717,114 +797,6 @@ requestCockpitLogin project serverUuid password ipAddress =
 
 
 {- HTTP Response Handling -}
-
-
-receiveAuthToken : Model -> OpenstackCreds -> Result Http.Error ( Http.Metadata, String ) -> ( Model, Cmd Msg )
-receiveAuthToken model creds responseResult =
-    case responseResult of
-        Err error ->
-            Helpers.processError model error
-
-        Ok ( metadata, response ) ->
-            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-            case
-                model.projects
-                    |> List.filter (\p -> p.creds.authUrl == creds.authUrl)
-                    |> List.filter (\p -> p.creds.projectName == creds.projectName)
-                    |> List.head
-            of
-                Nothing ->
-                    createProject model creds (Http.GoodStatus_ metadata response)
-
-                Just project ->
-                    projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
-
-
-createProject : Model -> OpenstackCreds -> Http.Response String -> ( Model, Cmd Msg )
-createProject model creds response =
-    -- Create new project
-    case decodeAuthToken response of
-        Err error ->
-            Helpers.processError model error
-
-        Ok authToken ->
-            let
-                endpoints =
-                    Helpers.serviceCatalogToEndpoints authToken.catalog
-
-                newProject =
-                    { creds = creds
-                    , auth = authToken
-
-                    -- Maybe todo, eliminate parallel data structures in auth and endpoints?
-                    , endpoints = endpoints
-                    , images = []
-                    , servers = RemoteData.NotAsked
-                    , flavors = []
-                    , keypairs = []
-                    , volumes = RemoteData.NotAsked
-                    , networks = []
-                    , floatingIps = []
-                    , ports = []
-                    , securityGroups = []
-                    , pendingCredentialedRequests = []
-                    }
-
-                newProjects =
-                    newProject :: model.projects
-
-                newModel =
-                    { model
-                        | projects = newProjects
-                        , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
-                    }
-            in
-            ( newModel
-            , [ requestServers
-              , requestSecurityGroups
-              , requestFloatingIps
-              ]
-                |> List.map (\x -> x newProject model.proxyUrl)
-                |> Cmd.batch
-            )
-
-
-projectUpdateAuthToken : Model -> Project -> Http.Response String -> ( Model, Cmd Msg )
-projectUpdateAuthToken model project response =
-    -- Update auth token for existing project
-    case decodeAuthToken response of
-        Err error ->
-            Helpers.processError model error
-
-        Ok authToken ->
-            let
-                newProject =
-                    { project | auth = authToken }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            sendPendingRequests newModel newProject
-
-
-sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
-sendPendingRequests model project =
-    -- Fires any pending commands which were waiting for auth token renewal
-    -- This function assumes our token is valid (does not check for expiry).
-    let
-        -- Hydrate cmds with auth token
-        cmds =
-            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
-
-        -- Clear out pendingCredentialedRequests
-        newProject =
-            { project | pendingCredentialedRequests = [] }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.batch cmds )
 
 
 receiveImages : Model -> Project -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )
@@ -1446,13 +1418,36 @@ decodeAuthTokenDetails =
     in
     Decode.map6 OSTypes.AuthToken
         (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
-        (Decode.at [ "token", "project", "id" ] Decode.string)
-        (Decode.at [ "token", "project", "name" ] Decode.string)
-        (Decode.at [ "token", "user", "id" ] Decode.string)
-        (Decode.at [ "token", "user", "name" ] Decode.string)
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "project", "name" ] Decode.string)
+            (Decode.at [ "token", "project", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "project", "domain", "name" ] Decode.string)
+            (Decode.at [ "token", "project", "domain", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "domain", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
+        )
         (Decode.at [ "token", "expires_at" ] Decode.string
             |> Decode.andThen iso8601StringToPosixDecodeError
         )
+
+
+decodeAppCredential : Decode.Decoder OSTypes.ApplicationCredential
+decodeAppCredential =
+    Decode.map2 OSTypes.ApplicationCredential
+        (Decode.at [ "application_credential", "id" ] Decode.string)
+        (Decode.at [ "application_credential", "secret" ] Decode.string)
 
 
 openstackServiceDecoder : Decode.Decoder OSTypes.Service

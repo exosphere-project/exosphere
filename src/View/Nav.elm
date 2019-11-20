@@ -96,7 +96,7 @@ projectTitleForNavMenu model project =
     -- If we have multiple projects on the same provider then append the project name to the provider name
     let
         providerTitle =
-            project.creds.authUrl
+            project.endpoints.keystone
                 |> Helpers.hostnameFromUrl
                 |> Helpers.titleFromHostname
 
@@ -106,7 +106,7 @@ projectTitleForNavMenu model project =
                     let
                         projectsOnSameProvider : Project -> Project -> Bool
                         projectsOnSameProvider proj1 proj2 =
-                            Helpers.hostnameFromUrl proj1.creds.authUrl == Helpers.hostnameFromUrl proj2.creds.authUrl
+                            Helpers.hostnameFromUrl proj1.endpoints.keystone == Helpers.hostnameFromUrl proj2.endpoints.keystone
                     in
                     List.filter (projectsOnSameProvider project) model.projects
                         |> List.length
@@ -114,7 +114,7 @@ projectTitleForNavMenu model project =
             projectCountOnSameProvider > 1
     in
     if multipleProjects then
-        providerTitle ++ String.fromChar '\n' ++ "(" ++ project.creds.projectName ++ ")"
+        providerTitle ++ String.fromChar '\n' ++ "(" ++ project.auth.project.name ++ ")"
 
     else
         providerTitle

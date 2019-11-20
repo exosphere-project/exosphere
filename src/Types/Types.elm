@@ -16,12 +16,12 @@ module Types.Types exposing
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
-    , OpenstackCreds
     , OpenstackLoginField(..)
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
     , ProjectName
+    , ProjectSecret(..)
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
     , ProjectViewConstructor(..)
@@ -81,7 +81,7 @@ type alias GlobalDefaults =
 
 
 type alias Project =
-    { creds : OpenstackCreds
+    { secret : ProjectSecret
     , auth : OSTypes.AuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
@@ -104,9 +104,15 @@ type alias ProjectIdentifier =
     }
 
 
+type ProjectSecret
+    = OpenstackPassword HelperTypes.Password
+    | ApplicationCredential OSTypes.ApplicationCredential
+
+
 type alias Endpoints =
     { cinder : HelperTypes.Url
     , glance : HelperTypes.Url
+    , keystone : HelperTypes.Url
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     }
@@ -115,11 +121,11 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
-    | RequestNewProjectToken OpenstackCreds
+    | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveAuthToken OpenstackCreds (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputOpenstackLoginField OpenstackCreds OpenstackLoginField
+    | InputOpenstackLoginField OSTypes.OpenstackLogin OpenstackLoginField
     | InputJetstreamLoginField JetstreamCreds JetstreamLoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
@@ -132,7 +138,9 @@ type Msg
 
 type ProjectSpecificMsgConstructor
     = SetProjectView ProjectViewConstructor
+    | ReceiveAppCredential (Result Http.Error OSTypes.ApplicationCredential)
     | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
+    | RequestAppCredential Time.Posix
     | RemoveProject
     | SelectServer Server Bool
     | SelectAllServers Bool
@@ -178,7 +186,7 @@ type ViewState
 
 type NonProjectViewConstructor
     = LoginPicker
-    | LoginOpenstack OpenstackCreds
+    | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
     | MessageLog
     | HelpAbout
@@ -237,16 +245,6 @@ type CreateServerField
     | CreateServerVolBacked Bool
     | CreateServerVolBackedSize String
     | CreateServerNetworkUuid OSTypes.NetworkUuid
-
-
-type alias OpenstackCreds =
-    { authUrl : String
-    , projectDomain : String
-    , projectName : String
-    , userDomain : String
-    , username : String
-    , password : String
-    }
 
 
 type JetstreamLoginField

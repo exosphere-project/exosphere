@@ -57,7 +57,6 @@ import Types.Types
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , OpenstackCreds
         , Project
         , ProjectIdentifier
         , Server
@@ -135,7 +134,7 @@ stringIsUuidOrDefault str =
     stringIsUuid || stringIsDefault
 
 
-processOpenRc : OpenstackCreds -> String -> OpenstackCreds
+processOpenRc : OSTypes.OpenstackLogin -> String -> OSTypes.OpenstackLogin
 processOpenRc existingCreds openRc =
     let
         regexes =
@@ -158,7 +157,7 @@ processOpenRc existingCreds openRc =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
     in
-    OpenstackCreds
+    OSTypes.OpenstackLogin
         (newField regexes.authUrl existingCreds.authUrl)
         (newField regexes.projectDomain existingCreds.projectDomain)
         (newField regexes.projectName existingCreds.projectName)
@@ -220,25 +219,16 @@ authUrlWithPortAndVersion authUrlStr =
 
 
 hostnameFromUrl : HelperTypes.Url -> String
-hostnameFromUrl url =
+hostnameFromUrl urlStr =
     let
-        r =
-            alwaysRegex ".*\\/\\/(.*?)(:\\d+)?\\/.*"
-
-        matches =
-            Regex.findAtMost 1 r url
-
-        maybeMaybeName =
-            matches
-                |> List.head
-                |> Maybe.map (\x -> x.submatches)
-                |> Maybe.andThen List.head
+        maybeUrl =
+            Url.fromString urlStr
     in
-    case maybeMaybeName of
-        Just (Just name) ->
-            name
+    case maybeUrl of
+        Just url ->
+            url.host
 
-        _ ->
+        Nothing ->
             "placeholder-url-unparseable"
 
 
@@ -276,6 +266,7 @@ serviceCatalogToEndpoints catalog =
     Endpoints
         (getServicePublicUrl "cinderv3" catalog)
         (getServicePublicUrl "glance" catalog)
+        (getServicePublicUrl "keystone" catalog)
         (getServicePublicUrl "nova" catalog)
         (getServicePublicUrl "neutron" catalog)
 
@@ -351,14 +342,14 @@ serverLookup project serverUuid =
 projectLookup : Model -> ProjectIdentifier -> Maybe Project
 projectLookup model projectIdentifier =
     model.projects
-        |> List.filter (\p -> p.creds.projectName == projectIdentifier.name)
-        |> List.filter (\p -> p.creds.authUrl == projectIdentifier.authUrl)
+        |> List.filter (\p -> p.auth.project.name == projectIdentifier.name)
+        |> List.filter (\p -> p.endpoints.keystone == projectIdentifier.authUrl)
         |> List.head
 
 
 getProjectId : Project -> ProjectIdentifier
 getProjectId project =
-    ProjectIdentifier project.creds.projectName project.creds.authUrl
+    ProjectIdentifier project.auth.project.name project.endpoints.keystone
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
@@ -388,8 +379,8 @@ modelUpdateProject model newProject =
 
         newProjectsSorted =
             newProjects
-                |> List.sortBy (\p -> p.creds.projectName)
-                |> List.sortBy (\p -> hostnameFromUrl p.creds.authUrl)
+                |> List.sortBy (\p -> p.auth.project.name)
+                |> List.sortBy (\p -> hostnameFromUrl p.endpoints.keystone)
     in
     { model | projects = newProjectsSorted }
 
@@ -621,7 +612,7 @@ newServerNetworkOptions project =
 
         maybeProjectNameNet =
             projectNets
-                |> List.filter (\n -> String.contains project.auth.projectName n.name)
+                |> List.filter (\n -> String.contains project.auth.project.name n.name)
                 |> List.head
     in
     case projectNets of
@@ -677,7 +668,7 @@ getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
 
 
-jetstreamToOpenstackCreds : JetstreamCreds -> OpenstackCreds
+jetstreamToOpenstackCreds : JetstreamCreds -> OSTypes.OpenstackLogin
 jetstreamToOpenstackCreds jetstreamCreds =
     let
         authUrlBase =
@@ -692,7 +683,7 @@ jetstreamToOpenstackCreds jetstreamCreds =
         authUrl =
             "https://" ++ authUrlBase ++ ":5000/v3/auth/tokens"
     in
-    OpenstackCreds
+    OSTypes.OpenstackLogin
         authUrl
         "tacc"
         jetstreamCreds.jetstreamProjectName

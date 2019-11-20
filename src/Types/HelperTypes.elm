@@ -1,4 +1,4 @@
-module Types.HelperTypes exposing (Url, Uuid)
+module Types.HelperTypes exposing (Password, Url, Uuid)
 
 
 type alias Url =
@@ -6,4 +6,8 @@ type alias Url =
 
 
 type alias Uuid =
+    String
+
+
+type alias Password =
     String

@@ -1,8 +1,12 @@
 module OpenStack.Types exposing
-    ( AuthToken
+    ( ApplicationCredential
+    , ApplicationCredentialSecret
+    , ApplicationCredentialUuid
+    , AuthToken
     , AuthTokenString
     , ConsoleUrl
     , CreateVolumeRequest
+    , CredentialsForAuthToken(..)
     , Endpoint
     , EndpointInterface(..)
     , Flavor
@@ -15,12 +19,13 @@ module OpenStack.Types exposing
     , IpAddressUuid
     , IpAddressValue
     , Keypair
+    , KeystoneUrl
     , MetadataItem
+    , NameAndUuid
     , Network
     , NetworkUuid
+    , OpenstackLogin
     , Port
-    , ProjectName
-    , ProjectUuid
     , SecurityGroup
     , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
@@ -33,9 +38,6 @@ module OpenStack.Types exposing
     , ServerUuid
     , Service
     , ServiceCatalog
-    , ServiceName(..)
-    , UserName
-    , UserUuid
     , Volume
     , VolumeAttachment
     , VolumeAttachmentDevice
@@ -67,12 +69,16 @@ type alias MetadataItem =
 -- Keystone
 
 
+type alias KeystoneUrl =
+    HelperTypes.Url
+
+
 type alias AuthToken =
     { catalog : ServiceCatalog
-    , projectUuid : ProjectUuid
-    , projectName : ProjectName
-    , userUuid : UserUuid
-    , userName : UserName
+    , project : NameAndUuid
+    , projectDomain : NameAndUuid
+    , user : NameAndUuid
+    , userDomain : NameAndUuid
     , expiresAt : Time.Posix
     , tokenValue : AuthTokenString
     }
@@ -82,20 +88,24 @@ type alias AuthTokenString =
     String
 
 
-type alias ProjectUuid =
-    HelperTypes.Uuid
+type alias ApplicationCredential =
+    { uuid : ApplicationCredentialUuid
+    , secret : ApplicationCredentialSecret
+    }
 
 
-type alias ProjectName =
+type alias ApplicationCredentialUuid =
     String
 
 
-type alias UserUuid =
-    HelperTypes.Uuid
-
-
-type alias UserName =
+type alias ApplicationCredentialSecret =
     String
+
+
+type alias NameAndUuid =
+    { name : String
+    , uuid : HelperTypes.Uuid
+    }
 
 
 type alias ServiceCatalog =
@@ -109,12 +119,6 @@ type alias Service =
     }
 
 
-type ServiceName
-    = Glance
-    | Nova
-    | Neutron
-
-
 type alias Endpoint =
     { interface : EndpointInterface
     , url : HelperTypes.Url
@@ -125,6 +129,21 @@ type EndpointInterface
     = Public
     | Admin
     | Internal
+
+
+type alias OpenstackLogin =
+    { authUrl : KeystoneUrl
+    , projectDomain : String
+    , projectName : String
+    , userDomain : String
+    , username : String
+    , password : String
+    }
+
+
+type CredentialsForAuthToken
+    = PasswordCreds OpenstackLogin
+    | AppCreds KeystoneUrl ApplicationCredential
 
 
 

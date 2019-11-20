@@ -7,7 +7,7 @@ module LocalStorage.LocalStorage exposing
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
@@ -25,7 +25,7 @@ generateStoredState model =
 
 generateStoredProject : Types.Project -> StoredProject
 generateStoredProject project =
-    { creds = project.creds
+    { secret = project.secret
     , auth = project.auth
     }
 
@@ -49,7 +49,7 @@ hydrateModelFromStoredState model storedState =
 
 hydrateProjectFromStoredProject : StoredProject -> Types.Project
 hydrateProjectFromStoredProject storedProject =
-    { creds = storedProject.creds
+    { secret = storedProject.secret
     , auth = storedProject.auth
     , endpoints = Helpers.serviceCatalogToEndpoints storedProject.auth.catalog
     , images = []
@@ -72,29 +72,33 @@ hydrateProjectFromStoredProject storedProject =
 encodeStoredState : StoredState -> Encode.Value
 encodeStoredState storedState =
     let
+        secretEncode : Types.ProjectSecret -> Encode.Value
+        secretEncode secret =
+            case secret of
+                Types.OpenstackPassword p ->
+                    Encode.object
+                        [ ( "secretType", Encode.string "password" )
+                        , ( "password", Encode.string p )
+                        ]
+
+                Types.ApplicationCredential appCred ->
+                    Encode.object
+                        [ ( "secretType", Encode.string "applicationCredential" )
+                        , ( "appCredentialId", Encode.string appCred.uuid )
+                        , ( "appCredentialSecret", Encode.string appCred.secret )
+                        ]
+
         storedProjectEncode : StoredProject -> Encode.Value
         storedProjectEncode storedProject =
             Encode.object
-                [ ( "creds", encodeCreds storedProject.creds )
+                [ ( "secret", secretEncode storedProject.secret )
                 , ( "auth", encodeAuthToken storedProject.auth )
                 ]
     in
     Encode.object
-        [ ( "1"
+        [ ( "2"
           , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
-        ]
-
-
-encodeCreds : Types.OpenstackCreds -> Encode.Value
-encodeCreds creds =
-    Encode.object
-        [ ( "authUrl", Encode.string creds.authUrl )
-        , ( "projectDomain", Encode.string creds.projectDomain )
-        , ( "projectName", Encode.string creds.projectName )
-        , ( "userDomain", Encode.string creds.userDomain )
-        , ( "username", Encode.string creds.username )
-        , ( "password", Encode.string creds.password )
         ]
 
 
@@ -102,10 +106,30 @@ encodeAuthToken : OSTypes.AuthToken -> Encode.Value
 encodeAuthToken authToken =
     Encode.object
         [ ( "catalog", encodeCatalog authToken.catalog )
-        , ( "projectUuid", Encode.string authToken.projectUuid )
-        , ( "projectName", Encode.string authToken.projectName )
-        , ( "userUuid", Encode.string authToken.userUuid )
-        , ( "username", Encode.string authToken.userName )
+        , ( "project"
+          , Encode.object
+                [ ( "name", Encode.string authToken.project.name )
+                , ( "uuid", Encode.string authToken.project.uuid )
+                ]
+          )
+        , ( "projectDomain"
+          , Encode.object
+                [ ( "name", Encode.string authToken.projectDomain.name )
+                , ( "uuid", Encode.string authToken.projectDomain.uuid )
+                ]
+          )
+        , ( "user"
+          , Encode.object
+                [ ( "name", Encode.string authToken.user.name )
+                , ( "uuid", Encode.string authToken.user.uuid )
+                ]
+          )
+        , ( "userDomain"
+          , Encode.object
+                [ ( "name", Encode.string authToken.userDomain.name )
+                , ( "uuid", Encode.string authToken.userDomain.uuid )
+                ]
+          )
         , ( "expiresAt", Encode.int (Time.posixToMillis authToken.expiresAt) )
         , ( "tokenValue", Encode.string authToken.tokenValue )
         ]
@@ -160,42 +184,129 @@ decodeStoredState =
         StoredState
         (Decode.oneOf
             -- Todo turn this into an actual migration
-            [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode)
-            , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode)
+            [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
+            , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
+
+            -- Added ApplicationCredential
+            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode)
             ]
         )
+
+
+strToNameAndUuid : String -> OSTypes.NameAndUuid
+strToNameAndUuid s =
+    if Helpers.stringIsUuidOrDefault s then
+        OSTypes.NameAndUuid "" s
+
+    else
+        OSTypes.NameAndUuid s ""
+
+
+storedProject1ToStoredProject : StoredProject1 -> StoredProject
+storedProject1ToStoredProject sp =
+    let
+        authToken =
+            OSTypes.AuthToken
+                sp.auth.catalog
+                sp.auth.project
+                sp.projDomain
+                sp.auth.user
+                sp.userDomain
+                sp.auth.expiresAt
+                sp.auth.tokenValue
+    in
+    StoredProject
+        (Types.OpenstackPassword sp.password)
+        authToken
+
+
+storedProjectDecode1 : Decode.Decoder StoredProject
+storedProjectDecode1 =
+    Decode.map4 StoredProject1
+        (Decode.at [ "creds", "password" ] Decode.string)
+        (Decode.field "auth" decodeStoredAuthTokenDetails1)
+        (Decode.map strToNameAndUuid <|
+            Decode.at [ "creds", "projectDomain" ] Decode.string
+        )
+        (Decode.map strToNameAndUuid <|
+            Decode.at [ "creds", "userDomain" ] Decode.string
+        )
+        |> Decode.map storedProject1ToStoredProject
 
 
 storedProjectDecode : Decode.Decoder StoredProject
 storedProjectDecode =
     Decode.map2 StoredProject
-        (Decode.field "creds" credsDecode)
+        (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
 
 
-credsDecode : Decode.Decoder Types.OpenstackCreds
-credsDecode =
-    Decode.map6 Types.OpenstackCreds
-        (Decode.field "authUrl" Decode.string)
-        (Decode.field "projectDomain" Decode.string)
-        (Decode.field "projectName" Decode.string)
-        (Decode.field "userDomain" Decode.string)
-        (Decode.field "username" Decode.string)
-        (Decode.field "password" Decode.string)
+decodeProjectSecret : Decode.Decoder Types.ProjectSecret
+decodeProjectSecret =
+    let
+        -- https://thoughtbot.com/blog/5-common-json-decoders#5---conditional-decoding-based-on-a-field
+        projectSecretFromType : String -> Decode.Decoder Types.ProjectSecret
+        projectSecretFromType typeStr =
+            case typeStr of
+                "password" ->
+                    Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword
+
+                "applicationCredential" ->
+                    Decode.map2
+                        OSTypes.ApplicationCredential
+                        (Decode.field "appCredentialId" Decode.string)
+                        (Decode.field "appCredentialSecret" Decode.string)
+                        |> Decode.map Types.ApplicationCredential
+
+                _ ->
+                    Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
+    in
+    Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
+
+
+decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.AuthToken
+decodeStoredAuthTokenDetails1 =
+    Decode.map7 OSTypes.AuthToken
+        (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.field "projectName" Decode.string)
+            (Decode.field "projectUuid" Decode.string)
+        )
+        -- Can't determine project domain name/uuid here so we populate empty
+        (Decode.succeed <| OSTypes.NameAndUuid "" "")
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.field "username" Decode.string)
+            (Decode.field "userUuid" Decode.string)
+        )
+        -- Can't determine user domain name/uuid here so we populate empty
+        (Decode.succeed <| OSTypes.NameAndUuid "" "")
+        (Decode.field "expiresAt" Decode.int
+            |> Decode.map Time.millisToPosix
+        )
+        (Decode.field "tokenValue" Decode.string)
 
 
 decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.AuthToken
 decodeStoredAuthTokenDetails =
     Decode.map7 OSTypes.AuthToken
         (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
-        (Decode.field "projectUuid" Decode.string)
-        (Decode.field "projectName" Decode.string)
-        (Decode.field "userUuid" Decode.string)
-        (Decode.field "username" Decode.string)
+        (Decode.field "project" decodeNameAndId)
+        (Decode.field "projectDomain" decodeNameAndId)
+        (Decode.field "user" decodeNameAndId)
+        (Decode.field "userDomain" decodeNameAndId)
         (Decode.field "expiresAt" Decode.int
             |> Decode.map Time.millisToPosix
         )
         (Decode.field "tokenValue" Decode.string)
+
+
+decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
+decodeNameAndId =
+    Decode.map2 OSTypes.NameAndUuid
+        (Decode.field "name" Decode.string)
+        (Decode.field "uuid" Decode.string)
 
 
 openstackStoredServiceDecoder : Decode.Decoder OSTypes.Service

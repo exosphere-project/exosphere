@@ -1,15 +1,24 @@
 module LocalStorage.Types exposing
     ( StoredProject
+    , StoredProject1
     , StoredState
     )
 
 import OpenStack.Types as OSTypes
-import Types.Types exposing (OpenstackCreds)
+import Types.Types exposing (ProjectSecret)
 
 
 type alias StoredProject =
-    { creds : OpenstackCreds
+    { secret : ProjectSecret
     , auth : OSTypes.AuthToken
+    }
+
+
+type alias StoredProject1 =
+    { password : String
+    , auth : OSTypes.AuthToken
+    , projDomain : OSTypes.NameAndUuid
+    , userDomain : OSTypes.NameAndUuid
     }
 
 
