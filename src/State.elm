@@ -271,7 +271,6 @@ updateUnderlying msg model =
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
-        -- Rest.receiveAuthToken model creds response
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
                 Nothing ->
