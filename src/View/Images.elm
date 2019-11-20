@@ -37,7 +37,7 @@ images globalDefaults project maybeFilterTag maybeFilterSearchText =
             List.member tag image.tags
 
         imageMatchesSearchText searchText image =
-            String.contains searchText image.name
+            String.contains (String.toUpper searchText) (String.toUpper image.name)
 
         filteredImagesByTag =
             case maybeFilterTag of
