@@ -519,34 +519,8 @@ processProjectSpecificMsg model project msg =
 
                     newModel =
                         Helpers.modelUpdateProject model newProject
-
-                    authTokenInput =
-                        case newProject.secret of
-                            OpenstackPassword password ->
-                                -- TODO this is ugly
-                                OSTypes.PasswordCreds <|
-                                    OSTypes.OpenstackLogin
-                                        newProject.endpoints.keystone
-                                        (if String.isEmpty newProject.auth.projectDomain.name then
-                                            newProject.auth.projectDomain.uuid
-
-                                         else
-                                            newProject.auth.projectDomain.name
-                                        )
-                                        newProject.auth.project.name
-                                        (if String.isEmpty newProject.auth.userDomain.name then
-                                            newProject.auth.userDomain.uuid
-
-                                         else
-                                            newProject.auth.userDomain.name
-                                        )
-                                        newProject.auth.user.name
-                                        password
-
-                            ApplicationCredential appCred ->
-                                OSTypes.AppCreds newProject.endpoints.keystone appCred
                 in
-                ( newModel, Rest.requestAuthToken model.proxyUrl authTokenInput )
+                ( newModel, requestAuthToken newModel newProject )
 
         RemoveProject ->
             let
@@ -947,3 +921,35 @@ sendPendingRequests model project =
 getTimeForAppCredential : Project -> Cmd Msg
 getTimeForAppCredential project =
     Task.perform (\posixTime -> ProjectMsg (Helpers.getProjectId project) (RequestAppCredential posixTime)) Time.now
+
+
+requestAuthToken : Model -> Project -> Cmd Msg
+requestAuthToken model project =
+    -- Wraps Rest.RequestAuthToken, builds OSTypes.PasswordCreds if needed
+    let
+        creds =
+            case project.secret of
+                OpenstackPassword password ->
+                    OSTypes.PasswordCreds <|
+                        OSTypes.OpenstackLogin
+                            project.endpoints.keystone
+                            (if String.isEmpty project.auth.projectDomain.name then
+                                project.auth.projectDomain.uuid
+
+                             else
+                                project.auth.projectDomain.name
+                            )
+                            project.auth.project.name
+                            (if String.isEmpty project.auth.userDomain.name then
+                                project.auth.userDomain.uuid
+
+                             else
+                                project.auth.userDomain.name
+                            )
+                            project.auth.user.name
+                            password
+
+                ApplicationCredential appCred ->
+                    OSTypes.AppCreds project.endpoints.keystone appCred
+    in
+    Rest.requestAuthToken model.proxyUrl creds
