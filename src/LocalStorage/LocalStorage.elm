@@ -7,7 +7,7 @@ module LocalStorage.LocalStorage exposing
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject1Or2, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
@@ -96,7 +96,7 @@ encodeStoredState storedState =
                 ]
     in
     Encode.object
-        [ ( "4"
+        [ ( "2"
           , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
         ]
@@ -187,14 +187,8 @@ decodeStoredState =
             [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
             , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
 
-            -- Added user/project domain (name and uuid) to AuthToken
-            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
-
-            -- Removed OpenstackCreds from Project type
-            , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode3)
-
             -- Added ApplicationCredential
-            , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode4)
+            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode)
             ]
         )
 
@@ -208,8 +202,8 @@ strToNameAndUuid s =
         OSTypes.NameAndUuid s ""
 
 
-storedProject1Or2ToStoredProject : StoredProject1Or2 -> StoredProject
-storedProject1Or2ToStoredProject sp =
+storedProject1ToStoredProject : StoredProject1 -> StoredProject
+storedProject1ToStoredProject sp =
     let
         authToken =
             OSTypes.AuthToken
@@ -228,7 +222,7 @@ storedProject1Or2ToStoredProject sp =
 
 storedProjectDecode1 : Decode.Decoder StoredProject
 storedProjectDecode1 =
-    Decode.map4 StoredProject1Or2
+    Decode.map4 StoredProject1
         (Decode.at [ "creds", "password" ] Decode.string)
         (Decode.field "auth" decodeStoredAuthTokenDetails1)
         (Decode.map strToNameAndUuid <|
@@ -237,32 +231,11 @@ storedProjectDecode1 =
         (Decode.map strToNameAndUuid <|
             Decode.at [ "creds", "userDomain" ] Decode.string
         )
-        |> Decode.map storedProject1Or2ToStoredProject
+        |> Decode.map storedProject1ToStoredProject
 
 
-storedProjectDecode2 : Decode.Decoder StoredProject
-storedProjectDecode2 =
-    Decode.map4 StoredProject1Or2
-        (Decode.at [ "creds", "password" ] Decode.string)
-        (Decode.field "auth" decodeStoredAuthTokenDetails)
-        (Decode.map strToNameAndUuid <|
-            Decode.at [ "creds", "projectDomain" ] Decode.string
-        )
-        (Decode.map strToNameAndUuid <|
-            Decode.at [ "creds", "userDomain" ] Decode.string
-        )
-        |> Decode.map storedProject1Or2ToStoredProject
-
-
-storedProjectDecode3 : Decode.Decoder StoredProject
-storedProjectDecode3 =
-    Decode.map2 StoredProject
-        (Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword)
-        (Decode.field "auth" decodeStoredAuthTokenDetails)
-
-
-storedProjectDecode4 : Decode.Decoder StoredProject
-storedProjectDecode4 =
+storedProjectDecode : Decode.Decoder StoredProject
+storedProjectDecode =
     Decode.map2 StoredProject
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
