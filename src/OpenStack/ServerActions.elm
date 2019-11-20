@@ -89,6 +89,13 @@ actions =
       , selectMods = []
       , targetStatus = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       }
+    , { name = "Image"
+      , description = "Create snapshot image of server"
+      , allowedStatus = [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , action = doActionCreateImage
+      , selectMods = []
+      , targetStatus = [ OSTypes.ServerActive ]
+      }
     , { name = "Reboot"
       , description = "Restart server"
       , allowedStatus = [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
@@ -158,3 +165,24 @@ doAction body project maybeProxyUrl server =
         (Http.expectString
             (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerAction server.osProps.uuid result))
         )
+
+
+doActionCreateImage : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
+doActionCreateImage project maybeProxyUrl server =
+    -- Wraps DoAction so we can put the server name in the image
+    let
+        body =
+            Json.Encode.object
+                [ ( "createImage"
+                  , Json.Encode.object
+                        [ ( "name", Json.Encode.string (server.osProps.name ++ "-image") )
+                        , ( "metadata"
+                          , Json.Encode.object
+                                [ ( "from-exosphere", Json.Encode.string "true" )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+    in
+    doAction body project maybeProxyUrl server
