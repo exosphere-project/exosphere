@@ -57,7 +57,6 @@ import Types.Types
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , OpenstackCreds
         , Project
         , ProjectIdentifier
         , Server
@@ -135,7 +134,7 @@ stringIsUuidOrDefault str =
     stringIsUuid || stringIsDefault
 
 
-processOpenRc : OpenstackCreds -> String -> OpenstackCreds
+processOpenRc : OSTypes.OpenstackLogin -> String -> OSTypes.OpenstackLogin
 processOpenRc existingCreds openRc =
     let
         regexes =
@@ -158,7 +157,7 @@ processOpenRc existingCreds openRc =
             getMatch openRc regex
                 |> Maybe.withDefault oldField
     in
-    OpenstackCreds
+    OSTypes.OpenstackLogin
         (newField regexes.authUrl existingCreds.authUrl)
         (newField regexes.projectDomain existingCreds.projectDomain)
         (newField regexes.projectName existingCreds.projectName)
@@ -669,7 +668,7 @@ getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
 
 
-jetstreamToOpenstackCreds : JetstreamCreds -> OpenstackCreds
+jetstreamToOpenstackCreds : JetstreamCreds -> OSTypes.OpenstackLogin
 jetstreamToOpenstackCreds jetstreamCreds =
     let
         authUrlBase =
@@ -684,7 +683,7 @@ jetstreamToOpenstackCreds jetstreamCreds =
         authUrl =
             "https://" ++ authUrlBase ++ ":5000/v3/auth/tokens"
     in
-    OpenstackCreds
+    OSTypes.OpenstackLogin
         authUrl
         "tacc"
         jetstreamCreds.jetstreamProjectName

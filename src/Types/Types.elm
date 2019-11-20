@@ -16,7 +16,6 @@ module Types.Types exposing
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
-    , OpenstackCreds
     , OpenstackLoginField(..)
     , PasswordVisibility(..)
     , Project
@@ -26,7 +25,6 @@ module Types.Types exposing
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
     , ProjectViewConstructor(..)
-    , RequestAuthTokenInput(..)
     , Server
     , ServerUiStatus(..)
     , VerboseStatus
@@ -111,11 +109,6 @@ type ProjectSecret
     | ApplicationCredential OSTypes.ApplicationCredential
 
 
-type RequestAuthTokenInput
-    = PasswordInput OpenstackCreds
-    | AppCredentialInput Project OSTypes.ApplicationCredential
-
-
 type alias Endpoints =
     { cinder : HelperTypes.Url
     , glance : HelperTypes.Url
@@ -128,11 +121,11 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
-    | RequestNewProjectToken OpenstackCreds
+    | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveAuthToken RequestAuthTokenInput (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputOpenstackLoginField OpenstackCreds OpenstackLoginField
+    | InputOpenstackLoginField OSTypes.OpenstackLogin OpenstackLoginField
     | InputJetstreamLoginField JetstreamCreds JetstreamLoginField
     | InputCreateServerField CreateServerRequest CreateServerField
     | InputImageFilterTag String
@@ -193,7 +186,7 @@ type ViewState
 
 type NonProjectViewConstructor
     = LoginPicker
-    | LoginOpenstack OpenstackCreds
+    | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
     | MessageLog
     | HelpAbout
@@ -252,16 +245,6 @@ type CreateServerField
     | CreateServerVolBacked Bool
     | CreateServerVolBackedSize String
     | CreateServerNetworkUuid OSTypes.NetworkUuid
-
-
-type alias OpenstackCreds =
-    { authUrl : String
-    , projectDomain : String
-    , projectName : String
-    , userDomain : String
-    , username : String
-    , password : String
-    }
 
 
 type JetstreamLoginField

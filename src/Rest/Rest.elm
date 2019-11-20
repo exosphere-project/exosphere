@@ -90,7 +90,6 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , RequestAuthTokenInput(..)
         , Server
         , ViewState(..)
         )
@@ -101,7 +100,7 @@ import Url
 {- HTTP Requests -}
 
 
-requestAuthToken : Maybe HelperTypes.Url -> RequestAuthTokenInput -> Cmd Msg
+requestAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
 requestAuthToken maybeProxyUrl input =
     let
         idOrName str =
@@ -113,7 +112,7 @@ requestAuthToken maybeProxyUrl input =
 
         requestBody =
             case input of
-                AppCredentialInput _ appCred ->
+                OSTypes.AppCreds _ appCred ->
                     Encode.object
                         [ ( "auth"
                           , Encode.object
@@ -132,7 +131,7 @@ requestAuthToken maybeProxyUrl input =
                           )
                         ]
 
-                PasswordInput creds ->
+                OSTypes.PasswordCreds creds ->
                     Encode.object
                         [ ( "auth"
                           , Encode.object
@@ -176,11 +175,11 @@ requestAuthToken maybeProxyUrl input =
 
         inputUrl =
             case input of
-                PasswordInput creds ->
+                OSTypes.PasswordCreds creds ->
                     creds.authUrl
 
-                AppCredentialInput project _ ->
-                    project.endpoints.keystone
+                OSTypes.AppCreds url _ ->
+                    url
 
         correctedUrl =
             let
@@ -195,25 +194,33 @@ requestAuthToken maybeProxyUrl input =
                 Just url_ ->
                     { url_ | path = "/v3/auth/tokens" } |> Url.toString
 
-        ( url, headers ) =
+        ( finalUrl, headers ) =
             case maybeProxyUrl of
                 Nothing ->
                     ( correctedUrl, [] )
 
                 Just proxyUrl ->
                     proxyifyRequest proxyUrl correctedUrl
+
+        maybePassword =
+            case input of
+                OSTypes.PasswordCreds c ->
+                    Just c.password
+
+                _ ->
+                    Nothing
     in
     {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
     Http.request
         { method = "POST"
         , headers = headers
-        , url = url
+        , url = finalUrl
         , body = Http.jsonBody requestBody
 
         {- Todo handle no response? -}
         , expect =
             Http.expectStringResponse
-                (ReceiveAuthToken input)
+                (ReceiveAuthToken maybePassword)
                 (\response ->
                     case response of
                         Http.BadUrl_ url_ ->

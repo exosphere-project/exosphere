@@ -6,6 +6,7 @@ module OpenStack.Types exposing
     , AuthTokenString
     , ConsoleUrl
     , CreateVolumeRequest
+    , CredentialsForAuthToken(..)
     , Endpoint
     , EndpointInterface(..)
     , Flavor
@@ -18,10 +19,12 @@ module OpenStack.Types exposing
     , IpAddressUuid
     , IpAddressValue
     , Keypair
+    , KeystoneUrl
     , MetadataItem
     , NameAndUuid
     , Network
     , NetworkUuid
+    , OpenstackLogin
     , Port
     , SecurityGroup
     , SecurityGroupRule
@@ -64,6 +67,10 @@ type alias MetadataItem =
 
 
 -- Keystone
+
+
+type alias KeystoneUrl =
+    HelperTypes.Url
 
 
 type alias AuthToken =
@@ -122,6 +129,21 @@ type EndpointInterface
     = Public
     | Admin
     | Internal
+
+
+type alias OpenstackLogin =
+    { authUrl : KeystoneUrl
+    , projectDomain : String
+    , projectName : String
+    , userDomain : String
+    , username : String
+    , password : String
+    }
+
+
+type CredentialsForAuthToken
+    = PasswordCreds OpenstackLogin
+    | AppCreds KeystoneUrl ApplicationCredential
 
 
 

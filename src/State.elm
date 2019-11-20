@@ -9,6 +9,7 @@ import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import OpenStack.ServerVolumes as OSSvrVols
+import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
@@ -16,6 +17,7 @@ import Rest.Rest as Rest
 import Task
 import Time
 import Toasty
+import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -28,14 +30,12 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
-        , OpenstackCreds
         , OpenstackLoginField(..)
         , Project
         , ProjectIdentifier
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , RequestAuthTokenInput(..)
         , Server
         , ViewState(..)
         )
@@ -218,58 +218,58 @@ updateUnderlying msg model =
                 newOpenstackCreds =
                     { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.requestAuthToken model.proxyUrl <| Types.Types.PasswordInput newOpenstackCreds )
+            ( model, Rest.requestAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
 
         JetstreamLogin jetstreamCreds ->
             let
                 openstackCreds =
                     Helpers.jetstreamToOpenstackCreds jetstreamCreds
             in
-            ( model, Rest.requestAuthToken model.proxyUrl <| PasswordInput openstackCreds )
+            ( model, Rest.requestAuthToken model.proxyUrl <| OSTypes.PasswordCreds openstackCreds )
 
-        ReceiveAuthToken authTokenInput responseResult ->
+        ReceiveAuthToken maybePassword responseResult ->
             case responseResult of
                 Err error ->
                     Helpers.processError model error
 
                 Ok ( metadata, response ) ->
-                    let
-                        projectId =
-                            case authTokenInput of
-                                PasswordInput creds ->
-                                    ProjectIdentifier creds.authUrl creds.projectName
+                    case Rest.decodeAuthToken <| Http.GoodStatus_ metadata response of
+                        Err error ->
+                            Helpers.processError model error
 
-                                AppCredentialInput project _ ->
-                                    ProjectIdentifier project.endpoints.keystone project.auth.project.name
-                    in
-                    -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                    -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-                    case
-                        Helpers.projectLookup model <| projectId
-                    of
-                        Nothing ->
-                            case authTokenInput of
-                                PasswordInput creds ->
-                                    createProject model creds (Http.GoodStatus_ metadata response)
-
-                                AppCredentialInput _ _ ->
-                                    Helpers.processError model "We should have a project here but we don't"
-
-                        Just project ->
-                            -- If we obtained this auth token with a password then get an application credential
+                        Ok authToken ->
                             let
-                                appCredCmd =
-                                    case authTokenInput of
-                                        AppCredentialInput _ _ ->
-                                            Cmd.none
-
-                                        PasswordInput _ ->
-                                            getTimeForAppCredential project
-
-                                ( newModel, updateTokenCmd ) =
-                                    projectUpdateAuthToken model project (Http.GoodStatus_ metadata response)
+                                projectId =
+                                    ProjectIdentifier
+                                        authToken.project.name
+                                        (Helpers.serviceCatalogToEndpoints authToken.catalog).keystone
                             in
-                            ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                            case
+                                ( Helpers.projectLookup model <| projectId, maybePassword )
+                            of
+                                ( Nothing, Nothing ) ->
+                                    Helpers.processError model "This is an impossible state"
+
+                                ( Nothing, Just password ) ->
+                                    createProject model password authToken
+
+                                ( Just project, _ ) ->
+                                    -- If we don't have an application credential for this project yet, then get one
+                                    let
+                                        appCredCmd =
+                                            case project.secret of
+                                                ApplicationCredential _ ->
+                                                    Cmd.none
+
+                                                _ ->
+                                                    getTimeForAppCredential project
+
+                                        ( newModel, updateTokenCmd ) =
+                                            projectUpdateAuthToken model project authToken
+                                    in
+                                    ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
         -- Rest.receiveAuthToken model creds response
         ProjectMsg projectIdentifier innerMsg ->
@@ -524,8 +524,9 @@ processProjectSpecificMsg model project msg =
                     authTokenInput =
                         case newProject.secret of
                             OpenstackPassword password ->
-                                PasswordInput <|
-                                    OpenstackCreds
+                                -- TODO this is ugly
+                                OSTypes.PasswordCreds <|
+                                    OSTypes.OpenstackLogin
                                         newProject.endpoints.keystone
                                         (if String.isEmpty newProject.auth.projectDomain.name then
                                             newProject.auth.projectDomain.uuid
@@ -544,7 +545,7 @@ processProjectSpecificMsg model project msg =
                                         password
 
                             ApplicationCredential appCred ->
-                                AppCredentialInput newProject appCred
+                                OSTypes.AppCreds newProject.endpoints.keystone appCred
                 in
                 ( newModel, Rest.requestAuthToken model.proxyUrl authTokenInput )
 
@@ -868,72 +869,61 @@ processProjectSpecificMsg model project msg =
             ( model, Rest.requestAppCredential project model.proxyUrl posix )
 
 
-createProject : Model -> OpenstackCreds -> Http.Response String -> ( Model, Cmd Msg )
-createProject model creds response =
-    -- Create new project
-    case Rest.decodeAuthToken response of
-        Err error ->
-            Helpers.processError model error
+createProject : Model -> HelperTypes.Password -> OSTypes.AuthToken -> ( Model, Cmd Msg )
+createProject model password authToken =
+    let
+        endpoints =
+            Helpers.serviceCatalogToEndpoints authToken.catalog
 
-        Ok authToken ->
-            let
-                endpoints =
-                    Helpers.serviceCatalogToEndpoints authToken.catalog
+        newProject =
+            { secret = OpenstackPassword password
+            , auth = authToken
 
-                newProject =
-                    { secret = OpenstackPassword creds.password
-                    , auth = authToken
+            -- Maybe todo, eliminate parallel data structures in auth and endpoints?
+            , endpoints = endpoints
+            , images = []
+            , servers = RemoteData.NotAsked
+            , flavors = []
+            , keypairs = []
+            , volumes = RemoteData.NotAsked
+            , networks = []
+            , floatingIps = []
+            , ports = []
+            , securityGroups = []
+            , pendingCredentialedRequests = []
+            }
 
-                    -- Maybe todo, eliminate parallel data structures in auth and endpoints?
-                    , endpoints = endpoints
-                    , images = []
-                    , servers = RemoteData.NotAsked
-                    , flavors = []
-                    , keypairs = []
-                    , volumes = RemoteData.NotAsked
-                    , networks = []
-                    , floatingIps = []
-                    , ports = []
-                    , securityGroups = []
-                    , pendingCredentialedRequests = []
-                    }
+        newProjects =
+            newProject :: model.projects
 
-                newProjects =
-                    newProject :: model.projects
-
-                newModel =
-                    { model
-                        | projects = newProjects
-                        , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
-                    }
-            in
-            ( newModel
-            , [ Rest.requestServers
-              , Rest.requestSecurityGroups
-              , Rest.requestFloatingIps
-              ]
-                |> List.map (\x -> x newProject model.proxyUrl)
-                |> (\l -> getTimeForAppCredential newProject :: l)
-                |> Cmd.batch
-            )
+        newModel =
+            { model
+                | projects = newProjects
+                , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
+            }
+    in
+    ( newModel
+    , [ Rest.requestServers
+      , Rest.requestSecurityGroups
+      , Rest.requestFloatingIps
+      ]
+        |> List.map (\x -> x newProject model.proxyUrl)
+        |> (\l -> getTimeForAppCredential newProject :: l)
+        |> Cmd.batch
+    )
 
 
-projectUpdateAuthToken : Model -> Project -> Http.Response String -> ( Model, Cmd Msg )
-projectUpdateAuthToken model project response =
+projectUpdateAuthToken : Model -> Project -> OSTypes.AuthToken -> ( Model, Cmd Msg )
+projectUpdateAuthToken model project authToken =
     -- Update auth token for existing project
-    case Rest.decodeAuthToken response of
-        Err error ->
-            Helpers.processError model error
+    let
+        newProject =
+            { project | auth = authToken }
 
-        Ok authToken ->
-            let
-                newProject =
-                    { project | auth = authToken }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            sendPendingRequests newModel newProject
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    sendPendingRequests newModel newProject
 
 
 sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
