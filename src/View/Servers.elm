@@ -390,6 +390,20 @@ actions projectId server =
                     ServerActions.getAllowed details.openstackStatus
 
                 renderActionButton action =
+                    let
+                        actionMsg =
+                            case action.action of
+                                ServerActions.CmdAction cmdAction ->
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            RequestServerAction
+                                                server
+                                                cmdAction
+                                                action.targetStatus
+
+                                ServerActions.UpdateAction updateAction ->
+                                    Just <| updateAction projectId server
+                    in
                     Element.row
                         [ Element.spacing 10 ]
                         [ Element.el
@@ -397,7 +411,7 @@ actions projectId server =
                           <|
                             Button.button
                                 action.selectMods
-                                (Just <| ProjectMsg projectId <| RequestServerAction server action.action action.targetStatus)
+                                actionMsg
                                 action.name
                         , Element.text action.description
                         ]
