@@ -85,35 +85,32 @@ renderImage globalDefaults project image =
                 Nothing ->
                     "N/A"
 
+        chooseMsg =
+            ProjectMsg (Helpers.getProjectId project) <|
+                SetProjectView <|
+                    CreateServer <|
+                        -- TODO this should not be hard-coded here
+                        CreateServerRequest
+                            image.name
+                            (Helpers.getProjectId project)
+                            image.uuid
+                            image.name
+                            "1"
+                            ""
+                            False
+                            ""
+                            Nothing
+                            globalDefaults.shellUserData
+                            "changeme123"
+                            ""
+                            False
+
         chooseButton =
             case image.status of
                 OSTypes.ImageActive ->
                     Button.button
                         [ Modifier.Primary ]
-                        (Just
-                            (ProjectMsg
-                                (Helpers.getProjectId project)
-                                (SetProjectView
-                                    (CreateServer
-                                        (CreateServerRequest
-                                            image.name
-                                            (Helpers.getProjectId project)
-                                            image.uuid
-                                            image.name
-                                            "1"
-                                            ""
-                                            False
-                                            ""
-                                            Nothing
-                                            globalDefaults.shellUserData
-                                            "changeme123"
-                                            ""
-                                            False
-                                        )
-                                    )
-                                )
-                            )
-                        )
+                        (Just chooseMsg)
                         "Choose"
 
                 _ ->
