@@ -133,7 +133,7 @@ loginOpenstackCredsEntry _ openstackCreds =
 
 
 loginOpenstackOpenRcEntry : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackOpenRcEntry _ openstackCreds =
+loginOpenstackOpenRcEntry model openstackCreds =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15
@@ -142,15 +142,7 @@ loginOpenstackOpenRcEntry _ openstackCreds =
         )
         [ Element.paragraph []
             [ Element.text "...or paste an "
-
-            {-
-               Todo this link opens in Electron, should open in user's browser
-               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-            -}
-            , Element.link []
-                { url = "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
-                , label = Element.text "OpenRC"
-                }
+            , VH.browserLink model.isElectron "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" <| View.Types.BrowserLinkTextLabel "OpenRC"
             , Element.text " file"
             ]
         , Input.multiline
