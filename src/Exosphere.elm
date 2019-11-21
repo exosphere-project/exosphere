@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Exosphere exposing (main)
 
 import Browser exposing (element)
 import State
