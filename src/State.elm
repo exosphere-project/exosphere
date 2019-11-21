@@ -21,16 +21,13 @@ import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , CreateServerField(..)
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
-        , JetstreamLoginField(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginField(..)
         , Project
         , ProjectIdentifier
         , ProjectSecret(..)
@@ -281,54 +278,13 @@ updateUnderlying msg model =
                     processProjectSpecificMsg model project innerMsg
 
         {- Form inputs -}
-        InputOpenstackLoginField openstackCreds loginField ->
+        InputOpenRc openstackCreds openRc ->
             let
                 newCreds =
-                    case loginField of
-                        AuthUrl authUrl ->
-                            { openstackCreds | authUrl = authUrl }
-
-                        ProjectDomain projectDomain ->
-                            { openstackCreds | projectDomain = projectDomain }
-
-                        ProjectName projectName ->
-                            { openstackCreds | projectName = projectName }
-
-                        UserDomain userDomain ->
-                            { openstackCreds | userDomain = userDomain }
-
-                        Username username ->
-                            { openstackCreds | username = username }
-
-                        Password password ->
-                            { openstackCreds | password = password }
-
-                        OpenRc openRc ->
-                            Helpers.processOpenRc openstackCreds openRc
+                    Helpers.processOpenRc openstackCreds openRc
 
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
-            in
-            ( { model | viewState = newViewState }, Cmd.none )
-
-        InputJetstreamLoginField jetstreamCreds loginField ->
-            let
-                newCreds =
-                    case loginField of
-                        JetstreamProviderChoice provider ->
-                            { jetstreamCreds | jetstreamProviderChoice = provider }
-
-                        JetstreamProjectName projectName ->
-                            { jetstreamCreds | jetstreamProjectName = projectName }
-
-                        TaccUsername username ->
-                            { jetstreamCreds | taccUsername = username }
-
-                        TaccPassword password ->
-                            { jetstreamCreds | taccPassword = password }
-
-                newViewState =
-                    NonProjectView <| LoginJetstream newCreds
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
@@ -345,42 +301,6 @@ updateUnderlying msg model =
                     { model | imageFilterTag = maybeTag }
             in
             ( newModel, Cmd.none )
-
-        InputCreateServerField createServerRequest createServerField ->
-            let
-                newCreateServerRequest =
-                    case createServerField of
-                        CreateServerName name ->
-                            { createServerRequest | name = name }
-
-                        CreateServerCount count ->
-                            { createServerRequest | count = count }
-
-                        CreateServerUserData userData ->
-                            { createServerRequest | userData = userData }
-
-                        CreateServerSize flavorUuid ->
-                            { createServerRequest | flavorUuid = flavorUuid }
-
-                        CreateServerKeypairName keypairName ->
-                            { createServerRequest | keypairName = Just keypairName }
-
-                        CreateServerVolBacked volBacked ->
-                            { createServerRequest | volBacked = volBacked }
-
-                        CreateServerVolBackedSize sizeStr ->
-                            { createServerRequest | volBackedSizeGb = sizeStr }
-
-                        CreateServerNetworkUuid networkUuid ->
-                            { createServerRequest | networkUuid = networkUuid }
-
-                        CreateServerShowAdvancedOptions showAdvancedOptions ->
-                            { createServerRequest | showAdvancedOptions = showAdvancedOptions }
-
-                newViewState =
-                    ProjectView createServerRequest.projectId (CreateServer newCreateServerRequest)
-            in
-            ( { model | viewState = newViewState }, Cmd.none )
 
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
@@ -470,7 +390,9 @@ processProjectSpecificMsg model project msg =
                             )
                         , RandomHelpers.generateServerName
                             (\serverName ->
-                                InputCreateServerField createServerRequest (CreateServerName serverName)
+                                ProjectMsg (Helpers.getProjectId project) <|
+                                    SetProjectView <|
+                                        CreateServer { createServerRequest | name = serverName }
                             )
                         ]
                     )

@@ -1,6 +1,5 @@
 module Types.Types exposing
     ( CockpitLoginStatus(..)
-    , CreateServerField(..)
     , CreateServerRequest
     , Endpoints
     , ExoServerProps
@@ -10,13 +9,11 @@ module Types.Types exposing
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , JetstreamCreds
-    , JetstreamLoginField(..)
     , JetstreamProvider(..)
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
-    , OpenstackLoginField(..)
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -125,9 +122,7 @@ type Msg
     | JetstreamLogin JetstreamCreds
     | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputOpenstackLoginField OSTypes.OpenstackLogin OpenstackLoginField
-    | InputJetstreamLoginField JetstreamCreds JetstreamLoginField
-    | InputCreateServerField CreateServerRequest CreateServerField
+    | InputOpenRc OSTypes.OpenstackLogin String
     | InputImageFilterTag String
     | OpenInBrowser String
     | OpenNewWindow String
@@ -225,35 +220,6 @@ type alias VerboseStatus =
 type PasswordVisibility
     = PasswordShown
     | PasswordHidden
-
-
-type OpenstackLoginField
-    = AuthUrl String
-    | ProjectDomain String
-    | ProjectName String
-    | UserDomain String
-    | Username String
-    | Password String
-    | OpenRc String
-
-
-type CreateServerField
-    = CreateServerName String
-    | CreateServerCount String
-    | CreateServerUserData String
-    | CreateServerShowAdvancedOptions Bool
-    | CreateServerSize String
-    | CreateServerKeypairName String
-    | CreateServerVolBacked Bool
-    | CreateServerVolBackedSize String
-    | CreateServerNetworkUuid OSTypes.NetworkUuid
-
-
-type JetstreamLoginField
-    = JetstreamProviderChoice JetstreamProvider
-    | JetstreamProjectName String
-    | TaccUsername String
-    | TaccPassword String
 
 
 type alias JetstreamCreds =
