@@ -38,10 +38,6 @@ import Types.Types
         )
 
 
-
-{- Todo remove default creds once storing this in local storage -}
-
-
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     let

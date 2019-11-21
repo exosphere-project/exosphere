@@ -183,7 +183,6 @@ decodeStoredState =
     Decode.map
         StoredState
         (Decode.oneOf
-            -- Todo turn this into an actual migration
             [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
             , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
 

@@ -26,8 +26,6 @@ import Types.Types
 type alias ServerAction =
     { name : String
     , description : String
-
-    -- Todo enforce uniqueness by using a different collection (something like a Set, except ServerAction types aren't "comparable")
     , allowedStatus : List OSTypes.ServerStatus
     , action : ActionType
     , selectMods : List Modifier.Modifier
@@ -42,7 +40,6 @@ type ActionType
 
 getAllowed : OSTypes.ServerStatus -> List ServerAction
 getAllowed serverStatus =
-    -- TODO write tests for this? Or make impossible state impossible, i.e. can't call server actions that are not allowed based on server status?
     let
         actionIsAllowed : OSTypes.ServerStatus -> ServerAction -> Bool
         actionIsAllowed status action =

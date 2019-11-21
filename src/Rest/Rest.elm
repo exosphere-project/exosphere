@@ -254,7 +254,6 @@ requestAppCredential project maybeProxyUrl posixTime =
             Encode.object
                 [ ( "application_credential"
                   , Encode.object
-                        {- TODO this needs to be unique, perhaps with a timestamp -}
                         [ ( "name", Encode.string appCredentialName )
                         ]
                   )
