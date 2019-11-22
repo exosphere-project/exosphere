@@ -126,7 +126,6 @@ type Msg
     | InputImageFilterTag String
     | OpenInBrowser String
     | OpenNewWindow String
-    | RandomPassword Project String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
     | MsgChangeWindowSize Int Int
 

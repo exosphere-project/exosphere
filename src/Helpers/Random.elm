@@ -1,4 +1,4 @@
-module Helpers.Random exposing (generatePassword, generateServerName)
+module Helpers.Random exposing (generatePasswordAndServerName)
 
 import Helpers.PetNames as PetNames
 import Random
@@ -28,22 +28,18 @@ randomMediumPhrase =
     randomPhrase PetNames.mediumAdverbs PetNames.mediumAdjectives PetNames.mediumNames
 
 
-generatePassword : (String -> msg) -> Cmd msg
-generatePassword toMsg =
-    let
-        passwordGenerator =
-            Random.map2
-                (\phrase1 phrase2 ->
-                    phrase1 ++ "-" ++ phrase2
-                )
-                randomMediumPhrase
-                randomMediumPhrase
-    in
-    Random.generate toMsg passwordGenerator
+passwordGenerator : Random.Generator String
+passwordGenerator =
+    Random.map2
+        (\phrase1 phrase2 ->
+            phrase1 ++ "-" ++ phrase2
+        )
+        randomMediumPhrase
+        randomMediumPhrase
 
 
-generateServerName : (String -> msg) -> Cmd msg
-generateServerName toMsg =
+serverNameGenerator : Random.Generator String
+serverNameGenerator =
     let
         randomAdverb =
             randomWord PetNames.adverbs "foo"
@@ -53,14 +49,20 @@ generateServerName toMsg =
 
         randomName =
             randomWord PetNames.names "baz"
-
-        nameGenerator =
-            Random.map3
-                (\adverb adjective name ->
-                    adverb ++ "_" ++ adjective ++ "_" ++ name
-                )
-                randomAdverb
-                randomAdjective
-                randomName
     in
-    Random.generate toMsg nameGenerator
+    Random.map3
+        (\adverb adjective name ->
+            adverb ++ "_" ++ adjective ++ "_" ++ name
+        )
+        randomAdverb
+        randomAdjective
+        randomName
+
+
+generatePasswordAndServerName : (( String, String ) -> msg) -> Cmd msg
+generatePasswordAndServerName toMsg =
+    Random.generate toMsg <|
+        Random.map2
+            (\password serverName -> ( password, serverName ))
+            passwordGenerator
+            serverNameGenerator

@@ -304,41 +304,6 @@ updateUnderlying msg model =
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 
-        RandomPassword project password ->
-            -- This is the start of a code smell for two reasons:
-            -- 1. We have parallel data structures, storing password in userdata string and separately
-            -- 2. We must reach deep into model.viewState in order to change these fields
-            -- See also Rest.receiveFlavors
-            case model.viewState of
-                NonProjectView _ ->
-                    ( model, Cmd.none )
-
-                ProjectView projectId projectViewConstructor ->
-                    if projectId /= Helpers.getProjectId project then
-                        ( model, Cmd.none )
-
-                    else
-                        case projectViewConstructor of
-                            CreateServer createServerRequest ->
-                                let
-                                    newUserData =
-                                        String.split "{exouser-password}" createServerRequest.userData
-                                            |> String.join password
-
-                                    newCSR =
-                                        { createServerRequest
-                                            | userData = newUserData
-                                            , exouserPassword = password
-                                        }
-
-                                    newViewState =
-                                        ProjectView projectId (CreateServer newCSR)
-                                in
-                                ( { model | viewState = newViewState }, Cmd.none )
-
-                            _ ->
-                                ( model, Cmd.none )
-
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
 processProjectSpecificMsg model project msg =
@@ -381,21 +346,30 @@ processProjectSpecificMsg model project msg =
                             ( newModel, Cmd.none )
 
                         _ ->
+                            let
+                                newCSRMsg password_ serverName_ =
+                                    let
+                                        newUserData =
+                                            String.split "{exouser-password}" createServerRequest.userData
+                                                |> String.join password_
+
+                                        newCSR =
+                                            { createServerRequest
+                                                | userData = newUserData
+                                                , exouserPassword = password_
+                                                , name = serverName_
+                                            }
+                                    in
+                                    ProjectMsg (Helpers.getProjectId project) <|
+                                        SetProjectView <|
+                                            CreateServer newCSR
+                            in
                             ( newModel
                             , Cmd.batch
                                 [ Rest.requestFlavors project model.proxyUrl
                                 , Rest.requestKeypairs project model.proxyUrl
                                 , Rest.requestNetworks project model.proxyUrl
-                                , RandomHelpers.generatePassword
-                                    (\password ->
-                                        RandomPassword project password
-                                    )
-                                , RandomHelpers.generateServerName
-                                    (\serverName ->
-                                        ProjectMsg (Helpers.getProjectId project) <|
-                                            SetProjectView <|
-                                                CreateServer { createServerRequest | name = serverName }
-                                    )
+                                , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
                                 ]
                             )
 
