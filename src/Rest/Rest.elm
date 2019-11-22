@@ -55,6 +55,7 @@ module Rest.Rest exposing
     , requestSecurityGroups
     , requestServer
     , requestServers
+    , requestUnscopedAuthToken
     , serverDecoder
     , serverIpAddressDecoder
     , serverPowerStateDecoder
@@ -242,6 +243,12 @@ requestAuthToken maybeProxyUrl input =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLoginUnscoped -> Cmd Msg
+requestUnscopedAuthToken maybeProxyUrl loginCreds =
+    -- TODO finish me
+    Cmd.none
 
 
 requestAppCredential : Project -> Maybe HelperTypes.Url -> Time.Posix -> Cmd Msg

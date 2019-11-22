@@ -25,6 +25,7 @@ module OpenStack.Types exposing
     , Network
     , NetworkUuid
     , OpenstackLogin
+    , OpenstackLoginUnscoped
     , Port
     , SecurityGroup
     , SecurityGroupRule
@@ -38,6 +39,7 @@ module OpenStack.Types exposing
     , ServerUuid
     , Service
     , ServiceCatalog
+    , UnscopedAuthToken
     , Volume
     , VolumeAttachment
     , VolumeAttachmentDevice
@@ -74,6 +76,7 @@ type alias KeystoneUrl =
 
 
 type alias AuthToken =
+    -- Todo re-order these so it is consistent with the order in UnscopedAuthToken?
     { catalog : ServiceCatalog
     , project : NameAndUuid
     , projectDomain : NameAndUuid
@@ -81,6 +84,14 @@ type alias AuthToken =
     , userDomain : NameAndUuid
     , expiresAt : Time.Posix
     , tokenValue : AuthTokenString
+    }
+
+
+type alias UnscopedAuthToken =
+    { user : NameAndUuid
+    , userDomain : NameAndUuid
+    , tokenValue : AuthTokenString
+    , expiresAt : Time.Posix
     }
 
 
@@ -135,6 +146,14 @@ type alias OpenstackLogin =
     { authUrl : KeystoneUrl
     , projectDomain : String
     , projectName : String
+    , userDomain : String
+    , username : String
+    , password : String
+    }
+
+
+type alias OpenstackLoginUnscoped =
+    { authUrl : KeystoneUrl
     , userDomain : String
     , username : String
     , password : String

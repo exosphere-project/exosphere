@@ -74,6 +74,7 @@ chpasswd:
             { messages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
+            , unscopedProviders = []
             , projects = []
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
@@ -203,6 +204,9 @@ updateUnderlying msg model =
             case nonProjectViewConstructor of
                 _ ->
                     ( newModel, Cmd.none )
+
+        RequestUnscopedToken openstackLoginUnscoped ->
+            ( model, Rest.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
 
         RequestNewProjectToken openstackCreds ->
             let

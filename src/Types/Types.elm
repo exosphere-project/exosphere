@@ -64,6 +64,7 @@ type alias Model =
     { messages : List String
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
+    , unscopedProviders : List UnscopedProvider
     , projects : List Project
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
@@ -74,6 +75,14 @@ type alias Model =
 
 type alias GlobalDefaults =
     { shellUserData : String
+    }
+
+
+type alias UnscopedProvider =
+    { authUrl : OSTypes.KeystoneUrl
+    , token : OSTypes.UnscopedAuthToken
+    , secret : Maybe HelperTypes.Password
+    , projectsAvailable : List ProjectName
     }
 
 
@@ -118,6 +127,7 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
+    | RequestUnscopedToken OSTypes.OpenstackLoginUnscoped
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
     | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
