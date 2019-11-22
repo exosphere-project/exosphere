@@ -375,23 +375,29 @@ processProjectSpecificMsg model project msg =
                     ( newModel, Cmd.none )
 
                 CreateServer createServerRequest ->
-                    ( newModel
-                    , Cmd.batch
-                        [ Rest.requestFlavors project model.proxyUrl
-                        , Rest.requestKeypairs project model.proxyUrl
-                        , Rest.requestNetworks project model.proxyUrl
-                        , RandomHelpers.generatePassword
-                            (\password ->
-                                RandomPassword project password
+                    case model.viewState of
+                        -- If we are already in this view state then don't do all this stuff
+                        ProjectView _ (CreateServer _) ->
+                            ( newModel, Cmd.none )
+
+                        _ ->
+                            ( newModel
+                            , Cmd.batch
+                                [ Rest.requestFlavors project model.proxyUrl
+                                , Rest.requestKeypairs project model.proxyUrl
+                                , Rest.requestNetworks project model.proxyUrl
+                                , RandomHelpers.generatePassword
+                                    (\password ->
+                                        RandomPassword project password
+                                    )
+                                , RandomHelpers.generateServerName
+                                    (\serverName ->
+                                        ProjectMsg (Helpers.getProjectId project) <|
+                                            SetProjectView <|
+                                                CreateServer { createServerRequest | name = serverName }
+                                    )
+                                ]
                             )
-                        , RandomHelpers.generateServerName
-                            (\serverName ->
-                                ProjectMsg (Helpers.getProjectId project) <|
-                                    SetProjectView <|
-                                        CreateServer { createServerRequest | name = serverName }
-                            )
-                        ]
-                    )
 
                 ListProjectVolumes ->
                     ( newModel, OSVolumes.requestVolumes project model.proxyUrl )
