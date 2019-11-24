@@ -154,6 +154,7 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
+    | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (Result Http.Error (List OSTypes.Image))
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServer OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
@@ -197,6 +198,7 @@ type ProjectViewConstructor
     | ListProjectServers
     | ListProjectVolumes
     | ServerDetail OSTypes.ServerUuid ViewStateParams
+    | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid
     | CreateServer CreateServerRequest
     | CreateVolume OSTypes.VolumeName String

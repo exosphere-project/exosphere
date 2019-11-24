@@ -16,6 +16,7 @@ import Types.Types
         )
 import View.AttachVolume
 import View.CreateServer
+import View.CreateServerImage
 import View.Helpers as VH
 import View.Images
 import View.Servers
@@ -53,6 +54,9 @@ project model p viewConstructor =
 
                 MountVolInstructions attachment ->
                     View.AttachVolume.mountVolInstructions p attachment
+
+                CreateServerImage serverUuid imageName ->
+                    View.CreateServerImage.createServerImage p serverUuid imageName
     in
     Element.column
         (Element.width Element.fill

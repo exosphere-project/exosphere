@@ -84,6 +84,43 @@ renderImage globalDefaults project image =
 
                 Nothing ->
                     "N/A"
+
+        chooseButton =
+            case image.status of
+                OSTypes.ImageActive ->
+                    Button.button
+                        [ Modifier.Primary ]
+                        (Just
+                            (ProjectMsg
+                                (Helpers.getProjectId project)
+                                (SetProjectView
+                                    (CreateServer
+                                        (CreateServerRequest
+                                            image.name
+                                            (Helpers.getProjectId project)
+                                            image.uuid
+                                            image.name
+                                            "1"
+                                            ""
+                                            False
+                                            ""
+                                            Nothing
+                                            globalDefaults.shellUserData
+                                            "changeme123"
+                                            ""
+                                            False
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                        "Choose"
+
+                _ ->
+                    Button.button
+                        [ Modifier.Disabled ]
+                        Nothing
+                        "Choose"
     in
     ExoCard.exoCard
         image.name
@@ -100,32 +137,5 @@ renderImage globalDefaults project image =
                 ]
             , Element.el
                 [ Element.alignRight ]
-                (Button.button
-                    [ Modifier.Primary ]
-                    (Just
-                        (ProjectMsg
-                            (Helpers.getProjectId project)
-                            (SetProjectView
-                                (CreateServer
-                                    (CreateServerRequest
-                                        image.name
-                                        (Helpers.getProjectId project)
-                                        image.uuid
-                                        image.name
-                                        "1"
-                                        ""
-                                        False
-                                        ""
-                                        Nothing
-                                        globalDefaults.shellUserData
-                                        "changeme123"
-                                        ""
-                                        False
-                                    )
-                                )
-                            )
-                        )
-                    )
-                    "Choose"
-                )
+                chooseButton
             ]

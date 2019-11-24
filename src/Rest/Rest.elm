@@ -43,6 +43,7 @@ module Rest.Rest exposing
     , requestCreateFloatingIp
     , requestCreateFloatingIpIfRequestable
     , requestCreateServer
+    , requestCreateServerImage
     , requestDeleteFloatingIp
     , requestDeleteServer
     , requestDeleteServers
@@ -793,6 +794,34 @@ requestCockpitLogin project serverUuid password ipAddress =
         , timeout = Just 3000
         , tracker = Nothing
         }
+
+
+requestCreateServerImage : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestCreateServerImage project maybeProxyUrl serverUuid imageName =
+    let
+        body =
+            Encode.object
+                [ ( "createImage"
+                  , Encode.object
+                        [ ( "name", Encode.string imageName )
+                        , ( "metadata"
+                          , Encode.object
+                                [ ( "from-exosphere", Encode.string "true" )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+    in
+    openstackCredentialedRequest
+        project
+        maybeProxyUrl
+        Post
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
+        (Http.jsonBody body)
+        (Http.expectString
+            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerAction serverUuid result))
+        )
 
 
 

@@ -1,4 +1,7 @@
-module OpenStack.ServerActions exposing (getAllowed)
+module OpenStack.ServerActions exposing
+    ( ActionType(..)
+    , getAllowed
+    )
 
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
@@ -13,7 +16,9 @@ import Types.Types
         ( HttpRequestMethod(..)
         , Msg(..)
         , Project
+        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
         , Server
         )
 
@@ -24,10 +29,15 @@ type alias ServerAction =
 
     -- Todo enforce uniqueness by using a different collection (something like a Set, except ServerAction types aren't "comparable")
     , allowedStatus : List OSTypes.ServerStatus
-    , action : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
+    , action : ActionType
     , selectMods : List Modifier.Modifier
     , targetStatus : List OSTypes.ServerStatus
     }
+
+
+type ActionType
+    = CmdAction (Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg)
+    | UpdateAction (ProjectIdentifier -> Server -> Msg)
 
 
 getAllowed : OSTypes.ServerStatus -> List ServerAction
@@ -47,8 +57,9 @@ actions =
       , description = "Start stopped server"
       , allowedStatus = [ OSTypes.ServerStopped, OSTypes.ServerShutoff ]
       , action =
-            doAction <|
-                Json.Encode.object [ ( "os-start", Json.Encode.null ) ]
+            CmdAction <|
+                doAction <|
+                    Json.Encode.object [ ( "os-start", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
       , targetStatus = [ OSTypes.ServerActive ]
       }
@@ -56,38 +67,66 @@ actions =
       , description = "Restore paused server"
       , allowedStatus = [ OSTypes.ServerPaused ]
       , action =
-            doAction <|
-                Json.Encode.object [ ( "unpause", Json.Encode.null ) ]
+            CmdAction <|
+                doAction <|
+                    Json.Encode.object [ ( "unpause", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
       , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Resume"
       , description = "Resume suspended server"
       , allowedStatus = [ OSTypes.ServerSuspended ]
-      , action = doAction <| Json.Encode.object [ ( "resume", Json.Encode.null ) ]
+      , action =
+            CmdAction <|
+                doAction <|
+                    Json.Encode.object [ ( "resume", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
       , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Unshelve"
       , description = "Restore shelved server"
       , allowedStatus = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
-      , action = doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ])
+      , action =
+            CmdAction <|
+                doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ])
       , selectMods = [ Modifier.Primary ]
       , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Suspend"
       , description = "Save execution state to disk"
       , allowedStatus = [ OSTypes.ServerActive ]
-      , action = doAction <| Json.Encode.object [ ( "suspend", Json.Encode.null ) ]
+      , action =
+            CmdAction <|
+                doAction <|
+                    Json.Encode.object [ ( "suspend", Json.Encode.null ) ]
       , selectMods = []
       , targetStatus = [ OSTypes.ServerSuspended ]
       }
     , { name = "Shelve"
       , description = "Shut down server and offload it from compute host"
       , allowedStatus = [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
-      , action = doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
+      , action =
+            CmdAction <|
+                doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
       , selectMods = []
       , targetStatus = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+      }
+    , { name = "Image"
+      , description = "Create snapshot image of server"
+      , allowedStatus = [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , action =
+            UpdateAction <|
+                \projectId server ->
+                    ProjectMsg
+                        projectId
+                        (SetProjectView
+                            (CreateServerImage
+                                server.osProps.uuid
+                                (server.osProps.name ++ "-image")
+                            )
+                        )
+      , selectMods = []
+      , targetStatus = [ OSTypes.ServerActive ]
       }
     , { name = "Reboot"
       , description = "Restart server"
@@ -95,13 +134,14 @@ actions =
 
       -- TODO soft and hard reboot? Call hard reboot "reset"?
       , action =
-            doAction <|
-                Json.Encode.object
-                    [ ( "reboot"
-                      , Json.Encode.object
-                            [ ( "type", Json.Encode.string "SOFT" ) ]
-                      )
-                    ]
+            CmdAction <|
+                doAction <|
+                    Json.Encode.object
+                        [ ( "reboot"
+                          , Json.Encode.object
+                                [ ( "type", Json.Encode.string "SOFT" ) ]
+                          )
+                        ]
       , selectMods = [ Modifier.Warning ]
       , targetStatus = [ OSTypes.ServerActive ]
       }
@@ -119,7 +159,8 @@ actions =
             , OSTypes.ServerShelved
             , OSTypes.ServerShelvedOffloaded
             ]
-      , action = Rest.requestDeleteServer
+      , action =
+            CmdAction <| Rest.requestDeleteServer
       , selectMods = [ Modifier.Danger ]
       , targetStatus = [ OSTypes.ServerSoftDeleted ]
       }

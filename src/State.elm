@@ -455,6 +455,9 @@ processProjectSpecificMsg model project msg =
                         ]
                     )
 
+                CreateServerImage _ _ ->
+                    ( newModel, Cmd.none )
+
                 CreateServer createServerRequest ->
                     ( newModel
                     , Cmd.batch
@@ -619,6 +622,13 @@ processProjectSpecificMsg model project msg =
 
                 Nothing ->
                     Helpers.processError model "Could not determine server UUID"
+
+        RequestCreateServerImage serverUuid imageName ->
+            let
+                newModel =
+                    { model | viewState = ProjectView (Helpers.getProjectId project) ListProjectServers }
+            in
+            ( newModel, Rest.requestCreateServerImage project model.proxyUrl serverUuid imageName )
 
         ReceiveImages result ->
             Rest.receiveImages model project result
