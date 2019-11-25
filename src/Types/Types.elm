@@ -25,6 +25,7 @@ module Types.Types exposing
     , ProjectViewConstructor(..)
     , Server
     , ServerUiStatus(..)
+    , UnscopedProvider
     , VerboseStatus
     , ViewState(..)
     , ViewStateParams

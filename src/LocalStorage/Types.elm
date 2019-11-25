@@ -5,7 +5,7 @@ module LocalStorage.Types exposing
     )
 
 import OpenStack.Types as OSTypes
-import Types.Types exposing (ProjectSecret)
+import Types.Types exposing (ProjectSecret, UnscopedProvider)
 
 
 type alias StoredProject =
@@ -24,4 +24,5 @@ type alias StoredProject1 =
 
 type alias StoredState =
     { projects : List StoredProject
+    , unscopedProviders : List UnscopedProvider
     }

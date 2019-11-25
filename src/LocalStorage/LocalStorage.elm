@@ -20,7 +20,10 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState { projects = strippedProjects }
+    encodeStoredState
+        { projects = strippedProjects
+        , unscopedProviders = model.unscopedProviders
+        }
 
 
 generateStoredProject : Types.Project -> StoredProject
@@ -94,10 +97,39 @@ encodeStoredState storedState =
                 [ ( "secret", secretEncode storedProject.secret )
                 , ( "auth", encodeAuthToken storedProject.auth )
                 ]
+
+        storedUnscopedProviderEncode : Types.UnscopedProvider -> Encode.Value
+        storedUnscopedProviderEncode p =
+            let
+                unscopedAuthTokenEncode : OSTypes.UnscopedAuthToken -> Encode.Value
+                unscopedAuthTokenEncode token =
+                    Encode.object
+                        [ ( "user", encodeNameAndUuid token.user )
+                        , ( "userDomain", encodeNameAndUuid token.userDomain )
+                        , ( "tokenValue", Encode.string token.tokenValue )
+                        , ( "expiresAt", Encode.int (Time.posixToMillis token.expiresAt) )
+                        ]
+            in
+            Encode.object
+                [ ( "authUrl", Encode.string p.authUrl )
+                , ( "token", unscopedAuthTokenEncode p.token )
+                , ( "secret"
+                  , case p.secret of
+                        Just secret ->
+                            Encode.string secret
+
+                        Nothing ->
+                            Encode.null
+                  )
+                , ( "projectsAvailable", Encode.list Encode.string p.projectsAvailable )
+                ]
     in
     Encode.object
-        [ ( "2"
-          , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
+        [ ( "3"
+          , Encode.object
+                [ ( "projects", Encode.list storedProjectEncode storedState.projects )
+                , ( "unscopedProviders", Encode.list storedUnscopedProviderEncode storedState.unscopedProviders )
+                ]
           )
         ]
 
@@ -174,13 +206,21 @@ encodeEndpointInterface endpointInterface =
     Encode.string interfaceString
 
 
+encodeNameAndUuid : OSTypes.NameAndUuid -> Encode.Value
+encodeNameAndUuid x =
+    Encode.object
+        [ ( "name", Encode.string x.name )
+        , ( "uuid", Encode.string x.uuid )
+        ]
+
+
 
 -- Decoders
 
 
 decodeStoredState : Decode.Decoder StoredState
 decodeStoredState =
-    Decode.map
+    Decode.map2
         StoredState
         (Decode.oneOf
             [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
@@ -188,6 +228,11 @@ decodeStoredState =
 
             -- Added ApplicationCredential
             , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode)
+            ]
+        )
+        (Decode.oneOf
+            [ Decode.at [ "2", "unscopedProviders" ] (Decode.list unscopedProviderDecoder)
+            , Decode.succeed []
             ]
         )
 
@@ -301,13 +346,6 @@ decodeStoredAuthTokenDetails =
         (Decode.field "tokenValue" Decode.string)
 
 
-decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
-decodeNameAndId =
-    Decode.map2 OSTypes.NameAndUuid
-        (Decode.field "name" Decode.string)
-        (Decode.field "uuid" Decode.string)
-
-
 openstackStoredServiceDecoder : Decode.Decoder OSTypes.Service
 openstackStoredServiceDecoder =
     Decode.map3 OSTypes.Service
@@ -339,3 +377,30 @@ openstackStoredEndpointInterfaceDecoder interface =
 
         _ ->
             Decode.fail "unrecognized interface type"
+
+
+unscopedProviderDecoder : Decode.Decoder Types.UnscopedProvider
+unscopedProviderDecoder =
+    Decode.map4 Types.UnscopedProvider
+        (Decode.field "authUrl" Decode.string)
+        (Decode.field "token" unscopedAuthTokenDecoder)
+        (Decode.field "secret" <| Decode.nullable Decode.string)
+        (Decode.field "projectsAvailable" <| Decode.list Decode.string)
+
+
+unscopedAuthTokenDecoder : Decode.Decoder OSTypes.UnscopedAuthToken
+unscopedAuthTokenDecoder =
+    Decode.map4 OSTypes.UnscopedAuthToken
+        (Decode.field "user" decodeNameAndId)
+        (Decode.field "userDomain" decodeNameAndId)
+        (Decode.field "tokenValue" Decode.string)
+        (Decode.field "expiresAt" Decode.int
+            |> Decode.map Time.millisToPosix
+        )
+
+
+decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
+decodeNameAndId =
+    Decode.map2 OSTypes.NameAndUuid
+        (Decode.field "name" Decode.string)
+        (Decode.field "uuid" Decode.string)
