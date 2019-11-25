@@ -57,6 +57,7 @@ module Rest.Rest exposing
     , requestServer
     , requestServers
     , requestUnscopedAuthToken
+    , requestUnscopedProjects
     , serverDecoder
     , serverIpAddressDecoder
     , serverPowerStateDecoder
@@ -86,9 +87,11 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
+        , ProjectName
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , UnscopedProvider
         , ViewState(..)
         )
 import Url
@@ -310,6 +313,35 @@ requestAppCredential project maybeProxyUrl posixTime =
             (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveAppCredential result))
             decodeAppCredential
         )
+
+
+requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
+requestUnscopedProjects provider maybeProxyUrl =
+    let
+        requestBody =
+            Encode.string "TODO"
+
+        ( url, headers ) =
+            case maybeProxyUrl of
+                Just proxyUrl ->
+                    proxyifyRequest proxyUrl provider.authUrl
+
+                Nothing ->
+                    ( provider.authUrl, [] )
+    in
+    -- TODO handle case where unscoped auth token has expired
+    Http.request
+        { method = "GET"
+        , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
+        , url = url
+        , body = Http.jsonBody requestBody
+        , expect =
+            Http.expectJson
+                (\result -> ReceiveUnscopedProjects provider.authUrl result)
+                decodeUnscopedProjects
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
@@ -1567,6 +1599,13 @@ openstackEndpointInterfaceDecoder interface =
 
         _ ->
             Decode.fail "unrecognized interface type"
+
+
+decodeUnscopedProjects : Decode.Decoder (List ProjectName)
+decodeUnscopedProjects =
+    Decode.field "projects" <|
+        Decode.list <|
+            Decode.field "name" Decode.string
 
 
 decodeImages : Decode.Decoder (List OSTypes.Image)

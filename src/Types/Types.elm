@@ -133,6 +133,7 @@ type Msg
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ReceiveUnscopedAuthToken HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List ProjectName))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String

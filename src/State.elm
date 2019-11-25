@@ -295,6 +295,32 @@ updateUnderlying msg model =
                                     -- We don't have
                                     createUnscopedProvider model password authToken metadata.url
 
+        ReceiveUnscopedProjects keystoneUrl result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok unscopedProjects ->
+                    case
+                        List.filter
+                            (\uP -> uP.authUrl == keystoneUrl)
+                            model.unscopedProviders
+                            |> List.head
+                    of
+                        Just provider ->
+                            let
+                                newProvider =
+                                    { provider | projectsAvailable = unscopedProjects }
+
+                                newModel =
+                                    Helpers.modelUpdateUnscopedProvider model newProvider
+                            in
+                            ( newModel, Cmd.none )
+
+                        Nothing ->
+                            -- Provider not found, may have been removed, nothing to do
+                            ( model, Cmd.none )
+
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
                 Nothing ->
