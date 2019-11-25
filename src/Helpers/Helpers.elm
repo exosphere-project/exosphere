@@ -16,6 +16,7 @@ module Helpers.Helpers exposing
     , iso8601StringToPosix
     , jetstreamToOpenstackCreds
     , modelUpdateProject
+    , modelUpdateUnscopedProvider
     , newServerNetworkOptions
     , processError
     , processOpenRc
@@ -61,6 +62,7 @@ import Types.Types
         , ProjectIdentifier
         , Server
         , ServerUiStatus(..)
+        , UnscopedProvider
         )
 import Url
 
@@ -405,6 +407,23 @@ projectUpdateServer project server =
 projectUpdateServers : Project -> List Server -> Project
 projectUpdateServers project servers =
     List.foldl (\s p -> projectUpdateServer p s) project servers
+
+
+modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model
+modelUpdateUnscopedProvider model newProvider =
+    let
+        otherProviders =
+            List.filter
+                (\p -> p.authUrl /= newProvider.authUrl)
+                model.unscopedProviders
+
+        newProviders =
+            newProvider :: otherProviders
+
+        newProvidersSorted =
+            List.sortBy (\p -> p.authUrl) newProviders
+    in
+    { model | unscopedProviders = newProvidersSorted }
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
