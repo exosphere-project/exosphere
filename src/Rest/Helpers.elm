@@ -1,5 +1,6 @@
 module Rest.Helpers exposing
-    ( keystoneUrlWithVersion
+    ( idOrName
+    , keystoneUrlWithVersion
     , openstackCredentialedRequest
     , proxyifyRequest
     )
@@ -118,3 +119,12 @@ keystoneUrlWithVersion inputUrl =
 
             else
                 Url.toString { url | path = "/v3" }
+
+
+idOrName : String -> String
+idOrName str =
+    if Helpers.stringIsUuidOrDefault str then
+        "id"
+
+    else
+        "name"

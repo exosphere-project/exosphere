@@ -131,7 +131,8 @@ type Msg
     | RequestUnscopedToken OSTypes.OpenstackLoginUnscoped
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveUnscopedAuthToken HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String

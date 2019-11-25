@@ -37,7 +37,6 @@ module Rest.Rest exposing
     , receiveServer
     , receiveServers
     , requestAppCredential
-    , requestAuthToken
     , requestConsoleUrls
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
@@ -52,6 +51,7 @@ module Rest.Rest exposing
     , requestImages
     , requestKeypairs
     , requestNetworks
+    , requestScopedAuthToken
     , requestSecurityGroups
     , requestServer
     , requestServers
@@ -73,7 +73,8 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers
     exposing
-        ( keystoneUrlWithVersion
+        ( idOrName
+        , keystoneUrlWithVersion
         , openstackCredentialedRequest
         , proxyifyRequest
         )
@@ -102,16 +103,9 @@ import Url
 {- HTTP Requests -}
 
 
-requestAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
-requestAuthToken maybeProxyUrl input =
+requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
+requestScopedAuthToken maybeProxyUrl input =
     let
-        idOrName str =
-            if Helpers.stringIsUuidOrDefault str then
-                "id"
-
-            else
-                "name"
-
         requestBody =
             case input of
                 OSTypes.AppCreds _ appCred ->
@@ -183,15 +177,71 @@ requestAuthToken maybeProxyUrl input =
                 OSTypes.AppCreds url _ ->
                     url
 
+        maybePassword =
+            case input of
+                OSTypes.PasswordCreds c ->
+                    Just c.password
+
+                _ ->
+                    Nothing
+    in
+    requestAuthTokenHelper
+        requestBody
+        inputUrl
+        maybeProxyUrl
+        (ReceiveScopedAuthToken maybePassword)
+
+
+requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLoginUnscoped -> Cmd Msg
+requestUnscopedAuthToken maybeProxyUrl creds =
+    let
+        requestBody =
+            Encode.object
+                [ ( "auth"
+                  , Encode.object
+                        [ ( "identity"
+                          , Encode.object
+                                [ ( "methods", Encode.list Encode.string [ "password" ] )
+                                , ( "password"
+                                  , Encode.object
+                                        [ ( "user"
+                                          , Encode.object
+                                                [ ( "name", Encode.string creds.username )
+                                                , ( "domain"
+                                                  , Encode.object
+                                                        [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
+                                                        ]
+                                                  )
+                                                , ( "password", Encode.string creds.password )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+    in
+    requestAuthTokenHelper
+        requestBody
+        creds.authUrl
+        maybeProxyUrl
+        (ReceiveUnscopedAuthToken creds.password)
+
+
+requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result Http.Error ( Http.Metadata, String ) -> Msg) -> Cmd Msg
+requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
+    let
         correctedUrl =
             let
                 maybeUrl =
-                    Url.fromString inputUrl
+                    Url.fromString authUrl
             in
             case maybeUrl of
                 -- Cannot parse URL, so uh, don't make changes to it. We should never be here
                 Nothing ->
-                    inputUrl
+                    authUrl
 
                 Just url_ ->
                     { url_ | path = "/v3/auth/tokens" } |> Url.toString
@@ -203,14 +253,6 @@ requestAuthToken maybeProxyUrl input =
 
                 Just proxyUrl ->
                     proxyifyRequest proxyUrl correctedUrl
-
-        maybePassword =
-            case input of
-                OSTypes.PasswordCreds c ->
-                    Just c.password
-
-                _ ->
-                    Nothing
     in
     {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
     Http.request
@@ -222,7 +264,7 @@ requestAuthToken maybeProxyUrl input =
         {- Todo handle no response? -}
         , expect =
             Http.expectStringResponse
-                (ReceiveAuthToken maybePassword)
+                resultMsg
                 (\response ->
                     case response of
                         Http.BadUrl_ url_ ->
@@ -243,12 +285,6 @@ requestAuthToken maybeProxyUrl input =
         , timeout = Nothing
         , tracker = Nothing
         }
-
-
-requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLoginUnscoped -> Cmd Msg
-requestUnscopedAuthToken maybeProxyUrl loginCreds =
-    -- TODO finish me
-    Cmd.none
 
 
 requestAppCredential : Project -> Maybe HelperTypes.Url -> Time.Posix -> Cmd Msg

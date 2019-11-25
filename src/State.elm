@@ -215,16 +215,16 @@ updateUnderlying msg model =
                 newOpenstackCreds =
                     { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.requestAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
+            ( model, Rest.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
 
         JetstreamLogin jetstreamCreds ->
             let
                 openstackCreds =
                     Helpers.jetstreamToOpenstackCreds jetstreamCreds
             in
-            ( model, Rest.requestAuthToken model.proxyUrl <| OSTypes.PasswordCreds openstackCreds )
+            ( model, Rest.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds openstackCreds )
 
-        ReceiveAuthToken maybePassword responseResult ->
+        ReceiveScopedAuthToken maybePassword responseResult ->
             case responseResult of
                 Err error ->
                     Helpers.processError model error
@@ -267,6 +267,10 @@ updateUnderlying msg model =
                                             projectUpdateAuthToken model project authToken
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+
+        ReceiveUnscopedAuthToken password responseResult ->
+            -- TODO finish me
+            ( model, Cmd.none )
 
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
@@ -850,4 +854,4 @@ requestAuthToken model project =
                 ApplicationCredential appCred ->
                     OSTypes.AppCreds project.endpoints.keystone appCred
     in
-    Rest.requestAuthToken model.proxyUrl creds
+    Rest.requestScopedAuthToken model.proxyUrl creds
