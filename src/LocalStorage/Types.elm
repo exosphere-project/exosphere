@@ -10,13 +10,13 @@ import Types.Types exposing (ProjectSecret, UnscopedProvider)
 
 type alias StoredProject =
     { secret : ProjectSecret
-    , auth : OSTypes.AuthToken
+    , auth : OSTypes.ScopedAuthToken
     }
 
 
 type alias StoredProject1 =
     { password : String
-    , auth : OSTypes.AuthToken
+    , auth : OSTypes.ScopedAuthToken
     , projDomain : OSTypes.NameAndUuid
     , userDomain : OSTypes.NameAndUuid
     }

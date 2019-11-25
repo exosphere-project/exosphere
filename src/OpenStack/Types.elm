@@ -2,7 +2,6 @@ module OpenStack.Types exposing
     ( ApplicationCredential
     , ApplicationCredentialSecret
     , ApplicationCredentialUuid
-    , AuthToken
     , AuthTokenString
     , ConsoleUrl
     , CreateVolumeRequest
@@ -27,6 +26,7 @@ module OpenStack.Types exposing
     , OpenstackLogin
     , OpenstackLoginUnscoped
     , Port
+    , ScopedAuthToken
     , SecurityGroup
     , SecurityGroupRule
     , SecurityGroupRuleDirection(..)
@@ -75,7 +75,7 @@ type alias KeystoneUrl =
     HelperTypes.Url
 
 
-type alias AuthToken =
+type alias ScopedAuthToken =
     -- Todo re-order these so it is consistent with the order in UnscopedAuthToken?
     { catalog : ServiceCatalog
     , project : NameAndUuid
@@ -90,8 +90,8 @@ type alias AuthToken =
 type alias UnscopedAuthToken =
     { user : NameAndUuid
     , userDomain : NameAndUuid
-    , tokenValue : AuthTokenString
     , expiresAt : Time.Posix
+    , tokenValue : AuthTokenString
     }
 
 

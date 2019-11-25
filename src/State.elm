@@ -34,6 +34,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , UnscopedProvider
         , ViewState(..)
         )
 
@@ -230,7 +231,7 @@ updateUnderlying msg model =
                     Helpers.processError model error
 
                 Ok ( metadata, response ) ->
-                    case Rest.decodeAuthToken <| Http.GoodStatus_ metadata response of
+                    case Rest.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                         Err error ->
                             Helpers.processError model error
 
@@ -269,8 +270,30 @@ updateUnderlying msg model =
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
         ReceiveUnscopedAuthToken password responseResult ->
-            -- TODO finish me
-            ( model, Cmd.none )
+            case responseResult of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok ( metadata, response ) ->
+                    case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
+                        Err error ->
+                            Helpers.processError model error
+
+                        Ok authToken ->
+                            -- TODO is this an appropriate URL to store in the model?
+                            case
+                                List.filter
+                                    (\uP -> uP.authUrl == metadata.url)
+                                    model.unscopedProviders
+                                    |> List.head
+                            of
+                                Just unscopedProvider ->
+                                    -- We already have an unscoped provider in the model with the same auth URL, update its token
+                                    unscopedProviderUpdateAuthToken model unscopedProvider authToken
+
+                                Nothing ->
+                                    -- We don't have
+                                    createUnscopedProvider model password authToken metadata.url
 
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
@@ -744,7 +767,7 @@ processProjectSpecificMsg model project msg =
             ( model, Rest.requestAppCredential project model.proxyUrl posix )
 
 
-createProject : Model -> HelperTypes.Password -> OSTypes.AuthToken -> ( Model, Cmd Msg )
+createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 createProject model password authToken =
     let
         endpoints =
@@ -788,7 +811,7 @@ createProject model password authToken =
     )
 
 
-projectUpdateAuthToken : Model -> Project -> OSTypes.AuthToken -> ( Model, Cmd Msg )
+projectUpdateAuthToken : Model -> Project -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 projectUpdateAuthToken model project authToken =
     -- Update auth token for existing project
     let
@@ -799,6 +822,37 @@ projectUpdateAuthToken model project authToken =
             Helpers.modelUpdateProject model newProject
     in
     sendPendingRequests newModel newProject
+
+
+createUnscopedProvider : Model -> HelperTypes.Password -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
+createUnscopedProvider model password authToken authUrl =
+    let
+        newProvider =
+            { authUrl = authUrl
+            , token = authToken
+
+            -- TODO don't store password if user doesn't want to
+            , secret = Just password
+            , projectsAvailable = []
+            }
+
+        newProviders =
+            newProvider :: model.unscopedProviders
+    in
+    -- TODO get list of projects
+    ( { model | unscopedProviders = newProviders }, Cmd.none )
+
+
+unscopedProviderUpdateAuthToken : Model -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( Model, Cmd Msg )
+unscopedProviderUpdateAuthToken model provider authToken =
+    let
+        newProvider =
+            { provider | token = authToken }
+
+        newModel =
+            Helpers.modelUpdateUnscopedProvider model newProvider
+    in
+    ( newModel, Cmd.none )
 
 
 sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )

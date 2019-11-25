@@ -89,7 +89,7 @@ type alias UnscopedProvider =
 
 type alias Project =
     { secret : ProjectSecret
-    , auth : OSTypes.AuthToken
+    , auth : OSTypes.ScopedAuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
     , servers : WebData (List Server)

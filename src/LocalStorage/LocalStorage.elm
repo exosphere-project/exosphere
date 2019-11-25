@@ -106,8 +106,8 @@ encodeStoredState storedState =
                     Encode.object
                         [ ( "user", encodeNameAndUuid token.user )
                         , ( "userDomain", encodeNameAndUuid token.userDomain )
-                        , ( "tokenValue", Encode.string token.tokenValue )
                         , ( "expiresAt", Encode.int (Time.posixToMillis token.expiresAt) )
+                        , ( "tokenValue", Encode.string token.tokenValue )
                         ]
             in
             Encode.object
@@ -134,7 +134,7 @@ encodeStoredState storedState =
         ]
 
 
-encodeAuthToken : OSTypes.AuthToken -> Encode.Value
+encodeAuthToken : OSTypes.ScopedAuthToken -> Encode.Value
 encodeAuthToken authToken =
     Encode.object
         [ ( "catalog", encodeCatalog authToken.catalog )
@@ -250,7 +250,7 @@ storedProject1ToStoredProject : StoredProject1 -> StoredProject
 storedProject1ToStoredProject sp =
     let
         authToken =
-            OSTypes.AuthToken
+            OSTypes.ScopedAuthToken
                 sp.auth.catalog
                 sp.auth.project
                 sp.projDomain
@@ -308,9 +308,9 @@ decodeProjectSecret =
     Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
 
 
-decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.AuthToken
+decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.ScopedAuthToken
 decodeStoredAuthTokenDetails1 =
-    Decode.map7 OSTypes.AuthToken
+    Decode.map7 OSTypes.ScopedAuthToken
         (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
         (Decode.map2
             OSTypes.NameAndUuid
@@ -332,9 +332,9 @@ decodeStoredAuthTokenDetails1 =
         (Decode.field "tokenValue" Decode.string)
 
 
-decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.AuthToken
+decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.ScopedAuthToken
 decodeStoredAuthTokenDetails =
-    Decode.map7 OSTypes.AuthToken
+    Decode.map7 OSTypes.ScopedAuthToken
         (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
         (Decode.field "project" decodeNameAndId)
         (Decode.field "projectDomain" decodeNameAndId)
@@ -393,10 +393,10 @@ unscopedAuthTokenDecoder =
     Decode.map4 OSTypes.UnscopedAuthToken
         (Decode.field "user" decodeNameAndId)
         (Decode.field "userDomain" decodeNameAndId)
-        (Decode.field "tokenValue" Decode.string)
         (Decode.field "expiresAt" Decode.int
             |> Decode.map Time.millisToPosix
         )
+        (Decode.field "tokenValue" Decode.string)
 
 
 decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid

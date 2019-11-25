@@ -1,14 +1,15 @@
 module Rest.Rest exposing
     ( addFloatingIpInServerDetails
-    , decodeAuthToken
     , decodeFlavors
     , decodeFloatingIpCreation
     , decodeImages
     , decodeKeypairs
     , decodeNetworks
     , decodePorts
+    , decodeScopedAuthToken
     , decodeServerDetails
     , decodeServers
+    , decodeUnscopedAuthToken
     , flavorDecoder
     , getFloatingIpRequestPorts
     , imageDecoder
@@ -71,13 +72,7 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers
-    exposing
-        ( idOrName
-        , keystoneUrlWithVersion
-        , openstackCredentialedRequest
-        , proxyifyRequest
-        )
+import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -1437,29 +1432,23 @@ receiveCockpitLoginStatus model project serverUuid result =
 {- JSON Decoders -}
 
 
-decodeAuthToken : Http.Response String -> Result String OSTypes.AuthToken
-decodeAuthToken response =
+decodeScopedAuthToken : Http.Response String -> Result String OSTypes.ScopedAuthToken
+decodeScopedAuthToken response =
+    decodeAuthTokenHelper response decodeScopedAuthTokenDetails
+
+
+decodeUnscopedAuthToken : Http.Response String -> Result String OSTypes.UnscopedAuthToken
+decodeUnscopedAuthToken response =
+    decodeAuthTokenHelper response decodeUnscopedAuthTokenDetails
+
+
+decodeAuthTokenHelper : Http.Response String -> Decode.Decoder (OSTypes.AuthTokenString -> a) -> Result String a
+decodeAuthTokenHelper response tokenDetailsDecoder =
     case response of
         Http.GoodStatus_ metadata body ->
-            case Decode.decodeString decodeAuthTokenDetails body of
+            case Decode.decodeString tokenDetailsDecoder body of
                 Ok tokenDetailsWithoutTokenString ->
-                    let
-                        authTokenFromHeader : Result String String
-                        authTokenFromHeader =
-                            case Dict.get "X-Subject-Token" metadata.headers of
-                                Just token ->
-                                    Ok token
-
-                                Nothing ->
-                                    -- https://github.com/elm/http/issues/31
-                                    case Dict.get "x-subject-token" metadata.headers of
-                                        Just token2 ->
-                                            Ok token2
-
-                                        Nothing ->
-                                            Err "Could not find an auth token in response headers"
-                    in
-                    case authTokenFromHeader of
+                    case authTokenFromHeader metadata of
                         Ok authTokenString ->
                             Ok (tokenDetailsWithoutTokenString authTokenString)
 
@@ -1476,18 +1465,25 @@ decodeAuthToken response =
             Err (Debug.toString "foo")
 
 
-decodeAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.AuthToken)
-decodeAuthTokenDetails =
-    let
-        iso8601StringToPosixDecodeError str =
-            case Helpers.iso8601StringToPosix str of
-                Ok posix ->
-                    Decode.succeed posix
+authTokenFromHeader : Http.Metadata -> Result String String
+authTokenFromHeader metadata =
+    case Dict.get "X-Subject-Token" metadata.headers of
+        Just token ->
+            Ok token
 
-                Err error ->
-                    Decode.fail error
-    in
-    Decode.map6 OSTypes.AuthToken
+        Nothing ->
+            -- https://github.com/elm/http/issues/31
+            case Dict.get "x-subject-token" metadata.headers of
+                Just token2 ->
+                    Ok token2
+
+                Nothing ->
+                    Err "Could not find an auth token in response headers"
+
+
+decodeScopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.ScopedAuthToken)
+decodeScopedAuthTokenDetails =
+    Decode.map6 OSTypes.ScopedAuthToken
         (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
         (Decode.map2
             OSTypes.NameAndUuid
@@ -1499,6 +1495,25 @@ decodeAuthTokenDetails =
             (Decode.at [ "token", "project", "domain", "name" ] Decode.string)
             (Decode.at [ "token", "project", "domain", "id" ] Decode.string)
         )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "domain", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
+        )
+        (Decode.at [ "token", "expires_at" ] Decode.string
+            |> Decode.andThen iso8601StringToPosixDecodeError
+        )
+
+
+decodeUnscopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
+decodeUnscopedAuthTokenDetails =
+    -- TODO finish me
+    Decode.map3 OSTypes.UnscopedAuthToken
         (Decode.map2
             OSTypes.NameAndUuid
             (Decode.at [ "token", "user", "name" ] Decode.string)
