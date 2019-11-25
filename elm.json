@@ -5,7 +5,7 @@
         "elm-style-framework/src",
         "src/Style"
     ],
-    "elm-version": "0.19.0",
+    "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",

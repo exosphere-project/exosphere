@@ -12,7 +12,7 @@ var isElectron = (userAgent.indexOf(' electron/') > -1);
 
 // start the elm app in the container
 // and keep a reference for communicating with the app
-var app = Elm.Main.init({
+var app = Elm.Exosphere.init({
     node: container,
     flags:
     {

@@ -11,14 +11,21 @@ import Helpers.Helpers as Helpers
 import Maybe
 import Types.Types
     exposing
-        ( CreateServerField(..)
-        , CreateServerRequest
+        ( CreateServerRequest
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
         )
 import View.Helpers as VH exposing (edges)
+
+
+updateCreateServerRequest : Project -> CreateServerRequest -> Msg
+updateCreateServerRequest project createServerRequest =
+    ProjectMsg (Helpers.getProjectId project) <|
+        SetProjectView <|
+            CreateServer createServerRequest
 
 
 createServer : Project -> CreateServerRequest -> Element.Element Msg
@@ -55,7 +62,7 @@ createServer project createServerRequest =
                 (Element.spacing 12 :: serverNameEmptyHint)
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
-                , onChange = \n -> InputCreateServerField createServerRequest (CreateServerName n)
+                , onChange = \n -> updateCreateServerRequest project { createServerRequest | name = n }
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
@@ -77,7 +84,7 @@ createServer project createServerRequest =
                             Element.none
                         )
                     ]
-                    { onChange = \c -> InputCreateServerField createServerRequest (CreateServerCount (String.fromFloat c))
+                    { onChange = \c -> updateCreateServerRequest project { createServerRequest | count = String.fromFloat c }
                     , label = Input.labelLeft [] (Element.text "How many?")
                     , min = 1
                     , max = 10
@@ -112,7 +119,7 @@ flavorPicker project createServerRequest =
             Input.radio
                 []
                 { label = Input.labelHidden flavor.name
-                , onChange = \f -> InputCreateServerField createServerRequest (CreateServerSize f)
+                , onChange = \f -> updateCreateServerRequest project { createServerRequest | flavorUuid = f }
                 , options = [ Input.option flavor.uuid (Element.text " ") ]
                 , selected =
                     if flavor.uuid == createServerRequest.flavorUuid then
@@ -244,7 +251,7 @@ volBackedPrompt project createServerRequest =
                         Element.none
                     )
                 ]
-                { onChange = \c -> InputCreateServerField createServerRequest (CreateServerVolBackedSize (String.fromFloat c))
+                { onChange = \c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = String.fromFloat c }
                 , label = Input.labelRight [] (Element.text (createServerRequest.volBackedSizeGb ++ " GB"))
                 , min = 2
                 , max = 100
@@ -257,7 +264,7 @@ volBackedPrompt project createServerRequest =
     Element.column VH.exoColumnAttributes
         [ Input.radio []
             { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
-            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerVolBacked new)
+            , onChange = \new -> updateCreateServerRequest project { createServerRequest | volBacked = new }
             , options =
                 [ Input.option False (Element.text nonVolBackedOptionText)
                 , Input.option True (Element.text "Custom disk size (volume-backed)")
@@ -321,7 +328,7 @@ networkPicker project createServerRequest =
                     in
                     [ Input.radio networkEmptyHint
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
-                        , onChange = \networkUuid -> InputCreateServerField createServerRequest (CreateServerNetworkUuid networkUuid)
+                        , onChange = \networkUuid -> updateCreateServerRequest project { createServerRequest | networkUuid = networkUuid }
                         , options = List.map networkAsInputOption project.networks
                         , selected = Just createServerRequest.networkUuid
                         }
@@ -346,7 +353,7 @@ keypairPicker project createServerRequest =
             else
                 Input.radio []
                     { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
-                    , onChange = \keypairName -> InputCreateServerField createServerRequest (CreateServerKeypairName keypairName)
+                    , onChange = \keypairName -> updateCreateServerRequest project { createServerRequest | keypairName = Just keypairName }
                     , options = List.map keypairAsOption project.keypairs
                     , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
                     }
@@ -359,12 +366,12 @@ keypairPicker project createServerRequest =
 
 
 userDataInput : Project -> CreateServerRequest -> Element.Element Msg
-userDataInput _ createServerRequest =
+userDataInput project createServerRequest =
     Element.column
         VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
-            , onChange = \new -> InputCreateServerField createServerRequest (CreateServerShowAdvancedOptions new)
+            , onChange = \new -> updateCreateServerRequest project { createServerRequest | showAdvancedOptions = new }
             , options =
                 [ Input.option False (Element.text "Hide")
                 , Input.option True (Element.text "Show")
@@ -381,7 +388,7 @@ userDataInput _ createServerRequest =
                 [ Element.width (Element.px 600)
                 , Element.height (Element.px 500)
                 ]
-                { onChange = \u -> InputCreateServerField createServerRequest (CreateServerUserData u)
+                { onChange = \u -> updateCreateServerRequest project { createServerRequest | userData = u }
                 , text = createServerRequest.userData
                 , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
                 , label =

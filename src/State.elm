@@ -21,16 +21,13 @@ import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , CreateServerField(..)
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
-        , JetstreamLoginField(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginField(..)
         , Project
         , ProjectIdentifier
         , ProjectSecret(..)
@@ -39,10 +36,6 @@ import Types.Types
         , Server
         , ViewState(..)
         )
-
-
-
-{- Todo remove default creds once storing this in local storage -}
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -281,54 +274,13 @@ updateUnderlying msg model =
                     processProjectSpecificMsg model project innerMsg
 
         {- Form inputs -}
-        InputOpenstackLoginField openstackCreds loginField ->
+        InputOpenRc openstackCreds openRc ->
             let
                 newCreds =
-                    case loginField of
-                        AuthUrl authUrl ->
-                            { openstackCreds | authUrl = authUrl }
-
-                        ProjectDomain projectDomain ->
-                            { openstackCreds | projectDomain = projectDomain }
-
-                        ProjectName projectName ->
-                            { openstackCreds | projectName = projectName }
-
-                        UserDomain userDomain ->
-                            { openstackCreds | userDomain = userDomain }
-
-                        Username username ->
-                            { openstackCreds | username = username }
-
-                        Password password ->
-                            { openstackCreds | password = password }
-
-                        OpenRc openRc ->
-                            Helpers.processOpenRc openstackCreds openRc
+                    Helpers.processOpenRc openstackCreds openRc
 
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
-            in
-            ( { model | viewState = newViewState }, Cmd.none )
-
-        InputJetstreamLoginField jetstreamCreds loginField ->
-            let
-                newCreds =
-                    case loginField of
-                        JetstreamProviderChoice provider ->
-                            { jetstreamCreds | jetstreamProviderChoice = provider }
-
-                        JetstreamProjectName projectName ->
-                            { jetstreamCreds | jetstreamProjectName = projectName }
-
-                        TaccUsername username ->
-                            { jetstreamCreds | taccUsername = username }
-
-                        TaccPassword password ->
-                            { jetstreamCreds | taccPassword = password }
-
-                newViewState =
-                    NonProjectView <| LoginJetstream newCreds
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
@@ -346,82 +298,11 @@ updateUnderlying msg model =
             in
             ( newModel, Cmd.none )
 
-        InputCreateServerField createServerRequest createServerField ->
-            let
-                newCreateServerRequest =
-                    case createServerField of
-                        CreateServerName name ->
-                            { createServerRequest | name = name }
-
-                        CreateServerCount count ->
-                            { createServerRequest | count = count }
-
-                        CreateServerUserData userData ->
-                            { createServerRequest | userData = userData }
-
-                        CreateServerSize flavorUuid ->
-                            { createServerRequest | flavorUuid = flavorUuid }
-
-                        CreateServerKeypairName keypairName ->
-                            { createServerRequest | keypairName = Just keypairName }
-
-                        CreateServerVolBacked volBacked ->
-                            { createServerRequest | volBacked = volBacked }
-
-                        CreateServerVolBackedSize sizeStr ->
-                            { createServerRequest | volBackedSizeGb = sizeStr }
-
-                        CreateServerNetworkUuid networkUuid ->
-                            { createServerRequest | networkUuid = networkUuid }
-
-                        CreateServerShowAdvancedOptions showAdvancedOptions ->
-                            { createServerRequest | showAdvancedOptions = showAdvancedOptions }
-
-                newViewState =
-                    ProjectView createServerRequest.projectId (CreateServer newCreateServerRequest)
-            in
-            ( { model | viewState = newViewState }, Cmd.none )
-
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
 
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
-
-        RandomPassword project password ->
-            -- This is the start of a code smell for two reasons:
-            -- 1. We have parallel data structures, storing password in userdata string and separately
-            -- 2. We must reach deep into model.viewState in order to change these fields
-            -- See also Rest.receiveFlavors
-            case model.viewState of
-                NonProjectView _ ->
-                    ( model, Cmd.none )
-
-                ProjectView projectId projectViewConstructor ->
-                    if projectId /= Helpers.getProjectId project then
-                        ( model, Cmd.none )
-
-                    else
-                        case projectViewConstructor of
-                            CreateServer createServerRequest ->
-                                let
-                                    newUserData =
-                                        String.split "{exouser-password}" createServerRequest.userData
-                                            |> String.join password
-
-                                    newCSR =
-                                        { createServerRequest
-                                            | userData = newUserData
-                                            , exouserPassword = password
-                                        }
-
-                                    newViewState =
-                                        ProjectView projectId (CreateServer newCSR)
-                                in
-                                ( { model | viewState = newViewState }, Cmd.none )
-
-                            _ ->
-                                ( model, Cmd.none )
 
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
@@ -459,21 +340,38 @@ processProjectSpecificMsg model project msg =
                     ( newModel, Cmd.none )
 
                 CreateServer createServerRequest ->
-                    ( newModel
-                    , Cmd.batch
-                        [ Rest.requestFlavors project model.proxyUrl
-                        , Rest.requestKeypairs project model.proxyUrl
-                        , Rest.requestNetworks project model.proxyUrl
-                        , RandomHelpers.generatePassword
-                            (\password ->
-                                RandomPassword project password
+                    case model.viewState of
+                        -- If we are already in this view state then don't do all this stuff
+                        ProjectView _ (CreateServer _) ->
+                            ( newModel, Cmd.none )
+
+                        _ ->
+                            let
+                                newCSRMsg password_ serverName_ =
+                                    let
+                                        newUserData =
+                                            String.split "{exouser-password}" createServerRequest.userData
+                                                |> String.join password_
+
+                                        newCSR =
+                                            { createServerRequest
+                                                | userData = newUserData
+                                                , exouserPassword = password_
+                                                , name = serverName_
+                                            }
+                                    in
+                                    ProjectMsg (Helpers.getProjectId project) <|
+                                        SetProjectView <|
+                                            CreateServer newCSR
+                            in
+                            ( newModel
+                            , Cmd.batch
+                                [ Rest.requestFlavors project model.proxyUrl
+                                , Rest.requestKeypairs project model.proxyUrl
+                                , Rest.requestNetworks project model.proxyUrl
+                                , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
+                                ]
                             )
-                        , RandomHelpers.generateServerName
-                            (\serverName ->
-                                InputCreateServerField createServerRequest (CreateServerName serverName)
-                            )
-                        ]
-                    )
 
                 ListProjectVolumes ->
                     ( newModel, OSVolumes.requestVolumes project model.proxyUrl )

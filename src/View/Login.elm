@@ -6,7 +6,7 @@ import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
 import OpenStack.Types as OSTypes
-import Types.Types exposing (JetstreamCreds, JetstreamLoginField(..), JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..), OpenstackLoginField(..))
+import Types.Types exposing (JetstreamCreds, JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 
@@ -68,6 +68,11 @@ viewLoginOpenstack model openstackCreds =
 
 loginOpenstackCredsEntry : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
 loginOpenstackCredsEntry _ openstackCreds =
+    let
+        updateCreds : OSTypes.OpenstackLogin -> Msg
+        updateCreds newCreds =
+            SetNonProjectView <| LoginOpenstack newCreds
+    in
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.width (Element.px 500)
@@ -80,7 +85,7 @@ loginOpenstackCredsEntry _ openstackCreds =
             ]
             { text = openstackCreds.authUrl
             , placeholder = Just (Input.placeholder [] (Element.text "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"))
-            , onChange = \u -> InputOpenstackLoginField openstackCreds (AuthUrl u)
+            , onChange = \u -> updateCreds { openstackCreds | authUrl = u }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
             }
         , Input.text
@@ -88,7 +93,7 @@ loginOpenstackCredsEntry _ openstackCreds =
             ]
             { text = openstackCreds.projectDomain
             , placeholder = Just (Input.placeholder [] (Element.text "OS_PROJECT_DOMAIN_ID e.g. default"))
-            , onChange = \d -> InputOpenstackLoginField openstackCreds (ProjectDomain d)
+            , onChange = \d -> updateCreds { openstackCreds | projectDomain = d }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain (name or ID)")
             }
         , Input.text
@@ -96,7 +101,7 @@ loginOpenstackCredsEntry _ openstackCreds =
             ]
             { text = openstackCreds.projectName
             , placeholder = Just (Input.placeholder [] (Element.text "Project name e.g. demo"))
-            , onChange = \pn -> InputOpenstackLoginField openstackCreds (ProjectName pn)
+            , onChange = \pn -> updateCreds { openstackCreds | projectName = pn }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Name")
             }
         , Input.text
@@ -104,7 +109,7 @@ loginOpenstackCredsEntry _ openstackCreds =
             ]
             { text = openstackCreds.userDomain
             , placeholder = Just (Input.placeholder [] (Element.text "User domain e.g. default"))
-            , onChange = \d -> InputOpenstackLoginField openstackCreds (UserDomain d)
+            , onChange = \d -> updateCreds { openstackCreds | userDomain = d }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Domain (name or ID)")
             }
         , Input.text
@@ -112,7 +117,7 @@ loginOpenstackCredsEntry _ openstackCreds =
             ]
             { text = openstackCreds.username
             , placeholder = Just (Input.placeholder [] (Element.text "User name e.g. demo"))
-            , onChange = \u -> InputOpenstackLoginField openstackCreds (Username u)
+            , onChange = \u -> updateCreds { openstackCreds | username = u }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Name")
             }
         , Input.currentPassword
@@ -121,14 +126,14 @@ loginOpenstackCredsEntry _ openstackCreds =
             { text = openstackCreds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
-            , onChange = \p -> InputOpenstackLoginField openstackCreds (Password p)
+            , onChange = \p -> updateCreds { openstackCreds | password = p }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
             }
         ]
 
 
 loginOpenstackOpenRcEntry : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackOpenRcEntry _ openstackCreds =
+loginOpenstackOpenRcEntry model openstackCreds =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15
@@ -137,15 +142,7 @@ loginOpenstackOpenRcEntry _ openstackCreds =
         )
         [ Element.paragraph []
             [ Element.text "...or paste an "
-
-            {-
-               Todo this link opens in Electron, should open in user's browser
-               https://github.com/electron/electron/blob/master/docs/api/shell.md#shellopenexternalurl-options-callback
-            -}
-            , Element.link []
-                { url = "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
-                , label = Element.text "OpenRC"
-                }
+            , VH.browserLink model.isElectron "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" <| View.Types.BrowserLinkTextLabel "OpenRC"
             , Element.text " file"
             ]
         , Input.multiline
@@ -153,7 +150,7 @@ loginOpenstackOpenRcEntry _ openstackCreds =
             , Element.height Element.fill
             , Font.size 12
             ]
-            { onChange = \o -> InputOpenstackLoginField openstackCreds (OpenRc o)
+            { onChange = \o -> InputOpenRc openstackCreds o
             , text = ""
             , placeholder = Nothing
             , label = Input.labelLeft [] Element.none
@@ -164,6 +161,11 @@ loginOpenstackOpenRcEntry _ openstackCreds =
 
 viewLoginJetstream : Model -> JetstreamCreds -> Element.Element Msg
 viewLoginJetstream model jetstreamCreds =
+    let
+        updateCreds : JetstreamCreds -> Msg
+        updateCreds newCreds =
+            SetNonProjectView <| LoginJetstream newCreds
+    in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2
             (Element.text "Add a Jetstream Cloud Account")
@@ -174,7 +176,7 @@ viewLoginJetstream model jetstreamCreds =
                 ]
                 { text = jetstreamCreds.jetstreamProjectName
                 , placeholder = Just (Input.placeholder [] (Element.text "TG-******"))
-                , onChange = \pn -> InputJetstreamLoginField jetstreamCreds (JetstreamProjectName pn)
+                , onChange = \pn -> updateCreds { jetstreamCreds | jetstreamProjectName = pn }
                 , label = Input.labelAbove [ Font.size 14 ] (Element.text "Allocation Name")
                 }
             , Input.text
@@ -182,7 +184,7 @@ viewLoginJetstream model jetstreamCreds =
                 ]
                 { text = jetstreamCreds.taccUsername
                 , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
-                , onChange = \un -> InputJetstreamLoginField jetstreamCreds (TaccUsername un)
+                , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
                 , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
                 }
             , Input.currentPassword
@@ -190,13 +192,13 @@ viewLoginJetstream model jetstreamCreds =
                 ]
                 { text = jetstreamCreds.taccPassword
                 , placeholder = Nothing
-                , onChange = \pw -> InputJetstreamLoginField jetstreamCreds (TaccPassword pw)
+                , onChange = \pw -> updateCreds { jetstreamCreds | taccPassword = pw }
                 , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
                 , show = False
                 }
             , Input.radio []
                 { label = Input.labelAbove [] (Element.text "Provider")
-                , onChange = \x -> InputJetstreamLoginField jetstreamCreds (JetstreamProviderChoice x)
+                , onChange = \x -> updateCreds { jetstreamCreds | jetstreamProviderChoice = x }
                 , options =
                     [ Input.option IUCloud (Element.text "IU Cloud")
                     , Input.option TACCCloud (Element.text "TACC Cloud")
