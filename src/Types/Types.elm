@@ -65,6 +65,7 @@ type alias Model =
     , maybeWindowSize : Maybe WindowSize
     , projects : List Project
     , imageFilterTag : Maybe String
+    , imageFilterSearchText : Maybe String
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
     , proxyUrl : Maybe HelperTypes.Url
@@ -124,6 +125,7 @@ type Msg
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | InputImageFilterTag String
+    | InputImageFilterSearchText String
     | OpenInBrowser String
     | OpenNewWindow String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)

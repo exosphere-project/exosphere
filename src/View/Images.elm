@@ -21,28 +21,42 @@ import Types.Types
 import View.Helpers as VH
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
-imagesIfLoaded globalDefaults project maybeFilterTag =
+imagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Maybe String -> Element.Element Msg
+imagesIfLoaded globalDefaults project maybeFilterTag maybeFilterSearchText =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project maybeFilterTag
+        images globalDefaults project maybeFilterTag maybeFilterSearchText
 
 
-images : GlobalDefaults -> Project -> Maybe String -> Element.Element Msg
-images globalDefaults project maybeFilterTag =
+images : GlobalDefaults -> Project -> Maybe String -> Maybe String -> Element.Element Msg
+images globalDefaults project maybeFilterTag maybeFilterSearchText =
     let
         imageContainsTag tag image =
             List.member tag image.tags
 
-        filteredImages =
+        imageMatchesSearchText searchText image =
+            String.contains (String.toUpper searchText) (String.toUpper image.name)
+
+        filteredImagesByTag =
             case maybeFilterTag of
                 Nothing ->
                     project.images
 
                 Just filterTag ->
                     List.filter (imageContainsTag filterTag) project.images
+
+        filteredImagesBySearchText =
+            case maybeFilterSearchText of
+                Nothing ->
+                    filteredImagesByTag
+
+                Just filterSearchText ->
+                    List.filter (imageMatchesSearchText filterSearchText) filteredImagesByTag
+
+        filteredImages =
+            filteredImagesBySearchText
 
         noMatchWarning =
             (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
@@ -56,6 +70,12 @@ images globalDefaults project maybeFilterTag =
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Choose an image")
+        , Input.text []
+            { text = Maybe.withDefault "" maybeFilterSearchText
+            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+            , onChange = \t -> InputImageFilterSearchText t
+            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
+            }
         , Input.text []
             { text = Maybe.withDefault "" maybeFilterTag
             , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))

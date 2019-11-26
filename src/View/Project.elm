@@ -29,7 +29,7 @@ project model p viewConstructor =
         v =
             case viewConstructor of
                 ListImages ->
-                    View.Images.imagesIfLoaded model.globalDefaults p model.imageFilterTag
+                    View.Images.imagesIfLoaded model.globalDefaults p model.imageFilterTag model.imageFilterSearchText
 
                 ListProjectServers ->
                     View.Servers.servers p

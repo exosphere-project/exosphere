@@ -75,7 +75,8 @@ chpasswd:
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
-            , imageFilterTag = Maybe.Just "distro-base"
+            , imageFilterTag = Maybe.Nothing
+            , imageFilterSearchText = Maybe.Nothing
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , proxyUrl = flags.proxyUrl
@@ -295,6 +296,20 @@ updateUnderlying msg model =
 
                 newModel =
                     { model | imageFilterTag = maybeTag }
+            in
+            ( newModel, Cmd.none )
+
+        InputImageFilterSearchText inputSearchText ->
+            let
+                maybeSearchText =
+                    if inputSearchText == "" then
+                        Nothing
+
+                    else
+                        Just inputSearchText
+
+                newModel =
+                    { model | imageFilterSearchText = maybeSearchText }
             in
             ( newModel, Cmd.none )
 
