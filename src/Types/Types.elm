@@ -8,6 +8,7 @@ module Types.Types exposing
     , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
+    , ImageFilter
     , JetstreamCreds
     , JetstreamProvider(..)
     , Model
@@ -64,8 +65,6 @@ type alias Model =
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , projects : List Project
-    , imageFilterTag : Maybe String
-    , imageFilterSearchText : Maybe String
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
     , proxyUrl : Maybe HelperTypes.Url
@@ -124,8 +123,6 @@ type Msg
     | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
-    | InputImageFilterTag String
-    | InputImageFilterSearchText String
     | OpenInBrowser String
     | OpenNewWindow String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
@@ -189,8 +186,14 @@ type NonProjectViewConstructor
     | HelpAbout
 
 
+type alias ImageFilter =
+    { searchText : String
+    , tag : String
+    }
+
+
 type ProjectViewConstructor
-    = ListImages
+    = ListImages ImageFilter
     | ListProjectServers
     | ListProjectVolumes
     | ServerDetail OSTypes.ServerUuid ViewStateParams

@@ -75,8 +75,6 @@ chpasswd:
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , projects = []
-            , imageFilterTag = Maybe.Nothing
-            , imageFilterSearchText = Maybe.Nothing
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , proxyUrl = flags.proxyUrl
@@ -285,34 +283,6 @@ updateUnderlying msg model =
             in
             ( { model | viewState = newViewState }, Cmd.none )
 
-        InputImageFilterTag inputTag ->
-            let
-                maybeTag =
-                    if inputTag == "" then
-                        Nothing
-
-                    else
-                        Just inputTag
-
-                newModel =
-                    { model | imageFilterTag = maybeTag }
-            in
-            ( newModel, Cmd.none )
-
-        InputImageFilterSearchText inputSearchText ->
-            let
-                maybeSearchText =
-                    if inputSearchText == "" then
-                        Nothing
-
-                    else
-                        Just inputSearchText
-
-                newModel =
-                    { model | imageFilterSearchText = maybeSearchText }
-            in
-            ( newModel, Cmd.none )
-
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
 
@@ -329,7 +299,7 @@ processProjectSpecificMsg model project msg =
                     { model | viewState = ProjectView (Helpers.getProjectId project) projectViewConstructor }
             in
             case projectViewConstructor of
-                ListImages ->
+                ListImages _ ->
                     ( newModel, Rest.requestImages project model.proxyUrl )
 
                 ListProjectServers ->
