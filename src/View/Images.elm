@@ -13,6 +13,7 @@ import Types.Types
     exposing
         ( CreateServerRequest
         , GlobalDefaults
+        , ImageFilter
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -21,70 +22,67 @@ import Types.Types
 import View.Helpers as VH
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> Maybe String -> Maybe String -> Element.Element Msg
-imagesIfLoaded globalDefaults project maybeFilterTag maybeFilterSearchText =
+imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
+imagesIfLoaded globalDefaults project imageFilter =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project maybeFilterTag maybeFilterSearchText
+        images globalDefaults project imageFilter
 
 
-images : GlobalDefaults -> Project -> Maybe String -> Maybe String -> Element.Element Msg
-images globalDefaults project maybeFilterTag maybeFilterSearchText =
+images : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
+images globalDefaults project imageFilter =
     let
         imageContainsTag tag image =
-            List.member tag image.tags
+            if tag == "" then
+                True
+
+            else
+                List.member tag image.tags
 
         imageMatchesSearchText searchText image =
-            String.contains (String.toUpper searchText) (String.toUpper image.name)
+            if searchText == "" then
+                True
+
+            else
+                String.contains (String.toUpper searchText) (String.toUpper image.name)
 
         filteredImagesByTag =
-            case maybeFilterTag of
-                Nothing ->
-                    project.images
-
-                Just filterTag ->
-                    List.filter (imageContainsTag filterTag) project.images
+            List.filter (imageContainsTag imageFilter.tag) project.images
 
         filteredImagesBySearchText =
-            case maybeFilterSearchText of
-                Nothing ->
-                    filteredImagesByTag
-
-                Just filterSearchText ->
-                    List.filter (imageMatchesSearchText filterSearchText) filteredImagesByTag
+            List.filter (imageMatchesSearchText imageFilter.searchText) filteredImagesByTag
 
         filteredImages =
             filteredImagesBySearchText
 
         noMatchWarning =
-            (maybeFilterTag /= Nothing) && (List.length filteredImages == 0)
+            (imageFilter.tag /= "") && (List.length filteredImages == 0)
 
         displayedImages =
-            if noMatchWarning == False then
-                filteredImages
+            filteredImages
 
-            else
-                project.images
+        projectId =
+            Helpers.getProjectId project
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Choose an image")
         , Input.text []
-            { text = Maybe.withDefault "" maybeFilterSearchText
+            { text = imageFilter.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = \t -> InputImageFilterSearchText t
+            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
         , Input.text []
-            { text = Maybe.withDefault "" maybeFilterTag
+            { text = imageFilter.tag
             , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
-            , onChange = \t -> InputImageFilterTag t
+            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tag = t }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
             }
-        , Button.button [] (Just <| InputImageFilterTag "") "Clear filter (show all)"
+        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "" }) "Clear filter (show all)"
         , if noMatchWarning then
-            Element.text "No matches found, showing all images"
+            Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
           else
             Element.none

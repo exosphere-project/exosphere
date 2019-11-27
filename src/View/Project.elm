@@ -28,8 +28,8 @@ project model p viewConstructor =
     let
         v =
             case viewConstructor of
-                ListImages ->
-                    View.Images.imagesIfLoaded model.globalDefaults p model.imageFilterTag model.imageFilterSearchText
+                ListImages imageFilter ->
+                    View.Images.imagesIfLoaded model.globalDefaults p imageFilter
 
                 ListProjectServers ->
                     View.Servers.servers p
@@ -93,7 +93,7 @@ projectNav p =
             , Element.el []
                 (Button.button
                     []
-                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView ListImages)
+                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| ListImages { searchText = "", tag = "" })
                     "Create Server"
                 )
             , Element.el []
