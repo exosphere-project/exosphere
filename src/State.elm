@@ -304,7 +304,7 @@ updateUnderlying msg model =
                         Just provider ->
                             let
                                 newProvider =
-                                    { provider | projectsAvailable = unscopedProjects }
+                                    { provider | projectsAvailable = RemoteData.Success unscopedProjects }
 
                                 newModel =
                                     Helpers.modelUpdateUnscopedProvider model newProvider
@@ -882,7 +882,7 @@ createUnscopedProvider model password authToken authUrl =
         newProvider =
             { authUrl = authUrl
             , token = authToken
-            , projectsAvailable = []
+            , projectsAvailable = RemoteData.Loading
             }
 
         newProviders =

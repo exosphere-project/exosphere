@@ -6,6 +6,7 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
+import RemoteData
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -28,16 +29,31 @@ selectProjects model keystoneUrl password selectedProjects =
             Element.column VH.exoColumnAttributes
                 [ Element.el VH.heading2
                     (Element.text <| "Choose Projects for " ++ urlLabel)
-                , Element.column VH.exoColumnAttributes <|
-                    List.map
-                        (renderProject keystoneUrl password selectedProjects)
-                        provider.projectsAvailable
-                , Button.button
-                    [ Modifier.Primary ]
-                    (Just <|
-                        RequestProjectLoginFromProvider keystoneUrl password selectedProjects
-                    )
-                    "Choose"
+                , case provider.projectsAvailable of
+                    RemoteData.Success projectsAvailable ->
+                        Element.column VH.exoColumnAttributes <|
+                            List.append
+                                (List.map
+                                    (renderProject keystoneUrl password selectedProjects)
+                                    projectsAvailable
+                                )
+                                [ Button.button
+                                    [ Modifier.Primary ]
+                                    (Just <|
+                                        RequestProjectLoginFromProvider keystoneUrl password selectedProjects
+                                    )
+                                    "Choose"
+                                ]
+
+                    RemoteData.Loading ->
+                        Element.text "Loading list of projects"
+
+                    RemoteData.Failure e ->
+                        Element.text ("Error loading list of projects: " ++ Debug.toString e)
+
+                    RemoteData.NotAsked ->
+                        -- This state should be impossible because when we create an unscoped Provider we always immediately ask for a list of projects
+                        Element.none
                 ]
 
         Nothing ->

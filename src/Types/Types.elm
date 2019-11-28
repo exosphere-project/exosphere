@@ -83,7 +83,7 @@ type alias GlobalDefaults =
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
-    , projectsAvailable : List UnscopedProviderProject
+    , projectsAvailable : WebData (List UnscopedProviderProject)
     }
 
 
