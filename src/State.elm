@@ -280,7 +280,6 @@ updateUnderlying msg model =
                             Helpers.processError model error
 
                         Ok authToken ->
-                            -- TODO is this an appropriate URL to store in the model?
                             case
                                 Helpers.providerLookup model metadata.url
                             of
