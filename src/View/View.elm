@@ -18,6 +18,7 @@ import View.Login
 import View.Messages
 import View.Nav
 import View.Project
+import View.SelectProjects
 import View.Toast
 
 
@@ -61,6 +62,9 @@ elementView maybeWindowSize model =
 
                             LoginJetstream jetstreamCreds ->
                                 View.Login.viewLoginJetstream model jetstreamCreds
+
+                            SelectProjects authUrl selectedProjects ->
+                                View.SelectProjects.selectProjects model authUrl selectedProjects
 
                             MessageLog ->
                                 View.Messages.messageLog model

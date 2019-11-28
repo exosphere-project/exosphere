@@ -92,6 +92,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , UnscopedProvider
+        , UnscopedProviderProject
         , ViewState(..)
         )
 import Url
@@ -190,7 +191,7 @@ requestScopedAuthToken maybeProxyUrl input =
         (ReceiveScopedAuthToken maybePassword)
 
 
-requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLoginUnscoped -> Cmd Msg
+requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLogin -> Cmd Msg
 requestUnscopedAuthToken maybeProxyUrl creds =
     let
         requestBody =
@@ -318,23 +319,33 @@ requestAppCredential project maybeProxyUrl posixTime =
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
 requestUnscopedProjects provider maybeProxyUrl =
     let
-        requestBody =
-            Encode.string "TODO"
+        correctedUrl =
+            let
+                maybeUrl =
+                    Url.fromString provider.authUrl
+            in
+            case maybeUrl of
+                -- Cannot parse URL, so uh, don't make changes to it. We should never be here
+                Nothing ->
+                    provider.authUrl
+
+                Just url_ ->
+                    { url_ | path = "/v3/users/" ++ provider.token.user.uuid ++ "/projects" } |> Url.toString
 
         ( url, headers ) =
             case maybeProxyUrl of
                 Just proxyUrl ->
-                    proxyifyRequest proxyUrl provider.authUrl
+                    proxyifyRequest proxyUrl correctedUrl
 
                 Nothing ->
-                    ( provider.authUrl, [] )
+                    ( correctedUrl, [] )
     in
     -- TODO handle case where unscoped auth token has expired
     Http.request
         { method = "GET"
         , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
         , url = url
-        , body = Http.jsonBody requestBody
+        , body = Http.emptyBody
         , expect =
             Http.expectJson
                 (\result -> ReceiveUnscopedProjects provider.authUrl result)
@@ -1601,11 +1612,18 @@ openstackEndpointInterfaceDecoder interface =
             Decode.fail "unrecognized interface type"
 
 
-decodeUnscopedProjects : Decode.Decoder (List ProjectName)
+decodeUnscopedProjects : Decode.Decoder (List UnscopedProviderProject)
 decodeUnscopedProjects =
     Decode.field "projects" <|
-        Decode.list <|
-            Decode.field "name" Decode.string
+        Decode.list unscopedProjectDecoder
+
+
+unscopedProjectDecoder : Decode.Decoder UnscopedProviderProject
+unscopedProjectDecoder =
+    Decode.map3 UnscopedProviderProject
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "domain_id" Decode.string)
 
 
 decodeImages : Decode.Decoder (List OSTypes.Image)

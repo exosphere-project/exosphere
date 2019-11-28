@@ -24,7 +24,6 @@ module OpenStack.Types exposing
     , Network
     , NetworkUuid
     , OpenstackLogin
-    , OpenstackLoginUnscoped
     , Port
     , ScopedAuthToken
     , SecurityGroup
@@ -146,14 +145,6 @@ type alias OpenstackLogin =
     { authUrl : KeystoneUrl
     , projectDomain : String
     , projectName : String
-    , userDomain : String
-    , username : String
-    , password : String
-    }
-
-
-type alias OpenstackLoginUnscoped =
-    { authUrl : KeystoneUrl
     , userDomain : String
     , username : String
     , password : String

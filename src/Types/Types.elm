@@ -26,6 +26,7 @@ module Types.Types exposing
     , Server
     , ServerUiStatus(..)
     , UnscopedProvider
+    , UnscopedProviderProject
     , VerboseStatus
     , ViewState(..)
     , ViewStateParams
@@ -82,8 +83,17 @@ type alias GlobalDefaults =
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
+
+    -- TODO remove secret
     , secret : Maybe HelperTypes.Password
-    , projectsAvailable : List ProjectName
+    , projectsAvailable : List UnscopedProviderProject
+    }
+
+
+type alias UnscopedProviderProject =
+    { name : ProjectName
+    , description : String
+    , domainId : HelperTypes.Uuid
     }
 
 
@@ -128,12 +138,13 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
-    | RequestUnscopedToken OSTypes.OpenstackLoginUnscoped
+    | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ReceiveUnscopedAuthToken HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List ProjectName))
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List UnscopedProviderProject))
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
@@ -195,6 +206,7 @@ type NonProjectViewConstructor
     = LoginPicker
     | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
+    | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | HelpAbout
 

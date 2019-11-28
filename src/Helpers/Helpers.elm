@@ -23,6 +23,7 @@ module Helpers.Helpers exposing
     , projectLookup
     , projectUpdateServer
     , projectUpdateServers
+    , providerLookup
     , renderUserDataTemplate
     , serverLookup
     , serviceCatalogToEndpoints
@@ -367,6 +368,14 @@ imageLookup project imageUuid =
     List.filter
         (\i -> i.uuid == imageUuid)
         project.images
+        |> List.head
+
+
+providerLookup : Model -> OSTypes.KeystoneUrl -> Maybe UnscopedProvider
+providerLookup model keystoneUrl =
+    List.filter
+        (\uP -> uP.authUrl == keystoneUrl)
+        model.unscopedProviders
         |> List.head
 
 

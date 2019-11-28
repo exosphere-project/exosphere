@@ -60,7 +60,7 @@ viewLoginOpenstack model openstackCreds =
         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Button.button
                 [ Modifier.Primary ]
-                (Just <| RequestNewProjectToken openstackCreds)
+                (Just <| RequestUnscopedToken openstackCreds)
                 "Log In"
             )
         ]
@@ -87,22 +87,6 @@ loginOpenstackCredsEntry _ openstackCreds =
             , placeholder = Just (Input.placeholder [] (Element.text "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"))
             , onChange = \u -> updateCreds { openstackCreds | authUrl = u }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
-            }
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.projectDomain
-            , placeholder = Just (Input.placeholder [] (Element.text "OS_PROJECT_DOMAIN_ID e.g. default"))
-            , onChange = \d -> updateCreds { openstackCreds | projectDomain = d }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain (name or ID)")
-            }
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.projectName
-            , placeholder = Just (Input.placeholder [] (Element.text "Project name e.g. demo"))
-            , onChange = \pn -> updateCreds { openstackCreds | projectName = pn }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Name")
             }
         , Input.text
             [ Element.spacing 12

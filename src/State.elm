@@ -35,6 +35,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , UnscopedProvider
+        , UnscopedProviderProject
         , ViewState(..)
         )
 
@@ -282,17 +283,14 @@ updateUnderlying msg model =
                         Ok authToken ->
                             -- TODO is this an appropriate URL to store in the model?
                             case
-                                List.filter
-                                    (\uP -> uP.authUrl == metadata.url)
-                                    model.unscopedProviders
-                                    |> List.head
+                                Helpers.providerLookup model metadata.url
                             of
                                 Just unscopedProvider ->
                                     -- We already have an unscoped provider in the model with the same auth URL, update its token
                                     unscopedProviderUpdateAuthToken model unscopedProvider authToken
 
                                 Nothing ->
-                                    -- We don't have
+                                    -- We don't have an unscoped provider with the same auth URL, create it
                                     createUnscopedProvider model password authToken metadata.url
 
         ReceiveUnscopedProjects keystoneUrl result ->
@@ -302,10 +300,7 @@ updateUnderlying msg model =
 
                 Ok unscopedProjects ->
                     case
-                        List.filter
-                            (\uP -> uP.authUrl == keystoneUrl)
-                            model.unscopedProviders
-                            |> List.head
+                        Helpers.providerLookup model keystoneUrl
                     of
                         Just provider ->
                             let
@@ -320,6 +315,34 @@ updateUnderlying msg model =
                         Nothing ->
                             -- Provider not found, may have been removed, nothing to do
                             ( model, Cmd.none )
+
+        RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
+            case Helpers.providerLookup model keystoneUrl of
+                Just provider ->
+                    let
+                        buildLoginRequest : UnscopedProviderProject -> Cmd Msg
+                        buildLoginRequest project =
+                            Rest.requestScopedAuthToken
+                                model.proxyUrl
+                            <|
+                                OSTypes.PasswordCreds <|
+                                    OSTypes.OpenstackLogin
+                                        keystoneUrl
+                                        project.domainId
+                                        project.name
+                                        provider.token.userDomain.uuid
+                                        provider.token.user.name
+                                        (provider.secret
+                                            |> Maybe.withDefault "TODO fix model, this should be passed with msg rather than stored"
+                                        )
+
+                        loginRequests =
+                            List.map buildLoginRequest desiredProjects
+                    in
+                    ( model, Cmd.batch loginRequests )
+
+                Nothing ->
+                    Helpers.processError model "Could not find provider"
 
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
@@ -865,8 +888,13 @@ createUnscopedProvider model password authToken authUrl =
         newProviders =
             newProvider :: model.unscopedProviders
     in
-    -- TODO get list of projects
-    ( { model | unscopedProviders = newProviders }, Cmd.none )
+    ( { model
+        | unscopedProviders = newProviders
+        , viewState =
+            NonProjectView <| SelectProjects newProvider.authUrl []
+      }
+    , Rest.requestUnscopedProjects newProvider model.proxyUrl
+    )
 
 
 unscopedProviderUpdateAuthToken : Model -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( Model, Cmd Msg )

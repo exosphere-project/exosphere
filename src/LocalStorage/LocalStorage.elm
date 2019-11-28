@@ -109,6 +109,14 @@ encodeStoredState storedState =
                         , ( "expiresAt", Encode.int (Time.posixToMillis token.expiresAt) )
                         , ( "tokenValue", Encode.string token.tokenValue )
                         ]
+
+                unscopedProviderProjectEncode : Types.UnscopedProviderProject -> Encode.Value
+                unscopedProviderProjectEncode project =
+                    Encode.object
+                        [ ( "name", Encode.string project.name )
+                        , ( "description", Encode.string project.description )
+                        , ( "domainId", Encode.string project.domainId )
+                        ]
             in
             Encode.object
                 [ ( "authUrl", Encode.string p.authUrl )
@@ -121,7 +129,7 @@ encodeStoredState storedState =
                         Nothing ->
                             Encode.null
                   )
-                , ( "projectsAvailable", Encode.list Encode.string p.projectsAvailable )
+                , ( "projectsAvailable", Encode.list unscopedProviderProjectEncode p.projectsAvailable )
                 ]
     in
     Encode.object
@@ -385,7 +393,7 @@ unscopedProviderDecoder =
         (Decode.field "authUrl" Decode.string)
         (Decode.field "token" unscopedAuthTokenDecoder)
         (Decode.field "secret" <| Decode.nullable Decode.string)
-        (Decode.field "projectsAvailable" <| Decode.list Decode.string)
+        (Decode.field "projectsAvailable" <| Decode.list unscopedProviderProjectDecoder)
 
 
 unscopedAuthTokenDecoder : Decode.Decoder OSTypes.UnscopedAuthToken
@@ -397,6 +405,14 @@ unscopedAuthTokenDecoder =
             |> Decode.map Time.millisToPosix
         )
         (Decode.field "tokenValue" Decode.string)
+
+
+unscopedProviderProjectDecoder : Decode.Decoder Types.UnscopedProviderProject
+unscopedProviderProjectDecoder =
+    Decode.map3 Types.UnscopedProviderProject
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "domainId" Decode.string)
 
 
 decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
