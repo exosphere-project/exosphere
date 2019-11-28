@@ -65,24 +65,23 @@ renderProject keystoneUrl password selectedProjects project =
     let
         onChange : Bool -> Msg
         onChange bool =
-            case bool of
-                True ->
-                    SetNonProjectView <|
-                        SelectProjects
-                            keystoneUrl
-                            password
-                        <|
-                            (project :: selectedProjects)
+            if bool then
+                SetNonProjectView <|
+                    SelectProjects
+                        keystoneUrl
+                        password
+                    <|
+                        (project :: selectedProjects)
 
-                False ->
-                    SetNonProjectView <|
-                        SelectProjects
-                            keystoneUrl
-                            password
-                        <|
-                            List.filter
-                                (\p -> p.name /= project.name)
-                                selectedProjects
+            else
+                SetNonProjectView <|
+                    SelectProjects
+                        keystoneUrl
+                        password
+                    <|
+                        List.filter
+                            (\p -> p.name /= project.name)
+                            selectedProjects
 
         renderProjectLabel : UnscopedProviderProject -> Element.Element Msg
         renderProjectLabel p =

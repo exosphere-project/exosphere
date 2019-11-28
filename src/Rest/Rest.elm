@@ -87,7 +87,6 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
-        , ProjectName
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server

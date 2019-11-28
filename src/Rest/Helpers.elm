@@ -132,6 +132,7 @@ idOrName str =
         "name"
 
 
+iso8601StringToPosixDecodeError : String -> Decode.Decoder Time.Posix
 iso8601StringToPosixDecodeError str =
     case Helpers.iso8601StringToPosix str of
         Ok posix ->
