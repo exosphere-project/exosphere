@@ -69,7 +69,6 @@ chpasswd:
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { projects = []
-            , unscopedProviders = []
             }
 
         emptyModel : Model

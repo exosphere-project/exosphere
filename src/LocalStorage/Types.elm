@@ -24,5 +24,4 @@ type alias StoredProject1 =
 
 type alias StoredState =
     { projects : List StoredProject
-    , unscopedProviders : List UnscopedProvider
     }
