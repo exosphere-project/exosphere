@@ -293,7 +293,7 @@ updateUnderlying msg model =
                                     -- We don't have an unscoped provider with the same auth URL, create it
                                     createUnscopedProvider model password authToken metadata.url
 
-        ReceiveUnscopedProjects keystoneUrl result ->
+        ReceiveUnscopedProjects keystoneUrl password result ->
             case result of
                 Err error ->
                     Helpers.processError model error
@@ -309,14 +309,20 @@ updateUnderlying msg model =
 
                                 newModel =
                                     Helpers.modelUpdateUnscopedProvider model newProvider
+
+                                newModelWithView =
+                                    { newModel
+                                        | viewState =
+                                            NonProjectView <| SelectProjects newProvider.authUrl password []
+                                    }
                             in
-                            ( newModel, Cmd.none )
+                            ( newModelWithView, Cmd.none )
 
                         Nothing ->
                             -- Provider not found, may have been removed, nothing to do
                             ( model, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
+        RequestProjectLoginFromProvider keystoneUrl password desiredProjects ->
             case Helpers.providerLookup model keystoneUrl of
                 Just provider ->
                     let
@@ -332,9 +338,7 @@ updateUnderlying msg model =
                                         project.name
                                         provider.token.userDomain.uuid
                                         provider.token.user.name
-                                        (provider.secret
-                                            |> Maybe.withDefault "TODO fix model, this should be passed with msg rather than stored"
-                                        )
+                                        password
 
                         loginRequests =
                             List.map buildLoginRequest desiredProjects
@@ -879,21 +883,14 @@ createUnscopedProvider model password authToken authUrl =
         newProvider =
             { authUrl = authUrl
             , token = authToken
-
-            -- TODO don't store password if user doesn't want to
-            , secret = Just password
             , projectsAvailable = []
             }
 
         newProviders =
             newProvider :: model.unscopedProviders
     in
-    ( { model
-        | unscopedProviders = newProviders
-        , viewState =
-            NonProjectView <| SelectProjects newProvider.authUrl []
-      }
-    , Rest.requestUnscopedProjects newProvider model.proxyUrl
+    ( { model | unscopedProviders = newProviders }
+    , Rest.requestUnscopedProjects newProvider password model.proxyUrl
     )
 
 

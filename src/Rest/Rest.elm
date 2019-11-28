@@ -316,8 +316,8 @@ requestAppCredential project maybeProxyUrl posixTime =
         )
 
 
-requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
-requestUnscopedProjects provider maybeProxyUrl =
+requestUnscopedProjects : UnscopedProvider -> HelperTypes.Password -> Maybe HelperTypes.Url -> Cmd Msg
+requestUnscopedProjects provider password maybeProxyUrl =
     let
         correctedUrl =
             let
@@ -340,7 +340,6 @@ requestUnscopedProjects provider maybeProxyUrl =
                 Nothing ->
                     ( correctedUrl, [] )
     in
-    -- TODO handle case where unscoped auth token has expired
     Http.request
         { method = "GET"
         , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
@@ -348,7 +347,7 @@ requestUnscopedProjects provider maybeProxyUrl =
         , body = Http.emptyBody
         , expect =
             Http.expectJson
-                (\result -> ReceiveUnscopedProjects provider.authUrl result)
+                (\result -> ReceiveUnscopedProjects provider.authUrl password result)
                 decodeUnscopedProjects
         , timeout = Nothing
         , tracker = Nothing
@@ -1555,7 +1554,6 @@ decodeScopedAuthTokenDetails =
 
 decodeUnscopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
 decodeUnscopedAuthTokenDetails =
-    -- TODO finish me
     Decode.map3 OSTypes.UnscopedAuthToken
         (Decode.map2
             OSTypes.NameAndUuid

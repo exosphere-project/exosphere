@@ -83,9 +83,6 @@ type alias GlobalDefaults =
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
-
-    -- TODO remove secret
-    , secret : Maybe HelperTypes.Password
     , projectsAvailable : List UnscopedProviderProject
     }
 
@@ -143,8 +140,8 @@ type Msg
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ReceiveUnscopedAuthToken HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List UnscopedProviderProject))
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error (List UnscopedProviderProject))
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
@@ -206,7 +203,7 @@ type NonProjectViewConstructor
     = LoginPicker
     | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
-    | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
+    | SelectProjects OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | MessageLog
     | HelpAbout
 

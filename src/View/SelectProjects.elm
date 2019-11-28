@@ -6,6 +6,7 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
+import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( Model
@@ -16,8 +17,8 @@ import Types.Types
 import View.Helpers as VH
 
 
-selectProjects : Model -> OSTypes.KeystoneUrl -> List UnscopedProviderProject -> Element.Element Msg
-selectProjects model keystoneUrl selectedProjects =
+selectProjects : Model -> OSTypes.KeystoneUrl -> HelperTypes.Password -> List UnscopedProviderProject -> Element.Element Msg
+selectProjects model keystoneUrl password selectedProjects =
     case Helpers.providerLookup model keystoneUrl of
         Just provider ->
             let
@@ -29,12 +30,12 @@ selectProjects model keystoneUrl selectedProjects =
                     (Element.text <| "Choose Projects for " ++ urlLabel)
                 , Element.column VH.exoColumnAttributes <|
                     List.map
-                        (renderProject keystoneUrl selectedProjects)
+                        (renderProject keystoneUrl password selectedProjects)
                         provider.projectsAvailable
                 , Button.button
                     [ Modifier.Primary ]
                     (Just <|
-                        RequestProjectLoginFromProvider keystoneUrl selectedProjects
+                        RequestProjectLoginFromProvider keystoneUrl password selectedProjects
                     )
                     "Choose"
                 ]
@@ -43,8 +44,8 @@ selectProjects model keystoneUrl selectedProjects =
             Element.text "Provider not found"
 
 
-renderProject : OSTypes.KeystoneUrl -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
-renderProject keystoneUrl selectedProjects project =
+renderProject : OSTypes.KeystoneUrl -> HelperTypes.Password -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
+renderProject keystoneUrl password selectedProjects project =
     let
         onChange : Bool -> Msg
         onChange bool =
@@ -53,6 +54,7 @@ renderProject keystoneUrl selectedProjects project =
                     SetNonProjectView <|
                         SelectProjects
                             keystoneUrl
+                            password
                         <|
                             (project :: selectedProjects)
 
@@ -60,6 +62,7 @@ renderProject keystoneUrl selectedProjects project =
                     SetNonProjectView <|
                         SelectProjects
                             keystoneUrl
+                            password
                         <|
                             List.filter
                                 (\p -> p.name /= project.name)

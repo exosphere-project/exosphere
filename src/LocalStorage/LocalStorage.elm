@@ -121,14 +121,6 @@ encodeStoredState storedState =
             Encode.object
                 [ ( "authUrl", Encode.string p.authUrl )
                 , ( "token", unscopedAuthTokenEncode p.token )
-                , ( "secret"
-                  , case p.secret of
-                        Just secret ->
-                            Encode.string secret
-
-                        Nothing ->
-                            Encode.null
-                  )
                 , ( "projectsAvailable", Encode.list unscopedProviderProjectEncode p.projectsAvailable )
                 ]
     in
@@ -389,10 +381,9 @@ openstackStoredEndpointInterfaceDecoder interface =
 
 unscopedProviderDecoder : Decode.Decoder Types.UnscopedProvider
 unscopedProviderDecoder =
-    Decode.map4 Types.UnscopedProvider
+    Decode.map3 Types.UnscopedProvider
         (Decode.field "authUrl" Decode.string)
         (Decode.field "token" unscopedAuthTokenDecoder)
-        (Decode.field "secret" <| Decode.nullable Decode.string)
         (Decode.field "projectsAvailable" <| Decode.list unscopedProviderProjectDecoder)
 
 
