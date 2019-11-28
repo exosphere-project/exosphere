@@ -223,7 +223,7 @@ updateUnderlying msg model =
                 openstackCreds =
                     Helpers.jetstreamToOpenstackCreds jetstreamCreds
             in
-            ( model, Rest.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds openstackCreds )
+            ( model, Rest.requestUnscopedAuthToken model.proxyUrl <| openstackCreds )
 
         ReceiveScopedAuthToken maybePassword responseResult ->
             case responseResult of

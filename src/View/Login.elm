@@ -158,14 +158,6 @@ viewLoginJetstream model jetstreamCreds =
             [ Input.text
                 [ Element.spacing 12
                 ]
-                { text = jetstreamCreds.jetstreamProjectName
-                , placeholder = Just (Input.placeholder [] (Element.text "TG-******"))
-                , onChange = \pn -> updateCreds { jetstreamCreds | jetstreamProjectName = pn }
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text "Allocation Name")
-                }
-            , Input.text
-                [ Element.spacing 12
-                ]
                 { text = jetstreamCreds.taccUsername
                 , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                 , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
@@ -234,19 +226,12 @@ jetstreamLoginText model =
             ]
         , Element.paragraph
             []
-            [ Element.text "1. Your allocation name (begins with `TG-`); log into "
-            , VH.browserLink model.isElectron "https://portal.xsede.org" <| View.Types.BrowserLinkTextLabel "XSEDE User Portal"
-            , Element.text " and see it in your "
-            , VH.browserLink model.isElectron "https://portal.xsede.org/group/xup/allocations/usage" <| View.Types.BrowserLinkTextLabel "allocations"
-            ]
-        , Element.paragraph
-            []
-            [ Element.text "2. TACC username (usually looks like 'tg******'); "
+            [ Element.text "1. TACC username (usually looks like 'tg******'); "
             , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username" <| View.Types.BrowserLinkTextLabel "look up your TACC username"
             ]
         , Element.paragraph
             []
-            [ Element.text "3. TACC password; "
+            [ Element.text "2. TACC password; "
             , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset" <| View.Types.BrowserLinkTextLabel "set your TACC password"
             ]
         ]
