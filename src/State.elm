@@ -34,6 +34,8 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , UnscopedProvider
+        , UnscopedProviderProject
         , ViewState(..)
         )
 
@@ -74,6 +76,7 @@ chpasswd:
             { messages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
+            , unscopedProviders = []
             , projects = []
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
@@ -204,28 +207,31 @@ updateUnderlying msg model =
                 _ ->
                     ( newModel, Cmd.none )
 
+        RequestUnscopedToken openstackLoginUnscoped ->
+            ( model, Rest.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
+
         RequestNewProjectToken openstackCreds ->
             let
                 -- If user does not provide a port number and path (API version) then we guess it
                 newOpenstackCreds =
                     { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.requestAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
+            ( model, Rest.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
 
         JetstreamLogin jetstreamCreds ->
             let
                 openstackCreds =
                     Helpers.jetstreamToOpenstackCreds jetstreamCreds
             in
-            ( model, Rest.requestAuthToken model.proxyUrl <| OSTypes.PasswordCreds openstackCreds )
+            ( model, Rest.requestUnscopedAuthToken model.proxyUrl <| openstackCreds )
 
-        ReceiveAuthToken maybePassword responseResult ->
+        ReceiveScopedAuthToken maybePassword responseResult ->
             case responseResult of
                 Err error ->
                     Helpers.processError model error
 
                 Ok ( metadata, response ) ->
-                    case Rest.decodeAuthToken <| Http.GoodStatus_ metadata response of
+                    case Rest.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                         Err error ->
                             Helpers.processError model error
 
@@ -262,6 +268,83 @@ updateUnderlying msg model =
                                             projectUpdateAuthToken model project authToken
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+
+        ReceiveUnscopedAuthToken password responseResult ->
+            case responseResult of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok ( metadata, response ) ->
+                    case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
+                        Err error ->
+                            Helpers.processError model error
+
+                        Ok authToken ->
+                            case
+                                Helpers.providerLookup model metadata.url
+                            of
+                                Just unscopedProvider ->
+                                    -- We already have an unscoped provider in the model with the same auth URL, update its token
+                                    unscopedProviderUpdateAuthToken model unscopedProvider authToken
+
+                                Nothing ->
+                                    -- We don't have an unscoped provider with the same auth URL, create it
+                                    createUnscopedProvider model password authToken metadata.url
+
+        ReceiveUnscopedProjects keystoneUrl password result ->
+            case result of
+                Err error ->
+                    Helpers.processError model error
+
+                Ok unscopedProjects ->
+                    case
+                        Helpers.providerLookup model keystoneUrl
+                    of
+                        Just provider ->
+                            let
+                                newProvider =
+                                    { provider | projectsAvailable = RemoteData.Success unscopedProjects }
+
+                                newModel =
+                                    Helpers.modelUpdateUnscopedProvider model newProvider
+
+                                newModelWithView =
+                                    { newModel
+                                        | viewState =
+                                            NonProjectView <| SelectProjects newProvider.authUrl password []
+                                    }
+                            in
+                            ( newModelWithView, Cmd.none )
+
+                        Nothing ->
+                            -- Provider not found, may have been removed, nothing to do
+                            ( model, Cmd.none )
+
+        RequestProjectLoginFromProvider keystoneUrl password desiredProjects ->
+            case Helpers.providerLookup model keystoneUrl of
+                Just provider ->
+                    let
+                        buildLoginRequest : UnscopedProviderProject -> Cmd Msg
+                        buildLoginRequest project =
+                            Rest.requestScopedAuthToken
+                                model.proxyUrl
+                            <|
+                                OSTypes.PasswordCreds <|
+                                    OSTypes.OpenstackLogin
+                                        keystoneUrl
+                                        project.domainId
+                                        project.name
+                                        provider.token.userDomain.uuid
+                                        provider.token.user.name
+                                        password
+
+                        loginRequests =
+                            List.map buildLoginRequest desiredProjects
+                    in
+                    ( model, Cmd.batch loginRequests )
+
+                Nothing ->
+                    Helpers.processError model "Could not find provider"
 
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
@@ -735,7 +818,7 @@ processProjectSpecificMsg model project msg =
             ( model, Rest.requestAppCredential project model.proxyUrl posix )
 
 
-createProject : Model -> HelperTypes.Password -> OSTypes.AuthToken -> ( Model, Cmd Msg )
+createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 createProject model password authToken =
     let
         endpoints =
@@ -779,7 +862,7 @@ createProject model password authToken =
     )
 
 
-projectUpdateAuthToken : Model -> Project -> OSTypes.AuthToken -> ( Model, Cmd Msg )
+projectUpdateAuthToken : Model -> Project -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 projectUpdateAuthToken model project authToken =
     -- Update auth token for existing project
     let
@@ -790,6 +873,35 @@ projectUpdateAuthToken model project authToken =
             Helpers.modelUpdateProject model newProject
     in
     sendPendingRequests newModel newProject
+
+
+createUnscopedProvider : Model -> HelperTypes.Password -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
+createUnscopedProvider model password authToken authUrl =
+    let
+        newProvider =
+            { authUrl = authUrl
+            , token = authToken
+            , projectsAvailable = RemoteData.Loading
+            }
+
+        newProviders =
+            newProvider :: model.unscopedProviders
+    in
+    ( { model | unscopedProviders = newProviders }
+    , Rest.requestUnscopedProjects newProvider password model.proxyUrl
+    )
+
+
+unscopedProviderUpdateAuthToken : Model -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( Model, Cmd Msg )
+unscopedProviderUpdateAuthToken model provider authToken =
+    let
+        newProvider =
+            { provider | token = authToken }
+
+        newModel =
+            Helpers.modelUpdateUnscopedProvider model newProvider
+    in
+    ( newModel, Cmd.none )
 
 
 sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
@@ -845,4 +957,4 @@ requestAuthToken model project =
                 ApplicationCredential appCred ->
                     OSTypes.AppCreds project.endpoints.keystone appCred
     in
-    Rest.requestAuthToken model.proxyUrl creds
+    Rest.requestScopedAuthToken model.proxyUrl creds

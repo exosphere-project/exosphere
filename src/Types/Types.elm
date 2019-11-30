@@ -25,6 +25,8 @@ module Types.Types exposing
     , ProjectViewConstructor(..)
     , Server
     , ServerUiStatus(..)
+    , UnscopedProvider
+    , UnscopedProviderProject
     , VerboseStatus
     , ViewState(..)
     , ViewStateParams
@@ -64,6 +66,7 @@ type alias Model =
     { messages : List String
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
+    , unscopedProviders : List UnscopedProvider
     , projects : List Project
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toasty.Defaults.Toast
@@ -77,9 +80,23 @@ type alias GlobalDefaults =
     }
 
 
+type alias UnscopedProvider =
+    { authUrl : OSTypes.KeystoneUrl
+    , token : OSTypes.UnscopedAuthToken
+    , projectsAvailable : WebData (List UnscopedProviderProject)
+    }
+
+
+type alias UnscopedProviderProject =
+    { name : ProjectName
+    , description : String
+    , domainId : HelperTypes.Uuid
+    }
+
+
 type alias Project =
     { secret : ProjectSecret
-    , auth : OSTypes.AuthToken
+    , auth : OSTypes.ScopedAuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
     , servers : WebData (List Server)
@@ -118,9 +135,13 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
+    | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveUnscopedAuthToken HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error (List UnscopedProviderProject))
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
@@ -182,6 +203,7 @@ type NonProjectViewConstructor
     = LoginPicker
     | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
+    | SelectProjects OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | MessageLog
     | HelpAbout
 

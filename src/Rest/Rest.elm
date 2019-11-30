@@ -1,14 +1,15 @@
 module Rest.Rest exposing
     ( addFloatingIpInServerDetails
-    , decodeAuthToken
     , decodeFlavors
     , decodeFloatingIpCreation
     , decodeImages
     , decodeKeypairs
     , decodeNetworks
     , decodePorts
+    , decodeScopedAuthToken
     , decodeServerDetails
     , decodeServers
+    , decodeUnscopedAuthToken
     , flavorDecoder
     , getFloatingIpRequestPorts
     , imageDecoder
@@ -37,7 +38,6 @@ module Rest.Rest exposing
     , receiveServer
     , receiveServers
     , requestAppCredential
-    , requestAuthToken
     , requestConsoleUrls
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
@@ -52,9 +52,12 @@ module Rest.Rest exposing
     , requestImages
     , requestKeypairs
     , requestNetworks
+    , requestScopedAuthToken
     , requestSecurityGroups
     , requestServer
     , requestServers
+    , requestUnscopedAuthToken
+    , requestUnscopedProjects
     , serverDecoder
     , serverIpAddressDecoder
     , serverPowerStateDecoder
@@ -70,12 +73,7 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers
-    exposing
-        ( keystoneUrlWithVersion
-        , openstackCredentialedRequest
-        , proxyifyRequest
-        )
+import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -92,6 +90,8 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , UnscopedProvider
+        , UnscopedProviderProject
         , ViewState(..)
         )
 import Url
@@ -101,16 +101,9 @@ import Url
 {- HTTP Requests -}
 
 
-requestAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
-requestAuthToken maybeProxyUrl input =
+requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
+requestScopedAuthToken maybeProxyUrl input =
     let
-        idOrName str =
-            if Helpers.stringIsUuidOrDefault str then
-                "id"
-
-            else
-                "name"
-
         requestBody =
             case input of
                 OSTypes.AppCreds _ appCred ->
@@ -182,15 +175,71 @@ requestAuthToken maybeProxyUrl input =
                 OSTypes.AppCreds url _ ->
                     url
 
+        maybePassword =
+            case input of
+                OSTypes.PasswordCreds c ->
+                    Just c.password
+
+                _ ->
+                    Nothing
+    in
+    requestAuthTokenHelper
+        requestBody
+        inputUrl
+        maybeProxyUrl
+        (ReceiveScopedAuthToken maybePassword)
+
+
+requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLogin -> Cmd Msg
+requestUnscopedAuthToken maybeProxyUrl creds =
+    let
+        requestBody =
+            Encode.object
+                [ ( "auth"
+                  , Encode.object
+                        [ ( "identity"
+                          , Encode.object
+                                [ ( "methods", Encode.list Encode.string [ "password" ] )
+                                , ( "password"
+                                  , Encode.object
+                                        [ ( "user"
+                                          , Encode.object
+                                                [ ( "name", Encode.string creds.username )
+                                                , ( "domain"
+                                                  , Encode.object
+                                                        [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
+                                                        ]
+                                                  )
+                                                , ( "password", Encode.string creds.password )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+    in
+    requestAuthTokenHelper
+        requestBody
+        creds.authUrl
+        maybeProxyUrl
+        (ReceiveUnscopedAuthToken creds.password)
+
+
+requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result Http.Error ( Http.Metadata, String ) -> Msg) -> Cmd Msg
+requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
+    let
         correctedUrl =
             let
                 maybeUrl =
-                    Url.fromString inputUrl
+                    Url.fromString authUrl
             in
             case maybeUrl of
                 -- Cannot parse URL, so uh, don't make changes to it. We should never be here
                 Nothing ->
-                    inputUrl
+                    authUrl
 
                 Just url_ ->
                     { url_ | path = "/v3/auth/tokens" } |> Url.toString
@@ -202,14 +251,6 @@ requestAuthToken maybeProxyUrl input =
 
                 Just proxyUrl ->
                     proxyifyRequest proxyUrl correctedUrl
-
-        maybePassword =
-            case input of
-                OSTypes.PasswordCreds c ->
-                    Just c.password
-
-                _ ->
-                    Nothing
     in
     {- https://stackoverflow.com/questions/44368340/get-request-headers-from-http-request -}
     Http.request
@@ -221,7 +262,7 @@ requestAuthToken maybeProxyUrl input =
         {- Todo handle no response? -}
         , expect =
             Http.expectStringResponse
-                (ReceiveAuthToken maybePassword)
+                resultMsg
                 (\response ->
                     case response of
                         Http.BadUrl_ url_ ->
@@ -272,6 +313,44 @@ requestAppCredential project maybeProxyUrl posixTime =
             (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveAppCredential result))
             decodeAppCredential
         )
+
+
+requestUnscopedProjects : UnscopedProvider -> HelperTypes.Password -> Maybe HelperTypes.Url -> Cmd Msg
+requestUnscopedProjects provider password maybeProxyUrl =
+    let
+        correctedUrl =
+            let
+                maybeUrl =
+                    Url.fromString provider.authUrl
+            in
+            case maybeUrl of
+                -- Cannot parse URL, so uh, don't make changes to it. We should never be here
+                Nothing ->
+                    provider.authUrl
+
+                Just url_ ->
+                    { url_ | path = "/v3/users/" ++ provider.token.user.uuid ++ "/projects" } |> Url.toString
+
+        ( url, headers ) =
+            case maybeProxyUrl of
+                Just proxyUrl ->
+                    proxyifyRequest proxyUrl correctedUrl
+
+                Nothing ->
+                    ( correctedUrl, [] )
+    in
+    Http.request
+        { method = "GET"
+        , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
+        , url = url
+        , body = Http.emptyBody
+        , expect =
+            Http.expectJson
+                (\result -> ReceiveUnscopedProjects provider.authUrl password result)
+                decodeUnscopedProjects
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
@@ -1394,29 +1473,23 @@ receiveCockpitLoginStatus model project serverUuid result =
 {- JSON Decoders -}
 
 
-decodeAuthToken : Http.Response String -> Result String OSTypes.AuthToken
-decodeAuthToken response =
+decodeScopedAuthToken : Http.Response String -> Result String OSTypes.ScopedAuthToken
+decodeScopedAuthToken response =
+    decodeAuthTokenHelper response decodeScopedAuthTokenDetails
+
+
+decodeUnscopedAuthToken : Http.Response String -> Result String OSTypes.UnscopedAuthToken
+decodeUnscopedAuthToken response =
+    decodeAuthTokenHelper response decodeUnscopedAuthTokenDetails
+
+
+decodeAuthTokenHelper : Http.Response String -> Decode.Decoder (OSTypes.AuthTokenString -> a) -> Result String a
+decodeAuthTokenHelper response tokenDetailsDecoder =
     case response of
         Http.GoodStatus_ metadata body ->
-            case Decode.decodeString decodeAuthTokenDetails body of
+            case Decode.decodeString tokenDetailsDecoder body of
                 Ok tokenDetailsWithoutTokenString ->
-                    let
-                        authTokenFromHeader : Result String String
-                        authTokenFromHeader =
-                            case Dict.get "X-Subject-Token" metadata.headers of
-                                Just token ->
-                                    Ok token
-
-                                Nothing ->
-                                    -- https://github.com/elm/http/issues/31
-                                    case Dict.get "x-subject-token" metadata.headers of
-                                        Just token2 ->
-                                            Ok token2
-
-                                        Nothing ->
-                                            Err "Could not find an auth token in response headers"
-                    in
-                    case authTokenFromHeader of
+                    case authTokenFromHeader metadata of
                         Ok authTokenString ->
                             Ok (tokenDetailsWithoutTokenString authTokenString)
 
@@ -1433,18 +1506,25 @@ decodeAuthToken response =
             Err (Debug.toString "foo")
 
 
-decodeAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.AuthToken)
-decodeAuthTokenDetails =
-    let
-        iso8601StringToPosixDecodeError str =
-            case Helpers.iso8601StringToPosix str of
-                Ok posix ->
-                    Decode.succeed posix
+authTokenFromHeader : Http.Metadata -> Result String String
+authTokenFromHeader metadata =
+    case Dict.get "X-Subject-Token" metadata.headers of
+        Just token ->
+            Ok token
 
-                Err error ->
-                    Decode.fail error
-    in
-    Decode.map6 OSTypes.AuthToken
+        Nothing ->
+            -- https://github.com/elm/http/issues/31
+            case Dict.get "x-subject-token" metadata.headers of
+                Just token2 ->
+                    Ok token2
+
+                Nothing ->
+                    Err "Could not find an auth token in response headers"
+
+
+decodeScopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.ScopedAuthToken)
+decodeScopedAuthTokenDetails =
+    Decode.map6 OSTypes.ScopedAuthToken
         (Decode.at [ "token", "catalog" ] (Decode.list openstackServiceDecoder))
         (Decode.map2
             OSTypes.NameAndUuid
@@ -1456,6 +1536,24 @@ decodeAuthTokenDetails =
             (Decode.at [ "token", "project", "domain", "name" ] Decode.string)
             (Decode.at [ "token", "project", "domain", "id" ] Decode.string)
         )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "id" ] Decode.string)
+        )
+        (Decode.map2
+            OSTypes.NameAndUuid
+            (Decode.at [ "token", "user", "domain", "name" ] Decode.string)
+            (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
+        )
+        (Decode.at [ "token", "expires_at" ] Decode.string
+            |> Decode.andThen iso8601StringToPosixDecodeError
+        )
+
+
+decodeUnscopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
+decodeUnscopedAuthTokenDetails =
+    Decode.map3 OSTypes.UnscopedAuthToken
         (Decode.map2
             OSTypes.NameAndUuid
             (Decode.at [ "token", "user", "name" ] Decode.string)
@@ -1509,6 +1607,20 @@ openstackEndpointInterfaceDecoder interface =
 
         _ ->
             Decode.fail "unrecognized interface type"
+
+
+decodeUnscopedProjects : Decode.Decoder (List UnscopedProviderProject)
+decodeUnscopedProjects =
+    Decode.field "projects" <|
+        Decode.list unscopedProjectDecoder
+
+
+unscopedProjectDecoder : Decode.Decoder UnscopedProviderProject
+unscopedProjectDecoder =
+    Decode.map3 UnscopedProviderProject
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "domain_id" Decode.string)
 
 
 decodeImages : Decode.Decoder (List OSTypes.Image)

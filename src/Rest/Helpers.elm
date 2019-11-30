@@ -1,11 +1,14 @@
 module Rest.Helpers exposing
-    ( keystoneUrlWithVersion
+    ( idOrName
+    , iso8601StringToPosixDecodeError
+    , keystoneUrlWithVersion
     , openstackCredentialedRequest
     , proxyifyRequest
     )
 
 import Helpers.Helpers as Helpers
 import Http
+import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Task
 import Time
@@ -118,3 +121,22 @@ keystoneUrlWithVersion inputUrl =
 
             else
                 Url.toString { url | path = "/v3" }
+
+
+idOrName : String -> String
+idOrName str =
+    if Helpers.stringIsUuidOrDefault str then
+        "id"
+
+    else
+        "name"
+
+
+iso8601StringToPosixDecodeError : String -> Decode.Decoder Time.Posix
+iso8601StringToPosixDecodeError str =
+    case Helpers.iso8601StringToPosix str of
+        Ok posix ->
+            Decode.succeed posix
+
+        Err error ->
+            Decode.fail error

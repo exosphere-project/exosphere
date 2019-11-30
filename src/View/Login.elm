@@ -60,7 +60,7 @@ viewLoginOpenstack model openstackCreds =
         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Button.button
                 [ Modifier.Primary ]
-                (Just <| RequestNewProjectToken openstackCreds)
+                (Just <| RequestUnscopedToken openstackCreds)
                 "Log In"
             )
         ]
@@ -87,22 +87,6 @@ loginOpenstackCredsEntry _ openstackCreds =
             , placeholder = Just (Input.placeholder [] (Element.text "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"))
             , onChange = \u -> updateCreds { openstackCreds | authUrl = u }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
-            }
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.projectDomain
-            , placeholder = Just (Input.placeholder [] (Element.text "OS_PROJECT_DOMAIN_ID e.g. default"))
-            , onChange = \d -> updateCreds { openstackCreds | projectDomain = d }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Domain (name or ID)")
-            }
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.projectName
-            , placeholder = Just (Input.placeholder [] (Element.text "Project name e.g. demo"))
-            , onChange = \pn -> updateCreds { openstackCreds | projectName = pn }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Project Name")
             }
         , Input.text
             [ Element.spacing 12
@@ -174,14 +158,6 @@ viewLoginJetstream model jetstreamCreds =
             [ Input.text
                 [ Element.spacing 12
                 ]
-                { text = jetstreamCreds.jetstreamProjectName
-                , placeholder = Just (Input.placeholder [] (Element.text "TG-******"))
-                , onChange = \pn -> updateCreds { jetstreamCreds | jetstreamProjectName = pn }
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text "Allocation Name")
-                }
-            , Input.text
-                [ Element.spacing 12
-                ]
                 { text = jetstreamCreds.taccUsername
                 , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                 , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
@@ -250,19 +226,12 @@ jetstreamLoginText model =
             ]
         , Element.paragraph
             []
-            [ Element.text "1. Your allocation name (begins with `TG-`); log into "
-            , VH.browserLink model.isElectron "https://portal.xsede.org" <| View.Types.BrowserLinkTextLabel "XSEDE User Portal"
-            , Element.text " and see it in your "
-            , VH.browserLink model.isElectron "https://portal.xsede.org/group/xup/allocations/usage" <| View.Types.BrowserLinkTextLabel "allocations"
-            ]
-        , Element.paragraph
-            []
-            [ Element.text "2. TACC username (usually looks like 'tg******'); "
+            [ Element.text "1. TACC username (usually looks like 'tg******'); "
             , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username" <| View.Types.BrowserLinkTextLabel "look up your TACC username"
             ]
         , Element.paragraph
             []
-            [ Element.text "3. TACC password; "
+            [ Element.text "2. TACC password; "
             , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset" <| View.Types.BrowserLinkTextLabel "set your TACC password"
             ]
         ]

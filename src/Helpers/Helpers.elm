@@ -16,12 +16,14 @@ module Helpers.Helpers exposing
     , iso8601StringToPosix
     , jetstreamToOpenstackCreds
     , modelUpdateProject
+    , modelUpdateUnscopedProvider
     , newServerNetworkOptions
     , processError
     , processOpenRc
     , projectLookup
     , projectUpdateServer
     , projectUpdateServers
+    , providerLookup
     , renderUserDataTemplate
     , serverLookup
     , serviceCatalogToEndpoints
@@ -61,6 +63,7 @@ import Types.Types
         , ProjectIdentifier
         , Server
         , ServerUiStatus(..)
+        , UnscopedProvider
         )
 import Url
 
@@ -368,6 +371,14 @@ imageLookup project imageUuid =
         |> List.head
 
 
+providerLookup : Model -> OSTypes.KeystoneUrl -> Maybe UnscopedProvider
+providerLookup model keystoneUrl =
+    List.filter
+        (\uP -> uP.authUrl == keystoneUrl)
+        model.unscopedProviders
+        |> List.head
+
+
 modelUpdateProject : Model -> Project -> Model
 modelUpdateProject model newProject =
     let
@@ -405,6 +416,23 @@ projectUpdateServer project server =
 projectUpdateServers : Project -> List Server -> Project
 projectUpdateServers project servers =
     List.foldl (\s p -> projectUpdateServer p s) project servers
+
+
+modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model
+modelUpdateUnscopedProvider model newProvider =
+    let
+        otherProviders =
+            List.filter
+                (\p -> p.authUrl /= newProvider.authUrl)
+                model.unscopedProviders
+
+        newProviders =
+            newProvider :: otherProviders
+
+        newProvidersSorted =
+            List.sortBy (\p -> p.authUrl) newProviders
+    in
+    { model | unscopedProviders = newProvidersSorted }
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
