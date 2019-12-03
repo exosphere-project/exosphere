@@ -4,11 +4,10 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ![development stage: alpha](https://img.shields.io/badge/stage-alpha-orange.svg)
 [![pipeline status](https://gitlab.com/exosphere/exosphere/badges/master/pipeline.svg)](https://gitlab.com/exosphere/exosphere/commits/master)
+[![chat on gitter](https://img.shields.io/badge/chat_on-gitter-teal.svg)](https://gitter.im/exosphere-app/community)
+[![chat on matrix](https://img.shields.io/badge/chat_on-matrix-blue.svg)](https://riot.im/app/#/room/#exosphere:matrix.org)
 
 **New: [Try Exosphere in your web browser](https://try.exosphere.app/exosphere/)**
-
-**Update: Weekly Exosphere meetings are on hiatus for summer & life things - restarting in August 2019**
-You'll be able to chat with the developers, get onboarded, help us set priorities and shape the future!
 
 ## Features and Goals
 
@@ -140,9 +139,7 @@ Until the permanent solution has been implemented, please do not use the termina
 
 ## Collaborate
 
-[Exosphere Real-time chat](https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5) (sign in with email or GitHub)
-
-Exosphere meeting happens Mondays at 1600 UTC on [https://meet.jit.si/exosphere](https://meet.jit.si/exosphere).
+Talk to Exosphere developers and other users in real-time via [gitter](https://gitter.im/exosphere-app/community), or `#exosphere:matrix.org` on [Matrix / Riot](https://riot.im/app/#/room/#exosphere:matrix.org). The chat is bridged across both platforms, so join whichever you prefer.
 
 See also contributing.md for contributor guidelines.
 
