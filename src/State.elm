@@ -372,6 +372,9 @@ updateUnderlying msg model =
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 
+        NoOp ->
+            ( model, Cmd.none )
+
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
 processProjectSpecificMsg model project msg =

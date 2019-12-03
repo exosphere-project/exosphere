@@ -63,42 +63,67 @@ selectProjects model keystoneUrl password selectedProjects =
 renderProject : OSTypes.KeystoneUrl -> HelperTypes.Password -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
 renderProject keystoneUrl password selectedProjects project =
     let
-        onChange : Bool -> Msg
-        onChange bool =
-            if bool then
-                SetNonProjectView <|
-                    SelectProjects
-                        keystoneUrl
-                        password
-                    <|
-                        (project :: selectedProjects)
+        onChange : Bool -> Bool -> Msg
+        onChange projectEnabled enableDisable =
+            if projectEnabled then
+                if enableDisable then
+                    SetNonProjectView <|
+                        SelectProjects
+                            keystoneUrl
+                            password
+                        <|
+                            (project :: selectedProjects)
+
+                else
+                    SetNonProjectView <|
+                        SelectProjects
+                            keystoneUrl
+                            password
+                        <|
+                            List.filter
+                                (\p -> p.name /= project.name)
+                                selectedProjects
 
             else
-                SetNonProjectView <|
-                    SelectProjects
-                        keystoneUrl
-                        password
-                    <|
-                        List.filter
-                            (\p -> p.name /= project.name)
-                            selectedProjects
+                NoOp
 
         renderProjectLabel : UnscopedProviderProject -> Element.Element Msg
         renderProjectLabel p =
             let
+                disabledMsg =
+                    if p.enabled then
+                        ""
+
+                    else
+                        " (disabled)"
+
                 labelStr =
                     case p.description of
                         "" ->
-                            p.name
+                            p.name ++ disabledMsg
 
                         _ ->
-                            p.name ++ " -- " ++ p.description
+                            p.name ++ " -- " ++ p.description ++ disabledMsg
             in
             Element.text labelStr
     in
     Input.checkbox []
         { checked = List.member project.name (List.map .name selectedProjects)
-        , onChange = onChange
-        , icon = Input.defaultCheckbox
+        , onChange = onChange project.enabled
+        , icon =
+            if project.enabled then
+                Input.defaultCheckbox
+
+            else
+                \_ -> nullCheckbox
         , label = Input.labelRight [] (renderProjectLabel project)
         }
+
+
+nullCheckbox : Element.Element msg
+nullCheckbox =
+    Element.el
+        [ Element.width (Element.px 14)
+        , Element.height (Element.px 14)
+        ]
+        Element.none

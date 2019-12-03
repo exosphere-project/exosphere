@@ -1617,10 +1617,11 @@ decodeUnscopedProjects =
 
 unscopedProjectDecoder : Decode.Decoder UnscopedProviderProject
 unscopedProjectDecoder =
-    Decode.map3 UnscopedProviderProject
+    Decode.map4 UnscopedProviderProject
         (Decode.field "name" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "domain_id" Decode.string)
+        (Decode.field "enabled" Decode.bool)
 
 
 decodeImages : Decode.Decoder (List OSTypes.Image)

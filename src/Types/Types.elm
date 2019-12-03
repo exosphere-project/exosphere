@@ -91,6 +91,7 @@ type alias UnscopedProviderProject =
     { name : ProjectName
     , description : String
     , domainId : HelperTypes.Uuid
+    , enabled : Bool
     }
 
 
@@ -148,6 +149,7 @@ type Msg
     | OpenNewWindow String
     | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
     | MsgChangeWindowSize Int Int
+    | NoOp
 
 
 type ProjectSpecificMsgConstructor
