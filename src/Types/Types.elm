@@ -140,7 +140,7 @@ type Msg
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedAuthToken HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error (List UnscopedProviderProject))
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor

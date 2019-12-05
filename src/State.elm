@@ -269,7 +269,7 @@ updateUnderlying msg model =
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
-        ReceiveUnscopedAuthToken password responseResult ->
+        ReceiveUnscopedAuthToken keystoneUrl password responseResult ->
             case responseResult of
                 Err error ->
                     Helpers.processError model error
@@ -281,7 +281,7 @@ updateUnderlying msg model =
 
                         Ok authToken ->
                             case
-                                Helpers.providerLookup model metadata.url
+                                Helpers.providerLookup model keystoneUrl
                             of
                                 Just unscopedProvider ->
                                     -- We already have an unscoped provider in the model with the same auth URL, update its token
@@ -289,7 +289,7 @@ updateUnderlying msg model =
 
                                 Nothing ->
                                     -- We don't have an unscoped provider with the same auth URL, create it
-                                    createUnscopedProvider model password authToken metadata.url
+                                    createUnscopedProvider model password authToken keystoneUrl
 
         ReceiveUnscopedProjects keystoneUrl password result ->
             case result of
