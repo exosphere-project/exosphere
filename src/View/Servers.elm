@@ -56,6 +56,12 @@ servers project =
 
             else
                 let
+                    userUuid =
+                        project.auth.user.uuid
+
+                    ownServers =
+                        List.filter (\s -> s.osProps.details.userUuid == userUuid) someServers
+
                     noServersSelected =
                         List.any (\s -> s.exoProps.selected) someServers |> not
 
