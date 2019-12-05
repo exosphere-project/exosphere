@@ -225,7 +225,7 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         requestBody
         creds.authUrl
         maybeProxyUrl
-        (ReceiveUnscopedAuthToken creds.password)
+        (ReceiveUnscopedAuthToken creds.authUrl creds.password)
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result Http.Error ( Http.Metadata, String ) -> Msg) -> Cmd Msg
