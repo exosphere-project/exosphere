@@ -102,6 +102,12 @@ servers project serverFilter =
                             }
                         , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
                         ]
+                    , Input.checkbox []
+                        { checked = serverFilter.onlyOwnServers
+                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new }
+                        , icon = Input.defaultCheckbox
+                        , label = Input.labelRight [] (Element.text "Show only servers created by me")
+                        }
                     , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
                         (List.map (renderServer project) someServers)
                     ]
