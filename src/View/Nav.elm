@@ -54,7 +54,15 @@ navMenu model =
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem status projectTitle (Just (ProjectMsg (Helpers.getProjectId project) (SetProjectView ListProjectServers)))
+            MenuItem.menuItem status
+                projectTitle
+                (Just
+                    (ProjectMsg (Helpers.getProjectId project)
+                        (SetProjectView <|
+                            ListProjectServers { onlyOwnServers = False }
+                        )
+                    )
+                )
 
         projectMenuItems : List Project -> List (Element.Element Msg)
         projectMenuItems projects =

@@ -1165,7 +1165,11 @@ receiveCreateServer model project result =
         Ok _ ->
             let
                 newModel =
-                    { model | viewState = ProjectView (Helpers.getProjectId project) ListProjectServers }
+                    { model
+                        | viewState =
+                            ProjectView (Helpers.getProjectId project) <|
+                                ListProjectServers { onlyOwnServers = False }
+                    }
             in
             ( newModel
             , [ requestServers

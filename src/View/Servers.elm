@@ -31,6 +31,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerFilter
         , ViewState(..)
         , ViewStateParams
         )
@@ -38,8 +39,8 @@ import View.Helpers as VH exposing (edges)
 import View.Types
 
 
-servers : Project -> Element.Element Msg
-servers project =
+servers : Project -> ServerFilter -> Element.Element Msg
+servers project serverFilter =
     case project.servers of
         RemoteData.NotAsked ->
             Element.paragraph [] [ Element.text "Please wait..." ]
@@ -50,8 +51,8 @@ servers project =
         RemoteData.Failure e ->
             Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
-        RemoteData.Success someServers ->
-            if List.isEmpty someServers then
+        RemoteData.Success allServers ->
+            if List.isEmpty allServers then
                 Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
             else
@@ -59,8 +60,12 @@ servers project =
                     userUuid =
                         project.auth.user.uuid
 
-                    ownServers =
-                        List.filter (\s -> s.osProps.details.userUuid == userUuid) someServers
+                    someServers =
+                        if serverFilter.onlyOwnServers == True then
+                            List.filter (\s -> s.osProps.details.userUuid == userUuid) allServers
+
+                        else
+                            allServers
 
                     noServersSelected =
                         List.any (\s -> s.exoProps.selected) someServers |> not

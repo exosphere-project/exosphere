@@ -24,6 +24,7 @@ module Types.Types exposing
     , ProjectTitle
     , ProjectViewConstructor(..)
     , Server
+    , ServerFilter
     , ServerUiStatus(..)
     , UnscopedProvider
     , UnscopedProviderProject
@@ -216,9 +217,14 @@ type alias ImageFilter =
     }
 
 
+type alias ServerFilter =
+    { onlyOwnServers : Bool
+    }
+
+
 type ProjectViewConstructor
     = ListImages ImageFilter
-    | ListProjectServers
+    | ListProjectServers ServerFilter
     | ListProjectVolumes
     | ServerDetail OSTypes.ServerUuid ViewStateParams
     | CreateServerImage OSTypes.ServerUuid String

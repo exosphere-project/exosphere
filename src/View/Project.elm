@@ -31,8 +31,8 @@ project model p viewConstructor =
                 ListImages imageFilter ->
                     View.Images.imagesIfLoaded model.globalDefaults p imageFilter
 
-                ListProjectServers ->
-                    View.Servers.servers p
+                ListProjectServers serverFilter ->
+                    View.Servers.servers p serverFilter
 
                 ServerDetail serverUuid viewStateParams ->
                     View.Servers.serverDetail model.isElectron p serverUuid viewStateParams
@@ -86,7 +86,8 @@ projectNav p =
                     []
                     (Just <|
                         ProjectMsg (Helpers.getProjectId p) <|
-                            SetProjectView ListProjectServers
+                            SetProjectView <|
+                                ListProjectServers { onlyOwnServers = False }
                     )
                     "My Servers"
                 )
