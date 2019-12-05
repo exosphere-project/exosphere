@@ -1707,6 +1707,7 @@ decodeServerDetails =
         |> Pipeline.optional "key_name" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "addresses" (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder))) []
         |> Pipeline.required "metadata" metadataDecoder
+        |> Pipeline.required "user_id" Decode.string
         |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
 
 
