@@ -124,7 +124,7 @@ chpasswd:
             List.map getTimeForAppCredential projectsNeedingAppCredentials
     in
     case hydratedModel.viewState of
-        ProjectView projectName ListProjectServers ->
+        ProjectView projectName (ListProjectServers _) ->
             let
                 ( newModel, newCmds ) =
                     update (ProjectMsg projectName RequestServers) hydratedModel
@@ -183,7 +183,7 @@ updateUnderlying msg model =
 
                         Just project ->
                             case projectViewState of
-                                ListProjectServers ->
+                                ListProjectServers _ ->
                                     update (ProjectMsg projectName RequestServers) model
 
                                 ServerDetail serverUuid _ ->
@@ -388,7 +388,7 @@ processProjectSpecificMsg model project msg =
                 ListImages _ ->
                     ( newModel, Rest.requestImages project model.proxyUrl )
 
-                ListProjectServers ->
+                ListProjectServers _ ->
                     ( newModel
                     , [ Rest.requestServers
                       , Rest.requestFloatingIps
@@ -509,7 +509,7 @@ processProjectSpecificMsg model project msg =
                             -- If we have any projects switch to the first one in the list, otherwise switch to login view
                             case List.head newProjects of
                                 Just p ->
-                                    ProjectView (Helpers.getProjectId p) ListProjectServers
+                                    ProjectView (Helpers.getProjectId p) <| ListProjectServers { onlyOwnServers = False }
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -595,7 +595,7 @@ processProjectSpecificMsg model project msg =
         RequestCreateServerImage serverUuid imageName ->
             let
                 newModel =
-                    { model | viewState = ProjectView (Helpers.getProjectId project) ListProjectServers }
+                    { model | viewState = ProjectView (Helpers.getProjectId project) <| ListProjectServers { onlyOwnServers = False } }
             in
             ( newModel, Rest.requestCreateServerImage project model.proxyUrl serverUuid imageName )
 
@@ -690,7 +690,7 @@ processProjectSpecificMsg model project msg =
                 ( serverDeletedModel, newCmd ) =
                     let
                         viewState =
-                            ProjectView (Helpers.getProjectId project) ListProjectServers
+                            ProjectView (Helpers.getProjectId project) <| ListProjectServers { onlyOwnServers = False }
 
                         newModel =
                             { model | viewState = viewState }
@@ -851,7 +851,7 @@ createProject model password authToken =
         newModel =
             { model
                 | projects = newProjects
-                , viewState = ProjectView (Helpers.getProjectId newProject) ListProjectServers
+                , viewState = ProjectView (Helpers.getProjectId newProject) <| ListProjectServers { onlyOwnServers = False }
             }
     in
     ( newModel

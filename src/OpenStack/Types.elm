@@ -39,6 +39,7 @@ module OpenStack.Types exposing
     , Service
     , ServiceCatalog
     , UnscopedAuthToken
+    , UserUuid
     , Volume
     , VolumeAttachment
     , VolumeAttachmentDevice
@@ -116,6 +117,10 @@ type alias NameAndUuid =
     { name : String
     , uuid : HelperTypes.Uuid
     }
+
+
+type alias UserUuid =
+    HelperTypes.Uuid
 
 
 type alias ServiceCatalog =
@@ -270,6 +275,7 @@ type alias ServerDetails =
     , keypairName : Maybe String
     , ipAddresses : List IpAddress
     , metadata : List MetadataItem
+    , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
     }
 
