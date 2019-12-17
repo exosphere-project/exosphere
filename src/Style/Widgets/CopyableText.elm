@@ -3,6 +3,7 @@ module Style.Widgets.CopyableText exposing (copyableText)
 import Color
 import Element exposing (Element)
 import Element.Input as Input
+import Html
 import Html.Attributes
 import Murmur3
 import Style.Widgets.Icon exposing (copyToClipboard)
@@ -17,7 +18,10 @@ copyableText : String -> Element msg
 copyableText text =
     Element.row
         [ Element.spacing 8 ]
-        [ Element.el [ Element.htmlAttribute <| Html.Attributes.id ("copy-me-" ++ hash text) ] <| Element.text text
+        [ Element.html <|
+            Html.div [ Html.Attributes.id ("copy-me-" ++ hash text) ] <|
+                [ Html.text text ]
+        , Element.el [] Element.none -- To preserve spacing
         , Input.button
             [ Element.htmlAttribute <| Html.Attributes.class "copy-button"
             , Element.htmlAttribute <| Html.Attributes.attribute "data-clipboard-target" ("#copy-me-" ++ hash text)
