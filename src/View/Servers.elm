@@ -292,6 +292,8 @@ consoleLink appIsElectron project server serverUuid viewStateParams =
                                     )
                                 , Element.centerX
                                 , Element.centerY
+                                , Element.height Element.fill
+                                , Element.width Element.fill
                                 ]
                                 (Element.el
                                     [ Element.centerX ]
