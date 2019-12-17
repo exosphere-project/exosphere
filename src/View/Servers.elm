@@ -17,6 +17,7 @@ import Html.Attributes
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
 import Types.Types
@@ -150,7 +151,7 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                             (Element.text "Server Details")
                         , VH.compactKVRow "Name" (Element.text server.osProps.name)
                         , VH.compactKVRow "Status" (serverStatus projectId server viewStateParams)
-                        , VH.compactKVRow "UUID" (Element.text server.osProps.uuid)
+                        , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
                         , VH.compactKVRow "Created on" (Element.text details.created)
                         , VH.compactKVRow "Image" (Element.text imageText)
                         , VH.compactKVRow "Flavor" (Element.text flavorText)
@@ -254,11 +255,7 @@ sshInstructions maybeFloatingIp =
             Element.none
 
         Just floatingIp ->
-            Element.paragraph
-                []
-                [ Element.text "exouser@"
-                , Element.text floatingIp
-                ]
+            copyableText ("exouser@" ++ floatingIp)
 
 
 consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
@@ -284,8 +281,8 @@ consoleLink appIsElectron project server serverUuid viewStateParams =
 
                 RemoteData.Success consoleUrl ->
                     let
-                        flippyCardContents : PasswordVisibility -> String -> Element.Element Msg
-                        flippyCardContents pwVizOnClick text =
+                        flippyCardContents : PasswordVisibility -> Element.Element Msg -> Element.Element Msg
+                        flippyCardContents pwVizOnClick contents =
                             Element.el
                                 [ Events.onClick
                                     (ProjectMsg (Helpers.getProjectId project) <|
@@ -298,7 +295,7 @@ consoleLink appIsElectron project server serverUuid viewStateParams =
                                 ]
                                 (Element.el
                                     [ Element.centerX ]
-                                    (Element.text text)
+                                    contents
                                 )
 
                         passwordFlippyCard password =
@@ -312,8 +309,8 @@ consoleLink appIsElectron project server serverUuid viewStateParams =
 
                                         PasswordHidden ->
                                             True
-                                , front = flippyCardContents PasswordShown "(click to view password)"
-                                , back = flippyCardContents PasswordHidden password
+                                , front = flippyCardContents PasswordShown <| Element.text "(click to view password)"
+                                , back = flippyCardContents PasswordHidden <| copyableText password
                                 }
 
                         passwordHint =
@@ -554,7 +551,7 @@ renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
             ipAddressesOfType OSTypes.IpAddressFloating
                 |> List.map
                     (\ipAddress ->
-                        VH.compactKVSubRow "Floating IP" (Element.text ipAddress.address)
+                        VH.compactKVSubRow "Floating IP" <| copyableText ipAddress.address
                     )
 
         gray : Element.Color

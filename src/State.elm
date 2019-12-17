@@ -404,6 +404,7 @@ processProjectSpecificMsg model project msg =
                         , Rest.requestFlavors project model.proxyUrl
                         , Rest.requestImages project model.proxyUrl
                         , OSVolumes.requestVolumes project model.proxyUrl
+                        , Ports.instantiateClipboardJs ()
                         ]
                     )
 
