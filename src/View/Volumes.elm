@@ -13,6 +13,7 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
 import Style.Widgets.Card as ExoCard
+import Style.Widgets.CopyableText exposing (copyableText)
 import Types.Types
     exposing
         ( Msg(..)
@@ -126,7 +127,7 @@ volumeDetail project volumeUuid =
                     , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
                     , renderAttachments project volume
                     , VH.compactKVRow "Description:" <| Element.text <| Maybe.withDefault "" volume.description
-                    , VH.compactKVRow "UUID:" <| Element.text <| volume.uuid
+                    , VH.compactKVRow "UUID:" <| copyableText volume.uuid
                     , volumeActionButtons project volume
                     ]
             )

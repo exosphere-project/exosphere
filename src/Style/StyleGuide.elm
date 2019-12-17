@@ -7,6 +7,7 @@ import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
 import Html
 import Style.Widgets.Card exposing (exoCard)
+import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, question, remove, roundRect)
 import Style.Widgets.IconButton exposing (iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
@@ -33,6 +34,8 @@ widgets =
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.IconButton.iconButton"
     , iconButton [ Small, Danger ] Nothing (remove Color.white 16)
+    , Element.text "Style.Widgets.CopyableText.CopyableText"
+    , copyableText (Element.text "foobar")
     ]
 
 

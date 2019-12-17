@@ -55,3 +55,7 @@ app.ports.openNewWindow.subscribe(function (url) {
 app.ports.setStorage.subscribe(function(state) {
   localStorage.setItem('exosphere-save', JSON.stringify(state));
 });
+
+app.ports.instantiateClipboardJs.subscribe(function() {
+  var clipboard = new ClipboardJS('.copy-button');
+});
