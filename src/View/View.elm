@@ -63,8 +63,8 @@ elementView maybeWindowSize model =
                             LoginJetstream jetstreamCreds ->
                                 View.Login.viewLoginJetstream model jetstreamCreds
 
-                            SelectProjects authUrl password selectedProjects ->
-                                View.SelectProjects.selectProjects model authUrl password selectedProjects
+                            SelectProjects authUrl selectedProjects ->
+                                View.SelectProjects.selectProjects model authUrl selectedProjects
 
                             MessageLog ->
                                 View.Messages.messageLog model

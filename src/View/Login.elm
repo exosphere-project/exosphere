@@ -36,7 +36,7 @@ viewLoginPicker =
                     (Just
                         (SetNonProjectView
                             (LoginJetstream
-                                (JetstreamCreds TACCCloud "" "" "")
+                                (JetstreamCreds BothJetstreamClouds "" "" "")
                             )
                         )
                     )
@@ -178,6 +178,7 @@ viewLoginJetstream model jetstreamCreds =
                 , options =
                     [ Input.option IUCloud (Element.text "IU Cloud")
                     , Input.option TACCCloud (Element.text "TACC Cloud")
+                    , Input.option BothJetstreamClouds (Element.text "Both Clouds")
                     ]
                 , selected = Just jetstreamCreds.jetstreamProviderChoice
                 }

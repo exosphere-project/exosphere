@@ -7,7 +7,6 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( Model
@@ -18,8 +17,8 @@ import Types.Types
 import View.Helpers as VH
 
 
-selectProjects : Model -> OSTypes.KeystoneUrl -> HelperTypes.Password -> List UnscopedProviderProject -> Element.Element Msg
-selectProjects model keystoneUrl password selectedProjects =
+selectProjects : Model -> OSTypes.KeystoneUrl -> List UnscopedProviderProject -> Element.Element Msg
+selectProjects model keystoneUrl selectedProjects =
     case Helpers.providerLookup model keystoneUrl of
         Just provider ->
             let
@@ -34,13 +33,13 @@ selectProjects model keystoneUrl password selectedProjects =
                         Element.column VH.exoColumnAttributes <|
                             List.append
                                 (List.map
-                                    (renderProject keystoneUrl password selectedProjects)
+                                    (renderProject keystoneUrl selectedProjects)
                                     projectsAvailable
                                 )
                                 [ Button.button
                                     [ Modifier.Primary ]
                                     (Just <|
-                                        RequestProjectLoginFromProvider keystoneUrl password selectedProjects
+                                        RequestProjectLoginFromProvider keystoneUrl provider.keystonePassword selectedProjects
                                     )
                                     "Choose"
                                 ]
@@ -60,8 +59,8 @@ selectProjects model keystoneUrl password selectedProjects =
             Element.text "Provider not found"
 
 
-renderProject : OSTypes.KeystoneUrl -> HelperTypes.Password -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
-renderProject keystoneUrl password selectedProjects project =
+renderProject : OSTypes.KeystoneUrl -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
+renderProject keystoneUrl selectedProjects project =
     let
         onChange : Bool -> Bool -> Msg
         onChange projectEnabled enableDisable =
@@ -70,7 +69,6 @@ renderProject keystoneUrl password selectedProjects project =
                     SetNonProjectView <|
                         SelectProjects
                             keystoneUrl
-                            password
                         <|
                             (project :: selectedProjects)
 
@@ -78,7 +76,6 @@ renderProject keystoneUrl password selectedProjects project =
                     SetNonProjectView <|
                         SelectProjects
                             keystoneUrl
-                            password
                         <|
                             List.filter
                                 (\p -> p.name /= project.name)

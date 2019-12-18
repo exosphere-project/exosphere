@@ -83,6 +83,7 @@ type alias GlobalDefaults =
 
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
+    , keystonePassword : HelperTypes.Password
     , token : OSTypes.UnscopedAuthToken
     , projectsAvailable : WebData (List UnscopedProviderProject)
     }
@@ -142,7 +143,7 @@ type Msg
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error (List UnscopedProviderProject))
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List UnscopedProviderProject))
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
@@ -206,7 +207,7 @@ type NonProjectViewConstructor
     = LoginPicker
     | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
-    | SelectProjects OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
+    | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | HelpAbout
 
@@ -267,6 +268,7 @@ type alias JetstreamCreds =
 type JetstreamProvider
     = IUCloud
     | TACCCloud
+    | BothJetstreamClouds
 
 
 

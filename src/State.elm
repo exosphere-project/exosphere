@@ -220,10 +220,15 @@ updateUnderlying msg model =
 
         JetstreamLogin jetstreamCreds ->
             let
-                openstackCreds =
+                openstackCredsList =
                     Helpers.jetstreamToOpenstackCreds jetstreamCreds
+
+                cmds =
+                    List.map
+                        (\creds -> Rest.requestUnscopedAuthToken model.proxyUrl creds)
+                        openstackCredsList
             in
-            ( model, Rest.requestUnscopedAuthToken model.proxyUrl <| openstackCreds )
+            ( model, Cmd.batch cmds )
 
         ReceiveScopedAuthToken maybePassword responseResult ->
             case responseResult of
@@ -291,7 +296,7 @@ updateUnderlying msg model =
                                     -- We don't have an unscoped provider with the same auth URL, create it
                                     createUnscopedProvider model password authToken keystoneUrl
 
-        ReceiveUnscopedProjects keystoneUrl password result ->
+        ReceiveUnscopedProjects keystoneUrl result ->
             case result of
                 Err error ->
                     Helpers.processError model error
@@ -309,10 +314,17 @@ updateUnderlying msg model =
                                     Helpers.modelUpdateUnscopedProvider model newProvider
 
                                 newModelWithView =
-                                    { newModel
-                                        | viewState =
-                                            NonProjectView <| SelectProjects newProvider.authUrl password []
-                                    }
+                                    -- If we are not already on a SelectProjects view, then go there
+                                    case newModel.viewState of
+                                        NonProjectView (SelectProjects _ _) ->
+                                            newModel
+
+                                        _ ->
+                                            { newModel
+                                                | viewState =
+                                                    NonProjectView <|
+                                                        SelectProjects newProvider.authUrl []
+                                            }
                             in
                             ( newModelWithView, Cmd.none )
 
@@ -340,8 +352,34 @@ updateUnderlying msg model =
 
                         loginRequests =
                             List.map buildLoginRequest desiredProjects
+
+                        -- Remove unscoped provider from model now that we have selected projects from it
+                        newUnscopedProviders =
+                            List.filter
+                                (\p -> p.authUrl /= keystoneUrl)
+                                model.unscopedProviders
+
+                        -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
+                        newViewState =
+                            case List.head newUnscopedProviders of
+                                Just unscopedProvider ->
+                                    NonProjectView <|
+                                        SelectProjects unscopedProvider.authUrl []
+
+                                Nothing ->
+                                    -- If we have at least one project then show it, else show the login page
+                                    case List.head model.projects of
+                                        Just project ->
+                                            ProjectView (Helpers.getProjectId project) <|
+                                                ListProjectServers { onlyOwnServers = False }
+
+                                        Nothing ->
+                                            NonProjectView LoginPicker
+
+                        newModel =
+                            { model | unscopedProviders = newUnscopedProviders, viewState = newViewState }
                     in
-                    ( model, Cmd.batch loginRequests )
+                    ( newModel, Cmd.batch loginRequests )
 
                 Nothing ->
                     Helpers.processError model "Could not find provider"
@@ -849,10 +887,19 @@ createProject model password authToken =
         newProjects =
             newProject :: model.projects
 
+        newViewState =
+            -- If the user is selecting projects from an unscoped provider then don't interrupt them
+            case model.viewState of
+                NonProjectView (SelectProjects _ _) ->
+                    model.viewState
+
+                _ ->
+                    ProjectView (Helpers.getProjectId newProject) <| ListProjectServers { onlyOwnServers = False }
+
         newModel =
             { model
                 | projects = newProjects
-                , viewState = ProjectView (Helpers.getProjectId newProject) <| ListProjectServers { onlyOwnServers = False }
+                , viewState = newViewState
             }
     in
     ( newModel
@@ -884,6 +931,7 @@ createUnscopedProvider model password authToken authUrl =
     let
         newProvider =
             { authUrl = authUrl
+            , keystonePassword = password
             , token = authToken
             , projectsAvailable = RemoteData.Loading
             }
@@ -892,7 +940,7 @@ createUnscopedProvider model password authToken authUrl =
             newProvider :: model.unscopedProviders
     in
     ( { model | unscopedProviders = newProviders }
-    , Rest.requestUnscopedProjects newProvider password model.proxyUrl
+    , Rest.requestUnscopedProjects newProvider model.proxyUrl
     )
 
 

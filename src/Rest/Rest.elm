@@ -315,8 +315,8 @@ requestAppCredential project maybeProxyUrl posixTime =
         )
 
 
-requestUnscopedProjects : UnscopedProvider -> HelperTypes.Password -> Maybe HelperTypes.Url -> Cmd Msg
-requestUnscopedProjects provider password maybeProxyUrl =
+requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
+requestUnscopedProjects provider maybeProxyUrl =
     let
         correctedUrl =
             let
@@ -346,7 +346,7 @@ requestUnscopedProjects provider password maybeProxyUrl =
         , body = Http.emptyBody
         , expect =
             Http.expectJson
-                (\result -> ReceiveUnscopedProjects provider.authUrl password result)
+                (\result -> ReceiveUnscopedProjects provider.authUrl result)
                 decodeUnscopedProjects
         , timeout = Nothing
         , tracker = Nothing
