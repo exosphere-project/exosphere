@@ -83,6 +83,7 @@ type alias GlobalDefaults =
 
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
+    , keystonePassword : HelperTypes.Password
     , token : OSTypes.UnscopedAuthToken
     , projectsAvailable : WebData (List UnscopedProviderProject)
     }
@@ -206,7 +207,7 @@ type NonProjectViewConstructor
     = LoginPicker
     | LoginOpenstack OSTypes.OpenstackLogin
     | LoginJetstream JetstreamCreds
-    | SelectProjects OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
+    | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | HelpAbout
 
@@ -267,6 +268,7 @@ type alias JetstreamCreds =
 type JetstreamProvider
     = IUCloud
     | TACCCloud
+    | BothJetstreamClouds
 
 
 

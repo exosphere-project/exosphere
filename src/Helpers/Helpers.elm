@@ -696,25 +696,36 @@ getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
 
 
-jetstreamToOpenstackCreds : JetstreamCreds -> OSTypes.OpenstackLogin
+jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin
 jetstreamToOpenstackCreds jetstreamCreds =
     let
-        authUrlBase =
+        authUrlBases =
             case jetstreamCreds.jetstreamProviderChoice of
                 {- TODO should we hard-code these elsewhere? -}
                 IUCloud ->
-                    "iu.jetstream-cloud.org"
+                    [ "iu.jetstream-cloud.org" ]
 
                 TACCCloud ->
-                    "tacc.jetstream-cloud.org"
+                    [ "tacc.jetstream-cloud.org" ]
 
-        authUrl =
-            "https://" ++ authUrlBase ++ ":5000/v3/auth/tokens"
+                BothJetstreamClouds ->
+                    [ "iu.jetstream-cloud.org"
+                    , "tacc.jetstream-cloud.org"
+                    ]
+
+        authUrls =
+            List.map
+                (\baseUrl -> "https://" ++ baseUrl ++ ":5000/v3/auth/tokens")
+                authUrlBases
     in
-    OSTypes.OpenstackLogin
-        authUrl
-        "tacc"
-        jetstreamCreds.jetstreamProjectName
-        "tacc"
-        jetstreamCreds.taccUsername
-        jetstreamCreds.taccPassword
+    List.map
+        (\authUrl ->
+            OSTypes.OpenstackLogin
+                authUrl
+                "tacc"
+                jetstreamCreds.jetstreamProjectName
+                "tacc"
+                jetstreamCreds.taccUsername
+                jetstreamCreds.taccPassword
+        )
+        authUrls
