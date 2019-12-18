@@ -346,7 +346,7 @@ requestUnscopedProjects provider password maybeProxyUrl =
         , body = Http.emptyBody
         , expect =
             Http.expectJson
-                (\result -> ReceiveUnscopedProjects provider.authUrl password result)
+                (\result -> ReceiveUnscopedProjects provider.authUrl result)
                 decodeUnscopedProjects
         , timeout = Nothing
         , tracker = Nothing

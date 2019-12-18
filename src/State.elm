@@ -296,7 +296,7 @@ updateUnderlying msg model =
                                     -- We don't have an unscoped provider with the same auth URL, create it
                                     createUnscopedProvider model password authToken keystoneUrl
 
-        ReceiveUnscopedProjects keystoneUrl password result ->
+        ReceiveUnscopedProjects keystoneUrl result ->
             case result of
                 Err error ->
                     Helpers.processError model error

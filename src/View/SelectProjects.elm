@@ -7,7 +7,6 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( Model
@@ -34,7 +33,7 @@ selectProjects model keystoneUrl selectedProjects =
                         Element.column VH.exoColumnAttributes <|
                             List.append
                                 (List.map
-                                    (renderProject keystoneUrl provider.keystonePassword selectedProjects)
+                                    (renderProject keystoneUrl selectedProjects)
                                     projectsAvailable
                                 )
                                 [ Button.button
@@ -60,8 +59,8 @@ selectProjects model keystoneUrl selectedProjects =
             Element.text "Provider not found"
 
 
-renderProject : OSTypes.KeystoneUrl -> HelperTypes.Password -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
-renderProject keystoneUrl password selectedProjects project =
+renderProject : OSTypes.KeystoneUrl -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
+renderProject keystoneUrl selectedProjects project =
     let
         onChange : Bool -> Bool -> Msg
         onChange projectEnabled enableDisable =
