@@ -940,7 +940,7 @@ createUnscopedProvider model password authToken authUrl =
             newProvider :: model.unscopedProviders
     in
     ( { model | unscopedProviders = newProviders }
-    , Rest.requestUnscopedProjects newProvider password model.proxyUrl
+    , Rest.requestUnscopedProjects newProvider model.proxyUrl
     )
 
 

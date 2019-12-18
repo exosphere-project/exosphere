@@ -315,8 +315,8 @@ requestAppCredential project maybeProxyUrl posixTime =
         )
 
 
-requestUnscopedProjects : UnscopedProvider -> HelperTypes.Password -> Maybe HelperTypes.Url -> Cmd Msg
-requestUnscopedProjects provider password maybeProxyUrl =
+requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
+requestUnscopedProjects provider maybeProxyUrl =
     let
         correctedUrl =
             let
