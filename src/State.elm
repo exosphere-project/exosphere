@@ -53,6 +53,7 @@ users:
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     {ssh-authorized-keys}
+package_update: true
 packages:
   - cockpit
 runcmd:
