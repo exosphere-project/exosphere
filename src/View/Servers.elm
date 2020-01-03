@@ -109,9 +109,8 @@ servers project serverFilter =
                         , icon = Input.defaultCheckbox
                         , label = Input.labelRight [] (Element.text "Show only servers created by me")
                         }
-                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
-                        List.map (renderServer project) someServers
-                            ++ [ Element.el [ Element.paddingXY 10 0 ] <| Element.text "* servers created by you" ]
+                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
+                        (List.map (renderServer project) someServers)
                     ]
 
 
@@ -501,14 +500,17 @@ renderServer project server =
 
         checkBoxLabel : Server -> Element.Element Msg
         checkBoxLabel aServer =
-            Element.row []
-                [ statusIcon
-                , if aServer.osProps.details.userUuid == userUuid then
-                    Element.el [ Font.bold ] (Element.text <| aServer.osProps.name ++ " *")
+            Element.row [] <|
+                [ statusIcon ]
+                    ++ (if aServer.osProps.details.userUuid == userUuid then
+                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                            , Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
+                            ]
 
-                  else
-                    Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                ]
+                        else
+                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                            ]
+                       )
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
