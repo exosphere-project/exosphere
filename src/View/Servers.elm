@@ -492,15 +492,25 @@ resourceUsageGraphs cockpitStatus maybeFloatingIp =
 renderServer : Project -> Server -> Element.Element Msg
 renderServer project server =
     let
+        userUuid =
+            project.auth.user.uuid
+
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
         checkBoxLabel : Server -> Element.Element Msg
         checkBoxLabel aServer =
-            Element.row []
-                [ statusIcon
-                , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                ]
+            Element.row [] <|
+                [ statusIcon ]
+                    ++ (if aServer.osProps.details.userUuid == userUuid then
+                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                            , Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
+                            ]
+
+                        else
+                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                            ]
+                       )
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ Input.checkbox []
