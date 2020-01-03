@@ -109,8 +109,9 @@ servers project serverFilter =
                         , icon = Input.defaultCheckbox
                         , label = Input.labelRight [] (Element.text "Show only servers created by me")
                         }
-                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-                        (List.map (renderServer project) someServers)
+                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
+                        List.map (renderServer project) someServers
+                            ++ [ Element.el [ Element.paddingXY 10 0 ] <| Element.text "* servers created by you" ]
                     ]
 
 
@@ -492,6 +493,9 @@ resourceUsageGraphs cockpitStatus maybeFloatingIp =
 renderServer : Project -> Server -> Element.Element Msg
 renderServer project server =
     let
+        userUuid =
+            project.auth.user.uuid
+
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
@@ -499,7 +503,11 @@ renderServer project server =
         checkBoxLabel aServer =
             Element.row []
                 [ statusIcon
-                , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                , if aServer.osProps.details.userUuid == userUuid then
+                    Element.el [ Font.bold ] (Element.text <| aServer.osProps.name ++ " *")
+
+                  else
+                    Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
