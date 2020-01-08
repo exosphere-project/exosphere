@@ -4,8 +4,10 @@ module Rest.Helpers exposing
     , keystoneUrlWithVersion
     , openstackCredentialedRequest
     , proxyifyRequest
+    , resultToMsg
     )
 
+import Error.Error as Error exposing (ErrorContext)
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
@@ -105,6 +107,17 @@ proxyifyRequest proxyServerUrl requestUrlStr =
       , Http.header "exo-proxy-orig-port" <| String.fromInt origPort
       ]
     )
+
+
+resultToMsg : ErrorContext -> (a -> TT.Msg) -> Result Http.Error a -> TT.Msg
+resultToMsg errorContext successMsg result =
+    -- Generates Msg to deal with result of API call
+    case result of
+        Err error ->
+            TT.HandleApiError errorContext error
+
+        Ok stuff ->
+            successMsg stuff
 
 
 keystoneUrlWithVersion : String -> String

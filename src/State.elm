@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
+import Error.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Http
@@ -34,6 +35,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , Toast
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
@@ -208,6 +210,9 @@ updateUnderlying msg model =
                 _ ->
                     ( newModel, Cmd.none )
 
+        HandleApiError errorContext error ->
+            processApiError model errorContext error
+
         RequestUnscopedToken openstackLoginUnscoped ->
             ( model, Rest.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
 
@@ -275,27 +280,22 @@ updateUnderlying msg model =
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
-        ReceiveUnscopedAuthToken keystoneUrl password responseResult ->
-            case responseResult of
+        ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
+            case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     Helpers.processError model error
 
-                Ok ( metadata, response ) ->
-                    case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
-                        Err error ->
-                            Helpers.processError model error
+                Ok authToken ->
+                    case
+                        Helpers.providerLookup model keystoneUrl
+                    of
+                        Just unscopedProvider ->
+                            -- We already have an unscoped provider in the model with the same auth URL, update its token
+                            unscopedProviderUpdateAuthToken model unscopedProvider authToken
 
-                        Ok authToken ->
-                            case
-                                Helpers.providerLookup model keystoneUrl
-                            of
-                                Just unscopedProvider ->
-                                    -- We already have an unscoped provider in the model with the same auth URL, update its token
-                                    unscopedProviderUpdateAuthToken model unscopedProvider authToken
-
-                                Nothing ->
-                                    -- We don't have an unscoped provider with the same auth URL, create it
-                                    createUnscopedProvider model password authToken keystoneUrl
+                        Nothing ->
+                            -- We don't have an unscoped provider with the same auth URL, create it
+                            createUnscopedProvider model password authToken keystoneUrl
 
         ReceiveUnscopedProjects keystoneUrl result ->
             case result of
@@ -1011,3 +1011,13 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone appCred
     in
     Rest.requestScopedAuthToken model.proxyUrl creds
+
+
+processApiError : Model -> ErrorContext -> Http.Error -> ( Model, Cmd Msg )
+processApiError model errorContext httpError =
+    -- todo also add to model.messages
+    Toasty.addToastIfUnique
+        Helpers.toastConfig
+        ToastyMsg
+        (Toast errorContext (Debug.toString httpError))
+        ( model, Cmd.none )

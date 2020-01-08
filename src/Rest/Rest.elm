@@ -66,6 +66,7 @@ module Rest.Rest exposing
 import Array
 import Base64
 import Dict
+import Error.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
@@ -73,7 +74,7 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest)
+import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -220,12 +221,18 @@ requestUnscopedAuthToken maybeProxyUrl creds =
                         ]
                   )
                 ]
+
+        errorContext =
+            ErrorContext
+                "log into OpenStack"
+                ErrorCrit
+                (Just "Make sure your login credentials including password are correct!")
     in
     requestAuthTokenHelper
         requestBody
         creds.authUrl
         maybeProxyUrl
-        (ReceiveUnscopedAuthToken creds.authUrl creds.password)
+        (resultToMsg errorContext (ReceiveUnscopedAuthToken creds.authUrl creds.password))
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result Http.Error ( Http.Metadata, String ) -> Msg) -> Cmd Msg
@@ -355,13 +362,23 @@ requestUnscopedProjects provider maybeProxyUrl =
 
 requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestImages project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext "Get a list of images" ErrorCrit Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
         Get
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
-        (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveImages result)) decodeImages)
+        (Http.expectJson
+            (resultToMsg
+                errorContext
+                (\images -> ProjectMsg (Helpers.getProjectId project) <| ReceiveImages images)
+            )
+            decodeImages
+        )
 
 
 requestServers : Project -> Maybe HelperTypes.Url -> Cmd Msg
@@ -906,21 +923,16 @@ requestCreateServerImage project maybeProxyUrl serverUuid imageName =
 {- HTTP Response Handling -}
 
 
-receiveImages : Model -> Project -> Result Http.Error (List OSTypes.Image) -> ( Model, Cmd Msg )
-receiveImages model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveImages : Model -> Project -> List OSTypes.Image -> ( Model, Cmd Msg )
+receiveImages model project images =
+    let
+        newProject =
+            { project | images = images }
 
-        Ok images ->
-            let
-                newProject =
-                    { project | images = images }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel, Cmd.none )
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
 
 
 receiveServers : Model -> Project -> Result Http.Error (List OSTypes.Server) -> ( Model, Cmd Msg )

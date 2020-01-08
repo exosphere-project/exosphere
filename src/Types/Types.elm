@@ -26,6 +26,7 @@ module Types.Types exposing
     , Server
     , ServerFilter
     , ServerUiStatus(..)
+    , Toast
     , UnscopedProvider
     , UnscopedProviderProject
     , VerboseStatus
@@ -34,6 +35,7 @@ module Types.Types exposing
     , WindowSize
     )
 
+import Error.Error exposing (ErrorContext)
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -70,7 +72,7 @@ type alias Model =
     , unscopedProviders : List UnscopedProvider
     , projects : List Project
     , globalDefaults : GlobalDefaults
-    , toasties : Toasty.Stack Toasty.Defaults.Toast
+    , toasties : Toasty.Stack Toast
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     }
@@ -138,18 +140,19 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
+    | HandleApiError ErrorContext Http.Error
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
+    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List UnscopedProviderProject))
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
     | OpenNewWindow String
-    | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
+    | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | NoOp
 
@@ -173,7 +176,7 @@ type ProjectSpecificMsgConstructor
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage OSTypes.ServerUuid String
-    | ReceiveImages (Result Http.Error (List OSTypes.Image))
+    | ReceiveImages (List OSTypes.Image)
     | ReceiveServers (Result Http.Error (List OSTypes.Server))
     | ReceiveServer OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
@@ -364,3 +367,9 @@ type HttpRequestMethod
     = Get
     | Post
     | Delete
+
+
+type alias Toast =
+    { context : ErrorContext
+    , error : String
+    }

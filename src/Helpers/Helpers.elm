@@ -36,6 +36,7 @@ module Helpers.Helpers exposing
 
 import Color
 import Debug
+import Error.Error
 import Framework.Color
 import Html
 import Html.Attributes
@@ -63,6 +64,7 @@ import Types.Types
         , ProjectIdentifier
         , Server
         , ServerUiStatus(..)
+        , Toast
         , UnscopedProvider
         )
 import Url
@@ -106,7 +108,7 @@ processError model error =
             { model | messages = newMsgs }
 
         toast =
-            Toasty.Defaults.Error "Error" errorString
+            Toast (Error.Error.ErrorContext "foobar" Error.Error.ErrorCrit Nothing) errorString
     in
     Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
