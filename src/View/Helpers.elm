@@ -21,7 +21,7 @@ import Element.Font as Font
 import Element.Region as Region
 import Framework.Color
 import Types.HelperTypes
-import Types.Types exposing (Msg(..))
+import Types.Types exposing (LogMessage, Msg(..))
 import View.Types
 
 
@@ -115,9 +115,10 @@ hint hintText =
         )
 
 
-renderMessage : String -> Element.Element Msg
+renderMessage : LogMessage -> Element.Element Msg
 renderMessage message =
-    Element.paragraph [] [ Element.text message ]
+    -- TODO fixme
+    Element.paragraph [] [ Element.text (Debug.toString message) ]
 
 
 browserLink : Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg

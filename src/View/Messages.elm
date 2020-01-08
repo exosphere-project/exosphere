@@ -12,9 +12,9 @@ messageLog model =
         [ Element.el
             VH.heading2
             (Element.text "Messages")
-        , if List.isEmpty model.messages then
+        , if List.isEmpty model.logMessages then
             Element.text "(No Messages)"
 
           else
-            Element.column VH.exoColumnAttributes (List.map VH.renderMessage model.messages)
+            Element.column VH.exoColumnAttributes (List.map VH.renderMessage model.logMessages)
         ]

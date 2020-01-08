@@ -25,6 +25,7 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -76,7 +77,7 @@ chpasswd:
 
         emptyModel : Model
         emptyModel =
-            { messages = []
+            { logMessages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
@@ -169,6 +170,13 @@ updateUnderlying msg model =
     case msg of
         ToastyMsg subMsg ->
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
+
+        NewLogMessage logMessage ->
+            let
+                newLogMessages =
+                    logMessage :: model.logMessages
+            in
+            ( { model | logMessages = newLogMessages }, Cmd.none )
 
         MsgChangeWindowSize x y ->
             ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
@@ -1015,9 +1023,19 @@ requestAuthToken model project =
 
 processApiError : Model -> ErrorContext -> Http.Error -> ( Model, Cmd Msg )
 processApiError model errorContext httpError =
+    let
+        logMessageProto =
+            LogMessage
+                (Debug.toString httpError)
+                errorContext
+    in
     -- todo also add to model.messages
     Toasty.addToastIfUnique
         Helpers.toastConfig
         ToastyMsg
         (Toast errorContext (Debug.toString httpError))
-        ( model, Cmd.none )
+        ( model
+        , Task.perform
+            (\posix -> NewLogMessage (logMessageProto posix))
+            Time.now
+        )

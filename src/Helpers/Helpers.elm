@@ -45,6 +45,7 @@ import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import Task
 import Time
 import Toasty
 import Toasty.Defaults
@@ -57,6 +58,7 @@ import Types.Types
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
+        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -98,19 +100,20 @@ toastConfig =
 processError : Model -> a -> ( Model, Cmd Msg )
 processError model error =
     let
-        errorString =
-            Debug.toString error
-
-        newMsgs =
-            errorString :: model.messages
-
-        newModel =
-            { model | messages = newMsgs }
+        logMessageProto =
+            LogMessage
+                (Debug.toString error)
+                (Error.Error.ErrorContext "foobarfixme" Error.Error.ErrorCrit Nothing)
 
         toast =
-            Toast (Error.Error.ErrorContext "foobar" Error.Error.ErrorCrit Nothing) errorString
+            Toast (Error.Error.ErrorContext "foobar" Error.Error.ErrorCrit Nothing) (Debug.toString error)
+
+        cmd =
+            Task.perform
+                (\posix -> NewLogMessage (logMessageProto posix))
+                Time.now
     in
-    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
+    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( model, cmd )
 
 
 stringIsUuidOrDefault : String -> Bool

@@ -11,6 +11,7 @@ module Types.Types exposing
     , ImageFilter
     , JetstreamCreds
     , JetstreamProvider(..)
+    , LogMessage
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
@@ -66,7 +67,7 @@ type alias WindowSize =
 
 
 type alias Model =
-    { messages : List String
+    { logMessages : List LogMessage
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider
@@ -75,6 +76,13 @@ type alias Model =
     , toasties : Toasty.Stack Toast
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
+    }
+
+
+type alias LogMessage =
+    { message : String
+    , context : ErrorContext
+    , timestamp : Time.Posix
     }
 
 
@@ -153,6 +161,7 @@ type Msg
     | OpenInBrowser String
     | OpenNewWindow String
     | ToastyMsg (Toasty.Msg Toast)
+    | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
     | NoOp
 
