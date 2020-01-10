@@ -1,7 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
-import Error.Error as Error exposing (ErrorContext, ErrorLevel(..))
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Http

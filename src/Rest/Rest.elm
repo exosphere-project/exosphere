@@ -66,7 +66,7 @@ module Rest.Rest exposing
 import Array
 import Base64
 import Dict
-import Error.Error exposing (ErrorContext, ErrorLevel(..))
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode

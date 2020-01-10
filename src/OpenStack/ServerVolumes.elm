@@ -1,6 +1,6 @@
 module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume)
 
-import Error.Error exposing (ErrorContext, ErrorLevel(..))
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
@@ -70,10 +70,13 @@ requestDetachVolume project maybeProxyUrl serverUuid volumeUuid =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody
         (Http.expectString
-            (\_ ->
-                ProjectMsg
-                    (Helpers.getProjectId project)
-                    ReceiveDetachVolume
+            (resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        ReceiveDetachVolume
+                )
             )
         )
 

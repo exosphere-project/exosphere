@@ -36,7 +36,7 @@ module Helpers.Helpers exposing
 
 import Color
 import Debug
-import Error.Error
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
 import Html
 import Html.Attributes
@@ -97,7 +97,7 @@ toastConfig =
         |> Toasty.containerAttrs containerAttrs
 
 
-processError : Model -> Error.Error.ErrorContext -> a -> ( Model, Cmd Msg )
+processError : Model -> ErrorContext -> a -> ( Model, Cmd Msg )
 processError model errorContext error =
     let
         logMessageProto =

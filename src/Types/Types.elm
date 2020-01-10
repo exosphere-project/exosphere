@@ -36,7 +36,7 @@ module Types.Types exposing
     , WindowSize
     )
 
-import Error.Error exposing (ErrorContext)
+import Error exposing (ErrorContext)
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes

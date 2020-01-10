@@ -3,7 +3,7 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
-import Error.Error exposing (ErrorContext, ErrorLevel(..))
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Modifier as Modifier
 import Http
 import Json.Encode

@@ -7,7 +7,7 @@ module Rest.Helpers exposing
     , resultToMsg
     )
 
-import Error.Error as Error exposing (ErrorContext)
+import Error exposing (ErrorContext)
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
