@@ -379,20 +379,20 @@ requestUnscopedProjects provider maybeProxyUrl =
                 ErrorCrit
                 Nothing
 
-        expect =
-            Http.expectJson
-                (resultToMsg
-                    errorContext
-                    (ReceiveUnscopedProjects provider.authUrl)
-                )
-                decodeUnscopedProjects
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (ReceiveUnscopedProjects provider.authUrl)
     in
     Http.request
         { method = "GET"
         , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
         , url = url
         , body = Http.emptyBody
-        , expect = expect
+        , expect =
+            Http.expectJson
+                resultToMsg_
+                decodeUnscopedProjects
         , timeout = Nothing
         , tracker = Nothing
         }
