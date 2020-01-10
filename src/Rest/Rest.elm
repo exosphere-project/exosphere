@@ -711,7 +711,7 @@ requestDeleteServer project maybeProxyUrl server =
 
         errorContext =
             ErrorContext
-                ("Delete server with UUID " ++ server.osProps.uuid)
+                ("delete server with UUID " ++ server.osProps.uuid)
                 ErrorCrit
                 Nothing
 
@@ -940,7 +940,7 @@ requestSecurityGroups project maybeProxyUrl =
     let
         errorContext =
             ErrorContext
-                ("Get a list of security groups for project " ++ project.auth.project.name)
+                ("get a list of security groups for project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
 
@@ -1165,7 +1165,7 @@ requestCreateServerImage project maybeProxyUrl serverUuid imageName =
 
         errorContext =
             ErrorContext
-                ("Create an image for server with UUID " ++ serverUuid)
+                ("create an image for server with UUID " ++ serverUuid)
                 ErrorCrit
                 Nothing
     in

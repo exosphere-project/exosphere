@@ -98,7 +98,7 @@ requestDeleteVolume project maybeProxyUrl volumeUuid =
     let
         errorContext =
             ErrorContext
-                ("Delete volume " ++ volumeUuid)
+                ("delete volume " ++ volumeUuid)
                 ErrorCrit
                 Nothing
 
