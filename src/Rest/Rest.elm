@@ -107,7 +107,7 @@ requestScopedAuthToken maybeProxyUrl input =
     let
         requestBody =
             case input of
-                OSTypes.AppCreds _ appCred ->
+                OSTypes.AppCreds _ _ appCred ->
                     Encode.object
                         [ ( "auth"
                           , Encode.object
@@ -173,7 +173,7 @@ requestScopedAuthToken maybeProxyUrl input =
                 OSTypes.PasswordCreds creds ->
                     creds.authUrl
 
-                OSTypes.AppCreds url _ ->
+                OSTypes.AppCreds url _ _ ->
                     url
 
         maybePassword =
@@ -183,12 +183,27 @@ requestScopedAuthToken maybeProxyUrl input =
 
                 _ ->
                     Nothing
+
+        errorContext =
+            let
+                projectLabel =
+                    case input of
+                        OSTypes.AppCreds _ projectName _ ->
+                            projectName
+
+                        OSTypes.PasswordCreds creds ->
+                            creds.projectName
+            in
+            ErrorContext
+                ("log into OpenStack project named \"" ++ projectLabel ++ "\"")
+                ErrorCrit
+                (Just "Check with your cloud administrator to ensure you have access to this project.")
     in
     requestAuthTokenHelper
         requestBody
         inputUrl
         maybeProxyUrl
-        (ReceiveScopedAuthToken maybePassword)
+        (resultToMsg errorContext (ReceiveScopedAuthToken maybePassword))
 
 
 requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLogin -> Cmd Msg
@@ -309,6 +324,12 @@ requestAppCredential project maybeProxyUrl posixTime =
 
         urlWithVersion =
             keystoneUrlWithVersion project.endpoints.keystone
+
+        errorContext =
+            ErrorContext
+                ("request application credential for project named \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                (Just "Perhaps you are trying to use a cloud that is too old to support Application Credentials? Exosphere supports OpenStack Queens release and newer. Check with your cloud administrator if you are unsure.")
     in
     openstackCredentialedRequest
         project
@@ -317,7 +338,14 @@ requestAppCredential project maybeProxyUrl posixTime =
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveAppCredential result))
+            (resultToMsg
+                errorContext
+                (\appCred ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveAppCredential appCred)
+                )
+            )
             decodeAppCredential
         )
 
@@ -345,6 +373,12 @@ requestUnscopedProjects provider maybeProxyUrl =
 
                 Nothing ->
                     ( correctedUrl, [] )
+
+        errorContext =
+            ErrorContext
+                ("get a list of projects accessible by user \"" ++ provider.token.user.name ++ "\"")
+                ErrorCrit
+                Nothing
     in
     Http.request
         { method = "GET"
@@ -353,7 +387,10 @@ requestUnscopedProjects provider maybeProxyUrl =
         , body = Http.emptyBody
         , expect =
             Http.expectJson
-                (\result -> ReceiveUnscopedProjects provider.authUrl result)
+                (resultToMsg
+                    errorContext
+                    (ReceiveUnscopedProjects provider.authUrl)
+                )
                 decodeUnscopedProjects
         , timeout = Nothing
         , tracker = Nothing
@@ -364,7 +401,10 @@ requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestImages project maybeProxyUrl =
     let
         errorContext =
-            ErrorContext "Get a list of images" ErrorCrit Nothing
+            ErrorContext
+                ("get a list of images for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
     in
     openstackCredentialedRequest
         project
@@ -383,6 +423,13 @@ requestImages project maybeProxyUrl =
 
 requestServers : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestServers project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                ("get details of servers for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -390,13 +437,27 @@ requestServers project maybeProxyUrl =
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServers result))
+            (resultToMsg
+                errorContext
+                (\servers ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveServers servers)
+                )
+            )
             decodeServers
         )
 
 
 requestServer : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> Cmd Msg
 requestServer project maybeProxyUrl serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get details of server with UUID \"" ++ serverUuid ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -404,7 +465,14 @@ requestServer project maybeProxyUrl serverUuid =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServer serverUuid result))
+            (resultToMsg
+                errorContext
+                (\server ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveServer serverUuid server)
+                )
+            )
             (Decode.at [ "server" ] decodeServerDetails)
         )
 
@@ -451,6 +519,13 @@ requestConsoleUrls project maybeProxyUrl serverUuid =
 
 requestFlavors : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestFlavors project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                ("get details of flavors for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -458,13 +533,23 @@ requestFlavors project maybeProxyUrl =
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFlavors result))
+            (resultToMsg
+                errorContext
+                (\flavors -> ProjectMsg (Helpers.getProjectId project) <| ReceiveFlavors flavors)
+            )
             decodeFlavors
         )
 
 
 requestKeypairs : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestKeypairs project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                ("get details of keypairs for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -472,7 +557,10 @@ requestKeypairs project maybeProxyUrl =
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveKeypairs result))
+            (resultToMsg
+                errorContext
+                (\keypairs -> ProjectMsg (Helpers.getProjectId project) <| ReceiveKeypairs keypairs)
+            )
             decodeKeypairs
         )
 
@@ -560,6 +648,21 @@ requestCreateServer project maybeProxyUrl createServerRequest =
         serverUuidDecoder : Decode.Decoder OSTypes.ServerUuid
         serverUuidDecoder =
             Decode.field "id" Decode.string
+
+        errorContext =
+            let
+                plural =
+                    case createServerRequest.count of
+                        "1" ->
+                            ""
+
+                        _ ->
+                            "s"
+            in
+            ErrorContext
+                ("create " ++ createServerRequest.count ++ " server" ++ plural)
+                ErrorCrit
+                (Just <| "It's possible your quota is not large enough to launch the requested server" ++ plural)
     in
     Cmd.batch
         (requestBodies
@@ -572,7 +675,14 @@ requestCreateServer project maybeProxyUrl createServerRequest =
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (Http.expectJson
-                            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateServer result))
+                            (resultToMsg
+                                errorContext
+                                (\serverUuid ->
+                                    ProjectMsg
+                                        (Helpers.getProjectId project)
+                                        (ReceiveCreateServer serverUuid)
+                                )
+                            )
                             (Decode.field "server" serverUuidDecoder)
                         )
                 )
@@ -585,6 +695,12 @@ requestDeleteServer project maybeProxyUrl server =
         getFloatingIp =
             server.osProps.details.ipAddresses
                 |> Helpers.getServerFloatingIp
+
+        errorContext =
+            ErrorContext
+                ("Delete server with UUID " ++ server.osProps.uuid)
+                ErrorCrit
+                Nothing
     in
     openstackCredentialedRequest
         project
@@ -593,7 +709,14 @@ requestDeleteServer project maybeProxyUrl server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         (Http.expectString
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteServer server.osProps.uuid getFloatingIp result))
+            (resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveDeleteServer server.osProps.uuid getFloatingIp)
+                )
+            )
         )
 
 
@@ -608,6 +731,13 @@ requestDeleteServers project maybeProxyUrl serversToDelete =
 
 requestNetworks : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestNetworks project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                ("get list of networks for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -615,13 +745,27 @@ requestNetworks project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveNetworks result))
+            (resultToMsg
+                errorContext
+                (\nets ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveNetworks nets)
+                )
+            )
             decodeNetworks
         )
 
 
 requestFloatingIps : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestFloatingIps project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                ("get list of floating IPs for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -629,13 +773,27 @@ requestFloatingIps project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveFloatingIps result))
+            (resultToMsg
+                errorContext
+                (\ips ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveFloatingIps ips)
+                )
+            )
             decodeFloatingIps
         )
 
 
 getFloatingIpRequestPorts : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
 getFloatingIpRequestPorts project maybeProxyUrl server =
+    let
+        errorContext =
+            ErrorContext
+                ("get list of ports for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -643,7 +801,14 @@ getFloatingIpRequestPorts project maybeProxyUrl server =
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (GetFloatingIpReceivePorts server.osProps.uuid result))
+            (resultToMsg
+                errorContext
+                (\ports ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (GetFloatingIpReceivePorts server.osProps.uuid ports)
+                )
+            )
             decodePorts
         )
 
@@ -690,6 +855,12 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
                   )
                 ]
 
+        errorContext =
+            ErrorContext
+                ("create a floating IP address on network " ++ network.name ++ "for port " ++ port_.uuid)
+                ErrorCrit
+                (Just "It's possible your cloud has run out of public IP address space; ask your cloud administrator.")
+
         requestCmd =
             openstackCredentialedRequest
                 newProject
@@ -698,7 +869,14 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (Http.expectJson
-                    (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateFloatingIp server.osProps.uuid result))
+                    (resultToMsg
+                        errorContext
+                        (\ip ->
+                            ProjectMsg
+                                (Helpers.getProjectId project)
+                                (ReceiveCreateFloatingIp server.osProps.uuid ip)
+                        )
+                    )
                     decodeFloatingIpCreation
                 )
     in
@@ -707,6 +885,13 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
 
 requestDeleteFloatingIp : Project -> Maybe HelperTypes.Url -> OSTypes.IpAddressUuid -> Cmd Msg
 requestDeleteFloatingIp project maybeProxyUrl uuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete floating IP address with UUID " ++ uuid)
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -714,12 +899,26 @@ requestDeleteFloatingIp project maybeProxyUrl uuid =
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
         (Http.expectString
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteFloatingIp uuid result))
+            (resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveDeleteFloatingIp uuid)
+                )
+            )
         )
 
 
 requestSecurityGroups : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestSecurityGroups project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                ("Get a list of security groups for project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -727,7 +926,14 @@ requestSecurityGroups project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveSecurityGroups result))
+            (resultToMsg
+                errorContext
+                (\groups ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveSecurityGroups groups)
+                )
+            )
             decodeSecurityGroups
         )
 
@@ -747,6 +953,12 @@ requestCreateExoSecurityGroup project maybeProxyUrl =
                         ]
                   )
                 ]
+
+        errorContext =
+            ErrorContext
+                ("create security group for Exosphere in project " ++ project.auth.project.name)
+                ErrorCrit
+                Nothing
     in
     openstackCredentialedRequest
         project
@@ -755,7 +967,15 @@ requestCreateExoSecurityGroup project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (Http.expectJson
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroup result))
+            (resultToMsg
+                errorContext
+                (\group ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveCreateExoSecurityGroup group)
+                )
+            )
+            --(\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroup result))
             decodeNewSecurityGroup
         )
 
@@ -801,6 +1021,12 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
                           )
                         ]
 
+                errorContext =
+                    ErrorContext
+                        "create rules for Exosphere security group"
+                        ErrorCrit
+                        Nothing
+
                 buildRequestCmd body =
                     openstackCredentialedRequest
                         project
@@ -809,7 +1035,10 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
                         (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                         (Http.jsonBody body)
                         (Http.expectString
-                            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroupRules result))
+                            (resultToMsg
+                                errorContext
+                                (\_ -> NoOp)
+                            )
                         )
 
                 bodies =
@@ -880,6 +1109,7 @@ requestCockpitLogin project serverUuid password ipAddress =
         resultMsg project2 serverUuid2 result =
             ProjectMsg (Helpers.getProjectId project2) (ReceiveCockpitLoginStatus serverUuid2 result)
     in
+    -- Future todo handle errors with this API call, e.g. a timeout should not generate error to user but other errors should be handled differently
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" authHeaderValue ]
@@ -907,6 +1137,12 @@ requestCreateServerImage project maybeProxyUrl serverUuid imageName =
                         ]
                   )
                 ]
+
+        errorContext =
+            ErrorContext
+                ("Create an image for server with UUID " ++ serverUuid)
+                ErrorCrit
+                Nothing
     in
     openstackCredentialedRequest
         project
@@ -915,7 +1151,7 @@ requestCreateServerImage project maybeProxyUrl serverUuid imageName =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerAction serverUuid result))
+            (resultToMsg errorContext (\_ -> NoOp))
         )
 
 
@@ -935,126 +1171,116 @@ receiveImages model project images =
     ( newModel, Cmd.none )
 
 
-receiveServers : Model -> Project -> Result Http.Error (List OSTypes.Server) -> ( Model, Cmd Msg )
-receiveServers model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveServers : Model -> Project -> List OSTypes.Server -> ( Model, Cmd Msg )
+receiveServers model project servers =
+    -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
+    let
+        defaultExoProps =
+            ExoServerProps Unknown False NotChecked False Nothing
 
-        Ok newOpenstackServers ->
-            -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
+        enrichNewServer : OSTypes.Server -> Server
+        enrichNewServer newOpenstackServer =
+            case Helpers.serverLookup project newOpenstackServer.uuid of
+                Nothing ->
+                    Server newOpenstackServer defaultExoProps
+
+                Just oldServer ->
+                    let
+                        oldDetails =
+                            oldServer.osProps.details
+                    in
+                    Server { newOpenstackServer | details = oldDetails } oldServer.exoProps
+
+        newServers =
+            List.map enrichNewServer servers
+
+        newServersSorted =
+            List.sortBy (\s -> s.osProps.name) newServers
+
+        newProject =
+            { project | servers = RemoteData.Success newServersSorted }
+
+        newModel =
+            Helpers.modelUpdateProject model newProject
+
+        requestCockpitCommands =
+            List.map (requestCockpitIfRequestable project) newServersSorted
+                |> Cmd.batch
+    in
+    ( newModel, requestCockpitCommands )
+
+
+receiveServer : Model -> Project -> OSTypes.ServerUuid -> OSTypes.ServerDetails -> ( Model, Cmd Msg )
+receiveServer model project serverUuid serverDetails =
+    let
+        maybeServer =
+            Helpers.serverLookup project serverUuid
+    in
+    case maybeServer of
+        Nothing ->
+            Helpers.processError
+                model
+                "No server found when receiving server details"
+
+        Just server ->
             let
-                defaultExoProps =
-                    ExoServerProps Unknown False NotChecked False Nothing
+                floatingIpState =
+                    Helpers.checkFloatingIpState
+                        serverDetails
+                        server.exoProps.floatingIpState
 
-                enrichNewServer : OSTypes.Server -> Server
-                enrichNewServer newOpenstackServer =
-                    case Helpers.serverLookup project newOpenstackServer.uuid of
-                        Nothing ->
-                            Server newOpenstackServer defaultExoProps
+                newServer =
+                    let
+                        oldOSProps =
+                            server.osProps
 
-                        Just oldServer ->
-                            let
-                                oldDetails =
-                                    oldServer.osProps.details
-                            in
-                            Server { newOpenstackServer | details = oldDetails } oldServer.exoProps
+                        oldExoProps =
+                            server.exoProps
 
-                newServers =
-                    List.map enrichNewServer newOpenstackServers
+                        newTargetOpenstackStatus =
+                            case oldExoProps.targetOpenstackStatus of
+                                Nothing ->
+                                    Nothing
 
-                newServersSorted =
-                    List.sortBy (\s -> s.osProps.name) newServers
+                                Just statuses ->
+                                    if List.member serverDetails.openstackStatus statuses then
+                                        Nothing
+
+                                    else
+                                        Just statuses
+                    in
+                    Server
+                        { oldOSProps | details = serverDetails }
+                        { oldExoProps | floatingIpState = floatingIpState, targetOpenstackStatus = newTargetOpenstackStatus }
 
                 newProject =
-                    { project | servers = RemoteData.Success newServersSorted }
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
 
-                requestCockpitCommands =
-                    List.map (requestCockpitIfRequestable project) newServersSorted
+                floatingIpCmd =
+                    case floatingIpState of
+                        Requestable ->
+                            [ getFloatingIpRequestPorts newProject model.proxyUrl newServer
+                            , requestNetworks project model.proxyUrl
+                            ]
+                                |> Cmd.batch
+
+                        _ ->
+                            Cmd.none
+
+                consoleUrlCmd =
+                    requestConsoleUrlIfRequestable newProject model.proxyUrl newServer
+
+                cockpitLoginCmd =
+                    requestCockpitIfRequestable newProject newServer
+
+                allCmds =
+                    [ floatingIpCmd, consoleUrlCmd, cockpitLoginCmd ]
                         |> Cmd.batch
             in
-            ( newModel, requestCockpitCommands )
-
-
-receiveServer : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ServerDetails -> ( Model, Cmd Msg )
-receiveServer model project serverUuid result =
-    case result of
-        Err error ->
-            Helpers.processError model error
-
-        Ok serverDetails ->
-            let
-                maybeServer =
-                    Helpers.serverLookup project serverUuid
-            in
-            case maybeServer of
-                Nothing ->
-                    Helpers.processError
-                        model
-                        "No server found when receiving server details"
-
-                Just server ->
-                    let
-                        floatingIpState =
-                            Helpers.checkFloatingIpState
-                                serverDetails
-                                server.exoProps.floatingIpState
-
-                        newServer =
-                            let
-                                oldOSProps =
-                                    server.osProps
-
-                                oldExoProps =
-                                    server.exoProps
-
-                                newTargetOpenstackStatus =
-                                    case oldExoProps.targetOpenstackStatus of
-                                        Nothing ->
-                                            Nothing
-
-                                        Just statuses ->
-                                            if List.member serverDetails.openstackStatus statuses then
-                                                Nothing
-
-                                            else
-                                                Just statuses
-                            in
-                            Server
-                                { oldOSProps | details = serverDetails }
-                                { oldExoProps | floatingIpState = floatingIpState, targetOpenstackStatus = newTargetOpenstackStatus }
-
-                        newProject =
-                            Helpers.projectUpdateServer project newServer
-
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-
-                        floatingIpCmd =
-                            case floatingIpState of
-                                Requestable ->
-                                    [ getFloatingIpRequestPorts newProject model.proxyUrl newServer
-                                    , requestNetworks project model.proxyUrl
-                                    ]
-                                        |> Cmd.batch
-
-                                _ ->
-                                    Cmd.none
-
-                        consoleUrlCmd =
-                            requestConsoleUrlIfRequestable newProject model.proxyUrl newServer
-
-                        cockpitLoginCmd =
-                            requestCockpitIfRequestable newProject newServer
-
-                        allCmds =
-                            [ floatingIpCmd, consoleUrlCmd, cockpitLoginCmd ]
-                                |> Cmd.batch
-                    in
-                    ( newModel, allCmds )
+            ( newModel, allCmds )
 
 
 receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
@@ -1102,227 +1328,192 @@ receiveConsoleUrl model project serverUuid result =
                     ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Project -> Result Http.Error (List OSTypes.Flavor) -> ( Model, Cmd Msg )
-receiveFlavors model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveFlavors : Model -> Project -> List OSTypes.Flavor -> ( Model, Cmd Msg )
+receiveFlavors model project flavors =
+    let
+        newProject =
+            { project | flavors = flavors }
 
-        Ok flavors ->
-            let
-                newProject =
-                    { project | flavors = flavors }
+        -- If we have a CreateServerRequest with no flavor UUID, populate it with the smallest flavor.
+        -- This is the start of a code smell because we need to reach way into the viewState to update
+        -- the createServerRequest. Good candidate for future refactoring to bring CreateServerRequest
+        -- outside of model.viewState.
+        -- This could also benefit from some "railway-oriented programming" to avoid repetition of
+        -- "otherwise just model.viewState" statments.
+        viewState =
+            case model.viewState of
+                ProjectView _ projectViewConstructor ->
+                    case projectViewConstructor of
+                        CreateServer createServerRequest ->
+                            if createServerRequest.flavorUuid == "" then
+                                let
+                                    maybeSmallestFlavor =
+                                        Helpers.sortedFlavors flavors |> List.head
+                                in
+                                case maybeSmallestFlavor of
+                                    Just smallestFlavor ->
+                                        ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | flavorUuid = smallestFlavor.uuid })
 
-                -- If we have a CreateServerRequest with no flavor UUID, populate it with the smallest flavor.
-                -- This is the start of a code smell because we need to reach way into the viewState to update
-                -- the createServerRequest. Good candidate for future refactoring to bring CreateServerRequest
-                -- outside of model.viewState.
-                -- This could also benefit from some "railway-oriented programming" to avoid repetition of
-                -- "otherwise just model.viewState" statments.
-                viewState =
-                    case model.viewState of
-                        ProjectView _ projectViewConstructor ->
-                            case projectViewConstructor of
-                                CreateServer createServerRequest ->
-                                    if createServerRequest.flavorUuid == "" then
-                                        let
-                                            maybeSmallestFlavor =
-                                                Helpers.sortedFlavors flavors |> List.head
-                                        in
-                                        case maybeSmallestFlavor of
-                                            Just smallestFlavor ->
-                                                ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | flavorUuid = smallestFlavor.uuid })
-
-                                            Nothing ->
-                                                model.viewState
-
-                                    else
+                                    Nothing ->
                                         model.viewState
 
-                                _ ->
-                                    model.viewState
+                            else
+                                model.viewState
 
                         _ ->
                             model.viewState
 
-                newModel =
-                    Helpers.modelUpdateProject { model | viewState = viewState } newProject
-            in
-            ( newModel, Cmd.none )
+                _ ->
+                    model.viewState
+
+        newModel =
+            Helpers.modelUpdateProject { model | viewState = viewState } newProject
+    in
+    ( newModel, Cmd.none )
 
 
-receiveKeypairs : Model -> Project -> Result Http.Error (List OSTypes.Keypair) -> ( Model, Cmd Msg )
-receiveKeypairs model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveKeypairs : Model -> Project -> List OSTypes.Keypair -> ( Model, Cmd Msg )
+receiveKeypairs model project keypairs =
+    let
+        newProject =
+            { project | keypairs = keypairs }
 
-        Ok keypairs ->
-            let
-                newProject =
-                    { project | keypairs = keypairs }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel, Cmd.none )
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
 
 
-receiveCreateServer : Model -> Project -> Result Http.Error OSTypes.ServerUuid -> ( Model, Cmd Msg )
-receiveCreateServer model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
-
-        Ok _ ->
-            let
-                newModel =
-                    { model
-                        | viewState =
-                            ProjectView (Helpers.getProjectId project) <|
-                                ListProjectServers { onlyOwnServers = False }
-                    }
-            in
-            ( newModel
-            , [ requestServers
-              , requestNetworks
-              ]
-                |> List.map (\x -> x project model.proxyUrl)
-                |> Cmd.batch
-            )
+receiveCreateServer : Model -> Project -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
+receiveCreateServer model project _ =
+    let
+        newModel =
+            { model
+                | viewState =
+                    ProjectView (Helpers.getProjectId project) <|
+                        ListProjectServers { onlyOwnServers = False }
+            }
+    in
+    ( newModel
+    , [ requestServers
+      , requestNetworks
+      ]
+        |> List.map (\x -> x project model.proxyUrl)
+        |> Cmd.batch
+    )
 
 
-receiveDeleteServer : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
-receiveDeleteServer model project serverUuid result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveDeleteServer : Model -> Project -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
+receiveDeleteServer model project serverUuid =
+    let
+        newServers =
+            List.filter (\s -> s.osProps.uuid /= serverUuid) (RemoteData.withDefault [] project.servers)
 
-        Ok _ ->
-            let
-                newServers =
-                    List.filter (\s -> s.osProps.uuid /= serverUuid) (RemoteData.withDefault [] project.servers)
+        newProject =
+            { project | servers = RemoteData.Success newServers }
 
-                newProject =
-                    { project | servers = RemoteData.Success newServers }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel, Cmd.none )
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
 
 
-receiveNetworks : Model -> Project -> Result Http.Error (List OSTypes.Network) -> ( Model, Cmd Msg )
-receiveNetworks model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveNetworks : Model -> Project -> List OSTypes.Network -> ( Model, Cmd Msg )
+receiveNetworks model project networks =
+    let
+        newProject =
+            { project | networks = networks }
 
-        Ok networks ->
-            let
-                newProject =
-                    { project | networks = networks }
+        -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
+        -- Same comments above (in receiveFlavors) apply here.
+        viewState =
+            case model.viewState of
+                ProjectView _ projectViewConstructor ->
+                    case projectViewConstructor of
+                        CreateServer createServerRequest ->
+                            if createServerRequest.networkUuid == "" then
+                                let
+                                    defaultNetUuid =
+                                        case Helpers.newServerNetworkOptions newProject of
+                                            NoNetsAutoAllocate ->
+                                                "auto"
 
-                -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
-                -- Same comments above (in receiveFlavors) apply here.
-                viewState =
-                    case model.viewState of
-                        ProjectView _ projectViewConstructor ->
-                            case projectViewConstructor of
-                                CreateServer createServerRequest ->
-                                    if createServerRequest.networkUuid == "" then
-                                        let
-                                            defaultNetUuid =
-                                                case Helpers.newServerNetworkOptions newProject of
-                                                    NoNetsAutoAllocate ->
-                                                        "auto"
+                                            OneNet net ->
+                                                net.uuid
 
-                                                    OneNet net ->
-                                                        net.uuid
+                                            MultipleNetsWithGuess _ guessNet _ ->
+                                                guessNet.uuid
+                                in
+                                ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
 
-                                                    MultipleNetsWithGuess _ guessNet _ ->
-                                                        guessNet.uuid
-                                        in
-                                        ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
-
-                                    else
-                                        model.viewState
-
-                                _ ->
-                                    model.viewState
+                            else
+                                model.viewState
 
                         _ ->
                             model.viewState
 
-                newModel =
-                    Helpers.modelUpdateProject { model | viewState = viewState } newProject
-            in
-            ( newModel, Cmd.none )
+                _ ->
+                    model.viewState
+
+        newModel =
+            Helpers.modelUpdateProject { model | viewState = viewState } newProject
+    in
+    ( newModel, Cmd.none )
 
 
-receiveFloatingIps : Model -> Project -> Result Http.Error (List OSTypes.IpAddress) -> ( Model, Cmd Msg )
-receiveFloatingIps model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveFloatingIps : Model -> Project -> List OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveFloatingIps model project floatingIps =
+    let
+        newProject =
+            { project | floatingIps = floatingIps }
 
-        Ok floatingIps ->
-            let
-                newProject =
-                    { project | floatingIps = floatingIps }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel, Cmd.none )
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
 
 
-receivePortsAndRequestFloatingIp : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error (List OSTypes.Port) -> ( Model, Cmd Msg )
-receivePortsAndRequestFloatingIp model project serverUuid result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receivePortsAndRequestFloatingIp : Model -> Project -> OSTypes.ServerUuid -> List OSTypes.Port -> ( Model, Cmd Msg )
+receivePortsAndRequestFloatingIp model project serverUuid ports =
+    let
+        newProject =
+            { project | ports = ports }
 
-        Ok ports ->
-            let
-                newProject =
-                    { project | ports = ports }
+        newModel =
+            Helpers.modelUpdateProject model newProject
 
-                newModel =
-                    Helpers.modelUpdateProject model newProject
+        maybeExtNet =
+            Helpers.getExternalNetwork newProject
 
-                maybeExtNet =
-                    Helpers.getExternalNetwork newProject
-
-                maybePortForServer =
-                    List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
-                        |> List.head
-            in
-            case maybeExtNet of
-                Just extNet ->
-                    case maybePortForServer of
-                        Just port_ ->
-                            requestCreateFloatingIpIfRequestable
-                                newModel
-                                newProject
-                                model.proxyUrl
-                                extNet
-                                port_
-                                serverUuid
-
-                        Nothing ->
-                            Helpers.processError
-                                newModel
-                                "We should have a port here but we don't!?"
+        maybePortForServer =
+            List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
+                |> List.head
+    in
+    case maybeExtNet of
+        Just extNet ->
+            case maybePortForServer of
+                Just port_ ->
+                    requestCreateFloatingIpIfRequestable
+                        newModel
+                        newProject
+                        model.proxyUrl
+                        extNet
+                        port_
+                        serverUuid
 
                 Nothing ->
                     Helpers.processError
                         newModel
-                        "We should have an external network here but we don't"
+                        "We should have a port here but we don't!?"
+
+        Nothing ->
+            Helpers.processError
+                newModel
+                "We should have an external network here but we don't"
 
 
-receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.IpAddress -> ( Model, Cmd Msg )
-receiveCreateFloatingIp model project serverUuid result =
+receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveCreateFloatingIp model project serverUuid ipAddress =
     case Helpers.serverLookup project serverUuid of
         Nothing ->
             -- No server found, may have been deleted, nothing to do
@@ -1330,70 +1521,46 @@ receiveCreateFloatingIp model project serverUuid result =
 
         Just server ->
             {- This repeats a lot of code in receiveCockpitStatus, badly needs a refactor -}
-            case result of
-                Err error ->
-                    let
-                        newServer =
-                            let
-                                oldExoProps =
-                                    server.exoProps
-                            in
-                            Server server.osProps { oldExoProps | floatingIpState = Failed }
-
-                        newProject =
-                            Helpers.projectUpdateServer project newServer
-
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-                    in
-                    Helpers.processError newModel error
-
-                Ok ipAddress ->
-                    let
-                        newServer =
-                            let
-                                oldOSProps =
-                                    server.osProps
-
-                                oldExoProps =
-                                    server.exoProps
-
-                                details =
-                                    addFloatingIpInServerDetails
-                                        server.osProps.details
-                                        ipAddress
-                            in
-                            Server
-                                { oldOSProps | details = details }
-                                { oldExoProps | floatingIpState = Success }
-
-                        newProject =
-                            Helpers.projectUpdateServer project newServer
-
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-                    in
-                    ( newModel, Cmd.none )
-
-
-receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> Result Http.Error String -> ( Model, Cmd Msg )
-receiveDeleteFloatingIp model project uuid result =
-    case result of
-        Err error ->
-            Helpers.processError model error
-
-        Ok _ ->
             let
-                newFloatingIps =
-                    List.filter (\f -> f.uuid /= Just uuid) project.floatingIps
+                newServer =
+                    let
+                        oldOSProps =
+                            server.osProps
+
+                        oldExoProps =
+                            server.exoProps
+
+                        details =
+                            addFloatingIpInServerDetails
+                                server.osProps.details
+                                ipAddress
+                    in
+                    Server
+                        { oldOSProps | details = details }
+                        { oldExoProps | floatingIpState = Success }
 
                 newProject =
-                    { project | floatingIps = newFloatingIps }
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
+
+
+receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> ( Model, Cmd Msg )
+receiveDeleteFloatingIp model project uuid =
+    let
+        newFloatingIps =
+            List.filter (\f -> f.uuid /= Just uuid) project.floatingIps
+
+        newProject =
+            { project | floatingIps = newFloatingIps }
+
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
 
 
 addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
@@ -1405,50 +1572,40 @@ addFloatingIpInServerDetails details ipAddress =
     { details | ipAddresses = newIps }
 
 
-receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> Result Http.Error (List OSTypes.SecurityGroup) -> ( Model, Cmd Msg )
-receiveSecurityGroupsAndEnsureExoGroup model project result =
+receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> List OSTypes.SecurityGroup -> ( Model, Cmd Msg )
+receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     {- Create an "exosphere" security group unless one already exists -}
-    case result of
-        Err error ->
-            Helpers.processError model error
+    let
+        newProject =
+            { project | securityGroups = securityGroups }
 
-        Ok securityGroups ->
-            let
-                newProject =
-                    { project | securityGroups = securityGroups }
+        newModel =
+            Helpers.modelUpdateProject model newProject
 
-                newModel =
-                    Helpers.modelUpdateProject model newProject
+        cmds =
+            case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
+                Just _ ->
+                    []
 
-                cmds =
-                    case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
-                        Just _ ->
-                            []
-
-                        Nothing ->
-                            [ requestCreateExoSecurityGroup newProject model.proxyUrl ]
-            in
-            ( newModel, Cmd.batch cmds )
+                Nothing ->
+                    [ requestCreateExoSecurityGroup newProject model.proxyUrl ]
+    in
+    ( newModel, Cmd.batch cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Project -> Result Http.Error OSTypes.SecurityGroup -> ( Model, Cmd Msg )
-receiveCreateExoSecurityGroupAndRequestCreateRules model project result =
-    case result of
-        Err error ->
-            Helpers.processError model error
+receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Project -> OSTypes.SecurityGroup -> ( Model, Cmd Msg )
+receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
+    let
+        newSecGroups =
+            newSecGroup :: project.securityGroups
 
-        Ok newSecGroup ->
-            let
-                newSecGroups =
-                    newSecGroup :: project.securityGroups
+        newProject =
+            { project | securityGroups = newSecGroups }
 
-                newProject =
-                    { project | securityGroups = newSecGroups }
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            requestCreateExoSecurityGroupRules newModel newProject model.proxyUrl
+        newModel =
+            Helpers.modelUpdateProject model newProject
+    in
+    requestCreateExoSecurityGroupRules newModel newProject model.proxyUrl
 
 
 receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
