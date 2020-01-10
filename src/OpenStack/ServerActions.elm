@@ -201,8 +201,5 @@ doAction body project maybeProxyUrl server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString
-            (resultToMsg
-                errorContext
-                (\_ -> NoOp)
-            )
+            (resultToMsg errorContext (\_ -> NoOp))
         )

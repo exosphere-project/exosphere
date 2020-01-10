@@ -41,6 +41,15 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
                 ("create a volume of size " ++ String.fromInt createVolumeRequest.size ++ " GB")
                 ErrorCrit
                 (Just "Confirm that your quota has sufficient capacity to create a volume of this size, perhaps check with your cloud administrator.")
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        ReceiveCreateVolume
+                )
     in
     openstackCredentialedRequest
         project
@@ -49,14 +58,7 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        ReceiveCreateVolume
-                )
-            )
+            resultToMsg_
             (Decode.field "volume" <| volumeDecoder)
         )
 
@@ -69,6 +71,15 @@ requestVolumes project maybeProxyUrl =
                 "get a list of volumes"
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\vols ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveVolumes vols)
+                )
     in
     openstackCredentialedRequest
         project
@@ -77,14 +88,7 @@ requestVolumes project maybeProxyUrl =
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\vols ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveVolumes vols)
-                )
-            )
+            resultToMsg_
             (Decode.field "volumes" <| Decode.list volumeDecoder)
         )
 
@@ -97,6 +101,11 @@ requestDeleteVolume project maybeProxyUrl volumeUuid =
                 ("Delete volume " ++ volumeUuid)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveDeleteVolume)
     in
     openstackCredentialedRequest
         project
@@ -104,12 +113,7 @@ requestDeleteVolume project maybeProxyUrl volumeUuid =
         Delete
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
-        (Http.expectString
-            (resultToMsg
-                errorContext
-                (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveDeleteVolume)
-            )
-        )
+        (Http.expectString resultToMsg_)
 
 
 volumeDecoder : Decode.Decoder OSTypes.Volume

@@ -34,6 +34,15 @@ requestAttachVolume project maybeProxyUrl serverUuid volumeUuid =
                 ("attach volume " ++ volumeUuid ++ " to server " ++ serverUuid)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\attachment ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveAttachVolume attachment)
+                )
     in
     openstackCredentialedRequest
         project
@@ -42,14 +51,7 @@ requestAttachVolume project maybeProxyUrl serverUuid volumeUuid =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
         (Http.jsonBody body)
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\attachment ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveAttachVolume attachment)
-                )
-            )
+            resultToMsg_
             (Decode.field "volumeAttachment" <| novaVolumeAttachmentDecoder)
         )
 
@@ -62,6 +64,15 @@ requestDetachVolume project maybeProxyUrl serverUuid volumeUuid =
                 ("detach volume " ++ volumeUuid ++ " from server " ++ serverUuid)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        ReceiveDetachVolume
+                )
     in
     openstackCredentialedRequest
         project
@@ -70,14 +81,7 @@ requestDetachVolume project maybeProxyUrl serverUuid volumeUuid =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody
         (Http.expectString
-            (resultToMsg
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        ReceiveDetachVolume
-                )
-            )
+            resultToMsg_
         )
 
 

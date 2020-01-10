@@ -330,6 +330,15 @@ requestAppCredential project maybeProxyUrl posixTime =
                 ("request application credential for project named \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 (Just "Perhaps you are trying to use a cloud that is too old to support Application Credentials? Exosphere supports OpenStack Queens release and newer. Check with your cloud administrator if you are unsure.")
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\appCred ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveAppCredential appCred)
+                )
     in
     openstackCredentialedRequest
         project
@@ -337,17 +346,7 @@ requestAppCredential project maybeProxyUrl posixTime =
         Post
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
-        (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\appCred ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveAppCredential appCred)
-                )
-            )
-            decodeAppCredential
-        )
+        (Http.expectJson resultToMsg_ decodeAppCredential)
 
 
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
@@ -379,19 +378,21 @@ requestUnscopedProjects provider maybeProxyUrl =
                 ("get a list of projects accessible by user \"" ++ provider.token.user.name ++ "\"")
                 ErrorCrit
                 Nothing
-    in
-    Http.request
-        { method = "GET"
-        , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
-        , url = url
-        , body = Http.emptyBody
-        , expect =
+
+        expect =
             Http.expectJson
                 (resultToMsg
                     errorContext
                     (ReceiveUnscopedProjects provider.authUrl)
                 )
                 decodeUnscopedProjects
+    in
+    Http.request
+        { method = "GET"
+        , headers = Http.header "X-Auth-Token" provider.token.tokenValue :: headers
+        , url = url
+        , body = Http.emptyBody
+        , expect = expect
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -405,6 +406,11 @@ requestImages project maybeProxyUrl =
                 ("get a list of images for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\images -> ProjectMsg (Helpers.getProjectId project) <| ReceiveImages images)
     in
     openstackCredentialedRequest
         project
@@ -413,10 +419,7 @@ requestImages project maybeProxyUrl =
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\images -> ProjectMsg (Helpers.getProjectId project) <| ReceiveImages images)
-            )
+            resultToMsg_
             decodeImages
         )
 
@@ -429,6 +432,15 @@ requestServers project maybeProxyUrl =
                 ("get details of servers for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\servers ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveServers servers)
+                )
     in
     openstackCredentialedRequest
         project
@@ -437,14 +449,7 @@ requestServers project maybeProxyUrl =
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\servers ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveServers servers)
-                )
-            )
+            resultToMsg_
             decodeServers
         )
 
@@ -457,6 +462,15 @@ requestServer project maybeProxyUrl serverUuid =
                 ("get details of server with UUID \"" ++ serverUuid ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\server ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveServer serverUuid server)
+                )
     in
     openstackCredentialedRequest
         project
@@ -465,14 +479,7 @@ requestServer project maybeProxyUrl serverUuid =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\server ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveServer serverUuid server)
-                )
-            )
+            resultToMsg_
             (Decode.at [ "server" ] decodeServerDetails)
         )
 
@@ -525,6 +532,11 @@ requestFlavors project maybeProxyUrl =
                 ("get details of flavors for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\flavors -> ProjectMsg (Helpers.getProjectId project) <| ReceiveFlavors flavors)
     in
     openstackCredentialedRequest
         project
@@ -533,10 +545,7 @@ requestFlavors project maybeProxyUrl =
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\flavors -> ProjectMsg (Helpers.getProjectId project) <| ReceiveFlavors flavors)
-            )
+            resultToMsg_
             decodeFlavors
         )
 
@@ -549,6 +558,11 @@ requestKeypairs project maybeProxyUrl =
                 ("get details of keypairs for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\keypairs -> ProjectMsg (Helpers.getProjectId project) <| ReceiveKeypairs keypairs)
     in
     openstackCredentialedRequest
         project
@@ -557,10 +571,7 @@ requestKeypairs project maybeProxyUrl =
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\keypairs -> ProjectMsg (Helpers.getProjectId project) <| ReceiveKeypairs keypairs)
-            )
+            resultToMsg_
             decodeKeypairs
         )
 
@@ -663,6 +674,15 @@ requestCreateServer project maybeProxyUrl createServerRequest =
                 ("create " ++ createServerRequest.count ++ " server" ++ plural)
                 ErrorCrit
                 (Just <| "It's possible your quota is not large enough to launch the requested server" ++ plural)
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\serverUuid ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveCreateServer serverUuid)
+                )
     in
     Cmd.batch
         (requestBodies
@@ -675,14 +695,7 @@ requestCreateServer project maybeProxyUrl createServerRequest =
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (Http.expectJson
-                            (resultToMsg
-                                errorContext
-                                (\serverUuid ->
-                                    ProjectMsg
-                                        (Helpers.getProjectId project)
-                                        (ReceiveCreateServer serverUuid)
-                                )
-                            )
+                            resultToMsg_
                             (Decode.field "server" serverUuidDecoder)
                         )
                 )
@@ -701,6 +714,15 @@ requestDeleteServer project maybeProxyUrl server =
                 ("Delete server with UUID " ++ server.osProps.uuid)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveDeleteServer server.osProps.uuid getFloatingIp)
+                )
     in
     openstackCredentialedRequest
         project
@@ -709,14 +731,7 @@ requestDeleteServer project maybeProxyUrl server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         (Http.expectString
-            (resultToMsg
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveDeleteServer server.osProps.uuid getFloatingIp)
-                )
-            )
+            resultToMsg_
         )
 
 
@@ -737,6 +752,15 @@ requestNetworks project maybeProxyUrl =
                 ("get list of networks for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\nets ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveNetworks nets)
+                )
     in
     openstackCredentialedRequest
         project
@@ -745,14 +769,7 @@ requestNetworks project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\nets ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveNetworks nets)
-                )
-            )
+            resultToMsg_
             decodeNetworks
         )
 
@@ -765,6 +782,15 @@ requestFloatingIps project maybeProxyUrl =
                 ("get list of floating IPs for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\ips ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveFloatingIps ips)
+                )
     in
     openstackCredentialedRequest
         project
@@ -773,14 +799,7 @@ requestFloatingIps project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\ips ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveFloatingIps ips)
-                )
-            )
+            resultToMsg_
             decodeFloatingIps
         )
 
@@ -793,6 +812,15 @@ getFloatingIpRequestPorts project maybeProxyUrl server =
                 ("get list of ports for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\ports ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (GetFloatingIpReceivePorts server.osProps.uuid ports)
+                )
     in
     openstackCredentialedRequest
         project
@@ -801,14 +829,7 @@ getFloatingIpRequestPorts project maybeProxyUrl server =
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\ports ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (GetFloatingIpReceivePorts server.osProps.uuid ports)
-                )
-            )
+            resultToMsg_
             decodePorts
         )
 
@@ -861,6 +882,15 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
                 ErrorCrit
                 (Just "It's possible your cloud has run out of public IP address space; ask your cloud administrator.")
 
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\ip ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveCreateFloatingIp server.osProps.uuid ip)
+                )
+
         requestCmd =
             openstackCredentialedRequest
                 newProject
@@ -869,14 +899,7 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (Http.expectJson
-                    (resultToMsg
-                        errorContext
-                        (\ip ->
-                            ProjectMsg
-                                (Helpers.getProjectId project)
-                                (ReceiveCreateFloatingIp server.osProps.uuid ip)
-                        )
-                    )
+                    resultToMsg_
                     decodeFloatingIpCreation
                 )
     in
@@ -891,6 +914,15 @@ requestDeleteFloatingIp project maybeProxyUrl uuid =
                 ("delete floating IP address with UUID " ++ uuid)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveDeleteFloatingIp uuid)
+                )
     in
     openstackCredentialedRequest
         project
@@ -899,14 +931,7 @@ requestDeleteFloatingIp project maybeProxyUrl uuid =
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
         (Http.expectString
-            (resultToMsg
-                errorContext
-                (\_ ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveDeleteFloatingIp uuid)
-                )
-            )
+            resultToMsg_
         )
 
 
@@ -918,6 +943,15 @@ requestSecurityGroups project maybeProxyUrl =
                 ("Get a list of security groups for project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\groups ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveSecurityGroups groups)
+                )
     in
     openstackCredentialedRequest
         project
@@ -926,14 +960,7 @@ requestSecurityGroups project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\groups ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveSecurityGroups groups)
-                )
-            )
+            resultToMsg_
             decodeSecurityGroups
         )
 
@@ -959,6 +986,15 @@ requestCreateExoSecurityGroup project maybeProxyUrl =
                 ("create security group for Exosphere in project " ++ project.auth.project.name)
                 ErrorCrit
                 Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\group ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveCreateExoSecurityGroup group)
+                )
     in
     openstackCredentialedRequest
         project
@@ -967,15 +1003,7 @@ requestCreateExoSecurityGroup project maybeProxyUrl =
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (Http.expectJson
-            (resultToMsg
-                errorContext
-                (\group ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveCreateExoSecurityGroup group)
-                )
-            )
-            --(\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateExoSecurityGroup result))
+            resultToMsg_
             decodeNewSecurityGroup
         )
 
@@ -1035,10 +1063,7 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
                         (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                         (Http.jsonBody body)
                         (Http.expectString
-                            (resultToMsg
-                                errorContext
-                                (\_ -> NoOp)
-                            )
+                            (resultToMsg errorContext (\_ -> NoOp))
                         )
 
                 bodies =
