@@ -51,10 +51,10 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
         (Http.expectJson
             (resultToMsg
                 errorContext
-                (\vol ->
+                (\_ ->
                     ProjectMsg
                         (Helpers.getProjectId project)
-                        (ReceiveCreateVolume vol)
+                        ReceiveCreateVolume
                 )
             )
             (Decode.field "volume" <| volumeDecoder)

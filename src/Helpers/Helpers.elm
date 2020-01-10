@@ -97,16 +97,18 @@ toastConfig =
         |> Toasty.containerAttrs containerAttrs
 
 
-processError : Model -> a -> ( Model, Cmd Msg )
-processError model error =
+processError : Model -> Error.Error.ErrorContext -> a -> ( Model, Cmd Msg )
+processError model errorContext error =
     let
         logMessageProto =
             LogMessage
                 (Debug.toString error)
-                (Error.Error.ErrorContext "foobarfixme" Error.Error.ErrorCrit Nothing)
+                errorContext
 
         toast =
-            Toast (Error.Error.ErrorContext "foobar" Error.Error.ErrorCrit Nothing) (Debug.toString error)
+            Toast
+                errorContext
+                (Debug.toString error)
 
         cmd =
             Task.perform

@@ -1220,6 +1220,11 @@ receiveServer model project serverUuid serverDetails =
         Nothing ->
             Helpers.processError
                 model
+                (ErrorContext
+                    "look for a server to populate with details from the API"
+                    ErrorCrit
+                    Nothing
+                )
                 "No server found when receiving server details"
 
         Just server ->
@@ -1504,12 +1509,22 @@ receivePortsAndRequestFloatingIp model project serverUuid ports =
                 Nothing ->
                     Helpers.processError
                         newModel
-                        "We should have a port here but we don't!?"
+                        (ErrorContext
+                            ("look for a network port belonging to server " ++ serverUuid)
+                            ErrorCrit
+                            Nothing
+                        )
+                        ("Cannot find port belonging to server " ++ serverUuid ++ " in Exosphere's data model")
 
         Nothing ->
             Helpers.processError
                 newModel
-                "We should have an external network here but we don't"
+                (ErrorContext
+                    "look for a usable external network"
+                    ErrorCrit
+                    (Just "Ask your cloud administrator if your OpenStack project has access to an external network for floating IP addresses.")
+                )
+                "Cannot find a usable external network in Exosphere's data model"
 
 
 receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> OSTypes.IpAddress -> ( Model, Cmd Msg )

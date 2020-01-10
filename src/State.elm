@@ -247,7 +247,14 @@ updateUnderlying msg model =
         ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
             case Rest.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError model error
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            "decode scoped auth token"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
 
                 Ok authToken ->
                     let
@@ -262,7 +269,14 @@ updateUnderlying msg model =
                         ( Helpers.projectLookup model <| projectId, maybePassword )
                     of
                         ( Nothing, Nothing ) ->
-                            Helpers.processError model "This is an impossible state"
+                            Helpers.processError
+                                model
+                                (ErrorContext
+                                    "this is an impossible state"
+                                    ErrorCrit
+                                    (Just "The laws of physics and logic have been violated, check with your universe administrator")
+                                )
+                                "This is an impossible state"
 
                         ( Nothing, Just password ) ->
                             createProject model password authToken
@@ -286,7 +300,14 @@ updateUnderlying msg model =
         ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
             case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError model error
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            "decode scoped auth token"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
 
                 Ok authToken ->
                     case
@@ -381,7 +402,14 @@ updateUnderlying msg model =
                     ( newModel, Cmd.batch loginRequests )
 
                 Nothing ->
-                    Helpers.processError model "Could not find provider"
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
+                            ErrorCrit
+                            Nothing
+                        )
+                        "Provider could not found in Exosphere's list of Providers."
 
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
@@ -628,7 +656,14 @@ processProjectSpecificMsg model project msg =
                     ( model, OSSvrVols.requestDetachVolume project model.proxyUrl serverUuid volumeUuid )
 
                 Nothing ->
-                    Helpers.processError model "Could not determine server UUID"
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            ("look for server UUID with attached volume " ++ volumeUuid)
+                            ErrorCrit
+                            Nothing
+                        )
+                        "Could not determine server attached to this volume."
 
         RequestCreateServerImage serverUuid imageName ->
             let
@@ -781,7 +816,7 @@ processProjectSpecificMsg model project msg =
         ReceiveCockpitLoginStatus serverUuid result ->
             Rest.receiveCockpitLoginStatus model project serverUuid result
 
-        ReceiveCreateVolume result ->
+        ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
             update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
 

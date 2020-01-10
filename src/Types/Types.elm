@@ -43,7 +43,6 @@ import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Time
 import Toasty
-import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
 
 
@@ -201,7 +200,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
-    | ReceiveCreateVolume OSTypes.Volume
+    | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
     | ReceiveDeleteVolume
     | ReceiveAttachVolume OSTypes.VolumeAttachment
