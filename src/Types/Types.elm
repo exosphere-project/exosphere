@@ -25,6 +25,7 @@ module Types.Types exposing
     , ProjectTitle
     , ProjectViewConstructor(..)
     , Server
+    , ServerDetailViewParams
     , ServerFilter
     , ServerUiStatus(..)
     , Toast
@@ -32,7 +33,6 @@ module Types.Types exposing
     , UnscopedProviderProject
     , VerboseStatus
     , ViewState(..)
-    , ViewStateParams
     , WindowSize
     )
 
@@ -236,7 +236,7 @@ type ProjectViewConstructor
     = ListImages ImageFilter
     | ListProjectServers ServerFilter
     | ListProjectVolumes
-    | ServerDetail OSTypes.ServerUuid ViewStateParams
+    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid
     | CreateServer CreateServerRequest
@@ -245,7 +245,7 @@ type ProjectViewConstructor
     | MountVolInstructions OSTypes.VolumeAttachment
 
 
-type alias ViewStateParams =
+type alias ServerDetailViewParams =
     { verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel

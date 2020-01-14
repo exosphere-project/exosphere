@@ -32,9 +32,9 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerDetailViewParams
         , ServerFilter
         , ViewState(..)
-        , ViewStateParams
         )
 import View.Helpers as VH exposing (edges)
 import View.Types
@@ -114,7 +114,7 @@ servers project serverFilter =
                     ]
 
 
-serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
 serverDetail appIsElectron project serverUuid viewStateParams =
     Helpers.serverLookup project serverUuid
         |> Maybe.withDefault (Element.text "No server found")
@@ -179,7 +179,7 @@ serverDetail appIsElectron project serverUuid viewStateParams =
             )
 
 
-serverStatus : ProjectIdentifier -> Server -> ViewStateParams -> Element.Element Msg
+serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
 serverStatus projectId server viewStateParams =
     let
         details =
@@ -258,7 +258,7 @@ sshInstructions maybeFloatingIp =
             copyableText ("exouser@" ++ floatingIp)
 
 
-consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
 consoleLink appIsElectron project server serverUuid viewStateParams =
     let
         details =
@@ -541,7 +541,7 @@ renderServer project server =
         ]
 
 
-renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ViewStateParams -> Element.Element Msg
+renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
 renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
