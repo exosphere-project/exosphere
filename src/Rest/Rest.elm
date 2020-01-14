@@ -1372,7 +1372,7 @@ receiveFlavors model project flavors =
         -- "otherwise just model.viewState" statments.
         viewState =
             case model.viewState of
-                ProjectView _ projectViewConstructor ->
+                ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
                         CreateServer createServerRequest ->
                             if createServerRequest.flavorUuid == "" then
@@ -1382,7 +1382,14 @@ receiveFlavors model project flavors =
                                 in
                                 case maybeSmallestFlavor of
                                     Just smallestFlavor ->
-                                        ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | flavorUuid = smallestFlavor.uuid })
+                                        ProjectView
+                                            (Helpers.getProjectId project)
+                                            { createPopup = False }
+                                            (CreateServer
+                                                { createServerRequest
+                                                    | flavorUuid = smallestFlavor.uuid
+                                                }
+                                            )
 
                                     Nothing ->
                                         model.viewState
@@ -1420,7 +1427,10 @@ receiveCreateServer model project _ =
         newModel =
             { model
                 | viewState =
-                    ProjectView (Helpers.getProjectId project) <|
+                    ProjectView
+                        (Helpers.getProjectId project)
+                        { createPopup = False }
+                    <|
                         ListProjectServers { onlyOwnServers = False }
             }
     in
@@ -1458,7 +1468,7 @@ receiveNetworks model project networks =
         -- Same comments above (in receiveFlavors) apply here.
         viewState =
             case model.viewState of
-                ProjectView _ projectViewConstructor ->
+                ProjectView _ viewParams projectViewConstructor ->
                     case projectViewConstructor of
                         CreateServer createServerRequest ->
                             if createServerRequest.networkUuid == "" then
@@ -1474,7 +1484,14 @@ receiveNetworks model project networks =
                                             MultipleNetsWithGuess _ guessNet _ ->
                                                 guessNet.uuid
                                 in
-                                ProjectView (Helpers.getProjectId project) (CreateServer { createServerRequest | networkUuid = defaultNetUuid })
+                                ProjectView
+                                    (Helpers.getProjectId project)
+                                    viewParams
+                                    (CreateServer
+                                        { createServerRequest
+                                            | networkUuid = defaultNetUuid
+                                        }
+                                    )
 
                             else
                                 model.viewState

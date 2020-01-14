@@ -24,6 +24,7 @@ module Types.Types exposing
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
     , ProjectViewConstructor(..)
+    , ProjectViewParams
     , Server
     , ServerDetailViewParams
     , ServerFilter
@@ -209,7 +210,7 @@ type ProjectSpecificMsgConstructor
 
 type ViewState
     = NonProjectView NonProjectViewConstructor
-    | ProjectView ProjectIdentifier ProjectViewConstructor
+    | ProjectView ProjectIdentifier ProjectViewParams ProjectViewConstructor
 
 
 type NonProjectViewConstructor
@@ -229,6 +230,11 @@ type alias ImageFilter =
 
 type alias ServerFilter =
     { onlyOwnServers : Bool
+    }
+
+
+type alias ProjectViewParams =
+    { createPopup : Bool
     }
 
 

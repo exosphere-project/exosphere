@@ -12,6 +12,7 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , ProjectViewParams
         , ViewState(..)
         )
 import View.AttachVolume
@@ -23,8 +24,8 @@ import View.Servers
 import View.Volumes
 
 
-project : Model -> Project -> ProjectViewConstructor -> Element.Element Msg
-project model p viewConstructor =
+project : Model -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
+project model p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
