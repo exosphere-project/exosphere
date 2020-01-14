@@ -563,6 +563,24 @@ processProjectSpecificMsg model project msg =
                 in
                 ( newModel, requestAuthToken newModel newProject )
 
+        ToggleCreatePopup ->
+            case model.viewState of
+                ProjectView projectId viewParams viewConstructor ->
+                    ( { model
+                        | viewState =
+                            ProjectView
+                                projectId
+                                { viewParams
+                                    | createPopup = not viewParams.createPopup
+                                }
+                                viewConstructor
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
         RemoveProject ->
             let
                 newProjects =

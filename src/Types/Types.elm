@@ -171,6 +171,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
     | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | RequestAppCredential Time.Posix
+    | ToggleCreatePopup
     | RemoveProject
     | SelectServer Server Bool
     | SelectAllServers Bool

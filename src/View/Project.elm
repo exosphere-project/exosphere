@@ -1,15 +1,19 @@
 module View.Project exposing (project)
 
+import Color
 import Element
 import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
+import Style.Widgets.Icon exposing (downArrow, upArrow)
+import Style.Widgets.IconButton exposing (iconButton)
 import Types.Types
     exposing
         ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
         , Project
+        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , ProjectViewParams
@@ -63,13 +67,13 @@ project model p viewParams viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav p
+        [ projectNav p viewParams
         , v
         ]
 
 
-projectNav : Project -> Element.Element Msg
-projectNav p =
+projectNav : Project -> ProjectViewParams -> Element.Element Msg
+projectNav p viewParams =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
@@ -95,24 +99,83 @@ projectNav p =
             , Element.el []
                 (Button.button
                     []
-                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| ListImages { searchText = "", tag = "" })
-                    "Create Server"
-                )
-            , Element.el []
-                (Button.button
-                    []
                     (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView ListProjectVolumes)
                     "My Volumes"
-                )
-            , Element.el []
-                {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
-                (Button.button
-                    []
-                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| CreateVolume "" "10")
-                    "Create Volume"
                 )
             , Element.el
                 [ Element.alignRight ]
                 (Button.button [ Modifier.Muted ] (Just <| ProjectMsg (Helpers.getProjectId p) RemoveProject) "Remove Project")
+            , Element.el
+                [ Element.alignRight ]
+                (createButton (Helpers.getProjectId p) viewParams.createPopup)
             ]
         ]
+
+
+createButton : ProjectIdentifier -> Bool -> Element.Element Msg
+createButton projectId expanded =
+    case expanded of
+        False ->
+            Element.column
+                []
+                [ iconButton
+                    [ Modifier.Primary ]
+                    (Just <|
+                        ProjectMsg projectId <|
+                            ToggleCreatePopup
+                    )
+                    (Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Create"
+                        , downArrow Color.white 15
+                        ]
+                    )
+                ]
+
+        True ->
+            let
+                belowStuff =
+                    Element.column
+                        [ Element.spacing 5
+                        , Element.paddingEach
+                            { top = 5
+                            , bottom = 0
+                            , right = 0
+                            , left = 0
+                            }
+                        ]
+                        [ Button.button
+                            []
+                            (Just <|
+                                ProjectMsg projectId <|
+                                    SetProjectView <|
+                                        ListImages { searchText = "", tag = "" }
+                            )
+                            "Server"
+
+                        {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
+                        , Button.button
+                            []
+                            (Just <|
+                                ProjectMsg projectId <|
+                                    SetProjectView <|
+                                        CreateVolume "" "10"
+                            )
+                            "Volume"
+                        ]
+            in
+            Element.column
+                [ Element.below belowStuff ]
+                [ iconButton
+                    [ Modifier.Primary ]
+                    (Just <|
+                        ProjectMsg projectId <|
+                            ToggleCreatePopup
+                    )
+                    (Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Create"
+                        , upArrow Color.white 15
+                        ]
+                    )
+                ]
