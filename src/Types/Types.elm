@@ -11,6 +11,7 @@ module Types.Types exposing
     , ImageFilter
     , JetstreamCreds
     , JetstreamProvider(..)
+    , LogMessage
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
@@ -26,6 +27,7 @@ module Types.Types exposing
     , Server
     , ServerFilter
     , ServerUiStatus(..)
+    , Toast
     , UnscopedProvider
     , UnscopedProviderProject
     , VerboseStatus
@@ -34,13 +36,13 @@ module Types.Types exposing
     , WindowSize
     )
 
+import Error exposing (ErrorContext)
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Time
 import Toasty
-import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
 
 
@@ -64,15 +66,22 @@ type alias WindowSize =
 
 
 type alias Model =
-    { messages : List String
+    { logMessages : List LogMessage
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider
     , projects : List Project
     , globalDefaults : GlobalDefaults
-    , toasties : Toasty.Stack Toasty.Defaults.Toast
+    , toasties : Toasty.Stack Toast
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
+    }
+
+
+type alias LogMessage =
+    { message : String
+    , context : ErrorContext
+    , timestamp : Time.Posix
     }
 
 
@@ -138,25 +147,27 @@ type alias Endpoints =
 type Msg
     = Tick Time.Posix
     | SetNonProjectView NonProjectViewConstructor
+    | HandleApiError ErrorContext Http.Error
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveScopedAuthToken (Maybe HelperTypes.Password) (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password (Result Http.Error ( Http.Metadata, String ))
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (Result Http.Error (List UnscopedProviderProject))
+    | ReceiveScopedAuthToken (Maybe HelperTypes.Password) ( Http.Metadata, String )
+    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password ( Http.Metadata, String )
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
     | OpenNewWindow String
-    | ToastyMsg (Toasty.Msg Toasty.Defaults.Toast)
+    | ToastyMsg (Toasty.Msg Toast)
+    | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
     | NoOp
 
 
 type ProjectSpecificMsgConstructor
     = SetProjectView ProjectViewConstructor
-    | ReceiveAppCredential (Result Http.Error OSTypes.ApplicationCredential)
+    | ReceiveAppCredential OSTypes.ApplicationCredential
     | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | RequestAppCredential Time.Posix
     | RemoveProject
@@ -173,29 +184,27 @@ type ProjectSpecificMsgConstructor
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage OSTypes.ServerUuid String
-    | ReceiveImages (Result Http.Error (List OSTypes.Image))
-    | ReceiveServers (Result Http.Error (List OSTypes.Server))
-    | ReceiveServer OSTypes.ServerUuid (Result Http.Error OSTypes.ServerDetails)
+    | ReceiveImages (List OSTypes.Image)
+    | ReceiveServers (List OSTypes.Server)
+    | ReceiveServer OSTypes.ServerUuid OSTypes.ServerDetails
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
-    | ReceiveCreateServer (Result Http.Error OSTypes.ServerUuid)
-    | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue) (Result Http.Error String)
-    | ReceiveFlavors (Result Http.Error (List OSTypes.Flavor))
-    | ReceiveKeypairs (Result Http.Error (List OSTypes.Keypair))
-    | ReceiveNetworks (Result Http.Error (List OSTypes.Network))
-    | ReceiveFloatingIps (Result Http.Error (List OSTypes.IpAddress))
-    | GetFloatingIpReceivePorts OSTypes.ServerUuid (Result Http.Error (List OSTypes.Port))
-    | ReceiveCreateFloatingIp OSTypes.ServerUuid (Result Http.Error OSTypes.IpAddress)
-    | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid (Result Http.Error String)
-    | ReceiveSecurityGroups (Result Http.Error (List OSTypes.SecurityGroup))
-    | ReceiveCreateExoSecurityGroup (Result Http.Error OSTypes.SecurityGroup)
-    | ReceiveCreateExoSecurityGroupRules (Result Http.Error String)
+    | ReceiveCreateServer OSTypes.ServerUuid
+    | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
+    | ReceiveFlavors (List OSTypes.Flavor)
+    | ReceiveKeypairs (List OSTypes.Keypair)
+    | ReceiveNetworks (List OSTypes.Network)
+    | ReceiveFloatingIps (List OSTypes.IpAddress)
+    | GetFloatingIpReceivePorts OSTypes.ServerUuid (List OSTypes.Port)
+    | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
+    | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
+    | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
+    | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
-    | ReceiveServerAction OSTypes.ServerUuid (Result Http.Error String)
-    | ReceiveCreateVolume (Result Http.Error OSTypes.Volume)
-    | ReceiveVolumes (Result Http.Error (List OSTypes.Volume))
-    | ReceiveDeleteVolume (Result Http.Error String)
-    | ReceiveAttachVolume (Result Http.Error OSTypes.VolumeAttachment)
-    | ReceiveDetachVolume (Result Http.Error String)
+    | ReceiveCreateVolume
+    | ReceiveVolumes (List OSTypes.Volume)
+    | ReceiveDeleteVolume
+    | ReceiveAttachVolume OSTypes.VolumeAttachment
+    | ReceiveDetachVolume
 
 
 type ViewState
@@ -364,3 +373,9 @@ type HttpRequestMethod
     = Get
     | Post
     | Delete
+
+
+type alias Toast =
+    { context : ErrorContext
+    , error : String
+    }

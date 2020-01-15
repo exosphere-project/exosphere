@@ -3,12 +3,12 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Modifier as Modifier
-import Helpers.Helpers as Helpers
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest)
+import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
 import Rest.Rest as Rest
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -187,6 +187,13 @@ actions =
 
 doAction : Json.Encode.Value -> Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
 doAction body project maybeProxyUrl server =
+    let
+        errorContext =
+            ErrorContext
+                ("perform action for server " ++ server.osProps.uuid)
+                ErrorCrit
+                Nothing
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
@@ -194,5 +201,5 @@ doAction body project maybeProxyUrl server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString
-            (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveServerAction server.osProps.uuid result))
+            (resultToMsg errorContext (\_ -> NoOp))
         )

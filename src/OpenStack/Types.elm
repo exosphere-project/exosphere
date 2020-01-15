@@ -158,7 +158,8 @@ type alias OpenstackLogin =
 
 type CredentialsForAuthToken
     = PasswordCreds OpenstackLogin
-    | AppCreds KeystoneUrl ApplicationCredential
+      -- String is a project name
+    | AppCreds KeystoneUrl String ApplicationCredential
 
 
 

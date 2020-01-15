@@ -5,13 +5,14 @@ module OpenStack.Volumes exposing
     , volumeLookup
     )
 
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (openstackCredentialedRequest)
+import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -34,6 +35,21 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
                         ]
                   )
                 ]
+
+        errorContext =
+            ErrorContext
+                ("create a volume of size " ++ String.fromInt createVolumeRequest.size ++ " GB")
+                ErrorCrit
+                (Just "Confirm that your quota has sufficient capacity to create a volume of this size, perhaps check with your cloud administrator.")
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        ReceiveCreateVolume
+                )
     in
     openstackCredentialedRequest
         project
@@ -41,29 +57,63 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
         Post
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
-        (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveCreateVolume result)) (Decode.field "volume" <| volumeDecoder))
+        (Http.expectJson
+            resultToMsg_
+            (Decode.field "volume" <| volumeDecoder)
+        )
 
 
 requestVolumes : Project -> Maybe HelperTypes.Url -> Cmd Msg
 requestVolumes project maybeProxyUrl =
+    let
+        errorContext =
+            ErrorContext
+                "get a list of volumes"
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\vols ->
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                        (ReceiveVolumes vols)
+                )
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
         Get
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
-        (Http.expectJson (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveVolumes result)) (Decode.field "volumes" (Decode.list volumeDecoder)))
+        (Http.expectJson
+            resultToMsg_
+            (Decode.field "volumes" <| Decode.list volumeDecoder)
+        )
 
 
 requestDeleteVolume : Project -> Maybe HelperTypes.Url -> OSTypes.VolumeUuid -> Cmd Msg
 requestDeleteVolume project maybeProxyUrl volumeUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("delete volume " ++ volumeUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveDeleteVolume)
+    in
     openstackCredentialedRequest
         project
         maybeProxyUrl
         Delete
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
-        (Http.expectString (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveDeleteVolume result)))
+        (Http.expectString resultToMsg_)
 
 
 volumeDecoder : Decode.Decoder OSTypes.Volume

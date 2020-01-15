@@ -3,31 +3,42 @@ module View.Toast exposing (toast)
 import Element
 import Element.Font as Font
 import Element.Region as Region
+import Error exposing (ErrorLevel(..))
 import Html exposing (Html)
 import Html.Attributes
-import Toasty.Defaults
-import Types.Types exposing (Msg)
+import Types.Types exposing (Msg, Toast)
 
 
-toast : Toasty.Defaults.Toast -> Html Msg
+toast : Toast -> Html Msg
 toast t =
     let
+        ( class, title ) =
+            case t.context.level of
+                ErrorDebug ->
+                    ( "toasty-success", "Debug Message" )
+
+                ErrorInfo ->
+                    ( "toasty-success", "Info" )
+
+                ErrorWarn ->
+                    ( "toasty-warning", "Warning" )
+
+                ErrorCrit ->
+                    ( "toasty-error", "Error" )
+
         toastElement =
-            case t of
-                Toasty.Defaults.Success title message ->
-                    genericToast "toasty-success" title message
-
-                Toasty.Defaults.Warning title message ->
-                    genericToast "toasty-warning" title message
-
-                Toasty.Defaults.Error title message ->
-                    genericToast "toasty-error" title message
+            genericToast
+                class
+                title
+                t.context.actionContext
+                t.error
+                t.context.recoveryHint
     in
     Element.layoutWith { options = [ Element.noStaticStyleSheet ] } [] toastElement
 
 
-genericToast : String -> String -> String -> Element.Element Msg
-genericToast variantClass title message =
+genericToast : String -> String -> String -> a -> Maybe String -> Element.Element Msg
+genericToast variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")
         , Element.htmlAttribute (Html.Attributes.class variantClass)
@@ -41,14 +52,26 @@ genericToast variantClass title message =
             , Font.size 14
             ]
             (Element.text title)
-        , if String.isEmpty message then
-            Element.text ""
+        , Element.column
+            [ Element.htmlAttribute (Html.Attributes.class "toasty-message")
+            , Font.size 12
+            , Element.spacing 10
+            ]
+            [ Element.paragraph []
+                [ Element.text "While Exosphere was trying to "
+                , Element.text actionContext
+                , Element.text ", this happened:"
+                ]
+            , Element.paragraph []
+                [ Element.text <| Debug.toString error ]
+            , case maybeRecoveryHint of
+                Just recoveryHint ->
+                    Element.paragraph []
+                        [ Element.text "Hint: "
+                        , Element.text recoveryHint
+                        ]
 
-          else
-            Element.paragraph
-                [ Element.htmlAttribute (Html.Attributes.class "toasty-message")
-                , Font.size 12
-                ]
-                [ Element.text message
-                ]
+                Nothing ->
+                    Element.none
+            ]
         ]

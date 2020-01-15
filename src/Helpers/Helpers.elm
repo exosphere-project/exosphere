@@ -36,6 +36,7 @@ module Helpers.Helpers exposing
 
 import Color
 import Debug
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
 import Html
 import Html.Attributes
@@ -44,6 +45,7 @@ import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import Task
 import Time
 import Toasty
 import Toasty.Defaults
@@ -56,6 +58,7 @@ import Types.Types
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
+        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -63,6 +66,7 @@ import Types.Types
         , ProjectIdentifier
         , Server
         , ServerUiStatus(..)
+        , Toast
         , UnscopedProvider
         )
 import Url
@@ -93,22 +97,25 @@ toastConfig =
         |> Toasty.containerAttrs containerAttrs
 
 
-processError : Model -> a -> ( Model, Cmd Msg )
-processError model error =
+processError : Model -> ErrorContext -> a -> ( Model, Cmd Msg )
+processError model errorContext error =
     let
-        errorString =
-            Debug.toString error
-
-        newMsgs =
-            errorString :: model.messages
-
-        newModel =
-            { model | messages = newMsgs }
+        logMessageProto =
+            LogMessage
+                (Debug.toString error)
+                errorContext
 
         toast =
-            Toasty.Defaults.Error "Error" errorString
+            Toast
+                errorContext
+                (Debug.toString error)
+
+        cmd =
+            Task.perform
+                (\posix -> NewLogMessage (logMessageProto posix))
+                Time.now
     in
-    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
+    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( model, cmd )
 
 
 stringIsUuidOrDefault : String -> Bool

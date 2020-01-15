@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
+import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Http
@@ -24,6 +25,7 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -34,6 +36,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , Toast
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
@@ -74,7 +77,7 @@ chpasswd:
 
         emptyModel : Model
         emptyModel =
-            { messages = []
+            { logMessages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
@@ -168,6 +171,13 @@ updateUnderlying msg model =
         ToastyMsg subMsg ->
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
 
+        NewLogMessage logMessage ->
+            let
+                newLogMessages =
+                    logMessage :: model.logMessages
+            in
+            ( { model | logMessages = newLogMessages }, Cmd.none )
+
         MsgChangeWindowSize x y ->
             ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
 
@@ -208,6 +218,9 @@ updateUnderlying msg model =
                 _ ->
                     ( newModel, Cmd.none )
 
+        HandleApiError errorContext error ->
+            processApiError model errorContext error
+
         RequestUnscopedToken openstackLoginUnscoped ->
             ( model, Rest.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
 
@@ -231,107 +244,113 @@ updateUnderlying msg model =
             in
             ( model, Cmd.batch cmds )
 
-        ReceiveScopedAuthToken maybePassword responseResult ->
-            case responseResult of
+        ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
+            case Rest.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError model error
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            "decode scoped auth token"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
 
-                Ok ( metadata, response ) ->
-                    case Rest.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
-                        Err error ->
-                            Helpers.processError model error
+                Ok authToken ->
+                    let
+                        projectId =
+                            ProjectIdentifier
+                                authToken.project.name
+                                (Helpers.serviceCatalogToEndpoints authToken.catalog).keystone
+                    in
+                    -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                    -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                    case
+                        ( Helpers.projectLookup model <| projectId, maybePassword )
+                    of
+                        ( Nothing, Nothing ) ->
+                            Helpers.processError
+                                model
+                                (ErrorContext
+                                    "this is an impossible state"
+                                    ErrorCrit
+                                    (Just "The laws of physics and logic have been violated, check with your universe administrator")
+                                )
+                                "This is an impossible state"
 
-                        Ok authToken ->
+                        ( Nothing, Just password ) ->
+                            createProject model password authToken
+
+                        ( Just project, _ ) ->
+                            -- If we don't have an application credential for this project yet, then get one
                             let
-                                projectId =
-                                    ProjectIdentifier
-                                        authToken.project.name
-                                        (Helpers.serviceCatalogToEndpoints authToken.catalog).keystone
+                                appCredCmd =
+                                    case project.secret of
+                                        ApplicationCredential _ ->
+                                            Cmd.none
+
+                                        _ ->
+                                            getTimeForAppCredential project
+
+                                ( newModel, updateTokenCmd ) =
+                                    projectUpdateAuthToken model project authToken
                             in
-                            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-                            case
-                                ( Helpers.projectLookup model <| projectId, maybePassword )
-                            of
-                                ( Nothing, Nothing ) ->
-                                    Helpers.processError model "This is an impossible state"
+                            ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
-                                ( Nothing, Just password ) ->
-                                    createProject model password authToken
-
-                                ( Just project, _ ) ->
-                                    -- If we don't have an application credential for this project yet, then get one
-                                    let
-                                        appCredCmd =
-                                            case project.secret of
-                                                ApplicationCredential _ ->
-                                                    Cmd.none
-
-                                                _ ->
-                                                    getTimeForAppCredential project
-
-                                        ( newModel, updateTokenCmd ) =
-                                            projectUpdateAuthToken model project authToken
-                                    in
-                                    ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
-
-        ReceiveUnscopedAuthToken keystoneUrl password responseResult ->
-            case responseResult of
+        ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
+            case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError model error
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            "decode scoped auth token"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
 
-                Ok ( metadata, response ) ->
-                    case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
-                        Err error ->
-                            Helpers.processError model error
-
-                        Ok authToken ->
-                            case
-                                Helpers.providerLookup model keystoneUrl
-                            of
-                                Just unscopedProvider ->
-                                    -- We already have an unscoped provider in the model with the same auth URL, update its token
-                                    unscopedProviderUpdateAuthToken model unscopedProvider authToken
-
-                                Nothing ->
-                                    -- We don't have an unscoped provider with the same auth URL, create it
-                                    createUnscopedProvider model password authToken keystoneUrl
-
-        ReceiveUnscopedProjects keystoneUrl result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
-
-                Ok unscopedProjects ->
+                Ok authToken ->
                     case
                         Helpers.providerLookup model keystoneUrl
                     of
-                        Just provider ->
-                            let
-                                newProvider =
-                                    { provider | projectsAvailable = RemoteData.Success unscopedProjects }
-
-                                newModel =
-                                    Helpers.modelUpdateUnscopedProvider model newProvider
-
-                                newModelWithView =
-                                    -- If we are not already on a SelectProjects view, then go there
-                                    case newModel.viewState of
-                                        NonProjectView (SelectProjects _ _) ->
-                                            newModel
-
-                                        _ ->
-                                            { newModel
-                                                | viewState =
-                                                    NonProjectView <|
-                                                        SelectProjects newProvider.authUrl []
-                                            }
-                            in
-                            ( newModelWithView, Cmd.none )
+                        Just unscopedProvider ->
+                            -- We already have an unscoped provider in the model with the same auth URL, update its token
+                            unscopedProviderUpdateAuthToken model unscopedProvider authToken
 
                         Nothing ->
-                            -- Provider not found, may have been removed, nothing to do
-                            ( model, Cmd.none )
+                            -- We don't have an unscoped provider with the same auth URL, create it
+                            createUnscopedProvider model password authToken keystoneUrl
+
+        ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
+            case
+                Helpers.providerLookup model keystoneUrl
+            of
+                Just provider ->
+                    let
+                        newProvider =
+                            { provider | projectsAvailable = RemoteData.Success unscopedProjects }
+
+                        newModel =
+                            Helpers.modelUpdateUnscopedProvider model newProvider
+
+                        newModelWithView =
+                            -- If we are not already on a SelectProjects view, then go there
+                            case newModel.viewState of
+                                NonProjectView (SelectProjects _ _) ->
+                                    newModel
+
+                                _ ->
+                                    { newModel
+                                        | viewState =
+                                            NonProjectView <|
+                                                SelectProjects newProvider.authUrl []
+                                    }
+                    in
+                    ( newModelWithView, Cmd.none )
+
+                Nothing ->
+                    -- Provider not found, may have been removed, nothing to do
+                    ( model, Cmd.none )
 
         RequestProjectLoginFromProvider keystoneUrl password desiredProjects ->
             case Helpers.providerLookup model keystoneUrl of
@@ -383,7 +402,14 @@ updateUnderlying msg model =
                     ( newModel, Cmd.batch loginRequests )
 
                 Nothing ->
-                    Helpers.processError model "Could not find provider"
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
+                            ErrorCrit
+                            Nothing
+                        )
+                        "Provider could not found in Exosphere's list of Providers."
 
         ProjectMsg projectIdentifier innerMsg ->
             case Helpers.projectLookup model projectIdentifier of
@@ -630,7 +656,14 @@ processProjectSpecificMsg model project msg =
                     ( model, OSSvrVols.requestDetachVolume project model.proxyUrl serverUuid volumeUuid )
 
                 Nothing ->
-                    Helpers.processError model "Could not determine server UUID"
+                    Helpers.processError
+                        model
+                        (ErrorContext
+                            ("look for server UUID with attached volume " ++ volumeUuid)
+                            ErrorCrit
+                            Nothing
+                        )
+                        "Could not determine server attached to this volume."
 
         RequestCreateServerImage serverUuid imageName ->
             let
@@ -639,8 +672,8 @@ processProjectSpecificMsg model project msg =
             in
             ( newModel, Rest.requestCreateServerImage project model.proxyUrl serverUuid imageName )
 
-        ReceiveImages result ->
-            Rest.receiveImages model project result
+        ReceiveImages images ->
+            Rest.receiveImages model project images
 
         RequestDeleteServers serversToDelete ->
             let
@@ -707,25 +740,25 @@ processProjectSpecificMsg model project msg =
             , Cmd.none
             )
 
-        ReceiveServers result ->
-            Rest.receiveServers model project result
+        ReceiveServers servers ->
+            Rest.receiveServers model project servers
 
-        ReceiveServer serverUuid result ->
-            Rest.receiveServer model project serverUuid result
+        ReceiveServer serverUuid server ->
+            Rest.receiveServer model project serverUuid server
 
-        ReceiveConsoleUrl serverUuid result ->
-            Rest.receiveConsoleUrl model project serverUuid result
+        ReceiveConsoleUrl serverUuid url ->
+            Rest.receiveConsoleUrl model project serverUuid url
 
-        ReceiveFlavors result ->
-            Rest.receiveFlavors model project result
+        ReceiveFlavors flavors ->
+            Rest.receiveFlavors model project flavors
 
-        ReceiveKeypairs result ->
-            Rest.receiveKeypairs model project result
+        ReceiveKeypairs keypairs ->
+            Rest.receiveKeypairs model project keypairs
 
-        ReceiveCreateServer result ->
-            Rest.receiveCreateServer model project result
+        ReceiveCreateServer serverUuid ->
+            Rest.receiveCreateServer model project serverUuid
 
-        ReceiveDeleteServer serverUuid maybeIpAddress result ->
+        ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
                 ( serverDeletedModel, newCmd ) =
                     let
@@ -735,7 +768,7 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             { model | viewState = viewState }
                     in
-                    Rest.receiveDeleteServer newModel project serverUuid result
+                    Rest.receiveDeleteServer newModel project serverUuid
 
                 ( deleteIpAddressModel, deleteIpAddressCmd ) =
                     case maybeIpAddress of
@@ -759,103 +792,61 @@ processProjectSpecificMsg model project msg =
             in
             ( deleteIpAddressModel, Cmd.batch [ newCmd, deleteIpAddressCmd ] )
 
-        ReceiveNetworks result ->
-            Rest.receiveNetworks model project result
+        ReceiveNetworks nets ->
+            Rest.receiveNetworks model project nets
 
-        ReceiveFloatingIps result ->
-            Rest.receiveFloatingIps model project result
+        ReceiveFloatingIps ips ->
+            Rest.receiveFloatingIps model project ips
 
-        GetFloatingIpReceivePorts serverUuid result ->
-            Rest.receivePortsAndRequestFloatingIp model project serverUuid result
+        GetFloatingIpReceivePorts serverUuid ports ->
+            Rest.receivePortsAndRequestFloatingIp model project serverUuid ports
 
-        ReceiveCreateFloatingIp serverUuid result ->
-            Rest.receiveCreateFloatingIp model project serverUuid result
+        ReceiveCreateFloatingIp serverUuid ip ->
+            Rest.receiveCreateFloatingIp model project serverUuid ip
 
-        ReceiveDeleteFloatingIp uuid result ->
-            Rest.receiveDeleteFloatingIp model project uuid result
+        ReceiveDeleteFloatingIp uuid ->
+            Rest.receiveDeleteFloatingIp model project uuid
 
-        ReceiveSecurityGroups result ->
-            Rest.receiveSecurityGroupsAndEnsureExoGroup model project result
+        ReceiveSecurityGroups groups ->
+            Rest.receiveSecurityGroupsAndEnsureExoGroup model project groups
 
-        ReceiveCreateExoSecurityGroup result ->
-            Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model project result
-
-        ReceiveCreateExoSecurityGroupRules _ ->
-            {- Todo this ignores the result of security group rule creation API call, we should display errors to user -}
-            ( model, Cmd.none )
+        ReceiveCreateExoSecurityGroup group ->
+            Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model project group
 
         ReceiveCockpitLoginStatus serverUuid result ->
             Rest.receiveCockpitLoginStatus model project serverUuid result
 
-        ReceiveServerAction _ result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
+        ReceiveCreateVolume ->
+            {- Should we add new volume to model now? -}
+            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
 
-                Ok _ ->
-                    ( model, Cmd.none )
+        ReceiveVolumes volumes ->
+            let
+                newProject =
+                    { project | volumes = RemoteData.succeed volumes }
 
-        ReceiveCreateVolume result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
+                newModel =
+                    Helpers.modelUpdateProject model newProject
+            in
+            ( newModel, Cmd.none )
 
-                Ok _ ->
-                    {- Should we add new volume to model now? -}
-                    update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
+        ReceiveDeleteVolume ->
+            ( model, OSVolumes.requestVolumes project model.proxyUrl )
 
-        ReceiveVolumes result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
+        ReceiveAttachVolume attachment ->
+            {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
+            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| MountVolInstructions attachment) model
 
-                Ok volumes ->
-                    let
-                        newProject =
-                            { project | volumes = RemoteData.succeed volumes }
+        ReceiveDetachVolume ->
+            {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
+            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
 
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-                    in
-                    ( newModel, Cmd.none )
-
-        ReceiveDeleteVolume result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
-
-                Ok _ ->
-                    ( model, OSVolumes.requestVolumes project model.proxyUrl )
-
-        ReceiveAttachVolume result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
-
-                Ok attachment ->
-                    {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-                    update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| MountVolInstructions attachment) model
-
-        ReceiveDetachVolume result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
-
-                Ok _ ->
-                    {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-                    update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
-
-        ReceiveAppCredential result ->
-            case result of
-                Err error ->
-                    Helpers.processError model error
-
-                Ok appCredential ->
-                    let
-                        newProject =
-                            { project | secret = ApplicationCredential appCredential }
-                    in
-                    ( Helpers.modelUpdateProject model newProject, Cmd.none )
+        ReceiveAppCredential appCredential ->
+            let
+                newProject =
+                    { project | secret = ApplicationCredential appCredential }
+            in
+            ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
         RequestAppCredential posix ->
             ( model, Rest.requestAppCredential project model.proxyUrl posix )
@@ -1008,6 +999,25 @@ requestAuthToken model project =
                             password
 
                 ApplicationCredential appCred ->
-                    OSTypes.AppCreds project.endpoints.keystone appCred
+                    OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
     Rest.requestScopedAuthToken model.proxyUrl creds
+
+
+processApiError : Model -> ErrorContext -> Http.Error -> ( Model, Cmd Msg )
+processApiError model errorContext httpError =
+    let
+        logMessageProto =
+            LogMessage
+                (Debug.toString httpError)
+                errorContext
+    in
+    Toasty.addToastIfUnique
+        Helpers.toastConfig
+        ToastyMsg
+        (Toast errorContext (Debug.toString httpError))
+        ( model
+        , Task.perform
+            (\posix -> NewLogMessage (logMessageProto posix))
+            Time.now
+        )
