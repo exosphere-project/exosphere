@@ -114,68 +114,67 @@ projectNav p viewParams =
 
 createButton : ProjectIdentifier -> Bool -> Element.Element Msg
 createButton projectId expanded =
-    case expanded of
-        False ->
-            Element.column
-                []
-                [ iconButton
-                    [ Modifier.Primary ]
-                    (Just <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
-                    )
-                    (Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Create"
-                        , downArrow Color.white 15
-                        ]
-                    )
-                ]
+    if expanded then
+        let
+            belowStuff =
+                Element.column
+                    [ Element.spacing 5
+                    , Element.paddingEach
+                        { top = 5
+                        , bottom = 0
+                        , right = 0
+                        , left = 0
+                        }
+                    ]
+                    [ Button.button
+                        []
+                        (Just <|
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ListImages { searchText = "", tag = "" }
+                        )
+                        "Server"
 
-        True ->
-            let
-                belowStuff =
-                    Element.column
-                        [ Element.spacing 5
-                        , Element.paddingEach
-                            { top = 5
-                            , bottom = 0
-                            , right = 0
-                            , left = 0
-                            }
-                        ]
-                        [ Button.button
-                            []
-                            (Just <|
-                                ProjectMsg projectId <|
-                                    SetProjectView <|
-                                        ListImages { searchText = "", tag = "" }
-                            )
-                            "Server"
+                    {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
+                    , Button.button
+                        []
+                        (Just <|
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    CreateVolume "" "10"
+                        )
+                        "Volume"
+                    ]
+        in
+        Element.column
+            [ Element.below belowStuff ]
+            [ iconButton
+                [ Modifier.Primary ]
+                (Just <|
+                    ProjectMsg projectId <|
+                        ToggleCreatePopup
+                )
+                (Element.row
+                    [ Element.spacing 5 ]
+                    [ Element.text "Create"
+                    , upArrow Color.white 15
+                    ]
+                )
+            ]
 
-                        {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
-                        , Button.button
-                            []
-                            (Just <|
-                                ProjectMsg projectId <|
-                                    SetProjectView <|
-                                        CreateVolume "" "10"
-                            )
-                            "Volume"
-                        ]
-            in
-            Element.column
-                [ Element.below belowStuff ]
-                [ iconButton
-                    [ Modifier.Primary ]
-                    (Just <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
-                    )
-                    (Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Create"
-                        , upArrow Color.white 15
-                        ]
-                    )
-                ]
+    else
+        Element.column
+            []
+            [ iconButton
+                [ Modifier.Primary ]
+                (Just <|
+                    ProjectMsg projectId <|
+                        ToggleCreatePopup
+                )
+                (Element.row
+                    [ Element.spacing 5 ]
+                    [ Element.text "Create"
+                    , downArrow Color.white 15
+                    ]
+                )
+            ]
