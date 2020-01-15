@@ -796,14 +796,25 @@ processProjectSpecificMsg model project msg =
             let
                 ( serverDeletedModel, newCmd ) =
                     let
-                        viewState =
-                            ProjectView (Helpers.getProjectId project) { createPopup = False } <| ListProjectServers { onlyOwnServers = False }
+                        newViewState =
+                            case model.viewState of
+                                ProjectView projectId viewParams (ServerDetail viewServerUuid _) ->
+                                    if viewServerUuid == serverUuid then
+                                        ProjectView
+                                            projectId
+                                            viewParams
+                                            (ListProjectServers { onlyOwnServers = False })
 
-                        newModel =
-                            { model | viewState = viewState }
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
                     in
-                    -- TODO confirm view state looks copasetic after deleting a server (perhaps while in the server details view)
-                    Rest.receiveDeleteServer newModel project serverUuid
+                    Rest.receiveDeleteServer
+                        { model | viewState = newViewState }
+                        project
+                        serverUuid
 
                 ( deleteIpAddressModel, deleteIpAddressCmd ) =
                     case maybeIpAddress of
