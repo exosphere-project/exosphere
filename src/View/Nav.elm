@@ -44,7 +44,7 @@ navMenu model =
 
                 status =
                     case model.viewState of
-                        ProjectView p _ ->
+                        ProjectView p _ _ ->
                             if p == Helpers.getProjectId project then
                                 MenuItem.Active
 

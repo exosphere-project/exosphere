@@ -72,13 +72,17 @@ elementView maybeWindowSize model =
                             HelpAbout ->
                                 View.HelpAbout.helpAbout model
 
-                    ProjectView projectName viewConstructor ->
+                    ProjectView projectName projectViewParams viewConstructor ->
                         case Helpers.projectLookup model projectName of
                             Nothing ->
                                 Element.text "Oops! Project not found"
 
                             Just project ->
-                                View.Project.project model project viewConstructor
+                                View.Project.project
+                                    model
+                                    project
+                                    projectViewParams
+                                    viewConstructor
                 , Element.html (Toasty.view Helpers.toastConfig View.Toast.toast ToastyMsg model.toasties)
                 ]
     in

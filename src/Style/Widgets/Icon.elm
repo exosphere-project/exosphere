@@ -1,4 +1,4 @@
-module Style.Widgets.Icon exposing (bell, copyToClipboard, question, remove, rightArrow, roundRect)
+module Style.Widgets.Icon exposing (bell, copyToClipboard, downArrow, question, remove, rightArrow, roundRect, upArrow)
 
 import Color
 import Element
@@ -46,6 +46,52 @@ question_ cl size =
 
             -- From https://github.com/encharm/Font-Awesome-SVG-PNG/blob/master/black/svg/question-circle.svg
             , SA.d "M1024 1376v-192q0-14-9-23t-23-9h-192q-14 0-23 9t-9 23v192q0 14 9 23t23 9h192q14 0 23-9t9-23zm256-672q0-88-55.5-163t-138.5-116-170-41q-243 0-371 213-15 24 8 42l132 100q7 6 19 6 16 0 25-12 53-68 86-92 34-24 86-24 48 0 85.5 26t37.5 59q0 38-20 61t-68 45q-63 28-115.5 86.5t-52.5 125.5v36q0 14 9 23t23 9h192q14 0 23-9t9-23q0-19 21.5-49.5t54.5-49.5q32-18 49-28.5t46-35 44.5-48 28-60.5 12.5-81zm384 192q0 209-103 385.5t-279.5 279.5-385.5 103-385.5-103-279.5-279.5-103-385.5 103-385.5 279.5-279.5 385.5-103 385.5 103 279.5 279.5 103 385.5z"
+            ]
+            []
+        ]
+
+
+downArrow : Color.Color -> Int -> Element.Element msg
+downArrow cl size =
+    Element.el [] <|
+        Element.html <|
+            downArrow_ cl size
+
+
+downArrow_ : Color.Color -> Int -> Html.Html msg
+downArrow_ cl size =
+    Svg.svg
+        [ SA.viewBox "0 0 1792 1792"
+        , SA.height <| String.fromInt size
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+
+            -- From https://github.com/encharm/Font-Awesome-SVG-PNG/blob/master/black/svg/arrow-down.svg
+            , SA.d "M1675 832q0 53-37 90l-651 652q-39 37-91 37-53 0-90-37l-651-652q-38-36-38-90 0-53 38-91l74-75q39-37 91-37 53 0 90 37l294 294v-704q0-52 38-90t90-38h128q52 0 90 38t38 90v704l294-294q37-37 90-37 52 0 91 37l75 75q37 39 37 91z"
+            ]
+            []
+        ]
+
+
+upArrow : Color.Color -> Int -> Element.Element msg
+upArrow cl size =
+    Element.el [] <|
+        Element.html <|
+            upArrow_ cl size
+
+
+upArrow_ : Color.Color -> Int -> Html.Html msg
+upArrow_ cl size =
+    Svg.svg
+        [ SA.viewBox "0 0 1792 1792"
+        , SA.height <| String.fromInt size
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+
+            -- From https://github.com/encharm/Font-Awesome-SVG-PNG/blob/master/black/svg/arrow-up.svg
+            , SA.d "M1675 971q0 51-37 90l-75 75q-38 38-91 38-54 0-90-38l-294-293v704q0 52-37.5 84.5t-90.5 32.5h-128q-53 0-90.5-32.5t-37.5-84.5v-704l-294 293q-36 38-90 38t-90-38l-75-75q-38-38-38-90 0-53 38-91l651-651q35-37 90-37 54 0 91 37l651 651q37 39 37 91z"
             ]
             []
         ]

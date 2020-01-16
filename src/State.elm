@@ -128,7 +128,7 @@ chpasswd:
             List.map getTimeForAppCredential projectsNeedingAppCredentials
     in
     case hydratedModel.viewState of
-        ProjectView projectName (ListProjectServers _) ->
+        ProjectView projectName _ (ListProjectServers _) ->
             let
                 ( newModel, newCmds ) =
                     update (ProjectMsg projectName RequestServers) hydratedModel
@@ -186,7 +186,7 @@ updateUnderlying msg model =
                 NonProjectView _ ->
                     ( model, Cmd.none )
 
-                ProjectView projectName projectViewState ->
+                ProjectView projectName _ projectViewState ->
                     case Helpers.projectLookup model projectName of
                         Nothing ->
                             {- Should this throw an error? -}
@@ -390,7 +390,10 @@ updateUnderlying msg model =
                                     -- If we have at least one project then show it, else show the login page
                                     case List.head model.projects of
                                         Just project ->
-                                            ProjectView (Helpers.getProjectId project) <|
+                                            ProjectView
+                                                (Helpers.getProjectId project)
+                                                { createPopup = False }
+                                            <|
                                                 ListProjectServers { onlyOwnServers = False }
 
                                         Nothing ->
@@ -447,7 +450,7 @@ processProjectSpecificMsg model project msg =
         SetProjectView projectViewConstructor ->
             let
                 newModel =
-                    { model | viewState = ProjectView (Helpers.getProjectId project) projectViewConstructor }
+                    { model | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
             in
             case projectViewConstructor of
                 ListImages _ ->
@@ -479,7 +482,7 @@ processProjectSpecificMsg model project msg =
                 CreateServer createServerRequest ->
                     case model.viewState of
                         -- If we are already in this view state then don't do all this stuff
-                        ProjectView _ (CreateServer _) ->
+                        ProjectView _ _ (CreateServer _) ->
                             ( newModel, Cmd.none )
 
                         _ ->
@@ -560,6 +563,24 @@ processProjectSpecificMsg model project msg =
                 in
                 ( newModel, requestAuthToken newModel newProject )
 
+        ToggleCreatePopup ->
+            case model.viewState of
+                ProjectView projectId viewParams viewConstructor ->
+                    ( { model
+                        | viewState =
+                            ProjectView
+                                projectId
+                                { viewParams
+                                    | createPopup = not viewParams.createPopup
+                                }
+                                viewConstructor
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
         RemoveProject ->
             let
                 newProjects =
@@ -571,11 +592,16 @@ processProjectSpecificMsg model project msg =
                             -- If we are not in a project-specific view then stay there
                             model.viewState
 
-                        ProjectView _ _ ->
+                        ProjectView _ _ _ ->
                             -- If we have any projects switch to the first one in the list, otherwise switch to login view
                             case List.head newProjects of
                                 Just p ->
-                                    ProjectView (Helpers.getProjectId p) <| ListProjectServers { onlyOwnServers = False }
+                                    ProjectView
+                                        (Helpers.getProjectId p)
+                                        { createPopup = False }
+                                    <|
+                                        ListProjectServers
+                                            { onlyOwnServers = False }
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -668,7 +694,15 @@ processProjectSpecificMsg model project msg =
         RequestCreateServerImage serverUuid imageName ->
             let
                 newModel =
-                    { model | viewState = ProjectView (Helpers.getProjectId project) <| ListProjectServers { onlyOwnServers = False } }
+                    { model
+                        | viewState =
+                            ProjectView
+                                (Helpers.getProjectId project)
+                                { createPopup = False }
+                            <|
+                                ListProjectServers
+                                    { onlyOwnServers = False }
+                    }
             in
             ( newModel, Rest.requestCreateServerImage project model.proxyUrl serverUuid imageName )
 
@@ -762,13 +796,25 @@ processProjectSpecificMsg model project msg =
             let
                 ( serverDeletedModel, newCmd ) =
                     let
-                        viewState =
-                            ProjectView (Helpers.getProjectId project) <| ListProjectServers { onlyOwnServers = False }
+                        newViewState =
+                            case model.viewState of
+                                ProjectView projectId viewParams (ServerDetail viewServerUuid _) ->
+                                    if viewServerUuid == serverUuid then
+                                        ProjectView
+                                            projectId
+                                            viewParams
+                                            (ListProjectServers { onlyOwnServers = False })
 
-                        newModel =
-                            { model | viewState = viewState }
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
                     in
-                    Rest.receiveDeleteServer newModel project serverUuid
+                    Rest.receiveDeleteServer
+                        { model | viewState = newViewState }
+                        project
+                        serverUuid
 
                 ( deleteIpAddressModel, deleteIpAddressCmd ) =
                     case maybeIpAddress of
@@ -885,8 +931,19 @@ createProject model password authToken =
                 NonProjectView (SelectProjects _ _) ->
                     model.viewState
 
-                _ ->
-                    ProjectView (Helpers.getProjectId newProject) <| ListProjectServers { onlyOwnServers = False }
+                NonProjectView _ ->
+                    ProjectView
+                        (Helpers.getProjectId newProject)
+                        { createPopup = False }
+                    <|
+                        ListProjectServers { onlyOwnServers = False }
+
+                ProjectView _ projectViewParams _ ->
+                    ProjectView
+                        (Helpers.getProjectId newProject)
+                        projectViewParams
+                    <|
+                        ListProjectServers { onlyOwnServers = False }
 
         newModel =
             { model
