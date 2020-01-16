@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
     , flavorLookup
+    , getBootVol
     , getExternalNetwork
     , getProjectId
     , getServerExouserPassword
@@ -701,6 +702,26 @@ volumeIsAttachedToServer volumeUuid server =
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
 getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
+
+
+getBootVol : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
+getBootVol vols serverUuid =
+    let
+        isBootVol volume =
+            volume.attachments
+                |> List.filter (\a -> a.serverUuid == serverUuid)
+                |> List.filter
+                    (\a ->
+                        List.member
+                            a.device
+                            [ "/dev/sda", "/dev/vda" ]
+                    )
+                |> List.isEmpty
+                |> not
+    in
+    vols
+        |> List.filter isBootVol
+        |> List.head
 
 
 jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin

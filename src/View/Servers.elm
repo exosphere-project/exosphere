@@ -130,9 +130,33 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                             |> Maybe.withDefault "Unknown flavor"
 
                     imageText =
-                        Helpers.imageLookup project details.imageUuid
-                            |> Maybe.map .name
-                            |> Maybe.withDefault "N/A"
+                        let
+                            maybeImageName =
+                                Helpers.imageLookup
+                                    project
+                                    details.imageUuid
+                                    |> Maybe.map .name
+
+                            maybeVolBackedImageName =
+                                let
+                                    vols =
+                                        RemoteData.withDefault [] project.volumes
+                                in
+                                Helpers.getBootVol vols serverUuid
+                                    |> Maybe.andThen .imageMetadata
+                                    |> Maybe.map .name
+                        in
+                        case maybeImageName of
+                            Just name ->
+                                name
+
+                            Nothing ->
+                                case maybeVolBackedImageName of
+                                    Just name_ ->
+                                        name_
+
+                                    Nothing ->
+                                        "N/A"
 
                     maybeFloatingIp =
                         Helpers.getServerFloatingIp details.ipAddresses

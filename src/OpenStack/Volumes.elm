@@ -118,13 +118,14 @@ requestDeleteVolume project maybeProxyUrl volumeUuid =
 
 volumeDecoder : Decode.Decoder OSTypes.Volume
 volumeDecoder =
-    Decode.map6 OSTypes.Volume
+    Decode.map7 OSTypes.Volume
         (Decode.field "name" Decode.string)
         (Decode.field "id" Decode.string)
         (Decode.field "status" (Decode.string |> Decode.andThen volumeStatusDecoder))
         (Decode.field "size" Decode.int)
         (Decode.field "description" <| Decode.nullable Decode.string)
         (Decode.field "attachments" (Decode.list cinderVolumeAttachmentDecoder))
+        (Decode.maybe (Decode.field "volume_image_metadata" imageMetadataDecoder))
 
 
 volumeStatusDecoder : String -> Decode.Decoder OSTypes.VolumeStatus
@@ -200,6 +201,13 @@ cinderVolumeAttachmentDecoder =
         (Decode.field "server_id" Decode.string)
         (Decode.field "attachment_id" Decode.string)
         (Decode.field "device" Decode.string)
+
+
+imageMetadataDecoder : Decode.Decoder OSTypes.NameAndUuid
+imageMetadataDecoder =
+    Decode.map2 OSTypes.NameAndUuid
+        (Decode.field "image_name" Decode.string)
+        (Decode.field "image_id" Decode.string)
 
 
 volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume

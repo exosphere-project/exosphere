@@ -128,6 +128,12 @@ volumeDetail project volumeUuid =
                     , renderAttachments project volume
                     , VH.compactKVRow "Description:" <| Element.text <| Maybe.withDefault "" volume.description
                     , VH.compactKVRow "UUID:" <| copyableText volume.uuid
+                    , case volume.imageMetadata of
+                        Nothing ->
+                            Element.none
+
+                        Just metadata ->
+                            VH.compactKVRow "Created from image:" <| Element.text metadata.name
                     , volumeActionButtons project volume
                     ]
             )
