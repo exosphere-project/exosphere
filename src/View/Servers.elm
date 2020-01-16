@@ -651,10 +651,16 @@ serverVolumes project server =
         vols =
             Helpers.getVolsAttachedToServer project server
 
-        isBootVol v =
-            v.attachments
-                |> List.map .device
-                |> List.member "/dev/vda"
+        device vol =
+            vol.attachments
+                |> List.filter (\a -> a.serverUuid == server.osProps.uuid)
+                |> List.head
+                |> Maybe.map .device
+
+        isBootVol vol =
+            device vol
+                |> Maybe.map (\d -> List.member d [ "/dev/vda", "/dev/sda" ])
+                |> Maybe.withDefault False
     in
     case List.length vols of
         0 ->
@@ -681,6 +687,12 @@ serverVolumes project server =
                 renderVolume v =
                     Element.row VH.exoRowAttributes
                         [ Element.text <| VH.possiblyUntitledResource v.name "volume"
+                        , case device v of
+                            Just name ->
+                                Element.text ("as " ++ name)
+
+                            Nothing ->
+                                Element.none
                         , if isBootVol v then
                             Element.el
                                 [ Font.color <| Color.toElementColor <| Framework.Color.grey ]
@@ -693,4 +705,11 @@ serverVolumes project server =
                         ]
             in
             Element.column [ Element.spacing 3, Font.size 14 ]
-                (vols |> List.map renderVolume)
+                (vols
+                    |> List.sortBy
+                        (\v ->
+                            device v
+                                |> Maybe.withDefault "z"
+                        )
+                    |> List.map renderVolume
+                )
