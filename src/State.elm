@@ -533,8 +533,12 @@ processProjectSpecificMsg model project msg =
                 CreateVolume _ _ ->
                     ( newModel, Cmd.none )
 
-        ValidateTokenForCredentialedRequest requestNeedingToken posixTime ->
+        PrepareCredentialedRequest requestProto posixTime ->
             let
+                -- Add proxy URL
+                requestNeedingToken =
+                    requestProto model.proxyUrl
+
                 currentTimeMillis =
                     posixTime |> Time.posixToMillis
 
@@ -547,7 +551,7 @@ processProjectSpecificMsg model project msg =
             in
             if not tokenExpired then
                 -- Token still valid, fire the request with current token
-                ( model, requestNeedingToken project.auth.tokenValue model.proxyUrl )
+                ( model, requestNeedingToken project.auth.tokenValue )
 
             else
                 -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
@@ -1012,7 +1016,7 @@ sendPendingRequests model project =
     let
         -- Hydrate cmds with auth token
         cmds =
-            List.map (\pqr -> pqr project.auth.tokenValue model.proxyUrl) project.pendingCredentialedRequests
+            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
 
         -- Clear out pendingCredentialedRequests
         newProject =

@@ -35,15 +35,16 @@ httpRequestMethodStr method =
 openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
 openstackCredentialedRequest project method origUrl requestBody expect =
     {-
-       In order to ensure request is made with a valid token, perform a task
-       which checks the time to see if our auth token is still valid or has
-       expired. Pass along a function which accepts an auth token, and returns
-       a "hydrated" Cmd Msg (which sends the request to OpenStack API).
+       Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
+
+       To ensure request is made with a valid token, perform a task which checks the time to see if our auth token is
+       still valid or has expired. Pass along a function which accepts an auth token, and returns a fully prepared
+       Cmd Msg (which sends the request to OpenStack API).
 
     -}
     let
-        toRequestCmd : OSTypes.AuthTokenString -> Maybe HelperTypes.Url -> Cmd TT.Msg
-        toRequestCmd token maybeProxyUrl =
+        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd TT.Msg
+        requestProto maybeProxyUrl token =
             let
                 ( url, headers ) =
                     case maybeProxyUrl of
@@ -64,7 +65,7 @@ openstackCredentialedRequest project method origUrl requestBody expect =
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.ValidateTokenForCredentialedRequest toRequestCmd posixTime))
+        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.PrepareCredentialedRequest requestProto posixTime))
         Time.now
 
 

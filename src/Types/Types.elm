@@ -120,7 +120,7 @@ type alias Project =
     , floatingIps : List OSTypes.IpAddress
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
-    , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Maybe HelperTypes.Url -> Cmd Msg) -- Requests waiting for a valid auth token
+    , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     }
 
 
@@ -169,7 +169,7 @@ type Msg
 type ProjectSpecificMsgConstructor
     = SetProjectView ProjectViewConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
-    | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Maybe HelperTypes.Url -> Cmd Msg) Time.Posix
+    | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | RequestAppCredential Time.Posix
     | ToggleCreatePopup
     | RemoveProject
