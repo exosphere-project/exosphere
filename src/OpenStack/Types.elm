@@ -292,6 +292,7 @@ type alias Volume =
     , size : VolumeSize
     , description : Maybe VolumeDescription
     , attachments : List VolumeAttachment
+    , imageMetadata : Maybe NameAndUuid
     }
 
 
