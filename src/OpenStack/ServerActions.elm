@@ -10,7 +10,6 @@ import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
 import Rest.Rest as Rest
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -34,7 +33,7 @@ type alias ServerAction =
 
 
 type ActionType
-    = CmdAction (Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg)
+    = CmdAction (Project -> Server -> Cmd Msg)
     | UpdateAction (ProjectIdentifier -> Server -> Msg)
 
 
@@ -185,8 +184,8 @@ actions =
     ]
 
 
-doAction : Json.Encode.Value -> Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
-doAction body project maybeProxyUrl server =
+doAction : Json.Encode.Value -> Project -> Server -> Cmd Msg
+doAction body project server =
     let
         errorContext =
             ErrorContext
@@ -196,7 +195,6 @@ doAction body project maybeProxyUrl server =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Post
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)

@@ -201,10 +201,10 @@ updateUnderlying msg model =
                                     update (ProjectMsg projectName (RequestServer serverUuid)) model
 
                                 ListProjectVolumes ->
-                                    ( model, OSVolumes.requestVolumes project model.proxyUrl )
+                                    ( model, OSVolumes.requestVolumes project )
 
                                 VolumeDetail _ ->
-                                    ( model, OSVolumes.requestVolumes project model.proxyUrl )
+                                    ( model, OSVolumes.requestVolumes project )
 
                                 _ ->
                                     ( model, Cmd.none )
@@ -454,24 +454,24 @@ processProjectSpecificMsg model project msg =
             in
             case projectViewConstructor of
                 ListImages _ ->
-                    ( newModel, Rest.requestImages project model.proxyUrl )
+                    ( newModel, Rest.requestImages project )
 
                 ListProjectServers _ ->
                     ( newModel
                     , [ Rest.requestServers
                       , Rest.requestFloatingIps
                       ]
-                        |> List.map (\x -> x project model.proxyUrl)
+                        |> List.map (\x -> x project)
                         |> Cmd.batch
                     )
 
                 ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServer project model.proxyUrl serverUuid
-                        , Rest.requestFlavors project model.proxyUrl
-                        , Rest.requestImages project model.proxyUrl
-                        , OSVolumes.requestVolumes project model.proxyUrl
+                        [ Rest.requestServer project serverUuid
+                        , Rest.requestFlavors project
+                        , Rest.requestImages project
+                        , OSVolumes.requestVolumes project
                         , Ports.instantiateClipboardJs ()
                         ]
                     )
@@ -506,15 +506,15 @@ processProjectSpecificMsg model project msg =
                             in
                             ( newModel
                             , Cmd.batch
-                                [ Rest.requestFlavors project model.proxyUrl
-                                , Rest.requestKeypairs project model.proxyUrl
-                                , Rest.requestNetworks project model.proxyUrl
+                                [ Rest.requestFlavors project
+                                , Rest.requestKeypairs project
+                                , Rest.requestNetworks project
                                 , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
                                 ]
                             )
 
                 ListProjectVolumes ->
-                    ( newModel, OSVolumes.requestVolumes project model.proxyUrl )
+                    ( newModel, OSVolumes.requestVolumes project )
 
                 VolumeDetail _ ->
                     ( newModel, Cmd.none )
@@ -522,8 +522,8 @@ processProjectSpecificMsg model project msg =
                 AttachVolumeModal _ _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServers project model.proxyUrl
-                        , OSVolumes.requestVolumes project model.proxyUrl
+                        [ Rest.requestServers project
+                        , OSVolumes.requestVolumes project
                         ]
                     )
 
@@ -547,7 +547,7 @@ processProjectSpecificMsg model project msg =
             in
             if not tokenExpired then
                 -- Token still valid, fire the request with current token
-                ( model, requestNeedingToken project.auth.tokenValue )
+                ( model, requestNeedingToken project.auth.tokenValue model.proxyUrl )
 
             else
                 -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
@@ -612,13 +612,13 @@ processProjectSpecificMsg model project msg =
             ( newModel, Cmd.none )
 
         RequestServers ->
-            ( model, Rest.requestServers project model.proxyUrl )
+            ( model, Rest.requestServers project )
 
         RequestServer serverUuid ->
-            ( model, Rest.requestServer project model.proxyUrl serverUuid )
+            ( model, Rest.requestServer project serverUuid )
 
         RequestCreateServer createServerRequest ->
-            ( model, Rest.requestCreateServer project model.proxyUrl createServerRequest )
+            ( model, Rest.requestCreateServer project createServerRequest )
 
         RequestDeleteServer server ->
             let
@@ -634,7 +634,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServer newProject model.proxyUrl newServer )
+            ( newModel, Rest.requestDeleteServer newProject newServer )
 
         RequestServerAction server func targetStatus ->
             let
@@ -650,7 +650,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, func newProject model.proxyUrl newServer )
+            ( newModel, func newProject newServer )
 
         RequestCreateVolume name size ->
             let
@@ -659,13 +659,13 @@ processProjectSpecificMsg model project msg =
                     , size = size
                     }
             in
-            ( model, OSVolumes.requestCreateVolume project model.proxyUrl createVolumeRequest )
+            ( model, OSVolumes.requestCreateVolume project createVolumeRequest )
 
         RequestDeleteVolume volumeUuid ->
-            ( model, OSVolumes.requestDeleteVolume project model.proxyUrl volumeUuid )
+            ( model, OSVolumes.requestDeleteVolume project volumeUuid )
 
         RequestAttachVolume serverUuid volumeUuid ->
-            ( model, OSSvrVols.requestAttachVolume project model.proxyUrl serverUuid volumeUuid )
+            ( model, OSSvrVols.requestAttachVolume project serverUuid volumeUuid )
 
         RequestDetachVolume volumeUuid ->
             let
@@ -679,7 +679,7 @@ processProjectSpecificMsg model project msg =
             in
             case maybeServerUuid of
                 Just serverUuid ->
-                    ( model, OSSvrVols.requestDetachVolume project model.proxyUrl serverUuid volumeUuid )
+                    ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
 
                 Nothing ->
                     Helpers.processError
@@ -704,7 +704,7 @@ processProjectSpecificMsg model project msg =
                                     { onlyOwnServers = False }
                     }
             in
-            ( newModel, Rest.requestCreateServerImage project model.proxyUrl serverUuid imageName )
+            ( newModel, Rest.requestCreateServerImage project serverUuid imageName )
 
         ReceiveImages images ->
             Rest.receiveImages model project images
@@ -727,7 +727,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServers newProject model.proxyUrl serversToDelete )
+            ( newModel, Rest.requestDeleteServers newProject serversToDelete )
 
         SelectServer server newSelectionState ->
             let
@@ -834,7 +834,7 @@ processProjectSpecificMsg model project msg =
                                     ( serverDeletedModel, Cmd.none )
 
                                 Just uuid ->
-                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp project model.proxyUrl uuid )
+                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp project uuid )
             in
             ( deleteIpAddressModel, Cmd.batch [ newCmd, deleteIpAddressCmd ] )
 
@@ -877,7 +877,7 @@ processProjectSpecificMsg model project msg =
             ( newModel, Cmd.none )
 
         ReceiveDeleteVolume ->
-            ( model, OSVolumes.requestVolumes project model.proxyUrl )
+            ( model, OSVolumes.requestVolumes project )
 
         ReceiveAttachVolume attachment ->
             {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
@@ -895,7 +895,7 @@ processProjectSpecificMsg model project msg =
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
         RequestAppCredential posix ->
-            ( model, Rest.requestAppCredential project model.proxyUrl posix )
+            ( model, Rest.requestAppCredential project posix )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
@@ -956,7 +956,7 @@ createProject model password authToken =
       , Rest.requestSecurityGroups
       , Rest.requestFloatingIps
       ]
-        |> List.map (\x -> x newProject model.proxyUrl)
+        |> List.map (\x -> x newProject)
         |> (\l -> getTimeForAppCredential newProject :: l)
         |> Cmd.batch
     )
@@ -1012,7 +1012,7 @@ sendPendingRequests model project =
     let
         -- Hydrate cmds with auth token
         cmds =
-            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
+            List.map (\pqr -> pqr project.auth.tokenValue model.proxyUrl) project.pendingCredentialedRequests
 
         -- Clear out pendingCredentialedRequests
         newProject =

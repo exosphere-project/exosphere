@@ -32,8 +32,8 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : TT.Project -> Maybe HelperTypes.Url -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
-openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody expect =
+openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
+openstackCredentialedRequest project method origUrl requestBody expect =
     {-
        In order to ensure request is made with a valid token, perform a task
        which checks the time to see if our auth token is still valid or has
@@ -42,16 +42,17 @@ openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody ex
 
     -}
     let
-        ( url, headers ) =
-            case maybeProxyUrl of
-                Just proxyUrl ->
-                    proxyifyRequest proxyUrl origUrl
+        toRequestCmd : OSTypes.AuthTokenString -> Maybe HelperTypes.Url -> Cmd TT.Msg
+        toRequestCmd token maybeProxyUrl =
+            let
+                ( url, headers ) =
+                    case maybeProxyUrl of
+                        Just proxyUrl ->
+                            proxyifyRequest proxyUrl origUrl
 
-                Nothing ->
-                    ( origUrl, [] )
-
-        tokenToRequestCmd : OSTypes.AuthTokenString -> Cmd TT.Msg
-        tokenToRequestCmd token =
+                        Nothing ->
+                            ( origUrl, [] )
+            in
             Http.request
                 { method = httpRequestMethodStr method
                 , headers = Http.header "X-Auth-Token" token :: headers
@@ -63,7 +64,7 @@ openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody ex
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
+        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.ValidateTokenForCredentialedRequest toRequestCmd posixTime))
         Time.now
 
 
