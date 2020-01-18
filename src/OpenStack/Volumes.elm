@@ -13,7 +13,6 @@ import Json.Encode
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -23,8 +22,8 @@ import Types.Types
         )
 
 
-requestCreateVolume : Project -> Maybe HelperTypes.Url -> OSTypes.CreateVolumeRequest -> Cmd Msg
-requestCreateVolume project maybeProxyUrl createVolumeRequest =
+requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd Msg
+requestCreateVolume project createVolumeRequest =
     let
         body =
             Json.Encode.object
@@ -53,7 +52,6 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Post
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
@@ -63,8 +61,8 @@ requestCreateVolume project maybeProxyUrl createVolumeRequest =
         )
 
 
-requestVolumes : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestVolumes project maybeProxyUrl =
+requestVolumes : Project -> Cmd Msg
+requestVolumes project =
     let
         errorContext =
             ErrorContext
@@ -83,7 +81,6 @@ requestVolumes project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
@@ -93,8 +90,8 @@ requestVolumes project maybeProxyUrl =
         )
 
 
-requestDeleteVolume : Project -> Maybe HelperTypes.Url -> OSTypes.VolumeUuid -> Cmd Msg
-requestDeleteVolume project maybeProxyUrl volumeUuid =
+requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd Msg
+requestDeleteVolume project volumeUuid =
     let
         errorContext =
             ErrorContext
@@ -109,7 +106,6 @@ requestDeleteVolume project maybeProxyUrl volumeUuid =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Delete
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody

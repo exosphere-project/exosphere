@@ -307,8 +307,8 @@ requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
         }
 
 
-requestAppCredential : Project -> Maybe HelperTypes.Url -> Time.Posix -> Cmd Msg
-requestAppCredential project maybeProxyUrl posixTime =
+requestAppCredential : Project -> Time.Posix -> Cmd Msg
+requestAppCredential project posixTime =
     let
         appCredentialName =
             "exosphere-" ++ (String.fromInt <| Time.posixToMillis posixTime)
@@ -342,7 +342,6 @@ requestAppCredential project maybeProxyUrl posixTime =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Post
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
@@ -398,8 +397,8 @@ requestUnscopedProjects provider maybeProxyUrl =
         }
 
 
-requestImages : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestImages project maybeProxyUrl =
+requestImages : Project -> Cmd Msg
+requestImages project =
     let
         errorContext =
             ErrorContext
@@ -414,7 +413,6 @@ requestImages project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
@@ -424,8 +422,8 @@ requestImages project maybeProxyUrl =
         )
 
 
-requestServers : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestServers project maybeProxyUrl =
+requestServers : Project -> Cmd Msg
+requestServers project =
     let
         errorContext =
             ErrorContext
@@ -444,7 +442,6 @@ requestServers project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
@@ -454,8 +451,8 @@ requestServers project maybeProxyUrl =
         )
 
 
-requestServer : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> Cmd Msg
-requestServer project maybeProxyUrl serverUuid =
+requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServer project serverUuid =
     let
         errorContext =
             ErrorContext
@@ -474,7 +471,6 @@ requestServer project maybeProxyUrl serverUuid =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
@@ -484,8 +480,8 @@ requestServer project maybeProxyUrl serverUuid =
         )
 
 
-requestConsoleUrls : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> Cmd Msg
-requestConsoleUrls project maybeProxyUrl serverUuid =
+requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestConsoleUrls project serverUuid =
     -- This is a deprecated call, will eventually need to be updated
     -- See https://gitlab.com/exosphere/exosphere/issues/183
     let
@@ -511,7 +507,6 @@ requestConsoleUrls project maybeProxyUrl serverUuid =
             in
             openstackCredentialedRequest
                 project
-                maybeProxyUrl
                 Post
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
@@ -524,8 +519,8 @@ requestConsoleUrls project maybeProxyUrl serverUuid =
         |> Cmd.batch
 
 
-requestFlavors : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestFlavors project maybeProxyUrl =
+requestFlavors : Project -> Cmd Msg
+requestFlavors project =
     let
         errorContext =
             ErrorContext
@@ -540,7 +535,6 @@ requestFlavors project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
@@ -550,8 +544,8 @@ requestFlavors project maybeProxyUrl =
         )
 
 
-requestKeypairs : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestKeypairs project maybeProxyUrl =
+requestKeypairs : Project -> Cmd Msg
+requestKeypairs project =
     let
         errorContext =
             ErrorContext
@@ -566,7 +560,6 @@ requestKeypairs project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
@@ -576,8 +569,8 @@ requestKeypairs project maybeProxyUrl =
         )
 
 
-requestCreateServer : Project -> Maybe HelperTypes.Url -> CreateServerRequest -> Cmd Msg
-requestCreateServer project maybeProxyUrl createServerRequest =
+requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
+requestCreateServer project createServerRequest =
     let
         getServerCount =
             Maybe.withDefault 1 (String.toInt createServerRequest.count)
@@ -690,7 +683,6 @@ requestCreateServer project maybeProxyUrl createServerRequest =
                 (\requestBody ->
                     openstackCredentialedRequest
                         project
-                        maybeProxyUrl
                         Post
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
@@ -702,8 +694,8 @@ requestCreateServer project maybeProxyUrl createServerRequest =
         )
 
 
-requestDeleteServer : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
-requestDeleteServer project maybeProxyUrl server =
+requestDeleteServer : Project -> Server -> Cmd Msg
+requestDeleteServer project server =
     let
         getFloatingIp =
             server.osProps.details.ipAddresses
@@ -726,7 +718,6 @@ requestDeleteServer project maybeProxyUrl server =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Delete
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
@@ -735,17 +726,17 @@ requestDeleteServer project maybeProxyUrl server =
         )
 
 
-requestDeleteServers : Project -> Maybe HelperTypes.Url -> List Server -> Cmd Msg
-requestDeleteServers project maybeProxyUrl serversToDelete =
+requestDeleteServers : Project -> List Server -> Cmd Msg
+requestDeleteServers project serversToDelete =
     let
         deleteRequests =
-            List.map (requestDeleteServer project maybeProxyUrl) serversToDelete
+            List.map (requestDeleteServer project) serversToDelete
     in
     Cmd.batch deleteRequests
 
 
-requestNetworks : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestNetworks project maybeProxyUrl =
+requestNetworks : Project -> Cmd Msg
+requestNetworks project =
     let
         errorContext =
             ErrorContext
@@ -764,7 +755,6 @@ requestNetworks project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
@@ -774,8 +764,8 @@ requestNetworks project maybeProxyUrl =
         )
 
 
-requestFloatingIps : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestFloatingIps project maybeProxyUrl =
+requestFloatingIps : Project -> Cmd Msg
+requestFloatingIps project =
     let
         errorContext =
             ErrorContext
@@ -794,7 +784,6 @@ requestFloatingIps project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
@@ -804,8 +793,8 @@ requestFloatingIps project maybeProxyUrl =
         )
 
 
-getFloatingIpRequestPorts : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
-getFloatingIpRequestPorts project maybeProxyUrl server =
+getFloatingIpRequestPorts : Project -> Server -> Cmd Msg
+getFloatingIpRequestPorts project server =
     let
         errorContext =
             ErrorContext
@@ -824,7 +813,6 @@ getFloatingIpRequestPorts project maybeProxyUrl server =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
@@ -834,8 +822,8 @@ getFloatingIpRequestPorts project maybeProxyUrl server =
         )
 
 
-requestCreateFloatingIpIfRequestable : Model -> Project -> Maybe HelperTypes.Url -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-requestCreateFloatingIpIfRequestable model project maybeProxyUrl network port_ serverUuid =
+requestCreateFloatingIpIfRequestable : Model -> Project -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
+requestCreateFloatingIpIfRequestable model project network port_ serverUuid =
     case Helpers.serverLookup project serverUuid of
         Nothing ->
             -- Server not found, may have been deleted, nothing to do
@@ -844,14 +832,14 @@ requestCreateFloatingIpIfRequestable model project maybeProxyUrl network port_ s
         Just server ->
             case server.exoProps.floatingIpState of
                 Requestable ->
-                    requestCreateFloatingIp model project maybeProxyUrl network port_ server
+                    requestCreateFloatingIp model project network port_ server
 
                 _ ->
                     ( model, Cmd.none )
 
 
-requestCreateFloatingIp : Model -> Project -> Maybe HelperTypes.Url -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
-requestCreateFloatingIp model project maybeProxyUrl network port_ server =
+requestCreateFloatingIp : Model -> Project -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
+requestCreateFloatingIp model project network port_ server =
     let
         newServer =
             let
@@ -894,7 +882,6 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
         requestCmd =
             openstackCredentialedRequest
                 newProject
-                maybeProxyUrl
                 Post
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
@@ -906,8 +893,8 @@ requestCreateFloatingIp model project maybeProxyUrl network port_ server =
     ( newModel, requestCmd )
 
 
-requestDeleteFloatingIp : Project -> Maybe HelperTypes.Url -> OSTypes.IpAddressUuid -> Cmd Msg
-requestDeleteFloatingIp project maybeProxyUrl uuid =
+requestDeleteFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
+requestDeleteFloatingIp project uuid =
     let
         errorContext =
             ErrorContext
@@ -926,7 +913,6 @@ requestDeleteFloatingIp project maybeProxyUrl uuid =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Delete
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
@@ -935,8 +921,8 @@ requestDeleteFloatingIp project maybeProxyUrl uuid =
         )
 
 
-requestSecurityGroups : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestSecurityGroups project maybeProxyUrl =
+requestSecurityGroups : Project -> Cmd Msg
+requestSecurityGroups project =
     let
         errorContext =
             ErrorContext
@@ -955,7 +941,6 @@ requestSecurityGroups project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Get
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
@@ -965,8 +950,8 @@ requestSecurityGroups project maybeProxyUrl =
         )
 
 
-requestCreateExoSecurityGroup : Project -> Maybe HelperTypes.Url -> Cmd Msg
-requestCreateExoSecurityGroup project maybeProxyUrl =
+requestCreateExoSecurityGroup : Project -> Cmd Msg
+requestCreateExoSecurityGroup project =
     let
         desc =
             "Security group for instances launched via Exosphere"
@@ -998,7 +983,6 @@ requestCreateExoSecurityGroup project maybeProxyUrl =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Post
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
@@ -1008,8 +992,8 @@ requestCreateExoSecurityGroup project maybeProxyUrl =
         )
 
 
-requestCreateExoSecurityGroupRules : Model -> Project -> Maybe HelperTypes.Url -> ( Model, Cmd Msg )
-requestCreateExoSecurityGroupRules model project maybeProxyUrl =
+requestCreateExoSecurityGroupRules : Model -> Project -> ( Model, Cmd Msg )
+requestCreateExoSecurityGroupRules model project =
     let
         maybeSecurityGroup =
             List.filter (\g -> g.name == "exosphere") project.securityGroups |> List.head
@@ -1058,7 +1042,6 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
                 buildRequestCmd body =
                     openstackCredentialedRequest
                         project
-                        maybeProxyUrl
                         Post
                         (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                         (Http.jsonBody body)
@@ -1078,11 +1061,11 @@ requestCreateExoSecurityGroupRules model project maybeProxyUrl =
             ( model, Cmd.batch cmds )
 
 
-requestConsoleUrlIfRequestable : Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg
-requestConsoleUrlIfRequestable project maybeProxyUrl server =
+requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
+requestConsoleUrlIfRequestable project server =
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
-            requestConsoleUrls project maybeProxyUrl server.osProps.uuid
+            requestConsoleUrls project server.osProps.uuid
 
         _ ->
             Cmd.none
@@ -1146,8 +1129,8 @@ requestCockpitLogin project serverUuid password ipAddress =
         }
 
 
-requestCreateServerImage : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> String -> Cmd Msg
-requestCreateServerImage project maybeProxyUrl serverUuid imageName =
+requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestCreateServerImage project serverUuid imageName =
     let
         body =
             Encode.object
@@ -1171,7 +1154,6 @@ requestCreateServerImage project maybeProxyUrl serverUuid imageName =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Post
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
@@ -1292,8 +1274,8 @@ receiveServer model project serverUuid serverDetails =
                 floatingIpCmd =
                     case floatingIpState of
                         Requestable ->
-                            [ getFloatingIpRequestPorts newProject model.proxyUrl newServer
-                            , requestNetworks project model.proxyUrl
+                            [ getFloatingIpRequestPorts newProject newServer
+                            , requestNetworks project
                             ]
                                 |> Cmd.batch
 
@@ -1301,7 +1283,7 @@ receiveServer model project serverUuid serverDetails =
                             Cmd.none
 
                 consoleUrlCmd =
-                    requestConsoleUrlIfRequestable newProject model.proxyUrl newServer
+                    requestConsoleUrlIfRequestable newProject newServer
 
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer
@@ -1438,7 +1420,7 @@ receiveCreateServer model project _ =
     , [ requestServers
       , requestNetworks
       ]
-        |> List.map (\x -> x project model.proxyUrl)
+        |> List.map (\x -> x project)
         |> Cmd.batch
     )
 
@@ -1543,7 +1525,6 @@ receivePortsAndRequestFloatingIp model project serverUuid ports =
                     requestCreateFloatingIpIfRequestable
                         newModel
                         newProject
-                        model.proxyUrl
                         extNet
                         port_
                         serverUuid
@@ -1645,7 +1626,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
                     []
 
                 Nothing ->
-                    [ requestCreateExoSecurityGroup newProject model.proxyUrl ]
+                    [ requestCreateExoSecurityGroup newProject ]
     in
     ( newModel, Cmd.batch cmds )
 
@@ -1662,7 +1643,7 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
         newModel =
             Helpers.modelUpdateProject model newProject
     in
-    requestCreateExoSecurityGroupRules newModel newProject model.proxyUrl
+    requestCreateExoSecurityGroupRules newModel newProject
 
 
 receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )

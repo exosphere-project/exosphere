@@ -169,7 +169,7 @@ type Msg
 type ProjectSpecificMsgConstructor
     = SetProjectView ProjectViewConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
-    | ValidateTokenForCredentialedRequest (OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
+    | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | RequestAppCredential Time.Posix
     | ToggleCreatePopup
     | RemoveProject
@@ -180,7 +180,7 @@ type ProjectSpecificMsgConstructor
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
-    | RequestServerAction Server (Project -> Maybe HelperTypes.Url -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
+    | RequestServerAction Server (Project -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid

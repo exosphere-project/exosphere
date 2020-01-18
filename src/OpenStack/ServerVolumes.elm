@@ -7,7 +7,6 @@ import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -17,8 +16,8 @@ import Types.Types
         )
 
 
-requestAttachVolume : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
-requestAttachVolume project maybeProxyUrl serverUuid volumeUuid =
+requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
+requestAttachVolume project serverUuid volumeUuid =
     let
         body =
             Json.Encode.object
@@ -46,7 +45,6 @@ requestAttachVolume project maybeProxyUrl serverUuid volumeUuid =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Post
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
         (Http.jsonBody body)
@@ -56,8 +54,8 @@ requestAttachVolume project maybeProxyUrl serverUuid volumeUuid =
         )
 
 
-requestDetachVolume : Project -> Maybe HelperTypes.Url -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
-requestDetachVolume project maybeProxyUrl serverUuid volumeUuid =
+requestDetachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
+requestDetachVolume project serverUuid volumeUuid =
     let
         errorContext =
             ErrorContext
@@ -76,7 +74,6 @@ requestDetachVolume project maybeProxyUrl serverUuid volumeUuid =
     in
     openstackCredentialedRequest
         project
-        maybeProxyUrl
         Delete
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody

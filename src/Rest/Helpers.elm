@@ -32,26 +32,28 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : TT.Project -> Maybe HelperTypes.Url -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
-openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody expect =
+openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
+openstackCredentialedRequest project method origUrl requestBody expect =
     {-
-       In order to ensure request is made with a valid token, perform a task
-       which checks the time to see if our auth token is still valid or has
-       expired. Pass along a function which accepts an auth token, and returns
-       a "hydrated" Cmd Msg (which sends the request to OpenStack API).
+       Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
+
+       To ensure request is made with a valid token, perform a task which checks the time to see if our auth token is
+       still valid or has expired. Pass along a function which accepts an auth token, and returns a fully prepared
+       Cmd Msg (which sends the request to OpenStack API).
 
     -}
     let
-        ( url, headers ) =
-            case maybeProxyUrl of
-                Just proxyUrl ->
-                    proxyifyRequest proxyUrl origUrl
+        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd TT.Msg
+        requestProto maybeProxyUrl token =
+            let
+                ( url, headers ) =
+                    case maybeProxyUrl of
+                        Just proxyUrl ->
+                            proxyifyRequest proxyUrl origUrl
 
-                Nothing ->
-                    ( origUrl, [] )
-
-        tokenToRequestCmd : OSTypes.AuthTokenString -> Cmd TT.Msg
-        tokenToRequestCmd token =
+                        Nothing ->
+                            ( origUrl, [] )
+            in
             Http.request
                 { method = httpRequestMethodStr method
                 , headers = Http.header "X-Auth-Token" token :: headers
@@ -63,7 +65,7 @@ openstackCredentialedRequest project maybeProxyUrl method origUrl requestBody ex
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.ValidateTokenForCredentialedRequest tokenToRequestCmd posixTime))
+        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.PrepareCredentialedRequest requestProto posixTime))
         Time.now
 
 
