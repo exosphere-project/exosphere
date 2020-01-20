@@ -798,7 +798,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
-                ( serverDeletedModel, newCmd ) =
+                serverDeletedModel =
                     let
                         newViewState =
                             case model.viewState of
@@ -815,10 +815,7 @@ processProjectSpecificMsg model project msg =
                                 _ ->
                                     model.viewState
                     in
-                    Rest.receiveDeleteServer
-                        { model | viewState = newViewState }
-                        project
-                        serverUuid
+                    { model | viewState = newViewState }
 
                 ( deleteIpAddressModel, deleteIpAddressCmd ) =
                     case maybeIpAddress of
@@ -840,7 +837,7 @@ processProjectSpecificMsg model project msg =
                                 Just uuid ->
                                     ( serverDeletedModel, Rest.requestDeleteFloatingIp project uuid )
             in
-            ( deleteIpAddressModel, Cmd.batch [ newCmd, deleteIpAddressCmd ] )
+            ( deleteIpAddressModel, deleteIpAddressCmd )
 
         ReceiveNetworks nets ->
             Rest.receiveNetworks model project nets
