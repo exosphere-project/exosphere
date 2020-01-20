@@ -198,7 +198,14 @@ updateUnderlying msg model =
                                     update (ProjectMsg projectName RequestServers) model
 
                                 ServerDetail serverUuid _ ->
-                                    update (ProjectMsg projectName (RequestServer serverUuid)) model
+                                    let
+                                        ( newModel, newCmd ) =
+                                            update (ProjectMsg projectName (RequestServer serverUuid)) model
+
+                                        requestVolCmd =
+                                            OSVolumes.requestVolumes project
+                                    in
+                                    ( newModel, Cmd.batch [ newCmd, requestVolCmd ] )
 
                                 ListProjectVolumes ->
                                     ( model, OSVolumes.requestVolumes project )
@@ -872,15 +879,71 @@ processProjectSpecificMsg model project msg =
 
         ReceiveVolumes volumes ->
             let
+                -- Look for any server backing volumes that were created with no name, and give them a reasonable name
+                updateVolNameCmds : List (Cmd Msg)
+                updateVolNameCmds =
+                    RemoteData.withDefault [] project.servers
+                        -- List of tuples containing server and Maybe boot vol
+                        |> List.map
+                            (\s ->
+                                ( s
+                                , Helpers.getBootVol
+                                    (RemoteData.withDefault
+                                        []
+                                        project.volumes
+                                    )
+                                    s.osProps.uuid
+                                )
+                            )
+                        -- We only care about servers with a non-empty name
+                        |> List.filter
+                            (\t ->
+                                Tuple.first t
+                                    |> .osProps
+                                    |> .name
+                                    |> String.isEmpty
+                                    |> not
+                            )
+                        -- We only care about volume-backed servers
+                        |> List.filterMap
+                            (\t ->
+                                case t of
+                                    ( server, Just vol ) ->
+                                        -- Flatten second part of tuple
+                                        Just ( server, vol )
+
+                                    _ ->
+                                        Nothing
+                            )
+                        -- We only care about unnamed backing volumes
+                        |> List.filter
+                            (\t ->
+                                Tuple.second t
+                                    |> .name
+                                    |> String.isEmpty
+                            )
+                        |> List.map
+                            (\t ->
+                                OSVolumes.requestUpdateVolumeName
+                                    project
+                                    (t |> Tuple.second |> .uuid)
+                                    ("boot-vol-"
+                                        ++ (t |> Tuple.first |> .osProps |> .name)
+                                    )
+                            )
+
                 newProject =
                     { project | volumes = RemoteData.succeed volumes }
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Cmd.none )
+            ( newModel, Cmd.batch updateVolNameCmds )
 
         ReceiveDeleteVolume ->
+            ( model, OSVolumes.requestVolumes project )
+
+        ReceiveUpdateVolumeName ->
             ( model, OSVolumes.requestVolumes project )
 
         ReceiveAttachVolume attachment ->
