@@ -28,6 +28,9 @@ httpRequestMethodStr method =
         TT.Post ->
             "POST"
 
+        TT.Put ->
+            "PUT"
+
         TT.Delete ->
             "DELETE"
 

@@ -14,6 +14,7 @@ module Helpers.Helpers exposing
     , getVolsAttachedToServer
     , hostnameFromUrl
     , imageLookup
+    , isBootVol
     , iso8601StringToPosix
     , jetstreamToOpenstackCreds
     , modelUpdateProject
@@ -704,23 +705,33 @@ getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
 
 
+isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
+isBootVol maybeServerUuid volume =
+    -- If a serverUuid is passed, determines whether volume backs that server; otherwise just determines whether volume backs any server
+    volume.attachments
+        |> List.filter
+            (\a ->
+                case maybeServerUuid of
+                    Just serverUuid ->
+                        a.serverUuid == serverUuid
+
+                    Nothing ->
+                        True
+            )
+        |> List.filter
+            (\a ->
+                List.member
+                    a.device
+                    [ "/dev/sda", "/dev/vda" ]
+            )
+        |> List.isEmpty
+        |> not
+
+
 getBootVol : List OSTypes.Volume -> OSTypes.ServerUuid -> Maybe OSTypes.Volume
 getBootVol vols serverUuid =
-    let
-        isBootVol volume =
-            volume.attachments
-                |> List.filter (\a -> a.serverUuid == serverUuid)
-                |> List.filter
-                    (\a ->
-                        List.member
-                            a.device
-                            [ "/dev/sda", "/dev/vda" ]
-                    )
-                |> List.isEmpty
-                |> not
-    in
     vols
-        |> List.filter isBootVol
+        |> List.filter (isBootVol <| Just serverUuid)
         |> List.head
 
 

@@ -1,6 +1,7 @@
 module OpenStack.Volumes exposing
     ( requestCreateVolume
     , requestDeleteVolume
+    , requestUpdateVolumeName
     , requestVolumes
     , volumeLookup
     )
@@ -109,6 +110,37 @@ requestDeleteVolume project volumeUuid =
         Delete
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
+        (Http.expectString resultToMsg_)
+
+
+requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd Msg
+requestUpdateVolumeName project volumeUuid name =
+    let
+        body =
+            Json.Encode.object
+                [ ( "volume"
+                  , Json.Encode.object
+                        [ ( "name", Json.Encode.string name )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("Set name " ++ name ++ " on volume " ++ volumeUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsg
+                errorContext
+                (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveUpdateVolumeName)
+    in
+    openstackCredentialedRequest
+        project
+        Put
+        (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
+        (Http.jsonBody body)
         (Http.expectString resultToMsg_)
 
 

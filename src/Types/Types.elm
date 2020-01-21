@@ -205,6 +205,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
     | ReceiveDeleteVolume
+    | ReceiveUpdateVolumeName
     | ReceiveAttachVolume OSTypes.VolumeAttachment
     | ReceiveDetachVolume
 
@@ -379,6 +380,7 @@ type alias GoodGuess =
 type HttpRequestMethod
     = Get
     | Post
+    | Put
     | Delete
 
 
