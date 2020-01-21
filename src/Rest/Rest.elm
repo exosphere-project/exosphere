@@ -27,7 +27,6 @@ module Rest.Rest exposing
     , receiveCreateFloatingIp
     , receiveCreateServer
     , receiveDeleteFloatingIp
-    , receiveDeleteServer
     , receiveFlavors
     , receiveFloatingIps
     , receiveImages
@@ -1423,21 +1422,6 @@ receiveCreateServer model project _ =
         |> List.map (\x -> x project)
         |> Cmd.batch
     )
-
-
-receiveDeleteServer : Model -> Project -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-receiveDeleteServer model project serverUuid =
-    let
-        newServers =
-            List.filter (\s -> s.osProps.uuid /= serverUuid) (RemoteData.withDefault [] project.servers)
-
-        newProject =
-            { project | servers = RemoteData.Success newServers }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.none )
 
 
 receiveNetworks : Model -> Project -> List OSTypes.Network -> ( Model, Cmd Msg )
