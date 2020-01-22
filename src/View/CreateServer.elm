@@ -9,6 +9,7 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Maybe
+import RemoteData
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -68,6 +69,8 @@ createServer project createServerRequest =
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
             , Element.row VH.exoRowAttributes
                 [ Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.count)
+
+                -- TODO restrict slider to what quota supports, and probably require a flavor to be selected above before slider is displayed below
                 , Input.slider
                     [ Element.height (Element.px 30)
                     , Element.width (Element.px 100 |> Element.minimum 200)
@@ -95,6 +98,8 @@ createServer project createServerRequest =
                     }
                 ]
             , flavorPicker project createServerRequest
+
+            -- TODO volBackedPrompt slider should only allow user to select what volume quota supports
             , volBackedPrompt project createServerRequest
             , networkPicker project createServerRequest
             , keypairPicker project createServerRequest
@@ -116,18 +121,34 @@ flavorPicker project createServerRequest =
         -- each containing just a single option.
         -- https://elmlang.slack.com/archives/C4F9NBLR1/p1539909855000100
         radioButton flavor =
-            Input.radio
-                []
-                { label = Input.labelHidden flavor.name
-                , onChange = \f -> updateCreateServerRequest project { createServerRequest | flavorUuid = f }
-                , options = [ Input.option flavor.uuid (Element.text " ") ]
-                , selected =
-                    if flavor.uuid == createServerRequest.flavorUuid then
-                        Just flavor.uuid
+            case project.computeQuota of
+                -- Only allow selection if there is enough available quota
+                RemoteData.Success computeQuota ->
+                    if Helpers.flavorExceedsQuota flavor computeQuota 1 then
+                        Element.text "TODO Insufficient available quota, show an error icon"
 
                     else
-                        Nothing
-                }
+                        Input.radio
+                            []
+                            { label = Input.labelHidden flavor.name
+                            , onChange = \f -> updateCreateServerRequest project { createServerRequest | flavorUuid = f }
+                            , options = [ Input.option flavor.uuid (Element.text " ") ]
+                            , selected =
+                                if flavor.uuid == createServerRequest.flavorUuid then
+                                    Just flavor.uuid
+
+                                else
+                                    Nothing
+                            }
+
+                RemoteData.Loading ->
+                    Element.text "TODO show a spinny loader"
+
+                RemoteData.NotAsked ->
+                    Element.text "TODO oops this shouldn't happen"
+
+                RemoteData.Failure _ ->
+                    Element.text "TODO oops this shouldn't happen"
 
         paddingRight =
             Element.paddingEach { edges | right = 15 }

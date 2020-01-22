@@ -3,6 +3,7 @@ module OpenStack.Types exposing
     , ApplicationCredentialSecret
     , ApplicationCredentialUuid
     , AuthTokenString
+    , ComputeQuota
     , ConsoleUrl
     , CreateVolumeRequest
     , CredentialsForAuthToken(..)
@@ -25,6 +26,7 @@ module OpenStack.Types exposing
     , NetworkUuid
     , OpenstackLogin
     , Port
+    , QuotaItemDetail
     , ScopedAuthToken
     , SecurityGroup
     , SecurityGroupRule
@@ -44,6 +46,7 @@ module OpenStack.Types exposing
     , VolumeAttachment
     , VolumeAttachmentDevice
     , VolumeName
+    , VolumeQuota
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
@@ -64,6 +67,14 @@ import Types.HelperTypes as HelperTypes
 type alias MetadataItem =
     { key : String
     , value : String
+    }
+
+
+type alias QuotaItemDetail =
+    -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
+    { inUse : Int
+    , limit : Maybe Int
+    , reserved : Int
     }
 
 
@@ -281,6 +292,13 @@ type alias ServerDetails =
     }
 
 
+type alias ComputeQuota =
+    { cores : QuotaItemDetail
+    , instances : QuotaItemDetail
+    , ram : QuotaItemDetail
+    }
+
+
 
 -- Cinder
 
@@ -354,6 +372,12 @@ type alias AttachmentUuid =
 
 type alias VolumeAttachmentDevice =
     String
+
+
+type alias VolumeQuota =
+    { volumes : QuotaItemDetail
+    , gigabytes : QuotaItemDetail
+    }
 
 
 

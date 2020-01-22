@@ -9,6 +9,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.Quotas
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -510,13 +511,24 @@ processProjectSpecificMsg model project msg =
                                     ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
                                             CreateServer newCSR
+
+                                newProject =
+                                    { project
+                                        | computeQuota = RemoteData.Loading
+                                        , volumeQuota = RemoteData.Loading
+                                    }
+
+                                newNewModel =
+                                    Helpers.modelUpdateProject newModel newProject
                             in
-                            ( newModel
+                            ( newNewModel
                             , Cmd.batch
                                 [ Rest.requestFlavors project
                                 , Rest.requestKeypairs project
                                 , Rest.requestNetworks project
                                 , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
+                                , OpenStack.Quotas.requestComputeQuota project
+                                , OpenStack.Quotas.requestVolumeQuota project
                                 ]
                             )
 
@@ -961,6 +973,20 @@ processProjectSpecificMsg model project msg =
         RequestAppCredential posix ->
             ( model, Rest.requestAppCredential project posix )
 
+        ReceiveComputeQuota quota ->
+            let
+                newProject =
+                    { project | computeQuota = RemoteData.Success quota }
+            in
+            ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
+        ReceiveVolumeQuota quota ->
+            let
+                newProject =
+                    { project | volumeQuota = RemoteData.Success quota }
+            in
+            ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 createProject model password authToken =
@@ -983,6 +1009,8 @@ createProject model password authToken =
             , floatingIps = []
             , ports = []
             , securityGroups = []
+            , computeQuota = RemoteData.NotAsked
+            , volumeQuota = RemoteData.NotAsked
             , pendingCredentialedRequests = []
             }
 

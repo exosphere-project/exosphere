@@ -1,6 +1,7 @@
 module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
+    , flavorExceedsQuota
     , flavorLookup
     , getBootVol
     , getExternalNetwork
@@ -768,3 +769,33 @@ jetstreamToOpenstackCreds jetstreamCreds =
                 jetstreamCreds.taccPassword
         )
         authUrls
+
+
+flavorExceedsQuota : OSTypes.Flavor -> OSTypes.ComputeQuota -> Int -> Bool
+flavorExceedsQuota flavor computeQuota count =
+    let
+        coresExceeded =
+            case computeQuota.cores.limit of
+                Just coreLimit ->
+                    (coreLimit - computeQuota.cores.inUse) < (count * flavor.vcpu)
+
+                Nothing ->
+                    False
+
+        ramExceeded =
+            case computeQuota.ram.limit of
+                Just ramLimit ->
+                    (ramLimit - computeQuota.ram.inUse) < (count * flavor.ram_mb)
+
+                Nothing ->
+                    False
+
+        countExceeded =
+            case computeQuota.instances.limit of
+                Just countLimit ->
+                    (countLimit - computeQuota.instances.inUse) < count
+
+                Nothing ->
+                    False
+    in
+    coresExceeded || ramExceeded || countExceeded
