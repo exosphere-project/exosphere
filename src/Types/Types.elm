@@ -347,10 +347,9 @@ type alias CreateServerRequest =
     , projectId : ProjectIdentifier
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
-    , count : String
+    , count : Int
     , flavorUuid : OSTypes.FlavorUuid
-    , volBacked : Bool
-    , volBackedSizeGb : String
+    , volBackedSizeGb : Maybe Int
     , keypairName : Maybe String
     , userData : String
     , exouserPassword : String

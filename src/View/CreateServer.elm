@@ -9,6 +9,7 @@ import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Maybe
+import OpenStack.Types as OSTypes
 import RemoteData
 import Types.Types
     exposing
@@ -58,6 +59,7 @@ createServer project createServerRequest =
             (VH.exoColumnAttributes
                 ++ [ Element.width (Element.px 600) ]
             )
+          <|
             [ Element.el VH.heading2 (Element.text "Create Server")
             , Input.text
                 (Element.spacing 12 :: serverNameEmptyHint)
@@ -67,88 +69,94 @@ createServer project createServerRequest =
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
-            , Element.row VH.exoRowAttributes
-                [ Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.count)
-
-                -- TODO restrict slider to what quota supports, and probably require a flavor to be selected above before slider is displayed below
-                , Input.slider
-                    [ Element.height (Element.px 30)
-                    , Element.width (Element.px 100 |> Element.minimum 200)
-
-                    -- Here is where we're creating/styling the "track"
-                    , Element.behindContent
-                        (Element.el
-                            [ Element.width Element.fill
-                            , Element.height (Element.px 2)
-                            , Element.centerY
-                            , Background.color (Element.rgb 0.5 0.5 0.5)
-                            , Border.rounded 2
-                            ]
-                            Element.none
-                        )
-                    ]
-                    { onChange = \c -> updateCreateServerRequest project { createServerRequest | count = String.fromFloat c }
-                    , label = Input.labelLeft [] (Element.text "How many?")
-                    , min = 1
-                    , max = 10
-                    , step = Just 1
-                    , value = String.toFloat createServerRequest.count |> Maybe.withDefault 1.0
-                    , thumb =
-                        Input.defaultThumb
-                    }
-                ]
-            , flavorPicker project createServerRequest
-
-            -- TODO volBackedPrompt slider should only allow user to select what volume quota supports
-            , volBackedPrompt project createServerRequest
-            , networkPicker project createServerRequest
-            , keypairPicker project createServerRequest
-            , userDataInput project createServerRequest
-            , Element.el [ Element.alignRight ] <|
-                Button.button
-                    [ Modifier.Primary ]
-                    createOnPress
-                    "Create"
             ]
+                ++ (case
+                        ( Helpers.flavorLookup project createServerRequest.flavorUuid
+                        , project.computeQuota
+                        , project.volumeQuota
+                        )
+                    of
+                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                            [ flavorPicker project createServerRequest computeQuota
+                            , volBackedPrompt project createServerRequest volumeQuota flavor
+                            , countPicker project createServerRequest computeQuota volumeQuota flavor
+                            , Element.column
+                                VH.exoColumnAttributes
+                              <|
+                                [ Input.radioRow [ Element.spacing 10 ]
+                                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
+                                    , onChange = \new -> updateCreateServerRequest project { createServerRequest | showAdvancedOptions = new }
+                                    , options =
+                                        [ Input.option False (Element.text "Hide")
+                                        , Input.option True (Element.text "Show")
+
+                                        {- -}
+                                        ]
+                                    , selected = Just createServerRequest.showAdvancedOptions
+                                    }
+                                ]
+                                    ++ (if not createServerRequest.showAdvancedOptions then
+                                            [ Element.none ]
+
+                                        else
+                                            [ networkPicker project createServerRequest
+                                            , keypairPicker project createServerRequest
+                                            , userDataInput project createServerRequest
+                                            ]
+                                       )
+                            , Element.el [ Element.alignRight ] <|
+                                Button.button
+                                    [ Modifier.Primary ]
+                                    createOnPress
+                                    "Create"
+                            ]
+
+                        ( _, _, RemoteData.Loading ) ->
+                            [ Element.text "Loading..." ]
+
+                        ( _, RemoteData.Loading, _ ) ->
+                            [ Element.text "Loading..." ]
+
+                        ( _, _, _ ) ->
+                            [ Element.text "oops, we shouldn't be here" ]
+                   )
         ]
 
 
-flavorPicker : Project -> CreateServerRequest -> Element.Element Msg
-flavorPicker project createServerRequest =
+flavorPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker project createServerRequest computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
         -- each containing just a single option.
         -- https://elmlang.slack.com/archives/C4F9NBLR1/p1539909855000100
         radioButton flavor =
-            case project.computeQuota of
-                -- Only allow selection if there is enough available quota
-                RemoteData.Success computeQuota ->
-                    if Helpers.flavorExceedsQuota flavor computeQuota 1 then
+            let
+                radio_ =
+                    Input.radio
+                        []
+                        { label = Input.labelHidden flavor.name
+                        , onChange = \f -> updateCreateServerRequest project { createServerRequest | flavorUuid = f }
+                        , options = [ Input.option flavor.uuid (Element.text " ") ]
+                        , selected =
+                            if flavor.uuid == createServerRequest.flavorUuid then
+                                Just flavor.uuid
+
+                            else
+                                Nothing
+                        }
+            in
+            -- Only allow selection if there is enough available quota
+            case Helpers.computeQuotaFlavorAvailServers computeQuota flavor of
+                Nothing ->
+                    radio_
+
+                Just availServers ->
+                    if availServers < 1 then
                         Element.text "TODO Insufficient available quota, show an error icon"
 
                     else
-                        Input.radio
-                            []
-                            { label = Input.labelHidden flavor.name
-                            , onChange = \f -> updateCreateServerRequest project { createServerRequest | flavorUuid = f }
-                            , options = [ Input.option flavor.uuid (Element.text " ") ]
-                            , selected =
-                                if flavor.uuid == createServerRequest.flavorUuid then
-                                    Just flavor.uuid
-
-                                else
-                                    Nothing
-                            }
-
-                RemoteData.Loading ->
-                    Element.text "TODO show a spinny loader"
-
-                RemoteData.NotAsked ->
-                    Element.text "TODO oops this shouldn't happen"
-
-                RemoteData.Failure _ ->
-                    Element.text "TODO oops this shouldn't happen"
+                        radio_
 
         paddingRight =
             Element.paddingEach { edges | right = 15 }
@@ -231,21 +239,12 @@ flavorPicker project createServerRequest =
         ]
 
 
-volBackedPrompt : Project -> CreateServerRequest -> Element.Element Msg
-volBackedPrompt project createServerRequest =
+volBackedPrompt : Project -> CreateServerRequest -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt project createServerRequest volumeQuota flavor =
+    -- TODO don't allow user to make a volume-backed server unless quota allows for at least one additional volume
     let
-        maybeFlavor =
-            List.filter (\f -> f.uuid == createServerRequest.flavorUuid) project.flavors
-                |> List.head
-
         flavorRootDiskSize =
-            case maybeFlavor of
-                Nothing ->
-                    {- This should be an impossible state -}
-                    0
-
-                Just flavor ->
-                    flavor.disk_root
+            flavor.disk_root
 
         nonVolBackedOptionText =
             if flavorRootDiskSize == 0 then
@@ -254,7 +253,11 @@ volBackedPrompt project createServerRequest =
             else
                 String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
 
-        volSizeSlider =
+        volumeSizeAvail =
+            Helpers.volumeQuotaAvail volumeQuota |> Tuple.second
+
+        volSizeSlider : Int -> Element.Element Msg
+        volSizeSlider sizeGb =
             --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
             Input.slider
                 [ Element.height (Element.px 30)
@@ -272,12 +275,12 @@ volBackedPrompt project createServerRequest =
                         Element.none
                     )
                 ]
-                { onChange = \c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = String.fromFloat c }
-                , label = Input.labelRight [] (Element.text (createServerRequest.volBackedSizeGb ++ " GB"))
+                { onChange = \c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = Just <| round c }
+                , label = Input.labelHidden (String.fromInt sizeGb ++ " GB")
                 , min = 2
-                , max = 100
+                , max = volumeSizeAvail |> Maybe.withDefault 1000 |> toFloat
                 , step = Just 1
-                , value = String.toFloat createServerRequest.volBackedSizeGb |> Maybe.withDefault 2.0
+                , value = toFloat sizeGb
                 , thumb =
                     Input.defaultThumb
                 }
@@ -285,20 +288,117 @@ volBackedPrompt project createServerRequest =
     Element.column VH.exoColumnAttributes
         [ Input.radio []
             { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
-            , onChange = \new -> updateCreateServerRequest project { createServerRequest | volBacked = new }
+            , onChange =
+                \new ->
+                    updateCreateServerRequest project
+                        { createServerRequest
+                            | volBackedSizeGb =
+                                if new then
+                                    Just 2
+
+                                else
+                                    Nothing
+                        }
             , options =
                 [ Input.option False (Element.text nonVolBackedOptionText)
                 , Input.option True (Element.text "Custom disk size (volume-backed)")
-
-                {- -}
                 ]
-            , selected = Just createServerRequest.volBacked
-            }
-        , if not createServerRequest.volBacked then
-            Element.none
+            , selected =
+                case createServerRequest.volBackedSizeGb of
+                    Just _ ->
+                        Just True
 
-          else
-            volSizeSlider
+                    Nothing ->
+                        Just False
+            }
+        , case createServerRequest.volBackedSizeGb of
+            Nothing ->
+                Element.none
+
+            Just sizeGb ->
+                Element.row VH.exoRowAttributes
+                    [ volSizeSlider sizeGb
+                    , Element.text <| String.fromInt sizeGb ++ " GB"
+                    , case volumeSizeAvail of
+                        Just volumeSizeAvail_ ->
+                            if sizeGb == volumeSizeAvail_ then
+                                Element.text "(quota max)"
+
+                            else
+                                Element.none
+
+                        Nothing ->
+                            Element.none
+                    ]
+        ]
+
+
+countPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+countPicker project createServerRequest computeQuota volumeQuota flavor =
+    let
+        countAvail =
+            let
+                computeQuotaAvailServers =
+                    Helpers.computeQuotaFlavorAvailServers computeQuota flavor
+            in
+            case createServerRequest.volBackedSizeGb of
+                Nothing ->
+                    computeQuotaAvailServers
+
+                Just volBackedGb ->
+                    let
+                        ( volumeQuotaAvailVolumes, volumeQuotaAvailGb ) =
+                            Helpers.volumeQuotaAvail volumeQuota
+
+                        volumeQuotaAvailGbCount =
+                            volumeQuotaAvailGb
+                                |> Maybe.map
+                                    (\availGb ->
+                                        availGb // (createServerRequest.count * volBackedGb)
+                                    )
+                    in
+                    [ computeQuotaAvailServers
+                    , volumeQuotaAvailVolumes
+                    , volumeQuotaAvailGbCount
+                    ]
+                        |> List.filterMap identity
+                        |> List.minimum
+    in
+    Element.column VH.exoColumnAttributes
+        [ Element.text "How many servers?"
+        , Element.row VH.exoRowAttributes
+            [ Element.el [ Element.width Element.shrink ] (Element.text <| String.fromInt createServerRequest.count)
+
+            -- TODO restrict slider to what quota supports, and probably require a flavor to be selected above before slider is displayed below
+            -- TODO say "your quota allows you to launch X of these".
+            -- TODO at slider max say "max allowed under available quota given selected size and volume backed-ness
+            -- TODO if user selects a larger flavor after updating slider, update server count to reflect quota max
+            , Input.slider
+                [ Element.height (Element.px 30)
+                , Element.width (Element.px 100 |> Element.minimum 200)
+
+                -- Here is where we're creating/styling the "track"
+                , Element.behindContent
+                    (Element.el
+                        [ Element.width Element.fill
+                        , Element.height (Element.px 2)
+                        , Element.centerY
+                        , Background.color (Element.rgb 0.5 0.5 0.5)
+                        , Border.rounded 2
+                        ]
+                        Element.none
+                    )
+                ]
+                { onChange = \c -> updateCreateServerRequest project { createServerRequest | count = round c }
+                , label = Input.labelHidden "How many?"
+                , min = 1
+                , max = countAvail |> Maybe.withDefault 20 |> toFloat
+                , step = Just 1
+                , value = toFloat createServerRequest.count
+                , thumb =
+                    Input.defaultThumb
+                }
+            ]
         ]
 
 
@@ -388,36 +488,18 @@ keypairPicker project createServerRequest =
 
 userDataInput : Project -> CreateServerRequest -> Element.Element Msg
 userDataInput project createServerRequest =
-    Element.column
-        VH.exoColumnAttributes
-        [ Input.radioRow [ Element.spacing 10 ]
-            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
-            , onChange = \new -> updateCreateServerRequest project { createServerRequest | showAdvancedOptions = new }
-            , options =
-                [ Input.option False (Element.text "Hide")
-                , Input.option True (Element.text "Show")
-
-                {- -}
-                ]
-            , selected = Just createServerRequest.showAdvancedOptions
-            }
-        , if not createServerRequest.showAdvancedOptions then
-            Element.none
-
-          else
-            Input.multiline
-                [ Element.width (Element.px 600)
-                , Element.height (Element.px 500)
-                ]
-                { onChange = \u -> updateCreateServerRequest project { createServerRequest | userData = u }
-                , text = createServerRequest.userData
-                , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
-                , label =
-                    Input.labelAbove
-                        [ Element.paddingXY 20 0
-                        , Font.bold
-                        ]
-                        (Element.text "User Data (Boot Script)")
-                , spellcheck = False
-                }
+    Input.multiline
+        [ Element.width (Element.px 600)
+        , Element.height (Element.px 500)
         ]
+        { onChange = \u -> updateCreateServerRequest project { createServerRequest | userData = u }
+        , text = createServerRequest.userData
+        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+        , label =
+            Input.labelAbove
+                [ Element.paddingXY 20 0
+                , Font.bold
+                ]
+                (Element.text "User Data (Boot Script)")
+        , spellcheck = False
+        }

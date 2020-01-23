@@ -113,10 +113,9 @@ renderImage globalDefaults project image =
                             (Helpers.getProjectId project)
                             image.uuid
                             image.name
-                            "1"
+                            1
                             ""
-                            False
-                            ""
+                            Nothing
                             Nothing
                             globalDefaults.shellUserData
                             "changeme123"
