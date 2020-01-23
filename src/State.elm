@@ -892,6 +892,21 @@ processProjectSpecificMsg model project msg =
                                     s.osProps.uuid
                                 )
                             )
+                        -- We only care about servers created by exosphere
+                        |> List.filter
+                            (\t ->
+                                (Tuple.first t).osProps.details.metadata
+                                    |> List.map .key
+                                    |> List.filter (\key -> key == "exouserPassword")
+                                    |> List.isEmpty
+                                    |> not
+                            )
+                        -- We only care about servers created as current OpenStack user
+                        |> List.filter
+                            (\t ->
+                                (Tuple.first t).osProps.details.userUuid
+                                    == project.auth.user.uuid
+                            )
                         -- We only care about servers with a non-empty name
                         |> List.filter
                             (\t ->
