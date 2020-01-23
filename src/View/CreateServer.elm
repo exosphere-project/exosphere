@@ -241,8 +241,22 @@ flavorPicker project createServerRequest computeQuota =
 
 volBackedPrompt : Project -> CreateServerRequest -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
 volBackedPrompt project createServerRequest volumeQuota flavor =
-    -- TODO don't allow user to make a volume-backed server unless quota allows for at least one additional volume
     let
+        ( volumeCountAvail, volumeSizeGbAvail ) =
+            Helpers.volumeQuotaAvail volumeQuota
+
+        canLaunchVolBacked =
+            let
+                tooSmall quotaItem minVal =
+                    case quotaItem of
+                        Just val ->
+                            minVal > val
+
+                        Nothing ->
+                            False
+            in
+            not (tooSmall volumeCountAvail 1 || tooSmall volumeSizeGbAvail 2)
+
         flavorRootDiskSize =
             flavor.disk_root
 
@@ -253,12 +267,35 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
             else
                 String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
 
-        volumeSizeAvail =
-            Helpers.volumeQuotaAvail volumeQuota |> Tuple.second
+        radioInput =
+            Input.radio []
+                { label = Input.labelHidden "Root disk size"
+                , onChange =
+                    \new ->
+                        updateCreateServerRequest project
+                            { createServerRequest
+                                | volBackedSizeGb =
+                                    if new then
+                                        Just 2
+
+                                    else
+                                        Nothing
+                            }
+                , options =
+                    [ Input.option False (Element.text nonVolBackedOptionText)
+                    , Input.option True (Element.text "Custom disk size (volume-backed)")
+                    ]
+                , selected =
+                    case createServerRequest.volBackedSizeGb of
+                        Just _ ->
+                            Just True
+
+                        Nothing ->
+                            Just False
+                }
 
         volSizeSlider : Int -> Element.Element Msg
         volSizeSlider sizeGb =
-            --                    Element.el [ Element.width Element.shrink ] (Element.text createServerRequest.volBackedSizeGb)
             Input.slider
                 [ Element.height (Element.px 30)
                 , Element.width (Element.px 100 |> Element.minimum 200)
@@ -278,7 +315,7 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
                 { onChange = \c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = Just <| round c }
                 , label = Input.labelHidden (String.fromInt sizeGb ++ " GB")
                 , min = 2
-                , max = volumeSizeAvail |> Maybe.withDefault 1000 |> toFloat
+                , max = volumeSizeGbAvail |> Maybe.withDefault 1000 |> toFloat
                 , step = Just 1
                 , value = toFloat sizeGb
                 , thumb =
@@ -286,31 +323,12 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
                 }
     in
     Element.column VH.exoColumnAttributes
-        [ Input.radio []
-            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a root disk size")
-            , onChange =
-                \new ->
-                    updateCreateServerRequest project
-                        { createServerRequest
-                            | volBackedSizeGb =
-                                if new then
-                                    Just 2
+        [ Element.text "Choose a root disk size"
+        , if canLaunchVolBacked then
+            radioInput
 
-                                else
-                                    Nothing
-                        }
-            , options =
-                [ Input.option False (Element.text nonVolBackedOptionText)
-                , Input.option True (Element.text "Custom disk size (volume-backed)")
-                ]
-            , selected =
-                case createServerRequest.volBackedSizeGb of
-                    Just _ ->
-                        Just True
-
-                    Nothing ->
-                        Just False
-            }
+          else
+            Element.text "(N/A: volume quota exhausted, cannot launch a volume-backed instance)"
         , case createServerRequest.volBackedSizeGb of
             Nothing ->
                 Element.none
@@ -319,7 +337,7 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
                 Element.row VH.exoRowAttributes
                     [ volSizeSlider sizeGb
                     , Element.text <| String.fromInt sizeGb ++ " GB"
-                    , case volumeSizeAvail of
+                    , case volumeSizeGbAvail of
                         Just volumeSizeAvail_ ->
                             if sizeGb == volumeSizeAvail_ then
                                 Element.text "(quota max)"
