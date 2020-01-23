@@ -522,9 +522,9 @@ renderServer project server =
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
-        checkBoxLabel : Server -> Element.Element Msg
-        checkBoxLabel aServer =
-            Element.row [] <|
+        serverLabelName : Server -> Element.Element Msg
+        serverLabelName aServer =
+            Element.row [ Element.width Element.fill ] <|
                 [ statusIcon ]
                     ++ (if aServer.osProps.details.userUuid == userUuid then
                             [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
@@ -535,28 +535,37 @@ renderServer project server =
                             [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                             ]
                        )
+
+        serverNameClickEvent : Msg
+        serverNameClickEvent =
+            ProjectMsg (Helpers.getProjectId project) <|
+                SetProjectView <|
+                    ServerDetail
+                        server.osProps.uuid
+                        { verboseStatus = False
+                        , passwordVisibility = PasswordHidden
+                        , ipInfoLevel = IPSummary
+                        }
+
+        serverLabel : Server -> Element.Element Msg
+        serverLabel aServer =
+            Element.row
+                [ Element.width Element.fill
+                , Events.onClick serverNameClickEvent
+                , Element.pointer
+                ]
+                [ serverLabelName aServer
+                , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
+                ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ Input.checkbox []
+        [ Input.checkbox [ Element.width Element.shrink ]
             { checked = server.exoProps.selected
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (checkBoxLabel server)
+            , label = Input.labelHidden server.osProps.name
             }
-        , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
-        , Button.button
-            []
-            (Just <|
-                ProjectMsg (Helpers.getProjectId project) <|
-                    SetProjectView <|
-                        ServerDetail
-                            server.osProps.uuid
-                            { verboseStatus = False
-                            , passwordVisibility = PasswordHidden
-                            , ipInfoLevel = IPSummary
-                            }
-            )
-            "Details"
+        , serverLabel server
         , if server.exoProps.deletionAttempted == True then
             Element.text "Deleting..."
 
