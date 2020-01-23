@@ -489,10 +489,56 @@ processProjectSpecificMsg model project msg =
 
                 CreateServer createServerRequest ->
                     case model.viewState of
-                        -- If we are already in this view state then don't do all this stuff
+                        -- If we are already in this view state then ensure user isn't trying to choose a server count
+                        -- that would exceed quota; if so, reduce server count to comply with quota.
                         ProjectView _ _ (CreateServer _) ->
-                            ( newModel, Cmd.none )
+                            let
+                                newCSR =
+                                    case
+                                        ( Helpers.flavorLookup project createServerRequest.flavorUuid
+                                        , project.computeQuota
+                                        , project.volumeQuota
+                                        )
+                                    of
+                                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                                            let
+                                                availServers =
+                                                    Helpers.overallQuotaAvailServers
+                                                        createServerRequest
+                                                        flavor
+                                                        computeQuota
+                                                        volumeQuota
+                                            in
+                                            { createServerRequest
+                                                | count =
+                                                    case availServers of
+                                                        Just availServers_ ->
+                                                            if createServerRequest.count > availServers_ then
+                                                                availServers_
 
+                                                            else
+                                                                createServerRequest.count
+
+                                                        Nothing ->
+                                                            createServerRequest.count
+                                            }
+
+                                        ( _, _, _ ) ->
+                                            createServerRequest
+
+                                newNewModel =
+                                    { newModel
+                                        | viewState =
+                                            ProjectView
+                                                (Helpers.getProjectId project)
+                                                { createPopup = False }
+                                            <|
+                                                CreateServer newCSR
+                                    }
+                            in
+                            ( newNewModel, Cmd.none )
+
+                        -- If we are just entering this view then gather everything we need
                         _ ->
                             let
                                 newCSRMsg password_ serverName_ =

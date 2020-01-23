@@ -21,6 +21,7 @@ module Helpers.Helpers exposing
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , newServerNetworkOptions
+    , overallQuotaAvailServers
     , processError
     , processOpenRc
     , projectLookup
@@ -810,3 +811,33 @@ volumeQuotaAvail volumeQuota =
                 gbLimit - volumeQuota.gigabytes.inUse
             )
     )
+
+
+overallQuotaAvailServers : CreateServerRequest -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
+overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
+    let
+        computeQuotaAvailServers =
+            computeQuotaFlavorAvailServers computeQuota flavor
+    in
+    case createServerRequest.volBackedSizeGb of
+        Nothing ->
+            computeQuotaAvailServers
+
+        Just volBackedGb ->
+            let
+                ( volumeQuotaAvailVolumes, volumeQuotaAvailGb ) =
+                    volumeQuotaAvail volumeQuota
+
+                volumeQuotaAvailGbCount =
+                    volumeQuotaAvailGb
+                        |> Maybe.map
+                            (\availGb ->
+                                availGb // volBackedGb
+                            )
+            in
+            [ computeQuotaAvailServers
+            , volumeQuotaAvailVolumes
+            , volumeQuotaAvailGbCount
+            ]
+                |> List.filterMap identity
+                |> List.minimum

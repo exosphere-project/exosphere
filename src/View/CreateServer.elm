@@ -53,15 +53,9 @@ createServer project createServerRequest =
 
             else
                 Nothing
-    in
-    Element.row VH.exoRowAttributes
-        [ Element.column
-            (VH.exoColumnAttributes
-                ++ [ Element.width (Element.px 600) ]
-            )
-          <|
-            [ Element.el VH.heading2 (Element.text "Create Server")
-            , Input.text
+
+        contents flavor computeQuota volumeQuota =
+            [ Input.text
                 (Element.spacing 12 :: serverNameEmptyHint)
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
@@ -69,7 +63,47 @@ createServer project createServerRequest =
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
+            , flavorPicker project createServerRequest computeQuota
+            , volBackedPrompt project createServerRequest volumeQuota flavor
+            , countPicker project createServerRequest computeQuota volumeQuota flavor
+            , Element.column
+                VH.exoColumnAttributes
+              <|
+                [ Input.radioRow [ Element.spacing 10 ]
+                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
+                    , onChange = \new -> updateCreateServerRequest project { createServerRequest | showAdvancedOptions = new }
+                    , options =
+                        [ Input.option False (Element.text "Hide")
+                        , Input.option True (Element.text "Show")
+
+                        {- -}
+                        ]
+                    , selected = Just createServerRequest.showAdvancedOptions
+                    }
+                ]
+                    ++ (if not createServerRequest.showAdvancedOptions then
+                            [ Element.none ]
+
+                        else
+                            [ networkPicker project createServerRequest
+                            , keypairPicker project createServerRequest
+                            , userDataInput project createServerRequest
+                            ]
+                       )
+            , Element.el [ Element.alignRight ] <|
+                Button.button
+                    [ Modifier.Primary ]
+                    createOnPress
+                    "Create"
             ]
+    in
+    Element.row VH.exoRowAttributes
+        [ Element.column
+            (VH.exoColumnAttributes
+                ++ [ Element.width (Element.px 600) ]
+            )
+          <|
+            [ Element.el VH.heading2 (Element.text "Create Server") ]
                 ++ (case
                         ( Helpers.flavorLookup project createServerRequest.flavorUuid
                         , project.computeQuota
@@ -77,39 +111,7 @@ createServer project createServerRequest =
                         )
                     of
                         ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
-                            [ flavorPicker project createServerRequest computeQuota
-                            , volBackedPrompt project createServerRequest volumeQuota flavor
-                            , countPicker project createServerRequest computeQuota volumeQuota flavor
-                            , Element.column
-                                VH.exoColumnAttributes
-                              <|
-                                [ Input.radioRow [ Element.spacing 10 ]
-                                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
-                                    , onChange = \new -> updateCreateServerRequest project { createServerRequest | showAdvancedOptions = new }
-                                    , options =
-                                        [ Input.option False (Element.text "Hide")
-                                        , Input.option True (Element.text "Show")
-
-                                        {- -}
-                                        ]
-                                    , selected = Just createServerRequest.showAdvancedOptions
-                                    }
-                                ]
-                                    ++ (if not createServerRequest.showAdvancedOptions then
-                                            [ Element.none ]
-
-                                        else
-                                            [ networkPicker project createServerRequest
-                                            , keypairPicker project createServerRequest
-                                            , userDataInput project createServerRequest
-                                            ]
-                                       )
-                            , Element.el [ Element.alignRight ] <|
-                                Button.button
-                                    [ Modifier.Primary ]
-                                    createOnPress
-                                    "Create"
-                            ]
+                            contents flavor computeQuota volumeQuota
 
                         ( _, _, RemoteData.Loading ) ->
                             [ Element.text "Loading..." ]
@@ -355,41 +357,22 @@ countPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> OSTypes.
 countPicker project createServerRequest computeQuota volumeQuota flavor =
     let
         countAvail =
-            let
-                computeQuotaAvailServers =
-                    Helpers.computeQuotaFlavorAvailServers computeQuota flavor
-            in
-            case createServerRequest.volBackedSizeGb of
-                Nothing ->
-                    computeQuotaAvailServers
-
-                Just volBackedGb ->
-                    let
-                        ( volumeQuotaAvailVolumes, volumeQuotaAvailGb ) =
-                            Helpers.volumeQuotaAvail volumeQuota
-
-                        volumeQuotaAvailGbCount =
-                            volumeQuotaAvailGb
-                                |> Maybe.map
-                                    (\availGb ->
-                                        availGb // (createServerRequest.count * volBackedGb)
-                                    )
-                    in
-                    [ computeQuotaAvailServers
-                    , volumeQuotaAvailVolumes
-                    , volumeQuotaAvailGbCount
-                    ]
-                        |> List.filterMap identity
-                        |> List.minimum
+            Helpers.overallQuotaAvailServers
+                createServerRequest
+                flavor
+                computeQuota
+                volumeQuota
     in
     Element.column VH.exoColumnAttributes
         [ Element.text "How many servers?"
-        , Element.row VH.exoRowAttributes
-            [ Element.el [ Element.width Element.shrink ] (Element.text <| String.fromInt createServerRequest.count)
+        , case countAvail of
+            Just countAvail_ ->
+                Element.text ("Your quota supports up to " ++ String.fromInt countAvail_ ++ " of these.")
 
-            -- TODO say "your quota allows you to launch X of these".
-            -- TODO if user selects a larger flavor after updating slider, update server count to reflect quota max
-            , Input.slider
+            Nothing ->
+                Element.none
+        , Element.row VH.exoRowAttributes
+            [ Input.slider
                 [ Element.height (Element.px 30)
                 , Element.width (Element.px 100 |> Element.minimum 200)
 
@@ -414,6 +397,7 @@ countPicker project createServerRequest computeQuota volumeQuota flavor =
                 , thumb =
                     Input.defaultThumb
                 }
+            , Element.el [ Element.width Element.shrink ] (Element.text <| String.fromInt createServerRequest.count)
             , case countAvail of
                 Just countAvail_ ->
                     if createServerRequest.count == countAvail_ then
