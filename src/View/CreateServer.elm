@@ -387,7 +387,6 @@ countPicker project createServerRequest computeQuota volumeQuota flavor =
         , Element.row VH.exoRowAttributes
             [ Element.el [ Element.width Element.shrink ] (Element.text <| String.fromInt createServerRequest.count)
 
-            -- TODO restrict slider to what quota supports, and probably require a flavor to be selected above before slider is displayed below
             -- TODO say "your quota allows you to launch X of these".
             -- TODO at slider max say "max allowed under available quota given selected size and volume backed-ness
             -- TODO if user selects a larger flavor after updating slider, update server count to reflect quota max
