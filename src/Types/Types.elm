@@ -120,6 +120,8 @@ type alias Project =
     , floatingIps : List OSTypes.IpAddress
     , ports : List OSTypes.Port
     , securityGroups : List OSTypes.SecurityGroup
+    , computeQuota : WebData OSTypes.ComputeQuota
+    , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     }
 
@@ -208,6 +210,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveUpdateVolumeName
     | ReceiveAttachVolume OSTypes.VolumeAttachment
     | ReceiveDetachVolume
+    | ReceiveComputeQuota OSTypes.ComputeQuota
+    | ReceiveVolumeQuota OSTypes.VolumeQuota
 
 
 type ViewState
@@ -343,10 +347,9 @@ type alias CreateServerRequest =
     , projectId : ProjectIdentifier
     , imageUuid : OSTypes.ImageUuid
     , imageName : String
-    , count : String
+    , count : Int
     , flavorUuid : OSTypes.FlavorUuid
-    , volBacked : Bool
-    , volBackedSizeGb : String
+    , volBackedSizeGb : Maybe Int
     , keypairName : Maybe String
     , userData : String
     , exouserPassword : String

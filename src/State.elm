@@ -9,6 +9,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.Quotas
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -488,10 +489,56 @@ processProjectSpecificMsg model project msg =
 
                 CreateServer createServerRequest ->
                     case model.viewState of
-                        -- If we are already in this view state then don't do all this stuff
+                        -- If we are already in this view state then ensure user isn't trying to choose a server count
+                        -- that would exceed quota; if so, reduce server count to comply with quota.
                         ProjectView _ _ (CreateServer _) ->
-                            ( newModel, Cmd.none )
+                            let
+                                newCSR =
+                                    case
+                                        ( Helpers.flavorLookup project createServerRequest.flavorUuid
+                                        , project.computeQuota
+                                        , project.volumeQuota
+                                        )
+                                    of
+                                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                                            let
+                                                availServers =
+                                                    Helpers.overallQuotaAvailServers
+                                                        createServerRequest
+                                                        flavor
+                                                        computeQuota
+                                                        volumeQuota
+                                            in
+                                            { createServerRequest
+                                                | count =
+                                                    case availServers of
+                                                        Just availServers_ ->
+                                                            if createServerRequest.count > availServers_ then
+                                                                availServers_
 
+                                                            else
+                                                                createServerRequest.count
+
+                                                        Nothing ->
+                                                            createServerRequest.count
+                                            }
+
+                                        ( _, _, _ ) ->
+                                            createServerRequest
+
+                                newNewModel =
+                                    { newModel
+                                        | viewState =
+                                            ProjectView
+                                                (Helpers.getProjectId project)
+                                                { createPopup = False }
+                                            <|
+                                                CreateServer newCSR
+                                    }
+                            in
+                            ( newNewModel, Cmd.none )
+
+                        -- If we are just entering this view then gather everything we need
                         _ ->
                             let
                                 newCSRMsg password_ serverName_ =
@@ -510,13 +557,24 @@ processProjectSpecificMsg model project msg =
                                     ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
                                             CreateServer newCSR
+
+                                newProject =
+                                    { project
+                                        | computeQuota = RemoteData.Loading
+                                        , volumeQuota = RemoteData.Loading
+                                    }
+
+                                newNewModel =
+                                    Helpers.modelUpdateProject newModel newProject
                             in
-                            ( newModel
+                            ( newNewModel
                             , Cmd.batch
                                 [ Rest.requestFlavors project
                                 , Rest.requestKeypairs project
                                 , Rest.requestNetworks project
                                 , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
+                                , OpenStack.Quotas.requestComputeQuota project
+                                , OpenStack.Quotas.requestVolumeQuota project
                                 ]
                             )
 
@@ -976,6 +1034,20 @@ processProjectSpecificMsg model project msg =
         RequestAppCredential posix ->
             ( model, Rest.requestAppCredential project posix )
 
+        ReceiveComputeQuota quota ->
+            let
+                newProject =
+                    { project | computeQuota = RemoteData.Success quota }
+            in
+            ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
+        ReceiveVolumeQuota quota ->
+            let
+                newProject =
+                    { project | volumeQuota = RemoteData.Success quota }
+            in
+            ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 createProject model password authToken =
@@ -998,6 +1070,8 @@ createProject model password authToken =
             , floatingIps = []
             , ports = []
             , securityGroups = []
+            , computeQuota = RemoteData.NotAsked
+            , volumeQuota = RemoteData.NotAsked
             , pendingCredentialedRequests = []
             }
 

@@ -571,11 +571,8 @@ requestKeypairs project =
 requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
 requestCreateServer project createServerRequest =
     let
-        getServerCount =
-            Maybe.withDefault 1 (String.toInt createServerRequest.count)
-
         instanceNumbers =
-            List.range 1 getServerCount
+            List.range 1 createServerRequest.count
 
         generateServerName : String -> Int -> Int -> String
         generateServerName baseName serverCount index =
@@ -583,14 +580,14 @@ requestCreateServer project createServerRequest =
                 baseName
 
             else
-                baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt getServerCount
+                baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt createServerRequest.count
 
         renderedUserData =
             Helpers.renderUserDataTemplate project createServerRequest
 
         instanceNames =
             instanceNumbers
-                |> List.map (generateServerName createServerRequest.name getServerCount)
+                |> List.map (generateServerName createServerRequest.name createServerRequest.count)
 
         baseServerProps innerCreateServerRequest instanceName =
             let
@@ -624,25 +621,26 @@ requestCreateServer project createServerRequest =
             Encode.object [ ( "server", Encode.object props ) ]
 
         buildRequestBody instanceName =
-            if not createServerRequest.volBacked then
-                ( "imageRef", Encode.string createServerRequest.imageUuid )
-                    :: baseServerProps createServerRequest instanceName
-                    |> buildRequestOuterJson
+            case createServerRequest.volBackedSizeGb of
+                Nothing ->
+                    ( "imageRef", Encode.string createServerRequest.imageUuid )
+                        :: baseServerProps createServerRequest instanceName
+                        |> buildRequestOuterJson
 
-            else
-                ( "block_device_mapping_v2"
-                , Encode.list Encode.object
-                    [ [ ( "boot_index", Encode.string "0" )
-                      , ( "uuid", Encode.string createServerRequest.imageUuid )
-                      , ( "source_type", Encode.string "image" )
-                      , ( "volume_size", Encode.string createServerRequest.volBackedSizeGb )
-                      , ( "destination_type", Encode.string "volume" )
-                      , ( "delete_on_termination", Encode.bool True )
-                      ]
-                    ]
-                )
-                    :: baseServerProps createServerRequest instanceName
-                    |> buildRequestOuterJson
+                Just sizeGb ->
+                    ( "block_device_mapping_v2"
+                    , Encode.list Encode.object
+                        [ [ ( "boot_index", Encode.string "0" )
+                          , ( "uuid", Encode.string createServerRequest.imageUuid )
+                          , ( "source_type", Encode.string "image" )
+                          , ( "volume_size", Encode.string (String.fromInt sizeGb) )
+                          , ( "destination_type", Encode.string "volume" )
+                          , ( "delete_on_termination", Encode.bool True )
+                          ]
+                        ]
+                    )
+                        :: baseServerProps createServerRequest instanceName
+                        |> buildRequestOuterJson
 
         requestBodies =
             instanceNames
@@ -656,14 +654,14 @@ requestCreateServer project createServerRequest =
             let
                 plural =
                     case createServerRequest.count of
-                        "1" ->
+                        1 ->
                             ""
 
                         _ ->
                             "s"
             in
             ErrorContext
-                ("create " ++ createServerRequest.count ++ " server" ++ plural)
+                ("create " ++ String.fromInt createServerRequest.count ++ " server" ++ plural)
                 ErrorCrit
                 (Just <| "It's possible your quota is not large enough to launch the requested server" ++ plural)
 

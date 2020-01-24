@@ -61,6 +61,8 @@ hydrateProjectFromStoredProject storedProject =
     , floatingIps = []
     , ports = []
     , securityGroups = []
+    , computeQuota = RemoteData.NotAsked
+    , volumeQuota = RemoteData.NotAsked
     , pendingCredentialedRequests = []
     }
 
