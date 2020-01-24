@@ -155,7 +155,7 @@ flavorPicker project createServerRequest computeQuota =
 
                 Just availServers ->
                     if availServers < 1 then
-                        Element.text "TODO Insufficient available quota, show an error icon"
+                        Element.text "X"
 
                     else
                         radio_
@@ -228,6 +228,13 @@ flavorPicker project createServerRequest computeQuota =
 
             else
                 []
+
+        anyFlavorsTooLarge =
+            project.flavors
+                |> List.map (Helpers.computeQuotaFlavorAvailServers computeQuota)
+                |> List.filterMap (Maybe.map (\x -> x < 1))
+                |> List.isEmpty
+                |> not
     in
     Element.column
         VH.exoColumnAttributes
@@ -237,6 +244,11 @@ flavorPicker project createServerRequest computeQuota =
             { data = Helpers.sortedFlavors project.flavors
             , columns = columns
             }
+        , if anyFlavorsTooLarge then
+            Element.text "Flavors marked 'X' are too large for your available quota"
+
+          else
+            Element.none
         , Element.paragraph [ Font.size 12 ] [ Element.text zeroRootDiskExplainText ]
         ]
 
