@@ -51,7 +51,7 @@
 
 ## Functional scope of Exosphere Project
 
-### What we're definitely doing
+### What we're already doing
 
 (benefits U for users, O for operators, C for Exosphere contributors)
 
@@ -87,38 +87,39 @@
 
 - Requiring custom (backend) services to support core features
 - Re-inventing that which is both time-consuming and not uniquely valuable, e.g.
-  - User auth (OpenStack handles this for us)
+  - User auth (OpenStack handles this for us, but see "Institutional Single Sign-on" below)
   - User/resource pools (currently using OpenStack projects)
 
 
-### What we might do
+### What we will do (driven by community needs & funding)
 
-#### Driven by community needs
+($ means contingent on funding)
 
-- [U] Automated deployment of custom services/apps (e.g. scientific workloads) on user's cloud resources
+- Automated deployment of custom services/apps (e.g. scientific workloads) on user's cloud resources
+  - One-click installation of common tools like Jupyter Notebook, RStudio, et al. at instance launch time
   - Automated deployment of parallel data processing workflows
-- [U] Support for modern / "cloud-native" workloads
-  - [U] Cluster orchestration
-  - [U] Support for container-based and notebook-based workloads as first-class citizens
+- Support for modern / "cloud-native" workloads
+  - Cluster orchestration, possibly using OpenStack Heat / Magnum
+  - Support for container-based and notebook-based workloads as first-class citizens
     - In progress - proofs of concept exist
-- [U] Support for graphical workloads
+- Support for graphical workloads
   - "I want a GUI" checkbox deploys a GUI desktop at instance launch time
-  - 3D-accelerated remote graphical session (perhaps TurboVNC)
-- [U] Polish the UX
-  - Make OpenStack's error messages more user-friendly
+  - 3D-accelerated remote graphical session (perhaps TurboVNC, or Xpra)
+- Support for high-security workloads
+  - Deploy bastion hosts, servers with no public IP addresses
+- Polish the UX
+  - Smoother client install/upgrade process, signed binaries
   - Dashboard with overview of resources for all providers
-- [UO] Display provider quotas
-- [UO] Extension points (for plugins and 'no-recompile' customization - e.g. themes, internationalization)
-
-
-#### Contingent on financial support (or especially strong community demand)
-
-- Optional modules designed to interact with institution-specific services which enhance the user experience for  users of cloud services provided by these institutions. Examples:
-    - [OU] Institutional Single Sign-on with OpenStack credential management/leases
-    - [OU] Allocation service
-    - [O] Reporting tools
-    - [O] Reverse proxy server 
-- [U] Data management tools
-- [U] Sync user settings between devices
-- [UO] Support for cloud providers other than OpenStack
-    - Either other open cloud computing APIs or to help users control/limit their spending on commercial clouds
+- Empower users to share cloud resources with collaborators
+- Extension points (for plugins and 'no-recompile' customization - e.g. white-label / skinning, internationalization)
+- $ Institution-specific integrations to enhance the UX and cloud operator effectiveness. Examples:
+    - $ Institutional Single Sign-on with OpenStack credential management/leases
+    - $ Allocation service and tools
+    - $ Reporting tools for operators and project PIs
+    - $ Support/ticketing systems (e.g. Intercom, Zendesk)
+    - $ On-premises reverse proxy server (OpenStack services behind firewall)
+- $ Data management tools for users
+- $ Sync user settings between devices
+- $ Support for cloud providers other than OpenStack
+    - $ Either other open cloud computing APIs or to help users control/limit their spending on commercial clouds
+- $ On-demand import of images from Atmosphere side of Jetstream Cloud
