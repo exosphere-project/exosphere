@@ -93,7 +93,7 @@
 
 ### What we will do (driven by community needs & funding)
 
-($ means contingent on funding)
+(* means contingent on funding)
 
 - Automated deployment of custom services/apps (e.g. scientific workloads) on user's cloud resources
   - One-click installation of common tools like Jupyter Notebook, RStudio, et al. at instance launch time
@@ -112,14 +112,14 @@
   - Dashboard with overview of resources for all providers
 - Empower users to share cloud resources with collaborators
 - Extension points (for plugins and 'no-recompile' customization - e.g. white-label / skinning, internationalization)
-- $ Institution-specific integrations to enhance the UX and cloud operator effectiveness. Examples:
-    - $ Institutional Single Sign-on with OpenStack credential management/leases
-    - $ Allocation service and tools
-    - $ Reporting tools for operators and project PIs
-    - $ Support/ticketing systems (e.g. Intercom, Zendesk)
-    - $ On-premises reverse proxy server (OpenStack services behind firewall)
-- $ Data management tools for users
-- $ Sync user settings between devices
-- $ Support for cloud providers other than OpenStack
-    - $ Either other open cloud computing APIs or to help users control/limit their spending on commercial clouds
-- $ On-demand import of images from Atmosphere side of Jetstream Cloud
+- \* Institution-specific integrations to enhance the UX and cloud operator effectiveness. Examples:
+    - \* Institutional Single Sign-on with OpenStack credential management/leases
+    - \* Allocation service and tools
+    - \* Reporting tools for operators and project PIs
+    - \* Support/ticketing systems (e.g. Intercom, Zendesk)
+    - \* On-premises reverse proxy server (OpenStack services behind firewall)
+- \* Data management tools for users
+- \* Sync user settings between devices
+- \* Support for cloud providers other than OpenStack
+    - \* Either other open cloud computing APIs or to help users control/limit their spending on commercial clouds
+- \* On-demand import of images from Atmosphere side of Jetstream Cloud
