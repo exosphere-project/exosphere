@@ -189,9 +189,12 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                             )
                         , VH.compactKVRow "Volumes Attached" (serverVolumes project server)
                         , Element.el VH.heading2 (Element.text "Interact with server")
-                        , VH.compactKVRow "SSH" <| sshInstructions maybeFloatingIp
-                        , VH.compactKVRow "Console" <| consoleLink appIsElectron project server serverUuid viewStateParams
-                        , VH.compactKVRow "Terminal / Dashboard" <| cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
+                        , Element.el VH.heading3 (Element.text "SSH")
+                        , sshInstructions maybeFloatingIp
+                        , Element.el VH.heading3 (Element.text "Console")
+                        , consoleLink appIsElectron project server serverUuid viewStateParams
+                        , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
+                        , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
                         [ Element.el VH.heading3 (Element.text "Server Actions")
@@ -398,7 +401,6 @@ cockpitInteraction cockpitStatus maybeFloatingIp =
                                                 ++ ":9090/cockpit/@localhost/system/terminal.html"
                                     )
                                     "Type commands in a shell!"
-                                , Element.text "Type commands in a shell!"
                                 ]
                             , Element.row
                                 VH.exoRowAttributes
@@ -411,7 +413,6 @@ cockpitInteraction cockpitStatus maybeFloatingIp =
                                                 ++ ":9090"
                                     )
                                     "Server Dashboard"
-                                , Element.text "Manage your server with an interactive dashboard!"
                                 ]
                             ]
             )
