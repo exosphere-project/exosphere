@@ -879,8 +879,31 @@ processProjectSpecificMsg model project msg =
 
                                 _ ->
                                     model.viewState
+
+                        newProject =
+                            case Helpers.serverLookup project serverUuid of
+                                Just server ->
+                                    let
+                                        oldExoProps =
+                                            server.exoProps
+
+                                        newExoProps =
+                                            { oldExoProps | deletionAttempted = True }
+
+                                        newServer =
+                                            { server | exoProps = newExoProps }
+                                    in
+                                    Helpers.projectUpdateServer project newServer
+
+                                Nothing ->
+                                    project
+
+                        newModelProto =
+                            Helpers.modelUpdateProject model newProject
                     in
-                    { model | viewState = newViewState }
+                    { newModelProto
+                        | viewState = newViewState
+                    }
 
                 ( deleteIpAddressModel, deleteIpAddressCmd ) =
                     case maybeIpAddress of
