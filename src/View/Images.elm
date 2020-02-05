@@ -90,6 +90,12 @@ images globalDefaults project imageFilter =
             , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tag = t }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
             }
+        , Input.checkbox []
+            { checked = imageFilter.onlyOwnImages
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new }
+            , icon = Input.defaultCheckbox
+            , label = Input.labelRight [] (Element.text "Show only images owned by me")
+            }
         , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "", onlyOwnImages = False }) "Clear filter (show all)"
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
