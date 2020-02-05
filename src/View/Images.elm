@@ -111,6 +111,18 @@ images globalDefaults project imageFilter =
         ]
 
 
+imageIsOwnedByThisUserOrProject : OSTypes.Image -> Project -> Bool
+imageIsOwnedByThisUserOrProject image project =
+    let
+        userUuid =
+            project.auth.user.uuid
+
+        projectUuid =
+            project.auth.project.uuid
+    in
+    image.ownerUuid == userUuid || image.ownerUuid == projectUuid
+
+
 renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
 renderImage globalDefaults project image =
     let
@@ -154,21 +166,33 @@ renderImage globalDefaults project image =
                         [ Modifier.Disabled ]
                         Nothing
                         "Choose"
+
+        ownerRows =
+            if imageIsOwnedByThisUserOrProject image project then
+                [ Element.row VH.exoRowAttributes
+                    [ Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
+                    ]
+                ]
+
+            else
+                []
     in
     ExoCard.exoCard
         image.name
         size
     <|
         Element.column VH.exoColumnAttributes
-            [ Element.row VH.exoRowAttributes
-                [ Element.text "Status: "
-                , Element.text (Debug.toString image.status)
-                ]
-            , Element.row VH.exoRowAttributes
-                [ Element.text "Tags: "
-                , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                ]
-            , Element.el
-                [ Element.alignRight ]
-                chooseButton
-            ]
+            (ownerRows
+                ++ [ Element.row VH.exoRowAttributes
+                        [ Element.text "Status: "
+                        , Element.text (Debug.toString image.status)
+                        ]
+                   , Element.row VH.exoRowAttributes
+                        [ Element.text "Tags: "
+                        , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+                        ]
+                   , Element.el
+                        [ Element.alignRight ]
+                        chooseButton
+                   ]
+            )
