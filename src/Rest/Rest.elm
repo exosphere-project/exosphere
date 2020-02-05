@@ -1833,6 +1833,7 @@ imageDecoder =
         |> Pipeline.optional "disk_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "container_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "tags" (Decode.list Decode.string)
+        |> Pipeline.required "owner" Decode.string
 
 
 imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus
