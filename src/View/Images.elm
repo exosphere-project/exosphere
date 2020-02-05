@@ -80,7 +80,7 @@ images globalDefaults project imageFilter =
             , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tag = t }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
             }
-        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "" }) "Clear filter (show all)"
+        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "", onlyOwnImages = False }) "Clear filter (show all)"
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
