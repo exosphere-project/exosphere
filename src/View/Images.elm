@@ -48,8 +48,18 @@ images globalDefaults project imageFilter =
             else
                 String.contains (String.toUpper searchText) (String.toUpper image.name)
 
+        userUuid =
+            project.auth.user.uuid
+
+        filteredImagesByUser =
+            if imageFilter.onlyOwnImages == True then
+                List.filter (\i -> i.userUuid == userUuid) project.images
+
+            else
+                project.images
+
         filteredImagesByTag =
-            List.filter (imageContainsTag imageFilter.tag) project.images
+            List.filter (imageContainsTag imageFilter.tag) filteredImagesByUser
 
         filteredImagesBySearchText =
             List.filter (imageMatchesSearchText imageFilter.searchText) filteredImagesByTag
