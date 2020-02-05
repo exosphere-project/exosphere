@@ -51,15 +51,18 @@ images globalDefaults project imageFilter =
         userUuid =
             project.auth.user.uuid
 
-        filteredImagesByUser =
+        projectUuid =
+            project.auth.project.uuid
+
+        filteredImagesByOwner =
             if imageFilter.onlyOwnImages == True then
-                List.filter (\i -> i.userUuid == userUuid) project.images
+                List.filter (\i -> i.ownerUuid == userUuid || i.ownerUuid == projectUuid) project.images
 
             else
                 project.images
 
         filteredImagesByTag =
-            List.filter (imageContainsTag imageFilter.tag) filteredImagesByUser
+            List.filter (imageContainsTag imageFilter.tag) filteredImagesByOwner
 
         filteredImagesBySearchText =
             List.filter (imageMatchesSearchText imageFilter.searchText) filteredImagesByTag
