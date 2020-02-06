@@ -16,7 +16,8 @@ import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Types.Types
     exposing
-        ( Msg(..)
+        ( DeleteVolumeConfirmation
+        , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
@@ -24,8 +25,8 @@ import Types.Types
 import View.Helpers as VH
 
 
-volumes : Project -> Element.Element Msg
-volumes project =
+volumes : Project -> List DeleteVolumeConfirmation -> Element.Element Msg
+volumes project deleteVolumeConfirmations =
     Element.column
         VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Volumes")
@@ -42,21 +43,21 @@ volumes project =
             RemoteData.Success vols ->
                 Element.wrappedRow
                     (VH.exoRowAttributes ++ [ Element.spacing 15 ])
-                    (List.map (renderVolumeCard project) vols)
+                    (List.map (renderVolumeCard project deleteVolumeConfirmations) vols)
         ]
 
 
-renderVolumeCard : Project -> OSTypes.Volume -> Element.Element Msg
-renderVolumeCard project volume =
+renderVolumeCard : Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
+renderVolumeCard project deleteVolumeConfirmations volume =
     ExoCard.exoCard
         (VH.possiblyUntitledResource volume.name "volume")
         (String.fromInt volume.size ++ " GB")
     <|
-        volumeDetail project volume.uuid
+        volumeDetail project ListProjectVolumes deleteVolumeConfirmations volume.uuid
 
 
-volumeActionButtons : Project -> OSTypes.Volume -> Element.Element Msg
-volumeActionButtons project volume =
+volumeActionButtons : Project -> (List DeleteVolumeConfirmation -> ProjectViewConstructor) -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
+volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations volume =
     let
         attachDetachButton =
             case volume.status of
@@ -85,18 +86,44 @@ volumeActionButtons project volume =
                 _ ->
                     Element.none
 
+        confirmationNeeded =
+            List.member volume.uuid deleteVolumeConfirmations
+
         deleteButton =
-            case volume.status of
-                OSTypes.Deleting ->
+            case ( volume.status, confirmationNeeded ) of
+                ( OSTypes.Deleting, _ ) ->
                     Spinner.spinner Spinner.ThreeCircles 20 Framework.Color.grey_darker
 
-                _ ->
+                ( _, True ) ->
+                    Element.row [ Element.spacing 10 ]
+                        [ Element.text "Confirm delete?"
+                        , Button.button
+                            [ Modifier.Danger ]
+                            (Just <|
+                                ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (RequestDeleteVolume volume.uuid)
+                            )
+                            "Delete"
+                        , Button.button
+                            [ Modifier.Primary ]
+                            (Just <|
+                                ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (SetProjectView <|
+                                        toProjectViewConstructor (deleteVolumeConfirmations |> List.filter ((/=) volume.uuid))
+                                    )
+                            )
+                            "Cancel"
+                        ]
+
+                ( _, False ) ->
                     Button.button
                         [ Modifier.Danger ]
                         (Just <|
                             ProjectMsg
                                 (Helpers.getProjectId project)
-                                (RequestDeleteVolume volume.uuid)
+                                (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
                         )
                         "Delete"
     in
@@ -106,17 +133,17 @@ volumeActionButtons project volume =
         ]
 
 
-volumeDetailView : Project -> OSTypes.VolumeUuid -> Element.Element Msg
-volumeDetailView project volumeUuid =
+volumeDetailView : Project -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
+volumeDetailView project deleteVolumeConfirmations volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2 <| Element.text "Volume Detail"
-        , volumeDetail project volumeUuid
+        , volumeDetail project (VolumeDetail volumeUuid) deleteVolumeConfirmations volumeUuid
         ]
 
 
-volumeDetail : Project -> OSTypes.VolumeUuid -> Element.Element Msg
-volumeDetail project volumeUuid =
+volumeDetail : Project -> (List DeleteVolumeConfirmation -> ProjectViewConstructor) -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
+volumeDetail project toProjectViewConstructor deleteVolumeConfirmations volumeUuid =
     OpenStack.Volumes.volumeLookup project volumeUuid
         |> Maybe.withDefault (Element.text "No volume found")
         << Maybe.map
@@ -134,7 +161,7 @@ volumeDetail project volumeUuid =
 
                         Just metadata ->
                             VH.compactKVRow "Created from image:" <| Element.text metadata.name
-                    , volumeActionButtons project volume
+                    , volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations volume
                     ]
             )
 

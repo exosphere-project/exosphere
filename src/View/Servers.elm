@@ -1,4 +1,4 @@
-module View.Servers exposing (serverDetail, servers)
+module View.Servers exposing (availableActions, serverDetail, servers, toServerActionState)
 
 import Color
 import Element
@@ -23,6 +23,7 @@ import Style.Widgets.IconButton as IconButton
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
+        , DeleteConfirmation
         , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -40,8 +41,8 @@ import View.Helpers as VH exposing (edges)
 import View.Types
 
 
-servers : Project -> ServerFilter -> Element.Element Msg
-servers project serverFilter =
+servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
+servers project serverFilter deleteConfirmations =
     case project.servers of
         RemoteData.NotAsked ->
             Element.paragraph [] [ Element.text "Please wait..." ]
@@ -105,17 +106,17 @@ servers project serverFilter =
                         ]
                     , Input.checkbox []
                         { checked = serverFilter.onlyOwnServers
-                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new }
+                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
                         , icon = Input.defaultCheckbox
                         , label = Input.labelRight [] (Element.text "Show only servers created by me")
                         }
                     , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-                        (List.map (renderServer project) someServers)
+                        (List.map (renderServer project serverFilter deleteConfirmations) someServers)
                     ]
 
 
 serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-serverDetail appIsElectron project serverUuid viewStateParams =
+serverDetail appIsElectron project serverUuid serverDetailViewParams =
     Helpers.serverLookup project serverUuid
         |> Maybe.withDefault (Element.text "No server found")
         << Maybe.map
@@ -174,7 +175,7 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                             VH.heading2
                             (Element.text "Server Details")
                         , VH.compactKVRow "Name" (Element.text server.osProps.name)
-                        , VH.compactKVRow "Status" (serverStatus projectId server viewStateParams)
+                        , VH.compactKVRow "Status" (serverStatus projectId server serverDetailViewParams)
                         , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
                         , VH.compactKVRow "Created on" (Element.text details.created)
                         , VH.compactKVRow "Image" (Element.text imageText)
@@ -185,20 +186,20 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                                 details.ipAddresses
                                 projectId
                                 server.osProps.uuid
-                                viewStateParams
+                                serverDetailViewParams
                             )
                         , VH.compactKVRow "Volumes Attached" (serverVolumes project server)
                         , Element.el VH.heading2 (Element.text "Interact with server")
                         , Element.el VH.heading3 (Element.text "SSH")
                         , sshInstructions maybeFloatingIp
                         , Element.el VH.heading3 (Element.text "Console")
-                        , consoleLink appIsElectron project server serverUuid viewStateParams
+                        , consoleLink appIsElectron project server serverUuid serverDetailViewParams
                         , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
                         , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
                         [ Element.el VH.heading3 (Element.text "Server Actions")
-                        , actions projectId server
+                        , viewServerActions projectId server serverDetailViewParams
                         , Element.el VH.heading3 (Element.text "System Resource Usage")
                         , resourceUsageGraphs server.exoProps.cockpitStatus maybeFloatingIp
                         ]
@@ -207,7 +208,7 @@ serverDetail appIsElectron project serverUuid viewStateParams =
 
 
 serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
-serverStatus projectId server viewStateParams =
+serverStatus projectId server serverDetailViewParams =
     let
         details =
             server.osProps.details
@@ -238,7 +239,7 @@ serverStatus projectId server viewStateParams =
                 g
 
         verboseStatus =
-            if viewStateParams.verboseStatus then
+            if serverDetailViewParams.verboseStatus then
                 [ Element.text "Detailed status"
                 , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                 , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
@@ -253,7 +254,7 @@ serverStatus projectId server viewStateParams =
                             SetProjectView <|
                                 ServerDetail
                                     server.osProps.uuid
-                                    { viewStateParams | verboseStatus = True }
+                                    { serverDetailViewParams | verboseStatus = True }
                     )
                     "See detail"
                 ]
@@ -286,7 +287,7 @@ sshInstructions maybeFloatingIp =
 
 
 consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-consoleLink appIsElectron project server serverUuid viewStateParams =
+consoleLink appIsElectron project server serverUuid serverDetailViewParams =
     let
         details =
             server.osProps.details
@@ -315,7 +316,7 @@ consoleLink appIsElectron project server serverUuid viewStateParams =
                                     (ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
                                             ServerDetail serverUuid
-                                                { viewStateParams | passwordVisibility = pwVizOnClick }
+                                                { serverDetailViewParams | passwordVisibility = pwVizOnClick }
                                     )
                                 , Element.centerX
                                 , Element.centerY
@@ -332,7 +333,7 @@ consoleLink appIsElectron project server serverUuid viewStateParams =
                                 { width = 550
                                 , height = 30
                                 , activeFront =
-                                    case viewStateParams.passwordVisibility of
+                                    case serverDetailViewParams.passwordVisibility of
                                         PasswordShown ->
                                             False
 
@@ -418,56 +419,177 @@ cockpitInteraction cockpitStatus maybeFloatingIp =
             )
 
 
-actions : ProjectIdentifier -> Server -> Element.Element Msg
-actions projectId server =
-    let
-        details =
-            server.osProps.details
-    in
+availableActions : Server -> List Types.Types.ServerAction
+availableActions server =
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
-            let
-                allowedActions =
-                    ServerActions.getAllowed details.openstackStatus
-
-                renderActionButton action =
-                    let
-                        actionMsg =
-                            case action.action of
-                                ServerActions.CmdAction cmdAction ->
-                                    Just <|
-                                        ProjectMsg projectId <|
-                                            RequestServerAction
-                                                server
-                                                cmdAction
-                                                action.targetStatus
-
-                                ServerActions.UpdateAction updateAction ->
-                                    Just <| updateAction projectId server
-                    in
-                    Element.row
-                        [ Element.spacing 10 ]
-                        [ Element.el
-                            [ Element.width <| Element.px 100 ]
-                          <|
-                            Button.button
-                                action.selectMods
-                                actionMsg
-                                action.name
-                        , Element.text action.description
-                        ]
-
-                -- TODO hover text with description
-            in
-            Element.column
-                [ Element.spacingXY 0 10 ]
-            <|
-                List.map renderActionButton allowedActions
+            ServerActions.getAllowed server.osProps.details.openstackStatus
 
         Just _ ->
+            []
+
+
+viewServerActions : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
+viewServerActions projectId server serverDetailViewParams =
+    case serverDetailViewParams.serverActionStates of
+        [] ->
             Element.el
                 [ Element.padding 10 ]
                 Element.none
+
+        serverActionStates ->
+            Element.column
+                [ Element.spacingXY 0 10 ]
+            <|
+                List.map (renderServerActionButton projectId server serverDetailViewParams) serverActionStates
+
+
+renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> Types.Types.ServerActionState -> Element.Element Msg
+renderServerActionButton projectId server serverDetailViewParams ({ serverAction } as serverActionState) =
+    case ( serverAction.action, serverAction.confirmable, serverActionState.displayConfirmation ) of
+        ( Types.Types.CmdAction _, True, False ) ->
+            let
+                updatedServerActionState =
+                    { serverActionState | displayConfirmation = True }
+
+                updateAction =
+                    ProjectMsg
+                        projectId
+                        (SetProjectView
+                            (ServerDetail
+                                server.osProps.uuid
+                                (serverDetailViewParams
+                                    |> updateServerActionState updatedServerActionState
+                                )
+                            )
+                        )
+            in
+            renderActionButton serverAction (Just updateAction) serverAction.name
+
+        ( Types.Types.CmdAction cmdAction, True, True ) ->
+            let
+                actionMsg =
+                    Just <|
+                        ProjectMsg projectId <|
+                            RequestServerAction
+                                server
+                                cmdAction
+                                serverAction.targetStatus
+
+                updatedServerActionState =
+                    { serverActionState | displayConfirmation = False }
+
+                cancelMsg =
+                    Just <|
+                        ProjectMsg
+                            projectId
+                            (SetProjectView
+                                (ServerDetail
+                                    server.osProps.uuid
+                                    (serverDetailViewParams
+                                        |> updateServerActionState updatedServerActionState
+                                    )
+                                )
+                            )
+
+                title =
+                    confirmationMessage serverAction
+            in
+            renderConfirmationButton serverAction actionMsg cancelMsg title
+
+        ( Types.Types.CmdAction cmdAction, False, _ ) ->
+            let
+                actionMsg =
+                    Just <|
+                        ProjectMsg projectId <|
+                            RequestServerAction
+                                server
+                                cmdAction
+                                serverAction.targetStatus
+
+                title =
+                    serverAction.name
+            in
+            renderActionButton serverAction actionMsg title
+
+        ( Types.Types.UpdateAction updateAction, _, _ ) ->
+            let
+                actionMsg =
+                    Just <| updateAction projectId server
+
+                title =
+                    serverAction.name
+            in
+            renderActionButton serverAction actionMsg title
+
+
+confirmationMessage : Types.Types.ServerAction -> String
+confirmationMessage serverAction =
+    "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
+
+
+renderActionButton : Types.Types.ServerAction -> Maybe Msg -> String -> Element.Element Msg
+renderActionButton serverAction actionMsg title =
+    Element.row
+        [ Element.spacing 10 ]
+        [ Element.el
+            [ Element.width <| Element.px 100 ]
+          <|
+            Button.button
+                serverAction.selectMods
+                actionMsg
+                title
+        , Element.text serverAction.description
+
+        -- TODO hover text with description
+        ]
+
+
+renderConfirmationButton : Types.Types.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
+renderConfirmationButton serverAction actionMsg cancelMsg title =
+    Element.row
+        [ Element.spacing 10 ]
+        [ Element.text title
+        , Element.el
+            []
+          <|
+            Button.button
+                serverAction.selectMods
+                actionMsg
+                "Yes"
+        , Element.el
+            []
+          <|
+            Button.button
+                [ Modifier.Primary ]
+                cancelMsg
+                "No"
+
+        -- TODO hover text with description
+        ]
+
+
+updateServerActionState : Types.Types.ServerActionState -> ServerDetailViewParams -> ServerDetailViewParams
+updateServerActionState ({ serverAction } as targetServerActionState) ({ serverActionStates } as serverDetailViewParams) =
+    let
+        updatedServerActionStates =
+            serverActionStates
+                |> List.map
+                    (\serverActionState ->
+                        -- match on name and description instead of id
+                        if
+                            serverActionState.serverAction.name
+                                == serverAction.name
+                                && serverActionState.serverAction.description
+                                == serverAction.description
+                        then
+                            targetServerActionState
+
+                        else
+                            serverActionState
+                    )
+    in
+    { serverDetailViewParams | serverActionStates = updatedServerActionStates }
 
 
 resourceUsageGraphs : CockpitLoginStatus -> Maybe String -> Element.Element Msg
@@ -514,8 +636,8 @@ resourceUsageGraphs cockpitStatus maybeFloatingIp =
             )
 
 
-renderServer : Project -> Server -> Element.Element Msg
-renderServer project server =
+renderServer : Project -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
+renderServer project serverFilter deleteConfirmations server =
     let
         userUuid =
             project.auth.user.uuid
@@ -546,6 +668,7 @@ renderServer project server =
                         { verboseStatus = False
                         , passwordVisibility = PasswordHidden
                         , ipInfoLevel = IPSummary
+                        , serverActionStates = availableActions server |> List.map toServerActionState
                         }
 
         serverLabel : Server -> Element.Element Msg
@@ -558,25 +681,74 @@ renderServer project server =
                 [ serverLabelName aServer
                 , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
                 ]
+
+        deletionAttempted =
+            server.exoProps.deletionAttempted
+
+        confirmationNeeded =
+            List.member server.osProps.uuid deleteConfirmations
+
+        deleteWidget =
+            case ( deletionAttempted, confirmationNeeded ) of
+                ( True, _ ) ->
+                    [ Element.text "Deleting..." ]
+
+                ( False, True ) ->
+                    [ Element.text "Confirm delete?"
+                    , IconButton.iconButton
+                        [ Modifier.Danger, Modifier.Small ]
+                        (Just
+                            (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server))
+                        )
+                        (Icon.remove Framework.Color.white 16)
+                    , IconButton.iconButton
+                        [ Modifier.Primary, Modifier.Small ]
+                        (Just
+                            (ProjectMsg
+                                (Helpers.getProjectId project)
+                                (SetProjectView <|
+                                    ListProjectServers
+                                        serverFilter
+                                        (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
+                                )
+                            )
+                        )
+                        (Icon.windowClose Framework.Color.white 16)
+                    ]
+
+                ( False, False ) ->
+                    [ IconButton.iconButton
+                        [ Modifier.Danger, Modifier.Small ]
+                        (Just
+                            (ProjectMsg (Helpers.getProjectId project)
+                                (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
+                            )
+                        )
+                        (Icon.remove Framework.Color.white 16)
+                    ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ Input.checkbox [ Element.width Element.shrink ]
+        ([ Input.checkbox [ Element.width Element.shrink ]
             { checked = server.exoProps.selected
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
             , icon = Input.defaultCheckbox
             , label = Input.labelHidden server.osProps.name
             }
-        , serverLabel server
-        , if server.exoProps.deletionAttempted == True then
-            Element.text "Deleting..."
+         , serverLabel server
+         ]
+            ++ deleteWidget
+        )
 
-          else
-            IconButton.iconButton [ Modifier.Danger, Modifier.Small ] (Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server))) (Icon.remove Framework.Color.white 16)
-        ]
+
+toServerActionState : Types.Types.ServerAction -> Types.Types.ServerActionState
+toServerActionState serverAction =
+    { serverAction = serverAction
+    , displayConfirmation = False
+    }
 
 
 renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
+renderIpAddresses ipAddresses projectId serverUuid serverDetailViewParams =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
@@ -621,13 +793,13 @@ renderIpAddresses ipAddresses projectId serverUuid viewStateParams =
                                 SetProjectView <|
                                     ServerDetail
                                         serverUuid
-                                        { viewStateParams | ipInfoLevel = ipMsg }
+                                        { serverDetailViewParams | ipInfoLevel = ipMsg }
                     , label = Element.text displayButtonString
                     }
                 , Element.el [ Font.size 10 ] (Element.text displayLabel)
                 ]
     in
-    case viewStateParams.ipInfoLevel of
+    case serverDetailViewParams.ipInfoLevel of
         IPDetails ->
             Element.column
                 (VH.exoColumnAttributes ++ [ Element.padding 0 ])
@@ -689,7 +861,7 @@ serverVolumes project server =
                             Just
                                 (ProjectMsg
                                     (Helpers.getProjectId project)
-                                    (SetProjectView <| VolumeDetail v.uuid)
+                                    (SetProjectView <| VolumeDetail v.uuid [])
                                 )
                         , label = Icon.rightArrow Framework.Color.grey 16
                         }

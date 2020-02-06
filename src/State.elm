@@ -129,7 +129,7 @@ chpasswd:
             List.map getTimeForAppCredential projectsNeedingAppCredentials
     in
     case hydratedModel.viewState of
-        ProjectView projectName _ (ListProjectServers _) ->
+        ProjectView projectName _ (ListProjectServers _ _) ->
             let
                 ( newModel, newCmds ) =
                     update (ProjectMsg projectName RequestServers) hydratedModel
@@ -195,7 +195,7 @@ updateUnderlying msg model =
 
                         Just project ->
                             case projectViewState of
-                                ListProjectServers _ ->
+                                ListProjectServers _ _ ->
                                     update (ProjectMsg projectName RequestServers) model
 
                                 ServerDetail serverUuid _ ->
@@ -208,10 +208,10 @@ updateUnderlying msg model =
                                     in
                                     ( newModel, Cmd.batch [ newCmd, requestVolCmd ] )
 
-                                ListProjectVolumes ->
+                                ListProjectVolumes _ ->
                                     ( model, OSVolumes.requestVolumes project )
 
-                                VolumeDetail _ ->
+                                VolumeDetail _ _ ->
                                     ( model, OSVolumes.requestVolumes project )
 
                                 _ ->
@@ -402,7 +402,7 @@ updateUnderlying msg model =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                ListProjectServers { onlyOwnServers = False }
+                                                ListProjectServers { onlyOwnServers = False } []
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -464,7 +464,7 @@ processProjectSpecificMsg model project msg =
                 ListImages _ ->
                     ( newModel, Rest.requestImages project )
 
-                ListProjectServers _ ->
+                ListProjectServers _ _ ->
                     ( newModel
                     , [ Rest.requestServers
                       , Rest.requestFloatingIps
@@ -578,10 +578,10 @@ processProjectSpecificMsg model project msg =
                                 ]
                             )
 
-                ListProjectVolumes ->
+                ListProjectVolumes _ ->
                     ( newModel, OSVolumes.requestVolumes project )
 
-                VolumeDetail _ ->
+                VolumeDetail _ _ ->
                     ( newModel, Cmd.none )
 
                 AttachVolumeModal _ _ ->
@@ -671,6 +671,7 @@ processProjectSpecificMsg model project msg =
                                     <|
                                         ListProjectServers
                                             { onlyOwnServers = False }
+                                            []
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -771,6 +772,7 @@ processProjectSpecificMsg model project msg =
                             <|
                                 ListProjectServers
                                     { onlyOwnServers = False }
+                                    []
                     }
             in
             ( newModel, Rest.requestCreateServerImage project serverUuid imageName )
@@ -872,7 +874,7 @@ processProjectSpecificMsg model project msg =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (ListProjectServers { onlyOwnServers = False })
+                                            (ListProjectServers { onlyOwnServers = False } [])
 
                                     else
                                         model.viewState
@@ -953,7 +955,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
+            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectVolumes []) model
 
         ReceiveVolumes volumes ->
             let
@@ -1045,7 +1047,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveDetachVolume ->
             {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView ListProjectVolumes) model
+            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectVolumes []) model
 
         ReceiveAppCredential appCredential ->
             let
@@ -1112,14 +1114,14 @@ createProject model password authToken =
                         (Helpers.getProjectId newProject)
                         { createPopup = False }
                     <|
-                        ListProjectServers { onlyOwnServers = False }
+                        ListProjectServers { onlyOwnServers = False } []
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         (Helpers.getProjectId newProject)
                         projectViewParams
                     <|
-                        ListProjectServers { onlyOwnServers = False }
+                        ListProjectServers { onlyOwnServers = False } []
 
         newModel =
             { model

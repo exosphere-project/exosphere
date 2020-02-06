@@ -1,6 +1,9 @@
 module Types.Types exposing
-    ( CockpitLoginStatus(..)
+    ( ActionType(..)
+    , CockpitLoginStatus(..)
     , CreateServerRequest
+    , DeleteConfirmation
+    , DeleteVolumeConfirmation
     , Endpoints
     , ExoServerProps
     , Flags
@@ -26,6 +29,8 @@ module Types.Types exposing
     , ProjectViewConstructor(..)
     , ProjectViewParams
     , Server
+    , ServerAction
+    , ServerActionState
     , ServerDetailViewParams
     , ServerFilter
     , ServerUiStatus(..)
@@ -38,6 +43,7 @@ module Types.Types exposing
     )
 
 import Error exposing (ErrorContext)
+import Framework.Modifier as Modifier
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -246,11 +252,11 @@ type alias ProjectViewParams =
 
 type ProjectViewConstructor
     = ListImages ImageFilter
-    | ListProjectServers ServerFilter
-    | ListProjectVolumes
+    | ListProjectServers ServerFilter (List DeleteConfirmation)
+    | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
-    | VolumeDetail OSTypes.VolumeUuid
+    | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
     | CreateServer CreateServerRequest
     | CreateVolume OSTypes.VolumeName String
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
@@ -261,7 +267,38 @@ type alias ServerDetailViewParams =
     { verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
+    , serverActionStates : List ServerActionState
     }
+
+
+type alias ServerActionState =
+    { serverAction : ServerAction
+    , displayConfirmation : Bool
+    }
+
+
+type alias ServerAction =
+    { name : String
+    , description : String
+    , allowedStatuses : List OSTypes.ServerStatus
+    , action : ActionType
+    , selectMods : List Modifier.Modifier
+    , targetStatus : List OSTypes.ServerStatus
+    , confirmable : Bool
+    }
+
+
+type alias DeleteConfirmation =
+    OSTypes.ServerUuid
+
+
+type alias DeleteVolumeConfirmation =
+    OSTypes.VolumeUuid
+
+
+type ActionType
+    = CmdAction (Project -> Server -> Cmd Msg)
+    | UpdateAction (ProjectIdentifier -> Server -> Msg)
 
 
 type IPInfoLevel

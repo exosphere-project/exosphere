@@ -20,6 +20,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
+import View.Servers
 
 
 attachVolume : Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
@@ -128,7 +129,15 @@ mountVolInstructions project attachment =
                     SetProjectView
                         (ServerDetail
                             attachment.serverUuid
-                            { verboseStatus = False, passwordVisibility = PasswordHidden, ipInfoLevel = IPSummary }
+                            { verboseStatus = False
+                            , passwordVisibility = PasswordHidden
+                            , ipInfoLevel = IPSummary
+                            , serverActionStates =
+                                Helpers.serverLookup project attachment.serverUuid
+                                    |> Maybe.map View.Servers.availableActions
+                                    |> Maybe.map (List.map View.Servers.toServerActionState)
+                                    |> Maybe.withDefault []
+                            }
                         )
             )
             "Go to my server"

@@ -1410,7 +1410,7 @@ receiveCreateServer model project _ =
                         (Helpers.getProjectId project)
                         { createPopup = False }
                     <|
-                        ListProjectServers { onlyOwnServers = False }
+                        ListProjectServers { onlyOwnServers = False } []
             }
     in
     ( newModel
