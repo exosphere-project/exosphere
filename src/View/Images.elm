@@ -157,7 +157,7 @@ renderImage globalDefaults project image =
         ownerRows =
             if imageIsOwnedByProject image project then
                 [ Element.row VH.exoRowAttributes
-                    [ Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
+                    [ ExoCard.badge "belongs to this project"
                     ]
                 ]
 
