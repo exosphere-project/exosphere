@@ -50,7 +50,7 @@ images globalDefaults project imageFilter =
 
         filteredImagesByOwner =
             if imageFilter.onlyOwnImages then
-                List.filter (\i -> imageIsOwnedByThisUserOrProject i project) project.images
+                List.filter (\i -> imageIsOwnedByProject i project) project.images
 
             else
                 project.images
@@ -105,16 +105,9 @@ images globalDefaults project imageFilter =
         ]
 
 
-imageIsOwnedByThisUserOrProject : OSTypes.Image -> Project -> Bool
-imageIsOwnedByThisUserOrProject image project =
-    let
-        userUuid =
-            project.auth.user.uuid
-
-        projectUuid =
-            project.auth.project.uuid
-    in
-    image.ownerUuid == userUuid || image.ownerUuid == projectUuid
+imageIsOwnedByProject : OSTypes.Image -> Project -> Bool
+imageIsOwnedByProject image project =
+    image.projectUuid == project.auth.project.uuid
 
 
 renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
@@ -162,7 +155,7 @@ renderImage globalDefaults project image =
                         "Choose"
 
         ownerRows =
-            if imageIsOwnedByThisUserOrProject image project then
+            if imageIsOwnedByProject image project then
                 [ Element.row VH.exoRowAttributes
                     [ Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
                     ]

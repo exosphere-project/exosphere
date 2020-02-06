@@ -186,7 +186,7 @@ type alias Image =
     , diskFormat : Maybe String
     , containerFormat : Maybe String
     , tags : List String
-    , ownerUuid : HelperTypes.Uuid
+    , projectUuid : HelperTypes.Uuid
     }
 
 
