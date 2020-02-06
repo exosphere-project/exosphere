@@ -42,7 +42,7 @@ hydrateModelFromStoredState model storedState =
                     Types.NonProjectView Types.LoginPicker
 
                 firstProject :: _ ->
-                    Types.ProjectView (Helpers.getProjectId firstProject) { createPopup = False } (Types.ListProjectServers { onlyOwnServers = False })
+                    Types.ProjectView (Helpers.getProjectId firstProject) { createPopup = False } (Types.ListProjectServers { onlyOwnServers = False } [])
     in
     { model | projects = projects, viewState = viewState }
 

@@ -36,20 +36,20 @@ project model p viewParams viewConstructor =
                 ListImages imageFilter ->
                     View.Images.imagesIfLoaded model.globalDefaults p imageFilter
 
-                ListProjectServers serverFilter ->
-                    View.Servers.servers p serverFilter
+                ListProjectServers serverFilter deleteConfirmations ->
+                    View.Servers.servers p serverFilter deleteConfirmations
 
-                ServerDetail serverUuid viewStateParams ->
-                    View.Servers.serverDetail model.isElectron p serverUuid viewStateParams
+                ServerDetail serverUuid serverDetailViewParams ->
+                    View.Servers.serverDetail model.isElectron p serverUuid serverDetailViewParams
 
                 CreateServer createServerRequest ->
                     View.CreateServer.createServer p createServerRequest
 
-                ListProjectVolumes ->
-                    View.Volumes.volumes p
+                ListProjectVolumes deleteVolumeConfirmations ->
+                    View.Volumes.volumes p deleteVolumeConfirmations
 
-                VolumeDetail volumeUuid ->
-                    View.Volumes.volumeDetailView p volumeUuid
+                VolumeDetail volumeUuid deleteVolumeConfirmations ->
+                    View.Volumes.volumeDetailView p deleteVolumeConfirmations volumeUuid
 
                 CreateVolume volName volSizeStr ->
                     View.Volumes.createVolume p volName volSizeStr
@@ -92,14 +92,14 @@ projectNav p viewParams =
                     (Just <|
                         ProjectMsg (Helpers.getProjectId p) <|
                             SetProjectView <|
-                                ListProjectServers { onlyOwnServers = False }
+                                ListProjectServers { onlyOwnServers = False } []
                     )
                     "My Servers"
                 )
             , Element.el []
                 (Button.button
                     []
-                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView ListProjectVolumes)
+                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| ListProjectVolumes [])
                     "My Volumes"
                 )
             , Element.el

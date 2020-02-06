@@ -59,7 +59,7 @@ navMenu model =
                 (Just
                     (ProjectMsg (Helpers.getProjectId project)
                         (SetProjectView <|
-                            ListProjectServers { onlyOwnServers = False }
+                            ListProjectServers { onlyOwnServers = False } []
                         )
                     )
                 )

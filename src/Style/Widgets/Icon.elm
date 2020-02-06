@@ -1,10 +1,31 @@
-module Style.Widgets.Icon exposing (bell, copyToClipboard, downArrow, question, remove, rightArrow, roundRect, upArrow)
+module Style.Widgets.Icon exposing (bell, copyToClipboard, downArrow, question, remove, rightArrow, roundRect, upArrow, windowClose)
 
 import Color
 import Element
 import Html
 import Svg
 import Svg.Attributes as SA
+
+
+windowClose : Color.Color -> Int -> Element.Element msg
+windowClose cl size =
+    Element.el [] <|
+        Element.html <|
+            windowClose_ cl size
+
+
+windowClose_ : Color.Color -> Int -> Html.Html msg
+windowClose_ cl size =
+    Svg.svg
+        [ SA.viewBox "0 0 1792 1792"
+        , SA.height <| String.fromInt size
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+            , SA.d "M1175 1321l146-146q10-10 10-23t-10-23l-233-233 233-233q10-10 10-23t-10-23l-146-146q-10-10-23-10t-23 10l-233 233-233-233q-10-10-23-10t-23 10l-146 146q-10 10-10 23t10 23l233 233-233 233q-10 10-10 23t10 23l146 146q10 10 23 10t23-10l233-233 233 233q10 10 23 10t23-10zm617-1033v1216q0 66-47 113t-113 47h-1472q-66 0-113-47t-47-113v-1216q0-66 47-113t113-47h1472q66 0 113 47t47 113z"
+            ]
+            []
+        ]
 
 
 bell : Color.Color -> Int -> Element.Element msg
