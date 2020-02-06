@@ -35,6 +35,7 @@ module Helpers.Helpers exposing
     , stringIsUuidOrDefault
     , titleFromHostname
     , toastConfig
+    , volDeviceToMountpoint
     , volumeIsAttachedToServer
     , volumeQuotaAvail
     )
@@ -736,6 +737,16 @@ getBootVol vols serverUuid =
     vols
         |> List.filter (isBootVol <| Just serverUuid)
         |> List.head
+
+
+volDeviceToMountpoint : OSTypes.VolumeAttachmentDevice -> Maybe String
+volDeviceToMountpoint device =
+    -- Converts e.g. "/dev/sdc" to "/media/volume/sdc"
+    device
+        |> String.split "/"
+        |> List.reverse
+        |> List.head
+        |> Maybe.map (String.append "/media/volume/")
 
 
 jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin

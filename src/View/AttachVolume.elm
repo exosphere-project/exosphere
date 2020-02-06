@@ -112,12 +112,28 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
 
 mountVolInstructions : Project -> OSTypes.VolumeAttachment -> Element.Element Msg
 mountVolInstructions project attachment =
-    {- Future todo, talk to Cockpit and mount the volume for the user, formatting new volume if needed -}
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 <| Element.text "Volume Attached"
         , Element.text ("Device: " ++ attachment.device)
+        , case Helpers.volDeviceToMountpoint attachment.device of
+            Just mountpoint ->
+                Element.text ("Mount point: " ++ mountpoint)
+
+            Nothing ->
+                Element.none
         , Element.paragraph []
-            [ Element.text "You have attached a volume. Go to your server, format the volume if needed, and mount it!"
+            [ case Helpers.volDeviceToMountpoint attachment.device of
+                Just mountpoint ->
+                    Element.text <|
+                        "We'll try to mount this volume at "
+                            ++ mountpoint
+                            ++ " on your instance's filesystem. You should be able to access the volume there. "
+                            ++ "(If it's a completely empty volume we'll also try to format it first.) "
+                            ++ "If this doesn't work, you may need to format and/or mount it yourself."
+
+                Nothing ->
+                    Element.text <|
+                        "We attached the volume but couldn't determine a mountpoint from the device path."
             ]
         , Button.button
             []

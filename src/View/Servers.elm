@@ -187,7 +187,8 @@ serverDetail appIsElectron project serverUuid viewStateParams =
                                 server.osProps.uuid
                                 viewStateParams
                             )
-                        , VH.compactKVRow "Volumes Attached" (serverVolumes project server)
+                        , Element.el VH.heading3 (Element.text "Volumes Attached")
+                        , serverVolumes project server
                         , Element.el VH.heading2 (Element.text "Interact with server")
                         , Element.el VH.heading3 (Element.text "SSH")
                         , sshInstructions maybeFloatingIp
@@ -661,14 +662,14 @@ serverVolumes project server =
         vols =
             Helpers.getVolsAttachedToServer project server
 
-        device vol =
+        deviceRawName vol =
             vol.attachments
                 |> List.filter (\a -> a.serverUuid == server.osProps.uuid)
                 |> List.head
                 |> Maybe.map .device
 
         isBootVol vol =
-            device vol
+            deviceRawName vol
                 |> Maybe.map (\d -> List.member d [ "/dev/vda", "/dev/sda" ])
                 |> Maybe.withDefault False
     in
@@ -694,32 +695,55 @@ serverVolumes project server =
                         , label = Icon.rightArrow Framework.Color.grey 16
                         }
 
-                renderVolume v =
-                    Element.row VH.exoRowAttributes
-                        [ Element.text <| VH.possiblyUntitledResource v.name "volume"
-                        , case device v of
-                            Just name ->
-                                Element.text ("as " ++ name)
+                volumeRow v =
+                    let
+                        ( device, mountpoint ) =
+                            if isBootVol v then
+                                ( "Boot volume", "" )
 
-                            Nothing ->
-                                Element.none
-                        , if isBootVol v then
-                            Element.el
-                                [ Font.color <| Color.toElementColor <| Framework.Color.grey ]
-                            <|
-                                Element.text "Boot volume"
+                            else
+                                case deviceRawName v of
+                                    Just device_ ->
+                                        ( device_
+                                        , case Helpers.volDeviceToMountpoint device_ of
+                                            Just mountpoint_ ->
+                                                mountpoint_
 
-                          else
-                            Element.none
-                        , volDetailsButton v
-                        ]
+                                            Nothing ->
+                                                "Could not determine"
+                                        )
+
+                                    Nothing ->
+                                        ( "Could not determine", "" )
+                    in
+                    { name = VH.possiblyUntitledResource v.name "volume"
+                    , device = device
+                    , mountpoint = mountpoint
+                    , toButton = volDetailsButton v
+                    }
             in
-            Element.column [ Element.spacing 3, Font.size 14 ]
-                (vols
-                    |> List.sortBy
-                        (\v ->
-                            device v
-                                |> Maybe.withDefault "z"
-                        )
-                    |> List.map renderVolume
-                )
+            Element.table
+                []
+                { data =
+                    vols
+                        |> List.map volumeRow
+                        |> List.sortBy .device
+                , columns =
+                    [ { header = Element.el [ Font.heavy ] <| Element.text "Name"
+                      , width = Element.fill
+                      , view = \v -> Element.text v.name
+                      }
+                    , { header = Element.el [ Font.heavy ] <| Element.text "Device"
+                      , width = Element.fill
+                      , view = \v -> Element.text v.device
+                      }
+                    , { header = Element.el [ Font.heavy ] <| Element.text "Mount point"
+                      , width = Element.fill
+                      , view = \v -> Element.text v.mountpoint
+                      }
+                    , { header = Element.none
+                      , width = Element.px 22
+                      , view = \v -> v.toButton
+                      }
+                    ]
+                }
