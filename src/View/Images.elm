@@ -48,15 +48,9 @@ images globalDefaults project imageFilter =
             else
                 String.contains (String.toUpper searchText) (String.toUpper image.name)
 
-        userUuid =
-            project.auth.user.uuid
-
-        projectUuid =
-            project.auth.project.uuid
-
         filteredImagesByOwner =
             if imageFilter.onlyOwnImages == True then
-                List.filter (\i -> i.ownerUuid == userUuid || i.ownerUuid == projectUuid) project.images
+                List.filter (\i -> imageIsOwnedByThisUserOrProject i project) project.images
 
             else
                 project.images
