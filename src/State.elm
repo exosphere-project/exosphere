@@ -65,25 +65,35 @@ runcmd:
   - systemctl start cockpit.socket
   - systemctl daemon-reload
   - "mkdir /media/volume"
-  - "cd /media/volume; mkdir b c d e f g h i j k"
+  - "cd /media/volume; for x in b c d e f g h i j k; do mkdir sd$x; mkdir vd$x; done"
   - "systemctl daemon-reload"
-  - "for x in b c d e f g h i j k; do systemctl start media-volume-$x.automount; done"
+  - "for x in b c d e f g h i j k; do systemctl start media-volume-$sdx.automount; systemctl start media-volume-$vdx.automount; done"
 chpasswd:
   list: |
     exouser:{exouser-password}
   expire: False
-mounts:
-  - [ /dev/sdb, /media/volume/b ]
-  - [ /dev/sdc, /media/volume/c ]
-  - [ /dev/sdd, /media/volume/d ]
-  - [ /dev/sde, /media/volume/e ]
-  - [ /dev/sdf, /media/volume/f ]
-  - [ /dev/sdg, /media/volume/g ]
-  - [ /dev/sdh, /media/volume/h ]
-  - [ /dev/sdi, /media/volume/i ]
-  - [ /dev/sdj, /media/volume/j ]
-  - [ /dev/sdk, /media/volume/k ]
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
+mounts:
+  - [ /dev/sdb, /media/volume/sdb ]
+  - [ /dev/sdc, /media/volume/sdc ]
+  - [ /dev/sdd, /media/volume/sdd ]
+  - [ /dev/sde, /media/volume/sde ]
+  - [ /dev/sdf, /media/volume/sdf ]
+  - [ /dev/sdg, /media/volume/sdg ]
+  - [ /dev/sdh, /media/volume/sdh ]
+  - [ /dev/sdi, /media/volume/sdi ]
+  - [ /dev/sdj, /media/volume/sdj ]
+  - [ /dev/sdk, /media/volume/sdk ]
+  - [ /dev/vdb, /media/volume/vdb ]
+  - [ /dev/vdc, /media/volume/vdc ]
+  - [ /dev/vdd, /media/volume/vdd ]
+  - [ /dev/vde, /media/volume/vde ]
+  - [ /dev/vdf, /media/volume/vdf ]
+  - [ /dev/vdg, /media/volume/vdg ]
+  - [ /dev/vdh, /media/volume/vdh ]
+  - [ /dev/vdi, /media/volume/vdi ]
+  - [ /dev/vdj, /media/volume/vdj ]
+  - [ /dev/vdk, /media/volume/vdk ]
 """
             }
 
