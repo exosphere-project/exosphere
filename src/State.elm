@@ -64,10 +64,26 @@ runcmd:
   - systemctl enable cockpit.socket
   - systemctl start cockpit.socket
   - systemctl daemon-reload
+  - "mkdir /media/volume"
+  - "cd /media/volume; mkdir b c d e f g h i j k"
+  - "systemctl daemon-reload"
+  - "for x in b c d e f g h i j k; do systemctl start media-volume-$x.automount; done"
 chpasswd:
   list: |
     exouser:{exouser-password}
   expire: False
+mounts:
+  - [ /dev/sdb, /media/volume/b ]
+  - [ /dev/sdc, /media/volume/c ]
+  - [ /dev/sdd, /media/volume/d ]
+  - [ /dev/sde, /media/volume/e ]
+  - [ /dev/sdf, /media/volume/f ]
+  - [ /dev/sdg, /media/volume/g ]
+  - [ /dev/sdh, /media/volume/h ]
+  - [ /dev/sdi, /media/volume/i ]
+  - [ /dev/sdj, /media/volume/j ]
+  - [ /dev/sdk, /media/volume/k ]
+mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 """
             }
 
