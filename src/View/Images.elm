@@ -91,7 +91,7 @@ images globalDefaults project imageFilter =
             { checked = imageFilter.onlyOwnImages
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new }
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.text "Show only images owned by me")
+            , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
         , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "", onlyOwnImages = False }) "Clear filter (show all)"
         , if noMatchWarning then
