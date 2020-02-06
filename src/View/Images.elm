@@ -49,7 +49,7 @@ images globalDefaults project imageFilter =
                 String.contains (String.toUpper searchText) (String.toUpper image.name)
 
         filteredImagesByOwner =
-            if imageFilter.onlyOwnImages == True then
+            if imageFilter.onlyOwnImages then
                 List.filter (\i -> imageIsOwnedByThisUserOrProject i project) project.images
 
             else
