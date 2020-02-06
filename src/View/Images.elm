@@ -48,8 +48,15 @@ images globalDefaults project imageFilter =
             else
                 String.contains (String.toUpper searchText) (String.toUpper image.name)
 
+        filteredImagesByOwner =
+            if imageFilter.onlyOwnImages == True then
+                List.filter (\i -> imageIsOwnedByThisUserOrProject i project) project.images
+
+            else
+                project.images
+
         filteredImagesByTag =
-            List.filter (imageContainsTag imageFilter.tag) project.images
+            List.filter (imageContainsTag imageFilter.tag) filteredImagesByOwner
 
         filteredImagesBySearchText =
             List.filter (imageMatchesSearchText imageFilter.searchText) filteredImagesByTag
@@ -80,7 +87,13 @@ images globalDefaults project imageFilter =
             , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tag = t }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
             }
-        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "" }) "Clear filter (show all)"
+        , Input.checkbox []
+            { checked = imageFilter.onlyOwnImages
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new }
+            , icon = Input.defaultCheckbox
+            , label = Input.labelRight [] (Element.text "Show only images owned by me")
+            }
+        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "", onlyOwnImages = False }) "Clear filter (show all)"
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
@@ -90,6 +103,18 @@ images globalDefaults project imageFilter =
             (VH.exoRowAttributes ++ [ Element.spacing 15 ])
             (List.map (renderImage globalDefaults project) displayedImages)
         ]
+
+
+imageIsOwnedByThisUserOrProject : OSTypes.Image -> Project -> Bool
+imageIsOwnedByThisUserOrProject image project =
+    let
+        userUuid =
+            project.auth.user.uuid
+
+        projectUuid =
+            project.auth.project.uuid
+    in
+    image.ownerUuid == userUuid || image.ownerUuid == projectUuid
 
 
 renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
@@ -135,21 +160,33 @@ renderImage globalDefaults project image =
                         [ Modifier.Disabled ]
                         Nothing
                         "Choose"
+
+        ownerRows =
+            if imageIsOwnedByThisUserOrProject image project then
+                [ Element.row VH.exoRowAttributes
+                    [ Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
+                    ]
+                ]
+
+            else
+                []
     in
     ExoCard.exoCard
         image.name
         size
     <|
         Element.column VH.exoColumnAttributes
-            [ Element.row VH.exoRowAttributes
-                [ Element.text "Status: "
-                , Element.text (Debug.toString image.status)
-                ]
-            , Element.row VH.exoRowAttributes
-                [ Element.text "Tags: "
-                , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                ]
-            , Element.el
-                [ Element.alignRight ]
-                chooseButton
-            ]
+            (ownerRows
+                ++ [ Element.row VH.exoRowAttributes
+                        [ Element.text "Status: "
+                        , Element.text (Debug.toString image.status)
+                        ]
+                   , Element.row VH.exoRowAttributes
+                        [ Element.text "Tags: "
+                        , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
+                        ]
+                   , Element.el
+                        [ Element.alignRight ]
+                        chooseButton
+                   ]
+            )

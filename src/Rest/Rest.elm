@@ -1824,15 +1824,16 @@ decodeImages =
 
 imageDecoder : Decode.Decoder OSTypes.Image
 imageDecoder =
-    Decode.map8 OSTypes.Image
-        (Decode.field "name" Decode.string)
-        (Decode.field "status" Decode.string |> Decode.andThen imageStatusDecoder)
-        (Decode.field "id" Decode.string)
-        (Decode.field "size" (Decode.nullable Decode.int))
-        (Decode.field "checksum" (Decode.nullable Decode.string))
-        (Decode.field "disk_format" (Decode.nullable Decode.string))
-        (Decode.field "container_format" (Decode.nullable Decode.string))
-        (Decode.field "tags" (Decode.list Decode.string))
+    Decode.succeed OSTypes.Image
+        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "status" (Decode.string |> Decode.andThen imageStatusDecoder)
+        |> Pipeline.required "id" Decode.string
+        |> Pipeline.required "size" (Decode.oneOf [ Decode.int, Decode.null 0 ] |> Decode.andThen (\i -> Decode.succeed <| Just i))
+        |> Pipeline.optional "checksum" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.optional "disk_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.optional "container_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
+        |> Pipeline.required "tags" (Decode.list Decode.string)
+        |> Pipeline.required "owner" Decode.string
 
 
 imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus

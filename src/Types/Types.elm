@@ -237,6 +237,7 @@ type NonProjectViewConstructor
 type alias ImageFilter =
     { searchText : String
     , tag : String
+    , onlyOwnImages : Bool
     }
 
 
