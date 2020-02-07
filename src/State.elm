@@ -67,7 +67,8 @@ runcmd:
   - "mkdir /media/volume"
   - "cd /media/volume; for x in b c d e f g h i j k; do mkdir sd$x; mkdir vd$x; done"
   - "systemctl daemon-reload"
-  - "for x in b c d e f g h i j k; do systemctl start media-volume-$sdx.automount; systemctl start media-volume-$vdx.automount; done"
+  - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
+  - "chown exouser:exouser /media/volume/*"
 chpasswd:
   list: |
     exouser:{exouser-password}
