@@ -71,6 +71,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (buildRuleIcmp, buildRuleTCP, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
@@ -1002,34 +1003,6 @@ requestCreateExoSecurityGroupRules model project =
 
         Just group ->
             let
-                makeRequestBodyTcp port_number desc =
-                    Encode.object
-                        [ ( "security_group_rule"
-                          , Encode.object
-                                [ ( "security_group_id", Encode.string group.uuid )
-                                , ( "ethertype", Encode.string "IPv4" )
-                                , ( "direction", Encode.string "ingress" )
-                                , ( "protocol", Encode.string "tcp" )
-                                , ( "port_range_min", Encode.string port_number )
-                                , ( "port_range_max", Encode.string port_number )
-                                , ( "description", Encode.string desc )
-                                ]
-                          )
-                        ]
-
-                makeRequestBodyIcmp desc =
-                    Encode.object
-                        [ ( "security_group_rule"
-                          , Encode.object
-                                [ ( "security_group_id", Encode.string group.uuid )
-                                , ( "ethertype", Encode.string "IPv4" )
-                                , ( "direction", Encode.string "ingress" )
-                                , ( "protocol", Encode.string "icmp" )
-                                , ( "description", Encode.string desc )
-                                ]
-                          )
-                        ]
-
                 errorContext =
                     ErrorContext
                         "create rules for Exosphere security group"
@@ -1047,9 +1020,12 @@ requestCreateExoSecurityGroupRules model project =
                         )
 
                 bodies =
-                    [ makeRequestBodyTcp "22" "SSH"
-                    , makeRequestBodyTcp "9090" "Cockpit"
-                    , makeRequestBodyIcmp "Ping"
+                    [ buildRuleTCP 22 "SSH"
+                        |> SecurityGroupRule.encode group.uuid
+                    , buildRuleTCP 9090 "Cockpit"
+                        |> SecurityGroupRule.encode group.uuid
+                    , buildRuleIcmp
+                        |> SecurityGroupRule.encode group.uuid
                     ]
 
                 cmds =
@@ -2104,63 +2080,3 @@ securityGroupDecoder =
         (Decode.field "name" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
-
-
-securityGroupRuleDecoder : Decode.Decoder OSTypes.SecurityGroupRule
-securityGroupRuleDecoder =
-    Decode.map7 OSTypes.SecurityGroupRule
-        (Decode.field "id" Decode.string)
-        (Decode.field "ethertype" Decode.string |> Decode.andThen securityGroupRuleEthertypeDecoder)
-        (Decode.field "direction" Decode.string |> Decode.andThen securityGroupRuleDirectionDecoder)
-        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.andThen securityGroupRuleProtocolDecoder)))
-        (Decode.field "port_range_min" (Decode.nullable Decode.int))
-        (Decode.field "port_range_max" (Decode.nullable Decode.int))
-        (Decode.field "remote_group_id" (Decode.nullable Decode.string))
-
-
-securityGroupRuleEthertypeDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleEthertype
-securityGroupRuleEthertypeDecoder ethertype =
-    case ethertype of
-        "IPv4" ->
-            Decode.succeed OSTypes.Ipv4
-
-        "IPv6" ->
-            Decode.succeed OSTypes.Ipv6
-
-        _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule ethertype"
-
-
-securityGroupRuleDirectionDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleDirection
-securityGroupRuleDirectionDecoder dir =
-    case dir of
-        "ingress" ->
-            Decode.succeed OSTypes.Ingress
-
-        "egress" ->
-            Decode.succeed OSTypes.Egress
-
-        _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule direction"
-
-
-securityGroupRuleProtocolDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleProtocol
-securityGroupRuleProtocolDecoder prot =
-    case prot of
-        "any" ->
-            Decode.succeed OSTypes.AnyProtocol
-
-        "icmp" ->
-            Decode.succeed OSTypes.Icmp
-
-        "icmpv6" ->
-            Decode.succeed OSTypes.Icmpv6
-
-        "tcp" ->
-            Decode.succeed OSTypes.Tcp
-
-        "udp" ->
-            Decode.succeed OSTypes.Udp
-
-        _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule protocol"
