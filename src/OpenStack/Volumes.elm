@@ -98,7 +98,7 @@ requestDeleteVolume project volumeUuid =
             ErrorContext
                 ("delete volume " ++ volumeUuid)
                 ErrorCrit
-                Nothing
+                (Just "Perhaps you are trying to delete a volume that is attached to a server? If so, please detach it first.")
 
         resultToMsg_ =
             resultToMsg
