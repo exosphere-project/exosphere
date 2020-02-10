@@ -17,6 +17,7 @@ import Html.Attributes
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
@@ -650,8 +651,12 @@ renderServer project serverFilter deleteConfirmations server =
             Element.row [ Element.width Element.fill ] <|
                 [ statusIcon ]
                     ++ (if aServer.osProps.details.userUuid == userUuid then
-                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                            , Element.image [ Element.paddingXY 10 0 ] { src = "assets/img/created-by-you-badge.svg", description = "" }
+                            [ Element.el
+                                [ Font.bold
+                                , Element.paddingEach { edges | right = 15 }
+                                ]
+                                (Element.text aServer.osProps.name)
+                            , ExoCard.badge "created by you"
                             ]
 
                         else
