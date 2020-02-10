@@ -156,8 +156,10 @@ renderAttachment project attachment =
         , Element.text (serverName attachment.serverUuid)
         , Element.el [ Font.bold ] <| Element.text "Device:"
         , Element.text attachment.device
-        , Element.el [ Font.bold ] <| Element.text "Mount point:"
+        , Element.el [ Font.bold ] <| Element.text "Mount point*:"
         , Helpers.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text
+        , Element.el [ Font.size 11 ] <| Element.text "* Volume will only be automatically formatted/mounted on operating"
+        , Element.el [ Font.size 11 ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 and CentOS 8)"
         ]
 
 

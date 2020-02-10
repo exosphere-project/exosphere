@@ -128,12 +128,14 @@ mountVolInstructions project attachment =
                         "We'll try to mount this volume at "
                             ++ mountpoint
                             ++ " on your instance's filesystem. You should be able to access the volume there. "
-                            ++ "(If it's a completely empty volume we'll also try to format it first.) "
-                            ++ "If this doesn't work, you may need to format and/or mount it yourself."
+                            ++ "If it's a completely empty volume we'll also try to format it first. "
+                            ++ "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04). "
+                            ++ "In that case, you may need to format and/or mount the volume manually."
 
                 Nothing ->
                     Element.text <|
-                        "We attached the volume but couldn't determine a mountpoint from the device path."
+                        "We attached the volume but couldn't determine a mountpoint from the device path. You "
+                            ++ "may need to format and/or mount the volume manually."
             ]
         , Button.button
             []
