@@ -5,8 +5,10 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleProtocol(..)
     , buildRuleIcmp
     , buildRuleTCP
+    , defaultExosphereRules
     , encode
     , securityGroupRuleDecoder
+    , matchRule
     )
 
 -- import Error exposing (ErrorContext, ErrorLevel(..))
@@ -40,6 +42,14 @@ type alias SecurityGroupRule =
     }
 
 
+matchRule ruleA ruleB =
+    (ruleA.ethertype == ruleB.ethertype)
+        && (ruleA.direction == ruleB.direction)
+        && (ruleA.protocol == ruleB.protocol)
+        && (ruleA.port_range_min == ruleB.port_range_min)
+        && (ruleA.port_range_max == ruleB.port_range_max)
+
+
 buildRuleTCP portNumber description =
     { uuid = ""
     , ethertype = Ipv4
@@ -62,6 +72,13 @@ buildRuleIcmp =
     , remoteGroupUuid = Nothing
     , description = Just "Ping"
     }
+
+
+defaultExosphereRules =
+    [ buildRuleTCP 22 "SSH"
+    , buildRuleTCP 9090 "Cockpit"
+    , buildRuleIcmp
+    ]
 
 
 type alias SecurityGroupRuleUuid =

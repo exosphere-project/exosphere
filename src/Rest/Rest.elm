@@ -71,7 +71,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
-import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (buildRuleIcmp, buildRuleTCP, securityGroupRuleDecoder)
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, buildRuleIcmp, buildRuleTCP, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
@@ -990,8 +990,8 @@ requestCreateExoSecurityGroup project =
         )
 
 
-requestCreateExoSecurityGroupRules : Model -> Project -> ( Model, Cmd Msg )
-requestCreateExoSecurityGroupRules model project =
+requestCreateExoSecurityGroupRules : Model -> Project -> List SecurityGroupRule -> ( Model, Cmd Msg )
+requestCreateExoSecurityGroupRules model project rules =
     let
         maybeSecurityGroup =
             List.filter (\g -> g.name == "exosphere") project.securityGroups |> List.head
@@ -1003,35 +1003,44 @@ requestCreateExoSecurityGroupRules model project =
 
         Just group ->
             let
-                errorContext =
-                    ErrorContext
-                        "create rules for Exosphere security group"
-                        ErrorCrit
-                        Nothing
-
-                buildRequestCmd body =
-                    openstackCredentialedRequest
-                        project
-                        Post
-                        (project.endpoints.neutron ++ "/v2.0/security-group-rules")
-                        (Http.jsonBody body)
-                        (Http.expectString
-                            (resultToMsg errorContext (\_ -> NoOp))
-                        )
-
-                bodies =
-                    [ buildRuleTCP 22 "SSH"
-                        |> SecurityGroupRule.encode group.uuid
-                    , buildRuleTCP 9090 "Cockpit"
-                        |> SecurityGroupRule.encode group.uuid
-                    , buildRuleIcmp
-                        |> SecurityGroupRule.encode group.uuid
-                    ]
-
                 cmds =
-                    List.map (\b -> buildRequestCmd b) bodies
+                    requestCreateSecurityGroupRules model
+                        project
+                        group
+                        rules
+                        "create rules for Exosphere security group"
             in
             ( model, Cmd.batch cmds )
+
+
+requestCreateSecurityGroupRules : Model -> Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd Msg)
+requestCreateSecurityGroupRules model project group rules errorMessage =
+    let
+        errorContext =
+            ErrorContext
+                errorMessage
+                --"create rules for Exosphere security group"
+                ErrorCrit
+                Nothing
+
+        buildRequestCmd body =
+            openstackCredentialedRequest
+                project
+                Post
+                (project.endpoints.neutron ++ "/v2.0/security-group-rules")
+                (Http.jsonBody body)
+                (Http.expectString
+                    (resultToMsg errorContext (\_ -> NoOp))
+                )
+
+        bodies =
+            rules
+                |> List.map (SecurityGroupRule.encode group.uuid)
+
+        cmds =
+            bodies |> List.map buildRequestCmd
+    in
+    cmds
 
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
@@ -1580,8 +1589,42 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
 
         cmds =
             case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
-                Just _ ->
-                    []
+                Just exoGroup ->
+                    -- check rules, ensure rules are latest set and none missing
+                    -- if rules are missing, request to create them
+                    -- assumes additive rules for now (i.e. add missing rules,
+                    -- but do not subtract rules that shouldn't be there)
+                    let
+                        existingRules =
+                            exoGroup.rules
+
+                        defaultExosphereRules =
+                            SecurityGroupRule.defaultExosphereRules
+
+                        missingRules =
+                            defaultExosphereRules
+                                |> List.filterMap
+                                    (\defaultRule ->
+                                        let
+                                            ruleExists =
+                                                existingRules
+                                                    |> List.any
+                                                        (\existingRule ->
+                                                            SecurityGroupRule.matchRule existingRule defaultRule
+                                                        )
+                                        in
+                                        if ruleExists then
+                                            Nothing
+
+                                        else
+                                            Just defaultRule
+                                    )
+                    in
+                    requestCreateSecurityGroupRules newModel
+                        newProject
+                        exoGroup
+                        missingRules
+                        "create missing rules for Exosphere security group"
 
                 Nothing ->
                     [ requestCreateExoSecurityGroup newProject ]
@@ -1601,7 +1644,10 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
         newModel =
             Helpers.modelUpdateProject model newProject
     in
-    requestCreateExoSecurityGroupRules newModel newProject
+    requestCreateExoSecurityGroupRules
+        newModel
+        newProject
+        SecurityGroupRule.defaultExosphereRules
 
 
 receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
