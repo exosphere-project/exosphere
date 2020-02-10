@@ -31,44 +31,54 @@ imagesIfLoaded globalDefaults project imageFilter =
         images globalDefaults project imageFilter
 
 
+projectOwnsImage : Project -> OSTypes.Image -> Bool
+projectOwnsImage project image =
+    image.projectUuid == project.auth.project.uuid
+
+
+filterByOwner : Bool -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterByOwner onlyOwnImages project someImages =
+    if not onlyOwnImages then
+        someImages
+
+    else
+        List.filter (projectOwnsImage project) someImages
+
+
+filterByTag : String -> List OSTypes.Image -> List OSTypes.Image
+filterByTag tag someImages =
+    if tag == "" then
+        someImages
+
+    else
+        List.filter (\i -> List.member tag i.tags) someImages
+
+
+filterBySearchText : String -> List OSTypes.Image -> List OSTypes.Image
+filterBySearchText searchText someImages =
+    if searchText == "" then
+        someImages
+
+    else
+        List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
+
+
+filterImages : ImageFilter -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages imageFilter project someImages =
+    someImages
+        |> filterByOwner imageFilter.onlyOwnImages project
+        |> filterByTag imageFilter.tag
+        |> filterBySearchText imageFilter.searchText
+
+
 images : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
 images globalDefaults project imageFilter =
     let
-        imageContainsTag tag image =
-            if tag == "" then
-                True
-
-            else
-                List.member tag image.tags
-
-        imageMatchesSearchText searchText image =
-            if searchText == "" then
-                True
-
-            else
-                String.contains (String.toUpper searchText) (String.toUpper image.name)
-
-        filteredImagesByOwner =
-            if imageFilter.onlyOwnImages then
-                List.filter (\i -> imageIsOwnedByProject i project) project.images
-
-            else
-                project.images
-
-        filteredImagesByTag =
-            List.filter (imageContainsTag imageFilter.tag) filteredImagesByOwner
-
-        filteredImagesBySearchText =
-            List.filter (imageMatchesSearchText imageFilter.searchText) filteredImagesByTag
-
         filteredImages =
-            filteredImagesBySearchText
+            project.images |> filterImages imageFilter project
 
         noMatchWarning =
             (imageFilter.tag /= "") && (List.length filteredImages == 0)
-
-        displayedImages =
-            filteredImages
 
         projectId =
             Helpers.getProjectId project
@@ -101,13 +111,8 @@ images globalDefaults project imageFilter =
             Element.none
         , Element.wrappedRow
             (VH.exoRowAttributes ++ [ Element.spacing 15 ])
-            (List.map (renderImage globalDefaults project) displayedImages)
+            (List.map (renderImage globalDefaults project) filteredImages)
         ]
-
-
-imageIsOwnedByProject : OSTypes.Image -> Project -> Bool
-imageIsOwnedByProject image project =
-    image.projectUuid == project.auth.project.uuid
 
 
 renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
@@ -155,7 +160,7 @@ renderImage globalDefaults project image =
                         "Choose"
 
         ownerRows =
-            if imageIsOwnedByProject image project then
+            if projectOwnsImage project image then
                 [ Element.row VH.exoRowAttributes
                     [ ExoCard.badge "belongs to this project"
                     ]
