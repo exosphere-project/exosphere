@@ -31,8 +31,8 @@ imagesIfLoaded globalDefaults project imageFilter =
         images globalDefaults project imageFilter
 
 
-imageIsOwnedByProject : OSTypes.Image -> Project -> Bool
-imageIsOwnedByProject image project =
+projectOwnsImage : Project -> OSTypes.Image -> Bool
+projectOwnsImage project image =
     image.projectUuid == project.auth.project.uuid
 
 
@@ -42,7 +42,7 @@ filterByOwner onlyOwnImages project someImages =
         someImages
 
     else
-        List.filter (\i -> imageIsOwnedByProject i project) someImages
+        List.filter (projectOwnsImage project) someImages
 
 
 filterByTag : String -> List OSTypes.Image -> List OSTypes.Image
@@ -160,7 +160,7 @@ renderImage globalDefaults project image =
                         "Choose"
 
         ownerRows =
-            if imageIsOwnedByProject image project then
+            if projectOwnsImage project image then
                 [ Element.row VH.exoRowAttributes
                     [ ExoCard.badge "belongs to this project"
                     ]
