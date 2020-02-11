@@ -117,7 +117,7 @@ type PortRangeType
 
 
 encode : SecurityGroupUuid -> SecurityGroupRule -> Encode.Value
-encode securityGroupUuid ({ ethertype, direction, protocol, port_range_min, port_range_max, description }) =
+encode securityGroupUuid { ethertype, direction, protocol, port_range_min, port_range_max, description } =
     Encode.object
         [ ( "security_group_rule"
           , [ ( "security_group_id", Encode.string securityGroupUuid ) ]

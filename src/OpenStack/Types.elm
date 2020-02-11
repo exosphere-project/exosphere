@@ -48,10 +48,10 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
-import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 
 
 
@@ -437,5 +437,3 @@ type alias SecurityGroup =
 
 type alias SecurityGroupUuid =
     HelperTypes.Uuid
-
-
