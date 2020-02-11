@@ -51,7 +51,7 @@ module OpenStack.Types exposing
 import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
-import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule)
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 
 
 

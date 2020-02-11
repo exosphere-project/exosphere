@@ -3,32 +3,17 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
+    , buildRuleExposeAllOutgoingPorts
     , buildRuleIcmp
     , buildRuleTCP
-    , buildRuleExposeAllOutgoingPorts
     , defaultExosphereRules
     , encode
-    , securityGroupRuleDecoder
     , matchRule
+    , securityGroupRuleDecoder
     )
-
--- import Error exposing (ErrorContext, ErrorLevel(..))
--- import Http
 
 import Json.Decode as Decode
 import Json.Encode as Encode
-
-
-
--- import OpenStack.Types as OSTypes
--- import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
--- import Types.Types
---     exposing
---         ( HttpRequestMethod(..)
---         , Msg(..)
---         , Project
---         , ProjectSpecificMsgConstructor(..)
---         )
 
 
 type alias SecurityGroupRule =
@@ -43,6 +28,7 @@ type alias SecurityGroupRule =
     }
 
 
+matchRule : SecurityGroupRule -> SecurityGroupRule -> Bool
 matchRule ruleA ruleB =
     (ruleA.ethertype == ruleB.ethertype)
         && (ruleA.direction == ruleB.direction)
@@ -51,6 +37,7 @@ matchRule ruleA ruleB =
         && (ruleA.port_range_max == ruleB.port_range_max)
 
 
+buildRuleTCP : Int -> String -> SecurityGroupRule
 buildRuleTCP portNumber description =
     { uuid = ""
     , ethertype = Ipv4
@@ -63,6 +50,7 @@ buildRuleTCP portNumber description =
     }
 
 
+buildRuleIcmp : SecurityGroupRule
 buildRuleIcmp =
     { uuid = ""
     , ethertype = Ipv4
@@ -74,6 +62,8 @@ buildRuleIcmp =
     , description = Just "Ping"
     }
 
+
+buildRuleExposeAllOutgoingPorts : SecurityGroupRule
 buildRuleExposeAllOutgoingPorts =
     { uuid = ""
     , ethertype = Ipv4
@@ -86,6 +76,7 @@ buildRuleExposeAllOutgoingPorts =
     }
 
 
+defaultExosphereRules : List SecurityGroupRule
 defaultExosphereRules =
     [ buildRuleTCP 22 "SSH"
     , buildRuleTCP 9090 "Cockpit"
@@ -95,6 +86,10 @@ defaultExosphereRules =
 
 
 type alias SecurityGroupRuleUuid =
+    String
+
+
+type alias SecurityGroupUuid =
     String
 
 
@@ -121,7 +116,8 @@ type PortRangeType
     | PortRangeMax
 
 
-encode securityGroupUuid ({ uuid, ethertype, direction, protocol, port_range_min, port_range_max, remoteGroupUuid, description } as securityGroupRule) =
+encode : SecurityGroupUuid -> SecurityGroupRule -> Encode.Value
+encode securityGroupUuid ({ ethertype, direction, protocol, port_range_min, port_range_max, description }) =
     Encode.object
         [ ( "security_group_rule"
           , [ ( "security_group_id", Encode.string securityGroupUuid ) ]

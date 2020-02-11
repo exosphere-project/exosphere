@@ -71,7 +71,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
-import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, buildRuleIcmp, buildRuleTCP, securityGroupRuleDecoder)
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
@@ -1004,7 +1004,7 @@ requestCreateExoSecurityGroupRules model project rules =
         Just group ->
             let
                 cmds =
-                    requestCreateSecurityGroupRules model
+                    requestCreateSecurityGroupRules
                         project
                         group
                         rules
@@ -1013,8 +1013,8 @@ requestCreateExoSecurityGroupRules model project rules =
             ( model, Cmd.batch cmds )
 
 
-requestCreateSecurityGroupRules : Model -> Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd Msg)
-requestCreateSecurityGroupRules model project group rules errorMessage =
+requestCreateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd Msg)
+requestCreateSecurityGroupRules project group rules errorMessage =
     let
         errorContext =
             ErrorContext
@@ -1620,7 +1620,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
                                             Just defaultRule
                                     )
                     in
-                    requestCreateSecurityGroupRules newModel
+                    requestCreateSecurityGroupRules
                         newProject
                         exoGroup
                         missingRules
