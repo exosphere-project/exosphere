@@ -5,6 +5,7 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleProtocol(..)
     , buildRuleIcmp
     , buildRuleTCP
+    , buildRuleExposeAllOutgoingPorts
     , defaultExosphereRules
     , encode
     , securityGroupRuleDecoder
@@ -73,11 +74,23 @@ buildRuleIcmp =
     , description = Just "Ping"
     }
 
+buildRuleExposeAllOutgoingPorts =
+    { uuid = ""
+    , ethertype = Ipv4
+    , direction = Egress
+    , protocol = Just Tcp
+    , port_range_min = Nothing
+    , port_range_max = Nothing
+    , remoteGroupUuid = Nothing
+    , description = Just "Expose all outgoing ports"
+    }
+
 
 defaultExosphereRules =
     [ buildRuleTCP 22 "SSH"
     , buildRuleTCP 9090 "Cockpit"
     , buildRuleIcmp
+    , buildRuleExposeAllOutgoingPorts
     ]
 
 
