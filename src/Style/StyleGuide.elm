@@ -35,7 +35,7 @@ widgets =
     , Element.text "Style.Widgets.IconButton.iconButton"
     , iconButton [ Small, Danger ] Nothing (remove Color.white 16)
     , Element.text "Style.Widgets.CopyableText.CopyableText"
-    , copyableText (Element.text "foobar")
+    , copyableText "foobar"
     ]
 
 

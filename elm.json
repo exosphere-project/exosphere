@@ -2,8 +2,7 @@
     "type": "application",
     "source-directories": [
         "src",
-        "elm-style-framework/src",
-        "src/Style"
+        "elm-style-framework/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
