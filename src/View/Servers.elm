@@ -198,6 +198,16 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
                             _ ->
                                 Element.paragraph [ Font.size 11 ] <|
                                     [ Element.text "* Volume will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)." ]
+                        , Button.button
+                            []
+                            (Just <|
+                                ProjectMsg projectId <|
+                                    SetProjectView <|
+                                        AttachVolumeModal
+                                            (Just serverUuid)
+                                            Nothing
+                            )
+                            "Attach volume"
                         , Element.el VH.heading2 (Element.text "Interact with server")
                         , Element.el VH.heading3 (Element.text "SSH")
                         , sshInstructions maybeFloatingIp
