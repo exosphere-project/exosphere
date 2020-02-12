@@ -71,6 +71,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
@@ -989,8 +990,8 @@ requestCreateExoSecurityGroup project =
         )
 
 
-requestCreateExoSecurityGroupRules : Model -> Project -> ( Model, Cmd Msg )
-requestCreateExoSecurityGroupRules model project =
+requestCreateExoSecurityGroupRules : Model -> Project -> List SecurityGroupRule -> ( Model, Cmd Msg )
+requestCreateExoSecurityGroupRules model project rules =
     let
         maybeSecurityGroup =
             List.filter (\g -> g.name == "exosphere") project.securityGroups |> List.head
@@ -1002,60 +1003,44 @@ requestCreateExoSecurityGroupRules model project =
 
         Just group ->
             let
-                makeRequestBodyTcp port_number desc =
-                    Encode.object
-                        [ ( "security_group_rule"
-                          , Encode.object
-                                [ ( "security_group_id", Encode.string group.uuid )
-                                , ( "ethertype", Encode.string "IPv4" )
-                                , ( "direction", Encode.string "ingress" )
-                                , ( "protocol", Encode.string "tcp" )
-                                , ( "port_range_min", Encode.string port_number )
-                                , ( "port_range_max", Encode.string port_number )
-                                , ( "description", Encode.string desc )
-                                ]
-                          )
-                        ]
-
-                makeRequestBodyIcmp desc =
-                    Encode.object
-                        [ ( "security_group_rule"
-                          , Encode.object
-                                [ ( "security_group_id", Encode.string group.uuid )
-                                , ( "ethertype", Encode.string "IPv4" )
-                                , ( "direction", Encode.string "ingress" )
-                                , ( "protocol", Encode.string "icmp" )
-                                , ( "description", Encode.string desc )
-                                ]
-                          )
-                        ]
-
-                errorContext =
-                    ErrorContext
-                        "create rules for Exosphere security group"
-                        ErrorCrit
-                        Nothing
-
-                buildRequestCmd body =
-                    openstackCredentialedRequest
-                        project
-                        Post
-                        (project.endpoints.neutron ++ "/v2.0/security-group-rules")
-                        (Http.jsonBody body)
-                        (Http.expectString
-                            (resultToMsg errorContext (\_ -> NoOp))
-                        )
-
-                bodies =
-                    [ makeRequestBodyTcp "22" "SSH"
-                    , makeRequestBodyTcp "9090" "Cockpit"
-                    , makeRequestBodyIcmp "Ping"
-                    ]
-
                 cmds =
-                    List.map (\b -> buildRequestCmd b) bodies
+                    requestCreateSecurityGroupRules
+                        project
+                        group
+                        rules
+                        "create rules for Exosphere security group"
             in
             ( model, Cmd.batch cmds )
+
+
+requestCreateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd Msg)
+requestCreateSecurityGroupRules project group rules errorMessage =
+    let
+        errorContext =
+            ErrorContext
+                errorMessage
+                --"create rules for Exosphere security group"
+                ErrorCrit
+                Nothing
+
+        buildRequestCmd body =
+            openstackCredentialedRequest
+                project
+                Post
+                (project.endpoints.neutron ++ "/v2.0/security-group-rules")
+                (Http.jsonBody body)
+                (Http.expectString
+                    (resultToMsg errorContext (\_ -> NoOp))
+                )
+
+        bodies =
+            rules
+                |> List.map (SecurityGroupRule.encode group.uuid)
+
+        cmds =
+            bodies |> List.map buildRequestCmd
+    in
+    cmds
 
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
@@ -1604,8 +1589,42 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
 
         cmds =
             case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
-                Just _ ->
-                    []
+                Just exoGroup ->
+                    -- check rules, ensure rules are latest set and none missing
+                    -- if rules are missing, request to create them
+                    -- assumes additive rules for now (i.e. add missing rules,
+                    -- but do not subtract rules that shouldn't be there)
+                    let
+                        existingRules =
+                            exoGroup.rules
+
+                        defaultExosphereRules =
+                            SecurityGroupRule.defaultExosphereRules
+
+                        missingRules =
+                            defaultExosphereRules
+                                |> List.filterMap
+                                    (\defaultRule ->
+                                        let
+                                            ruleExists =
+                                                existingRules
+                                                    |> List.any
+                                                        (\existingRule ->
+                                                            SecurityGroupRule.matchRule existingRule defaultRule
+                                                        )
+                                        in
+                                        if ruleExists then
+                                            Nothing
+
+                                        else
+                                            Just defaultRule
+                                    )
+                    in
+                    requestCreateSecurityGroupRules
+                        newProject
+                        exoGroup
+                        missingRules
+                        "create missing rules for Exosphere security group"
 
                 Nothing ->
                     [ requestCreateExoSecurityGroup newProject ]
@@ -1625,7 +1644,10 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
         newModel =
             Helpers.modelUpdateProject model newProject
     in
-    requestCreateExoSecurityGroupRules newModel newProject
+    requestCreateExoSecurityGroupRules
+        newModel
+        newProject
+        SecurityGroupRule.defaultExosphereRules
 
 
 receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
@@ -2104,63 +2126,3 @@ securityGroupDecoder =
         (Decode.field "name" Decode.string)
         (Decode.field "description" (Decode.nullable Decode.string))
         (Decode.field "security_group_rules" (Decode.list securityGroupRuleDecoder))
-
-
-securityGroupRuleDecoder : Decode.Decoder OSTypes.SecurityGroupRule
-securityGroupRuleDecoder =
-    Decode.map7 OSTypes.SecurityGroupRule
-        (Decode.field "id" Decode.string)
-        (Decode.field "ethertype" Decode.string |> Decode.andThen securityGroupRuleEthertypeDecoder)
-        (Decode.field "direction" Decode.string |> Decode.andThen securityGroupRuleDirectionDecoder)
-        (Decode.field "protocol" (Decode.nullable (Decode.string |> Decode.andThen securityGroupRuleProtocolDecoder)))
-        (Decode.field "port_range_min" (Decode.nullable Decode.int))
-        (Decode.field "port_range_max" (Decode.nullable Decode.int))
-        (Decode.field "remote_group_id" (Decode.nullable Decode.string))
-
-
-securityGroupRuleEthertypeDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleEthertype
-securityGroupRuleEthertypeDecoder ethertype =
-    case ethertype of
-        "IPv4" ->
-            Decode.succeed OSTypes.Ipv4
-
-        "IPv6" ->
-            Decode.succeed OSTypes.Ipv6
-
-        _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule ethertype"
-
-
-securityGroupRuleDirectionDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleDirection
-securityGroupRuleDirectionDecoder dir =
-    case dir of
-        "ingress" ->
-            Decode.succeed OSTypes.Ingress
-
-        "egress" ->
-            Decode.succeed OSTypes.Egress
-
-        _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule direction"
-
-
-securityGroupRuleProtocolDecoder : String -> Decode.Decoder OSTypes.SecurityGroupRuleProtocol
-securityGroupRuleProtocolDecoder prot =
-    case prot of
-        "any" ->
-            Decode.succeed OSTypes.AnyProtocol
-
-        "icmp" ->
-            Decode.succeed OSTypes.Icmp
-
-        "icmpv6" ->
-            Decode.succeed OSTypes.Icmpv6
-
-        "tcp" ->
-            Decode.succeed OSTypes.Tcp
-
-        "udp" ->
-            Decode.succeed OSTypes.Udp
-
-        _ ->
-            Decode.fail "Ooooooops, unrecognised security group rule protocol"

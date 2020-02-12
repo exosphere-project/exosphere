@@ -29,10 +29,6 @@ module OpenStack.Types exposing
     , QuotaItemDetail
     , ScopedAuthToken
     , SecurityGroup
-    , SecurityGroupRule
-    , SecurityGroupRuleDirection(..)
-    , SecurityGroupRuleEthertype(..)
-    , SecurityGroupRuleProtocol(..)
     , Server
     , ServerDetails
     , ServerPowerState(..)
@@ -52,6 +48,7 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
+import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (WebData)
 import Time
 import Types.HelperTypes as HelperTypes
@@ -440,36 +437,3 @@ type alias SecurityGroup =
 
 type alias SecurityGroupUuid =
     HelperTypes.Uuid
-
-
-type alias SecurityGroupRule =
-    { uuid : SecurityGroupRuleUuid
-    , ethertype : SecurityGroupRuleEthertype
-    , direction : SecurityGroupRuleDirection
-    , protocol : Maybe SecurityGroupRuleProtocol
-    , port_range_min : Maybe Int
-    , port_range_max : Maybe Int
-    , remoteGroupUuid : Maybe SecurityGroupRuleUuid
-    }
-
-
-type alias SecurityGroupRuleUuid =
-    HelperTypes.Uuid
-
-
-type SecurityGroupRuleDirection
-    = Ingress
-    | Egress
-
-
-type SecurityGroupRuleEthertype
-    = Ipv4
-    | Ipv6
-
-
-type SecurityGroupRuleProtocol
-    = AnyProtocol
-    | Icmp
-    | Icmpv6
-    | Tcp
-    | Udp
