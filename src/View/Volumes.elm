@@ -2,6 +2,7 @@ module View.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volu
 
 import Color
 import Element
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
@@ -14,13 +15,17 @@ import OpenStack.Volumes
 import RemoteData
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
         ( DeleteVolumeConfirmation
+        , IPInfoLevel(..)
         , Msg(..)
+        , PasswordVisibility(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , ServerDetailViewParams
         )
 import View.Helpers as VH
 
@@ -59,6 +64,16 @@ renderVolumeCard project deleteVolumeConfirmations volume =
 volumeActionButtons : Project -> (List DeleteVolumeConfirmation -> ProjectViewConstructor) -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
 volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations volume =
     let
+        volDetachDeleteWarning =
+            if Helpers.isBootVol Nothing volume then
+                Element.text "This volume backs a server; it cannot be detached or deleted until the server is deleted."
+
+            else if volume.status == OSTypes.InUse then
+                Element.text "This volume must be detached before it can be deleted."
+
+            else
+                Element.none
+
         attachDetachButton =
             case volume.status of
                 OSTypes.Available ->
@@ -73,15 +88,22 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                         "Attach"
 
                 OSTypes.InUse ->
-                    Button.button
-                        []
-                        (Just
-                            (ProjectMsg
-                                (Helpers.getProjectId project)
-                                (RequestDetachVolume volume.uuid)
+                    if Helpers.isBootVol Nothing volume then
+                        Button.button
+                            [ Modifier.Disabled ]
+                            Nothing
+                            "Detach"
+
+                    else
+                        Button.button
+                            []
+                            (Just
+                                (ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (RequestDetachVolume volume.uuid)
+                                )
                             )
-                        )
-                        "Detach"
+                            "Detach"
 
                 _ ->
                     Element.none
@@ -118,18 +140,28 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                         ]
 
                 ( _, False ) ->
-                    Button.button
-                        [ Modifier.Danger ]
-                        (Just <|
-                            ProjectMsg
-                                (Helpers.getProjectId project)
-                                (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
-                        )
-                        "Delete"
+                    if volume.status == OSTypes.InUse then
+                        Button.button
+                            [ Modifier.Disabled ]
+                            Nothing
+                            "Delete"
+
+                    else
+                        Button.button
+                            [ Modifier.Danger ]
+                            (Just <|
+                                ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
+                            )
+                            "Delete"
     in
-    Element.row [ Element.width Element.fill, Element.spacing 10 ]
-        [ attachDetachButton
-        , Element.el [ Element.alignRight ] deleteButton
+    Element.column (Element.width Element.fill :: VH.exoColumnAttributes)
+        [ volDetachDeleteWarning
+        , Element.row [ Element.width Element.fill, Element.spacing 10 ]
+            [ attachDetachButton
+            , Element.el [ Element.alignRight ] deleteButton
+            ]
         ]
 
 
@@ -180,7 +212,23 @@ renderAttachment project attachment =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.padding 0 ])
         [ Element.el [ Font.bold ] <| Element.text "Server:"
-        , Element.text (serverName attachment.serverUuid)
+        , Element.row [ Element.spacing 5 ]
+            [ Element.text (serverName attachment.serverUuid)
+            , Input.button
+                [ Border.width 1
+                , Border.rounded 6
+                , Border.color <| Color.toElementColor <| Framework.Color.grey
+                , Element.padding 3
+                ]
+                { onPress =
+                    Just
+                        (ProjectMsg
+                            (Helpers.getProjectId project)
+                            (SetProjectView <| ServerDetail attachment.serverUuid <| ServerDetailViewParams False PasswordHidden IPSummary [])
+                        )
+                , label = Icon.rightArrow Framework.Color.grey 16
+                }
+            ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
         , Element.text attachment.device
         , Element.el [ Font.bold ] <| Element.text "Mount point*:"
