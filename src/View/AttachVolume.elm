@@ -27,7 +27,20 @@ attachVolume : Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -
 attachVolume project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
+            -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
             RemoteData.withDefault [] project.servers
+                |> List.filter
+                    (\s ->
+                        not <|
+                            List.member
+                                s.osProps.details.openstackStatus
+                                [ OSTypes.ServerShelved
+                                , OSTypes.ServerShelvedOffloaded
+                                , OSTypes.ServerError
+                                , OSTypes.ServerSoftDeleted
+                                , OSTypes.ServerBuilding
+                                ]
+                    )
                 |> List.map
                     (\s ->
                         Input.option s.osProps.uuid
