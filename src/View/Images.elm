@@ -7,13 +7,16 @@ import Filesize
 import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
+import List.Extra
 import OpenStack.Types as OSTypes
+import Set
 import Style.Widgets.Card as ExoCard
 import Types.Types
     exposing
         ( CreateServerRequest
         , GlobalDefaults
         , ImageFilter
+        , ImageTag
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -45,13 +48,13 @@ filterByOwner onlyOwnImages project someImages =
         List.filter (projectOwnsImage project) someImages
 
 
-filterByTag : String -> List OSTypes.Image -> List OSTypes.Image
-filterByTag tag someImages =
-    if tag == "" then
+filterByTags : Set.Set String -> List OSTypes.Image -> List OSTypes.Image
+filterByTags tagLabels someImages =
+    if tagLabels == Set.empty then
         someImages
 
     else
-        List.filter (\i -> List.member tag i.tags) someImages
+        List.filter (\i -> Set.intersect tagLabels (Set.fromList i.tags) |> (==) tagLabels) someImages
 
 
 filterBySearchText : String -> List OSTypes.Image -> List OSTypes.Image
@@ -67,21 +70,66 @@ filterImages : ImageFilter -> Project -> List OSTypes.Image -> List OSTypes.Imag
 filterImages imageFilter project someImages =
     someImages
         |> filterByOwner imageFilter.onlyOwnImages project
-        |> filterByTag imageFilter.tag
+        |> filterByTags imageFilter.tags
         |> filterBySearchText imageFilter.searchText
+
+
+generateAllTags : List OSTypes.Image -> List ImageTag
+generateAllTags someImages =
+    List.map (\i -> i.tags) someImages
+        |> List.concat
+        |> List.sort
+        |> List.Extra.gatherEquals
+        |> List.map (\t -> { label = Tuple.first t, frequency = 1 + List.length (Tuple.second t) })
+        |> List.sortBy .frequency
+        |> List.reverse
 
 
 images : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
 images globalDefaults project imageFilter =
     let
+        tags =
+            generateAllTags project.images
+
         filteredImages =
             project.images |> filterImages imageFilter project
 
         noMatchWarning =
-            (imageFilter.tag /= "") && (List.length filteredImages == 0)
+            (imageFilter.tags /= Set.empty) && (List.length filteredImages == 0)
 
         projectId =
             Helpers.getProjectId project
+
+        tagView : ImageTag -> Element.Element Msg
+        tagView tag =
+            let
+                tagChecked =
+                    Set.member tag.label imageFilter.tags
+
+                checkboxLabel =
+                    tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
+
+                toggleTags : Bool -> ImageTag -> Set.Set String -> Set.Set String
+                toggleTags newBool someTag someTags =
+                    if newBool then
+                        Set.insert someTag.label someTags
+
+                    else
+                        Set.remove someTag.label someTags
+            in
+            Input.checkbox []
+                { checked = tagChecked
+                , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = toggleTags t tag imageFilter.tags }
+                , icon = Input.defaultCheckbox
+                , label = Input.labelRight [] (Element.text checkboxLabel)
+                }
+
+        tagsView =
+            Element.column []
+                [ Element.text "Filter on tag:"
+                , Element.paragraph []
+                    (List.map tagView tags)
+                ]
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Choose an image")
@@ -91,19 +139,14 @@ images globalDefaults project imageFilter =
             , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
-        , Input.text []
-            { text = imageFilter.tag
-            , placeholder = Just (Input.placeholder [] (Element.text "try \"distro-base\""))
-            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tag = t }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on tag:")
-            }
+        , tagsView
         , Input.checkbox []
             { checked = imageFilter.onlyOwnImages
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new }
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
-        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tag = "", onlyOwnImages = False }) "Clear filter (show all)"
+        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False }) "Clear filter (show all)"
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
 

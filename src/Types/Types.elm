@@ -12,6 +12,7 @@ module Types.Types exposing
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageFilter
+    , ImageTag
     , JetstreamCreds
     , JetstreamProvider(..)
     , LogMessage
@@ -51,6 +52,7 @@ import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
+import Set
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes
@@ -238,9 +240,15 @@ type NonProjectViewConstructor
     | HelpAbout
 
 
+type alias ImageTag =
+    { label : String
+    , frequency : Int
+    }
+
+
 type alias ImageFilter =
     { searchText : String
-    , tag : String
+    , tags : Set.Set String
     , onlyOwnImages : Bool
     }
 
