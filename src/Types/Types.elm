@@ -12,7 +12,6 @@ module Types.Types exposing
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageFilter
-    , ImageTag
     , JetstreamCreds
     , JetstreamProvider(..)
     , LogMessage
@@ -238,12 +237,6 @@ type NonProjectViewConstructor
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | HelpAbout
-
-
-type alias ImageTag =
-    { label : String
-    , frequency : Int
-    }
 
 
 type alias ImageFilter =

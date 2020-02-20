@@ -16,13 +16,13 @@ import Types.Types
         ( CreateServerRequest
         , GlobalDefaults
         , ImageFilter
-        , ImageTag
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
+import View.Types exposing (ImageTag)
 
 
 imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
