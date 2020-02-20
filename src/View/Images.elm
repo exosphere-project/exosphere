@@ -116,18 +116,10 @@ images globalDefaults project imageFilter =
 
                 checkboxLabel =
                     tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
-
-                toggleTags : Bool -> ImageTag -> Set.Set String -> Set.Set String
-                toggleTags newBool someTag someTags =
-                    if newBool then
-                        Set.insert someTag.label someTags
-
-                    else
-                        Set.remove someTag.label someTags
             in
             Input.checkbox []
                 { checked = tagChecked
-                , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = toggleTags t tag imageFilter.tags }
+                , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
                 , icon = Input.defaultCheckbox
                 , label = Input.labelRight [] (Element.text checkboxLabel)
                 }
