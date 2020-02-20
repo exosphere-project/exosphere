@@ -74,20 +74,19 @@ filterImages imageFilter project someImages =
         |> filterBySearchText imageFilter.searchText
 
 
-generateAllTags : List OSTypes.Image -> List ImageTag
-generateAllTags someImages =
-    List.map (\i -> i.tags) someImages
-        |> List.concat
-        |> List.sort
-        |> List.Extra.gatherEquals
-        |> List.map (\t -> { label = Tuple.first t, frequency = 1 + List.length (Tuple.second t) })
-        |> List.sortBy .frequency
-        |> List.reverse
-
-
 images : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
 images globalDefaults project imageFilter =
     let
+        generateAllTags : List OSTypes.Image -> List ImageTag
+        generateAllTags someImages =
+            List.map (\i -> i.tags) someImages
+                |> List.concat
+                |> List.sort
+                |> List.Extra.gatherEquals
+                |> List.map (\t -> { label = Tuple.first t, frequency = 1 + List.length (Tuple.second t) })
+                |> List.sortBy .frequency
+                |> List.reverse
+
         tags =
             generateAllTags project.images
 
