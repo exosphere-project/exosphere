@@ -96,11 +96,11 @@ images globalDefaults project imageFilter =
                 |> List.sortBy .frequency
                 |> List.reverse
 
-        tags =
-            generateAllTags project.images
-
         filteredImages =
             project.images |> filterImages imageFilter project
+
+        tagsAfterFilteringImages =
+            generateAllTags filteredImages
 
         noMatchWarning =
             (imageFilter.tags /= Set.empty) && (List.length filteredImages == 0)
@@ -128,7 +128,7 @@ images globalDefaults project imageFilter =
             Element.column []
                 [ Element.text "Filter on tag:"
                 , Element.paragraph []
-                    (List.map tagView tags)
+                    (List.map tagView tagsAfterFilteringImages)
                 ]
     in
     Element.column VH.exoColumnAttributes
