@@ -10,6 +10,7 @@ import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
 import Set
+import Set.Extra
 import Style.Widgets.Card as ExoCard
 import Types.Types
     exposing
@@ -49,12 +50,20 @@ filterByOwner onlyOwnImages project someImages =
 
 
 filterByTags : Set.Set String -> List OSTypes.Image -> List OSTypes.Image
-filterByTags tagLabels someImages =
-    if tagLabels == Set.empty then
+filterByTags tagsToFilterBy someImages =
+    if tagsToFilterBy == Set.empty then
         someImages
 
     else
-        List.filter (\i -> Set.intersect tagLabels (Set.fromList i.tags) |> (==) tagLabels) someImages
+        List.filter
+            (\i ->
+                let
+                    imageTags =
+                        Set.fromList i.tags
+                in
+                Set.Extra.subset tagsToFilterBy imageTags
+            )
+            someImages
 
 
 filterBySearchText : String -> List OSTypes.Image -> List OSTypes.Image

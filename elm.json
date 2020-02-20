@@ -27,6 +27,7 @@
             "krisajenkins/remotedata": "6.0.1",
             "mdgriffith/elm-ui": "1.1.0",
             "pablen/toasty": "1.2.0",
+            "stoeffel/set-extra": "1.2.3",
             "truqu/elm-base64": "2.0.4"
         },
         "indirect": {
