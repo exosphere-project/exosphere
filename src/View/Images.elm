@@ -146,7 +146,7 @@ images globalDefaults project imageFilter =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
-        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False }) "Clear filter (show all)"
+        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False }) "Clear filters (show all)"
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
