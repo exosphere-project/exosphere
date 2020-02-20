@@ -61,6 +61,18 @@ package_update: true
 packages:
   - cockpit
 runcmd:
+  - |
+    WORDS_URL=https://gitlab.com/exosphere/exosphere/snippets/1943357/raw
+    WORDS_SHA256=c889072801fec7f102dacb618ead4b2d3454b8e45229d18d9f7493909faf00b7
+    wget --quiet --output-document=words $WORDS_URL
+    if echo $WORDS_SHA256 words | sha256sum --check --quiet; then
+      PASSPHRASE=$(shuf --random-source=/dev/urandom --head-count 8 words | paste --delimiters=' ' --serial | head -c -1)
+      POST_URL=http://169.254.169.254/openstack/latest/password
+      if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
+        echo exouser:$PASSPHRASE | chpasswd
+      fi
+      unset PASSPHRASE
+    fi
   - systemctl enable cockpit.socket
   - systemctl start cockpit.socket
   - systemctl daemon-reload
@@ -69,10 +81,6 @@ runcmd:
   - "systemctl daemon-reload"
   - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
   - "chown exouser:exouser /media/volume/*"
-chpasswd:
-  list: |
-    exouser:{exouser-password}
-  expire: False
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
