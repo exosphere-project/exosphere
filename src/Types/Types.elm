@@ -390,7 +390,6 @@ type alias CreateServerRequest =
     , volBackedSizeGb : Maybe Int
     , keypairName : Maybe String
     , userData : String
-    , exouserPassword : String
     , networkUuid : OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
     }

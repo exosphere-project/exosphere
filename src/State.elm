@@ -576,17 +576,11 @@ processProjectSpecificMsg model project msg =
                         -- If we are just entering this view then gather everything we need
                         _ ->
                             let
-                                newCSRMsg password_ serverName_ =
+                                newCSRMsg serverName_ =
                                     let
-                                        newUserData =
-                                            String.split "{exouser-password}" createServerRequest.userData
-                                                |> String.join password_
-
                                         newCSR =
                                             { createServerRequest
-                                                | userData = newUserData
-                                                , exouserPassword = password_
-                                                , name = serverName_
+                                                | name = serverName_
                                             }
                                     in
                                     ProjectMsg (Helpers.getProjectId project) <|
@@ -607,7 +601,7 @@ processProjectSpecificMsg model project msg =
                                 [ Rest.requestFlavors project
                                 , Rest.requestKeypairs project
                                 , Rest.requestNetworks project
-                                , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
+                                , RandomHelpers.generateServerName newCSRMsg
                                 , OpenStack.Quotas.requestComputeQuota project
                                 , OpenStack.Quotas.requestVolumeQuota project
                                 ]

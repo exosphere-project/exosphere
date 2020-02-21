@@ -141,7 +141,6 @@ renderImage globalDefaults project image =
                             Nothing
                             Nothing
                             globalDefaults.shellUserData
-                            "changeme123"
                             ""
                             False
 
