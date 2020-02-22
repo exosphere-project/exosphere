@@ -1163,26 +1163,6 @@ requestCreateServerImage project serverUuid imageName =
         )
 
 
-requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
-requestCreateServerTag project serverUuid tag =
-    let
-        errorContext =
-            ErrorContext
-                ("create a server tag for server with UUID" ++ serverUuid)
-                ErrorCrit
-                Nothing
-    in
-    openstackCredentialedRequest
-        project
-        Put
-        (Just "compute 2.26")
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)
-        Http.emptyBody
-        (Http.expectString
-            (resultToMsg errorContext (\_ -> NoOp))
-        )
-
-
 
 {- HTTP Response Handling -}
 
