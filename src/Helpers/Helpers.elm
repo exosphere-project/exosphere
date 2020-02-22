@@ -283,7 +283,10 @@ serviceCatalogToEndpoints catalog =
         (getServicePublicUrl "cinderv3" catalog)
         (getServicePublicUrl "glance" catalog)
         (getServicePublicUrl "keystone" catalog)
-        (getServicePublicUrl "nova" catalog)
+        (getServicePublicUrl "nova" catalog
+            -- This lets us use Nova microversions
+            |> String.replace "v2" "v2.1"
+        )
         (getServicePublicUrl "neutron" catalog)
 
 

@@ -343,6 +343,7 @@ requestAppCredential project posixTime =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
         (Http.expectJson resultToMsg_ decodeAppCredential)
@@ -414,6 +415,7 @@ requestImages project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
         (Http.expectJson
@@ -443,6 +445,7 @@ requestServers project =
     openstackCredentialedRequest
         project
         Get
+        (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson
@@ -472,6 +475,7 @@ requestServer project serverUuid =
     openstackCredentialedRequest
         project
         Get
+        (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson
@@ -508,6 +512,7 @@ requestConsoleUrls project serverUuid =
             openstackCredentialedRequest
                 project
                 Post
+                Nothing
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (Http.expectJson
@@ -536,6 +541,7 @@ requestFlavors project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (Http.expectJson
@@ -561,6 +567,7 @@ requestKeypairs project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (Http.expectJson
@@ -683,6 +690,7 @@ requestCreateServer project createServerRequest =
                     openstackCredentialedRequest
                         project
                         Post
+                        Nothing
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (Http.expectJson
@@ -718,6 +726,7 @@ requestDeleteServer project server =
     openstackCredentialedRequest
         project
         Delete
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         (Http.expectString
@@ -755,6 +764,7 @@ requestNetworks project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson
@@ -784,6 +794,7 @@ requestFloatingIps project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
         (Http.expectJson
@@ -813,6 +824,7 @@ getFloatingIpRequestPorts project server =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson
@@ -882,6 +894,7 @@ requestCreateFloatingIp model project network port_ server =
             openstackCredentialedRequest
                 newProject
                 Post
+                Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (Http.expectJson
@@ -913,6 +926,7 @@ requestDeleteFloatingIp project uuid =
     openstackCredentialedRequest
         project
         Delete
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
         (Http.expectString
@@ -941,6 +955,7 @@ requestSecurityGroups project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (Http.expectJson
@@ -983,6 +998,7 @@ requestCreateExoSecurityGroup project =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (Http.expectJson
@@ -1028,6 +1044,7 @@ requestCreateSecurityGroupRules project group rules errorMessage =
             openstackCredentialedRequest
                 project
                 Post
+                Nothing
                 (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                 (Http.jsonBody body)
                 (Http.expectString
@@ -1138,6 +1155,7 @@ requestCreateServerImage project serverUuid imageName =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString
@@ -1926,6 +1944,7 @@ decodeServerDetails =
         |> Pipeline.required "metadata" metadataDecoder
         |> Pipeline.required "user_id" Decode.string
         |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
+        |> Pipeline.required "tags" (Decode.list Decode.string)
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus

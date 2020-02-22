@@ -39,6 +39,7 @@ requestComputeQuota project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.nova ++ "/os-quota-sets/" ++ project.auth.project.uuid ++ "/detail")
         Http.emptyBody
         (Http.expectJson
@@ -76,6 +77,7 @@ requestVolumeQuota project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.cinder ++ "/os-quota-sets/" ++ project.auth.project.uuid ++ "?usage=True")
         Http.emptyBody
         (Http.expectJson

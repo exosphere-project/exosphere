@@ -287,6 +287,7 @@ type alias ServerDetails =
     , metadata : List MetadataItem
     , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
+    , tags : List ServerTag
     }
 
 
@@ -295,6 +296,10 @@ type alias ComputeQuota =
     , instances : QuotaItemDetail
     , ram : QuotaItemDetail
     }
+
+
+type alias ServerTag =
+    String
 
 
 
