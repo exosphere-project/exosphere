@@ -72,6 +72,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
+import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
@@ -621,9 +622,7 @@ requestCreateServer project createServerRequest =
                     )
                 , ( "user_data", Encode.string (Base64.encode renderedUserData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-
-                -- TODO put exoServerVersion in here
-                --, ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
+                , ( "metadata", Encode.object [ ( "exoServerVersion", Encode.string "1" ) ] )
                 ]
 
         buildRequestOuterJson props =
@@ -1182,6 +1181,7 @@ receiveImages model project images =
 receiveServers : Model -> Project -> List OSTypes.Server -> ( Model, Cmd Msg )
 receiveServers model project servers =
     -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
+    -- TODO a lot of this duplicates code below in receiveServer, should receiveServers call receiveServer?
     let
         defaultExoProps =
             ExoServerProps Unknown False NotChecked False Nothing
@@ -1211,15 +1211,30 @@ receiveServers model project servers =
         newModel =
             Helpers.modelUpdateProject model newProject
 
+        requestPasswordCmd server =
+            case Helpers.getServerExouserPassword server.osProps.details of
+                Nothing ->
+                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+
+                Just _ ->
+                    Cmd.none
+
+        requestPasswordCmds =
+            List.map requestPasswordCmd newServersSorted
+
         requestCockpitCommands =
             List.map (requestCockpitIfRequestable project) newServersSorted
-                |> Cmd.batch
     in
-    ( newModel, requestCockpitCommands )
+    ( newModel
+    , [ requestPasswordCmds, requestCockpitCommands ]
+        |> List.concat
+        |> Cmd.batch
+    )
 
 
 receiveServer : Model -> Project -> OSTypes.ServerUuid -> OSTypes.ServerDetails -> ( Model, Cmd Msg )
 receiveServer model project serverUuid serverDetails =
+    -- TODO a lot of this duplicates code above in receiveServers, should receiveServers call receiveServer?
     let
         maybeServer =
             Helpers.serverLookup project serverUuid
@@ -1286,11 +1301,19 @@ receiveServer model project serverUuid serverDetails =
                 consoleUrlCmd =
                     requestConsoleUrlIfRequestable newProject newServer
 
+                passwordCmd =
+                    case Helpers.getServerExouserPassword serverDetails of
+                        Nothing ->
+                            OSServerPassword.requestServerPassword newProject newServer.osProps.uuid
+
+                        Just _ ->
+                            Cmd.none
+
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer
 
                 allCmds =
-                    [ floatingIpCmd, consoleUrlCmd, cockpitLoginCmd ]
+                    [ floatingIpCmd, consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
                         |> Cmd.batch
             in
             ( newModel, allCmds )

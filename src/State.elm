@@ -10,6 +10,8 @@ import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import OpenStack.Quotas
+import OpenStack.ServerPassword as OSServerPassword
+import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -1103,8 +1105,20 @@ processProjectSpecificMsg model project msg =
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
         ReceiveServerPassword serverUuid password ->
-            -- TODO fixme
-            ( model, Cmd.none )
+            if String.isEmpty password then
+                ( model, Cmd.none )
+
+            else
+                let
+                    tag =
+                        "exoPw:" ++ password
+                in
+                ( model
+                , Cmd.batch
+                    [ OSServerTags.requestCreateServerTag project serverUuid tag
+                    , OSServerPassword.requestClearServerPassword project serverUuid
+                    ]
+                )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )

@@ -1,4 +1,4 @@
-module OpenStack.ServerPassword exposing (requestServerPassword)
+module OpenStack.ServerPassword exposing (requestClearServerPassword, requestServerPassword)
 
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
