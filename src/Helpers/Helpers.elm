@@ -464,9 +464,23 @@ getServerFloatingIp ipAddresses =
 
 getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
 getServerExouserPassword serverDetails =
-    List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-        |> List.head
-        |> Maybe.map .value
+    let
+        newLocation =
+            List.filter (\t -> String.startsWith "exoPw:" t) serverDetails.tags
+                |> List.head
+                |> Maybe.map (String.dropLeft 6)
+
+        oldLocation =
+            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+    in
+    case newLocation of
+        Just password ->
+            Just password
+
+        Nothing ->
+            oldLocation
 
 
 getServerUiStatus : Server -> ServerUiStatus
