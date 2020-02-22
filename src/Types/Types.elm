@@ -218,6 +218,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
+    | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
 
 
 type ViewState

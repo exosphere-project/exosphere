@@ -31,6 +31,7 @@ module OpenStack.Types exposing
     , SecurityGroup
     , Server
     , ServerDetails
+    , ServerPassword
     , ServerPowerState(..)
     , ServerStatus(..)
     , ServerUuid
@@ -299,6 +300,10 @@ type alias ComputeQuota =
 
 
 type alias ServerTag =
+    String
+
+
+type alias ServerPassword =
     String
 
 

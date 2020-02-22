@@ -1102,6 +1102,10 @@ processProjectSpecificMsg model project msg =
             in
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
+        ReceiveServerPassword serverUuid password ->
+            -- TODO fixme
+            ( model, Cmd.none )
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
 createProject model password authToken =
