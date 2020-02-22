@@ -175,6 +175,7 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
                         [ Element.el
                             VH.heading2
                             (Element.text "Server Details")
+                        , passwordVulnWarning appIsElectron server
                         , VH.compactKVRow "Name" (Element.text server.osProps.name)
                         , VH.compactKVRow "Status" (serverStatus projectId server serverDetailViewParams)
                         , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
@@ -238,6 +239,36 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
                         ]
                     ]
             )
+
+
+passwordVulnWarning : Bool -> Server -> Element.Element Msg
+passwordVulnWarning appIsElectron server =
+    let
+        exoServerVersion =
+            List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
+                |> List.head
+                |> Maybe.map .value
+                |> Maybe.andThen String.toInt
+                |> Maybe.withDefault 0
+    in
+    if exoServerVersion < 1 then
+        Element.paragraph
+            [ Font.color (Element.rgb 255 0 0) ]
+            [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
+            , VH.browserLink
+                appIsElectron
+                "https://en.wikipedia.org/wiki/Privilege_escalation"
+                (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
+            , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
+            , VH.browserLink
+                appIsElectron
+                "https://gitlab.com/exosphere/exosphere/issues/284"
+                (View.Types.BrowserLinkTextLabel "issue #284")
+            , Element.text " on the Exosphere GitLab project."
+            ]
+
+    else
+        Element.none
 
 
 serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
