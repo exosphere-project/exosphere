@@ -279,13 +279,25 @@ iso8601StringToPosix str =
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints
 serviceCatalogToEndpoints catalog =
+    let
+        novaUrlWithMicroversionSupport : String -> String
+        novaUrlWithMicroversionSupport url =
+            -- Future optimization, use a real URL parser
+            if String.contains "/v2/" url then
+                String.replace "/v2/" "/v2.1/" url
+
+            else if String.contains "/v2.0/" url then
+                String.replace "/v2.0/" "/v2.1/" url
+
+            else
+                url
+    in
     Endpoints
         (getServicePublicUrl "cinderv3" catalog)
         (getServicePublicUrl "glance" catalog)
         (getServicePublicUrl "keystone" catalog)
         (getServicePublicUrl "nova" catalog
-            -- This lets us use Nova microversions
-            |> String.replace "v2" "v2.1"
+            |> novaUrlWithMicroversionSupport
         )
         (getServicePublicUrl "neutron" catalog)
 
