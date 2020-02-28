@@ -1212,16 +1212,20 @@ receiveServers model project servers =
             Helpers.modelUpdateProject model newProject
 
         requestPasswordCmd server =
-            if Helpers.exoServerVersion server >= 1 then
-                case Helpers.getServerExouserPassword server.osProps.details of
-                    Nothing ->
-                        OSServerPassword.requestServerPassword newProject server.osProps.uuid
+            case Helpers.exoServerVersion server of
+                Nothing ->
+                    Cmd.none
 
-                    Just _ ->
-                        Cmd.none
+                Just 0 ->
+                    Cmd.none
 
-            else
-                Cmd.none
+                _ ->
+                    case Helpers.getServerExouserPassword server.osProps.details of
+                        Nothing ->
+                            OSServerPassword.requestServerPassword newProject server.osProps.uuid
+
+                        Just _ ->
+                            Cmd.none
 
         requestPasswordCmds =
             List.map requestPasswordCmd newServersSorted
@@ -1306,16 +1310,20 @@ receiveServer model project serverUuid serverDetails =
                     requestConsoleUrlIfRequestable newProject newServer
 
                 passwordCmd =
-                    if Helpers.exoServerVersion server >= 1 then
-                        case Helpers.getServerExouserPassword server.osProps.details of
-                            Nothing ->
-                                OSServerPassword.requestServerPassword newProject server.osProps.uuid
+                    case Helpers.exoServerVersion server of
+                        Nothing ->
+                            Cmd.none
 
-                            Just _ ->
-                                Cmd.none
+                        Just 0 ->
+                            Cmd.none
 
-                    else
-                        Cmd.none
+                        _ ->
+                            case Helpers.getServerExouserPassword server.osProps.details of
+                                Nothing ->
+                                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+
+                                Just _ ->
+                                    Cmd.none
 
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer

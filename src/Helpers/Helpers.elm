@@ -884,11 +884,29 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
                 |> List.minimum
 
 
-exoServerVersion : Server -> Int
+exoServerVersion : Server -> Maybe Int
 exoServerVersion server =
-    -- Returns 0 for servers launched before exoServerVersion was introduced, AND for servers created outside of Exosphere. We may want to change this in the future.
-    List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
-        |> List.head
-        |> Maybe.map .value
-        |> Maybe.andThen String.toInt
-        |> Maybe.withDefault 0
+    -- Returns Just 0 for servers launched before exoServerVersion was introduced. Returns Nothing for servers launched outside of Exosphere.
+    let
+        version0 =
+            if
+                List.filter (\i -> i.key == "exoUserPassword") server.osProps.details.metadata
+                    |> List.isEmpty
+            then
+                Nothing
+
+            else
+                Just 0
+
+        exoServerVersion_ =
+            List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
+                |> List.head
+                |> Maybe.map .value
+                |> Maybe.andThen String.toInt
+    in
+    case exoServerVersion_ of
+        Just v ->
+            Just v
+
+        Nothing ->
+            version0

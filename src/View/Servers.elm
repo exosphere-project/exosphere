@@ -243,25 +243,25 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
 
 passwordVulnWarning : Bool -> Server -> Element.Element Msg
 passwordVulnWarning appIsElectron server =
-    -- TODO don't show scary message for servers that were launched outside of Exosphere
-    if Helpers.exoServerVersion server < 1 then
-        Element.paragraph
-            [ Font.color (Element.rgb 255 0 0) ]
-            [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
-            , VH.browserLink
-                appIsElectron
-                "https://en.wikipedia.org/wiki/Privilege_escalation"
-                (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
-            , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
-            , VH.browserLink
-                appIsElectron
-                "https://gitlab.com/exosphere/exosphere/issues/284"
-                (View.Types.BrowserLinkTextLabel "issue #284")
-            , Element.text " on the Exosphere GitLab project."
-            ]
+    case Helpers.exoServerVersion server of
+        Just 0 ->
+            Element.paragraph
+                [ Font.color (Element.rgb 255 0 0) ]
+                [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
+                , VH.browserLink
+                    appIsElectron
+                    "https://en.wikipedia.org/wiki/Privilege_escalation"
+                    (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
+                , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
+                , VH.browserLink
+                    appIsElectron
+                    "https://gitlab.com/exosphere/exosphere/issues/284"
+                    (View.Types.BrowserLinkTextLabel "issue #284")
+                , Element.text " on the Exosphere GitLab project."
+                ]
 
-    else
-        Element.none
+        _ ->
+            Element.none
 
 
 serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg

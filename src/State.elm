@@ -1009,12 +1009,12 @@ processProjectSpecificMsg model project msg =
                         -- We only care about servers created by exosphere
                         |> List.filter
                             (\t ->
-                                (Tuple.first t).osProps.details.metadata
-                                    |> List.map .key
-                                    -- TODO This will no longer be a good test for serverse created by Exosphere
-                                    |> List.filter (\key -> key == "exouserPassword")
-                                    |> List.isEmpty
-                                    |> not
+                                case Helpers.exoServerVersion (Tuple.first t) of
+                                    Just _ ->
+                                        True
+
+                                    Nothing ->
+                                        False
                             )
                         -- We only care about servers created as current OpenStack user
                         |> List.filter
@@ -1117,14 +1117,18 @@ processProjectSpecificMsg model project msg =
                     cmd =
                         case Helpers.serverLookup project serverUuid of
                             Just server ->
-                                if Helpers.exoServerVersion server >= 1 then
-                                    Cmd.batch
-                                        [ OSServerTags.requestCreateServerTag project serverUuid tag
-                                        , OSServerPassword.requestClearServerPassword project serverUuid
-                                        ]
+                                case Helpers.exoServerVersion server of
+                                    Nothing ->
+                                        Cmd.none
 
-                                else
-                                    Cmd.none
+                                    Just 0 ->
+                                        Cmd.none
+
+                                    _ ->
+                                        Cmd.batch
+                                            [ OSServerTags.requestCreateServerTag project serverUuid tag
+                                            , OSServerPassword.requestClearServerPassword project serverUuid
+                                            ]
 
                             Nothing ->
                                 Cmd.none
