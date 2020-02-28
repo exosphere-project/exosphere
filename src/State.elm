@@ -1011,6 +1011,7 @@ processProjectSpecificMsg model project msg =
                             (\t ->
                                 (Tuple.first t).osProps.details.metadata
                                     |> List.map .key
+                                    -- TODO This will no longer be a good test for serverse created by Exosphere
                                     |> List.filter (\key -> key == "exouserPassword")
                                     |> List.isEmpty
                                     |> not
@@ -1112,13 +1113,23 @@ processProjectSpecificMsg model project msg =
                 let
                     tag =
                         "exoPw:" ++ password
+
+                    cmd =
+                        case Helpers.serverLookup project serverUuid of
+                            Just server ->
+                                if Helpers.exoServerVersion server >= 1 then
+                                    Cmd.batch
+                                        [ OSServerTags.requestCreateServerTag project serverUuid tag
+                                        , OSServerPassword.requestClearServerPassword project serverUuid
+                                        ]
+
+                                else
+                                    Cmd.none
+
+                            Nothing ->
+                                Cmd.none
                 in
-                ( model
-                , Cmd.batch
-                    [ OSServerTags.requestCreateServerTag project serverUuid tag
-                    , OSServerPassword.requestClearServerPassword project serverUuid
-                    ]
-                )
+                ( model, cmd )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )

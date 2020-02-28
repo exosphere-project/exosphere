@@ -1212,12 +1212,16 @@ receiveServers model project servers =
             Helpers.modelUpdateProject model newProject
 
         requestPasswordCmd server =
-            case Helpers.getServerExouserPassword server.osProps.details of
-                Nothing ->
-                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+            if Helpers.exoServerVersion server >= 1 then
+                case Helpers.getServerExouserPassword server.osProps.details of
+                    Nothing ->
+                        OSServerPassword.requestServerPassword newProject server.osProps.uuid
 
-                Just _ ->
-                    Cmd.none
+                    Just _ ->
+                        Cmd.none
+
+            else
+                Cmd.none
 
         requestPasswordCmds =
             List.map requestPasswordCmd newServersSorted
@@ -1302,12 +1306,16 @@ receiveServer model project serverUuid serverDetails =
                     requestConsoleUrlIfRequestable newProject newServer
 
                 passwordCmd =
-                    case Helpers.getServerExouserPassword serverDetails of
-                        Nothing ->
-                            OSServerPassword.requestServerPassword newProject newServer.osProps.uuid
+                    if Helpers.exoServerVersion server >= 1 then
+                        case Helpers.getServerExouserPassword server.osProps.details of
+                            Nothing ->
+                                OSServerPassword.requestServerPassword newProject server.osProps.uuid
 
-                        Just _ ->
-                            Cmd.none
+                            Just _ ->
+                                Cmd.none
+
+                    else
+                        Cmd.none
 
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer

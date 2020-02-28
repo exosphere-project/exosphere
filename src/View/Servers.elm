@@ -243,15 +243,8 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
 
 passwordVulnWarning : Bool -> Server -> Element.Element Msg
 passwordVulnWarning appIsElectron server =
-    let
-        exoServerVersion =
-            List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
-                |> List.head
-                |> Maybe.map .value
-                |> Maybe.andThen String.toInt
-                |> Maybe.withDefault 0
-    in
-    if exoServerVersion < 1 then
+    -- TODO don't show scary message for servers that were launched outside of Exosphere
+    if Helpers.exoServerVersion server < 1 then
         Element.paragraph
             [ Font.color (Element.rgb 255 0 0) ]
             [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "

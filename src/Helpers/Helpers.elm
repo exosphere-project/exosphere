@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
+    , exoServerVersion
     , flavorLookup
     , getBootVol
     , getExternalNetwork
@@ -881,3 +882,13 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
             ]
                 |> List.filterMap identity
                 |> List.minimum
+
+
+exoServerVersion : Server -> Int
+exoServerVersion server =
+    -- Returns 0 for servers launched before exoServerVersion was introduced, AND for servers created outside of Exosphere. We may want to change this in the future.
+    List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
+        |> List.head
+        |> Maybe.map .value
+        |> Maybe.andThen String.toInt
+        |> Maybe.withDefault 0
