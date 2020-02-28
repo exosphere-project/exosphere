@@ -890,7 +890,7 @@ exoServerVersion server =
     let
         version0 =
             if
-                List.filter (\i -> i.key == "exoUserPassword") server.osProps.details.metadata
+                List.filter (\i -> i.key == "exouserPassword") server.osProps.details.metadata
                     |> List.isEmpty
             then
                 Nothing
