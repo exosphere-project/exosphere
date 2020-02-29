@@ -218,6 +218,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
+    | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
 
 
 type ViewState
@@ -390,7 +391,6 @@ type alias CreateServerRequest =
     , volBackedSizeGb : Maybe Int
     , keypairName : Maybe String
     , userData : String
-    , exouserPassword : String
     , networkUuid : OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
     }

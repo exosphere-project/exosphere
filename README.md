@@ -47,6 +47,10 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 - Multi-cloud support (providers other than OpenStack)
 - Automated deployment of data processing clusters (Hadoop, Spark, etc.)
 
+## Compatibility
+
+Exosphere requires Queens release of OpenStack (released February 2018).
+
 ## Try Exosphere
 
 The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).

@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
+    , exoServerVersion
     , flavorLookup
     , getBootVol
     , getExternalNetwork
@@ -279,11 +280,26 @@ iso8601StringToPosix str =
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints
 serviceCatalogToEndpoints catalog =
+    let
+        novaUrlWithMicroversionSupport : String -> String
+        novaUrlWithMicroversionSupport url =
+            -- Future optimization, use a real URL parser
+            if String.contains "/v2/" url then
+                String.replace "/v2/" "/v2.1/" url
+
+            else if String.contains "/v2.0/" url then
+                String.replace "/v2.0/" "/v2.1/" url
+
+            else
+                url
+    in
     Endpoints
         (getServicePublicUrl "cinderv3" catalog)
         (getServicePublicUrl "glance" catalog)
         (getServicePublicUrl "keystone" catalog)
-        (getServicePublicUrl "nova" catalog)
+        (getServicePublicUrl "nova" catalog
+            |> novaUrlWithMicroversionSupport
+        )
         (getServicePublicUrl "neutron" catalog)
 
 
@@ -461,9 +477,23 @@ getServerFloatingIp ipAddresses =
 
 getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
 getServerExouserPassword serverDetails =
-    List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-        |> List.head
-        |> Maybe.map .value
+    let
+        newLocation =
+            List.filter (\t -> String.startsWith "exoPw:" t) serverDetails.tags
+                |> List.head
+                |> Maybe.map (String.dropLeft 6)
+
+        oldLocation =
+            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+    in
+    case newLocation of
+        Just password ->
+            Just password
+
+        Nothing ->
+            oldLocation
 
 
 getServerUiStatus : Server -> ServerUiStatus
@@ -852,3 +882,31 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
             ]
                 |> List.filterMap identity
                 |> List.minimum
+
+
+exoServerVersion : Server -> Maybe Int
+exoServerVersion server =
+    -- Returns Just 0 for servers launched before exoServerVersion was introduced. Returns Nothing for servers launched outside of Exosphere.
+    let
+        version0 =
+            if
+                List.filter (\i -> i.key == "exouserPassword") server.osProps.details.metadata
+                    |> List.isEmpty
+            then
+                Nothing
+
+            else
+                Just 0
+
+        exoServerVersion_ =
+            List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
+                |> List.head
+                |> Maybe.map .value
+                |> Maybe.andThen String.toInt
+    in
+    case exoServerVersion_ of
+        Just v ->
+            Just v
+
+        Nothing ->
+            version0

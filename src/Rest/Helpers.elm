@@ -35,8 +35,8 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
-openstackCredentialedRequest project method origUrl requestBody expect =
+openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
+openstackCredentialedRequest project method maybeMicroversion origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
 
@@ -59,7 +59,18 @@ openstackCredentialedRequest project method origUrl requestBody expect =
             in
             Http.request
                 { method = httpRequestMethodStr method
-                , headers = Http.header "X-Auth-Token" token :: headers
+                , headers =
+                    List.concat
+                        [ [ Http.header "X-Auth-Token" token ]
+                        , case maybeMicroversion of
+                            Just microversion ->
+                                -- Using this to support Nova server tags, at some point we might want to move it higher
+                                [ Http.header "OpenStack-API-Version" microversion ]
+
+                            Nothing ->
+                                []
+                        , headers
+                        ]
                 , url = url
                 , body = requestBody
                 , expect = expect

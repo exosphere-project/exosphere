@@ -187,6 +187,7 @@ doAction body project server =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString

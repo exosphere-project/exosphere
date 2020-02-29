@@ -31,6 +31,7 @@ module OpenStack.Types exposing
     , SecurityGroup
     , Server
     , ServerDetails
+    , ServerPassword
     , ServerPowerState(..)
     , ServerStatus(..)
     , ServerUuid
@@ -287,6 +288,7 @@ type alias ServerDetails =
     , metadata : List MetadataItem
     , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
+    , tags : List ServerTag
     }
 
 
@@ -295,6 +297,14 @@ type alias ComputeQuota =
     , instances : QuotaItemDetail
     , ram : QuotaItemDetail
     }
+
+
+type alias ServerTag =
+    String
+
+
+type alias ServerPassword =
+    String
 
 
 

@@ -46,6 +46,7 @@ requestAttachVolume project serverUuid volumeUuid =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
         (Http.jsonBody body)
         (Http.expectJson
@@ -75,6 +76,7 @@ requestDetachVolume project serverUuid volumeUuid =
     openstackCredentialedRequest
         project
         Delete
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody
         (Http.expectString

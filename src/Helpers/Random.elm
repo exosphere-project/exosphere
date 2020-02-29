@@ -1,4 +1,4 @@
-module Helpers.Random exposing (generatePasswordAndServerName)
+module Helpers.Random exposing (generateServerName)
 
 import Helpers.PetNames as PetNames
 import Random
@@ -10,32 +10,6 @@ randomWord wordlist default =
     Random.map
         (Tuple.first >> Maybe.withDefault default)
         (RandomList.choose wordlist)
-
-
-randomPhrase : List String -> List String -> List String -> Random.Generator String
-randomPhrase adverbs adjectives names =
-    Random.map3
-        (\adverb adjective name ->
-            adverb ++ "-" ++ adjective ++ "-" ++ name
-        )
-        (randomWord adverbs "foo")
-        (randomWord adjectives "bar")
-        (randomWord names "baz")
-
-
-randomMediumPhrase : Random.Generator String
-randomMediumPhrase =
-    randomPhrase PetNames.mediumAdverbs PetNames.mediumAdjectives PetNames.mediumNames
-
-
-passwordGenerator : Random.Generator String
-passwordGenerator =
-    Random.map2
-        (\phrase1 phrase2 ->
-            phrase1 ++ "-" ++ phrase2
-        )
-        randomMediumPhrase
-        randomMediumPhrase
 
 
 serverNameGenerator : Random.Generator String
@@ -59,10 +33,7 @@ serverNameGenerator =
         randomName
 
 
-generatePasswordAndServerName : (( String, String ) -> msg) -> Cmd msg
-generatePasswordAndServerName toMsg =
+generateServerName : (String -> msg) -> Cmd msg
+generateServerName toMsg =
     Random.generate toMsg <|
-        Random.map2
-            (\password serverName -> ( password, serverName ))
-            passwordGenerator
-            serverNameGenerator
+        serverNameGenerator

@@ -10,6 +10,8 @@ import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import OpenStack.Quotas
+import OpenStack.ServerPassword as OSServerPassword
+import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -61,6 +63,18 @@ package_update: true
 packages:
   - cockpit
 runcmd:
+  - |
+    WORDS_URL=https://gitlab.com/exosphere/exosphere/snippets/1943838/raw
+    WORDS_SHA512=a71dd2806263d6bce2b45775d80530a4187921a6d4d974d6502f02f6228612e685e2f6dcc1d7f53f5e2a260d0f8a14773458a1a6e7553430727a9b46d5d6e002
+    wget --quiet --output-document=words $WORDS_URL
+    if echo $WORDS_SHA512 words | sha512sum --check --quiet; then
+      PASSPHRASE=$(cat words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1)
+      POST_URL=http://169.254.169.254/openstack/latest/password
+      if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
+        echo exouser:$PASSPHRASE | chpasswd
+      fi
+      unset PASSPHRASE
+    fi
   - systemctl enable cockpit.socket
   - systemctl start cockpit.socket
   - systemctl daemon-reload
@@ -69,10 +83,6 @@ runcmd:
   - "systemctl daemon-reload"
   - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
   - "chown exouser:exouser /media/volume/*"
-chpasswd:
-  list: |
-    exouser:{exouser-password}
-  expire: False
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
@@ -568,17 +578,11 @@ processProjectSpecificMsg model project msg =
                         -- If we are just entering this view then gather everything we need
                         _ ->
                             let
-                                newCSRMsg password_ serverName_ =
+                                newCSRMsg serverName_ =
                                     let
-                                        newUserData =
-                                            String.split "{exouser-password}" createServerRequest.userData
-                                                |> String.join password_
-
                                         newCSR =
                                             { createServerRequest
-                                                | userData = newUserData
-                                                , exouserPassword = password_
-                                                , name = serverName_
+                                                | name = serverName_
                                             }
                                     in
                                     ProjectMsg (Helpers.getProjectId project) <|
@@ -599,7 +603,7 @@ processProjectSpecificMsg model project msg =
                                 [ Rest.requestFlavors project
                                 , Rest.requestKeypairs project
                                 , Rest.requestNetworks project
-                                , RandomHelpers.generatePasswordAndServerName (\( password, serverName ) -> newCSRMsg password serverName)
+                                , RandomHelpers.generateServerName newCSRMsg
                                 , OpenStack.Quotas.requestComputeQuota project
                                 , OpenStack.Quotas.requestVolumeQuota project
                                 ]
@@ -1005,11 +1009,12 @@ processProjectSpecificMsg model project msg =
                         -- We only care about servers created by exosphere
                         |> List.filter
                             (\t ->
-                                (Tuple.first t).osProps.details.metadata
-                                    |> List.map .key
-                                    |> List.filter (\key -> key == "exouserPassword")
-                                    |> List.isEmpty
-                                    |> not
+                                case Helpers.exoServerVersion (Tuple.first t) of
+                                    Just _ ->
+                                        True
+
+                                    Nothing ->
+                                        False
                             )
                         -- We only care about servers created as current OpenStack user
                         |> List.filter
@@ -1099,6 +1104,36 @@ processProjectSpecificMsg model project msg =
                     { project | volumeQuota = RemoteData.Success quota }
             in
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
+        ReceiveServerPassword serverUuid password ->
+            if String.isEmpty password then
+                ( model, Cmd.none )
+
+            else
+                let
+                    tag =
+                        "exoPw:" ++ password
+
+                    cmd =
+                        case Helpers.serverLookup project serverUuid of
+                            Just server ->
+                                case Helpers.exoServerVersion server of
+                                    Nothing ->
+                                        Cmd.none
+
+                                    Just 0 ->
+                                        Cmd.none
+
+                                    _ ->
+                                        Cmd.batch
+                                            [ OSServerTags.requestCreateServerTag project serverUuid tag
+                                            , OSServerPassword.requestClearServerPassword project serverUuid
+                                            ]
+
+                            Nothing ->
+                                Cmd.none
+                in
+                ( model, cmd )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )

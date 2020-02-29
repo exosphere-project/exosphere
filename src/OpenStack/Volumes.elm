@@ -54,6 +54,7 @@ requestCreateVolume project createVolumeRequest =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
         (Http.expectJson
@@ -83,6 +84,7 @@ requestVolumes project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
         (Http.expectJson
@@ -108,6 +110,7 @@ requestDeleteVolume project volumeUuid =
     openstackCredentialedRequest
         project
         Delete
+        Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
         (Http.expectString resultToMsg_)
@@ -139,6 +142,7 @@ requestUpdateVolumeName project volumeUuid name =
     openstackCredentialedRequest
         project
         Put
+        Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         (Http.jsonBody body)
         (Http.expectString resultToMsg_)

@@ -72,6 +72,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
+import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
@@ -343,6 +344,7 @@ requestAppCredential project posixTime =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
         (Http.expectJson resultToMsg_ decodeAppCredential)
@@ -414,6 +416,7 @@ requestImages project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
         (Http.expectJson
@@ -443,6 +446,7 @@ requestServers project =
     openstackCredentialedRequest
         project
         Get
+        (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson
@@ -472,6 +476,7 @@ requestServer project serverUuid =
     openstackCredentialedRequest
         project
         Get
+        (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson
@@ -508,6 +513,7 @@ requestConsoleUrls project serverUuid =
             openstackCredentialedRequest
                 project
                 Post
+                Nothing
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (Http.expectJson
@@ -536,6 +542,7 @@ requestFlavors project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
         (Http.expectJson
@@ -561,6 +568,7 @@ requestKeypairs project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
         (Http.expectJson
@@ -614,8 +622,7 @@ requestCreateServer project createServerRequest =
                     )
                 , ( "user_data", Encode.string (Base64.encode renderedUserData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-                , ( "adminPass", Encode.string createServerRequest.exouserPassword )
-                , ( "metadata", Encode.object [ ( "exouserPassword", Encode.string createServerRequest.exouserPassword ) ] )
+                , ( "metadata", Encode.object [ ( "exoServerVersion", Encode.string "1" ) ] )
                 ]
 
         buildRequestOuterJson props =
@@ -682,6 +689,7 @@ requestCreateServer project createServerRequest =
                     openstackCredentialedRequest
                         project
                         Post
+                        Nothing
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (Http.expectJson
@@ -717,6 +725,7 @@ requestDeleteServer project server =
     openstackCredentialedRequest
         project
         Delete
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         (Http.expectString
@@ -754,6 +763,7 @@ requestNetworks project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson
@@ -783,6 +793,7 @@ requestFloatingIps project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
         (Http.expectJson
@@ -812,6 +823,7 @@ getFloatingIpRequestPorts project server =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson
@@ -881,6 +893,7 @@ requestCreateFloatingIp model project network port_ server =
             openstackCredentialedRequest
                 newProject
                 Post
+                Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
                 (Http.expectJson
@@ -912,6 +925,7 @@ requestDeleteFloatingIp project uuid =
     openstackCredentialedRequest
         project
         Delete
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
         (Http.expectString
@@ -940,6 +954,7 @@ requestSecurityGroups project =
     openstackCredentialedRequest
         project
         Get
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
         (Http.expectJson
@@ -982,6 +997,7 @@ requestCreateExoSecurityGroup project =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
         (Http.expectJson
@@ -1027,6 +1043,7 @@ requestCreateSecurityGroupRules project group rules errorMessage =
             openstackCredentialedRequest
                 project
                 Post
+                Nothing
                 (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                 (Http.jsonBody body)
                 (Http.expectString
@@ -1137,6 +1154,7 @@ requestCreateServerImage project serverUuid imageName =
     openstackCredentialedRequest
         project
         Post
+        Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString
@@ -1163,6 +1181,7 @@ receiveImages model project images =
 receiveServers : Model -> Project -> List OSTypes.Server -> ( Model, Cmd Msg )
 receiveServers model project servers =
     -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
+    -- TODO a lot of this duplicates code below in receiveServer, should receiveServers call receiveServer?
     let
         defaultExoProps =
             ExoServerProps Unknown False NotChecked False Nothing
@@ -1192,15 +1211,38 @@ receiveServers model project servers =
         newModel =
             Helpers.modelUpdateProject model newProject
 
+        requestPasswordCmd server =
+            case Helpers.exoServerVersion server of
+                Nothing ->
+                    Cmd.none
+
+                Just 0 ->
+                    Cmd.none
+
+                _ ->
+                    case Helpers.getServerExouserPassword server.osProps.details of
+                        Nothing ->
+                            OSServerPassword.requestServerPassword newProject server.osProps.uuid
+
+                        Just _ ->
+                            Cmd.none
+
+        requestPasswordCmds =
+            List.map requestPasswordCmd newServersSorted
+
         requestCockpitCommands =
             List.map (requestCockpitIfRequestable project) newServersSorted
-                |> Cmd.batch
     in
-    ( newModel, requestCockpitCommands )
+    ( newModel
+    , [ requestPasswordCmds, requestCockpitCommands ]
+        |> List.concat
+        |> Cmd.batch
+    )
 
 
 receiveServer : Model -> Project -> OSTypes.ServerUuid -> OSTypes.ServerDetails -> ( Model, Cmd Msg )
 receiveServer model project serverUuid serverDetails =
+    -- TODO a lot of this duplicates code above in receiveServers, should receiveServers call receiveServer?
     let
         maybeServer =
             Helpers.serverLookup project serverUuid
@@ -1267,11 +1309,27 @@ receiveServer model project serverUuid serverDetails =
                 consoleUrlCmd =
                     requestConsoleUrlIfRequestable newProject newServer
 
+                passwordCmd =
+                    case Helpers.exoServerVersion server of
+                        Nothing ->
+                            Cmd.none
+
+                        Just 0 ->
+                            Cmd.none
+
+                        _ ->
+                            case Helpers.getServerExouserPassword server.osProps.details of
+                                Nothing ->
+                                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+
+                                Just _ ->
+                                    Cmd.none
+
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer
 
                 allCmds =
-                    [ floatingIpCmd, consoleUrlCmd, cockpitLoginCmd ]
+                    [ floatingIpCmd, consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
                         |> Cmd.batch
             in
             ( newModel, allCmds )
@@ -1925,6 +1983,7 @@ decodeServerDetails =
         |> Pipeline.required "metadata" metadataDecoder
         |> Pipeline.required "user_id" Decode.string
         |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
+        |> Pipeline.required "tags" (Decode.list Decode.string)
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
