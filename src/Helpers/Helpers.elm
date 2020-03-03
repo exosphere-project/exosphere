@@ -2,7 +2,7 @@ module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
-    , exoServerVersion
+    , exoServerOrigin
     , flavorLookup
     , getBootVol
     , getExternalNetwork
@@ -62,6 +62,7 @@ import Types.Types
         ( CockpitLoginStatus(..)
         , CreateServerRequest
         , Endpoints
+        , ExoOriginServerProps
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
@@ -894,20 +895,13 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
                 |> List.minimum
 
 
-exoServerVersion : OSTypes.ServerDetails -> Maybe Int
-exoServerVersion serverDetails =
-    -- Returns Just 0 for servers launched before exoServerVersion was introduced. Returns Nothing for servers launched outside of Exosphere.
-    -- TODO return a ServerOrigin?
+exoServerOrigin : OSTypes.ServerDetails -> ServerOrigin
+exoServerOrigin serverDetails =
     let
         version0 =
-            if
-                List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-                    |> List.isEmpty
-            then
-                Nothing
-
-            else
-                Just 0
+            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                |> List.isEmpty
+                |> not
 
         exoServerVersion_ =
             List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
@@ -917,7 +911,13 @@ exoServerVersion serverDetails =
     in
     case exoServerVersion_ of
         Just v ->
-            Just v
+            ServerFromExosphere <|
+                ExoOriginServerProps v NotChecked
 
         Nothing ->
-            version0
+            if version0 then
+                ServerFromExosphere <|
+                    ExoOriginServerProps 0 NotChecked
+
+            else
+                ServerNotFromExosphere

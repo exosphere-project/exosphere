@@ -82,7 +82,6 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , CreateServerRequest
-        , ExoOriginServerProps
         , ExoServerProps
         , FloatingIpState(..)
         , HttpRequestMethod(..)
@@ -1200,13 +1199,7 @@ receiveServers model project servers =
         defaultExoProps server =
             let
                 serverOrigin =
-                    case Helpers.exoServerVersion server.details of
-                        Just ver ->
-                            ServerFromExosphere <|
-                                ExoOriginServerProps ver NotChecked
-
-                        Nothing ->
-                            ServerNotFromExosphere
+                    Helpers.exoServerOrigin server.details
             in
             ExoServerProps Unknown False False Nothing serverOrigin
 
@@ -1241,17 +1234,16 @@ receiveServers model project servers =
                     Cmd.none
 
                 ServerFromExosphere exoOriginServerProps ->
-                    case exoOriginServerProps.exoServerVersion of
-                        0 ->
-                            Cmd.none
+                    if exoOriginServerProps.exoServerVersion < 1 then
+                        Cmd.none
 
-                        _ ->
-                            case Helpers.getServerExouserPassword server.osProps.details of
-                                Nothing ->
-                                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+                    else
+                        case Helpers.getServerExouserPassword server.osProps.details of
+                            Nothing ->
+                                OSServerPassword.requestServerPassword newProject server.osProps.uuid
 
-                                Just _ ->
-                                    Cmd.none
+                            Just _ ->
+                                Cmd.none
 
         requestPasswordCmds =
             List.map requestPasswordCmd newServersSorted
@@ -1336,20 +1328,21 @@ receiveServer model project serverUuid serverDetails =
                     requestConsoleUrlIfRequestable newProject newServer
 
                 passwordCmd =
-                    case Helpers.exoServerVersion server.osProps.details of
-                        Nothing ->
+                    case newServer.exoProps.serverOrigin of
+                        ServerNotFromExosphere ->
                             Cmd.none
 
-                        Just 0 ->
-                            Cmd.none
+                        ServerFromExosphere exoOriginServerProps ->
+                            if exoOriginServerProps.exoServerVersion < 1 then
+                                Cmd.none
 
-                        _ ->
-                            case Helpers.getServerExouserPassword server.osProps.details of
-                                Nothing ->
-                                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+                            else
+                                case Helpers.getServerExouserPassword server.osProps.details of
+                                    Nothing ->
+                                        OSServerPassword.requestServerPassword newProject newServer.osProps.uuid
 
-                                Just _ ->
-                                    Cmd.none
+                                    Just _ ->
+                                        Cmd.none
 
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer
