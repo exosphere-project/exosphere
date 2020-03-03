@@ -368,6 +368,7 @@ type alias ExoServerVersion =
     Int
 
 
+currentExoServerVersion : Int
 currentExoServerVersion =
     1
 
