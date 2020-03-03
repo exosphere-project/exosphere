@@ -1179,11 +1179,12 @@ receiveServers model project servers =
     -- TODO a lot of this duplicates code below in receiveServer, should receiveServers call receiveServer?
     let
         defaultExoProps server =
-            let
-                serverOrigin =
-                    Helpers.serverOrigin server.details
-            in
-            ExoServerProps Unknown False False Nothing serverOrigin
+            ExoServerProps
+                Unknown
+                False
+                False
+                Nothing
+                (Helpers.serverOrigin server.details)
 
         enrichNewServer : OSTypes.Server -> Server
         enrichNewServer newOpenstackServer =
