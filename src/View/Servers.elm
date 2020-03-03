@@ -245,11 +245,11 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
 passwordVulnWarning : Bool -> Server -> Element.Element Msg
 passwordVulnWarning appIsElectron server =
     case server.exoProps.serverOrigin of
-        ServerNotFromExosphere ->
+        ServerNotFromExo ->
             Element.none
 
-        ServerFromExosphere exoOriginServerProps ->
-            if exoOriginServerProps.exoServerVersion < 1 then
+        ServerFromExo serverFromExoProps ->
+            if serverFromExoProps.exoServerVersion < 1 then
                 Element.paragraph
                     [ Font.color (Element.rgb 255 0 0) ]
                     [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
@@ -445,11 +445,11 @@ cockpitInteraction serverOrigin maybeFloatingIp =
         << Maybe.map
             (\floatingIp ->
                 case serverOrigin of
-                    ServerNotFromExosphere ->
+                    ServerNotFromExo ->
                         Element.text "This server was launched outside of Exosphere; Server Dashboard and one-click Terminal are not available."
 
-                    ServerFromExosphere exoOriginServerProps ->
-                        case exoOriginServerProps.cockpitStatus of
+                    ServerFromExo serverFromExoProps ->
+                        case serverFromExoProps.cockpitStatus of
                             NotChecked ->
                                 Element.text "Status of server dashboard and terminal not available yet."
 
@@ -666,11 +666,11 @@ resourceUsageGraphs serverOrigin maybeFloatingIp =
         << Maybe.map
             (\floatingIp ->
                 case serverOrigin of
-                    ServerNotFromExosphere ->
+                    ServerNotFromExo ->
                         Element.text "Graphs not available for server not created by Exosphere."
 
-                    ServerFromExosphere exoOriginServerProps ->
-                        case exoOriginServerProps.cockpitStatus of
+                    ServerFromExo serverFromExoProps ->
+                        case serverFromExoProps.cockpitStatus of
                             Ready ->
                                 let
                                     graphsUrl =
@@ -893,11 +893,11 @@ renderIpAddresses ipAddresses projectId serverUuid serverDetailViewParams =
 friendlyCockpitReadiness : ServerOrigin -> String
 friendlyCockpitReadiness serverOrigin =
     case serverOrigin of
-        ServerNotFromExosphere ->
+        ServerNotFromExo ->
             "Not available (server not launched from Exosphere)"
 
-        ServerFromExosphere exoOriginServerProps ->
-            case exoOriginServerProps.cockpitStatus of
+        ServerFromExo serverFromExoProps ->
+            case serverFromExoProps.cockpitStatus of
                 NotChecked ->
                     "Not checked yet"
 

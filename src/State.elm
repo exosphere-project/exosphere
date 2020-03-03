@@ -1011,10 +1011,10 @@ processProjectSpecificMsg model project msg =
                         |> List.filter
                             (\t ->
                                 case Tuple.first t |> .exoProps |> .serverOrigin of
-                                    ServerFromExosphere _ ->
+                                    ServerFromExo _ ->
                                         True
 
-                                    ServerNotFromExosphere ->
+                                    ServerNotFromExo ->
                                         False
                             )
                         -- We only care about servers created as current OpenStack user
@@ -1119,11 +1119,11 @@ processProjectSpecificMsg model project msg =
                         case Helpers.serverLookup project serverUuid of
                             Just server ->
                                 case server.exoProps.serverOrigin of
-                                    ServerNotFromExosphere ->
+                                    ServerNotFromExo ->
                                         Cmd.none
 
-                                    ServerFromExosphere exoOriginServerProps ->
-                                        if exoOriginServerProps.exoServerVersion >= 1 then
+                                    ServerFromExo serverFromExoProps ->
+                                        if serverFromExoProps.exoServerVersion >= 1 then
                                             Cmd.batch
                                                 [ OSServerTags.requestCreateServerTag project serverUuid tag
                                                 , OSServerPassword.requestClearServerPassword project serverUuid

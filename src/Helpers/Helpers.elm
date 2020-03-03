@@ -2,7 +2,6 @@ module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
-    , exoServerOrigin
     , flavorLookup
     , getBootVol
     , getExternalNetwork
@@ -31,6 +30,7 @@ module Helpers.Helpers exposing
     , providerLookup
     , renderUserDataTemplate
     , serverLookup
+    , serverOrigin
     , serviceCatalogToEndpoints
     , sortedFlavors
     , stringIsUuidOrDefault
@@ -62,7 +62,6 @@ import Types.Types
         ( CockpitLoginStatus(..)
         , CreateServerRequest
         , Endpoints
-        , ExoOriginServerProps
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
@@ -73,6 +72,7 @@ import Types.Types
         , Project
         , ProjectIdentifier
         , Server
+        , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
         , Toast
@@ -507,8 +507,8 @@ getServerUiStatus server =
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
             case server.exoProps.serverOrigin of
-                ServerFromExosphere exoOriginServerProps ->
-                    case exoOriginServerProps.cockpitStatus of
+                ServerFromExo serverFromExoProps ->
+                    case serverFromExoProps.cockpitStatus of
                         NotChecked ->
                             ServerUiStatusPartiallyActive
 
@@ -518,7 +518,7 @@ getServerUiStatus server =
                         Ready ->
                             ServerUiStatusReady
 
-                ServerNotFromExosphere ->
+                ServerNotFromExo ->
                     ServerUiStatusReady
 
         OSTypes.ServerPaused ->
@@ -895,8 +895,8 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
                 |> List.minimum
 
 
-exoServerOrigin : OSTypes.ServerDetails -> ServerOrigin
-exoServerOrigin serverDetails =
+serverOrigin : OSTypes.ServerDetails -> ServerOrigin
+serverOrigin serverDetails =
     let
         version0 =
             List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
@@ -911,13 +911,13 @@ exoServerOrigin serverDetails =
     in
     case exoServerVersion_ of
         Just v ->
-            ServerFromExosphere <|
-                ExoOriginServerProps v NotChecked
+            ServerFromExo <|
+                ServerFromExoProps v NotChecked
 
         Nothing ->
             if version0 then
-                ServerFromExosphere <|
-                    ExoOriginServerProps 0 NotChecked
+                ServerFromExo <|
+                    ServerFromExoProps 0 NotChecked
 
             else
-                ServerNotFromExosphere
+                ServerNotFromExo

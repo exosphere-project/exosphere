@@ -5,7 +5,6 @@ module Types.Types exposing
     , DeleteConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
-    , ExoOriginServerProps
     , ExoServerProps
     , Flags
     , FloatingIpState(..)
@@ -34,6 +33,7 @@ module Types.Types exposing
     , ServerActionState
     , ServerDetailViewParams
     , ServerFilter
+    , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
     , Toast
@@ -354,11 +354,11 @@ type alias ExoServerProps =
 
 
 type ServerOrigin
-    = ServerFromExosphere ExoOriginServerProps
-    | ServerNotFromExosphere
+    = ServerFromExo ServerFromExoProps
+    | ServerNotFromExo
 
 
-type alias ExoOriginServerProps =
+type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
     }

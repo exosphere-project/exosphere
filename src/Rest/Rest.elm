@@ -1098,10 +1098,10 @@ requestCockpitIfRequestable project server =
             in
             {- Try to log into Cockpit IF server was launched from Exosphere and we have a floating IP address and exouser password -}
             case server.exoProps.serverOrigin of
-                ServerNotFromExosphere ->
+                ServerNotFromExo ->
                     Cmd.none
 
-                ServerFromExosphere _ ->
+                ServerFromExo _ ->
                     case maybeFloatingIp of
                         Just floatingIp ->
                             case Helpers.getServerExouserPassword serverDetails of
@@ -1199,7 +1199,7 @@ receiveServers model project servers =
         defaultExoProps server =
             let
                 serverOrigin =
-                    Helpers.exoServerOrigin server.details
+                    Helpers.serverOrigin server.details
             in
             ExoServerProps Unknown False False Nothing serverOrigin
 
@@ -1230,11 +1230,11 @@ receiveServers model project servers =
 
         requestPasswordCmd server =
             case server.exoProps.serverOrigin of
-                ServerNotFromExosphere ->
+                ServerNotFromExo ->
                     Cmd.none
 
-                ServerFromExosphere exoOriginServerProps ->
-                    if exoOriginServerProps.exoServerVersion < 1 then
+                ServerFromExo serverFromExoProps ->
+                    if serverFromExoProps.exoServerVersion < 1 then
                         Cmd.none
 
                     else
@@ -1329,11 +1329,11 @@ receiveServer model project serverUuid serverDetails =
 
                 passwordCmd =
                     case newServer.exoProps.serverOrigin of
-                        ServerNotFromExosphere ->
+                        ServerNotFromExo ->
                             Cmd.none
 
-                        ServerFromExosphere exoOriginServerProps ->
-                            if exoOriginServerProps.exoServerVersion < 1 then
+                        ServerFromExo serverFromExoProps ->
+                            if serverFromExoProps.exoServerVersion < 1 then
                                 Cmd.none
 
                             else
@@ -1736,10 +1736,10 @@ receiveCockpitLoginStatus model project serverUuid result =
 
         Just server ->
             case server.exoProps.serverOrigin of
-                ServerNotFromExosphere ->
+                ServerNotFromExo ->
                     ( model, Cmd.none )
 
-                ServerFromExosphere exoOriginServerProps ->
+                ServerFromExo serverFromExoProps ->
                     {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
                     let
                         cockpitStatus =
@@ -1754,11 +1754,11 @@ receiveCockpitLoginStatus model project serverUuid result =
                         oldExoProps =
                             server.exoProps
 
-                        newExoOriginServerProps =
-                            { exoOriginServerProps | cockpitStatus = cockpitStatus }
+                        newServerFromExoProps =
+                            { serverFromExoProps | cockpitStatus = cockpitStatus }
 
                         newExoProps =
-                            { oldExoProps | serverOrigin = ServerFromExosphere newExoOriginServerProps }
+                            { oldExoProps | serverOrigin = ServerFromExo newServerFromExoProps }
 
                         newServer =
                             Server server.osProps newExoProps
