@@ -1080,43 +1080,25 @@ requestConsoleUrlIfRequestable project server =
 
 requestCockpitIfRequestable : Project -> Server -> Cmd Msg
 requestCockpitIfRequestable project server =
+    -- Try to log into Cockpit IF server was launched from Exosphere and we have a floating IP address and exouser password
     let
-        serverDetails =
-            server.osProps.details
+        maybeFloatingIp =
+            Helpers.getServerFloatingIp server.osProps.details.ipAddresses
 
-        floatingIpState =
-            Helpers.checkFloatingIpState
-                serverDetails
-                server.exoProps.floatingIpState
+        maybeExouserPassword =
+            Helpers.getServerExouserPassword server.osProps.details
     in
-    case floatingIpState of
-        Success ->
-            let
-                maybeFloatingIp =
-                    Helpers.getServerFloatingIp
-                        serverDetails.ipAddresses
-            in
-            {- Try to log into Cockpit IF server was launched from Exosphere and we have a floating IP address and exouser password -}
-            case server.exoProps.serverOrigin of
-                ServerNotFromExo ->
-                    Cmd.none
+    case
+        ( server.exoProps.serverOrigin
+        , maybeFloatingIp
+        , maybeExouserPassword
+        )
+    of
+        ( ServerFromExo _, Just floatingIp, Just password ) ->
+            requestCockpitLogin project server.osProps.uuid password floatingIp
 
-                ServerFromExo _ ->
-                    case maybeFloatingIp of
-                        Just floatingIp ->
-                            case Helpers.getServerExouserPassword serverDetails of
-                                Just password ->
-                                    requestCockpitLogin project server.osProps.uuid password floatingIp
-
-                                Nothing ->
-                                    Cmd.none
-
-                        -- Maybe in the future show an error here? Missing metadata
-                        Nothing ->
-                            Cmd.none
-
-        -- Maybe in the future show an error here? Missing floating IP
         _ ->
+            -- Maybe in the future show an error here? Missing floating IP or password?
             Cmd.none
 
 
