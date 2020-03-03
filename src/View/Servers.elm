@@ -894,7 +894,7 @@ friendlyCockpitReadiness : ServerOrigin -> String
 friendlyCockpitReadiness serverOrigin =
     case serverOrigin of
         ServerNotFromExo ->
-            "Not available (server not launched from Exosphere)"
+            "N/A"
 
         ServerFromExo serverFromExoProps ->
             case serverFromExoProps.cockpitStatus of
@@ -902,7 +902,7 @@ friendlyCockpitReadiness serverOrigin =
                     "Not checked yet"
 
                 CheckedNotReady ->
-                    "Checked but not ready yet (May become ready soon)"
+                    "Checked, not ready yet"
 
                 Ready ->
                     "Ready"
