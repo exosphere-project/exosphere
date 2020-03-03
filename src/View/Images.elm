@@ -12,6 +12,7 @@ import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
 import Style.Widgets.Card as ExoCard
+import Style.Widgets.IconButton exposing (chip)
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -117,18 +118,46 @@ images globalDefaults project imageFilter =
                 checkboxLabel =
                     tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
             in
-            Input.checkbox []
-                { checked = tagChecked
-                , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
-                , icon = Input.defaultCheckbox
-                , label = Input.labelRight [] (Element.text checkboxLabel)
-                }
+            if tagChecked then
+                Element.none
+
+            else
+                Input.checkbox [ Element.paddingXY 10 5 ]
+                    { checked = tagChecked
+                    , onChange = \_ -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
+                    , icon = Input.defaultCheckbox
+                    , label = Input.labelRight [] (Element.text checkboxLabel)
+                    }
+
+        tagChipView : ImageTag -> Element.Element Msg
+        tagChipView tag =
+            let
+                tagChecked =
+                    Set.member tag.label imageFilter.tags
+
+                chipLabel =
+                    Element.text tag.label
+
+                unselectTag =
+                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags }
+            in
+            if tagChecked then
+                chip (Just unselectTag) chipLabel
+
+            else
+                Element.none
 
         tagsView =
-            Element.column []
-                [ Element.text "Filter on tag:"
-                , Element.paragraph []
+            Element.column [ Element.spacing 10 ]
+                [ Element.text "Select tags to filter images on:"
+                , Element.wrappedRow []
                     (List.map tagView tagsAfterFilteringImages)
+                , Element.text "Filtering on these tags:"
+                , Element.wrappedRow
+                    [ Element.height Element.shrink
+                    , Element.width Element.shrink
+                    ]
+                    (List.map tagChipView tagsAfterFilteringImages)
                 ]
     in
     Element.column VH.exoColumnAttributes
