@@ -1723,7 +1723,6 @@ receiveCockpitLoginStatus model project serverUuid result =
                     ( model, Cmd.none )
 
                 ServerFromExo serverFromExoProps ->
-                    {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
                     let
                         cockpitStatus =
                             case result of
