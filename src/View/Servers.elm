@@ -446,7 +446,7 @@ cockpitInteraction serverOrigin maybeFloatingIp =
             (\floatingIp ->
                 case serverOrigin of
                     ServerNotFromExo ->
-                        Element.text "This server was launched outside of Exosphere; Server Dashboard and one-click Terminal are not available."
+                        Element.text "Not available (server launched outside of Exosphere)."
 
                     ServerFromExo serverFromExoProps ->
                         case serverFromExoProps.cockpitStatus of
