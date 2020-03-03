@@ -667,7 +667,7 @@ resourceUsageGraphs serverOrigin maybeFloatingIp =
             (\floatingIp ->
                 case serverOrigin of
                     ServerNotFromExo ->
-                        Element.text "Graphs not available for server not created by Exosphere."
+                        Element.text "Not available (server launched outside of Exosphere)."
 
                     ServerFromExo serverFromExoProps ->
                         case serverFromExoProps.cockpitStatus of
