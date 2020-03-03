@@ -1009,7 +1009,7 @@ processProjectSpecificMsg model project msg =
                         -- We only care about servers created by exosphere
                         |> List.filter
                             (\t ->
-                                case Helpers.exoServerVersion (Tuple.first t) of
+                                case Helpers.exoServerVersion (Tuple.first t |> .osProps |> .details) of
                                     Just _ ->
                                         True
 
@@ -1117,7 +1117,7 @@ processProjectSpecificMsg model project msg =
                     cmd =
                         case Helpers.serverLookup project serverUuid of
                             Just server ->
-                                case Helpers.exoServerVersion server of
+                                case Helpers.exoServerVersion server.osProps.details of
                                     Nothing ->
                                         Cmd.none
 

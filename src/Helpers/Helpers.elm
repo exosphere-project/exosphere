@@ -72,6 +72,7 @@ import Types.Types
         , Project
         , ProjectIdentifier
         , Server
+        , ServerOrigin(..)
         , ServerUiStatus(..)
         , Toast
         , UnscopedProvider
@@ -496,18 +497,27 @@ getServerExouserPassword serverDetails =
             oldLocation
 
 
+
+-- TODO move this to view helpers
+
+
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
-            case server.exoProps.cockpitStatus of
-                NotChecked ->
-                    ServerUiStatusPartiallyActive
+            case server.exoProps.serverOrigin of
+                ServerFromExosphere exoOriginServerProps ->
+                    case exoOriginServerProps.cockpitStatus of
+                        NotChecked ->
+                            ServerUiStatusPartiallyActive
 
-                CheckedNotReady ->
-                    ServerUiStatusPartiallyActive
+                        CheckedNotReady ->
+                            ServerUiStatusPartiallyActive
 
-                Ready ->
+                        Ready ->
+                            ServerUiStatusReady
+
+                ServerNotFromExosphere ->
                     ServerUiStatusReady
 
         OSTypes.ServerPaused ->
@@ -884,13 +894,14 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
                 |> List.minimum
 
 
-exoServerVersion : Server -> Maybe Int
-exoServerVersion server =
+exoServerVersion : OSTypes.ServerDetails -> Maybe Int
+exoServerVersion serverDetails =
     -- Returns Just 0 for servers launched before exoServerVersion was introduced. Returns Nothing for servers launched outside of Exosphere.
+    -- TODO return a ServerOrigin?
     let
         version0 =
             if
-                List.filter (\i -> i.key == "exouserPassword") server.osProps.details.metadata
+                List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
                     |> List.isEmpty
             then
                 Nothing
@@ -899,7 +910,7 @@ exoServerVersion server =
                 Just 0
 
         exoServerVersion_ =
-            List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
+            List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
                 |> List.head
                 |> Maybe.map .value
                 |> Maybe.andThen String.toInt
