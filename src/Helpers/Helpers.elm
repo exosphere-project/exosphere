@@ -2,7 +2,6 @@ module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
-    , exoServerVersion
     , flavorLookup
     , getBootVol
     , getExternalNetwork
@@ -31,6 +30,7 @@ module Helpers.Helpers exposing
     , providerLookup
     , renderUserDataTemplate
     , serverLookup
+    , serverOrigin
     , serviceCatalogToEndpoints
     , sortedFlavors
     , stringIsUuidOrDefault
@@ -72,6 +72,8 @@ import Types.Types
         , Project
         , ProjectIdentifier
         , Server
+        , ServerFromExoProps
+        , ServerOrigin(..)
         , ServerUiStatus(..)
         , Toast
         , UnscopedProvider
@@ -496,18 +498,27 @@ getServerExouserPassword serverDetails =
             oldLocation
 
 
+
+-- TODO move this to view helpers
+
+
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
-            case server.exoProps.cockpitStatus of
-                NotChecked ->
-                    ServerUiStatusPartiallyActive
+            case server.exoProps.serverOrigin of
+                ServerFromExo serverFromExoProps ->
+                    case serverFromExoProps.cockpitStatus of
+                        NotChecked ->
+                            ServerUiStatusPartiallyActive
 
-                CheckedNotReady ->
-                    ServerUiStatusPartiallyActive
+                        CheckedNotReady ->
+                            ServerUiStatusPartiallyActive
 
-                Ready ->
+                        Ready ->
+                            ServerUiStatusReady
+
+                ServerNotFromExo ->
                     ServerUiStatusReady
 
         OSTypes.ServerPaused ->
@@ -884,29 +895,29 @@ overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
                 |> List.minimum
 
 
-exoServerVersion : Server -> Maybe Int
-exoServerVersion server =
-    -- Returns Just 0 for servers launched before exoServerVersion was introduced. Returns Nothing for servers launched outside of Exosphere.
+serverOrigin : OSTypes.ServerDetails -> ServerOrigin
+serverOrigin serverDetails =
     let
         version0 =
-            if
-                List.filter (\i -> i.key == "exouserPassword") server.osProps.details.metadata
-                    |> List.isEmpty
-            then
-                Nothing
-
-            else
-                Just 0
+            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                |> List.isEmpty
+                |> not
 
         exoServerVersion_ =
-            List.filter (\i -> i.key == "exoServerVersion") server.osProps.details.metadata
+            List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
                 |> List.head
                 |> Maybe.map .value
                 |> Maybe.andThen String.toInt
     in
     case exoServerVersion_ of
         Just v ->
-            Just v
+            ServerFromExo <|
+                ServerFromExoProps v NotChecked
 
         Nothing ->
-            version0
+            if version0 then
+                ServerFromExo <|
+                    ServerFromExoProps 0 NotChecked
+
+            else
+                ServerNotFromExo

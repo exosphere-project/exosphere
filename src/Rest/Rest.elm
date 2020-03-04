@@ -92,9 +92,11 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerOrigin(..)
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
+        , currentExoServerVersion
         )
 import Url
 
@@ -622,7 +624,13 @@ requestCreateServer project createServerRequest =
                     )
                 , ( "user_data", Encode.string (Base64.encode renderedUserData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
-                , ( "metadata", Encode.object [ ( "exoServerVersion", Encode.string "1" ) ] )
+                , ( "metadata"
+                  , Encode.object
+                        [ ( "exoServerVersion"
+                          , Encode.string (String.fromInt currentExoServerVersion)
+                          )
+                        ]
+                  )
                 ]
 
         buildRequestOuterJson props =
@@ -1072,38 +1080,25 @@ requestConsoleUrlIfRequestable project server =
 
 requestCockpitIfRequestable : Project -> Server -> Cmd Msg
 requestCockpitIfRequestable project server =
+    -- Try to log into Cockpit IF server was launched from Exosphere and we have a floating IP address and exouser password
     let
-        serverDetails =
-            server.osProps.details
+        maybeFloatingIp =
+            Helpers.getServerFloatingIp server.osProps.details.ipAddresses
 
-        floatingIpState =
-            Helpers.checkFloatingIpState
-                serverDetails
-                server.exoProps.floatingIpState
+        maybeExouserPassword =
+            Helpers.getServerExouserPassword server.osProps.details
     in
-    case floatingIpState of
-        Success ->
-            let
-                maybeFloatingIp =
-                    Helpers.getServerFloatingIp
-                        serverDetails.ipAddresses
-            in
-            {- If we have a floating IP address and exouser password then try to log into Cockpit -}
-            case maybeFloatingIp of
-                Just floatingIp ->
-                    case Helpers.getServerExouserPassword serverDetails of
-                        Just password ->
-                            requestCockpitLogin project server.osProps.uuid password floatingIp
+    case
+        ( server.exoProps.serverOrigin
+        , maybeFloatingIp
+        , maybeExouserPassword
+        )
+    of
+        ( ServerFromExo _, Just floatingIp, Just password ) ->
+            requestCockpitLogin project server.osProps.uuid password floatingIp
 
-                        Nothing ->
-                            Cmd.none
-
-                -- Maybe in the future show an error here? Missing metadata
-                Nothing ->
-                    Cmd.none
-
-        -- Maybe in the future show an error here? Missing floating IP
         _ ->
+            -- Maybe in the future show an error here? Missing floating IP or password?
             Cmd.none
 
 
@@ -1183,14 +1178,19 @@ receiveServers model project servers =
     -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
     -- TODO a lot of this duplicates code below in receiveServer, should receiveServers call receiveServer?
     let
-        defaultExoProps =
-            ExoServerProps Unknown False NotChecked False Nothing
+        defaultExoProps server =
+            ExoServerProps
+                Unknown
+                False
+                False
+                Nothing
+                (Helpers.serverOrigin server.details)
 
         enrichNewServer : OSTypes.Server -> Server
         enrichNewServer newOpenstackServer =
             case Helpers.serverLookup project newOpenstackServer.uuid of
                 Nothing ->
-                    Server newOpenstackServer defaultExoProps
+                    Server newOpenstackServer (defaultExoProps newOpenstackServer)
 
                 Just oldServer ->
                     let
@@ -1212,20 +1212,21 @@ receiveServers model project servers =
             Helpers.modelUpdateProject model newProject
 
         requestPasswordCmd server =
-            case Helpers.exoServerVersion server of
-                Nothing ->
+            case server.exoProps.serverOrigin of
+                ServerNotFromExo ->
                     Cmd.none
 
-                Just 0 ->
-                    Cmd.none
+                ServerFromExo serverFromExoProps ->
+                    if serverFromExoProps.exoServerVersion < 1 then
+                        Cmd.none
 
-                _ ->
-                    case Helpers.getServerExouserPassword server.osProps.details of
-                        Nothing ->
-                            OSServerPassword.requestServerPassword newProject server.osProps.uuid
+                    else
+                        case Helpers.getServerExouserPassword server.osProps.details of
+                            Nothing ->
+                                OSServerPassword.requestServerPassword newProject server.osProps.uuid
 
-                        Just _ ->
-                            Cmd.none
+                            Just _ ->
+                                Cmd.none
 
         requestPasswordCmds =
             List.map requestPasswordCmd newServersSorted
@@ -1310,20 +1311,21 @@ receiveServer model project serverUuid serverDetails =
                     requestConsoleUrlIfRequestable newProject newServer
 
                 passwordCmd =
-                    case Helpers.exoServerVersion server of
-                        Nothing ->
+                    case newServer.exoProps.serverOrigin of
+                        ServerNotFromExo ->
                             Cmd.none
 
-                        Just 0 ->
-                            Cmd.none
+                        ServerFromExo serverFromExoProps ->
+                            if serverFromExoProps.exoServerVersion < 1 then
+                                Cmd.none
 
-                        _ ->
-                            case Helpers.getServerExouserPassword server.osProps.details of
-                                Nothing ->
-                                    OSServerPassword.requestServerPassword newProject server.osProps.uuid
+                            else
+                                case Helpers.getServerExouserPassword server.osProps.details of
+                                    Nothing ->
+                                        OSServerPassword.requestServerPassword newProject newServer.osProps.uuid
 
-                                Just _ ->
-                                    Cmd.none
+                                    Just _ ->
+                                        Cmd.none
 
                 cockpitLoginCmd =
                     requestCockpitIfRequestable newProject newServer
@@ -1716,30 +1718,40 @@ receiveCockpitLoginStatus model project serverUuid result =
             ( model, Cmd.none )
 
         Just server ->
-            {- This repeats a lot of code in receiveFloatingIp, badly needs a refactor -}
-            let
-                cockpitStatus =
-                    case result of
-                        -- TODO more error chcking, e.g. handle case of invalid credentials rather than telling user "still not ready yet"
-                        Err _ ->
-                            CheckedNotReady
+            case server.exoProps.serverOrigin of
+                ServerNotFromExo ->
+                    ( model, Cmd.none )
 
-                        Ok _ ->
-                            Ready
+                ServerFromExo serverFromExoProps ->
+                    let
+                        cockpitStatus =
+                            case result of
+                                -- TODO more error checking, e.g. handle case of invalid credentials rather than telling user "still not ready yet"
+                                Err _ ->
+                                    CheckedNotReady
 
-                oldExoProps =
-                    server.exoProps
+                                Ok _ ->
+                                    Ready
 
-                newServer =
-                    Server server.osProps { oldExoProps | cockpitStatus = cockpitStatus }
+                        oldExoProps =
+                            server.exoProps
 
-                newProject =
-                    Helpers.projectUpdateServer project newServer
+                        newServerFromExoProps =
+                            { serverFromExoProps | cockpitStatus = cockpitStatus }
 
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel, Cmd.none )
+                        newExoProps =
+                            { oldExoProps | serverOrigin = ServerFromExo newServerFromExoProps }
+
+                        newServer =
+                            Server server.osProps newExoProps
+
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    ( newModel, Cmd.none )
 
 
 

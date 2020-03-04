@@ -33,6 +33,8 @@ module Types.Types exposing
     , ServerActionState
     , ServerDetailViewParams
     , ServerFilter
+    , ServerFromExoProps
+    , ServerOrigin(..)
     , ServerUiStatus(..)
     , Toast
     , UnscopedProvider
@@ -40,6 +42,7 @@ module Types.Types exposing
     , VerboseStatus
     , ViewState(..)
     , WindowSize
+    , currentExoServerVersion
     )
 
 import Error exposing (ErrorContext)
@@ -335,19 +338,39 @@ type JetstreamProvider
 -- Resource-Level Types
 
 
-type alias ExoServerProps =
-    { floatingIpState : FloatingIpState
-    , selected : Bool
-    , cockpitStatus : CockpitLoginStatus
-    , deletionAttempted : Bool
-    , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
-    }
-
-
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
     }
+
+
+type alias ExoServerProps =
+    { floatingIpState : FloatingIpState
+    , selected : Bool
+    , deletionAttempted : Bool
+    , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
+    , serverOrigin : ServerOrigin
+    }
+
+
+type ServerOrigin
+    = ServerFromExo ServerFromExoProps
+    | ServerNotFromExo
+
+
+type alias ServerFromExoProps =
+    { exoServerVersion : ExoServerVersion
+    , cockpitStatus : CockpitLoginStatus
+    }
+
+
+type alias ExoServerVersion =
+    Int
+
+
+currentExoServerVersion : ExoServerVersion
+currentExoServerVersion =
+    1
 
 
 type FloatingIpState

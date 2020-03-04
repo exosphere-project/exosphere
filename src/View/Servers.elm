@@ -36,6 +36,7 @@ import Types.Types
         , Server
         , ServerDetailViewParams
         , ServerFilter
+        , ServerOrigin(..)
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -229,13 +230,13 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
                         , Element.el VH.heading3 (Element.text "Console")
                         , consoleLink appIsElectron project server serverUuid serverDetailViewParams
                         , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
-                        , cockpitInteraction server.exoProps.cockpitStatus maybeFloatingIp
+                        , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
                         ]
                     , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
                         [ Element.el VH.heading3 (Element.text "Server Actions")
                         , viewServerActions projectId server serverDetailViewParams
                         , Element.el VH.heading3 (Element.text "System Resource Usage")
-                        , resourceUsageGraphs server.exoProps.cockpitStatus maybeFloatingIp
+                        , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
                         ]
                     ]
             )
@@ -243,25 +244,29 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
 
 passwordVulnWarning : Bool -> Server -> Element.Element Msg
 passwordVulnWarning appIsElectron server =
-    case Helpers.exoServerVersion server of
-        Just 0 ->
-            Element.paragraph
-                [ Font.color (Element.rgb 255 0 0) ]
-                [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
-                , VH.browserLink
-                    appIsElectron
-                    "https://en.wikipedia.org/wiki/Privilege_escalation"
-                    (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
-                , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
-                , VH.browserLink
-                    appIsElectron
-                    "https://gitlab.com/exosphere/exosphere/issues/284"
-                    (View.Types.BrowserLinkTextLabel "issue #284")
-                , Element.text " on the Exosphere GitLab project."
-                ]
-
-        _ ->
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
             Element.none
+
+        ServerFromExo serverFromExoProps ->
+            if serverFromExoProps.exoServerVersion < 1 then
+                Element.paragraph
+                    [ Font.color (Element.rgb 255 0 0) ]
+                    [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
+                    , VH.browserLink
+                        appIsElectron
+                        "https://en.wikipedia.org/wiki/Privilege_escalation"
+                        (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
+                    , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
+                    , VH.browserLink
+                        appIsElectron
+                        "https://gitlab.com/exosphere/exosphere/issues/284"
+                        (View.Types.BrowserLinkTextLabel "issue #284")
+                    , Element.text " on the Exosphere GitLab project."
+                    ]
+
+            else
+                Element.none
 
 
 serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
@@ -300,7 +305,7 @@ serverStatus projectId server serverDetailViewParams =
                 [ Element.text "Detailed status"
                 , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                 , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.cockpitStatus) ])
+                , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.serverOrigin) ])
                 ]
 
             else
@@ -433,46 +438,51 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
             Element.text "Console not available with server in this state."
 
 
-cockpitInteraction : CockpitLoginStatus -> Maybe String -> Element.Element Msg
-cockpitInteraction cockpitStatus maybeFloatingIp =
+cockpitInteraction : ServerOrigin -> Maybe String -> Element.Element Msg
+cockpitInteraction serverOrigin maybeFloatingIp =
     maybeFloatingIp
         |> Maybe.withDefault (Element.text "Server Dashboard and Terminal not ready yet.")
         << Maybe.map
             (\floatingIp ->
-                case cockpitStatus of
-                    NotChecked ->
-                        Element.text "Status of server dashboard and terminal not available yet."
+                case serverOrigin of
+                    ServerNotFromExo ->
+                        Element.text "Not available (server launched outside of Exosphere)."
 
-                    CheckedNotReady ->
-                        Element.text "Server Dashboard and Terminal not ready yet."
+                    ServerFromExo serverFromExoProps ->
+                        case serverFromExoProps.cockpitStatus of
+                            NotChecked ->
+                                Element.text "Status of server dashboard and terminal not available yet."
 
-                    Ready ->
-                        Element.column VH.exoColumnAttributes
-                            [ Element.text "Server Dashboard and Terminal are ready..."
-                            , Element.row VH.exoRowAttributes
-                                [ Button.button
-                                    []
-                                    (Just <|
-                                        OpenNewWindow <|
-                                            "https://"
-                                                ++ floatingIp
-                                                ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                    )
-                                    "Type commands in a shell!"
-                                ]
-                            , Element.row
-                                VH.exoRowAttributes
-                                [ Button.button
-                                    []
-                                    (Just <|
-                                        OpenNewWindow <|
-                                            "https://"
-                                                ++ floatingIp
-                                                ++ ":9090"
-                                    )
-                                    "Server Dashboard"
-                                ]
-                            ]
+                            CheckedNotReady ->
+                                Element.text "Server Dashboard and Terminal not ready yet."
+
+                            Ready ->
+                                Element.column VH.exoColumnAttributes
+                                    [ Element.text "Server Dashboard and Terminal are ready..."
+                                    , Element.row VH.exoRowAttributes
+                                        [ Button.button
+                                            []
+                                            (Just <|
+                                                OpenNewWindow <|
+                                                    "https://"
+                                                        ++ floatingIp
+                                                        ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                            )
+                                            "Type commands in a shell!"
+                                        ]
+                                    , Element.row
+                                        VH.exoRowAttributes
+                                        [ Button.button
+                                            []
+                                            (Just <|
+                                                OpenNewWindow <|
+                                                    "https://"
+                                                        ++ floatingIp
+                                                        ++ ":9090"
+                                            )
+                                            "Server Dashboard"
+                                        ]
+                                    ]
             )
 
 
@@ -649,47 +659,52 @@ updateServerActionState ({ serverAction } as targetServerActionState) ({ serverA
     { serverDetailViewParams | serverActionStates = updatedServerActionStates }
 
 
-resourceUsageGraphs : CockpitLoginStatus -> Maybe String -> Element.Element Msg
-resourceUsageGraphs cockpitStatus maybeFloatingIp =
+resourceUsageGraphs : ServerOrigin -> Maybe String -> Element.Element Msg
+resourceUsageGraphs serverOrigin maybeFloatingIp =
     maybeFloatingIp
         |> Maybe.withDefault (Element.text "Graphs not ready yet.")
         << Maybe.map
             (\floatingIp ->
-                case cockpitStatus of
-                    Ready ->
-                        let
-                            graphsUrl =
-                                "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
-                        in
-                        -- I am so sorry
-                        Element.html
-                            (Html.div
-                                [ Html.Attributes.style "position" "relative"
-                                , Html.Attributes.style "overflow" "hidden"
-                                , Html.Attributes.style "width" "550px"
-                                , Html.Attributes.style "height" "650px"
-                                ]
-                                [ Html.iframe
-                                    [ Html.Attributes.style "position" "absolute"
-                                    , Html.Attributes.style "top" "-320px"
-                                    , Html.Attributes.style "left" "-30px"
-                                    , Html.Attributes.style "width" "600px"
-                                    , Html.Attributes.style "height" "1000px"
+                case serverOrigin of
+                    ServerNotFromExo ->
+                        Element.text "Not available (server launched outside of Exosphere)."
 
-                                    -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
-                                    -- This is not compliant HTML5 but still works
-                                    , Html.Attributes.attribute "scrolling" "no"
-                                    , Html.Attributes.src graphsUrl
-                                    ]
-                                    []
-                                ]
-                            )
+                    ServerFromExo serverFromExoProps ->
+                        case serverFromExoProps.cockpitStatus of
+                            Ready ->
+                                let
+                                    graphsUrl =
+                                        "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
+                                in
+                                -- I am so sorry
+                                Element.html
+                                    (Html.div
+                                        [ Html.Attributes.style "position" "relative"
+                                        , Html.Attributes.style "overflow" "hidden"
+                                        , Html.Attributes.style "width" "550px"
+                                        , Html.Attributes.style "height" "650px"
+                                        ]
+                                        [ Html.iframe
+                                            [ Html.Attributes.style "position" "absolute"
+                                            , Html.Attributes.style "top" "-320px"
+                                            , Html.Attributes.style "left" "-30px"
+                                            , Html.Attributes.style "width" "600px"
+                                            , Html.Attributes.style "height" "1000px"
 
-                    NotChecked ->
-                        Element.text "Graphs not ready yet."
+                                            -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
+                                            -- This is not compliant HTML5 but still works
+                                            , Html.Attributes.attribute "scrolling" "no"
+                                            , Html.Attributes.src graphsUrl
+                                            ]
+                                            []
+                                        ]
+                                    )
 
-                    CheckedNotReady ->
-                        Element.text "Graphs not ready yet."
+                            NotChecked ->
+                                Element.text "Graphs not ready yet."
+
+                            CheckedNotReady ->
+                                Element.text "Graphs not ready yet."
             )
 
 
@@ -875,17 +890,22 @@ renderIpAddresses ipAddresses projectId serverUuid serverDetailViewParams =
                 (floatingIpAddressRows ++ [ ipButton ">" "IP details" IPDetails ])
 
 
-friendlyCockpitReadiness : CockpitLoginStatus -> String
-friendlyCockpitReadiness cockpitLoginStatus =
-    case cockpitLoginStatus of
-        NotChecked ->
-            "Not checked yet"
+friendlyCockpitReadiness : ServerOrigin -> String
+friendlyCockpitReadiness serverOrigin =
+    case serverOrigin of
+        ServerNotFromExo ->
+            "N/A"
 
-        CheckedNotReady ->
-            "Checked but not ready yet (May become ready soon)"
+        ServerFromExo serverFromExoProps ->
+            case serverFromExoProps.cockpitStatus of
+                NotChecked ->
+                    "Not checked yet"
 
-        Ready ->
-            "Ready"
+                CheckedNotReady ->
+                    "Checked, not ready yet"
+
+                Ready ->
+                    "Ready"
 
 
 serverVolumes : Project -> Server -> Element.Element Msg
