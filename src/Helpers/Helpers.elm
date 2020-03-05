@@ -357,6 +357,9 @@ checkFloatingIpState serverDetails floatingIpState =
         Failed ->
             Failed
 
+        Success ->
+            Success
+
         _ ->
             if hasFloatingIp then
                 Success
