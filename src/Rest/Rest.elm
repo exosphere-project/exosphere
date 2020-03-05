@@ -1181,10 +1181,20 @@ receiveServers model project osServers =
                 |> List.map (receiveServer_ project)
                 |> List.unzip
 
+        projectNoDeletedSvrs =
+            -- Remove recently deleted servers from existing project
+            { project
+                | servers =
+                    RemoteData.Success <|
+                        List.filter
+                            (\s -> List.member s.osProps.uuid (List.map .uuid osServers))
+                            (RemoteData.withDefault [] project.servers)
+            }
+
         newProject =
             List.foldl
                 (\s p -> Helpers.projectUpdateServer p s)
-                project
+                projectNoDeletedSvrs
                 newExoServers
     in
     ( Helpers.modelUpdateProject model newProject
