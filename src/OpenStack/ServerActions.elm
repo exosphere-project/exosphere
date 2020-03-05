@@ -6,7 +6,7 @@ import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
-import Rest.Rest as Rest
+import Rest.Nova
 import Types.Types
     exposing
         ( ActionType(..)
@@ -146,7 +146,7 @@ actions =
             , OSTypes.ServerShelvedOffloaded
             ]
       , action =
-            CmdAction <| Rest.requestDeleteServer
+            CmdAction <| Rest.Nova.requestDeleteServer
       , selectMods = [ Modifier.Danger ]
       , targetStatus = [ OSTypes.ServerSoftDeleted ]
       , confirmable = True

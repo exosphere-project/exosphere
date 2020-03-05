@@ -17,7 +17,11 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
-import Rest.Rest as Rest
+import Rest.Cockpit
+import Rest.Glance
+import Rest.Keystone
+import Rest.Neutron
+import Rest.Nova
 import Task
 import Time
 import Toasty
@@ -268,7 +272,7 @@ updateUnderlying msg model =
             processApiError model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
-            ( model, Rest.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
+            ( model, Rest.Keystone.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
 
         RequestNewProjectToken openstackCreds ->
             let
@@ -276,7 +280,7 @@ updateUnderlying msg model =
                 newOpenstackCreds =
                     { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
+            ( model, Rest.Keystone.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
 
         JetstreamLogin jetstreamCreds ->
             let
@@ -285,13 +289,13 @@ updateUnderlying msg model =
 
                 cmds =
                     List.map
-                        (\creds -> Rest.requestUnscopedAuthToken model.proxyUrl creds)
+                        (\creds -> Rest.Keystone.requestUnscopedAuthToken model.proxyUrl creds)
                         openstackCredsList
             in
             ( model, Cmd.batch cmds )
 
         ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
-            case Rest.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
+            case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     Helpers.processError
                         model
@@ -344,7 +348,7 @@ updateUnderlying msg model =
                             ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
         ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
-            case Rest.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
+            case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     Helpers.processError
                         model
@@ -404,7 +408,7 @@ updateUnderlying msg model =
                     let
                         buildLoginRequest : UnscopedProviderProject -> Cmd Msg
                         buildLoginRequest project =
-                            Rest.requestScopedAuthToken
+                            Rest.Keystone.requestScopedAuthToken
                                 model.proxyUrl
                             <|
                                 OSTypes.PasswordCreds <|
@@ -500,12 +504,12 @@ processProjectSpecificMsg model project msg =
             in
             case projectViewConstructor of
                 ListImages _ ->
-                    ( newModel, Rest.requestImages project )
+                    ( newModel, Rest.Glance.requestImages project )
 
                 ListProjectServers _ _ ->
                     ( newModel
-                    , [ Rest.requestServers
-                      , Rest.requestFloatingIps
+                    , [ Rest.Nova.requestServers
+                      , Rest.Neutron.requestFloatingIps
                       ]
                         |> List.map (\x -> x project)
                         |> Cmd.batch
@@ -514,9 +518,9 @@ processProjectSpecificMsg model project msg =
                 ServerDetail serverUuid _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServer project serverUuid
-                        , Rest.requestFlavors project
-                        , Rest.requestImages project
+                        [ Rest.Nova.requestServer project serverUuid
+                        , Rest.Nova.requestFlavors project
+                        , Rest.Glance.requestImages project
                         , OSVolumes.requestVolumes project
                         , Ports.instantiateClipboardJs ()
                         ]
@@ -601,9 +605,9 @@ processProjectSpecificMsg model project msg =
                             in
                             ( newNewModel
                             , Cmd.batch
-                                [ Rest.requestFlavors project
-                                , Rest.requestKeypairs project
-                                , Rest.requestNetworks project
+                                [ Rest.Nova.requestFlavors project
+                                , Rest.Nova.requestKeypairs project
+                                , Rest.Neutron.requestNetworks project
                                 , RandomHelpers.generateServerName newCSRMsg
                                 , OpenStack.Quotas.requestComputeQuota project
                                 , OpenStack.Quotas.requestVolumeQuota project
@@ -619,7 +623,7 @@ processProjectSpecificMsg model project msg =
                 AttachVolumeModal _ _ ->
                     ( newModel
                     , Cmd.batch
-                        [ Rest.requestServers project
+                        [ Rest.Nova.requestServers project
                         , OSVolumes.requestVolumes project
                         ]
                     )
@@ -714,13 +718,13 @@ processProjectSpecificMsg model project msg =
             ( newModel, Cmd.none )
 
         RequestServers ->
-            ( model, Rest.requestServers project )
+            ( model, Rest.Nova.requestServers project )
 
         RequestServer serverUuid ->
-            ( model, Rest.requestServer project serverUuid )
+            ( model, Rest.Nova.requestServer project serverUuid )
 
         RequestCreateServer createServerRequest ->
-            ( model, Rest.requestCreateServer project createServerRequest )
+            ( model, Rest.Nova.requestCreateServer project createServerRequest )
 
         RequestDeleteServer server ->
             let
@@ -736,7 +740,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServer newProject newServer )
+            ( newModel, Rest.Nova.requestDeleteServer newProject newServer )
 
         RequestServerAction server func targetStatus ->
             let
@@ -807,10 +811,10 @@ processProjectSpecificMsg model project msg =
                                     []
                     }
             in
-            ( newModel, Rest.requestCreateServerImage project serverUuid imageName )
+            ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
 
         ReceiveImages images ->
-            Rest.receiveImages model project images
+            Rest.Glance.receiveImages model project images
 
         RequestDeleteServers serversToDelete ->
             let
@@ -830,7 +834,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     Helpers.modelUpdateProject model newProject
             in
-            ( newModel, Rest.requestDeleteServers newProject serversToDelete )
+            ( newModel, Rest.Nova.requestDeleteServers newProject serversToDelete )
 
         SelectServer server newSelectionState ->
             let
@@ -878,22 +882,22 @@ processProjectSpecificMsg model project msg =
             )
 
         ReceiveServers servers ->
-            Rest.receiveServers model project servers
+            Rest.Nova.receiveServers model project servers
 
         ReceiveServer server ->
-            Rest.receiveServer model project server
+            Rest.Nova.receiveServer model project server
 
         ReceiveConsoleUrl serverUuid url ->
-            Rest.receiveConsoleUrl model project serverUuid url
+            Rest.Nova.receiveConsoleUrl model project serverUuid url
 
         ReceiveFlavors flavors ->
-            Rest.receiveFlavors model project flavors
+            Rest.Nova.receiveFlavors model project flavors
 
         ReceiveKeypairs keypairs ->
-            Rest.receiveKeypairs model project keypairs
+            Rest.Nova.receiveKeypairs model project keypairs
 
         ReceiveCreateServer serverUuid ->
-            Rest.receiveCreateServer model project serverUuid
+            Rest.Nova.receiveCreateServer model project serverUuid
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
@@ -957,33 +961,33 @@ processProjectSpecificMsg model project msg =
                                     ( serverDeletedModel, Cmd.none )
 
                                 Just uuid ->
-                                    ( serverDeletedModel, Rest.requestDeleteFloatingIp project uuid )
+                                    ( serverDeletedModel, Rest.Neutron.requestDeleteFloatingIp project uuid )
             in
             ( deleteIpAddressModel, deleteIpAddressCmd )
 
         ReceiveNetworks nets ->
-            Rest.receiveNetworks model project nets
+            Rest.Neutron.receiveNetworks model project nets
 
         ReceiveFloatingIps ips ->
-            Rest.receiveFloatingIps model project ips
+            Rest.Neutron.receiveFloatingIps model project ips
 
         GetFloatingIpReceivePorts serverUuid ports ->
-            Rest.receivePortsAndRequestFloatingIp model project serverUuid ports
+            Rest.Neutron.receivePortsAndRequestFloatingIp model project serverUuid ports
 
         ReceiveCreateFloatingIp serverUuid ip ->
-            Rest.receiveCreateFloatingIp model project serverUuid ip
+            Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
 
         ReceiveDeleteFloatingIp uuid ->
-            Rest.receiveDeleteFloatingIp model project uuid
+            Rest.Neutron.receiveDeleteFloatingIp model project uuid
 
         ReceiveSecurityGroups groups ->
-            Rest.receiveSecurityGroupsAndEnsureExoGroup model project groups
+            Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup model project groups
 
         ReceiveCreateExoSecurityGroup group ->
-            Rest.receiveCreateExoSecurityGroupAndRequestCreateRules model project group
+            Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules model project group
 
         ReceiveCockpitLoginStatus serverUuid result ->
-            Rest.receiveCockpitLoginStatus model project serverUuid result
+            Rest.Cockpit.receiveCockpitLoginStatus model project serverUuid result
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
@@ -1090,7 +1094,7 @@ processProjectSpecificMsg model project msg =
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
         RequestAppCredential posix ->
-            ( model, Rest.requestAppCredential project posix )
+            ( model, Rest.Keystone.requestAppCredential project posix )
 
         ReceiveComputeQuota quota ->
             let
@@ -1194,9 +1198,9 @@ createProject model password authToken =
             }
     in
     ( newModel
-    , [ Rest.requestServers
-      , Rest.requestSecurityGroups
-      , Rest.requestFloatingIps
+    , [ Rest.Nova.requestServers
+      , Rest.Neutron.requestSecurityGroups
+      , Rest.Neutron.requestFloatingIps
       ]
         |> List.map (\x -> x newProject)
         |> (\l -> getTimeForAppCredential newProject :: l)
@@ -1231,7 +1235,7 @@ createUnscopedProvider model password authToken authUrl =
             newProvider :: model.unscopedProviders
     in
     ( { model | unscopedProviders = newProviders }
-    , Rest.requestUnscopedProjects newProvider model.proxyUrl
+    , Rest.Keystone.requestUnscopedProjects newProvider model.proxyUrl
     )
 
 
@@ -1300,7 +1304,7 @@ requestAuthToken model project =
                 ApplicationCredential appCred ->
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
-    Rest.requestScopedAuthToken model.proxyUrl creds
+    Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
 
 
 processApiError : Model -> ErrorContext -> Http.Error -> ( Model, Cmd Msg )
