@@ -199,7 +199,7 @@ type ProjectSpecificMsgConstructor
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServers (List OSTypes.Server)
-    | ReceiveServer OSTypes.ServerUuid OSTypes.ServerDetails
+    | ReceiveServer OSTypes.Server
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
