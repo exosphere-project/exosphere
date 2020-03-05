@@ -7,6 +7,7 @@ module Rest.Rest exposing
     , decodeNetworks
     , decodePorts
     , decodeScopedAuthToken
+    , decodeServer
     , decodeServerDetails
     , decodeServers
     , decodeUnscopedAuthToken
@@ -57,7 +58,6 @@ module Rest.Rest exposing
     , requestServers
     , requestUnscopedAuthToken
     , requestUnscopedProjects
-    , serverDecoder
     , serverIpAddressDecoder
     , serverPowerStateDecoder
     )
@@ -472,7 +472,7 @@ requestServer project serverUuid =
                 (\server ->
                     ProjectMsg
                         (Helpers.getProjectId project)
-                        (ReceiveServer serverUuid server)
+                        (ReceiveServer server)
                 )
     in
     openstackCredentialedRequest
@@ -483,7 +483,7 @@ requestServer project serverUuid =
         Http.emptyBody
         (Http.expectJson
             resultToMsg_
-            (Decode.at [ "server" ] decodeServerDetails)
+            (Decode.at [ "server" ] decodeServer)
         )
 
 
@@ -1174,45 +1174,103 @@ receiveImages model project images =
 
 
 receiveServers : Model -> Project -> List OSTypes.Server -> ( Model, Cmd Msg )
-receiveServers model project servers =
-    -- Enrich new list of servers with any exoProps and osProps.details from old list of servers
-    -- TODO a lot of this duplicates code below in receiveServer, should receiveServers call receiveServer?
+receiveServers model project osServers =
     let
-        defaultExoProps server =
-            ExoServerProps
-                Unknown
-                False
-                False
-                Nothing
-                (Helpers.serverOrigin server.details)
-
-        enrichNewServer : OSTypes.Server -> Server
-        enrichNewServer newOpenstackServer =
-            case Helpers.serverLookup project newOpenstackServer.uuid of
-                Nothing ->
-                    Server newOpenstackServer (defaultExoProps newOpenstackServer)
-
-                Just oldServer ->
-                    let
-                        oldDetails =
-                            oldServer.osProps.details
-                    in
-                    Server { newOpenstackServer | details = oldDetails } oldServer.exoProps
-
-        newServers =
-            List.map enrichNewServer servers
-
-        newServersSorted =
-            List.sortBy (\s -> s.osProps.name) newServers
+        ( newExoServers, cmds ) =
+            osServers
+                |> List.map (receiveServer_ project)
+                |> List.unzip
 
         newProject =
-            { project | servers = RemoteData.Success newServersSorted }
+            List.foldl
+                (\s p -> Helpers.projectUpdateServer p s)
+                project
+                newExoServers
+    in
+    ( Helpers.modelUpdateProject model newProject
+    , Cmd.batch cmds
+    )
 
-        newModel =
-            Helpers.modelUpdateProject model newProject
 
-        requestPasswordCmd server =
-            case server.exoProps.serverOrigin of
+receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
+receiveServer model project osServer =
+    let
+        ( newServer, cmd ) =
+            receiveServer_ project osServer
+
+        newProject =
+            Helpers.projectUpdateServer project newServer
+    in
+    ( Helpers.modelUpdateProject model newProject
+    , cmd
+    )
+
+
+receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd Msg )
+receiveServer_ project osServer =
+    let
+        newServer =
+            case Helpers.serverLookup project osServer.uuid of
+                Nothing ->
+                    let
+                        defaultExoProps =
+                            ExoServerProps
+                                Unknown
+                                False
+                                False
+                                Nothing
+                                (Helpers.serverOrigin osServer.details)
+                    in
+                    Server osServer defaultExoProps
+
+                Just exoServer ->
+                    let
+                        floatingIpState_ =
+                            Helpers.checkFloatingIpState
+                                osServer.details
+                                exoServer.exoProps.floatingIpState
+
+                        oldOSProps =
+                            exoServer.osProps
+
+                        oldExoProps =
+                            exoServer.exoProps
+
+                        newTargetOpenstackStatus =
+                            case oldExoProps.targetOpenstackStatus of
+                                Nothing ->
+                                    Nothing
+
+                                Just statuses ->
+                                    if List.member osServer.details.openstackStatus statuses then
+                                        Nothing
+
+                                    else
+                                        Just statuses
+                    in
+                    Server
+                        { oldOSProps | details = osServer.details }
+                        { oldExoProps
+                            | floatingIpState = floatingIpState_
+                            , targetOpenstackStatus = newTargetOpenstackStatus
+                        }
+
+        floatingIpCmd =
+            case newServer.exoProps.floatingIpState of
+                Requestable ->
+                    [ getFloatingIpRequestPorts project newServer
+                    , requestNetworks project
+                    ]
+                        |> Cmd.batch
+
+                _ ->
+                    Cmd.none
+
+        consoleUrlCmd =
+            requestConsoleUrlIfRequestable project newServer
+
+        passwordCmd =
+            case newServer.exoProps.serverOrigin of
                 ServerNotFromExo ->
                     Cmd.none
 
@@ -1221,120 +1279,21 @@ receiveServers model project servers =
                         Cmd.none
 
                     else
-                        case Helpers.getServerExouserPassword server.osProps.details of
+                        case Helpers.getServerExouserPassword newServer.osProps.details of
                             Nothing ->
-                                OSServerPassword.requestServerPassword newProject server.osProps.uuid
+                                OSServerPassword.requestServerPassword project newServer.osProps.uuid
 
                             Just _ ->
                                 Cmd.none
 
-        requestPasswordCmds =
-            List.map requestPasswordCmd newServersSorted
+        cockpitLoginCmd =
+            requestCockpitIfRequestable project newServer
 
-        requestCockpitCommands =
-            List.map (requestCockpitIfRequestable project) newServersSorted
+        allCmds =
+            [ floatingIpCmd, consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
+                |> Cmd.batch
     in
-    ( newModel
-    , [ requestPasswordCmds, requestCockpitCommands ]
-        |> List.concat
-        |> Cmd.batch
-    )
-
-
-receiveServer : Model -> Project -> OSTypes.ServerUuid -> OSTypes.ServerDetails -> ( Model, Cmd Msg )
-receiveServer model project serverUuid serverDetails =
-    -- TODO a lot of this duplicates code above in receiveServers, should receiveServers call receiveServer?
-    let
-        maybeServer =
-            Helpers.serverLookup project serverUuid
-    in
-    case maybeServer of
-        Nothing ->
-            Helpers.processError
-                model
-                (ErrorContext
-                    "look for a server to populate with details from the API"
-                    ErrorCrit
-                    Nothing
-                )
-                "No server found when receiving server details"
-
-        Just server ->
-            let
-                floatingIpState =
-                    Helpers.checkFloatingIpState
-                        serverDetails
-                        server.exoProps.floatingIpState
-
-                newServer =
-                    let
-                        oldOSProps =
-                            server.osProps
-
-                        oldExoProps =
-                            server.exoProps
-
-                        newTargetOpenstackStatus =
-                            case oldExoProps.targetOpenstackStatus of
-                                Nothing ->
-                                    Nothing
-
-                                Just statuses ->
-                                    if List.member serverDetails.openstackStatus statuses then
-                                        Nothing
-
-                                    else
-                                        Just statuses
-                    in
-                    Server
-                        { oldOSProps | details = serverDetails }
-                        { oldExoProps | floatingIpState = floatingIpState, targetOpenstackStatus = newTargetOpenstackStatus }
-
-                newProject =
-                    Helpers.projectUpdateServer project newServer
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-
-                floatingIpCmd =
-                    case floatingIpState of
-                        Requestable ->
-                            [ getFloatingIpRequestPorts newProject newServer
-                            , requestNetworks project
-                            ]
-                                |> Cmd.batch
-
-                        _ ->
-                            Cmd.none
-
-                consoleUrlCmd =
-                    requestConsoleUrlIfRequestable newProject newServer
-
-                passwordCmd =
-                    case newServer.exoProps.serverOrigin of
-                        ServerNotFromExo ->
-                            Cmd.none
-
-                        ServerFromExo serverFromExoProps ->
-                            if serverFromExoProps.exoServerVersion < 1 then
-                                Cmd.none
-
-                            else
-                                case Helpers.getServerExouserPassword server.osProps.details of
-                                    Nothing ->
-                                        OSServerPassword.requestServerPassword newProject newServer.osProps.uuid
-
-                                    Just _ ->
-                                        Cmd.none
-
-                cockpitLoginCmd =
-                    requestCockpitIfRequestable newProject newServer
-
-                allCmds =
-                    [ floatingIpCmd, consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
-                        |> Cmd.batch
-            in
-            ( newModel, allCmds )
+    ( newServer, allCmds )
 
 
 receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
@@ -1958,11 +1917,11 @@ imageStatusDecoder status =
 
 decodeServers : Decode.Decoder (List OSTypes.Server)
 decodeServers =
-    Decode.field "servers" (Decode.list serverDecoder)
+    Decode.field "servers" (Decode.list decodeServer)
 
 
-serverDecoder : Decode.Decoder OSTypes.Server
-serverDecoder =
+decodeServer : Decode.Decoder OSTypes.Server
+decodeServer =
     Decode.map4 OSTypes.Server
         (Decode.oneOf
             [ Decode.field "name" Decode.string

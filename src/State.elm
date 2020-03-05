@@ -880,8 +880,8 @@ processProjectSpecificMsg model project msg =
         ReceiveServers servers ->
             Rest.receiveServers model project servers
 
-        ReceiveServer serverUuid server ->
-            Rest.receiveServer model project serverUuid server
+        ReceiveServer server ->
+            Rest.receiveServer model project server
 
         ReceiveConsoleUrl serverUuid url ->
             Rest.receiveConsoleUrl model project serverUuid url
