@@ -14,7 +14,6 @@ module Rest.Neutron exposing
     , receivePortsAndRequestFloatingIp
     , receiveSecurityGroupsAndEnsureExoGroup
     , requestCreateExoSecurityGroupRules
-    , requestCreateFloatingIp
     , requestCreateFloatingIpIfRequestable
     , requestDeleteFloatingIp
     , requestFloatingIps
