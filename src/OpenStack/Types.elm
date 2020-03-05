@@ -256,6 +256,7 @@ type ServerStatus
     | ServerRescued
     | ServerShelved
     | ServerShelvedOffloaded
+    | ServerDeleted
 
 
 type ServerPowerState
