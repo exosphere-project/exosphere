@@ -6,7 +6,7 @@ import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
-import Rest.Rest as Rest
+import Rest.Nova as Rest
 import Types.Types
     exposing
         ( ActionType(..)
