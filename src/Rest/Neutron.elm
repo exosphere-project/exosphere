@@ -14,7 +14,6 @@ module Rest.Neutron exposing
     , receivePortsAndRequestFloatingIp
     , receiveSecurityGroupsAndEnsureExoGroup
     , requestCreateExoSecurityGroupRules
-    , requestCreateFloatingIp
     , requestCreateFloatingIpIfRequestable
     , requestDeleteFloatingIp
     , requestFloatingIps
@@ -149,8 +148,8 @@ requestCreateFloatingIpIfRequestable model project network port_ serverUuid =
             ( model, Cmd.none )
 
         Just server ->
-            case server.exoProps.floatingIpState of
-                Requestable ->
+            case ( server.exoProps.deletionAttempted, server.exoProps.floatingIpState ) of
+                ( False, Requestable ) ->
                     requestCreateFloatingIp model project network port_ server
 
                 _ ->

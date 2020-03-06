@@ -357,6 +357,9 @@ checkFloatingIpState serverDetails floatingIpState =
         Failed ->
             Failed
 
+        Success ->
+            Success
+
         _ ->
             if hasFloatingIp then
                 Success
@@ -554,6 +557,9 @@ getServerUiStatus server =
         OSTypes.ServerShelvedOffloaded ->
             ServerUiStatusShelved
 
+        OSTypes.ServerDeleted ->
+            ServerUiStatusDeleted
+
 
 getServerUiStatusStr : ServerUiStatus -> String
 getServerUiStatusStr status =
@@ -597,6 +603,9 @@ getServerUiStatusStr status =
         ServerUiStatusShelved ->
             "Shelved"
 
+        ServerUiStatusDeleted ->
+            "Deleted"
+
 
 getServerUiStatusColor : ServerUiStatus -> Color.Color
 getServerUiStatusColor status =
@@ -638,6 +647,9 @@ getServerUiStatusColor status =
             Framework.Color.red
 
         ServerUiStatusShelved ->
+            Framework.Color.grey
+
+        ServerUiStatusDeleted ->
             Framework.Color.grey
 
 

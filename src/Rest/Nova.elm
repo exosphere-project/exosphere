@@ -783,6 +783,9 @@ serverOpenstackStatusDecoder status =
         "shelved_offloaded" ->
             Decode.succeed OSTypes.ServerShelvedOffloaded
 
+        "deleted" ->
+            Decode.succeed OSTypes.ServerDeleted
+
         _ ->
             Decode.fail "Ooooooops, unrecognised server OpenStack status"
 

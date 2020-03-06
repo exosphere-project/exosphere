@@ -402,6 +402,7 @@ type ServerUiStatus
     | ServerUiStatusError
     | ServerUiStatusRescued
     | ServerUiStatusShelved
+    | ServerUiStatusDeleted
 
 
 type alias CreateServerRequest =
