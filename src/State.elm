@@ -83,8 +83,8 @@ runcmd:
   - systemctl enable cockpit.socket
   - systemctl start cockpit.socket
   - systemctl daemon-reload
-  - "mkdir /media/volume"
-  - "cd /media/volume; for x in b c d e f g h i j k; do mkdir sd$x; mkdir vd$x; done"
+  - "mkdir -p /media/volume"
+  - "cd /media/volume; for x in b c d e f g h i j k; do mkdir -p sd$x; mkdir -p vd$x; done"
   - "systemctl daemon-reload"
   - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
   - "chown exouser:exouser /media/volume/*"
