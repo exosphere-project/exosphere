@@ -51,6 +51,7 @@ import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
+import Set
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes
@@ -240,7 +241,7 @@ type NonProjectViewConstructor
 
 type alias ImageFilter =
     { searchText : String
-    , tag : String
+    , tags : Set.Set String
     , onlyOwnImages : Bool
     }
 

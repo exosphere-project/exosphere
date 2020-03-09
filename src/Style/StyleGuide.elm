@@ -6,10 +6,10 @@ import Element.Font as Font
 import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
 import Html
-import Style.Widgets.Card exposing (exoCard)
+import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon exposing (bell, question, remove, roundRect)
-import Style.Widgets.IconButton exposing (iconButton)
+import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
+import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 
 
@@ -30,12 +30,22 @@ widgets =
     , question Color.black 40
     , Element.text "Style.Widgets.Icon.remove"
     , remove Color.black 40
+    , Element.text "Style.Widgets.Icon.timesCircle (black)"
+    , timesCircle Color.black 40
+    , Element.text "Style.Widgets.Icon.timesCircle (white)"
+    , timesCircle Color.white 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
+    , Element.text "Style.Widgets.Card.badge"
+    , badge "belongs to this project"
     , Element.text "Style.Widgets.IconButton.iconButton"
     , iconButton [ Small, Danger ] Nothing (remove Color.white 16)
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText "foobar"
+    , Element.text "Style.Widgets.IconButton.chip"
+    , chip Nothing (Element.text "chip label")
+    , Element.text "Style.Widgets.IconButton.chip (with badge)"
+    , chip Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
     ]
 
 

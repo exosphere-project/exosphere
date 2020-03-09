@@ -8,6 +8,7 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
+            "Skinney/murmur3": "2.0.8",
             "basti1302/elm-human-readable-filesize": "1.2.0",
             "elm/browser": "1.0.1",
             "elm/core": "1.0.2",
@@ -19,13 +20,14 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
+            "elm-community/list-extra": "8.2.3",
             "elm-community/maybe-extra": "5.0.0",
             "elm-community/random-extra": "3.1.0",
             "jweir/elm-iso8601": "6.0.0",
             "krisajenkins/remotedata": "6.0.1",
             "mdgriffith/elm-ui": "1.1.0",
             "pablen/toasty": "1.2.0",
-            "Skinney/murmur3": "2.0.8",
+            "stoeffel/set-extra": "1.2.3",
             "truqu/elm-base64": "2.0.4"
         },
         "indirect": {

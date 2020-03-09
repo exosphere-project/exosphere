@@ -5,6 +5,7 @@ import Element
 import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
+import Set
 import Style.Widgets.Icon exposing (downArrow, upArrow)
 import Style.Widgets.IconButton exposing (iconButton)
 import Types.Types
@@ -131,7 +132,7 @@ createButton projectId expanded =
                         (Just <|
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { searchText = "", tag = "", onlyOwnImages = False }
+                                    ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False }
                         )
                         "Server"
 
