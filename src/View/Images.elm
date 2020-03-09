@@ -124,7 +124,11 @@ images globalDefaults project imageFilter =
             else
                 Input.checkbox [ Element.paddingXY 10 5 ]
                     { checked = tagChecked
-                    , onChange = \_ -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
+                    , onChange =
+                        \_ ->
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
                     , icon = Input.defaultCheckbox
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
@@ -175,7 +179,17 @@ images globalDefaults project imageFilter =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
-        , Button.button [] (Just <| ProjectMsg projectId <| SetProjectView <| ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False }) "Clear filters (show all)"
+        , Button.button []
+            (Just <|
+                ProjectMsg projectId <|
+                    SetProjectView <|
+                        ListImages
+                            { searchText = ""
+                            , tags = Set.empty
+                            , onlyOwnImages = False
+                            }
+            )
+            "Clear filters (show all)"
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
