@@ -1,4 +1,16 @@
-module Style.Widgets.Icon exposing (bell, copyToClipboard, downArrow, question, remove, rightArrow, roundRect, timesCircle, upArrow, windowClose)
+module Style.Widgets.Icon exposing
+    ( bell
+    , copyToClipboard
+    , downArrow
+    , plusCircle
+    , question
+    , remove
+    , rightArrow
+    , roundRect
+    , timesCircle
+    , upArrow
+    , windowClose
+    )
 
 import Color
 import Element
@@ -215,6 +227,28 @@ timesCircle_ cl size =
         [ Svg.path
             [ SA.fill (Color.colorToHex cl)
             , SA.d "M1277 1122q0-26-19-45l-181-181 181-181q19-19 19-45 0-27-19-46l-90-90q-19-19-46-19-26 0-45 19l-181 181-181-181q-19-19-45-19-27 0-46 19l-90 90q-19 19-19 46 0 26 19 45l181 181-181 181q-19 19-19 45 0 27 19 46l90 90q19 19 46 19 26 0 45-19l181-181 181 181q19 19 45 19 27 0 46-19l90-90q19-19 19-46zm387-226q0 209-103 385.5t-279.5 279.5-385.5 103-385.5-103-279.5-279.5-103-385.5 103-385.5 279.5-279.5 385.5-103 385.5 103 279.5 279.5 103 385.5z"
+            ]
+            []
+        ]
+
+
+plusCircle : Color.Color -> Int -> Element.Element msg
+plusCircle cl size =
+    Element.el [] <|
+        Element.html <|
+            plusCircle_ cl size
+
+
+plusCircle_ : Color.Color -> Int -> Html.Html msg
+plusCircle_ cl size =
+    Svg.svg
+        [ SA.width <| String.fromInt size
+        , SA.height <| String.fromInt size
+        , SA.viewBox "0 0 1792 1792"
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+            , SA.d "M1344 960v-128q0-26-19-45t-45-19h-256v-256q0-26-19-45t-45-19h-128q-26 0-45 19t-19 45v256h-256q-26 0-45 19t-19 45v128q0 26 19 45t45 19h256v256q0 26 19 45t45 19h128q26 0 45-19t19-45v-256h256q26 0 45-19t19-45zm320-64q0 209-103 385.5t-279.5 279.5-385.5 103-385.5-103-279.5-279.5-103-385.5 103-385.5 279.5-279.5 385.5-103 385.5 103 279.5 279.5 103 385.5z"
             ]
             []
         ]

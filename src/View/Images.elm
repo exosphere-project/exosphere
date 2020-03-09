@@ -1,5 +1,6 @@
 module View.Images exposing (imagesIfLoaded)
 
+import Color
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -12,6 +13,7 @@ import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
 import Style.Widgets.Card as ExoCard
+import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
 import Types.Types
     exposing
@@ -112,6 +114,13 @@ images globalDefaults project imageFilter =
         tagView : ImageTag -> Element.Element Msg
         tagView tag =
             let
+                iconFunction checked =
+                    if checked then
+                        Element.none
+
+                    else
+                        Icon.plusCircle Color.black 12
+
                 tagChecked =
                     Set.member tag.label imageFilter.tags
 
@@ -129,7 +138,7 @@ images globalDefaults project imageFilter =
                             ProjectMsg projectId <|
                                 SetProjectView <|
                                     ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
-                    , icon = Input.defaultCheckbox
+                    , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
 
