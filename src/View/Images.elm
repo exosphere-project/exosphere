@@ -153,15 +153,15 @@ images globalDefaults project imageFilter =
 
         tagsView =
             Element.column [ Element.spacing 10 ]
-                [ Element.text "Select tags to filter images on:"
-                , Element.wrappedRow []
-                    (List.map tagView tagsAfterFilteringImages)
-                , Element.text "Filtering on these tags:"
+                [ Element.text "Filtering on these tags:"
                 , Element.wrappedRow
                     [ Element.height Element.shrink
                     , Element.width Element.shrink
                     ]
                     (List.map tagChipView tagsAfterFilteringImages)
+                , Element.text "Select tags to filter images on:"
+                , Element.wrappedRow []
+                    (List.map tagView tagsAfterFilteringImages)
                 ]
     in
     Element.column VH.exoColumnAttributes
