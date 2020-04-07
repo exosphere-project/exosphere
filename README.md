@@ -57,7 +57,6 @@ The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy 
 
 If you want to try all app features, you can run Exosphere locally using [Electron](https://electronjs.org/).
 
-
 ### Build and Run Exosphere as Electron App
 
 > "It was very easy to build"
@@ -125,6 +124,62 @@ elm make src/Exosphere.elm --output elm.js
 
 Then browse to index.html.
 
+### Build and Run Exosphere with Docker
+
+If you want to build exosphere (as shown above) for a browser but do not want 
+to install node on your system, you can use the [Dockerfile](Dockerfile)
+to build a container instead. First, build the container:
+
+```bash
+docker build -t exosphere .
+```
+
+And then run, binding port 80 to 8080 in the container:
+
+```bash
+$ docker run -it -p 80:8080 exosphere
+Starting up http-server, serving ./
+Available on:
+  http://127.0.0.1:8080
+  http://172.17.0.3:8080
+Hit CTRL-C to stop the server
+```
+
+You can open your browser to [http://127.0.0.1](http://127.0.0.1) to see the interface.
+If you want a development environment to make changes to files, you can run
+the container and bind the src directory:
+
+```bash
+$ docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 80:8080 exosphere
+```
+
+And then either run the above command with `-d` (for detached)
+
+```bash
+$ docker run -d --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 80:8080 exosphere
+```
+
+or in another window execute a command to the container to rebuild the elm.js file:
+
+```bash
+$ docker exec exosphere elm make src/Exosphere.elm --output elm.js
+Success! Compiled 47 modules.
+
+    Exosphere ───> elm.js
+```
+
+If you need changes done to other files in the root, you can either bind them
+or make changes and rebuild the base. You generally shouldn't make changes to files
+from inside the container that are bound to the host, as the permissions will be
+modified.
+
+If you want to copy the elm.js from inside the container (or any other file) you can do:
+
+```bash
+docker cp exosphere:/usr/src/app/elm.js my-elm.js
+```
+
+When it's time to cleanup, you can do `docker stop exosphere` and `docker rm exosphere`.
 
 ### Note about self-signed certificates for terminal and server dashboard
 
