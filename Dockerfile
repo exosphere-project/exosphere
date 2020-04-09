@@ -1,5 +1,6 @@
 FROM node:10
 
+# Note: this docker build is intended for local development only
 # docker build -t exosphere .
 
 # Create app directory
