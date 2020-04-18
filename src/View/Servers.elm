@@ -449,14 +449,8 @@ cockpitInteraction serverOrigin maybeFloatingIp =
                         Element.text "Not available (server launched outside of Exosphere)."
 
                     ServerFromExo serverFromExoProps ->
-                        case serverFromExoProps.cockpitStatus of
-                            NotChecked ->
-                                Element.text "Status of server dashboard and terminal not available yet."
-
-                            CheckedNotReady ->
-                                Element.text "Server Dashboard and Terminal not ready yet."
-
-                            Ready ->
+                        let
+                            interaction =
                                 Element.column VH.exoColumnAttributes
                                     [ Element.text "Server Dashboard and Terminal are ready..."
                                     , Element.row VH.exoRowAttributes
@@ -483,6 +477,19 @@ cockpitInteraction serverOrigin maybeFloatingIp =
                                             "Server Dashboard"
                                         ]
                                     ]
+                        in
+                        case serverFromExoProps.cockpitStatus of
+                            NotChecked ->
+                                Element.text "Status of server dashboard and terminal not available yet."
+
+                            CheckedNotReady ->
+                                Element.text "Server Dashboard and Terminal not ready yet."
+
+                            Ready ->
+                                interaction
+
+                            ReadyButRecheck ->
+                                interaction
             )
 
 
@@ -670,8 +677,8 @@ resourceUsageGraphs serverOrigin maybeFloatingIp =
                         Element.text "Not available (server launched outside of Exosphere)."
 
                     ServerFromExo serverFromExoProps ->
-                        case serverFromExoProps.cockpitStatus of
-                            Ready ->
+                        let
+                            graphs =
                                 let
                                     graphsUrl =
                                         "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
@@ -699,6 +706,13 @@ resourceUsageGraphs serverOrigin maybeFloatingIp =
                                             []
                                         ]
                                     )
+                        in
+                        case serverFromExoProps.cockpitStatus of
+                            Ready ->
+                                graphs
+
+                            ReadyButRecheck ->
+                                graphs
 
                             NotChecked ->
                                 Element.text "Graphs not ready yet."
@@ -905,6 +919,9 @@ friendlyCockpitReadiness serverOrigin =
                     "Checked, not ready yet"
 
                 Ready ->
+                    "Ready"
+
+                ReadyButRecheck ->
                     "Ready"
 
 

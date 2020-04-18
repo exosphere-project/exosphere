@@ -539,7 +539,12 @@ receiveServer_ project osServer =
                     Cmd.none
 
         consoleUrlCmd =
-            requestConsoleUrlIfRequestable project newServer
+            case newServer.osProps.consoleUrl of
+                RemoteData.Success _ ->
+                    Cmd.none
+
+                _ ->
+                    requestConsoleUrlIfRequestable project newServer
 
         passwordCmd =
             case newServer.exoProps.serverOrigin of
@@ -547,16 +552,17 @@ receiveServer_ project osServer =
                     Cmd.none
 
                 ServerFromExo serverFromExoProps ->
-                    if serverFromExoProps.exoServerVersion < 1 then
-                        Cmd.none
+                    case
+                        ( serverFromExoProps.exoServerVersion >= 1
+                        , Helpers.getServerExouserPassword newServer.osProps.details
+                        , newServer.osProps.details.openstackStatus
+                        )
+                    of
+                        ( True, Nothing, OSTypes.ServerActive ) ->
+                            OSServerPassword.requestServerPassword project newServer.osProps.uuid
 
-                    else
-                        case Helpers.getServerExouserPassword newServer.osProps.details of
-                            Nothing ->
-                                OSServerPassword.requestServerPassword project newServer.osProps.uuid
-
-                            Just _ ->
-                                Cmd.none
+                        _ ->
+                            Cmd.none
 
         cockpitLoginCmd =
             requestCockpitIfRequestable project newServer
