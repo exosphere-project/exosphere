@@ -71,6 +71,7 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
             , selected = maybeServerUuid
             }
         , Input.radio []
+            -- TODO if no volumes in list, suggest user create a volume and provide link to that view
             { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a volume")
             , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SetProjectView (AttachVolumeModal maybeServerUuid (Just new)))
             , options = volumeChoices

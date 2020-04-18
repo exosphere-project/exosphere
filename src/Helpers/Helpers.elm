@@ -38,6 +38,7 @@ module Helpers.Helpers exposing
     , toastConfig
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
+    , volumeLookup
     , volumeQuotaAvail
     )
 
@@ -405,6 +406,14 @@ imageLookup project imageUuid =
         |> List.head
 
 
+volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
+volumeLookup project volumeUuid =
+    List.filter
+        (\v -> v.uuid == volumeUuid)
+        (RemoteData.withDefault [] project.volumes)
+        |> List.head
+
+
 providerLookup : Model -> OSTypes.KeystoneUrl -> Maybe UnscopedProvider
 providerLookup model keystoneUrl =
     List.filter
@@ -519,6 +528,9 @@ getServerUiStatus server =
                             ServerUiStatusPartiallyActive
 
                         Ready ->
+                            ServerUiStatusReady
+
+                        ReadyButRecheck ->
                             ServerUiStatusReady
 
                 ServerNotFromExo ->

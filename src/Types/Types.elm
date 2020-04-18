@@ -36,6 +36,7 @@ module Types.Types exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , TickInterval
     , Toast
     , UnscopedProvider
     , UnscopedProviderProject
@@ -158,7 +159,7 @@ type alias Endpoints =
 
 
 type Msg
-    = Tick Time.Posix
+    = Tick TickInterval Time.Posix
     | SetNonProjectView NonProjectViewConstructor
     | HandleApiError ErrorContext Http.Error
     | RequestUnscopedToken OSTypes.OpenstackLogin
@@ -176,6 +177,10 @@ type Msg
     | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
     | NoOp
+
+
+type alias TickInterval =
+    Int
 
 
 type ProjectSpecificMsgConstructor
@@ -387,6 +392,7 @@ type CockpitLoginStatus
     = NotChecked
     | CheckedNotReady
     | Ready
+    | ReadyButRecheck
 
 
 type ServerUiStatus

@@ -30,7 +30,11 @@ import Types.Types
 
 requestCockpitIfRequestable : Project -> Server -> Cmd Msg
 requestCockpitIfRequestable project server =
-    -- Try to log into Cockpit IF server was launched from Exosphere and we have a floating IP address and exouser password
+    {- Try to log into Cockpit IF:
+       - server was launched from Exosphere
+       - we have a floating IP address and exouser password
+       - Cockpit status is not Ready
+    -}
     let
         maybeFloatingIp =
             Helpers.getServerFloatingIp server.osProps.details.ipAddresses
@@ -44,8 +48,13 @@ requestCockpitIfRequestable project server =
         , maybeExouserPassword
         )
     of
-        ( ServerFromExo _, Just floatingIp, Just password ) ->
-            requestCockpitLogin project server.osProps.uuid password floatingIp
+        ( ServerFromExo exoOriginProps, Just floatingIp, Just password ) ->
+            case exoOriginProps.cockpitStatus of
+                Ready ->
+                    Cmd.none
+
+                _ ->
+                    requestCockpitLogin project server.osProps.uuid password floatingIp
 
         _ ->
             -- Maybe in the future show an error here? Missing floating IP or password?
