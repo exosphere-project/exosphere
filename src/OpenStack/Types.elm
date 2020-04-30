@@ -31,6 +31,7 @@ module OpenStack.Types exposing
     , SecurityGroup
     , Server
     , ServerDetails
+    , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
     , ServerStatus(..)
@@ -268,6 +269,11 @@ type ServerPowerState
     | PowerSuspended
 
 
+type ServerLockStatus
+    = ServerLocked
+    | ServerUnlocked
+
+
 
 {- Todo add to ServerDetail:
    - Metadata
@@ -290,6 +296,7 @@ type alias ServerDetails =
     , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
     , tags : List ServerTag
+    , lockStatus : ServerLockStatus
     }
 
 
