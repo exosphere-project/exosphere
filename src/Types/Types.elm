@@ -281,12 +281,6 @@ type alias ServerDetailViewParams =
     }
 
 
-type alias ServerActionState =
-    { serverAction : ServerAction
-    , displayConfirmation : Bool
-    }
-
-
 type alias ServerAction =
     { name : String
     , description : String
