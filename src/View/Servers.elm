@@ -1,4 +1,4 @@
-module View.Servers exposing (availableActions, serverDetail, servers, toServerActionState)
+module View.Servers exposing (serverDetail, servers)
 
 import Color
 import Element
@@ -34,6 +34,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerAction
         , ServerDetailViewParams
         , ServerFilter
         , ServerOrigin(..)
@@ -514,48 +515,42 @@ cockpitInteraction serverOrigin maybeFloatingIp =
             )
 
 
-availableActions : Server -> List Types.Types.ServerAction
-availableActions server =
-    case server.exoProps.targetOpenstackStatus of
-        Nothing ->
-            ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus
-
-        Just _ ->
-            []
-
-
 viewServerActions : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
 viewServerActions projectId server serverDetailViewParams =
-    case serverDetailViewParams.serverActionStates of
-        [] ->
-            Element.el
-                [ Element.padding 10 ]
-                Element.none
+    Element.column
+        [ Element.spacingXY 0 10 ]
+    <|
+        case server.exoProps.targetOpenstackStatus of
+            Nothing ->
+                List.map
+                    (renderServerActionButton projectId server serverDetailViewParams)
+                    (ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus)
 
-        serverActionStates ->
-            Element.column
-                [ Element.spacingXY 0 10 ]
-            <|
-                List.map (renderServerActionButton projectId server serverDetailViewParams) serverActionStates
+            Just _ ->
+                []
 
 
-renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> Types.Types.ServerActionState -> Element.Element Msg
-renderServerActionButton projectId server serverDetailViewParams ({ serverAction } as serverActionState) =
-    case ( serverAction.action, serverAction.confirmable, serverActionState.displayConfirmation ) of
+renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> ServerAction -> Element.Element Msg
+renderServerActionButton projectId server serverDetailViewParams serverAction =
+    let
+        displayConfirmation =
+            case serverDetailViewParams.serverActionNamePendingConfirmation of
+                Nothing ->
+                    False
+
+                Just actionName ->
+                    actionName == serverAction.name
+    in
+    case ( serverAction.action, serverAction.confirmable, displayConfirmation ) of
         ( Types.Types.CmdAction _, True, False ) ->
             let
-                updatedServerActionState =
-                    { serverActionState | displayConfirmation = True }
-
                 updateAction =
                     ProjectMsg
                         projectId
                         (SetProjectView
                             (ServerDetail
                                 server.osProps.uuid
-                                (serverDetailViewParams
-                                    |> updateServerActionState updatedServerActionState
-                                )
+                                { serverDetailViewParams | serverActionNamePendingConfirmation = Just serverAction.name }
                             )
                         )
             in
@@ -571,9 +566,6 @@ renderServerActionButton projectId server serverDetailViewParams ({ serverAction
                                 cmdAction
                                 serverAction.targetStatus
 
-                updatedServerActionState =
-                    { serverActionState | displayConfirmation = False }
-
                 cancelMsg =
                     Just <|
                         ProjectMsg
@@ -581,9 +573,7 @@ renderServerActionButton projectId server serverDetailViewParams ({ serverAction
                             (SetProjectView
                                 (ServerDetail
                                     server.osProps.uuid
-                                    (serverDetailViewParams
-                                        |> updateServerActionState updatedServerActionState
-                                    )
+                                    { serverDetailViewParams | serverActionNamePendingConfirmation = Nothing }
                                 )
                             )
 
@@ -662,29 +652,6 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
 
         -- TODO hover text with description
         ]
-
-
-updateServerActionState : Types.Types.ServerActionState -> ServerDetailViewParams -> ServerDetailViewParams
-updateServerActionState ({ serverAction } as targetServerActionState) ({ serverActionStates } as serverDetailViewParams) =
-    let
-        updatedServerActionStates =
-            serverActionStates
-                |> List.map
-                    (\serverActionState ->
-                        -- match on name and description instead of id
-                        if
-                            serverActionState.serverAction.name
-                                == serverAction.name
-                                && serverActionState.serverAction.description
-                                == serverAction.description
-                        then
-                            targetServerActionState
-
-                        else
-                            serverActionState
-                    )
-    in
-    { serverDetailViewParams | serverActionStates = updatedServerActionStates }
 
 
 resourceUsageGraphs : ServerOrigin -> Maybe String -> Element.Element Msg
@@ -797,7 +764,7 @@ renderServer project serverFilter deleteConfirmations server =
                         { verboseStatus = False
                         , passwordVisibility = PasswordHidden
                         , ipInfoLevel = IPSummary
-                        , serverActionStates = availableActions server |> List.map toServerActionState
+                        , serverActionNamePendingConfirmation = Nothing
                         }
 
         serverLabel : Server -> Element.Element Msg
@@ -869,13 +836,6 @@ renderServer project serverFilter deleteConfirmations server =
          ]
             ++ deleteWidget
         )
-
-
-toServerActionState : Types.Types.ServerAction -> Types.Types.ServerActionState
-toServerActionState serverAction =
-    { serverAction = serverAction
-    , displayConfirmation = False
-    }
 
 
 renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg

@@ -30,7 +30,6 @@ module Types.Types exposing
     , ProjectViewParams
     , Server
     , ServerAction
-    , ServerActionState
     , ServerDetailViewParams
     , ServerFilter
     , ServerFromExoProps
@@ -278,7 +277,7 @@ type alias ServerDetailViewParams =
     { verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
-    , serverActionStates : List ServerActionState
+    , serverActionNamePendingConfirmation : Maybe String
     }
 
 

@@ -224,7 +224,7 @@ renderAttachment project attachment =
                     Just
                         (ProjectMsg
                             (Helpers.getProjectId project)
-                            (SetProjectView <| ServerDetail attachment.serverUuid <| ServerDetailViewParams False PasswordHidden IPSummary [])
+                            (SetProjectView <| ServerDetail attachment.serverUuid <| ServerDetailViewParams False PasswordHidden IPSummary Nothing)
                         )
                 , label = Icon.rightArrow Framework.Color.grey 16
                 }
