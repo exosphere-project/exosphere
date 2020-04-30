@@ -918,7 +918,7 @@ processProjectSpecificMsg model project msg =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just targetStatus }
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus }
 
                 newProject =
                     Helpers.projectUpdateServer project newServer

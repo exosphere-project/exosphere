@@ -197,7 +197,7 @@ type ProjectSpecificMsgConstructor
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer Server
     | RequestDeleteServers (List Server)
-    | RequestServerAction Server (Project -> Server -> Cmd Msg) (List OSTypes.ServerStatus)
+    | RequestServerAction Server (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
@@ -291,10 +291,11 @@ type alias ServerActionState =
 type alias ServerAction =
     { name : String
     , description : String
-    , allowedStatuses : List OSTypes.ServerStatus
+    , allowedStatuses : Maybe (List OSTypes.ServerStatus)
+    , allowedLockStatus : Maybe OSTypes.ServerLockStatus
     , action : ActionType
     , selectMods : List Modifier.Modifier
-    , targetStatus : List OSTypes.ServerStatus
+    , targetStatus : Maybe (List OSTypes.ServerStatus)
     , confirmable : Bool
     }
 

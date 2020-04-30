@@ -518,7 +518,7 @@ availableActions : Server -> List Types.Types.ServerAction
 availableActions server =
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
-            ServerActions.getAllowed server.osProps.details.openstackStatus
+            ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus
 
         Just _ ->
             []
