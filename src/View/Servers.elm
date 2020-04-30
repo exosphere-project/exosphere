@@ -283,7 +283,7 @@ serverStatus projectId server serverDetailViewParams =
             Debug.toString details.powerState
                 |> String.dropLeft 5
 
-        graphic =
+        statusGraphic =
             let
                 g =
                     case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
@@ -294,11 +294,28 @@ serverStatus projectId server serverDetailViewParams =
                             Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
 
                         ( _, Nothing ) ->
-                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
+                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 28
             in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]
                 g
+
+        lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
+        lockStatus lockStatus_ =
+            case lockStatus_ of
+                OSTypes.ServerLocked ->
+                    Element.row
+                        []
+                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lock Framework.Color.black 28
+                        , Element.text "Locked"
+                        ]
+
+                OSTypes.ServerUnlocked ->
+                    Element.row
+                        []
+                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lockOpen Framework.Color.black 28
+                        , Element.text "Unlocked"
+                        ]
 
         verboseStatus =
             if serverDetailViewParams.verboseStatus then
@@ -329,13 +346,17 @@ serverStatus projectId server serverDetailViewParams =
                 )
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-        (Element.row [ Font.bold ]
-            [ graphic
-            , statusString
+        (VH.exoColumnAttributes ++ [ Element.padding 0, Element.spacing 5 ])
+    <|
+        List.concat
+            [ [ Element.row [ Font.bold ]
+                    [ statusGraphic
+                    , statusString
+                    ]
+              ]
+            , [ lockStatus server.osProps.details.lockStatus ]
+            , verboseStatus
             ]
-            :: verboseStatus
-        )
 
 
 sshInstructions : Maybe String -> Element.Element Msg

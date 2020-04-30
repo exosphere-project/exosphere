@@ -2,12 +2,15 @@ module Style.Widgets.Icon exposing
     ( bell
     , copyToClipboard
     , downArrow
+    , lock
+    , lockOpen
     , plusCircle
     , question
     , remove
     , rightArrow
     , roundRect
     , timesCircle
+    , unlock
     , upArrow
     , windowClose
     )
@@ -185,7 +188,7 @@ roundRect_ : Color.Color -> Int -> Html.Html msg
 roundRect_ cl size =
     Svg.svg
         [ SA.width <| String.fromInt size, SA.height <| String.fromInt size, SA.viewBox "0 0 60 60" ]
-        [ Svg.rect [ SA.x "10", SA.y "10", SA.width "50", SA.height "50", SA.rx "15", SA.ry "15", SA.fill (Color.colorToHex cl) ] [] ]
+        [ Svg.rect [ SA.x "0", SA.y "0", SA.width "60", SA.height "60", SA.rx "15", SA.ry "15", SA.fill (Color.colorToHex cl) ] [] ]
 
 
 copyToClipboard : Color.Color -> Int -> Element.Element msg
@@ -249,6 +252,75 @@ plusCircle_ cl size =
         [ Svg.path
             [ SA.fill (Color.colorToHex cl)
             , SA.d "M1344 960v-128q0-26-19-45t-45-19h-256v-256q0-26-19-45t-45-19h-128q-26 0-45 19t-19 45v256h-256q-26 0-45 19t-19 45v128q0 26 19 45t45 19h256v256q0 26 19 45t45 19h128q26 0 45-19t19-45v-256h256q26 0 45-19t19-45zm320-64q0 209-103 385.5t-279.5 279.5-385.5 103-385.5-103-279.5-279.5-103-385.5 103-385.5 279.5-279.5 385.5-103 385.5 103 279.5 279.5 103 385.5z"
+            ]
+            []
+        ]
+
+
+lock : Color.Color -> Int -> Element.Element msg
+lock cl size =
+    Element.el [] <|
+        Element.html <|
+            lock_ cl size
+
+
+lock_ : Color.Color -> Int -> Html.Html msg
+lock_ cl size =
+    Svg.svg
+        [ SA.viewBox "0 0 1792 1792"
+        , SA.height <| String.fromInt size
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+
+            -- From view-source:https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/svg/lock.svg
+            , SA.d "M640 768h512v-192q0-106-75-181t-181-75-181 75-75 181v192zm832 96v576q0 40-28 68t-68 28h-960q-40 0-68-28t-28-68v-576q0-40 28-68t68-28h32v-192q0-184 132-316t316-132 316 132 132 316v192h32q40 0 68 28t28 68z"
+            ]
+            []
+        ]
+
+
+unlock : Color.Color -> Int -> Element.Element msg
+unlock cl size =
+    Element.el [] <|
+        Element.html <|
+            unlock_ cl size
+
+
+unlock_ : Color.Color -> Int -> Html.Html msg
+unlock_ cl size =
+    Svg.svg
+        [ SA.viewBox "0 0 1792 1792"
+        , SA.height <| String.fromInt size
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+
+            -- From view-source:https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/svg/unlock-alt.svg
+            , SA.d "M1376 768q40 0 68 28t28 68v576q0 40-28 68t-68 28h-960q-40 0-68-28t-28-68v-576q0-40 28-68t68-28h32v-320q0-185 131.5-316.5t316.5-131.5 316.5 131.5 131.5 316.5q0 26-19 45t-45 19h-64q-26 0-45-19t-19-45q0-106-75-181t-181-75-181 75-75 181v320h736z"
+            ]
+            []
+        ]
+
+
+lockOpen : Color.Color -> Int -> Element.Element msg
+lockOpen cl size =
+    Element.el [] <|
+        Element.html <|
+            lockOpen_ cl size
+
+
+lockOpen_ : Color.Color -> Int -> Html.Html msg
+lockOpen_ cl size =
+    Svg.svg
+        [ SA.viewBox "0 0 1792 1792"
+        , SA.height <| String.fromInt size
+        ]
+        [ Svg.path
+            [ SA.fill (Color.colorToHex cl)
+
+            -- From view-source:https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/svg/unlock.svg
+            , SA.d "M1728 576v256q0 26-19 45t-45 19h-64q-26 0-45-19t-19-45v-256q0-106-75-181t-181-75-181 75-75 181v192h96q40 0 68 28t28 68v576q0 40-28 68t-68 28h-960q-40 0-68-28t-28-68v-576q0-40 28-68t68-28h672v-192q0-185 131.5-316.5t316.5-131.5 316.5 131.5 131.5 316.5z"
             ]
             []
         ]
