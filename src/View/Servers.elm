@@ -283,7 +283,7 @@ serverStatus projectId server serverDetailViewParams =
             Debug.toString details.powerState
                 |> String.dropLeft 5
 
-        graphic =
+        statusGraphic =
             let
                 g =
                     case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
@@ -294,11 +294,28 @@ serverStatus projectId server serverDetailViewParams =
                             Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
 
                         ( _, Nothing ) ->
-                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 32
+                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 28
             in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]
                 g
+
+        lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
+        lockStatus lockStatus_ =
+            case lockStatus_ of
+                OSTypes.ServerLocked ->
+                    Element.row
+                        []
+                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lock Framework.Color.black 28
+                        , Element.text "Locked"
+                        ]
+
+                OSTypes.ServerUnlocked ->
+                    Element.row
+                        []
+                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lockOpen Framework.Color.black 28
+                        , Element.text "Unlocked"
+                        ]
 
         verboseStatus =
             if serverDetailViewParams.verboseStatus then
@@ -329,13 +346,17 @@ serverStatus projectId server serverDetailViewParams =
                 )
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-        (Element.row [ Font.bold ]
-            [ graphic
-            , statusString
+        (VH.exoColumnAttributes ++ [ Element.padding 0, Element.spacing 5 ])
+    <|
+        List.concat
+            [ [ Element.row [ Font.bold ]
+                    [ statusGraphic
+                    , statusString
+                    ]
+              ]
+            , [ lockStatus server.osProps.details.lockStatus ]
+            , verboseStatus
             ]
-            :: verboseStatus
-        )
 
 
 sshInstructions : Maybe String -> Element.Element Msg
@@ -497,7 +518,7 @@ availableActions : Server -> List Types.Types.ServerAction
 availableActions server =
     case server.exoProps.targetOpenstackStatus of
         Nothing ->
-            ServerActions.getAllowed server.osProps.details.openstackStatus
+            ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus
 
         Just _ ->
             []
@@ -731,6 +752,24 @@ renderServer project serverFilter deleteConfirmations server =
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
+        checkbox =
+            case server.osProps.details.lockStatus of
+                OSTypes.ServerUnlocked ->
+                    Input.checkbox [ Element.width Element.shrink ]
+                        { checked = server.exoProps.selected
+                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
+                        , icon = Input.defaultCheckbox
+                        , label = Input.labelHidden server.osProps.name
+                        }
+
+                OSTypes.ServerLocked ->
+                    Input.checkbox [ Element.width Element.shrink ]
+                        { checked = server.exoProps.selected
+                        , onChange = \_ -> NoOp
+                        , icon = \_ -> Icon.lock Framework.Color.black 14
+                        , label = Input.labelHidden server.osProps.name
+                        }
+
         serverLabelName : Server -> Element.Element Msg
         serverLabelName aServer =
             Element.row [ Element.width Element.fill ] <|
@@ -779,11 +818,11 @@ renderServer project serverFilter deleteConfirmations server =
             List.member server.osProps.uuid deleteConfirmations
 
         deleteWidget =
-            case ( deletionAttempted, confirmationNeeded ) of
-                ( True, _ ) ->
+            case ( deletionAttempted, server.osProps.details.lockStatus, confirmationNeeded ) of
+                ( True, _, _ ) ->
                     [ Element.text "Deleting..." ]
 
-                ( False, True ) ->
+                ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
                     , IconButton.iconButton
                         [ Modifier.Danger, Modifier.Small ]
@@ -806,7 +845,7 @@ renderServer project serverFilter deleteConfirmations server =
                         (Icon.windowClose Framework.Color.white 16)
                     ]
 
-                ( False, False ) ->
+                ( False, OSTypes.ServerUnlocked, False ) ->
                     [ IconButton.iconButton
                         [ Modifier.Danger, Modifier.Small ]
                         (Just
@@ -816,14 +855,16 @@ renderServer project serverFilter deleteConfirmations server =
                         )
                         (Icon.remove Framework.Color.white 16)
                     ]
+
+                ( False, OSTypes.ServerLocked, _ ) ->
+                    [ IconButton.iconButton
+                        [ Modifier.Disabled, Modifier.Small ]
+                        Nothing
+                        (Icon.remove Framework.Color.white 16)
+                    ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        ([ Input.checkbox [ Element.width Element.shrink ]
-            { checked = server.exoProps.selected
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
-            , icon = Input.defaultCheckbox
-            , label = Input.labelHidden server.osProps.name
-            }
+        ([ checkbox
          , serverLabel server
          ]
             ++ deleteWidget

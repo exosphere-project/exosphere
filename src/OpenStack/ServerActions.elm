@@ -2,6 +2,7 @@ module OpenStack.ServerActions exposing (getAllowed)
 
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Modifier as Modifier
+import Helpers.Helpers as Helpers
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -20,84 +21,128 @@ import Types.Types
         )
 
 
-getAllowed : OSTypes.ServerStatus -> List ServerAction
-getAllowed serverStatus =
-    List.filter
-        (\action ->
-            List.member serverStatus action.allowedStatuses
-        )
-        actions
+getAllowed : OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
+getAllowed serverStatus serverLockStatus =
+    let
+        allowedByServerStatus action =
+            case action.allowedStatuses of
+                Nothing ->
+                    True
+
+                Just allowedStatuses ->
+                    List.member serverStatus allowedStatuses
+
+        allowedByLockStatus action =
+            case action.allowedLockStatus of
+                Nothing ->
+                    True
+
+                Just allowedLockStatus_ ->
+                    serverLockStatus == allowedLockStatus_
+    in
+    actions
+        |> List.filter allowedByServerStatus
+        |> List.filter allowedByLockStatus
 
 
 actions : List Types.Types.ServerAction
 actions =
-    [ { name = "Start"
+    [ { name = "Lock"
+      , description = "Prevent further server actions until it is unlocked"
+      , allowedStatuses = Nothing
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
+      , action =
+            CmdAction <|
+                doAction (Json.Encode.object [ ( "lock", Json.Encode.null ) ])
+      , selectMods = []
+      , targetStatus = Nothing
+      , confirmable = False
+      }
+    , { name = "Unlock"
+      , description = "Allow further server actions"
+      , allowedStatuses = Nothing
+      , allowedLockStatus = Just OSTypes.ServerLocked
+      , action =
+            CmdAction <|
+                doAction (Json.Encode.object [ ( "unlock", Json.Encode.null ) ])
+      , selectMods = [ Modifier.Warning ]
+      , targetStatus = Nothing
+      , confirmable = False
+      }
+    , { name = "Start"
       , description = "Start stopped server"
-      , allowedStatuses = [ OSTypes.ServerStopped, OSTypes.ServerShutoff ]
+      , allowedStatuses = Just [ OSTypes.ServerStopped, OSTypes.ServerShutoff ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <|
                 doAction <|
                     Json.Encode.object [ ( "os-start", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
-      , targetStatus = [ OSTypes.ServerActive ]
+      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Unpause"
       , description = "Restore paused server"
-      , allowedStatuses = [ OSTypes.ServerPaused ]
+      , allowedStatuses = Just [ OSTypes.ServerPaused ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <|
                 doAction <|
                     Json.Encode.object [ ( "unpause", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
-      , targetStatus = [ OSTypes.ServerActive ]
+      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Resume"
       , description = "Resume suspended server"
-      , allowedStatuses = [ OSTypes.ServerSuspended ]
+      , allowedStatuses = Just [ OSTypes.ServerSuspended ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <|
                 doAction <|
                     Json.Encode.object [ ( "resume", Json.Encode.null ) ]
       , selectMods = [ Modifier.Primary ]
-      , targetStatus = [ OSTypes.ServerActive ]
+      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Unshelve"
       , description = "Restore shelved server"
-      , allowedStatuses = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+      , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <|
                 doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ])
       , selectMods = [ Modifier.Primary ]
-      , targetStatus = [ OSTypes.ServerActive ]
+      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Suspend"
       , description = "Save execution state to disk"
-      , allowedStatuses = [ OSTypes.ServerActive ]
+      , allowedStatuses = Just [ OSTypes.ServerActive ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <|
                 doAction <|
                     Json.Encode.object [ ( "suspend", Json.Encode.null ) ]
       , selectMods = []
-      , targetStatus = [ OSTypes.ServerSuspended ]
+      , targetStatus = Just [ OSTypes.ServerSuspended ]
       , confirmable = False
       }
     , { name = "Shelve"
       , description = "Shut down server and offload it from compute host"
-      , allowedStatuses = [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <|
                 doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
       , selectMods = []
-      , targetStatus = [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
+      , targetStatus = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , confirmable = False
       }
     , { name = "Image"
       , description = "Create snapshot image of server"
-      , allowedStatuses = [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
+      , allowedLockStatus = Nothing
       , action =
             UpdateAction <|
                 \projectId server ->
@@ -110,12 +155,13 @@ actions =
                             )
                         )
       , selectMods = []
-      , targetStatus = [ OSTypes.ServerActive ]
+      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Reboot"
       , description = "Restart server"
-      , allowedStatuses = [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+      , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
 
       -- TODO soft and hard reboot? Call hard reboot "reset"?
       , action =
@@ -128,27 +174,30 @@ actions =
                           )
                         ]
       , selectMods = [ Modifier.Warning ]
-      , targetStatus = [ OSTypes.ServerActive ]
+      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Delete"
       , description = "Destroy server"
       , allowedStatuses =
-            [ OSTypes.ServerPaused
-            , OSTypes.ServerSuspended
-            , OSTypes.ServerActive
-            , OSTypes.ServerShutoff
-            , OSTypes.ServerStopped
-            , OSTypes.ServerError
-            , OSTypes.ServerBuilding
-            , OSTypes.ServerRescued
-            , OSTypes.ServerShelved
-            , OSTypes.ServerShelvedOffloaded
-            ]
+            Just
+                [ OSTypes.ServerPaused
+                , OSTypes.ServerSuspended
+                , OSTypes.ServerActive
+                , OSTypes.ServerReboot
+                , OSTypes.ServerShutoff
+                , OSTypes.ServerStopped
+                , OSTypes.ServerError
+                , OSTypes.ServerBuilding
+                , OSTypes.ServerRescued
+                , OSTypes.ServerShelved
+                , OSTypes.ServerShelvedOffloaded
+                ]
+      , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <| Rest.Nova.requestDeleteServer
       , selectMods = [ Modifier.Danger ]
-      , targetStatus = [ OSTypes.ServerSoftDeleted ]
+      , targetStatus = Just [ OSTypes.ServerSoftDeleted ]
       , confirmable = True
       }
 
@@ -191,5 +240,5 @@ doAction body project server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (Http.expectString
-            (resultToMsg errorContext (\_ -> NoOp))
+            (resultToMsg errorContext (\_ -> ProjectMsg (Helpers.getProjectId project) <| RequestServer server.osProps.uuid))
         )

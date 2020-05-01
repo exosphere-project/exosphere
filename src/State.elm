@@ -918,7 +918,7 @@ processProjectSpecificMsg model project msg =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = Just targetStatus }
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus }
 
                 newProject =
                     Helpers.projectUpdateServer project newServer
@@ -1039,7 +1039,12 @@ processProjectSpecificMsg model project msg =
                         oldExoProps =
                             someServer.exoProps
                     in
-                    Server someServer.osProps { oldExoProps | selected = allServersSelected }
+                    case someServer.osProps.details.lockStatus of
+                        OSTypes.ServerUnlocked ->
+                            Server someServer.osProps { oldExoProps | selected = allServersSelected }
+
+                        OSTypes.ServerLocked ->
+                            someServer
 
                 newProject =
                     { project | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers)) }

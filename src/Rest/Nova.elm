@@ -748,6 +748,7 @@ decodeServerDetails =
         |> Pipeline.required "user_id" Decode.string
         |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
         |> Pipeline.required "tags" (Decode.list Decode.string)
+        |> Pipeline.required "locked" serverLockStatusDecoder
 
 
 serverOpenstackStatusDecoder : String -> Decode.Decoder OSTypes.ServerStatus
@@ -849,6 +850,19 @@ metadataDecoder =
     {- There has got to be a better way to do this -}
     Decode.keyValuePairs Decode.string
         |> Decode.map (\pairs -> List.map (\pair -> OSTypes.MetadataItem (Tuple.first pair) (Tuple.second pair)) pairs)
+
+
+serverLockStatusDecoder : Decode.Decoder OSTypes.ServerLockStatus
+serverLockStatusDecoder =
+    let
+        boolToLockStatus b =
+            if b then
+                Decode.succeed OSTypes.ServerLocked
+
+            else
+                Decode.succeed OSTypes.ServerUnlocked
+    in
+    Decode.bool |> Decode.andThen boolToLockStatus
 
 
 decodeConsoleUrl : Decode.Decoder OSTypes.ConsoleUrl
