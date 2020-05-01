@@ -1,6 +1,5 @@
 module Types.Types exposing
-    ( ActionType(..)
-    , CockpitLoginStatus(..)
+    ( CockpitLoginStatus(..)
     , CreateServerRequest
     , DeleteConfirmation
     , DeleteVolumeConfirmation
@@ -29,7 +28,6 @@ module Types.Types exposing
     , ProjectViewConstructor(..)
     , ProjectViewParams
     , Server
-    , ServerAction
     , ServerDetailViewParams
     , ServerFilter
     , ServerFromExoProps
@@ -46,7 +44,6 @@ module Types.Types exposing
     )
 
 import Error exposing (ErrorContext)
-import Framework.Modifier as Modifier
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -281,29 +278,12 @@ type alias ServerDetailViewParams =
     }
 
 
-type alias ServerAction =
-    { name : String
-    , description : String
-    , allowedStatuses : Maybe (List OSTypes.ServerStatus)
-    , allowedLockStatus : Maybe OSTypes.ServerLockStatus
-    , action : ActionType
-    , selectMods : List Modifier.Modifier
-    , targetStatus : Maybe (List OSTypes.ServerStatus)
-    , confirmable : Bool
-    }
-
-
 type alias DeleteConfirmation =
     OSTypes.ServerUuid
 
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
-
-
-type ActionType
-    = CmdAction (Project -> Server -> Cmd Msg)
-    | UpdateAction (ProjectIdentifier -> Server -> Msg)
 
 
 type IPInfoLevel

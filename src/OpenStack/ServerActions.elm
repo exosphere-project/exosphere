@@ -1,4 +1,8 @@
-module OpenStack.ServerActions exposing (getAllowed)
+module OpenStack.ServerActions exposing
+    ( ActionType(..)
+    , ServerAction
+    , getAllowed
+    )
 
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Modifier as Modifier
@@ -10,14 +14,13 @@ import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
 import Rest.Nova
 import Types.Types
     exposing
-        ( ActionType(..)
-        , HttpRequestMethod(..)
+        ( HttpRequestMethod(..)
         , Msg(..)
         , Project
+        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
-        , ServerAction
         )
 
 
@@ -45,7 +48,24 @@ getAllowed serverStatus serverLockStatus =
         |> List.filter allowedByLockStatus
 
 
-actions : List Types.Types.ServerAction
+type alias ServerAction =
+    { name : String
+    , description : String
+    , allowedStatuses : Maybe (List OSTypes.ServerStatus)
+    , allowedLockStatus : Maybe OSTypes.ServerLockStatus
+    , action : ActionType
+    , selectMods : List Modifier.Modifier
+    , targetStatus : Maybe (List OSTypes.ServerStatus)
+    , confirmable : Bool
+    }
+
+
+type ActionType
+    = CmdAction (Project -> Server -> Cmd Msg)
+    | UpdateAction (ProjectIdentifier -> Server -> Msg)
+
+
+actions : List ServerAction
 actions =
     [ { name = "Lock"
       , description = "Prevent further server actions until it is unlocked"

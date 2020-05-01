@@ -34,7 +34,6 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
-        , ServerAction
         , ServerDetailViewParams
         , ServerFilter
         , ServerOrigin(..)
@@ -530,7 +529,7 @@ viewServerActions projectId server serverDetailViewParams =
                 []
 
 
-renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> ServerAction -> Element.Element Msg
+renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> ServerActions.ServerAction -> Element.Element Msg
 renderServerActionButton projectId server serverDetailViewParams serverAction =
     let
         displayConfirmation =
@@ -542,7 +541,7 @@ renderServerActionButton projectId server serverDetailViewParams serverAction =
                     actionName == serverAction.name
     in
     case ( serverAction.action, serverAction.confirmable, displayConfirmation ) of
-        ( Types.Types.CmdAction _, True, False ) ->
+        ( ServerActions.CmdAction _, True, False ) ->
             let
                 updateAction =
                     ProjectMsg
@@ -556,7 +555,7 @@ renderServerActionButton projectId server serverDetailViewParams serverAction =
             in
             renderActionButton serverAction (Just updateAction) serverAction.name
 
-        ( Types.Types.CmdAction cmdAction, True, True ) ->
+        ( ServerActions.CmdAction cmdAction, True, True ) ->
             let
                 actionMsg =
                     Just <|
@@ -582,7 +581,7 @@ renderServerActionButton projectId server serverDetailViewParams serverAction =
             in
             renderConfirmationButton serverAction actionMsg cancelMsg title
 
-        ( Types.Types.CmdAction cmdAction, False, _ ) ->
+        ( ServerActions.CmdAction cmdAction, False, _ ) ->
             let
                 actionMsg =
                     Just <|
@@ -597,7 +596,7 @@ renderServerActionButton projectId server serverDetailViewParams serverAction =
             in
             renderActionButton serverAction actionMsg title
 
-        ( Types.Types.UpdateAction updateAction, _, _ ) ->
+        ( ServerActions.UpdateAction updateAction, _, _ ) ->
             let
                 actionMsg =
                     Just <| updateAction projectId server
@@ -608,12 +607,12 @@ renderServerActionButton projectId server serverDetailViewParams serverAction =
             renderActionButton serverAction actionMsg title
 
 
-confirmationMessage : Types.Types.ServerAction -> String
+confirmationMessage : ServerActions.ServerAction -> String
 confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
-renderActionButton : Types.Types.ServerAction -> Maybe Msg -> String -> Element.Element Msg
+renderActionButton : ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -630,7 +629,7 @@ renderActionButton serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : Types.Types.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
+renderConfirmationButton : ServerActions.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
 renderConfirmationButton serverAction actionMsg cancelMsg title =
     Element.row
         [ Element.spacing 10 ]
