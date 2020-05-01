@@ -628,6 +628,18 @@ processProjectSpecificMsg model project msg =
     case msg of
         SetProjectView projectViewConstructor ->
             let
+                prevProjectViewConstructor =
+                    case model.viewState of
+                        ProjectView projectId _ projectViewConstructor_ ->
+                            if projectId == Helpers.getProjectId project then
+                                Just projectViewConstructor_
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
+
                 modelUpdatedView =
                     { model | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
 
@@ -674,26 +686,54 @@ processProjectSpecificMsg model project msg =
             in
             case projectViewConstructor of
                 ListImages _ ->
-                    ( modelUpdatedView, Rest.Glance.requestImages project )
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (ListImages _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    Rest.Glance.requestImages project
+                    in
+                    ( modelUpdatedView, cmd )
 
                 ListProjectServers _ _ ->
-                    ( modelResetCockpitStatuses
-                    , [ Rest.Nova.requestServers
-                      , Rest.Neutron.requestFloatingIps
-                      ]
-                        |> List.map (\x -> x project)
-                        |> Cmd.batch
-                    )
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (ListProjectServers _ _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    [ Rest.Nova.requestServers
+                                    , Rest.Neutron.requestFloatingIps
+                                    ]
+                                        |> List.map (\x -> x project)
+                                        |> Cmd.batch
+                    in
+                    ( modelResetCockpitStatuses, cmd )
 
                 ServerDetail serverUuid _ ->
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (ServerDetail _ _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    Cmd.batch
+                                        [ Rest.Nova.requestServer project serverUuid
+                                        , Rest.Nova.requestFlavors project
+                                        , Rest.Glance.requestImages project
+                                        , OSVolumes.requestVolumes project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                    in
                     ( modelResetCockpitStatuses
-                    , Cmd.batch
-                        [ Rest.Nova.requestServer project serverUuid
-                        , Rest.Nova.requestFlavors project
-                        , Rest.Glance.requestImages project
-                        , OSVolumes.requestVolumes project
-                        , Ports.instantiateClipboardJs ()
-                        ]
+                    , cmd
                     )
 
                 CreateServerImage _ _ ->
@@ -785,17 +825,37 @@ processProjectSpecificMsg model project msg =
                             )
 
                 ListProjectVolumes _ ->
-                    ( modelUpdatedView, OSVolumes.requestVolumes project )
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (ListProjectVolumes _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    OSVolumes.requestVolumes project
+                    in
+                    ( modelUpdatedView, cmd )
 
                 VolumeDetail _ _ ->
                     ( modelUpdatedView, Cmd.none )
 
                 AttachVolumeModal _ _ ->
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (AttachVolumeModal _ _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    Cmd.batch
+                                        [ Rest.Nova.requestServers project
+                                        , OSVolumes.requestVolumes project
+                                        ]
+                    in
                     ( modelUpdatedView
-                    , Cmd.batch
-                        [ Rest.Nova.requestServers project
-                        , OSVolumes.requestVolumes project
-                        ]
+                    , cmd
                     )
 
                 MountVolInstructions _ ->
