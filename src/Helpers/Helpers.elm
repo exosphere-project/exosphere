@@ -297,26 +297,26 @@ serviceCatalogToEndpoints catalog =
                 url
     in
     Endpoints
-        (getServicePublicUrl "cinderv3" catalog)
-        (getServicePublicUrl "glance" catalog)
-        (getServicePublicUrl "keystone" catalog)
-        (getServicePublicUrl "nova" catalog
+        (getServicePublicUrl "volumev3" catalog)
+        (getServicePublicUrl "image" catalog)
+        (getServicePublicUrl "identity" catalog)
+        (getServicePublicUrl "compute" catalog
             |> novaUrlWithMicroversionSupport
         )
-        (getServicePublicUrl "neutron" catalog)
+        (getServicePublicUrl "network" catalog)
 
 
 getServicePublicUrl : String -> OSTypes.ServiceCatalog -> HelperTypes.Url
-getServicePublicUrl serviceName catalog =
-    getServiceFromCatalog serviceName catalog
+getServicePublicUrl serviceType catalog =
+    getServiceFromCatalog serviceType catalog
         |> Maybe.andThen getPublicEndpointFromService
         |> Maybe.map .url
         |> Maybe.withDefault ""
 
 
 getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service
-getServiceFromCatalog serviceName catalog =
-    List.filter (\s -> s.name == serviceName) catalog
+getServiceFromCatalog serviceType catalog =
+    List.filter (\s -> s.type_ == serviceType) catalog
         |> List.head
 
 
