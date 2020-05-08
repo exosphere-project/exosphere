@@ -44,6 +44,7 @@ module Helpers.Helpers exposing
 
 import Color
 import Debug
+import Dict
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
 import Html
@@ -281,7 +282,7 @@ iso8601StringToPosix str =
         |> Result.map ISO8601.toPosix
 
 
-serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Endpoints
+serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints
 serviceCatalogToEndpoints catalog =
     let
         novaUrlWithMicroversionSupport : String -> String
@@ -295,23 +296,43 @@ serviceCatalogToEndpoints catalog =
 
             else
                 url
+
+        maybeEndpointsDict : Dict.Dict String (Maybe String)
+        maybeEndpointsDict =
+            Dict.fromList
+                [ ( "cinder", getServicePublicUrl "volumev3" catalog )
+                , ( "glance", getServicePublicUrl "image" catalog )
+                , ( "keystone", getServicePublicUrl "identity" catalog )
+                , ( "nova", getServicePublicUrl "compute" catalog |> Maybe.map novaUrlWithMicroversionSupport )
+                , ( "neutron", getServicePublicUrl "network" catalog )
+                ]
     in
-    Endpoints
-        (getServicePublicUrl "volumev3" catalog)
-        (getServicePublicUrl "image" catalog)
-        (getServicePublicUrl "identity" catalog)
-        (getServicePublicUrl "compute" catalog
-            |> novaUrlWithMicroversionSupport
-        )
-        (getServicePublicUrl "network" catalog)
+    -- I am not super proud of this factoring
+    case
+        [ "cinder", "glance", "keystone", "nova", "neutron" ]
+            |> List.map (\k -> Dict.get k maybeEndpointsDict)
+            |> List.map (Maybe.withDefault Nothing)
+    of
+        [ Just cinderUrl, Just glanceUrl, Just keystoneUrl, Just novaUrl, Just neutronUrl ] ->
+            Ok <| Endpoints cinderUrl glanceUrl keystoneUrl novaUrl neutronUrl
+
+        _ ->
+            let
+                unfoundServices =
+                    Dict.filter (\_ v -> v == Nothing) maybeEndpointsDict
+                        |> Dict.keys
+            in
+            Err
+                ("Could not locate URL(s) in service catalog for the following service(s):"
+                    ++ Debug.toString unfoundServices
+                )
 
 
-getServicePublicUrl : String -> OSTypes.ServiceCatalog -> HelperTypes.Url
+getServicePublicUrl : String -> OSTypes.ServiceCatalog -> Maybe HelperTypes.Url
 getServicePublicUrl serviceType catalog =
     getServiceFromCatalog serviceType catalog
         |> Maybe.andThen getPublicEndpointFromService
         |> Maybe.map .url
-        |> Maybe.withDefault ""
 
 
 getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service

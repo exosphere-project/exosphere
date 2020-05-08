@@ -7,7 +7,7 @@ module LocalStorage.LocalStorage exposing
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject2, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
@@ -27,6 +27,7 @@ generateStoredProject : Types.Project -> StoredProject
 generateStoredProject project =
     { secret = project.secret
     , auth = project.auth
+    , endpoints = project.endpoints
     }
 
 
@@ -51,7 +52,7 @@ hydrateProjectFromStoredProject : StoredProject -> Types.Project
 hydrateProjectFromStoredProject storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
-    , endpoints = Helpers.serviceCatalogToEndpoints storedProject.auth.catalog
+    , endpoints = storedProject.endpoints
     , images = []
     , servers = RemoteData.NotAsked
     , flavors = []
@@ -95,10 +96,11 @@ encodeStoredState storedState =
             Encode.object
                 [ ( "secret", secretEncode storedProject.secret )
                 , ( "auth", encodeAuthToken storedProject.auth )
+                , ( "endpoints", encodeExoEndpoints storedProject.endpoints )
                 ]
     in
     Encode.object
-        [ ( "2"
+        [ ( "3"
           , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
           )
         ]
@@ -147,20 +149,20 @@ encodeService service =
     Encode.object
         [ ( "name", Encode.string service.name )
         , ( "type_", Encode.string service.type_ )
-        , ( "endpoints", Encode.list encodeEndpoint service.endpoints )
+        , ( "endpoints", Encode.list encodeCatalogEndpoint service.endpoints )
         ]
 
 
-encodeEndpoint : OSTypes.Endpoint -> Encode.Value
-encodeEndpoint endpoint =
+encodeCatalogEndpoint : OSTypes.Endpoint -> Encode.Value
+encodeCatalogEndpoint endpoint =
     Encode.object
-        [ ( "interface", encodeEndpointInterface endpoint.interface )
+        [ ( "interface", encodeCatalogEndpointInterface endpoint.interface )
         , ( "url", Encode.string endpoint.url )
         ]
 
 
-encodeEndpointInterface : OSTypes.EndpointInterface -> Encode.Value
-encodeEndpointInterface endpointInterface =
+encodeCatalogEndpointInterface : OSTypes.EndpointInterface -> Encode.Value
+encodeCatalogEndpointInterface endpointInterface =
     let
         interfaceString =
             case endpointInterface of
@@ -176,6 +178,17 @@ encodeEndpointInterface endpointInterface =
     Encode.string interfaceString
 
 
+encodeExoEndpoints : Types.Endpoints -> Encode.Value
+encodeExoEndpoints endpoints =
+    Encode.object
+        [ ( "cinder", Encode.string endpoints.cinder )
+        , ( "glance", Encode.string endpoints.glance )
+        , ( "keystone", Encode.string endpoints.keystone )
+        , ( "nova", Encode.string endpoints.nova )
+        , ( "neutron", Encode.string endpoints.neutron )
+        ]
+
+
 
 -- Decoders
 
@@ -189,7 +202,10 @@ decodeStoredState =
             , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
 
             -- Added ApplicationCredential
-            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode)
+            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
+
+            -- Added Endpoints
+            , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode)
             ]
         )
 
@@ -203,7 +219,7 @@ strToNameAndUuid s =
         OSTypes.NameAndUuid s ""
 
 
-storedProject1ToStoredProject : StoredProject1 -> StoredProject
+storedProject1ToStoredProject : StoredProject1 -> Decode.Decoder StoredProject
 storedProject1ToStoredProject sp =
     let
         authToken =
@@ -216,9 +232,16 @@ storedProject1ToStoredProject sp =
                 sp.auth.expiresAt
                 sp.auth.tokenValue
     in
-    StoredProject
-        (Types.OpenstackPassword sp.password)
-        authToken
+    case Helpers.serviceCatalogToEndpoints sp.auth.catalog of
+        Ok endpoints ->
+            Decode.succeed <|
+                StoredProject
+                    (Types.OpenstackPassword sp.password)
+                    authToken
+                    endpoints
+
+        Err e ->
+            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
 
 
 storedProjectDecode1 : Decode.Decoder StoredProject
@@ -232,14 +255,29 @@ storedProjectDecode1 =
         (Decode.map strToNameAndUuid <|
             Decode.at [ "creds", "userDomain" ] Decode.string
         )
-        |> Decode.map storedProject1ToStoredProject
+        |> Decode.andThen storedProject1ToStoredProject
 
 
-storedProjectDecode : Decode.Decoder StoredProject
-storedProjectDecode =
-    Decode.map2 StoredProject
+storedProject2ToStoredProject : StoredProject2 -> Decode.Decoder StoredProject
+storedProject2ToStoredProject sp =
+    case Helpers.serviceCatalogToEndpoints sp.auth.catalog of
+        Ok endpoints ->
+            Decode.succeed <|
+                StoredProject
+                    sp.secret
+                    sp.auth
+                    endpoints
+
+        Err e ->
+            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
+
+
+storedProjectDecode2 : Decode.Decoder StoredProject
+storedProjectDecode2 =
+    Decode.map2 StoredProject2
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
+        |> Decode.andThen storedProject2ToStoredProject
 
 
 decodeProjectSecret : Decode.Decoder Types.ProjectSecret
@@ -263,6 +301,14 @@ decodeProjectSecret =
                     Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
     in
     Decode.field "secretType" Decode.string |> Decode.andThen projectSecretFromType
+
+
+storedProjectDecode : Decode.Decoder StoredProject
+storedProjectDecode =
+    Decode.map3 StoredProject
+        (Decode.field "secret" decodeProjectSecret)
+        (Decode.field "auth" decodeStoredAuthTokenDetails)
+        (Decode.field "endpoints" decodeEndpoints)
 
 
 decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.ScopedAuthToken
@@ -301,6 +347,16 @@ decodeStoredAuthTokenDetails =
             |> Decode.map Time.millisToPosix
         )
         (Decode.field "tokenValue" Decode.string)
+
+
+decodeEndpoints : Decode.Decoder Types.Endpoints
+decodeEndpoints =
+    Decode.map5 Types.Endpoints
+        (Decode.field "cinder" Decode.string)
+        (Decode.field "glance" Decode.string)
+        (Decode.field "keystone" Decode.string)
+        (Decode.field "nova" Decode.string)
+        (Decode.field "neutron" Decode.string)
 
 
 decodeNameAndId : Decode.Decoder OSTypes.NameAndUuid
