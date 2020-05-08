@@ -39,9 +39,9 @@ stringIsUuidOrDefaultSuite =
         , test "Accepts \"default\"" <|
             \_ ->
                 Expect.equal True (Helpers.stringIsUuidOrDefault "default")
-        , test "Accepts \"Default\" (note upper case)" <|
+        , test "Rejects \"Default\" (note upper case)" <|
             \_ ->
-                Expect.equal True (Helpers.stringIsUuidOrDefault "Default")
+                Expect.equal False (Helpers.stringIsUuidOrDefault "Default")
         ]
 
 
