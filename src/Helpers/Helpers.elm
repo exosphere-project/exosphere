@@ -150,7 +150,7 @@ stringIsUuidOrDefault str =
             String.all isValidHex strNoHyphens && isValidLength
 
         stringIsDefault =
-            String.toLower str == "default"
+            str == "default"
     in
     stringIsUuid || stringIsDefault
 
