@@ -29,6 +29,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
+        , Endpoints
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
@@ -278,45 +279,57 @@ updateUnderlying msg model =
                         error
 
                 Ok authToken ->
-                    let
-                        projectId =
-                            ProjectIdentifier
-                                authToken.project.name
-                                (Helpers.serviceCatalogToEndpoints authToken.catalog).keystone
-                    in
-                    -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                    -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-                    case
-                        ( Helpers.projectLookup model <| projectId, maybePassword )
-                    of
-                        ( Nothing, Nothing ) ->
+                    case Helpers.serviceCatalogToEndpoints authToken.catalog of
+                        Err e ->
                             Helpers.processError
                                 model
                                 (ErrorContext
-                                    "this is an impossible state"
+                                    "Decode project endpoints"
                                     ErrorCrit
-                                    (Just "The laws of physics and logic have been violated, check with your universe administrator")
+                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
                                 )
-                                "This is an impossible state"
+                                e
 
-                        ( Nothing, Just password ) ->
-                            createProject model password authToken
-
-                        ( Just project, _ ) ->
-                            -- If we don't have an application credential for this project yet, then get one
+                        Ok endpoints ->
                             let
-                                appCredCmd =
-                                    case project.secret of
-                                        ApplicationCredential _ ->
-                                            Cmd.none
-
-                                        _ ->
-                                            getTimeForAppCredential project
-
-                                ( newModel, updateTokenCmd ) =
-                                    projectUpdateAuthToken model project authToken
+                                projectId =
+                                    ProjectIdentifier
+                                        authToken.project.name
+                                        endpoints.keystone
                             in
-                            ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
+                            case
+                                ( Helpers.projectLookup model <| projectId, maybePassword )
+                            of
+                                ( Nothing, Nothing ) ->
+                                    Helpers.processError
+                                        model
+                                        (ErrorContext
+                                            "this is an impossible state"
+                                            ErrorCrit
+                                            (Just "The laws of physics and logic have been violated, check with your universe administrator")
+                                        )
+                                        "This is an impossible state"
+
+                                ( Nothing, Just password ) ->
+                                    createProject model password authToken endpoints
+
+                                ( Just project, _ ) ->
+                                    -- If we don't have an application credential for this project yet, then get one
+                                    let
+                                        appCredCmd =
+                                            case project.secret of
+                                                ApplicationCredential _ ->
+                                                    Cmd.none
+
+                                                _ ->
+                                                    getTimeForAppCredential project
+
+                                        ( newModel, updateTokenCmd ) =
+                                            projectUpdateAuthToken model project authToken
+                                    in
+                                    ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
         ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
@@ -1377,12 +1390,9 @@ processProjectSpecificMsg model project msg =
                 ( model, cmd )
 
 
-createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
-createProject model password authToken =
+createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
+createProject model password authToken endpoints =
     let
-        endpoints =
-            Helpers.serviceCatalogToEndpoints authToken.catalog
-
         newProject =
             { secret = OpenstackPassword password
             , auth = authToken
