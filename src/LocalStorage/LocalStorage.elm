@@ -12,6 +12,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Time
 import Types.Types as Types
+import UUID
 
 
 generateStoredState : Types.Model -> Encode.Value
@@ -20,7 +21,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState { projects = strippedProjects }
+    encodeStoredState strippedProjects model.clientUuid
 
 
 generateStoredProject : Types.Project -> StoredProject
@@ -31,8 +32,8 @@ generateStoredProject project =
     }
 
 
-hydrateModelFromStoredState : Types.Model -> StoredState -> Types.Model
-hydrateModelFromStoredState model storedState =
+hydrateModelFromStoredState : (UUID.UUID -> Types.Model) -> UUID.UUID -> StoredState -> Types.Model
+hydrateModelFromStoredState emptyModel newClientUuid storedState =
     let
         projects =
             List.map hydrateProjectFromStoredProject storedState.projects
@@ -44,8 +45,20 @@ hydrateModelFromStoredState model storedState =
 
                 firstProject :: _ ->
                     Types.ProjectView (Helpers.getProjectId firstProject) { createPopup = False } (Types.ListProjectServers { onlyOwnServers = False } [])
+
+        clientUuid =
+            -- If client UUID exists in stored state then use that, else set a new one
+            case storedState.clientUuid of
+                Just uuid ->
+                    uuid
+
+                Nothing ->
+                    newClientUuid
+
+        modelWithClientUuid =
+            emptyModel clientUuid
     in
-    { model | projects = projects, viewState = viewState }
+    { modelWithClientUuid | projects = projects, viewState = viewState }
 
 
 hydrateProjectFromStoredProject : StoredProject -> Types.Project
@@ -72,8 +85,8 @@ hydrateProjectFromStoredProject storedProject =
 -- Encoders
 
 
-encodeStoredState : StoredState -> Encode.Value
-encodeStoredState storedState =
+encodeStoredState : List StoredProject -> UUID.UUID -> Encode.Value
+encodeStoredState projects clientUuid =
     let
         secretEncode : Types.ProjectSecret -> Encode.Value
         secretEncode secret =
@@ -100,8 +113,11 @@ encodeStoredState storedState =
                 ]
     in
     Encode.object
-        [ ( "3"
-          , Encode.object [ ( "projects", Encode.list storedProjectEncode storedState.projects ) ]
+        [ ( "4"
+          , Encode.object
+                [ ( "projects", Encode.list storedProjectEncode projects )
+                , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
+                ]
           )
         ]
 
@@ -195,19 +211,40 @@ encodeExoEndpoints endpoints =
 
 decodeStoredState : Decode.Decoder StoredState
 decodeStoredState =
-    Decode.map
-        StoredState
-        (Decode.oneOf
-            [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
-            , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
+    let
+        projects =
+            Decode.oneOf
+                [ Decode.at [ "0", "providers" ] (Decode.list storedProjectDecode1)
+                , Decode.at [ "1", "projects" ] (Decode.list storedProjectDecode1)
 
-            -- Added ApplicationCredential
-            , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
+                -- Added ApplicationCredential
+                , Decode.at [ "2", "projects" ] (Decode.list storedProjectDecode2)
 
-            -- Added Endpoints
-            , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode)
-            ]
-        )
+                -- Added Endpoints
+                , Decode.at [ "3", "projects" ] (Decode.list storedProjectDecode)
+
+                -- Added client UUID
+                , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode)
+                ]
+
+        clientUuid =
+            -- This is tricky; optional field that will either be Just a UUID.UUID, or Nothing (either because we don't
+            -- have a clientUuid key in the JSON, or because converting the decoded string to UUID failed).
+            Decode.maybe
+                (Decode.at [ "4", "clientUuid" ] Decode.string
+                    |> Decode.map UUID.fromString
+                    |> Decode.andThen
+                        (\result ->
+                            case result of
+                                Ok uuid ->
+                                    Decode.succeed uuid
+
+                                Err _ ->
+                                    Decode.fail ""
+                        )
+                )
+    in
+    Decode.map2 StoredState projects clientUuid
 
 
 strToNameAndUuid : String -> OSTypes.NameAndUuid

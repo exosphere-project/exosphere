@@ -41,6 +41,7 @@ import Types.Types
         , UnscopedProviderProject
         , ViewState(..)
         )
+import UUID
 import Url
 
 
@@ -253,11 +254,18 @@ requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
         }
 
 
-requestAppCredential : Project -> Time.Posix -> Cmd Msg
-requestAppCredential project posixTime =
+requestAppCredential : Project -> UUID.UUID -> Time.Posix -> Cmd Msg
+requestAppCredential project clientUuid posixTime =
     let
         appCredentialName =
-            "exosphere-" ++ project.auth.project.name ++ "-" ++ (String.fromInt <| Time.posixToMillis posixTime)
+            String.concat
+                [ "exosphere-"
+                , UUID.toString clientUuid
+                , "-"
+                , project.auth.project.name
+                , "-"
+                , String.fromInt <| Time.posixToMillis posixTime
+                ]
 
         requestBody =
             Encode.object

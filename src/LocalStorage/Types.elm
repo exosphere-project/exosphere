@@ -7,6 +7,7 @@ module LocalStorage.Types exposing
 
 import OpenStack.Types as OSTypes
 import Types.Types exposing (Endpoints, ProjectSecret)
+import UUID
 
 
 type alias StoredProject =
@@ -32,4 +33,5 @@ type alias StoredProject1 =
 
 type alias StoredState =
     { projects : List StoredProject
+    , clientUuid : Maybe UUID.UUID
     }
