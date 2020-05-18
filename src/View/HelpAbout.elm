@@ -2,6 +2,7 @@ module View.HelpAbout exposing (helpAbout)
 
 import Element
 import Types.Types exposing (Model, Msg(..))
+import UUID
 import View.Helpers as VH
 import View.Types
 
@@ -24,6 +25,7 @@ helpAbout model =
 
                 Just proxyUrl ->
                     [ Element.text ("You are using a proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack is passing through this server.") ]
+        , Element.paragraph [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
         , Element.el VH.heading2 <| Element.text "Getting Help"
         , Element.paragraph []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
