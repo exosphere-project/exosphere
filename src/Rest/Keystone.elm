@@ -257,7 +257,7 @@ requestAppCredential : Project -> Time.Posix -> Cmd Msg
 requestAppCredential project posixTime =
     let
         appCredentialName =
-            "exosphere-" ++ (String.fromInt <| Time.posixToMillis posixTime)
+            "exosphere-" ++ project.auth.project.name ++ "-" ++ (String.fromInt <| Time.posixToMillis posixTime)
 
         requestBody =
             Encode.object
