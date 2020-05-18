@@ -10,9 +10,8 @@ var startingState = storedState ? JSON.parse(storedState) : null;
 var userAgent = navigator.userAgent.toLowerCase();
 var isElectron = (userAgent.indexOf(' electron/') > -1);
 
-// Get a high-quality random seed. We use 4 32-bit integers
+// Get a high-quality random seed to make a client UUID. We use 4 32-bit integers
 // https://package.elm-lang.org/packages/TSFoster/elm-uuid/latest/UUID#generator
-var myCrypto = require('crypto');
 var typedArray = new Int32Array(4);
 var randomSeeds = crypto.getRandomValues(typedArray);
 
