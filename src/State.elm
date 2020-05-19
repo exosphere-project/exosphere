@@ -15,6 +15,7 @@ import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Orchestration.Orchestration as Orchestration
 import Ports
 import Random
 import RemoteData
@@ -212,20 +213,30 @@ subscriptions _ =
         ]
 
 
-
-{- We want to `setStorage` on every update. This function adds the setStorage
-   command for every step of the update function.
--}
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    {- We want to `setStorage` on every update. This function adds the setStorage
+       command for every step of the update function.
+    -}
     let
         ( newModel, cmds ) =
             updateUnderlying msg model
+
+        orchestrationTimeCmd =
+            -- Each trip through the runtime, we get the time and feed it to orchestration module
+            case msg of
+                DoOrchestration _ ->
+                    Cmd.none
+
+                _ ->
+                    Task.perform (\posix -> DoOrchestration posix) Time.now
     in
     ( newModel
-    , Cmd.batch [ Ports.setStorage (LocalStorage.generateStoredState newModel), cmds ]
+    , Cmd.batch
+        [ Ports.setStorage (LocalStorage.generateStoredState newModel)
+        , orchestrationTimeCmd
+        , cmds
+        ]
     )
 
 
@@ -247,6 +258,10 @@ updateUnderlying msg model =
 
         Tick interval _ ->
             processTick model interval
+
+        DoOrchestration posixTime ->
+            -- TODO does Orchestration care about incoming Msg or no? Probably not
+            Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
             let

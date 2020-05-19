@@ -162,6 +162,7 @@ type alias Endpoints =
 
 type Msg
     = Tick TickInterval Time.Posix
+    | DoOrchestration Time.Posix
     | SetNonProjectView NonProjectViewConstructor
     | HandleApiError ErrorContext Http.Error
     | RequestUnscopedToken OSTypes.OpenstackLogin
@@ -331,7 +332,7 @@ type alias Server =
 
 
 type alias ExoServerProps =
-    { floatingIpState : FloatingIpState
+    { priorFloatingIpState : FloatingIpState
     , selected : Bool
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that

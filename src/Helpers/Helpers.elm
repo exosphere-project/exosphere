@@ -29,6 +29,7 @@ module Helpers.Helpers exposing
     , projectUpdateServers
     , providerLookup
     , renderUserDataTemplate
+    , serverFromThisExoClient
     , serverLookup
     , serverOrigin
     , serviceCatalogToEndpoints
@@ -80,6 +81,7 @@ import Types.Types
         , Toast
         , UnscopedProvider
         )
+import UUID
 import Url
 
 
@@ -966,3 +968,9 @@ serverOrigin serverDetails =
 
             else
                 ServerNotFromExo
+
+
+serverFromThisExoClient : UUID.UUID -> Server -> Bool
+serverFromThisExoClient clientUuid server =
+    -- Determine if server was created by this Exosphere client
+    List.member (OSTypes.MetadataItem "exoClientUuid" (UUID.toString clientUuid)) server.osProps.details.metadata

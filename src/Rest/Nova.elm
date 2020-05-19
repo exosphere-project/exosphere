@@ -504,7 +504,7 @@ receiveServer_ project osServer =
                         floatingIpState_ =
                             Helpers.checkFloatingIpState
                                 osServer.details
-                                exoServer.exoProps.floatingIpState
+                                exoServer.exoProps.priorFloatingIpState
 
                         oldOSProps =
                             exoServer.osProps
@@ -527,12 +527,12 @@ receiveServer_ project osServer =
                     Server
                         { oldOSProps | details = osServer.details }
                         { oldExoProps
-                            | floatingIpState = floatingIpState_
+                            | priorFloatingIpState = floatingIpState_
                             , targetOpenstackStatus = newTargetOpenstackStatus
                         }
 
         floatingIpCmd =
-            case newServer.exoProps.floatingIpState of
+            case newServer.exoProps.priorFloatingIpState of
                 Requestable ->
                     [ getFloatingIpRequestPorts project newServer
                     , requestNetworks project
