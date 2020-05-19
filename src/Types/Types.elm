@@ -52,6 +52,7 @@ import Set
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes
+import UUID
 
 
 
@@ -64,6 +65,10 @@ type alias Flags =
     , storedState : Maybe Decode.Value
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
+    , randomSeed0 : Int
+    , randomSeed1 : Int
+    , randomSeed2 : Int
+    , randomSeed3 : Int
     }
 
 
@@ -83,6 +88,7 @@ type alias Model =
     , toasties : Toasty.Stack Toast
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
+    , clientUuid : UUID.UUID
     }
 
 

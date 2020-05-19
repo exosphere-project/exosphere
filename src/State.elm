@@ -16,6 +16,7 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Ports
+import Random
 import RemoteData
 import Rest.Cockpit
 import Rest.Glance
@@ -51,6 +52,7 @@ import Types.Types
         , UnscopedProviderProject
         , ViewState(..)
         )
+import UUID
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -118,10 +120,11 @@ mounts:
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { projects = []
+            , clientUuid = Nothing
             }
 
-        emptyModel : Model
-        emptyModel =
+        emptyModel : UUID.UUID -> Model
+        emptyModel uuid =
             { logMessages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
@@ -131,7 +134,21 @@ mounts:
             , toasties = Toasty.initialState
             , proxyUrl = flags.proxyUrl
             , isElectron = flags.isElectron
+            , clientUuid = uuid
             }
+
+        -- This only gets used if we do not find a client UUID in stored state
+        newClientUuid : UUID.UUID
+        newClientUuid =
+            let
+                seeds =
+                    UUID.Seeds
+                        (Random.initialSeed flags.randomSeed0)
+                        (Random.initialSeed flags.randomSeed1)
+                        (Random.initialSeed flags.randomSeed2)
+                        (Random.initialSeed flags.randomSeed3)
+            in
+            UUID.step seeds |> Tuple.first
 
         storedState : LocalStorageTypes.StoredState
         storedState =
@@ -153,7 +170,7 @@ mounts:
 
         hydratedModel : Model
         hydratedModel =
-            LocalStorage.hydrateModelFromStoredState emptyModel storedState
+            LocalStorage.hydrateModelFromStoredState emptyModel newClientUuid storedState
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
@@ -1342,7 +1359,7 @@ processProjectSpecificMsg model project msg =
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
         RequestAppCredential posix ->
-            ( model, Rest.Keystone.requestAppCredential project posix )
+            ( model, Rest.Keystone.requestAppCredential project model.clientUuid posix )
 
         ReceiveComputeQuota quota ->
             let
