@@ -58,6 +58,7 @@ import Types.Types
         , ViewState(..)
         , currentExoServerVersion
         )
+import UUID
 
 
 
@@ -216,8 +217,8 @@ requestKeypairs project =
         )
 
 
-requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
-requestCreateServer project createServerRequest =
+requestCreateServer : Project -> UUID.UUID -> CreateServerRequest -> Cmd Msg
+requestCreateServer project exoClientUuid createServerRequest =
     let
         instanceNumbers =
             List.range 1 createServerRequest.count
@@ -265,6 +266,9 @@ requestCreateServer project createServerRequest =
                   , Encode.object
                         [ ( "exoServerVersion"
                           , Encode.string (String.fromInt currentExoServerVersion)
+                          )
+                        , ( "exoClientUuid"
+                          , Encode.string (UUID.toString exoClientUuid)
                           )
                         ]
                   )

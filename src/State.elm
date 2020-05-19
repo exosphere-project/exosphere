@@ -984,7 +984,7 @@ processProjectSpecificMsg model project msg =
             ( model, Rest.Nova.requestServer project serverUuid )
 
         RequestCreateServer createServerRequest ->
-            ( model, Rest.Nova.requestCreateServer project createServerRequest )
+            ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
 
         RequestDeleteServer server ->
             let
