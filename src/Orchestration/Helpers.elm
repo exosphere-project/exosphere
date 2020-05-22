@@ -4,6 +4,10 @@ import RemoteData
 import Types.Types exposing (FloatingIpState(..), Model, Msg, Project, Server)
 
 
+
+-- These functions help with reducing goals and tasks over a list of similar resources (e.g. projects, servers)
+
+
 applyProjectStep : (Project -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
 applyProjectStep step ( project, cmds ) =
     let

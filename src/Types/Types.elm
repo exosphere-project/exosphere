@@ -69,6 +69,7 @@ type alias Flags =
     , randomSeed1 : Int
     , randomSeed2 : Int
     , randomSeed3 : Int
+    , epoch : Int
     }
 
 
@@ -89,6 +90,7 @@ type alias Model =
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     , clientUuid : UUID.UUID
+    , currentTime : Time.Posix
     }
 
 

@@ -136,6 +136,7 @@ mounts:
             , proxyUrl = flags.proxyUrl
             , isElectron = flags.isElectron
             , clientUuid = uuid
+            , currentTime = Time.millisToPosix flags.epoch
             }
 
         -- This only gets used if we do not find a client UUID in stored state
@@ -205,7 +206,8 @@ mounts:
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Time.every (5 * 1000) (Tick 5)
+        [ Time.every (1 * 1000) (Tick 1)
+        , Time.every (5 * 1000) (Tick 5)
         , Time.every (10 * 1000) (Tick 10)
         , Time.every (60 * 1000) (Tick 60)
         , Time.every (300 * 1000) (Tick 300)
@@ -226,6 +228,9 @@ update msg model =
             -- Each trip through the runtime, we get the time and feed it to orchestration module
             case msg of
                 DoOrchestration _ ->
+                    Cmd.none
+
+                Tick _ _ ->
                     Cmd.none
 
                 _ ->
@@ -256,8 +261,8 @@ updateUnderlying msg model =
         MsgChangeWindowSize x y ->
             ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
 
-        Tick interval _ ->
-            processTick model interval
+        Tick interval time ->
+            processTick model interval time
 
         DoOrchestration posixTime ->
             -- TODO does Orchestration care about incoming Msg or no? Probably not
@@ -510,8 +515,8 @@ updateUnderlying msg model =
             ( model, Cmd.none )
 
 
-processTick : Model -> TickInterval -> ( Model, Cmd Msg )
-processTick model interval =
+processTick : Model -> TickInterval -> Time.Posix -> ( Model, Cmd Msg )
+processTick model interval time =
     let
         serverNeedsFrequentPoll : Server -> Bool
         serverNeedsFrequentPoll server =
@@ -553,119 +558,123 @@ processTick model interval =
                     , OSTypes.ErrorRestoring
                     , OSTypes.ErrorExtending
                     ]
-    in
-    case model.viewState of
-        NonProjectView _ ->
-            ( model, Cmd.none )
 
-        ProjectView projectName _ projectViewState ->
-            case Helpers.projectLookup model projectName of
-                Nothing ->
-                    {- Should this throw an error? -}
+        ( viewDependentModel, viewDependentCmd ) =
+            {- TODO move some of this to Orchestration? -}
+            case model.viewState of
+                NonProjectView _ ->
                     ( model, Cmd.none )
 
-                Just project ->
-                    case projectViewState of
-                        ListProjectServers _ _ ->
-                            case interval of
-                                10 ->
-                                    if
-                                        project.servers
-                                            |> RemoteData.withDefault []
-                                            |> List.any serverNeedsFrequentPoll
-                                    then
-                                        update (ProjectMsg projectName RequestServers) model
+                ProjectView projectName _ projectViewState ->
+                    case Helpers.projectLookup model projectName of
+                        Nothing ->
+                            {- Should this throw an error? -}
+                            ( model, Cmd.none )
 
-                                    else
-                                        ( model, Cmd.none )
+                        Just project ->
+                            case projectViewState of
+                                ListProjectServers _ _ ->
+                                    case interval of
+                                        10 ->
+                                            if
+                                                project.servers
+                                                    |> RemoteData.withDefault []
+                                                    |> List.any serverNeedsFrequentPoll
+                                            then
+                                                update (ProjectMsg projectName RequestServers) model
 
-                                60 ->
-                                    update (ProjectMsg projectName RequestServers) model
+                                            else
+                                                ( model, Cmd.none )
 
-                                _ ->
-                                    ( model, Cmd.none )
+                                        60 ->
+                                            update (ProjectMsg projectName RequestServers) model
 
-                        ServerDetail serverUuid _ ->
-                            let
-                                ( newModel, serverCmd ) =
-                                    update (ProjectMsg projectName (RequestServer serverUuid)) model
-
-                                volCmd =
-                                    OSVolumes.requestVolumes project
-                            in
-                            case interval of
-                                5 ->
-                                    case Helpers.serverLookup project serverUuid of
-                                        Just server ->
-                                            ( if serverNeedsFrequentPoll server then
-                                                newModel
-
-                                              else
-                                                model
-                                            , Cmd.batch
-                                                [ if serverNeedsFrequentPoll server then
-                                                    serverCmd
-
-                                                  else
-                                                    Cmd.none
-                                                , if serverVolsNeedFrequentPoll project server then
-                                                    volCmd
-
-                                                  else
-                                                    Cmd.none
-                                                ]
-                                            )
-
-                                        Nothing ->
+                                        _ ->
                                             ( model, Cmd.none )
 
-                                300 ->
-                                    ( newModel, Cmd.batch [ serverCmd, volCmd ] )
+                                ServerDetail serverUuid _ ->
+                                    let
+                                        ( newModel, serverCmd ) =
+                                            update (ProjectMsg projectName (RequestServer serverUuid)) model
 
-                                _ ->
-                                    ( model, Cmd.none )
+                                        volCmd =
+                                            OSVolumes.requestVolumes project
+                                    in
+                                    case interval of
+                                        5 ->
+                                            case Helpers.serverLookup project serverUuid of
+                                                Just server ->
+                                                    ( if serverNeedsFrequentPoll server then
+                                                        newModel
 
-                        ListProjectVolumes _ ->
-                            ( model
-                            , case interval of
-                                5 ->
-                                    if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
-                                        OSVolumes.requestVolumes project
+                                                      else
+                                                        model
+                                                    , Cmd.batch
+                                                        [ if serverNeedsFrequentPoll server then
+                                                            serverCmd
 
-                                    else
-                                        Cmd.none
+                                                          else
+                                                            Cmd.none
+                                                        , if serverVolsNeedFrequentPoll project server then
+                                                            volCmd
 
-                                60 ->
-                                    OSVolumes.requestVolumes project
+                                                          else
+                                                            Cmd.none
+                                                        ]
+                                                    )
 
-                                _ ->
-                                    Cmd.none
-                            )
+                                                Nothing ->
+                                                    ( model, Cmd.none )
 
-                        VolumeDetail volumeUuid _ ->
-                            ( model
-                            , case interval of
-                                5 ->
-                                    case Helpers.volumeLookup project volumeUuid of
-                                        Nothing ->
-                                            Cmd.none
+                                        300 ->
+                                            ( newModel, Cmd.batch [ serverCmd, volCmd ] )
 
-                                        Just volume ->
-                                            if volNeedsFrequentPoll volume then
+                                        _ ->
+                                            ( model, Cmd.none )
+
+                                ListProjectVolumes _ ->
+                                    ( model
+                                    , case interval of
+                                        5 ->
+                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
                                                 OSVolumes.requestVolumes project
 
                                             else
                                                 Cmd.none
 
-                                60 ->
-                                    OSVolumes.requestVolumes project
+                                        60 ->
+                                            OSVolumes.requestVolumes project
+
+                                        _ ->
+                                            Cmd.none
+                                    )
+
+                                VolumeDetail volumeUuid _ ->
+                                    ( model
+                                    , case interval of
+                                        5 ->
+                                            case Helpers.volumeLookup project volumeUuid of
+                                                Nothing ->
+                                                    Cmd.none
+
+                                                Just volume ->
+                                                    if volNeedsFrequentPoll volume then
+                                                        OSVolumes.requestVolumes project
+
+                                                    else
+                                                        Cmd.none
+
+                                        60 ->
+                                            OSVolumes.requestVolumes project
+
+                                        _ ->
+                                            Cmd.none
+                                    )
 
                                 _ ->
-                                    Cmd.none
-                            )
-
-                        _ ->
-                            ( model, Cmd.none )
+                                    ( model, Cmd.none )
+    in
+    ( { viewDependentModel | currentTime = time }, viewDependentCmd )
 
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
