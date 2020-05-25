@@ -16,9 +16,9 @@ import Time
 -}
 
 
-type alias RemoteDataPlusPlus data e =
+type alias RemoteDataPlusPlus error data =
     { data : Haveness data
-    , refreshStatus : RefreshStatus e
+    , refreshStatus : RefreshStatus error
     }
 
 
@@ -44,7 +44,7 @@ type alias ReceivedTime =
 -- Convenience functions
 
 
-withDefault : a -> RemoteDataPlusPlus a e -> a
+withDefault : data -> RemoteDataPlusPlus error data -> data
 withDefault default rdpp =
     -- Returns data, or the default
     case rdpp.data of

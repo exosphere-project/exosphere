@@ -134,7 +134,7 @@ type alias Project =
     , volumes : WebData (List OSTypes.Volume)
     , networks : List OSTypes.Network
     , floatingIps : List OSTypes.IpAddress
-    , ports : RemoteDataPlusPlus (List OSTypes.Port) Http.Error
+    , ports : RemoteDataPlusPlus Http.Error (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
