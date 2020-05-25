@@ -118,14 +118,11 @@ requestPorts project server =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\ports ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceivePorts ports)
-                )
+        resultToMsg =
+            \result ->
+                ProjectMsg
+                    (Helpers.getProjectId project)
+                    (ReceivePorts errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -134,7 +131,7 @@ requestPorts project server =
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             decodePorts
         )
 

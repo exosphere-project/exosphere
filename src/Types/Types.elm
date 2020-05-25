@@ -134,7 +134,7 @@ type alias Project =
     , volumes : WebData (List OSTypes.Volume)
     , networks : List OSTypes.Network
     , floatingIps : List OSTypes.IpAddress
-    , ports : RemoteDataPlusPlus (List OSTypes.Port) String
+    , ports : RemoteDataPlusPlus (List OSTypes.Port) Http.Error
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
@@ -219,7 +219,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveKeypairs (List OSTypes.Keypair)
     | ReceiveNetworks (List OSTypes.Network)
     | ReceiveFloatingIps (List OSTypes.IpAddress)
-    | ReceivePorts (List OSTypes.Port)
+    | ReceivePorts ErrorContext (Result Http.Error (List OSTypes.Port))
     | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)

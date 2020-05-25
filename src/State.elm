@@ -1261,15 +1261,35 @@ processProjectSpecificMsg model project msg =
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
 
-        ReceivePorts ports ->
-            let
-                newProject =
-                    { project
-                        | ports =
-                            RDPP.RemoteDataPlusPlus (RDPP.DoHave ports model.currentTime) (RDPP.NotLoading Nothing)
-                    }
-            in
-            ( Helpers.modelUpdateProject model newProject, Cmd.none )
+        ReceivePorts errorContext result ->
+            case result of
+                Ok ports ->
+                    let
+                        newProject =
+                            { project
+                                | ports =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave ports model.currentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
+                Err e ->
+                    let
+                        oldPortsData =
+                            project.ports.data
+
+                        newProject =
+                            { project
+                                | ports =
+                                    RDPP.RemoteDataPlusPlus oldPortsData (RDPP.NotLoading (Just ( e, model.currentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
 
         ReceiveCreateFloatingIp serverUuid ip ->
             Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
