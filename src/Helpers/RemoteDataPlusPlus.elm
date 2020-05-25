@@ -4,6 +4,7 @@ module Helpers.RemoteDataPlusPlus exposing
     , RefreshStatus(..)
     , RemoteDataPlusPlus
     , RequestedTime
+    , withDefault
     )
 
 import Time
@@ -27,9 +28,8 @@ type Haveness data
 
 
 type RefreshStatus e
-    = NotLoading
+    = NotLoading (Maybe ( e, ReceivedTime ))
     | Loading RequestedTime
-    | Error ReceivedTime e
 
 
 type alias RequestedTime =
@@ -38,3 +38,18 @@ type alias RequestedTime =
 
 type alias ReceivedTime =
     Time.Posix
+
+
+
+-- Convenience functions
+
+
+withDefault : a -> RemoteDataPlusPlus a e -> a
+withDefault default rdpp =
+    -- Returns data, or the default
+    case rdpp.data of
+        DoHave data _ ->
+            data
+
+        DontHave ->
+            default

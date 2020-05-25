@@ -3,7 +3,6 @@ module Rest.Neutron exposing
     , decodeFloatingIpCreation
     , decodeNetworks
     , decodePorts
-    , getFloatingIpRequestPorts
     , networkDecoder
     , portDecoder
     , receiveCreateExoSecurityGroupAndRequestCreateRules
@@ -11,13 +10,13 @@ module Rest.Neutron exposing
     , receiveDeleteFloatingIp
     , receiveFloatingIps
     , receiveNetworks
-    , receivePortsAndRequestFloatingIp
     , receiveSecurityGroupsAndEnsureExoGroup
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
     , requestDeleteFloatingIp
     , requestFloatingIps
     , requestNetworks
+    , requestPorts
     , requestSecurityGroups
     )
 
@@ -110,8 +109,8 @@ requestFloatingIps project =
         )
 
 
-getFloatingIpRequestPorts : Project -> Server -> Cmd Msg
-getFloatingIpRequestPorts project server =
+requestPorts : Project -> Server -> Cmd Msg
+requestPorts project server =
     let
         errorContext =
             ErrorContext
@@ -125,7 +124,7 @@ getFloatingIpRequestPorts project server =
                 (\ports ->
                     ProjectMsg
                         (Helpers.getProjectId project)
-                        (GetFloatingIpReceivePorts server.osProps.uuid ports)
+                        (ReceivePorts ports)
                 )
     in
     openstackCredentialedRequest
@@ -398,18 +397,6 @@ receiveFloatingIps model project floatingIps =
     let
         newProject =
             { project | floatingIps = floatingIps }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.none )
-
-
-receivePortsAndRequestFloatingIp : Model -> Project -> OSTypes.ServerUuid -> List OSTypes.Port -> ( Model, Cmd Msg )
-receivePortsAndRequestFloatingIp model project serverUuid ports =
-    let
-        newProject =
-            { project | ports = ports }
 
         newModel =
             Helpers.modelUpdateProject model newProject

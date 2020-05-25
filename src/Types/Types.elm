@@ -44,6 +44,7 @@ module Types.Types exposing
     )
 
 import Error exposing (ErrorContext)
+import Helpers.RemoteDataPlusPlus exposing (RemoteDataPlusPlus)
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -133,7 +134,7 @@ type alias Project =
     , volumes : WebData (List OSTypes.Volume)
     , networks : List OSTypes.Network
     , floatingIps : List OSTypes.IpAddress
-    , ports : List OSTypes.Port
+    , ports : RemoteDataPlusPlus (List OSTypes.Port) String
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
@@ -218,7 +219,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveKeypairs (List OSTypes.Keypair)
     | ReceiveNetworks (List OSTypes.Network)
     | ReceiveFloatingIps (List OSTypes.IpAddress)
-    | GetFloatingIpReceivePorts OSTypes.ServerUuid (List OSTypes.Port)
+    | ReceivePorts (List OSTypes.Port)
     | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)

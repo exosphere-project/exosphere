@@ -1,7 +1,9 @@
-module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllProjectServers)
+module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServersThisExo)
 
+import Helpers.Helpers exposing (serverFromThisExoClient)
 import RemoteData
 import Types.Types exposing (FloatingIpState(..), Model, Msg, Project, Server)
+import UUID
 
 
 
@@ -17,15 +19,19 @@ applyProjectStep step ( project, cmds ) =
     ( stepProj, Cmd.batch [ cmds, stepCmds ] )
 
 
-applyStepToAllProjectServers : (Project -> Server -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
-applyStepToAllProjectServers step ( project, cmds ) =
+applyStepToAllServersThisExo : UUID.UUID -> (Project -> Server -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+applyStepToAllServersThisExo exoClientUuid step ( project, cmds ) =
     let
         applyServerStep server_ ( project_, cmds_ ) =
             let
                 ( stepProj, stepCmds ) =
                     step project_ server_
             in
-            ( stepProj, Cmd.batch [ cmds_, stepCmds ] )
+            if serverFromThisExoClient exoClientUuid server_ then
+                ( stepProj, Cmd.batch [ cmds_, stepCmds ] )
+
+            else
+                ( project_, cmds_ )
     in
     case project.servers of
         RemoteData.Success servers ->

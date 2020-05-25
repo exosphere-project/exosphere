@@ -39,7 +39,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Cockpit exposing (requestCockpitIfRequestable)
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
-import Rest.Neutron exposing (getFloatingIpRequestPorts, requestNetworks)
+import Rest.Neutron exposing (requestNetworks)
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -534,8 +534,7 @@ receiveServer_ project osServer =
         floatingIpCmd =
             case newServer.exoProps.priorFloatingIpState of
                 Requestable ->
-                    [ getFloatingIpRequestPorts project newServer
-                    , requestNetworks project
+                    [ requestNetworks project
                     ]
                         |> Cmd.batch
 

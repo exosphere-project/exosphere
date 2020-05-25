@@ -5,6 +5,7 @@ module LocalStorage.LocalStorage exposing
     )
 
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject2, StoredState)
@@ -73,7 +74,7 @@ hydrateProjectFromStoredProject storedProject =
     , volumes = RemoteData.NotAsked
     , networks = []
     , floatingIps = []
-    , ports = []
+    , ports = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading Nothing)
     , securityGroups = []
     , computeQuota = RemoteData.NotAsked
     , volumeQuota = RemoteData.NotAsked

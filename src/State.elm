@@ -4,6 +4,7 @@ import Browser.Events
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -1260,8 +1261,15 @@ processProjectSpecificMsg model project msg =
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
 
-        GetFloatingIpReceivePorts serverUuid ports ->
-            Rest.Neutron.receivePortsAndRequestFloatingIp model project serverUuid ports
+        ReceivePorts ports ->
+            let
+                newProject =
+                    { project
+                        | ports =
+                            RDPP.RemoteDataPlusPlus (RDPP.DoHave ports model.currentTime) (RDPP.NotLoading Nothing)
+                    }
+            in
+            ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
         ReceiveCreateFloatingIp serverUuid ip ->
             Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
@@ -1447,7 +1455,7 @@ createProject model password authToken endpoints =
             , volumes = RemoteData.NotAsked
             , networks = []
             , floatingIps = []
-            , ports = []
+            , ports = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading Nothing)
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
