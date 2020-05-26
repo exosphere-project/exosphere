@@ -33,6 +33,9 @@ taskServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 taskServerPoll time project server =
     -- TODO poll server if it hasn't been polled recently.
     -- TODO For this we need to know the last time the server was polled. We need to store in model.
+    -- TODO We should move this code to project level (not server level) because we are currently polling all servers
+    -- at once anyway. We should poll if _any_ server needs a poll.
+    -- TODO We also need to figure out if server needs frequent polling -- see old context-dependent polling code.
     ( project, Cmd.none )
 
 

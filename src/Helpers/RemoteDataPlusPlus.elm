@@ -4,6 +4,7 @@ module Helpers.RemoteDataPlusPlus exposing
     , RefreshStatus(..)
     , RemoteDataPlusPlus
     , RequestedTime
+    , empty
     , withDefault
     )
 
@@ -53,3 +54,7 @@ withDefault default rdpp =
 
         DontHave ->
             default
+
+
+empty =
+    RemoteDataPlusPlus DontHave (NotLoading Nothing)

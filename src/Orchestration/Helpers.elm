@@ -1,7 +1,7 @@
 module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServersThisExo)
 
 import Helpers.Helpers exposing (serverFromThisExoClient)
-import RemoteData
+import Helpers.RemoteDataPlusPlus as RDPP
 import Types.Types exposing (FloatingIpState(..), Model, Msg, Project, Server)
 import UUID
 
@@ -33,8 +33,8 @@ applyStepToAllServersThisExo exoClientUuid step ( project, cmds ) =
             else
                 ( project_, cmds_ )
     in
-    case project.servers of
-        RemoteData.Success servers ->
+    case project.servers.data of
+        RDPP.DoHave servers _ ->
             List.foldl applyServerStep ( project, cmds ) servers
 
         _ ->

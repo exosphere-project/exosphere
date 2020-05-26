@@ -8,6 +8,7 @@ import Framework.Button as Button
 import Framework.Color
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
 import Types.Types
@@ -27,7 +28,7 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
             -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
-            RemoteData.withDefault [] project.servers
+            RDPP.withDefault [] project.servers
                 |> List.filter
                     (\s ->
                         not <|

@@ -25,6 +25,7 @@ module Helpers.Helpers exposing
     , processError
     , processOpenRc
     , projectLookup
+    , projectSetServersLoading
     , projectUpdateServer
     , projectUpdateServers
     , providerLookup
@@ -48,6 +49,7 @@ import Debug
 import Dict
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
+import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
 import ISO8601
@@ -397,7 +399,7 @@ checkFloatingIpState serverDetails floatingIpState =
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
 serverLookup project serverUuid =
-    List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] project.servers) |> List.head
+    List.filter (\s -> s.osProps.uuid == serverUuid) (RDPP.withDefault [] project.servers) |> List.head
 
 
 projectLookup : Model -> ProjectIdentifier -> Maybe Project
@@ -464,24 +466,54 @@ modelUpdateProject model newProject =
 
 projectUpdateServer : Project -> Server -> Project
 projectUpdateServer project server =
-    let
-        otherServers =
-            List.filter
-                (\s -> s.osProps.uuid /= server.osProps.uuid)
-                (RemoteData.withDefault [] project.servers)
+    case project.servers.data of
+        RDPP.DontHave ->
+            -- We don't do anything if we don't already have servers. Is this a silent failure that should be
+            -- handled differently?
+            project
 
-        newServers =
-            server :: otherServers
+        RDPP.DoHave servers recTime ->
+            let
+                otherServers =
+                    List.filter
+                        (\s -> s.osProps.uuid /= server.osProps.uuid)
+                        servers
 
-        newServersSorted =
-            List.sortBy (\s -> s.osProps.name) newServers
-    in
-    { project | servers = RemoteData.Success newServersSorted }
+                newServers =
+                    server :: otherServers
+
+                newServersSorted =
+                    List.sortBy (\s -> s.osProps.name) newServers
+
+                oldServersRDPP =
+                    project.servers
+
+                newServersRDPP =
+                    -- Should we update received time when we update a server? Thinking probably not given how this
+                    -- function is actually used. We're generally updating exoProps, not osProps.
+                    { oldServersRDPP | data = RDPP.DoHave newServersSorted recTime }
+            in
+            { project | servers = newServersRDPP }
 
 
 projectUpdateServers : Project -> List Server -> Project
 projectUpdateServers project servers =
     List.foldl (\s p -> projectUpdateServer p s) project servers
+
+
+projectSetServersLoading : Time.Posix -> Project -> Project
+projectSetServersLoading time project =
+    let
+        oldServersRDPP =
+            project.servers
+
+        newServersRDPPRefreshStatus =
+            RDPP.Loading time
+
+        newServersRDPP =
+            { oldServersRDPP | refreshStatus = newServersRDPPRefreshStatus }
+    in
+    { project | servers = newServersRDPP }
 
 
 modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model

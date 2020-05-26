@@ -11,7 +11,6 @@ module Rest.Nova exposing
     , receiveCreateServer
     , receiveFlavors
     , receiveKeypairs
-    , receiveServer
     , receiveServers
     , requestConsoleUrls
     , requestCreateServer
@@ -30,6 +29,7 @@ import Array
 import Base64
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -74,14 +74,10 @@ requestServers project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\servers ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveServers servers)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveServers errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -90,39 +86,50 @@ requestServers project =
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             decodeServers
         )
 
 
 requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
-requestServer project serverUuid =
-    let
-        errorContext =
-            ErrorContext
-                ("get details of server with UUID \"" ++ serverUuid ++ "\"")
-                ErrorCrit
-                Nothing
+requestServer project _ =
+    -- Right now we are actually getting all servers, even when only one server is requested, because the way we are
+    -- using RemoteDataPlusPlus does not allow us to express "one server in the model is loading but the other servers
+    -- are not"
+    requestServers project
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\server ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveServer server)
-                )
-    in
-    openstackCredentialedRequest
-        project
-        Get
-        (Just "compute 2.27")
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
-        Http.emptyBody
-        (Http.expectJson
-            resultToMsg_
-            (Decode.at [ "server" ] decodeServer)
-        )
+
+
+{-
+   requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
+   requestServer project serverUuid =
+       let
+           errorContext =
+               ErrorContext
+                   ("get details of server with UUID \"" ++ serverUuid ++ "\"")
+                   ErrorCrit
+                   Nothing
+
+           resultToMsg_ =
+               resultToMsg
+                   errorContext
+                   (\server ->
+                       ProjectMsg
+                           (Helpers.getProjectId project)
+                           (ReceiveServer server)
+                   )
+       in
+       openstackCredentialedRequest
+           project
+           Get
+           (Just "compute 2.27")
+           (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+           Http.emptyBody
+           (Http.expectJson
+               resultToMsg_
+               (Decode.at [ "server" ] decodeServer)
+           )
+-}
 
 
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -448,13 +455,18 @@ receiveServers model project osServers =
                 |> List.unzip
 
         projectNoDeletedSvrs =
-            -- Remove recently deleted servers from existing project
+            -- Set RDPP ReceivedTime and remove recently deleted servers from existing project
             { project
                 | servers =
-                    RemoteData.Success <|
-                        List.filter
-                            (\s -> List.member s.osProps.uuid (List.map .uuid osServers))
-                            (RemoteData.withDefault [] project.servers)
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave
+                            (List.filter
+                                (\s -> List.member s.osProps.uuid (List.map .uuid osServers))
+                                (RDPP.withDefault [] project.servers)
+                            )
+                            model.currentTime
+                        )
+                        (RDPP.NotLoading Nothing)
             }
 
         newProject =
@@ -465,20 +477,6 @@ receiveServers model project osServers =
     in
     ( Helpers.modelUpdateProject model newProject
     , Cmd.batch cmds
-    )
-
-
-receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
-receiveServer model project osServer =
-    let
-        ( newServer, cmd ) =
-            receiveServer_ project osServer
-
-        newProject =
-            Helpers.projectUpdateServer project newServer
-    in
-    ( Helpers.modelUpdateProject model newProject
-    , cmd
     )
 
 
@@ -688,15 +686,18 @@ receiveKeypairs model project keypairs =
 receiveCreateServer : Model -> Project -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
 receiveCreateServer model project _ =
     let
+        newViewState =
+            ProjectView
+                (Helpers.getProjectId project)
+                { createPopup = False }
+            <|
+                ListProjectServers { onlyOwnServers = False } []
+
+        newProject =
+            Helpers.projectSetServersLoading model.currentTime project
+
         newModel =
-            { model
-                | viewState =
-                    ProjectView
-                        (Helpers.getProjectId project)
-                        { createPopup = False }
-                    <|
-                        ListProjectServers { onlyOwnServers = False } []
-            }
+            Helpers.modelUpdateProject { model | viewState = newViewState } newProject
     in
     ( newModel
     , [ requestServers

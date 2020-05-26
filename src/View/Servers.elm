@@ -12,6 +12,7 @@ import Framework.Color
 import Framework.Modifier as Modifier
 import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
 import OpenStack.ServerActions as ServerActions
@@ -45,17 +46,17 @@ import View.Types
 
 servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
 servers project serverFilter deleteConfirmations =
-    case project.servers of
-        RemoteData.NotAsked ->
+    case ( project.servers.data, project.servers.refreshStatus ) of
+        ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
             Element.paragraph [] [ Element.text "Please wait..." ]
 
-        RemoteData.Loading ->
-            Element.paragraph [] [ Element.text "Loading..." ]
-
-        RemoteData.Failure e ->
+        ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
             Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
-        RemoteData.Success allServers ->
+        ( RDPP.DontHave, RDPP.Loading _ ) ->
+            Element.paragraph [] [ Element.text "Loading..." ]
+
+        ( RDPP.DoHave allServers _, _ ) ->
             if List.isEmpty allServers then
                 Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 

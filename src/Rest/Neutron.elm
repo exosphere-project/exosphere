@@ -118,11 +118,10 @@ requestPorts project server =
                 ErrorCrit
                 Nothing
 
-        resultToMsg =
-            \result ->
-                ProjectMsg
-                    (Helpers.getProjectId project)
-                    (ReceivePorts errorContext result)
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceivePorts errorContext result)
     in
     openstackCredentialedRequest
         project

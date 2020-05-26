@@ -579,7 +579,7 @@ processTick model interval time =
                                         10 ->
                                             if
                                                 project.servers
-                                                    |> RemoteData.withDefault []
+                                                    |> RDPP.withDefault []
                                                     |> List.any serverNeedsFrequentPoll
                                             then
                                                 update (ProjectMsg projectName RequestServers) model
@@ -695,10 +695,10 @@ processProjectSpecificMsg model project msg =
                         _ ->
                             Nothing
 
-                modelUpdatedView =
-                    { model | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
+                modelUpdatedView model_ =
+                    { model_ | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
 
-                modelResetCockpitStatuses =
+                projectResetCockpitStatuses project_ =
                     -- We need to re-poll Cockpit to determine its availability and get a session cookie
                     -- See merge request 289
                     let
@@ -728,16 +728,10 @@ processProjectSpecificMsg model project msg =
                                             { oldExoProps | serverOrigin = newOriginProps }
                                     in
                                     { s | exoProps = newExoProps }
-
-                        newProject =
-                            let
-                                newServers =
-                                    List.map serverResetCockpitStatus (RemoteData.withDefault [] project.servers)
-                                        |> RemoteData.Success
-                            in
-                            { project | servers = newServers }
                     in
-                    Helpers.modelUpdateProject modelUpdatedView newProject
+                    RDPP.withDefault [] project_.servers
+                        |> List.map serverResetCockpitStatus
+                        |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project_
             in
             case projectViewConstructor of
                 ListImages _ ->
@@ -751,7 +745,7 @@ processProjectSpecificMsg model project msg =
                                 _ ->
                                     Rest.Glance.requestImages project
                     in
-                    ( modelUpdatedView, cmd )
+                    ( modelUpdatedView model, cmd )
 
                 ListProjectServers _ _ ->
                     let
@@ -768,7 +762,13 @@ processProjectSpecificMsg model project msg =
                                         |> List.map (\x -> x project)
                                         |> Cmd.batch
                     in
-                    ( modelResetCockpitStatuses, cmd )
+                    ( project
+                        |> Helpers.projectSetServersLoading model.currentTime
+                        |> projectResetCockpitStatuses
+                        |> Helpers.modelUpdateProject model
+                        |> modelUpdatedView
+                    , cmd
+                    )
 
                 ServerDetail serverUuid _ ->
                     let
@@ -787,12 +787,16 @@ processProjectSpecificMsg model project msg =
                                         , Ports.instantiateClipboardJs ()
                                         ]
                     in
-                    ( modelResetCockpitStatuses
+                    ( project
+                        |> Helpers.projectSetServersLoading model.currentTime
+                        |> projectResetCockpitStatuses
+                        |> Helpers.modelUpdateProject model
+                        |> modelUpdatedView
                     , cmd
                     )
 
                 CreateServerImage _ _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
                 CreateServer createServerRequest ->
                     case model.viewState of
@@ -833,8 +837,8 @@ processProjectSpecificMsg model project msg =
                                         ( _, _, _ ) ->
                                             createServerRequest
 
-                                newNewModel =
-                                    { modelUpdatedView
+                                newModel =
+                                    { model
                                         | viewState =
                                             ProjectView
                                                 (Helpers.getProjectId project)
@@ -843,7 +847,9 @@ processProjectSpecificMsg model project msg =
                                                 CreateServer newCSR
                                     }
                             in
-                            ( newNewModel, Cmd.none )
+                            ( newModel
+                            , Cmd.none
+                            )
 
                         -- If we are just entering this view then gather everything we need
                         _ ->
@@ -864,11 +870,10 @@ processProjectSpecificMsg model project msg =
                                         | computeQuota = RemoteData.Loading
                                         , volumeQuota = RemoteData.Loading
                                     }
-
-                                newModel =
-                                    Helpers.modelUpdateProject modelUpdatedView newProject
                             in
-                            ( newModel
+                            ( newProject
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
                             , Cmd.batch
                                 [ Rest.Nova.requestFlavors project
                                 , Rest.Nova.requestKeypairs project
@@ -890,10 +895,10 @@ processProjectSpecificMsg model project msg =
                                 _ ->
                                     OSVolumes.requestVolumes project
                     in
-                    ( modelUpdatedView, cmd )
+                    ( modelUpdatedView model, cmd )
 
                 VolumeDetail _ _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
                 AttachVolumeModal _ _ ->
                     let
@@ -909,15 +914,18 @@ processProjectSpecificMsg model project msg =
                                         , OSVolumes.requestVolumes project
                                         ]
                     in
-                    ( modelUpdatedView
+                    ( project
+                        |> Helpers.projectSetServersLoading model.currentTime
+                        |> Helpers.modelUpdateProject model
+                        |> modelUpdatedView
                     , cmd
                     )
 
                 MountVolInstructions _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
                 CreateVolume _ _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
         PrepareCredentialedRequest requestProto posixTime ->
             let
@@ -1003,10 +1011,22 @@ processProjectSpecificMsg model project msg =
             ( newModel, Cmd.none )
 
         RequestServers ->
-            ( model, Rest.Nova.requestServers project )
+            let
+                newProject =
+                    Helpers.projectSetServersLoading model.currentTime project
+            in
+            ( Helpers.modelUpdateProject model newProject
+            , Rest.Nova.requestServers project
+            )
 
         RequestServer serverUuid ->
-            ( model, Rest.Nova.requestServer project serverUuid )
+            let
+                newProject =
+                    Helpers.projectSetServersLoading model.currentTime project
+            in
+            ( Helpers.modelUpdateProject model newProject
+            , Rest.Nova.requestServer project serverUuid
+            )
 
         RequestCreateServer createServerRequest ->
             ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
@@ -1123,22 +1143,14 @@ processProjectSpecificMsg model project msg =
 
         SelectServer server newSelectionState ->
             let
-                updateServer someServer =
-                    if someServer.osProps.uuid == server.osProps.uuid then
-                        let
-                            oldExoProps =
-                                someServer.exoProps
-                        in
-                        Server someServer.osProps { oldExoProps | selected = newSelectionState }
+                oldExoProps =
+                    server.exoProps
 
-                    else
-                        someServer
+                newServer =
+                    Server server.osProps { oldExoProps | selected = newSelectionState }
 
                 newProject =
-                    { project
-                        | servers =
-                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers))
-                    }
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
@@ -1162,7 +1174,9 @@ processProjectSpecificMsg model project msg =
                             someServer
 
                 newProject =
-                    { project | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers)) }
+                    RDPP.withDefault [] project.servers
+                        |> List.map updateServer
+                        |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
@@ -1171,11 +1185,28 @@ processProjectSpecificMsg model project msg =
             , Cmd.none
             )
 
-        ReceiveServers servers ->
-            Rest.Nova.receiveServers model project servers
+        ReceiveServers errorContext result ->
+            case result of
+                Ok servers ->
+                    Rest.Nova.receiveServers model project servers
 
-        ReceiveServer server ->
-            Rest.Nova.receiveServer model project server
+                Err e ->
+                    let
+                        oldServersData =
+                            project.servers.data
+
+                        newProject =
+                            { project
+                                | servers =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldServersData
+                                        (RDPP.NotLoading (Just ( e, model.currentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
 
         ReceiveConsoleUrl serverUuid url ->
             Rest.Nova.receiveConsoleUrl model project serverUuid url
@@ -1315,7 +1346,7 @@ processProjectSpecificMsg model project msg =
                 -- Look for any server backing volumes that were created with no name, and give them a reasonable name
                 updateVolNameCmds : List (Cmd Msg)
                 updateVolNameCmds =
-                    RemoteData.withDefault [] project.servers
+                    RDPP.withDefault [] project.servers
                         -- List of tuples containing server and Maybe boot vol
                         |> List.map
                             (\s ->
@@ -1469,13 +1500,13 @@ createProject model password authToken endpoints =
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , images = []
-            , servers = RemoteData.NotAsked
+            , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.Loading model.currentTime)
             , flavors = []
             , keypairs = []
             , volumes = RemoteData.NotAsked
             , networks = []
             , floatingIps = []
-            , ports = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.NotLoading Nothing)
+            , ports = RDPP.empty
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked

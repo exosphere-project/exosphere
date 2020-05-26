@@ -44,7 +44,7 @@ module Types.Types exposing
     )
 
 import Error exposing (ErrorContext)
-import Helpers.RemoteDataPlusPlus exposing (RemoteDataPlusPlus)
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -128,13 +128,13 @@ type alias Project =
     , auth : OSTypes.ScopedAuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
-    , servers : WebData (List Server)
+    , servers : RDPP.RemoteDataPlusPlus Http.Error (List Server)
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
     , volumes : WebData (List OSTypes.Volume)
     , networks : List OSTypes.Network
     , floatingIps : List OSTypes.IpAddress
-    , ports : RemoteDataPlusPlus Http.Error (List OSTypes.Port)
+    , ports : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
@@ -210,8 +210,7 @@ type ProjectSpecificMsgConstructor
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
-    | ReceiveServers (List OSTypes.Server)
-    | ReceiveServer OSTypes.Server
+    | ReceiveServers ErrorContext (Result Http.Error (List OSTypes.Server))
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
