@@ -108,7 +108,6 @@ quotaItemDetailDecoder =
                             Just i
                     )
     in
-    Decode.map3 OSTypes.QuotaItemDetail
+    Decode.map2 OSTypes.QuotaItemDetail
         (Decode.field "in_use" Decode.int)
         (Decode.field "limit" specialIntToMaybe)
-        (Decode.field "reserved" Decode.int)

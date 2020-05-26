@@ -73,7 +73,6 @@ type alias QuotaItemDetail =
     -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
     { inUse : Int
     , limit : Maybe Int
-    , reserved : Int
     }
 
 
