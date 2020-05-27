@@ -5,6 +5,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServersThisExo)
 import Rest.Neutron
+import Rest.Nova
 import Time
 import Types.Types exposing (FloatingIpState(..), Model, Msg, Project, Server)
 import UUID
@@ -34,7 +35,50 @@ taskServerPoll time project server =
     -- TODO poll server if it hasn't been polled recently.
     -- TODO For this we need to know the last time the server was polled. We need to store in model.
     -- TODO We also need to figure out if server needs frequent polling -- see old context-dependent polling code.
-    ( project, Cmd.none )
+    let
+        frequentPollIntervalMs =
+            5000
+
+        serverReceivedRecently =
+            let
+                compare receivedTime =
+                    Time.posixToMillis time < (Time.posixToMillis receivedTime + frequentPollIntervalMs)
+            in
+            case server.exoProps.receivedTime of
+                Just receivedTime ->
+                    compare receivedTime
+
+                Nothing ->
+                    case project.servers.data of
+                        RDPP.DoHave _ receivedTime ->
+                            compare receivedTime
+
+                        RDPP.DontHave ->
+                            False
+    in
+    if serverReceivedRecently then
+        ( project, Cmd.none )
+
+    else if server.exoProps.loadingSeparately then
+        ( project, Cmd.none )
+
+    else
+        let
+            oldExoProps =
+                server.exoProps
+
+            newExoProps =
+                { oldExoProps
+                    | loadingSeparately = True
+                }
+
+            newServer =
+                { server | exoProps = newExoProps }
+
+            newProject =
+                Helpers.projectUpdateServer project newServer
+        in
+        ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
 
 
 taskServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )

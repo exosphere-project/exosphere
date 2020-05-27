@@ -104,7 +104,7 @@ requestServer project serverUuid =
         resultToMsg result =
             ProjectMsg
                 (Helpers.getProjectId project)
-                (ReceiveServer errorContext result)
+                (ReceiveServer serverUuid errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -440,7 +440,7 @@ receiveServers model project osServers =
                 |> List.map (receiveServer_ project)
                 |> List.unzip
 
-        newExoServersClearReceivedTime =
+        newExoServersClearSomeExoProps =
             let
                 clearRecTime : Server -> Server
                 clearRecTime s =
@@ -449,7 +449,10 @@ receiveServers model project osServers =
                             s.exoProps
 
                         newExoProps =
-                            { oldExoProps | receivedTime = Nothing }
+                            { oldExoProps
+                                | receivedTime = Nothing
+                                , loadingSeparately = False
+                            }
                     in
                     { s | exoProps = newExoProps }
             in
@@ -474,7 +477,7 @@ receiveServers model project osServers =
             List.foldl
                 (\s p -> Helpers.projectUpdateServer p s)
                 projectNoDeletedSvrs
-                newExoServersClearReceivedTime
+                newExoServersClearSomeExoProps
     in
     ( Helpers.modelUpdateProject model newProject
     , Cmd.batch cmds
@@ -487,13 +490,16 @@ receiveServer model project osServer =
         ( newServer, cmd ) =
             receiveServer_ project osServer
 
-        newServerUpdatedRecTime =
+        newServerUpdatedSomeExoProps =
             let
                 oldExoProps =
                     newServer.exoProps
 
                 newExoProps =
-                    { oldExoProps | receivedTime = Just model.currentTime }
+                    { oldExoProps
+                        | receivedTime = Just model.currentTime
+                        , loadingSeparately = False
+                    }
             in
             { newServer | exoProps = newExoProps }
 
@@ -506,7 +512,7 @@ receiveServer model project osServer =
                     let
                         newServersRDPP =
                             RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave [ newServerUpdatedRecTime ] model.currentTime)
+                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.currentTime)
                                 (RDPP.NotLoading Nothing)
                     in
                     { project | servers = newServersRDPP }
@@ -531,6 +537,7 @@ receiveServer_ project osServer =
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
                                 Nothing
+                                False
                     in
                     Server osServer defaultExoProps
 

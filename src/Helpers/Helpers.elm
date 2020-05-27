@@ -25,6 +25,7 @@ module Helpers.Helpers exposing
     , processError
     , processOpenRc
     , projectLookup
+    , projectSetServerLoading
     , projectSetServersLoading
     , projectUpdateServer
     , projectUpdateServers
@@ -32,6 +33,7 @@ module Helpers.Helpers exposing
     , renderUserDataTemplate
     , serverFromThisExoClient
     , serverLookup
+    , serverNeedsFrequentPoll
     , serverOrigin
     , serviceCatalogToEndpoints
     , sortedFlavors
@@ -516,6 +518,29 @@ projectSetServersLoading time project =
     { project | servers = newServersRDPP }
 
 
+projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
+projectSetServerLoading project serverUuid =
+    case serverLookup project serverUuid of
+        Nothing ->
+            -- We can't do anything lol
+            project
+
+        Just server ->
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newExoProps =
+                    { oldExoProps
+                        | loadingSeparately = True
+                    }
+
+                newServer =
+                    { server | exoProps = newExoProps }
+            in
+            projectUpdateServer project newServer
+
+
 modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model
 modelUpdateUnscopedProvider model newProvider =
     let
@@ -565,12 +590,10 @@ getServerExouserPassword serverDetails =
             oldLocation
 
 
-
--- TODO move this to view helpers
-
-
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
+    -- TODO move this to view helpers
+    -- TODO reconcile this with orchestration engine's concept of when provisioning is complete
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
             case server.exoProps.serverOrigin of
@@ -1006,3 +1029,26 @@ serverFromThisExoClient : UUID.UUID -> Server -> Bool
 serverFromThisExoClient clientUuid server =
     -- Determine if server was created by this Exosphere client
     List.member (OSTypes.MetadataItem "exoClientUuid" (UUID.toString clientUuid)) server.osProps.details.metadata
+
+
+serverNeedsFrequentPoll : Server -> Bool
+serverNeedsFrequentPoll server =
+    case
+        ( server.exoProps.deletionAttempted
+        , server.exoProps.targetOpenstackStatus
+        , server.exoProps.serverOrigin
+        )
+    of
+        ( False, Nothing, ServerNotFromExo ) ->
+            False
+
+        ( False, Nothing, ServerFromExo exoOriginProps ) ->
+            case exoOriginProps.cockpitStatus of
+                Ready ->
+                    False
+
+                _ ->
+                    True
+
+        _ ->
+            True

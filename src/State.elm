@@ -519,28 +519,6 @@ updateUnderlying msg model =
 processTick : Model -> TickInterval -> Time.Posix -> ( Model, Cmd Msg )
 processTick model interval time =
     let
-        serverNeedsFrequentPoll : Server -> Bool
-        serverNeedsFrequentPoll server =
-            case
-                ( server.exoProps.deletionAttempted
-                , server.exoProps.targetOpenstackStatus
-                , server.exoProps.serverOrigin
-                )
-            of
-                ( False, Nothing, ServerNotFromExo ) ->
-                    False
-
-                ( False, Nothing, ServerFromExo exoOriginProps ) ->
-                    case exoOriginProps.cockpitStatus of
-                        Ready ->
-                            False
-
-                        _ ->
-                            True
-
-                _ ->
-                    True
-
         serverVolsNeedFrequentPoll : Project -> Server -> Bool
         serverVolsNeedFrequentPoll project server =
             Helpers.getVolsAttachedToServer project server
@@ -580,7 +558,7 @@ processTick model interval time =
                                             if
                                                 project.servers
                                                     |> RDPP.withDefault []
-                                                    |> List.any serverNeedsFrequentPoll
+                                                    |> List.any Helpers.serverNeedsFrequentPoll
                                             then
                                                 update (ProjectMsg projectName RequestServers) model
 
@@ -605,13 +583,13 @@ processTick model interval time =
                                         5 ->
                                             case Helpers.serverLookup project serverUuid of
                                                 Just server ->
-                                                    ( if serverNeedsFrequentPoll server then
+                                                    ( if Helpers.serverNeedsFrequentPoll server then
                                                         newModel
 
                                                       else
                                                         model
                                                     , Cmd.batch
-                                                        [ if serverNeedsFrequentPoll server then
+                                                        [ if Helpers.serverNeedsFrequentPoll server then
                                                             serverCmd
 
                                                           else
@@ -788,7 +766,7 @@ processProjectSpecificMsg model project msg =
                                         ]
                     in
                     ( project
-                        |> Helpers.projectSetServersLoading model.currentTime
+                        |> (\p -> Helpers.projectSetServerLoading p serverUuid)
                         |> projectResetCockpitStatuses
                         |> Helpers.modelUpdateProject model
                         |> modelUpdatedView
@@ -1022,7 +1000,7 @@ processProjectSpecificMsg model project msg =
         RequestServer serverUuid ->
             let
                 newProject =
-                    Helpers.projectSetServersLoading model.currentTime project
+                    Helpers.projectSetServerLoading project serverUuid
             in
             ( Helpers.modelUpdateProject model newProject
             , Rest.Nova.requestServer project serverUuid
@@ -1186,7 +1164,6 @@ processProjectSpecificMsg model project msg =
             )
 
         ReceiveServers errorContext result ->
-            -- TODO DRY with below
             case result of
                 Ok servers ->
                     Rest.Nova.receiveServers model project servers
@@ -1209,29 +1186,39 @@ processProjectSpecificMsg model project msg =
                     in
                     Helpers.processError newModel errorContext e
 
-        ReceiveServer errorContext result ->
-            -- TODO DRY with above
+        ReceiveServer serverUuid errorContext result ->
             case result of
                 Ok server ->
                     Rest.Nova.receiveServer model project server
 
                 Err e ->
-                    let
-                        oldServersData =
-                            project.servers.data
+                    case Helpers.serverLookup project serverUuid of
+                        Nothing ->
+                            -- Server not in project, may have been deleted, ignoring this error
+                            ( model, Cmd.none )
 
-                        newProject =
-                            { project
-                                | servers =
-                                    RDPP.RemoteDataPlusPlus
-                                        oldServersData
-                                        (RDPP.NotLoading (Just ( e, model.currentTime )))
-                            }
+                        Just server ->
+                            -- TODO handle the error case of 404, server was deleted
+                            let
+                                oldExoProps =
+                                    server.exoProps
 
-                        newModel =
-                            Helpers.modelUpdateProject model newProject
-                    in
-                    Helpers.processError newModel errorContext e
+                                newExoProps =
+                                    { oldExoProps
+                                        | receivedTime = Nothing
+                                        , loadingSeparately = False
+                                    }
+
+                                newServer =
+                                    { server | exoProps = newExoProps }
+
+                                newProject =
+                                    Helpers.projectUpdateServer project newServer
+
+                                newModel =
+                                    Helpers.modelUpdateProject model newProject
+                            in
+                            Helpers.processError newModel errorContext e
 
         ReceiveConsoleUrl serverUuid url ->
             Rest.Nova.receiveConsoleUrl model project serverUuid url
