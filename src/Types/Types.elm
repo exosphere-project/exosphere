@@ -210,6 +210,7 @@ type ProjectSpecificMsgConstructor
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
+    | ReceiveServer ErrorContext (Result Http.Error OSTypes.Server)
     | ReceiveServers ErrorContext (Result Http.Error (List OSTypes.Server))
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
@@ -339,6 +340,7 @@ type alias ExoServerProps =
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
+    , receivedTime : Maybe Time.Posix -- Used only if this server was polled more recently than the other servers in the project
     }
 
 

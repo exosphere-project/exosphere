@@ -1186,9 +1186,34 @@ processProjectSpecificMsg model project msg =
             )
 
         ReceiveServers errorContext result ->
+            -- TODO DRY with below
             case result of
                 Ok servers ->
                     Rest.Nova.receiveServers model project servers
+
+                Err e ->
+                    let
+                        oldServersData =
+                            project.servers.data
+
+                        newProject =
+                            { project
+                                | servers =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldServersData
+                                        (RDPP.NotLoading (Just ( e, model.currentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
+
+        ReceiveServer errorContext result ->
+            -- TODO DRY with above
+            case result of
+                Ok server ->
+                    Rest.Nova.receiveServer model project server
 
                 Err e ->
                     let

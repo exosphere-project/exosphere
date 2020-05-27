@@ -11,6 +11,7 @@ module Rest.Nova exposing
     , receiveCreateServer
     , receiveFlavors
     , receiveKeypairs
+    , receiveServer
     , receiveServers
     , requestConsoleUrls
     , requestCreateServer
@@ -92,44 +93,29 @@ requestServers project =
 
 
 requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
-requestServer project _ =
-    -- Right now we are actually getting all servers, even when only one server is requested, because the way we are
-    -- using RemoteDataPlusPlus does not allow us to express "one server in the model is loading but the other servers
-    -- are not"
-    requestServers project
+requestServer project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get details of server with UUID \"" ++ serverUuid ++ "\"")
+                ErrorCrit
+                Nothing
 
-
-
-{-
-   requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
-   requestServer project serverUuid =
-       let
-           errorContext =
-               ErrorContext
-                   ("get details of server with UUID \"" ++ serverUuid ++ "\"")
-                   ErrorCrit
-                   Nothing
-
-           resultToMsg_ =
-               resultToMsg
-                   errorContext
-                   (\server ->
-                       ProjectMsg
-                           (Helpers.getProjectId project)
-                           (ReceiveServer server)
-                   )
-       in
-       openstackCredentialedRequest
-           project
-           Get
-           (Just "compute 2.27")
-           (project.endpoints.nova ++ "/servers/" ++ serverUuid)
-           Http.emptyBody
-           (Http.expectJson
-               resultToMsg_
-               (Decode.at [ "server" ] decodeServer)
-           )
--}
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveServer errorContext result)
+    in
+    openstackCredentialedRequest
+        project
+        Get
+        (Just "compute 2.27")
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        Http.emptyBody
+        (Http.expectJson
+            resultToMsg
+            (Decode.at [ "server" ] decodeServer)
+        )
 
 
 requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -454,6 +440,21 @@ receiveServers model project osServers =
                 |> List.map (receiveServer_ project)
                 |> List.unzip
 
+        newExoServersClearReceivedTime =
+            let
+                clearRecTime : Server -> Server
+                clearRecTime s =
+                    let
+                        oldExoProps =
+                            s.exoProps
+
+                        newExoProps =
+                            { oldExoProps | receivedTime = Nothing }
+                    in
+                    { s | exoProps = newExoProps }
+            in
+            List.map clearRecTime newExoServers
+
         projectNoDeletedSvrs =
             -- Set RDPP ReceivedTime and remove recently deleted servers from existing project
             { project
@@ -473,10 +474,45 @@ receiveServers model project osServers =
             List.foldl
                 (\s p -> Helpers.projectUpdateServer p s)
                 projectNoDeletedSvrs
-                newExoServers
+                newExoServersClearReceivedTime
     in
     ( Helpers.modelUpdateProject model newProject
     , Cmd.batch cmds
+    )
+
+
+receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
+receiveServer model project osServer =
+    let
+        ( newServer, cmd ) =
+            receiveServer_ project osServer
+
+        newServerUpdatedRecTime =
+            let
+                oldExoProps =
+                    newServer.exoProps
+
+                newExoProps =
+                    { oldExoProps | receivedTime = Just model.currentTime }
+            in
+            { newServer | exoProps = newExoProps }
+
+        newProject =
+            case project.servers.data of
+                RDPP.DoHave _ _ ->
+                    Helpers.projectUpdateServer project newServer
+
+                RDPP.DontHave ->
+                    let
+                        newServersRDPP =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave [ newServerUpdatedRecTime ] model.currentTime)
+                                (RDPP.NotLoading Nothing)
+                    in
+                    { project | servers = newServersRDPP }
+    in
+    ( Helpers.modelUpdateProject model newProject
+    , cmd
     )
 
 
@@ -494,6 +530,7 @@ receiveServer_ project osServer =
                                 False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
+                                Nothing
                     in
                     Server osServer defaultExoProps
 
