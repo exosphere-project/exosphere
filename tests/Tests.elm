@@ -1,11 +1,23 @@
-module Tests exposing (emptyCreds, processOpenRcSuite, stringIsUuidOrDefaultSuite)
+module Tests exposing
+    ( computeQuotasAndLimitsSuite
+    , emptyCreds
+    , processOpenRcSuite
+    , stringIsUuidOrDefaultSuite
+    , volumeQuotasAndLimitsSuite
+    )
 
 -- Test related Modules
 -- Exosphere Modules Under Test
 
 import Expect exposing (Expectation)
 import Helpers.Helpers as Helpers
-import OpenStack.Types exposing (OpenstackLogin)
+import Json.Decode as Decode
+import OpenStack.Types as OSTypes
+    exposing
+        ( ComputeQuota
+        , OpenstackLogin
+        , VolumeQuota
+        )
 import Test exposing (..)
 import TestData
 
@@ -13,6 +25,165 @@ import TestData
 emptyCreds : OpenstackLogin
 emptyCreds =
     OpenstackLogin "" "" "" "" "" ""
+
+
+computeQuotasAndLimitsSuite : Test
+computeQuotasAndLimitsSuite =
+    let
+        specialIntToMaybe : Decode.Decoder (Maybe Int)
+        specialIntToMaybe =
+            Decode.int
+                |> Decode.map
+                    (\i ->
+                        if i == -1 then
+                            Nothing
+
+                        else
+                            Just i
+                    )
+
+        quotaItemDetailDecoder : Decode.Decoder OSTypes.QuotaItemDetail
+        quotaItemDetailDecoder =
+            Decode.map2 OSTypes.QuotaItemDetail
+                (Decode.field "in_use" Decode.int)
+                (Decode.field "limit" specialIntToMaybe)
+
+        computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
+        computeQuotaDecoder =
+            Decode.map3 OSTypes.ComputeQuota
+                (Decode.field "cores" quotaItemDetailDecoder)
+                (Decode.field "instances" quotaItemDetailDecoder)
+                (Decode.field "ram" quotaItemDetailDecoder)
+
+        computeLimitsDecoder : Decode.Decoder OSTypes.ComputeQuota
+        computeLimitsDecoder =
+            Decode.map3 OSTypes.ComputeQuota
+                (Decode.map2 OSTypes.QuotaItemDetail
+                    (Decode.at [ "limits", "absolute", "totalCoresUsed" ] Decode.int)
+                    (Decode.at [ "limits", "absolute", "maxTotalCores" ] specialIntToMaybe)
+                )
+                (Decode.map2 OSTypes.QuotaItemDetail
+                    (Decode.at [ "limits", "absolute", "totalInstancesUsed" ] Decode.int)
+                    (Decode.at [ "limits", "absolute", "maxTotalInstances" ] specialIntToMaybe)
+                )
+                (Decode.map2 OSTypes.QuotaItemDetail
+                    (Decode.at [ "limits", "absolute", "totalRAMUsed" ] Decode.int)
+                    (Decode.at [ "limits", "absolute", "maxTotalRAMSize" ] specialIntToMaybe)
+                )
+    in
+    describe "Decoding compute quotas and limits"
+        [ test "nova os-quota-sets details" <|
+            \_ ->
+                Expect.equal
+                    (Decode.decodeString (Decode.field "quota_set" computeQuotaDecoder) TestData.novaQuotaSetDetail)
+                    (Ok
+                        { cores =
+                            { inUse = 1
+                            , limit = Just 48
+                            }
+                        , instances =
+                            { inUse = 1
+                            , limit = Just 10
+                            }
+                        , ram =
+                            { inUse = 1024
+                            , limit = Just 999999
+                            }
+                        }
+                    )
+        , test "compute limits" <|
+            \_ ->
+                Expect.equal
+                    (Decode.decodeString computeLimitsDecoder TestData.novaLimits)
+                    (Ok
+                        { cores =
+                            { inUse = 1
+                            , limit = Just 48
+                            }
+                        , instances =
+                            { inUse = 1
+                            , limit = Just 10
+                            }
+                        , ram =
+                            { inUse = 1024
+                            , limit = Just 999999
+                            }
+                        }
+                    )
+        ]
+
+
+volumeQuotasAndLimitsSuite : Test
+volumeQuotasAndLimitsSuite =
+    let
+        specialIntToMaybe : Decode.Decoder (Maybe Int)
+        specialIntToMaybe =
+            Decode.int
+                |> Decode.map
+                    (\i ->
+                        if i == -1 then
+                            Nothing
+
+                        else
+                            Just i
+                    )
+
+        quotaItemDetailDecoder : Decode.Decoder OSTypes.QuotaItemDetail
+        quotaItemDetailDecoder =
+            Decode.map2 OSTypes.QuotaItemDetail
+                (Decode.field "in_use" Decode.int)
+                (Decode.field "limit" specialIntToMaybe)
+
+        volumeQuotaDecoder : Decode.Decoder OSTypes.VolumeQuota
+        volumeQuotaDecoder =
+            Decode.map2 OSTypes.VolumeQuota
+                (Decode.field "volumes" quotaItemDetailDecoder)
+                (Decode.field "gigabytes" quotaItemDetailDecoder)
+
+        volumeLimitsDecoder : Decode.Decoder OSTypes.VolumeQuota
+        volumeLimitsDecoder =
+            Decode.map2 OSTypes.VolumeQuota
+                (Decode.map2 OSTypes.QuotaItemDetail
+                    (Decode.at [ "limits", "absolute", "totalVolumesUsed" ] Decode.int)
+                    (Decode.at [ "limits", "absolute", "maxTotalVolumes" ] specialIntToMaybe)
+                )
+                (Decode.map2 OSTypes.QuotaItemDetail
+                    (Decode.at [ "limits", "absolute", "totalGigabytesUsed" ] Decode.int)
+                    (Decode.at [ "limits", "absolute", "maxTotalVolumeGigabytes" ] specialIntToMaybe)
+                )
+    in
+    describe "Decoding volume quotas and limits"
+        [ test "cinder os-quota-sets details" <|
+            \_ ->
+                Expect.equal
+                    (Decode.decodeString (Decode.field "quota_set" volumeQuotaDecoder) TestData.cinderQuotaSetDetail)
+                    (Ok
+                        { volumes =
+                            { inUse = 5
+                            , limit = Just 10
+                            }
+                        , gigabytes =
+                            { inUse = 82
+                            , limit = Just 1000
+                            }
+                        }
+                    )
+        , test "volume limits" <|
+            \_ ->
+                Expect.equal
+                    (Decode.decodeString volumeLimitsDecoder TestData.cinderLimits)
+                    (Ok
+                        { volumes =
+                            { inUse = 5
+                            , limit = Just 10
+                            }
+                        , gigabytes =
+                            { inUse = 82
+                            , limit = Just 1000
+                            }
+                        }
+                    )
+        ]
 
 
 stringIsUuidOrDefaultSuite : Test

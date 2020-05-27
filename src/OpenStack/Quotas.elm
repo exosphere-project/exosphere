@@ -18,6 +18,10 @@ import Types.Types
         )
 
 
+
+-- Compute Quota
+
+
 requestComputeQuota : Project -> Cmd Msg
 requestComputeQuota project =
     let
@@ -40,20 +44,33 @@ requestComputeQuota project =
         project
         Get
         Nothing
-        (project.endpoints.nova ++ "/os-quota-sets/" ++ project.auth.project.uuid ++ "/detail")
+        (project.endpoints.nova ++ "/limits")
         Http.emptyBody
         (Http.expectJson
             resultToMsg_
-            (Decode.field "quota_set" computeQuotaDecoder)
+            (Decode.field "limits" computeQuotaDecoder)
         )
 
 
 computeQuotaDecoder : Decode.Decoder OSTypes.ComputeQuota
 computeQuotaDecoder =
     Decode.map3 OSTypes.ComputeQuota
-        (Decode.field "cores" quotaItemDetailDecoder)
-        (Decode.field "instances" quotaItemDetailDecoder)
-        (Decode.field "ram" quotaItemDetailDecoder)
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalCoresUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalCores" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalInstancesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalInstances" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalRAMUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalRAMSize" ] specialIntToMaybe)
+        )
+
+
+
+-- Volume Quota
 
 
 requestVolumeQuota : Project -> Cmd Msg
@@ -78,36 +95,39 @@ requestVolumeQuota project =
         project
         Get
         Nothing
-        (project.endpoints.cinder ++ "/os-quota-sets/" ++ project.auth.project.uuid ++ "?usage=True")
+        (project.endpoints.cinder ++ "/limits")
         Http.emptyBody
         (Http.expectJson
             resultToMsg_
-            (Decode.field "quota_set" volumeQuotaDecoder)
+            (Decode.field "limits" volumeQuotaDecoder)
         )
 
 
 volumeQuotaDecoder : Decode.Decoder OSTypes.VolumeQuota
 volumeQuotaDecoder =
     Decode.map2 OSTypes.VolumeQuota
-        (Decode.field "volumes" quotaItemDetailDecoder)
-        (Decode.field "gigabytes" quotaItemDetailDecoder)
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalVolumesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalVolumes" ] specialIntToMaybe)
+        )
+        (Decode.map2 OSTypes.QuotaItemDetail
+            (Decode.at [ "absolute", "totalGigabytesUsed" ] Decode.int)
+            (Decode.at [ "absolute", "maxTotalVolumeGigabytes" ] specialIntToMaybe)
+        )
 
 
-quotaItemDetailDecoder : Decode.Decoder OSTypes.QuotaItemDetail
-quotaItemDetailDecoder =
-    let
-        specialIntToMaybe : Decode.Decoder (Maybe Int)
-        specialIntToMaybe =
-            Decode.int
-                |> Decode.map
-                    (\i ->
-                        if i == -1 then
-                            Nothing
 
-                        else
-                            Just i
-                    )
-    in
-    Decode.map2 OSTypes.QuotaItemDetail
-        (Decode.field "in_use" Decode.int)
-        (Decode.field "limit" specialIntToMaybe)
+-- Helpers
+
+
+specialIntToMaybe : Decode.Decoder (Maybe Int)
+specialIntToMaybe =
+    Decode.int
+        |> Decode.map
+            (\i ->
+                if i == -1 then
+                    Nothing
+
+                else
+                    Just i
+            )
