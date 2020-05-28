@@ -1,6 +1,8 @@
 module OpenStack.Quotas exposing
-    ( requestComputeQuota
+    ( computeQuotaDecoder
+    , requestComputeQuota
     , requestVolumeQuota
+    , volumeQuotaDecoder
     )
 
 import Error exposing (ErrorContext, ErrorLevel(..))
