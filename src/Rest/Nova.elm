@@ -506,7 +506,7 @@ receiveServer model project osServer =
         newProject =
             case project.servers.data of
                 RDPP.DoHave _ _ ->
-                    Helpers.projectUpdateServer project newServer
+                    Helpers.projectUpdateServer project newServerUpdatedSomeExoProps
 
                 RDPP.DontHave ->
                     let
@@ -576,6 +576,7 @@ receiveServer_ project osServer =
         floatingIpCmd =
             case newServer.exoProps.priorFloatingIpState of
                 Requestable ->
+                    -- TODO do this with Orchestration engine
                     [ requestNetworks project
                     ]
                         |> Cmd.batch

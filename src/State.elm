@@ -266,7 +266,6 @@ updateUnderlying msg model =
             processTick model interval time
 
         DoOrchestration posixTime ->
-            -- TODO does Orchestration care about incoming Msg or no? Probably not
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
@@ -538,6 +537,13 @@ processTick model interval time =
                     , OSTypes.ErrorExtending
                     ]
 
+        viewIndependentCmd =
+            if interval == 5 then
+                Task.perform (\posix -> DoOrchestration posix) Time.now
+
+            else
+                Cmd.none
+
         ( viewDependentModel, viewDependentCmd ) =
             {- TODO move some of this to Orchestration? -}
             case model.viewState of
@@ -552,30 +558,8 @@ processTick model interval time =
 
                         Just project ->
                             case projectViewState of
-                                ListProjectServers _ _ ->
-                                    case interval of
-                                        10 ->
-                                            if
-                                                project.servers
-                                                    |> RDPP.withDefault []
-                                                    |> List.any Helpers.serverNeedsFrequentPoll
-                                            then
-                                                update (ProjectMsg projectName RequestServers) model
-
-                                            else
-                                                ( model, Cmd.none )
-
-                                        60 ->
-                                            update (ProjectMsg projectName RequestServers) model
-
-                                        _ ->
-                                            ( model, Cmd.none )
-
                                 ServerDetail serverUuid _ ->
                                     let
-                                        ( newModel, serverCmd ) =
-                                            update (ProjectMsg projectName (RequestServer serverUuid)) model
-
                                         volCmd =
                                             OSVolumes.requestVolumes project
                                     in
@@ -583,30 +567,19 @@ processTick model interval time =
                                         5 ->
                                             case Helpers.serverLookup project serverUuid of
                                                 Just server ->
-                                                    ( if Helpers.serverNeedsFrequentPoll server then
-                                                        newModel
+                                                    ( model
+                                                    , if serverVolsNeedFrequentPoll project server then
+                                                        volCmd
 
                                                       else
-                                                        model
-                                                    , Cmd.batch
-                                                        [ if Helpers.serverNeedsFrequentPoll server then
-                                                            serverCmd
-
-                                                          else
-                                                            Cmd.none
-                                                        , if serverVolsNeedFrequentPoll project server then
-                                                            volCmd
-
-                                                          else
-                                                            Cmd.none
-                                                        ]
+                                                        Cmd.none
                                                     )
 
                                                 Nothing ->
                                                     ( model, Cmd.none )
 
                                         300 ->
-                                            ( newModel, Cmd.batch [ serverCmd, volCmd ] )
+                                            ( model, volCmd )
 
                                         _ ->
                                             ( model, Cmd.none )
@@ -653,7 +626,12 @@ processTick model interval time =
                                 _ ->
                                     ( model, Cmd.none )
     in
-    ( { viewDependentModel | currentTime = time }, viewDependentCmd )
+    ( { viewDependentModel | currentTime = time }
+    , Cmd.batch
+        [ viewDependentCmd
+        , viewIndependentCmd
+        ]
+    )
 
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )

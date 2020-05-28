@@ -32,34 +32,52 @@ goalNewServer exoClientUuid time project =
 
 taskServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 taskServerPoll time project server =
-    -- TODO poll server if it hasn't been polled recently.
-    -- TODO For this we need to know the last time the server was polled. We need to store in model.
-    -- TODO We also need to figure out if server needs frequent polling -- see old context-dependent polling code.
     let
         frequentPollIntervalMs =
-            5000
+            4500
 
-        serverReceivedRecently =
+        infrequentPollIntervalMs =
+            60000
+
+        serverReceivedRecentlyEnough =
             let
-                compare receivedTime =
-                    Time.posixToMillis time < (Time.posixToMillis receivedTime + frequentPollIntervalMs)
+                receivedTime =
+                    case server.exoProps.receivedTime of
+                        Just receivedTime_ ->
+                            receivedTime_
+
+                        Nothing ->
+                            case project.servers.data of
+                                RDPP.DoHave _ receivedTime__ ->
+                                    receivedTime__
+
+                                RDPP.DontHave ->
+                                    Time.millisToPosix 0
+
+                pollInterval =
+                    if Helpers.serverNeedsFrequentPoll server then
+                        frequentPollIntervalMs
+
+                    else
+                        infrequentPollIntervalMs
+
+                receivedRecently recTime interval =
+                    Time.posixToMillis time < (Time.posixToMillis recTime + interval)
             in
-            case server.exoProps.receivedTime of
-                Just receivedTime ->
-                    compare receivedTime
+            receivedRecently receivedTime pollInterval
 
-                Nothing ->
-                    case project.servers.data of
-                        RDPP.DoHave _ receivedTime ->
-                            compare receivedTime
+        serverIsLoading =
+            case project.servers.refreshStatus of
+                RDPP.Loading _ ->
+                    True
 
-                        RDPP.DontHave ->
-                            False
+                _ ->
+                    server.exoProps.loadingSeparately
     in
-    if serverReceivedRecently then
+    if serverReceivedRecentlyEnough then
         ( project, Cmd.none )
 
-    else if server.exoProps.loadingSeparately then
+    else if serverIsLoading then
         ( project, Cmd.none )
 
     else
