@@ -1,4 +1,12 @@
-module TestData exposing (openrcPreV3, openrcV3, openrcV3withComments)
+module TestData exposing
+    ( cinderLimits
+    , cinderQuotaSetDetail
+    , novaLimits
+    , novaQuotaSetDetail
+    , openrcPreV3
+    , openrcV3
+    , openrcV3withComments
+    )
 
 
 openrcV3withComments : String
@@ -82,4 +90,211 @@ export OS_AUTH_URL="https://cell.alliance.rebel:35357/v3"
 export OS_PROJECT_DOMAIN_NAME="default"
 export OS_REGION_NAME="CellOne"
 export OS_PASSWORD=$OS_PASSWORD_INPUT
+    """
+
+
+cinderQuotaSetDetail : String
+cinderQuotaSetDetail =
+    """
+{
+    "quota_set": {
+        "per_volume_gigabytes": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": -1,
+            "in_use": 0
+        },
+        "groups": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": 10,
+            "in_use": 0
+        },
+        "gigabytes": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": 1000,
+            "in_use": 82
+        },
+        "backup_gigabytes": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": 1000,
+            "in_use": 267
+        },
+        "snapshots": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": 10,
+            "in_use": 0
+        },
+        "volumes_rbd": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": -1,
+            "in_use": 0
+        },
+        "volumes": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": 10,
+            "in_use": 5
+        },
+        "gigabytes_rbd": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": -1,
+            "in_use": 0
+        },
+        "backups": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": -1,
+            "in_use": 13
+        },
+        "snapshots_rbd": {
+            "reserved": 0,
+            "allocated": 0,
+            "limit": -1,
+            "in_use": 0
+        },
+        "id": "1b29b1a686d34c769b501e7dbb64765a"
+    }
+}
+    """
+
+
+cinderLimits : String
+cinderLimits =
+    """
+{
+    "limits": {
+        "rate": [],
+        "absolute": {
+            "totalSnapshotsUsed": 0,
+            "maxTotalBackups": -1,
+            "maxTotalVolumeGigabytes": 1000,
+            "maxTotalSnapshots": 10,
+            "maxTotalBackupGigabytes": 1000,
+            "totalBackupGigabytesUsed": 267,
+            "maxTotalVolumes": 10,
+            "totalVolumesUsed": 5,
+            "totalBackupsUsed": 13,
+            "totalGigabytesUsed": 82
+        }
+    }
+}
+    """
+
+
+novaQuotaSetDetail : String
+novaQuotaSetDetail =
+    """
+{
+    "quota_set": {
+        "injected_file_content_bytes": {
+            "reserved": 0,
+            "limit": 10240,
+            "in_use": 0
+        },
+        "metadata_items": {
+            "reserved": 0,
+            "limit": 128,
+            "in_use": 0
+        },
+        "server_group_members": {
+            "reserved": 0,
+            "limit": 10,
+            "in_use": 0
+        },
+        "server_groups": {
+            "reserved": 0,
+            "limit": 10,
+            "in_use": 0
+        },
+        "ram": {
+            "reserved": 0,
+            "limit": 999999,
+            "in_use": 1024
+        },
+        "floating_ips": {
+            "reserved": 0,
+            "limit": 10,
+            "in_use": 0
+        },
+        "key_pairs": {
+            "reserved": 0,
+            "limit": 100,
+            "in_use": 0
+        },
+        "id": "1b29b1a686d34c769b501e7dbb64765a",
+        "instances": {
+            "reserved": 0,
+            "limit": 10,
+            "in_use": 1
+        },
+        "security_group_rules": {
+            "reserved": 0,
+            "limit": 20,
+            "in_use": 0
+        },
+        "injected_files": {
+            "reserved": 0,
+            "limit": 5,
+            "in_use": 0
+        },
+        "cores": {
+            "reserved": 0,
+            "limit": 48,
+            "in_use": 1
+        },
+        "fixed_ips": {
+            "reserved": 0,
+            "limit": -1,
+            "in_use": 0
+        },
+        "injected_file_path_bytes": {
+            "reserved": 0,
+            "limit": 255,
+            "in_use": 0
+        },
+        "security_groups": {
+            "reserved": 0,
+            "limit": 10,
+            "in_use": 1
+        }
+    }
+}
+    """
+
+
+novaLimits : String
+novaLimits =
+    """
+{
+    "limits": {
+        "rate": [],
+        "absolute": {
+            "maxServerMeta": 128,
+            "maxPersonality": 5,
+            "totalServerGroupsUsed": 0,
+            "maxImageMeta": 128,
+            "maxPersonalitySize": 10240,
+            "maxTotalKeypairs": 100,
+            "maxSecurityGroupRules": 20,
+            "maxServerGroups": 10,
+            "totalCoresUsed": 1,
+            "totalRAMUsed": 1024,
+            "totalInstancesUsed": 1,
+            "maxSecurityGroups": 10,
+            "totalFloatingIpsUsed": 0,
+            "maxTotalCores": 48,
+            "maxServerGroupMembers": 10,
+            "maxTotalFloatingIps": 10,
+            "totalSecurityGroupsUsed": 1,
+            "maxTotalInstances": 10,
+            "maxTotalRAMSize": 999999
+        }
+    }
+}
     """
