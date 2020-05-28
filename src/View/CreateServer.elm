@@ -8,6 +8,7 @@ import Element.Input as Input
 import Framework.Button as Button
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -472,7 +473,13 @@ networkPicker project createServerRequest =
                     [ Input.radio networkEmptyHint
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
                         , onChange = \networkUuid -> updateCreateServerRequest project { createServerRequest | networkUuid = networkUuid }
-                        , options = List.map networkAsInputOption project.networks
+                        , options =
+                            case project.networks.data of
+                                RDPP.DoHave networks _ ->
+                                    List.map networkAsInputOption networks
+
+                                RDPP.DontHave ->
+                                    []
                         , selected = Just createServerRequest.networkUuid
                         }
                     , guessText

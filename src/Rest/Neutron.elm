@@ -22,6 +22,7 @@ module Rest.Neutron exposing
 
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -58,14 +59,10 @@ requestNetworks project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\nets ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveNetworks nets)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveNetworks errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -74,7 +71,7 @@ requestNetworks project =
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             decodeNetworks
         )
 
@@ -109,8 +106,8 @@ requestFloatingIps project =
         )
 
 
-requestPorts : Project -> Server -> Cmd Msg
-requestPorts project server =
+requestPorts : Project -> Cmd Msg
+requestPorts project =
     let
         errorContext =
             ErrorContext
@@ -342,7 +339,11 @@ receiveNetworks : Model -> Project -> List OSTypes.Network -> ( Model, Cmd Msg )
 receiveNetworks model project networks =
     let
         newProject =
-            { project | networks = networks }
+            let
+                newNetsRDPP =
+                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks model.currentTime) (RDPP.NotLoading Nothing)
+            in
+            { project | networks = newNetsRDPP }
 
         -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
         -- Same comments above (in receiveFlavors) apply here.

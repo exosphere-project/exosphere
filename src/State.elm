@@ -825,6 +825,7 @@ processProjectSpecificMsg model project msg =
                                     { project
                                         | computeQuota = RemoteData.Loading
                                         , volumeQuota = RemoteData.Loading
+                                        , networks = RDPP.setLoading project.networks model.currentTime
                                     }
                             in
                             ( newProject
@@ -1276,8 +1277,26 @@ processProjectSpecificMsg model project msg =
             in
             ( deleteIpAddressModel, deleteIpAddressCmd )
 
-        ReceiveNetworks nets ->
-            Rest.Neutron.receiveNetworks model project nets
+        ReceiveNetworks errorContext result ->
+            case result of
+                Ok networks ->
+                    Rest.Neutron.receiveNetworks model project networks
+
+                Err e ->
+                    let
+                        oldNetworksData =
+                            project.networks.data
+
+                        newProject =
+                            { project
+                                | networks =
+                                    RDPP.RemoteDataPlusPlus oldNetworksData (RDPP.NotLoading (Just ( e, model.currentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
@@ -1494,7 +1513,7 @@ createProject model password authToken endpoints =
             , flavors = []
             , keypairs = []
             , volumes = RemoteData.NotAsked
-            , networks = []
+            , networks = RDPP.empty
             , floatingIps = []
             , ports = RDPP.empty
             , securityGroups = []

@@ -17,6 +17,7 @@ goalNewServer exoClientUuid time project =
         tasks =
             [ taskServerPoll time
             , taskServerRequestPorts time
+            , taskServerRequestNetworks time
             , taskServerRequestFloatingIp time
             , taskDummy time
             ]
@@ -99,18 +100,54 @@ taskServerPoll time project server =
         ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
 
 
-taskServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-taskServerRequestPorts time project server =
+taskServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+taskServerRequestNetworks time project server =
+    -- TODO DRY with function below?
     let
         requestStuff =
-            let
-                oldPorts =
-                    project.ports
+            ( { project | networks = RDPP.setLoading project.networks time }
+            , Rest.Neutron.requestNetworks project
+            )
+    in
+    if
+        not server.exoProps.deletionAttempted
+            && (server.osProps.details.openstackStatus
+                    == OSTypes.ServerActive
+               )
+            && (Helpers.checkFloatingIpState server.osProps.details server.exoProps.priorFloatingIpState
+                    == Requestable
+               )
+    then
+        case project.networks.refreshStatus of
+            RDPP.NotLoading (Just ( _, receivedTime )) ->
+                -- If we got an error, try again 10 seconds later?
+                if Time.posixToMillis time - Time.posixToMillis receivedTime > 10000 then
+                    requestStuff
 
-                newPorts =
-                    { oldPorts | refreshStatus = RDPP.Loading time }
-            in
-            ( { project | ports = newPorts }, Rest.Neutron.requestPorts project server )
+                else
+                    ( project, Cmd.none )
+
+            RDPP.NotLoading _ ->
+                case project.networks.data of
+                    RDPP.DontHave ->
+                        requestStuff
+
+                    RDPP.DoHave netsData _ ->
+                        ( project, Cmd.none )
+
+            _ ->
+                ( project, Cmd.none )
+
+    else
+        ( project, Cmd.none )
+
+
+taskServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+taskServerRequestPorts time project server =
+    -- TODO DRY with function above?
+    let
+        requestStuff =
+            ( { project | ports = RDPP.setLoading project.ports time }, Rest.Neutron.requestPorts project )
     in
     if
         not server.exoProps.deletionAttempted

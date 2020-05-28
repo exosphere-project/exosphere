@@ -573,17 +573,6 @@ receiveServer_ project osServer =
                             , targetOpenstackStatus = newTargetOpenstackStatus
                         }
 
-        floatingIpCmd =
-            case newServer.exoProps.priorFloatingIpState of
-                Requestable ->
-                    -- TODO do this with Orchestration engine
-                    [ requestNetworks project
-                    ]
-                        |> Cmd.batch
-
-                _ ->
-                    Cmd.none
-
         consoleUrlCmd =
             case newServer.osProps.consoleUrl of
                 RemoteData.Success _ ->
@@ -614,7 +603,7 @@ receiveServer_ project osServer =
             requestCockpitIfRequestable project newServer
 
         allCmds =
-            [ floatingIpCmd, consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
+            [ consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )

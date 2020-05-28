@@ -355,7 +355,12 @@ getPublicEndpointFromService service =
 
 getExternalNetwork : Project -> Maybe OSTypes.Network
 getExternalNetwork project =
-    List.filter (\n -> n.isExternal) project.networks |> List.head
+    case project.networks.data of
+        RDPP.DoHave networks _ ->
+            List.filter (\n -> n.isExternal) networks |> List.head
+
+        RDPP.DontHave ->
+            Nothing
 
 
 checkFloatingIpState : OSTypes.ServerDetails -> FloatingIpState -> FloatingIpState
@@ -505,17 +510,7 @@ projectUpdateServers project servers =
 
 projectSetServersLoading : Time.Posix -> Project -> Project
 projectSetServersLoading time project =
-    let
-        oldServersRDPP =
-            project.servers
-
-        newServersRDPPRefreshStatus =
-            RDPP.Loading time
-
-        newServersRDPP =
-            { oldServersRDPP | refreshStatus = newServersRDPPRefreshStatus }
-    in
-    { project | servers = newServersRDPP }
+    { project | servers = RDPP.setLoading project.servers time }
 
 
 projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
@@ -784,10 +779,15 @@ newServerNetworkOptions project =
     let
         -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
         projectNets =
-            project.networks
-                |> List.filter (\n -> n.status == "ACTIVE")
-                |> List.filter (\n -> n.adminStateUp == True)
-                |> List.filter (\n -> n.isExternal == False)
+            case project.networks.data of
+                RDPP.DoHave networks _ ->
+                    networks
+                        |> List.filter (\n -> n.status == "ACTIVE")
+                        |> List.filter (\n -> n.adminStateUp == True)
+                        |> List.filter (\n -> n.isExternal == False)
+
+                RDPP.DontHave ->
+                    []
 
         maybeAutoAllocatedNet =
             projectNets

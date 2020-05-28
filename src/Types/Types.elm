@@ -132,7 +132,7 @@ type alias Project =
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
     , volumes : WebData (List OSTypes.Volume)
-    , networks : List OSTypes.Network
+    , networks : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Network)
     , floatingIps : List OSTypes.IpAddress
     , ports : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
@@ -217,7 +217,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
-    | ReceiveNetworks (List OSTypes.Network)
+    | ReceiveNetworks ErrorContext (Result Http.Error (List OSTypes.Network))
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result Http.Error (List OSTypes.Port))
     | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
