@@ -6,7 +6,6 @@ import Element
 import Element.Font as Font
 import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
-import Html
 import Set exposing (Set)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -51,8 +50,8 @@ widgets msgMapper style model =
     , chip Nothing (Element.text "chip label")
     , Element.text "Style.Widgets.IconButton.chip (with badge)"
     , chip Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
-    , Element.text "chips"
-    , chips msgMapper style model
+    , Element.text "chipsFilter"
+    , chipsFilter msgMapper style model
     ]
 
 
@@ -162,8 +161,8 @@ view msgMapper style model =
             ]
 
 
-chips : (Msg -> msg) -> Style style msg -> Model -> Element.Element msg
-chips msgMapper style model =
+chipsFilter : (Msg -> msg) -> Style style msg -> Model -> Element.Element msg
+chipsFilter msgMapper style model =
     [ { chips =
             model.selected
                 |> Set.toList
