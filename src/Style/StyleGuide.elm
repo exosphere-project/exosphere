@@ -22,8 +22,8 @@ import Widget.Style.Material as Material
 {- When you create a new widget, add example usages to the `widgets` list here! -}
 
 
-widgets : List (Element.Element a)
-widgets =
+widgets : (Msg -> msg) -> Style style msg -> Model -> List (Element.Element msg)
+widgets msgMapper style model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
     , menuItem Active "Active menu item" Nothing
     , menuItem Inactive "Inactive menu item" Nothing
@@ -51,6 +51,8 @@ widgets =
     , chip Nothing (Element.text "chip label")
     , Element.text "Style.Widgets.IconButton.chip (with badge)"
     , chip Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
+    , Element.text "chips"
+    , chips msgMapper style model
     ]
 
 
@@ -65,20 +67,6 @@ intro =
         , Element.text "See also the style guide for elm-style-framework (TODO link to demo style guide)"
         ]
     ]
-
-
-oldMain : Html.Html msg
-oldMain =
-    Element.layout [] <|
-        Element.column
-            [ Element.padding 10
-            , Element.spacing 20
-            ]
-        <|
-            List.concat
-                [ intro
-                , widgets
-                ]
 
 
 
@@ -166,6 +154,16 @@ subscriptions _ =
 
 view : (Msg -> msg) -> Style style msg -> Model -> Element.Element msg
 view msgMapper style model =
+    intro
+        ++ widgets msgMapper style model
+        |> Element.column
+            [ Element.padding 10
+            , Element.spacing 20
+            ]
+
+
+chips : (Msg -> msg) -> Style style msg -> Model -> Element.Element msg
+chips msgMapper style model =
     [ { chips =
             model.selected
                 |> Set.toList
