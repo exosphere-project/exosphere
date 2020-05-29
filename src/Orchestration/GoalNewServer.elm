@@ -19,7 +19,6 @@ goalNewServer exoClientUuid time project =
             , taskServerRequestPorts time
             , taskServerRequestNetworks time
             , taskServerRequestFloatingIp time
-            , taskDummy time
             ]
 
         ( newProject, newCmds ) =
@@ -132,7 +131,7 @@ taskServerRequestNetworks time project server =
                     RDPP.DontHave ->
                         requestStuff
 
-                    RDPP.DoHave netsData _ ->
+                    RDPP.DoHave _ _ ->
                         ( project, Cmd.none )
 
             _ ->
@@ -235,8 +234,3 @@ taskServerRequestFloatingIp _ project server =
 
         _ ->
             ( project, Cmd.none )
-
-
-taskDummy : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-taskDummy _ project _ =
-    ( project, Cmd.none )
