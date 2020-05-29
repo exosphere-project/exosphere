@@ -8,17 +8,21 @@ import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
 import Set exposing (Set)
 import Style.Widgets.Card exposing (badge, exoCard)
+import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
-import Widget
 import Widget.Style exposing (ColumnStyle, TextInputStyle)
 import Widget.Style.Material as Material
 
 
 
 {- When you create a new widget, add example usages to the `widgets` list here! -}
+
+
+type alias Msg =
+    Style.Widgets.ChipsFilter.ChipsFilterMsg
 
 
 widgets : (Msg -> msg) -> Style style msg -> Model -> List (Element.Element msg)
@@ -108,18 +112,15 @@ options =
 type alias Model =
     { selected : Set String
     , textInput : String
+    , options : List String
     }
-
-
-type Msg
-    = ToggleSelection String
-    | SetTextInput String
 
 
 init : ( Model, Cmd Msg )
 init =
     ( { selected = Set.empty
       , textInput = ""
+      , options = options
       }
     , Cmd.none
     )
@@ -128,7 +129,7 @@ init =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ToggleSelection string ->
+        Style.Widgets.ChipsFilter.ToggleSelection string ->
             ( { model
                 | selected =
                     model.selected
@@ -142,7 +143,7 @@ update msg model =
             , Cmd.none
             )
 
-        SetTextInput string ->
+        Style.Widgets.ChipsFilter.SetTextInput string ->
             ( { model | textInput = string }, Cmd.none )
 
 
@@ -159,50 +160,6 @@ view msgMapper style model =
             [ Element.padding 10
             , Element.spacing 20
             ]
-
-
-chipsFilter : (Msg -> msg) -> Style style msg -> Model -> Element.Element msg
-chipsFilter msgMapper style model =
-    [ { chips =
-            model.selected
-                |> Set.toList
-                |> List.map
-                    (\string ->
-                        { icon = Element.none
-                        , text = string
-                        , onPress =
-                            string
-                                |> ToggleSelection
-                                |> msgMapper
-                                |> Just
-                        }
-                    )
-      , text = model.textInput
-      , placeholder = Nothing
-      , label = "Chips"
-      , onChange = SetTextInput >> msgMapper
-      }
-        |> Widget.textInput style.textInput
-    , model.selected
-        |> Set.diff
-            (options |> Set.fromList)
-        |> Set.filter (String.toUpper >> String.contains (model.textInput |> String.toUpper))
-        |> Set.toList
-        |> List.map
-            (\string ->
-                Widget.button style.textInput.chipButton
-                    { onPress =
-                        string
-                            |> ToggleSelection
-                            |> msgMapper
-                            |> Just
-                    , text = string
-                    , icon = Element.none
-                    }
-            )
-        |> Element.wrappedRow [ Element.spacing 10 ]
-    ]
-        |> Widget.column style.column
 
 
 main : Program () Model Msg
