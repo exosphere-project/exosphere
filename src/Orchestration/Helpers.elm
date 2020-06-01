@@ -7,7 +7,7 @@ import UUID
 
 
 
--- These functions help with apply goals and tasks to a list of similar resources (e.g. projects, servers)
+-- These functions help with apply goals and steps to a list of similar resources (e.g. projects, servers)
 
 
 applyProjectStep : (Project -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )

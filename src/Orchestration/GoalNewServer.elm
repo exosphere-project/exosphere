@@ -14,24 +14,24 @@ import UUID
 goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd Msg )
 goalNewServer exoClientUuid time project =
     let
-        tasks =
-            [ taskServerPoll time
-            , taskServerRequestPorts time
-            , taskServerRequestNetworks time
-            , taskServerRequestFloatingIp time
+        steps =
+            [ stepServerPoll time
+            , stepServerRequestPorts time
+            , stepServerRequestNetworks time
+            , stepServerRequestFloatingIp time
             ]
 
         ( newProject, newCmds ) =
             List.foldl
                 (applyStepToAllServersThisExo exoClientUuid)
                 ( project, Cmd.none )
-                tasks
+                steps
     in
     ( newProject, newCmds )
 
 
-taskServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-taskServerPoll time project server =
+stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerPoll time project server =
     let
         frequentPollIntervalMs =
             4500
@@ -99,8 +99,8 @@ taskServerPoll time project server =
         ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
 
 
-taskServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-taskServerRequestNetworks time project server =
+stepServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerRequestNetworks time project server =
     -- TODO DRY with function below?
     let
         requestStuff =
@@ -141,8 +141,8 @@ taskServerRequestNetworks time project server =
         ( project, Cmd.none )
 
 
-taskServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-taskServerRequestPorts time project server =
+stepServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerRequestPorts time project server =
     -- TODO DRY with function above?
     let
         requestStuff =
@@ -188,8 +188,8 @@ taskServerRequestPorts time project server =
         ( project, Cmd.none )
 
 
-taskServerRequestFloatingIp : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-taskServerRequestFloatingIp _ project server =
+stepServerRequestFloatingIp : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerRequestFloatingIp _ project server =
     -- Request floating IP address for new server
     let
         serverDoWeRequestFloatingIp : Maybe OSTypes.Port
