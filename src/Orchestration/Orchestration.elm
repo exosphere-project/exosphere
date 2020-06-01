@@ -36,5 +36,5 @@ orchProject exoClientUuid time project =
 
 
 goalDummy : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd Msg )
-goalDummy exoClientUuid time project =
+goalDummy _ _ project =
     ( project, Cmd.none )

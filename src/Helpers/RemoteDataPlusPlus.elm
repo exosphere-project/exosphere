@@ -57,6 +57,7 @@ withDefault default rdpp =
             default
 
 
+empty : RemoteDataPlusPlus x y
 empty =
     RemoteDataPlusPlus DontHave (NotLoading Nothing)
 

@@ -2,7 +2,7 @@ module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServersTh
 
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
-import Types.Types exposing (FloatingIpState(..), Model, Msg, Project, Server)
+import Types.Types exposing (FloatingIpState(..), Msg, Project, Server)
 import UUID
 
 

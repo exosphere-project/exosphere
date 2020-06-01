@@ -7,7 +7,7 @@ import Orchestration.Helpers exposing (applyStepToAllServersThisExo)
 import Rest.Neutron
 import Rest.Nova
 import Time
-import Types.Types exposing (FloatingIpState(..), Model, Msg, Project, Server)
+import Types.Types exposing (FloatingIpState(..), Msg, Project, Server)
 import UUID
 
 
