@@ -1171,33 +1171,61 @@ processProjectSpecificMsg model project msg =
                     Rest.Nova.receiveServer model project server
 
                 Err e ->
-                    case Helpers.serverLookup project serverUuid of
-                        Nothing ->
-                            -- Server not in project, may have been deleted, ignoring this error
-                            ( model, Cmd.none )
+                    let
+                        non404 =
+                            case Helpers.serverLookup project serverUuid of
+                                Nothing ->
+                                    -- Server not in project, may have been deleted, ignoring this error
+                                    ( model, Cmd.none )
 
-                        Just server ->
-                            -- TODO handle the error case of 404, server was deleted
-                            let
-                                oldExoProps =
-                                    server.exoProps
+                                Just server ->
+                                    -- Reset receivedTime and loadingSeparately
+                                    let
+                                        oldExoProps =
+                                            server.exoProps
 
-                                newExoProps =
-                                    { oldExoProps
-                                        | receivedTime = Nothing
-                                        , loadingSeparately = False
-                                    }
+                                        newExoProps =
+                                            { oldExoProps
+                                                | receivedTime = Nothing
+                                                , loadingSeparately = False
+                                            }
 
-                                newServer =
-                                    { server | exoProps = newExoProps }
+                                        newServer =
+                                            { server | exoProps = newExoProps }
 
-                                newProject =
-                                    Helpers.projectUpdateServer project newServer
+                                        newProject =
+                                            Helpers.projectUpdateServer project newServer
 
-                                newModel =
-                                    Helpers.modelUpdateProject model newProject
-                            in
-                            Helpers.processError newModel errorContext e
+                                        newModel =
+                                            Helpers.modelUpdateProject model newProject
+                                    in
+                                    Helpers.processError newModel errorContext e
+                    in
+                    case e of
+                        Http.BadStatus code ->
+                            if code == 404 then
+                                let
+                                    newErrorContext =
+                                        { errorContext
+                                            | level = Error.ErrorDebug
+                                            , actionContext =
+                                                errorContext.actionContext
+                                                    ++ " -- 404 means server may have been deleted"
+                                        }
+
+                                    newProject =
+                                        Helpers.projectDeleteServer project serverUuid
+
+                                    newModel =
+                                        Helpers.modelUpdateProject model newProject
+                                in
+                                Helpers.processError newModel newErrorContext e
+
+                            else
+                                non404
+
+                        _ ->
+                            non404
 
         ReceiveConsoleUrl serverUuid url ->
             Rest.Nova.receiveConsoleUrl model project serverUuid url

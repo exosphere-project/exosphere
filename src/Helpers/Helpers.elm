@@ -24,6 +24,7 @@ module Helpers.Helpers exposing
     , overallQuotaAvailServers
     , processError
     , processOpenRc
+    , projectDeleteServer
     , projectLookup
     , projectSetServerLoading
     , projectSetServersLoading
@@ -506,6 +507,30 @@ projectUpdateServer project server =
 projectUpdateServers : Project -> List Server -> Project
 projectUpdateServers project servers =
     List.foldl (\s p -> projectUpdateServer p s) project servers
+
+
+projectDeleteServer : Project -> OSTypes.ServerUuid -> Project
+projectDeleteServer project serverUuid =
+    case project.servers.data of
+        RDPP.DontHave ->
+            project
+
+        RDPP.DoHave servers recTime ->
+            let
+                otherServers =
+                    List.filter
+                        (\s -> s.osProps.uuid /= serverUuid)
+                        servers
+
+                oldServersRDPP =
+                    project.servers
+
+                newServersRDPP =
+                    -- Should we update received time when we update a server? Thinking probably not given how this
+                    -- function is actually used. We're generally updating exoProps, not osProps.
+                    { oldServersRDPP | data = RDPP.DoHave otherServers recTime }
+            in
+            { project | servers = newServersRDPP }
 
 
 projectSetServersLoading : Time.Posix -> Project -> Project
