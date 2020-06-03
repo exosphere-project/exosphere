@@ -125,8 +125,8 @@ mounts:
             , clientUuid = Nothing
             }
 
-        emptyModel : UUID.UUID -> Model
-        emptyModel uuid =
+        emptyModel : Bool -> UUID.UUID -> Model
+        emptyModel showDebugMsgs uuid =
             { logMessages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
@@ -138,6 +138,7 @@ mounts:
             , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = Time.millisToPosix flags.epoch
+            , showDebugMsgs = showDebugMsgs
             }
 
         -- This only gets used if we do not find a client UUID in stored state
@@ -173,7 +174,7 @@ mounts:
 
         hydratedModel : Model
         hydratedModel =
-            LocalStorage.hydrateModelFromStoredState emptyModel newClientUuid storedState
+            LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
