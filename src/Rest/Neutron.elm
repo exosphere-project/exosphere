@@ -341,7 +341,7 @@ receiveNetworks model project networks =
         newProject =
             let
                 newNetsRDPP =
-                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks model.currentTime) (RDPP.NotLoading Nothing)
+                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks model.clientCurrentTime) (RDPP.NotLoading Nothing)
             in
             { project | networks = newNetsRDPP }
 

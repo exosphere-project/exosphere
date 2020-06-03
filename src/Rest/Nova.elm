@@ -468,7 +468,7 @@ receiveServers model project osServers =
                                 (\s -> List.member s.osProps.uuid (List.map .uuid osServers))
                                 (RDPP.withDefault [] project.servers)
                             )
-                            model.currentTime
+                            model.clientCurrentTime
                         )
                         (RDPP.NotLoading Nothing)
             }
@@ -497,7 +497,7 @@ receiveServer model project osServer =
 
                 newExoProps =
                     { oldExoProps
-                        | receivedTime = Just model.currentTime
+                        | receivedTime = Just model.clientCurrentTime
                         , loadingSeparately = False
                     }
             in
@@ -512,7 +512,7 @@ receiveServer model project osServer =
                     let
                         newServersRDPP =
                             RDPP.RemoteDataPlusPlus
-                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.currentTime)
+                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.clientCurrentTime)
                                 (RDPP.NotLoading Nothing)
                     in
                     { project | servers = newServersRDPP }
@@ -728,7 +728,7 @@ receiveCreateServer model project _ =
                 ListProjectServers { onlyOwnServers = False } []
 
         newProject =
-            Helpers.projectSetServersLoading model.currentTime project
+            Helpers.projectSetServersLoading model.clientCurrentTime project
 
         newModel =
             Helpers.modelUpdateProject { model | viewState = newViewState } newProject

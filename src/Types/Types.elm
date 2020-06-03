@@ -91,7 +91,7 @@ type alias Model =
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     , clientUuid : UUID.UUID
-    , currentTime : Time.Posix
+    , clientCurrentTime : Time.Posix
     }
 
 

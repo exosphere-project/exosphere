@@ -137,7 +137,7 @@ mounts:
             , proxyUrl = flags.proxyUrl
             , isElectron = flags.isElectron
             , clientUuid = uuid
-            , currentTime = Time.millisToPosix flags.epoch
+            , clientCurrentTime = Time.millisToPosix flags.epoch
             }
 
         -- This only gets used if we do not find a client UUID in stored state
@@ -626,7 +626,7 @@ processTick model interval time =
                                 _ ->
                                     ( model, Cmd.none )
     in
-    ( { viewDependentModel | currentTime = time }
+    ( { viewDependentModel | clientCurrentTime = time }
     , Cmd.batch
         [ viewDependentCmd
         , viewIndependentCmd
@@ -719,7 +719,7 @@ processProjectSpecificMsg model project msg =
                                         |> Cmd.batch
                     in
                     ( project
-                        |> Helpers.projectSetServersLoading model.currentTime
+                        |> Helpers.projectSetServersLoading model.clientCurrentTime
                         |> projectResetCockpitStatuses
                         |> Helpers.modelUpdateProject model
                         |> modelUpdatedView
@@ -825,7 +825,7 @@ processProjectSpecificMsg model project msg =
                                     { project
                                         | computeQuota = RemoteData.Loading
                                         , volumeQuota = RemoteData.Loading
-                                        , networks = RDPP.setLoading project.networks model.currentTime
+                                        , networks = RDPP.setLoading project.networks model.clientCurrentTime
                                     }
                             in
                             ( newProject
@@ -872,7 +872,7 @@ processProjectSpecificMsg model project msg =
                                         ]
                     in
                     ( project
-                        |> Helpers.projectSetServersLoading model.currentTime
+                        |> Helpers.projectSetServersLoading model.clientCurrentTime
                         |> Helpers.modelUpdateProject model
                         |> modelUpdatedView
                     , cmd
@@ -970,7 +970,7 @@ processProjectSpecificMsg model project msg =
         RequestServers ->
             let
                 newProject =
-                    Helpers.projectSetServersLoading model.currentTime project
+                    Helpers.projectSetServersLoading model.clientCurrentTime project
             in
             ( Helpers.modelUpdateProject model newProject
             , Rest.Nova.requestServers project
@@ -1157,7 +1157,7 @@ processProjectSpecificMsg model project msg =
                                 | servers =
                                     RDPP.RemoteDataPlusPlus
                                         oldServersData
-                                        (RDPP.NotLoading (Just ( e, model.currentTime )))
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
                             }
 
                         newModel =
@@ -1318,7 +1318,9 @@ processProjectSpecificMsg model project msg =
                         newProject =
                             { project
                                 | networks =
-                                    RDPP.RemoteDataPlusPlus oldNetworksData (RDPP.NotLoading (Just ( e, model.currentTime )))
+                                    RDPP.RemoteDataPlusPlus
+                                        oldNetworksData
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
                             }
 
                         newModel =
@@ -1337,7 +1339,7 @@ processProjectSpecificMsg model project msg =
                             { project
                                 | ports =
                                     RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave ports model.currentTime)
+                                        (RDPP.DoHave ports model.clientCurrentTime)
                                         (RDPP.NotLoading Nothing)
                             }
                     in
@@ -1351,7 +1353,9 @@ processProjectSpecificMsg model project msg =
                         newProject =
                             { project
                                 | ports =
-                                    RDPP.RemoteDataPlusPlus oldPortsData (RDPP.NotLoading (Just ( e, model.currentTime )))
+                                    RDPP.RemoteDataPlusPlus
+                                        oldPortsData
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
                             }
 
                         newModel =
@@ -1537,7 +1541,7 @@ createProject model password authToken endpoints =
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , images = []
-            , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.Loading model.currentTime)
+            , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.Loading model.clientCurrentTime)
             , flavors = []
             , keypairs = []
             , volumes = RemoteData.NotAsked
