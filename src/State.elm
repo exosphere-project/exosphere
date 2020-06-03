@@ -4,6 +4,7 @@ import Browser.Events
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -15,6 +16,7 @@ import OpenStack.ServerTags as OSServerTags
 import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Orchestration.Orchestration as Orchestration
 import Ports
 import Random
 import RemoteData
@@ -123,8 +125,8 @@ mounts:
             , clientUuid = Nothing
             }
 
-        emptyModel : UUID.UUID -> Model
-        emptyModel uuid =
+        emptyModel : Bool -> UUID.UUID -> Model
+        emptyModel showDebugMsgs uuid =
             { logMessages = []
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
@@ -135,6 +137,8 @@ mounts:
             , proxyUrl = flags.proxyUrl
             , isElectron = flags.isElectron
             , clientUuid = uuid
+            , clientCurrentTime = Time.millisToPosix flags.epoch
+            , showDebugMsgs = showDebugMsgs
             }
 
         -- This only gets used if we do not find a client UUID in stored state
@@ -170,7 +174,7 @@ mounts:
 
         hydratedModel : Model
         hydratedModel =
-            LocalStorage.hydrateModelFromStoredState emptyModel newClientUuid storedState
+            LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
@@ -204,7 +208,8 @@ mounts:
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Time.every (5 * 1000) (Tick 5)
+        [ Time.every (1 * 1000) (Tick 1)
+        , Time.every (5 * 1000) (Tick 5)
         , Time.every (10 * 1000) (Tick 10)
         , Time.every (60 * 1000) (Tick 60)
         , Time.every (300 * 1000) (Tick 300)
@@ -212,20 +217,33 @@ subscriptions _ =
         ]
 
 
-
-{- We want to `setStorage` on every update. This function adds the setStorage
-   command for every step of the update function.
--}
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    {- We want to `setStorage` on every update. This function adds the setStorage
+       command for every step of the update function.
+    -}
     let
         ( newModel, cmds ) =
             updateUnderlying msg model
+
+        orchestrationTimeCmd =
+            -- Each trip through the runtime, we get the time and feed it to orchestration module
+            case msg of
+                DoOrchestration _ ->
+                    Cmd.none
+
+                Tick _ _ ->
+                    Cmd.none
+
+                _ ->
+                    Task.perform (\posix -> DoOrchestration posix) Time.now
     in
     ( newModel
-    , Cmd.batch [ Ports.setStorage (LocalStorage.generateStoredState newModel), cmds ]
+    , Cmd.batch
+        [ Ports.setStorage (LocalStorage.generateStoredState newModel)
+        , orchestrationTimeCmd
+        , cmds
+        ]
     )
 
 
@@ -245,8 +263,11 @@ updateUnderlying msg model =
         MsgChangeWindowSize x y ->
             ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
 
-        Tick interval _ ->
-            processTick model interval
+        Tick interval time ->
+            processTick model interval time
+
+        DoOrchestration posixTime ->
+            Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
             let
@@ -495,31 +516,9 @@ updateUnderlying msg model =
             ( model, Cmd.none )
 
 
-processTick : Model -> TickInterval -> ( Model, Cmd Msg )
-processTick model interval =
+processTick : Model -> TickInterval -> Time.Posix -> ( Model, Cmd Msg )
+processTick model interval time =
     let
-        serverNeedsFrequentPoll : Server -> Bool
-        serverNeedsFrequentPoll server =
-            case
-                ( server.exoProps.deletionAttempted
-                , server.exoProps.targetOpenstackStatus
-                , server.exoProps.serverOrigin
-                )
-            of
-                ( False, Nothing, ServerNotFromExo ) ->
-                    False
-
-                ( False, Nothing, ServerFromExo exoOriginProps ) ->
-                    case exoOriginProps.cockpitStatus of
-                        Ready ->
-                            False
-
-                        _ ->
-                            True
-
-                _ ->
-                    True
-
         serverVolsNeedFrequentPoll : Project -> Server -> Bool
         serverVolsNeedFrequentPoll project server =
             Helpers.getVolsAttachedToServer project server
@@ -538,119 +537,102 @@ processTick model interval =
                     , OSTypes.ErrorRestoring
                     , OSTypes.ErrorExtending
                     ]
-    in
-    case model.viewState of
-        NonProjectView _ ->
-            ( model, Cmd.none )
 
-        ProjectView projectName _ projectViewState ->
-            case Helpers.projectLookup model projectName of
-                Nothing ->
-                    {- Should this throw an error? -}
+        viewIndependentCmd =
+            if interval == 5 then
+                Task.perform (\posix -> DoOrchestration posix) Time.now
+
+            else
+                Cmd.none
+
+        ( viewDependentModel, viewDependentCmd ) =
+            {- TODO move some of this to Orchestration? -}
+            case model.viewState of
+                NonProjectView _ ->
                     ( model, Cmd.none )
 
-                Just project ->
-                    case projectViewState of
-                        ListProjectServers _ _ ->
-                            case interval of
-                                10 ->
-                                    if
-                                        project.servers
-                                            |> RemoteData.withDefault []
-                                            |> List.any serverNeedsFrequentPoll
-                                    then
-                                        update (ProjectMsg projectName RequestServers) model
+                ProjectView projectName _ projectViewState ->
+                    case Helpers.projectLookup model projectName of
+                        Nothing ->
+                            {- Should this throw an error? -}
+                            ( model, Cmd.none )
 
-                                    else
-                                        ( model, Cmd.none )
+                        Just project ->
+                            case projectViewState of
+                                ServerDetail serverUuid _ ->
+                                    let
+                                        volCmd =
+                                            OSVolumes.requestVolumes project
+                                    in
+                                    case interval of
+                                        5 ->
+                                            case Helpers.serverLookup project serverUuid of
+                                                Just server ->
+                                                    ( model
+                                                    , if serverVolsNeedFrequentPoll project server then
+                                                        volCmd
 
-                                60 ->
-                                    update (ProjectMsg projectName RequestServers) model
+                                                      else
+                                                        Cmd.none
+                                                    )
 
-                                _ ->
-                                    ( model, Cmd.none )
+                                                Nothing ->
+                                                    ( model, Cmd.none )
 
-                        ServerDetail serverUuid _ ->
-                            let
-                                ( newModel, serverCmd ) =
-                                    update (ProjectMsg projectName (RequestServer serverUuid)) model
+                                        300 ->
+                                            ( model, volCmd )
 
-                                volCmd =
-                                    OSVolumes.requestVolumes project
-                            in
-                            case interval of
-                                5 ->
-                                    case Helpers.serverLookup project serverUuid of
-                                        Just server ->
-                                            ( if serverNeedsFrequentPoll server then
-                                                newModel
-
-                                              else
-                                                model
-                                            , Cmd.batch
-                                                [ if serverNeedsFrequentPoll server then
-                                                    serverCmd
-
-                                                  else
-                                                    Cmd.none
-                                                , if serverVolsNeedFrequentPoll project server then
-                                                    volCmd
-
-                                                  else
-                                                    Cmd.none
-                                                ]
-                                            )
-
-                                        Nothing ->
+                                        _ ->
                                             ( model, Cmd.none )
 
-                                300 ->
-                                    ( newModel, Cmd.batch [ serverCmd, volCmd ] )
-
-                                _ ->
-                                    ( model, Cmd.none )
-
-                        ListProjectVolumes _ ->
-                            ( model
-                            , case interval of
-                                5 ->
-                                    if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
-                                        OSVolumes.requestVolumes project
-
-                                    else
-                                        Cmd.none
-
-                                60 ->
-                                    OSVolumes.requestVolumes project
-
-                                _ ->
-                                    Cmd.none
-                            )
-
-                        VolumeDetail volumeUuid _ ->
-                            ( model
-                            , case interval of
-                                5 ->
-                                    case Helpers.volumeLookup project volumeUuid of
-                                        Nothing ->
-                                            Cmd.none
-
-                                        Just volume ->
-                                            if volNeedsFrequentPoll volume then
+                                ListProjectVolumes _ ->
+                                    ( model
+                                    , case interval of
+                                        5 ->
+                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
                                                 OSVolumes.requestVolumes project
 
                                             else
                                                 Cmd.none
 
-                                60 ->
-                                    OSVolumes.requestVolumes project
+                                        60 ->
+                                            OSVolumes.requestVolumes project
+
+                                        _ ->
+                                            Cmd.none
+                                    )
+
+                                VolumeDetail volumeUuid _ ->
+                                    ( model
+                                    , case interval of
+                                        5 ->
+                                            case Helpers.volumeLookup project volumeUuid of
+                                                Nothing ->
+                                                    Cmd.none
+
+                                                Just volume ->
+                                                    if volNeedsFrequentPoll volume then
+                                                        OSVolumes.requestVolumes project
+
+                                                    else
+                                                        Cmd.none
+
+                                        60 ->
+                                            OSVolumes.requestVolumes project
+
+                                        _ ->
+                                            Cmd.none
+                                    )
 
                                 _ ->
-                                    Cmd.none
-                            )
-
-                        _ ->
-                            ( model, Cmd.none )
+                                    ( model, Cmd.none )
+    in
+    ( { viewDependentModel | clientCurrentTime = time }
+    , Cmd.batch
+        [ viewDependentCmd
+        , viewIndependentCmd
+        ]
+    )
 
 
 processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
@@ -670,10 +652,10 @@ processProjectSpecificMsg model project msg =
                         _ ->
                             Nothing
 
-                modelUpdatedView =
-                    { model | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
+                modelUpdatedView model_ =
+                    { model_ | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
 
-                modelResetCockpitStatuses =
+                projectResetCockpitStatuses project_ =
                     -- We need to re-poll Cockpit to determine its availability and get a session cookie
                     -- See merge request 289
                     let
@@ -703,16 +685,10 @@ processProjectSpecificMsg model project msg =
                                             { oldExoProps | serverOrigin = newOriginProps }
                                     in
                                     { s | exoProps = newExoProps }
-
-                        newProject =
-                            let
-                                newServers =
-                                    List.map serverResetCockpitStatus (RemoteData.withDefault [] project.servers)
-                                        |> RemoteData.Success
-                            in
-                            { project | servers = newServers }
                     in
-                    Helpers.modelUpdateProject modelUpdatedView newProject
+                    RDPP.withDefault [] project_.servers
+                        |> List.map serverResetCockpitStatus
+                        |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project_
             in
             case projectViewConstructor of
                 ListImages _ ->
@@ -726,7 +702,7 @@ processProjectSpecificMsg model project msg =
                                 _ ->
                                     Rest.Glance.requestImages project
                     in
-                    ( modelUpdatedView, cmd )
+                    ( modelUpdatedView model, cmd )
 
                 ListProjectServers _ _ ->
                     let
@@ -743,7 +719,13 @@ processProjectSpecificMsg model project msg =
                                         |> List.map (\x -> x project)
                                         |> Cmd.batch
                     in
-                    ( modelResetCockpitStatuses, cmd )
+                    ( project
+                        |> Helpers.projectSetServersLoading model.clientCurrentTime
+                        |> projectResetCockpitStatuses
+                        |> Helpers.modelUpdateProject model
+                        |> modelUpdatedView
+                    , cmd
+                    )
 
                 ServerDetail serverUuid _ ->
                     let
@@ -762,12 +744,16 @@ processProjectSpecificMsg model project msg =
                                         , Ports.instantiateClipboardJs ()
                                         ]
                     in
-                    ( modelResetCockpitStatuses
+                    ( project
+                        |> (\p -> Helpers.projectSetServerLoading p serverUuid)
+                        |> projectResetCockpitStatuses
+                        |> Helpers.modelUpdateProject model
+                        |> modelUpdatedView
                     , cmd
                     )
 
                 CreateServerImage _ _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
                 CreateServer createServerRequest ->
                     case model.viewState of
@@ -808,8 +794,8 @@ processProjectSpecificMsg model project msg =
                                         ( _, _, _ ) ->
                                             createServerRequest
 
-                                newNewModel =
-                                    { modelUpdatedView
+                                newModel =
+                                    { model
                                         | viewState =
                                             ProjectView
                                                 (Helpers.getProjectId project)
@@ -818,7 +804,9 @@ processProjectSpecificMsg model project msg =
                                                 CreateServer newCSR
                                     }
                             in
-                            ( newNewModel, Cmd.none )
+                            ( newModel
+                            , Cmd.none
+                            )
 
                         -- If we are just entering this view then gather everything we need
                         _ ->
@@ -838,12 +826,12 @@ processProjectSpecificMsg model project msg =
                                     { project
                                         | computeQuota = RemoteData.Loading
                                         , volumeQuota = RemoteData.Loading
+                                        , networks = RDPP.setLoading project.networks model.clientCurrentTime
                                     }
-
-                                newModel =
-                                    Helpers.modelUpdateProject modelUpdatedView newProject
                             in
-                            ( newModel
+                            ( newProject
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
                             , Cmd.batch
                                 [ Rest.Nova.requestFlavors project
                                 , Rest.Nova.requestKeypairs project
@@ -865,10 +853,10 @@ processProjectSpecificMsg model project msg =
                                 _ ->
                                     OSVolumes.requestVolumes project
                     in
-                    ( modelUpdatedView, cmd )
+                    ( modelUpdatedView model, cmd )
 
                 VolumeDetail _ _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
                 AttachVolumeModal _ _ ->
                     let
@@ -884,15 +872,18 @@ processProjectSpecificMsg model project msg =
                                         , OSVolumes.requestVolumes project
                                         ]
                     in
-                    ( modelUpdatedView
+                    ( project
+                        |> Helpers.projectSetServersLoading model.clientCurrentTime
+                        |> Helpers.modelUpdateProject model
+                        |> modelUpdatedView
                     , cmd
                     )
 
                 MountVolInstructions _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
                 CreateVolume _ _ ->
-                    ( modelUpdatedView, Cmd.none )
+                    ( modelUpdatedView model, Cmd.none )
 
         PrepareCredentialedRequest requestProto posixTime ->
             let
@@ -978,13 +969,25 @@ processProjectSpecificMsg model project msg =
             ( newModel, Cmd.none )
 
         RequestServers ->
-            ( model, Rest.Nova.requestServers project )
+            let
+                newProject =
+                    Helpers.projectSetServersLoading model.clientCurrentTime project
+            in
+            ( Helpers.modelUpdateProject model newProject
+            , Rest.Nova.requestServers project
+            )
 
         RequestServer serverUuid ->
-            ( model, Rest.Nova.requestServer project serverUuid )
+            let
+                newProject =
+                    Helpers.projectSetServerLoading project serverUuid
+            in
+            ( Helpers.modelUpdateProject model newProject
+            , Rest.Nova.requestServer project serverUuid
+            )
 
         RequestCreateServer createServerRequest ->
-            ( model, Rest.Nova.requestCreateServer project createServerRequest )
+            ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
 
         RequestDeleteServer server ->
             let
@@ -1098,22 +1101,14 @@ processProjectSpecificMsg model project msg =
 
         SelectServer server newSelectionState ->
             let
-                updateServer someServer =
-                    if someServer.osProps.uuid == server.osProps.uuid then
-                        let
-                            oldExoProps =
-                                someServer.exoProps
-                        in
-                        Server someServer.osProps { oldExoProps | selected = newSelectionState }
+                oldExoProps =
+                    server.exoProps
 
-                    else
-                        someServer
+                newServer =
+                    Server server.osProps { oldExoProps | selected = newSelectionState }
 
                 newProject =
-                    { project
-                        | servers =
-                            RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers))
-                    }
+                    Helpers.projectUpdateServer project newServer
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
@@ -1137,7 +1132,9 @@ processProjectSpecificMsg model project msg =
                             someServer
 
                 newProject =
-                    { project | servers = RemoteData.Success (List.map updateServer (RemoteData.withDefault [] project.servers)) }
+                    RDPP.withDefault [] project.servers
+                        |> List.map updateServer
+                        |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project
 
                 newModel =
                     Helpers.modelUpdateProject model newProject
@@ -1146,11 +1143,90 @@ processProjectSpecificMsg model project msg =
             , Cmd.none
             )
 
-        ReceiveServers servers ->
-            Rest.Nova.receiveServers model project servers
+        ReceiveServers errorContext result ->
+            case result of
+                Ok servers ->
+                    Rest.Nova.receiveServers model project servers
 
-        ReceiveServer server ->
-            Rest.Nova.receiveServer model project server
+                Err e ->
+                    let
+                        oldServersData =
+                            project.servers.data
+
+                        newProject =
+                            { project
+                                | servers =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldServersData
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
+
+        ReceiveServer serverUuid errorContext result ->
+            case result of
+                Ok server ->
+                    Rest.Nova.receiveServer model project server
+
+                Err e ->
+                    let
+                        non404 =
+                            case Helpers.serverLookup project serverUuid of
+                                Nothing ->
+                                    -- Server not in project, may have been deleted, ignoring this error
+                                    ( model, Cmd.none )
+
+                                Just server ->
+                                    -- Reset receivedTime and loadingSeparately
+                                    let
+                                        oldExoProps =
+                                            server.exoProps
+
+                                        newExoProps =
+                                            { oldExoProps
+                                                | receivedTime = Nothing
+                                                , loadingSeparately = False
+                                            }
+
+                                        newServer =
+                                            { server | exoProps = newExoProps }
+
+                                        newProject =
+                                            Helpers.projectUpdateServer project newServer
+
+                                        newModel =
+                                            Helpers.modelUpdateProject model newProject
+                                    in
+                                    Helpers.processError newModel errorContext e
+                    in
+                    case e of
+                        Http.BadStatus code ->
+                            if code == 404 then
+                                let
+                                    newErrorContext =
+                                        { errorContext
+                                            | level = Error.ErrorDebug
+                                            , actionContext =
+                                                errorContext.actionContext
+                                                    ++ " -- 404 means server may have been deleted"
+                                        }
+
+                                    newProject =
+                                        Helpers.projectDeleteServer project serverUuid
+
+                                    newModel =
+                                        Helpers.modelUpdateProject model newProject
+                                in
+                                Helpers.processError newModel newErrorContext e
+
+                            else
+                                non404
+
+                        _ ->
+                            non404
 
         ReceiveConsoleUrl serverUuid url ->
             Rest.Nova.receiveConsoleUrl model project serverUuid url
@@ -1230,14 +1306,63 @@ processProjectSpecificMsg model project msg =
             in
             ( deleteIpAddressModel, deleteIpAddressCmd )
 
-        ReceiveNetworks nets ->
-            Rest.Neutron.receiveNetworks model project nets
+        ReceiveNetworks errorContext result ->
+            case result of
+                Ok networks ->
+                    Rest.Neutron.receiveNetworks model project networks
+
+                Err e ->
+                    let
+                        oldNetworksData =
+                            project.networks.data
+
+                        newProject =
+                            { project
+                                | networks =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldNetworksData
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
 
-        GetFloatingIpReceivePorts serverUuid ports ->
-            Rest.Neutron.receivePortsAndRequestFloatingIp model project serverUuid ports
+        ReceivePorts errorContext result ->
+            case result of
+                Ok ports ->
+                    let
+                        newProject =
+                            { project
+                                | ports =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave ports model.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+                    in
+                    ( Helpers.modelUpdateProject model newProject, Cmd.none )
+
+                Err e ->
+                    let
+                        oldPortsData =
+                            project.ports.data
+
+                        newProject =
+                            { project
+                                | ports =
+                                    RDPP.RemoteDataPlusPlus
+                                        oldPortsData
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    Helpers.processError newModel errorContext e
 
         ReceiveCreateFloatingIp serverUuid ip ->
             Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
@@ -1263,7 +1388,7 @@ processProjectSpecificMsg model project msg =
                 -- Look for any server backing volumes that were created with no name, and give them a reasonable name
                 updateVolNameCmds : List (Cmd Msg)
                 updateVolNameCmds =
-                    RemoteData.withDefault [] project.servers
+                    RDPP.withDefault [] project.servers
                         -- List of tuples containing server and Maybe boot vol
                         |> List.map
                             (\s ->
@@ -1417,13 +1542,13 @@ createProject model password authToken endpoints =
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , images = []
-            , servers = RemoteData.NotAsked
+            , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.Loading model.clientCurrentTime)
             , flavors = []
             , keypairs = []
             , volumes = RemoteData.NotAsked
-            , networks = []
+            , networks = RDPP.empty
             , floatingIps = []
-            , ports = []
+            , ports = RDPP.empty
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked

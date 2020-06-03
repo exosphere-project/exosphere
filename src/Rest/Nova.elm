@@ -30,6 +30,7 @@ import Array
 import Base64
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -39,7 +40,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Cockpit exposing (requestCockpitIfRequestable)
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
-import Rest.Neutron exposing (getFloatingIpRequestPorts, requestNetworks)
+import Rest.Neutron exposing (requestNetworks)
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -58,6 +59,7 @@ import Types.Types
         , ViewState(..)
         , currentExoServerVersion
         )
+import UUID
 
 
 
@@ -73,14 +75,10 @@ requestServers project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\servers ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveServers servers)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveServers errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -89,7 +87,7 @@ requestServers project =
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             decodeServers
         )
 
@@ -103,14 +101,10 @@ requestServer project serverUuid =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\server ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveServer server)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveServer serverUuid errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -119,7 +113,7 @@ requestServer project serverUuid =
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             (Decode.at [ "server" ] decodeServer)
         )
 
@@ -216,8 +210,8 @@ requestKeypairs project =
         )
 
 
-requestCreateServer : Project -> CreateServerRequest -> Cmd Msg
-requestCreateServer project createServerRequest =
+requestCreateServer : Project -> UUID.UUID -> CreateServerRequest -> Cmd Msg
+requestCreateServer project exoClientUuid createServerRequest =
     let
         instanceNumbers =
             List.range 1 createServerRequest.count
@@ -265,6 +259,9 @@ requestCreateServer project createServerRequest =
                   , Encode.object
                         [ ( "exoServerVersion"
                           , Encode.string (String.fromInt currentExoServerVersion)
+                          )
+                        , ( "exoClientUuid"
+                          , Encode.string (UUID.toString exoClientUuid)
                           )
                         ]
                   )
@@ -443,21 +440,44 @@ receiveServers model project osServers =
                 |> List.map (receiveServer_ project)
                 |> List.unzip
 
+        newExoServersClearSomeExoProps =
+            let
+                clearRecTime : Server -> Server
+                clearRecTime s =
+                    let
+                        oldExoProps =
+                            s.exoProps
+
+                        newExoProps =
+                            { oldExoProps
+                                | receivedTime = Nothing
+                                , loadingSeparately = False
+                            }
+                    in
+                    { s | exoProps = newExoProps }
+            in
+            List.map clearRecTime newExoServers
+
         projectNoDeletedSvrs =
-            -- Remove recently deleted servers from existing project
+            -- Set RDPP ReceivedTime and remove recently deleted servers from existing project
             { project
                 | servers =
-                    RemoteData.Success <|
-                        List.filter
-                            (\s -> List.member s.osProps.uuid (List.map .uuid osServers))
-                            (RemoteData.withDefault [] project.servers)
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave
+                            (List.filter
+                                (\s -> List.member s.osProps.uuid (List.map .uuid osServers))
+                                (RDPP.withDefault [] project.servers)
+                            )
+                            model.clientCurrentTime
+                        )
+                        (RDPP.NotLoading Nothing)
             }
 
         newProject =
             List.foldl
                 (\s p -> Helpers.projectUpdateServer p s)
                 projectNoDeletedSvrs
-                newExoServers
+                newExoServersClearSomeExoProps
     in
     ( Helpers.modelUpdateProject model newProject
     , Cmd.batch cmds
@@ -470,8 +490,32 @@ receiveServer model project osServer =
         ( newServer, cmd ) =
             receiveServer_ project osServer
 
+        newServerUpdatedSomeExoProps =
+            let
+                oldExoProps =
+                    newServer.exoProps
+
+                newExoProps =
+                    { oldExoProps
+                        | receivedTime = Just model.clientCurrentTime
+                        , loadingSeparately = False
+                    }
+            in
+            { newServer | exoProps = newExoProps }
+
         newProject =
-            Helpers.projectUpdateServer project newServer
+            case project.servers.data of
+                RDPP.DoHave _ _ ->
+                    Helpers.projectUpdateServer project newServerUpdatedSomeExoProps
+
+                RDPP.DontHave ->
+                    let
+                        newServersRDPP =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave [ newServerUpdatedSomeExoProps ] model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    in
+                    { project | servers = newServersRDPP }
     in
     ( Helpers.modelUpdateProject model newProject
     , cmd
@@ -492,6 +536,8 @@ receiveServer_ project osServer =
                                 False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
+                                Nothing
+                                False
                     in
                     Server osServer defaultExoProps
 
@@ -500,7 +546,7 @@ receiveServer_ project osServer =
                         floatingIpState_ =
                             Helpers.checkFloatingIpState
                                 osServer.details
-                                exoServer.exoProps.floatingIpState
+                                exoServer.exoProps.priorFloatingIpState
 
                         oldOSProps =
                             exoServer.osProps
@@ -523,20 +569,9 @@ receiveServer_ project osServer =
                     Server
                         { oldOSProps | details = osServer.details }
                         { oldExoProps
-                            | floatingIpState = floatingIpState_
+                            | priorFloatingIpState = floatingIpState_
                             , targetOpenstackStatus = newTargetOpenstackStatus
                         }
-
-        floatingIpCmd =
-            case newServer.exoProps.floatingIpState of
-                Requestable ->
-                    [ getFloatingIpRequestPorts project newServer
-                    , requestNetworks project
-                    ]
-                        |> Cmd.batch
-
-                _ ->
-                    Cmd.none
 
         consoleUrlCmd =
             case newServer.osProps.consoleUrl of
@@ -568,7 +603,7 @@ receiveServer_ project osServer =
             requestCockpitIfRequestable project newServer
 
         allCmds =
-            [ floatingIpCmd, consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
+            [ consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )
@@ -685,15 +720,18 @@ receiveKeypairs model project keypairs =
 receiveCreateServer : Model -> Project -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
 receiveCreateServer model project _ =
     let
+        newViewState =
+            ProjectView
+                (Helpers.getProjectId project)
+                { createPopup = False }
+            <|
+                ListProjectServers { onlyOwnServers = False } []
+
+        newProject =
+            Helpers.projectSetServersLoading model.clientCurrentTime project
+
         newModel =
-            { model
-                | viewState =
-                    ProjectView
-                        (Helpers.getProjectId project)
-                        { createPopup = False }
-                    <|
-                        ListProjectServers { onlyOwnServers = False } []
-            }
+            Helpers.modelUpdateProject { model | viewState = newViewState } newProject
     in
     ( newModel
     , [ requestServers

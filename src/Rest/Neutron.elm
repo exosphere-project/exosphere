@@ -3,7 +3,6 @@ module Rest.Neutron exposing
     , decodeFloatingIpCreation
     , decodeNetworks
     , decodePorts
-    , getFloatingIpRequestPorts
     , networkDecoder
     , portDecoder
     , receiveCreateExoSecurityGroupAndRequestCreateRules
@@ -11,18 +10,19 @@ module Rest.Neutron exposing
     , receiveDeleteFloatingIp
     , receiveFloatingIps
     , receiveNetworks
-    , receivePortsAndRequestFloatingIp
     , receiveSecurityGroupsAndEnsureExoGroup
     , requestCreateExoSecurityGroupRules
-    , requestCreateFloatingIpIfRequestable
+    , requestCreateFloatingIp
     , requestDeleteFloatingIp
     , requestFloatingIps
     , requestNetworks
+    , requestPorts
     , requestSecurityGroups
     )
 
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -59,14 +59,10 @@ requestNetworks project =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\nets ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (ReceiveNetworks nets)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveNetworks errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -75,7 +71,7 @@ requestNetworks project =
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             decodeNetworks
         )
 
@@ -110,8 +106,8 @@ requestFloatingIps project =
         )
 
 
-getFloatingIpRequestPorts : Project -> Server -> Cmd Msg
-getFloatingIpRequestPorts project server =
+requestPorts : Project -> Cmd Msg
+requestPorts project =
     let
         errorContext =
             ErrorContext
@@ -119,14 +115,10 @@ getFloatingIpRequestPorts project server =
                 ErrorCrit
                 Nothing
 
-        resultToMsg_ =
-            resultToMsg
-                errorContext
-                (\ports ->
-                    ProjectMsg
-                        (Helpers.getProjectId project)
-                        (GetFloatingIpReceivePorts server.osProps.uuid ports)
-                )
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceivePorts errorContext result)
     in
     openstackCredentialedRequest
         project
@@ -135,43 +127,14 @@ getFloatingIpRequestPorts project server =
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
         (Http.expectJson
-            resultToMsg_
+            resultToMsg
             decodePorts
         )
 
 
-requestCreateFloatingIpIfRequestable : Model -> Project -> OSTypes.Network -> OSTypes.Port -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-requestCreateFloatingIpIfRequestable model project network port_ serverUuid =
-    case Helpers.serverLookup project serverUuid of
-        Nothing ->
-            -- Server not found, may have been deleted, nothing to do
-            ( model, Cmd.none )
-
-        Just server ->
-            case ( server.exoProps.deletionAttempted, server.exoProps.floatingIpState ) of
-                ( False, Requestable ) ->
-                    requestCreateFloatingIp model project network port_ server
-
-                _ ->
-                    ( model, Cmd.none )
-
-
-requestCreateFloatingIp : Model -> Project -> OSTypes.Network -> OSTypes.Port -> Server -> ( Model, Cmd Msg )
-requestCreateFloatingIp model project network port_ server =
+requestCreateFloatingIp : Project -> OSTypes.Network -> OSTypes.Port -> Server -> Cmd Msg
+requestCreateFloatingIp project network port_ server =
     let
-        newServer =
-            let
-                oldExoProps =
-                    server.exoProps
-            in
-            Server server.osProps { oldExoProps | floatingIpState = RequestedWaiting }
-
-        newProject =
-            Helpers.projectUpdateServer project newServer
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-
         requestBody =
             Encode.object
                 [ ( "floatingip"
@@ -199,7 +162,7 @@ requestCreateFloatingIp model project network port_ server =
 
         requestCmd =
             openstackCredentialedRequest
-                newProject
+                project
                 Post
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
@@ -209,7 +172,7 @@ requestCreateFloatingIp model project network port_ server =
                     decodeFloatingIpCreation
                 )
     in
-    ( newModel, requestCmd )
+    requestCmd
 
 
 requestDeleteFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
@@ -376,7 +339,11 @@ receiveNetworks : Model -> Project -> List OSTypes.Network -> ( Model, Cmd Msg )
 receiveNetworks model project networks =
     let
         newProject =
-            { project | networks = networks }
+            let
+                newNetsRDPP =
+                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks model.clientCurrentTime) (RDPP.NotLoading Nothing)
+            in
+            { project | networks = newNetsRDPP }
 
         -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
         -- Same comments above (in receiveFlavors) apply here.
@@ -434,54 +401,6 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receivePortsAndRequestFloatingIp : Model -> Project -> OSTypes.ServerUuid -> List OSTypes.Port -> ( Model, Cmd Msg )
-receivePortsAndRequestFloatingIp model project serverUuid ports =
-    let
-        newProject =
-            { project | ports = ports }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-
-        maybeExtNet =
-            Helpers.getExternalNetwork newProject
-
-        maybePortForServer =
-            List.filter (\port_ -> port_.deviceUuid == serverUuid) ports
-                |> List.head
-    in
-    case maybeExtNet of
-        Just extNet ->
-            case maybePortForServer of
-                Just port_ ->
-                    requestCreateFloatingIpIfRequestable
-                        newModel
-                        newProject
-                        extNet
-                        port_
-                        serverUuid
-
-                Nothing ->
-                    Helpers.processError
-                        newModel
-                        (ErrorContext
-                            ("look for a network port belonging to server " ++ serverUuid)
-                            ErrorCrit
-                            Nothing
-                        )
-                        ("Cannot find port belonging to server " ++ serverUuid ++ " in Exosphere's data model")
-
-        Nothing ->
-            Helpers.processError
-                newModel
-                (ErrorContext
-                    "look for a usable external network"
-                    ErrorCrit
-                    (Just "Ask your cloud administrator if your OpenStack project has access to an external network for floating IP addresses.")
-                )
-                "Cannot find a usable external network in Exosphere's data model"
-
-
 receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> OSTypes.IpAddress -> ( Model, Cmd Msg )
 receiveCreateFloatingIp model project serverUuid ipAddress =
     case Helpers.serverLookup project serverUuid of
@@ -507,7 +426,7 @@ receiveCreateFloatingIp model project serverUuid ipAddress =
                     in
                     Server
                         { oldOSProps | details = details }
-                        { oldExoProps | floatingIpState = Success }
+                        { oldExoProps | priorFloatingIpState = Success }
 
                 newProject =
                     Helpers.projectUpdateServer project newServer

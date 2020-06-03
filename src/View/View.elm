@@ -83,7 +83,7 @@ elementView maybeWindowSize model =
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Helpers.toastConfig View.Toast.toast ToastyMsg model.toasties)
+                , Element.html (Toasty.view Helpers.toastConfig (View.Toast.toast model.showDebugMsgs) ToastyMsg model.toasties)
                 ]
     in
     Element.row

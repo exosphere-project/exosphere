@@ -44,6 +44,7 @@ module Types.Types exposing
     )
 
 import Error exposing (ErrorContext)
+import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -69,6 +70,8 @@ type alias Flags =
     , randomSeed1 : Int
     , randomSeed2 : Int
     , randomSeed3 : Int
+    , epoch : Int
+    , showDebugMsgs : Bool
     }
 
 
@@ -89,6 +92,8 @@ type alias Model =
     , proxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     , clientUuid : UUID.UUID
+    , clientCurrentTime : Time.Posix
+    , showDebugMsgs : Bool
     }
 
 
@@ -125,13 +130,13 @@ type alias Project =
     , auth : OSTypes.ScopedAuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
-    , servers : WebData (List Server)
+    , servers : RDPP.RemoteDataPlusPlus Http.Error (List Server)
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
     , volumes : WebData (List OSTypes.Volume)
-    , networks : List OSTypes.Network
+    , networks : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Network)
     , floatingIps : List OSTypes.IpAddress
-    , ports : List OSTypes.Port
+    , ports : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
@@ -162,6 +167,7 @@ type alias Endpoints =
 
 type Msg
     = Tick TickInterval Time.Posix
+    | DoOrchestration Time.Posix
     | SetNonProjectView NonProjectViewConstructor
     | HandleApiError ErrorContext Http.Error
     | RequestUnscopedToken OSTypes.OpenstackLogin
@@ -206,16 +212,16 @@ type ProjectSpecificMsgConstructor
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
-    | ReceiveServers (List OSTypes.Server)
-    | ReceiveServer OSTypes.Server
+    | ReceiveServer OSTypes.ServerUuid ErrorContext (Result Http.Error OSTypes.Server)
+    | ReceiveServers ErrorContext (Result Http.Error (List OSTypes.Server))
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
-    | ReceiveNetworks (List OSTypes.Network)
+    | ReceiveNetworks ErrorContext (Result Http.Error (List OSTypes.Network))
     | ReceiveFloatingIps (List OSTypes.IpAddress)
-    | GetFloatingIpReceivePorts OSTypes.ServerUuid (List OSTypes.Port)
+    | ReceivePorts ErrorContext (Result Http.Error (List OSTypes.Port))
     | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
@@ -331,11 +337,13 @@ type alias Server =
 
 
 type alias ExoServerProps =
-    { floatingIpState : FloatingIpState
+    { priorFloatingIpState : FloatingIpState
     , selected : Bool
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
+    , receivedTime : Maybe Time.Posix -- Used only if this server was polled more recently than the other servers in the project
+    , loadingSeparately : Bool -- Again, used only if server was polled more recently on its own.
     }
 
 

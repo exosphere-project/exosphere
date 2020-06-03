@@ -9,8 +9,8 @@ import Html.Attributes
 import Types.Types exposing (Msg, Toast)
 
 
-toast : Toast -> Html Msg
-toast t =
+toast : Bool -> Toast -> Html Msg
+toast showDebugMsgs t =
     let
         ( class, title ) =
             case t.context.level of
@@ -33,8 +33,23 @@ toast t =
                 t.context.actionContext
                 t.error
                 t.context.recoveryHint
+
+        show =
+            case t.context.level of
+                ErrorDebug ->
+                    showDebugMsgs
+
+                _ ->
+                    True
+
+        layoutWith =
+            Element.layoutWith { options = [ Element.noStaticStyleSheet ] } []
     in
-    Element.layoutWith { options = [ Element.noStaticStyleSheet ] } [] toastElement
+    if show then
+        layoutWith toastElement
+
+    else
+        layoutWith Element.none
 
 
 genericToast : String -> String -> String -> a -> Maybe String -> Element.Element Msg

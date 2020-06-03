@@ -29,7 +29,10 @@ var app = Elm.Exosphere.init({
         randomSeed0: randomSeeds[0],
         randomSeed1: randomSeeds[1],
         randomSeed2: randomSeeds[2],
-        randomSeed3: randomSeeds[3]
+        randomSeed3: randomSeeds[3],
+        epoch : Date.now(),
+        showDebugMsgs : false
+
     }
 });
 

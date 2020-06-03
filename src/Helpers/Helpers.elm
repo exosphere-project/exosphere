@@ -24,12 +24,17 @@ module Helpers.Helpers exposing
     , overallQuotaAvailServers
     , processError
     , processOpenRc
+    , projectDeleteServer
     , projectLookup
+    , projectSetServerLoading
+    , projectSetServersLoading
     , projectUpdateServer
     , projectUpdateServers
     , providerLookup
     , renderUserDataTemplate
+    , serverFromThisExoClient
     , serverLookup
+    , serverNeedsFrequentPoll
     , serverOrigin
     , serviceCatalogToEndpoints
     , sortedFlavors
@@ -47,6 +52,7 @@ import Debug
 import Dict
 import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
+import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
 import ISO8601
@@ -80,6 +86,7 @@ import Types.Types
         , Toast
         , UnscopedProvider
         )
+import UUID
 import Url
 
 
@@ -349,7 +356,12 @@ getPublicEndpointFromService service =
 
 getExternalNetwork : Project -> Maybe OSTypes.Network
 getExternalNetwork project =
-    List.filter (\n -> n.isExternal) project.networks |> List.head
+    case project.networks.data of
+        RDPP.DoHave networks _ ->
+            List.filter (\n -> n.isExternal) networks |> List.head
+
+        RDPP.DontHave ->
+            Nothing
 
 
 checkFloatingIpState : OSTypes.ServerDetails -> FloatingIpState -> FloatingIpState
@@ -395,7 +407,7 @@ checkFloatingIpState serverDetails floatingIpState =
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
 serverLookup project serverUuid =
-    List.filter (\s -> s.osProps.uuid == serverUuid) (RemoteData.withDefault [] project.servers) |> List.head
+    List.filter (\s -> s.osProps.uuid == serverUuid) (RDPP.withDefault [] project.servers) |> List.head
 
 
 projectLookup : Model -> ProjectIdentifier -> Maybe Project
@@ -462,24 +474,91 @@ modelUpdateProject model newProject =
 
 projectUpdateServer : Project -> Server -> Project
 projectUpdateServer project server =
-    let
-        otherServers =
-            List.filter
-                (\s -> s.osProps.uuid /= server.osProps.uuid)
-                (RemoteData.withDefault [] project.servers)
+    case project.servers.data of
+        RDPP.DontHave ->
+            -- We don't do anything if we don't already have servers. Is this a silent failure that should be
+            -- handled differently?
+            project
 
-        newServers =
-            server :: otherServers
+        RDPP.DoHave servers recTime ->
+            let
+                otherServers =
+                    List.filter
+                        (\s -> s.osProps.uuid /= server.osProps.uuid)
+                        servers
 
-        newServersSorted =
-            List.sortBy (\s -> s.osProps.name) newServers
-    in
-    { project | servers = RemoteData.Success newServersSorted }
+                newServers =
+                    server :: otherServers
+
+                newServersSorted =
+                    List.sortBy (\s -> s.osProps.name) newServers
+
+                oldServersRDPP =
+                    project.servers
+
+                newServersRDPP =
+                    -- Should we update received time when we update a server? Thinking probably not given how this
+                    -- function is actually used. We're generally updating exoProps, not osProps.
+                    { oldServersRDPP | data = RDPP.DoHave newServersSorted recTime }
+            in
+            { project | servers = newServersRDPP }
 
 
 projectUpdateServers : Project -> List Server -> Project
 projectUpdateServers project servers =
     List.foldl (\s p -> projectUpdateServer p s) project servers
+
+
+projectDeleteServer : Project -> OSTypes.ServerUuid -> Project
+projectDeleteServer project serverUuid =
+    case project.servers.data of
+        RDPP.DontHave ->
+            project
+
+        RDPP.DoHave servers recTime ->
+            let
+                otherServers =
+                    List.filter
+                        (\s -> s.osProps.uuid /= serverUuid)
+                        servers
+
+                oldServersRDPP =
+                    project.servers
+
+                newServersRDPP =
+                    -- Should we update received time when we update a server? Thinking probably not given how this
+                    -- function is actually used. We're generally updating exoProps, not osProps.
+                    { oldServersRDPP | data = RDPP.DoHave otherServers recTime }
+            in
+            { project | servers = newServersRDPP }
+
+
+projectSetServersLoading : Time.Posix -> Project -> Project
+projectSetServersLoading time project =
+    { project | servers = RDPP.setLoading project.servers time }
+
+
+projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
+projectSetServerLoading project serverUuid =
+    case serverLookup project serverUuid of
+        Nothing ->
+            -- We can't do anything lol
+            project
+
+        Just server ->
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newExoProps =
+                    { oldExoProps
+                        | loadingSeparately = True
+                    }
+
+                newServer =
+                    { server | exoProps = newExoProps }
+            in
+            projectUpdateServer project newServer
 
 
 modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model
@@ -531,12 +610,10 @@ getServerExouserPassword serverDetails =
             oldLocation
 
 
-
--- TODO move this to view helpers
-
-
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
+    -- TODO move this to view helpers
+    -- TODO reconcile this with orchestration engine's concept of when provisioning is complete
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
             case server.exoProps.serverOrigin of
@@ -727,10 +804,15 @@ newServerNetworkOptions project =
     let
         -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
         projectNets =
-            project.networks
-                |> List.filter (\n -> n.status == "ACTIVE")
-                |> List.filter (\n -> n.adminStateUp == True)
-                |> List.filter (\n -> n.isExternal == False)
+            case project.networks.data of
+                RDPP.DoHave networks _ ->
+                    networks
+                        |> List.filter (\n -> n.status == "ACTIVE")
+                        |> List.filter (\n -> n.adminStateUp == True)
+                        |> List.filter (\n -> n.isExternal == False)
+
+                RDPP.DontHave ->
+                    []
 
         maybeAutoAllocatedNet =
             projectNets
@@ -966,3 +1048,32 @@ serverOrigin serverDetails =
 
             else
                 ServerNotFromExo
+
+
+serverFromThisExoClient : UUID.UUID -> Server -> Bool
+serverFromThisExoClient clientUuid server =
+    -- Determine if server was created by this Exosphere client
+    List.member (OSTypes.MetadataItem "exoClientUuid" (UUID.toString clientUuid)) server.osProps.details.metadata
+
+
+serverNeedsFrequentPoll : Server -> Bool
+serverNeedsFrequentPoll server =
+    case
+        ( server.exoProps.deletionAttempted
+        , server.exoProps.targetOpenstackStatus
+        , server.exoProps.serverOrigin
+        )
+    of
+        ( False, Nothing, ServerNotFromExo ) ->
+            False
+
+        ( False, Nothing, ServerFromExo exoOriginProps ) ->
+            case exoOriginProps.cockpitStatus of
+                Ready ->
+                    False
+
+                _ ->
+                    True
+
+        _ ->
+            True
