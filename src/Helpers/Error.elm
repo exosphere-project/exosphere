@@ -1,4 +1,10 @@
-module Helpers.Error exposing (ErrorContext, ErrorLevel(..))
+module Helpers.Error exposing
+    ( ErrorContext
+    , ErrorLevel(..)
+    , HttpErrorWithBody
+    )
+
+import Http
 
 
 type ErrorLevel
@@ -16,4 +22,10 @@ type alias ErrorContext =
 
     -- recoveryHint is optional guidance for user to recover from error, e.g. "Make sure your credentials and password are correct."
     , recoveryHint : Maybe String
+    }
+
+
+type alias HttpErrorWithBody =
+    { error : Http.Error
+    , body : String
     }

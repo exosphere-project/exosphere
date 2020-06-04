@@ -5,7 +5,7 @@ import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project, ProjectSpecificMsgConstructor(..))
 
 
@@ -19,7 +19,7 @@ requestServerPassword project serverUuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
             <|
                 \serverPassword ->
@@ -33,7 +33,7 @@ requestServerPassword project serverUuid =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
         Http.emptyBody
-        (Http.expectJson resultToMsg_ decodeServerPassword)
+        (expectJsonWithErrorBody resultToMsg_ decodeServerPassword)
 
 
 requestClearServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -51,8 +51,9 @@ requestClearServerPassword project serverUuid =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
         Http.emptyBody
-        (Http.expectString
-            (resultToMsg errorContext (\_ -> NoOp))
+        (expectJsonWithErrorBody
+            (resultToMsgErrorBody errorContext (\_ -> NoOp))
+            (Decode.succeed "")
         )
 
 

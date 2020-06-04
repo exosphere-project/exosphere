@@ -1,7 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
-import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -254,6 +254,7 @@ updateUnderlying msg model =
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
 
         NewLogMessage logMessage ->
+            -- TODO This no longer requires a trip through the runtime now that we're storing current time in model?
             let
                 newLogMessages =
                     logMessage :: model.logMessages
@@ -278,8 +279,8 @@ updateUnderlying msg model =
                 _ ->
                     ( newModel, Cmd.none )
 
-        HandleApiError errorContext error ->
-            processApiError model errorContext error
+        HandleApiErrorWithBody errorContext error ->
+            processApiErrorWithBody model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
             ( model, Rest.Keystone.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
@@ -1171,8 +1172,11 @@ processProjectSpecificMsg model project msg =
                 Ok server ->
                     Rest.Nova.receiveServer model project server
 
-                Err e ->
+                Err httpErrorWithBody ->
                     let
+                        httpError =
+                            httpErrorWithBody.error
+
                         non404 =
                             case Helpers.serverLookup project serverUuid of
                                 Nothing ->
@@ -1202,7 +1206,7 @@ processProjectSpecificMsg model project msg =
                                     in
                                     Helpers.processError newModel errorContext e
                     in
-                    case e of
+                    case httpError of
                         Http.BadStatus code ->
                             if code == 404 then
                                 let
@@ -1694,18 +1698,29 @@ requestAuthToken model project =
     Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
 
 
-processApiError : Model -> ErrorContext -> Http.Error -> ( Model, Cmd Msg )
-processApiError model errorContext httpError =
+processApiErrorWithBody : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
+processApiErrorWithBody model errorContext httpError =
     let
+        formattedError =
+            case httpError.error of
+                Http.BadStatus code ->
+                    "Status code: "
+                        ++ String.fromInt code
+                        ++ " Error message: "
+                        ++ httpError.body
+
+                _ ->
+                    Debug.toString httpError
+
         logMessageProto =
             LogMessage
-                (Debug.toString httpError)
+                formattedError
                 errorContext
     in
     Toasty.addToastIfUnique
         Helpers.toastConfig
         ToastyMsg
-        (Toast errorContext (Debug.toString httpError))
+        (Toast errorContext formattedError)
         ( model
         , Task.perform
             (\posix -> NewLogMessage (logMessageProto posix))

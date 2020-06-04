@@ -28,7 +28,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -70,7 +70,7 @@ requestNetworks project =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/networks")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg
             decodeNetworks
         )
@@ -86,7 +86,7 @@ requestFloatingIps project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\ips ->
                     ProjectMsg
@@ -100,7 +100,7 @@ requestFloatingIps project =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             decodeFloatingIps
         )
@@ -126,7 +126,7 @@ requestPorts project =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/ports")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg
             decodePorts
         )
@@ -152,7 +152,7 @@ requestCreateFloatingIp project network port_ server =
                 (Just "It's possible your cloud has run out of public IP address space; ask your cloud administrator.")
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\ip ->
                     ProjectMsg
@@ -167,7 +167,7 @@ requestCreateFloatingIp project network port_ server =
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/floatingips")
                 (Http.jsonBody requestBody)
-                (Http.expectJson
+                (expectJsonWithErrorBody
                     resultToMsg_
                     decodeFloatingIpCreation
                 )
@@ -185,7 +185,7 @@ requestDeleteFloatingIp project uuid =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -199,8 +199,9 @@ requestDeleteFloatingIp project uuid =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
-        (Http.expectString
+        (expectJsonWithErrorBody
             resultToMsg_
+            (Decode.succeed "")
         )
 
 
@@ -214,7 +215,7 @@ requestSecurityGroups project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\groups ->
                     ProjectMsg
@@ -228,7 +229,7 @@ requestSecurityGroups project =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             decodeSecurityGroups
         )
@@ -257,7 +258,7 @@ requestCreateExoSecurityGroup project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\group ->
                     ProjectMsg
@@ -271,7 +272,7 @@ requestCreateExoSecurityGroup project =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/security-groups")
         (Http.jsonBody requestBody)
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             decodeNewSecurityGroup
         )
@@ -317,8 +318,9 @@ requestCreateSecurityGroupRules project group rules errorMessage =
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                 (Http.jsonBody body)
-                (Http.expectString
-                    (resultToMsg errorContext (\_ -> NoOp))
+                (expectJsonWithErrorBody
+                    (resultToMsgErrorBody errorContext (\_ -> NoOp))
+                    (Decode.succeed "")
                 )
 
         bodies =

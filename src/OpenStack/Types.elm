@@ -50,8 +50,9 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
+import Helpers.Error exposing (HttpErrorWithBody)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
-import RemoteData exposing (WebData)
+import RemoteData exposing (RemoteData)
 import Time
 import Types.HelperTypes as HelperTypes
 
@@ -231,7 +232,7 @@ type alias Server =
     { name : String
     , uuid : ServerUuid
     , details : ServerDetails
-    , consoleUrl : WebData ConsoleUrl
+    , consoleUrl : RemoteData HttpErrorWithBody ConsoleUrl
     }
 
 

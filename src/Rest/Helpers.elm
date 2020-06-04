@@ -1,13 +1,14 @@
 module Rest.Helpers exposing
-    ( idOrName
+    ( expectJsonWithErrorBody
+    , idOrName
     , iso8601StringToPosixDecodeError
     , keystoneUrlWithVersion
     , openstackCredentialedRequest
     , proxyifyRequest
-    , resultToMsg
+    , resultToMsgErrorBody
     )
 
-import Helpers.Error exposing (ErrorContext)
+import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
@@ -125,15 +126,46 @@ proxyifyRequest proxyServerUrl requestUrlStr =
     )
 
 
-resultToMsg : ErrorContext -> (a -> TT.Msg) -> Result Http.Error a -> TT.Msg
-resultToMsg errorContext successMsg result =
+resultToMsgErrorBody : ErrorContext -> (a -> TT.Msg) -> Result HttpErrorWithBody a -> TT.Msg
+resultToMsgErrorBody errorContext successMsg result =
     -- Generates Msg to deal with result of API call
+    -- TODO this is a _transitional_ function that should be removed when
+    -- TODO https://gitlab.com/exosphere/exosphere/-/issues/339 is fixed
     case result of
         Err error ->
-            TT.HandleApiError errorContext error
+            TT.HandleApiErrorWithBody errorContext error
 
         Ok stuff ->
             successMsg stuff
+
+
+expectJsonWithErrorBody : (Result HttpErrorWithBody a -> msg) -> Decode.Decoder a -> Http.Expect msg
+expectJsonWithErrorBody toMsg decoder =
+    -- Implements the example here: https://package.elm-lang.org/packages/elm/http/latest/Http#expectStringResponse
+    -- When we have an error with the response or the JSON decoding, we return the error along with the response body
+    -- so that we can show the response body as an error message in the app.
+    Http.expectStringResponse toMsg <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err <| HttpErrorWithBody (Http.BadUrl url) ""
+
+                Http.Timeout_ ->
+                    Err <| HttpErrorWithBody Http.Timeout ""
+
+                Http.NetworkError_ ->
+                    Err <| HttpErrorWithBody Http.NetworkError ""
+
+                Http.BadStatus_ metadata body ->
+                    Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
+
+                Http.GoodStatus_ _ body ->
+                    case Decode.decodeString decoder body of
+                        Ok value ->
+                            Ok value
+
+                        Err err ->
+                            Err <| HttpErrorWithBody (Http.BadBody (Decode.errorToString err)) body
 
 
 keystoneUrlWithVersion : String -> String

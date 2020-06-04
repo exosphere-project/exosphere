@@ -10,7 +10,7 @@ import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -34,7 +34,7 @@ requestComputeQuota project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\quota ->
                     ProjectMsg
@@ -48,7 +48,7 @@ requestComputeQuota project =
         Nothing
         (project.endpoints.nova ++ "/limits")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             (Decode.field "limits" computeQuotaDecoder)
         )
@@ -85,7 +85,7 @@ requestVolumeQuota project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\quota ->
                     ProjectMsg
@@ -99,7 +99,7 @@ requestVolumeQuota project =
         Nothing
         (project.endpoints.cinder ++ "/limits")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             (Decode.field "limits" volumeQuotaDecoder)
         )
