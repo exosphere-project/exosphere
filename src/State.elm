@@ -280,7 +280,7 @@ updateUnderlying msg model =
                     ( newModel, Cmd.none )
 
         HandleApiErrorWithBody errorContext error ->
-            processApiErrorWithBody model errorContext error
+            Helpers.processSynchronousApiError model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
             ( model, Rest.Keystone.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
@@ -1165,7 +1165,7 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processError newModel errorContext e
+                    Helpers.processSynchronousApiError newModel errorContext e
 
         ReceiveServer serverUuid errorContext result ->
             case result of
@@ -1696,33 +1696,3 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
     Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
-
-
-processApiErrorWithBody : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
-processApiErrorWithBody model errorContext httpError =
-    let
-        formattedError =
-            case httpError.error of
-                Http.BadStatus code ->
-                    "Status code: "
-                        ++ String.fromInt code
-                        ++ " Error message: "
-                        ++ httpError.body
-
-                _ ->
-                    Debug.toString httpError
-
-        logMessageProto =
-            LogMessage
-                formattedError
-                errorContext
-    in
-    Toasty.addToastIfUnique
-        Helpers.toastConfig
-        ToastyMsg
-        (Toast errorContext formattedError)
-        ( model
-        , Task.perform
-            (\posix -> NewLogMessage (logMessageProto posix))
-            Time.now
-        )

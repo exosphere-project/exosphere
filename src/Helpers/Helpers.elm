@@ -24,6 +24,7 @@ module Helpers.Helpers exposing
     , overallQuotaAvailServers
     , processError
     , processOpenRc
+    , processSynchronousApiError
     , projectDeleteServer
     , projectLookup
     , projectSetServerLoading
@@ -51,12 +52,15 @@ import Color
 import Debug
 import Dict
 import Framework.Color
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
+import Http
 import ISO8601
+import Json.Decode as Decode
 import Maybe.Extra
+import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
@@ -134,6 +138,36 @@ processError model errorContext error =
                 Time.now
     in
     Toasty.addToastIfUnique toastConfig ToastyMsg toast ( model, cmd )
+
+
+processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
+processSynchronousApiError model errorContext httpError =
+    let
+        apiErrorDecodeResult =
+            Decode.decodeString
+                OSError.decodeSynchronousErrorJson
+                httpError.body
+
+        formattedError =
+            case httpError.error of
+                Http.BadStatus code ->
+                    case apiErrorDecodeResult of
+                        Ok syncApiError ->
+                            syncApiError.message
+                                ++ "(response code: "
+                                ++ String.fromInt syncApiError.code
+                                ++ ")"
+
+                        Err _ ->
+                            httpError.body
+                                ++ "(response code: "
+                                ++ String.fromInt code
+                                ++ ")"
+
+                _ ->
+                    Debug.toString httpError
+    in
+    processError model errorContext formattedError
 
 
 stringIsUuidOrDefault : String -> Bool

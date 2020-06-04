@@ -38,6 +38,7 @@ module OpenStack.Types exposing
     , ServerUuid
     , Service
     , ServiceCatalog
+    , SynchronousAPIError
     , UnscopedAuthToken
     , UserUuid
     , Volume
@@ -74,6 +75,12 @@ type alias QuotaItemDetail =
     -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
     { inUse : Int
     , limit : Maybe Int
+    }
+
+
+type alias SynchronousAPIError =
+    { message : String
+    , code : Int
     }
 
 

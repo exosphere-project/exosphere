@@ -1,5 +1,6 @@
 module Tests exposing
     ( computeQuotasAndLimitsSuite
+    , decodeSynchronousOpenStackAPIErrorSuite
     , emptyCreds
     , processOpenRcSuite
     , stringIsUuidOrDefaultSuite
@@ -12,6 +13,7 @@ module Tests exposing
 import Expect exposing (Expectation)
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
+import OpenStack.Error as OSError
 import OpenStack.Quotas
     exposing
         ( computeQuotaDecoder
@@ -203,4 +205,44 @@ processOpenRcSuite =
                             "enfysnest"
                             ""
                         )
+        ]
+
+
+decodeSynchronousOpenStackAPIErrorSuite : Test
+decodeSynchronousOpenStackAPIErrorSuite =
+    describe "Try decoding JSON body of error messages from OpenStack API"
+        [ test "Decode invalid API microversion" <|
+            \_ ->
+                Expect.equal
+                    (Ok <|
+                        OSTypes.SynchronousAPIError
+                            "Version 4.87 is not supported by the API. Minimum is 2.1 and maximum is 2.65."
+                            406
+                    )
+                    (Decode.decodeString
+                        OSError.decodeSynchronousErrorJson
+                        """{
+                           "computeFault": {
+                             "message": "Version 4.87 is not supported by the API. Minimum is 2.1 and maximum is 2.65.",
+                             "code": 406
+                           }
+                         }"""
+                    )
+        , test "Decode invalid Nova URL" <|
+            \_ ->
+                Expect.equal
+                    (Ok <|
+                        OSTypes.SynchronousAPIError
+                            "Instance detailFOOBARBAZ could not be found."
+                            404
+                    )
+                    (Decode.decodeString
+                        OSError.decodeSynchronousErrorJson
+                        """{
+                                        "itemNotFound": {
+                                          "message": "Instance detailFOOBARBAZ could not be found.",
+                                          "code": 404
+                                        }
+                                      }"""
+                    )
         ]
