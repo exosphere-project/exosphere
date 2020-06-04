@@ -20,7 +20,7 @@ module Rest.Neutron exposing
     , requestSecurityGroups
     )
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http

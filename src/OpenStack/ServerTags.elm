@@ -1,6 +1,6 @@
 module OpenStack.ServerTags exposing (requestCreateServerTag)
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)

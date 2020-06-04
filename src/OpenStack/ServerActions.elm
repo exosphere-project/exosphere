@@ -4,8 +4,8 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
-import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Modifier as Modifier
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Encode

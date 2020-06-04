@@ -1,6 +1,6 @@
 module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume)
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode

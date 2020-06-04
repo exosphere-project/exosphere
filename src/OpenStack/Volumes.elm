@@ -6,7 +6,7 @@ module OpenStack.Volumes exposing
     , volumeLookup
     )
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode

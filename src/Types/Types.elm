@@ -43,7 +43,7 @@ module Types.Types exposing
     , currentExoServerVersion
     )
 
-import Error exposing (ErrorContext)
+import Helpers.Error exposing (ErrorContext)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode

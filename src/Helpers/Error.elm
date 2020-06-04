@@ -1,4 +1,4 @@
-module Error exposing (ErrorContext, ErrorLevel(..))
+module Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 
 
 type ErrorLevel

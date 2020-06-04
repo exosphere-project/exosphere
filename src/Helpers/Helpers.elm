@@ -50,8 +50,8 @@ module Helpers.Helpers exposing
 import Color
 import Debug
 import Dict
-import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes

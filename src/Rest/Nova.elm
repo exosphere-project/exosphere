@@ -28,7 +28,7 @@ module Rest.Nova exposing
 
 import Array
 import Base64
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
