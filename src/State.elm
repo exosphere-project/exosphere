@@ -1,7 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
-import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -36,7 +36,6 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
-        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -49,7 +48,6 @@ import Types.Types
         , Server
         , ServerOrigin(..)
         , TickInterval
-        , Toast
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
