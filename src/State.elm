@@ -1202,7 +1202,7 @@ processProjectSpecificMsg model project msg =
                                         newModel =
                                             Helpers.modelUpdateProject model newProject
                                     in
-                                    Helpers.processError newModel errorContext e
+                                    Helpers.processSynchronousApiError newModel errorContext httpErrorWithBody
                     in
                     case httpError of
                         Http.BadStatus code ->
@@ -1222,7 +1222,7 @@ processProjectSpecificMsg model project msg =
                                     newModel =
                                         Helpers.modelUpdateProject model newProject
                                 in
-                                Helpers.processError newModel newErrorContext e
+                                Helpers.processSynchronousApiError newModel newErrorContext httpErrorWithBody
 
                             else
                                 non404
@@ -1313,7 +1313,7 @@ processProjectSpecificMsg model project msg =
                 Ok networks ->
                     Rest.Neutron.receiveNetworks model project networks
 
-                Err e ->
+                Err httpError ->
                     let
                         oldNetworksData =
                             project.networks.data
@@ -1323,13 +1323,13 @@ processProjectSpecificMsg model project msg =
                                 | networks =
                                     RDPP.RemoteDataPlusPlus
                                         oldNetworksData
-                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
                             }
 
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processError newModel errorContext e
+                    Helpers.processSynchronousApiError newModel errorContext httpError
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
@@ -1348,7 +1348,7 @@ processProjectSpecificMsg model project msg =
                     in
                     ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
-                Err e ->
+                Err httpError ->
                     let
                         oldPortsData =
                             project.ports.data
@@ -1358,13 +1358,13 @@ processProjectSpecificMsg model project msg =
                                 | ports =
                                     RDPP.RemoteDataPlusPlus
                                         oldPortsData
-                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
                             }
 
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processError newModel errorContext e
+                    Helpers.processSynchronousApiError newModel errorContext httpError
 
         ReceiveCreateFloatingIp serverUuid ip ->
             Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
