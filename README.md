@@ -230,9 +230,23 @@ npm run electron-build
 npx electron-builder --linux deb tar.xz
 ```
 
+### On/For Windows
+
+If you need access to Windows, get a virtual machine [here](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/).
+
+- Install git (and git bash, etc) if you don't have already
+- Clone the repo
+- [Download](nodejs.org/en/download) and install node + NPM if you don't have already
+  - You may not also need the Chocolatey C++/Python stuff?
+- `npm install`
+- `npm run electron-build`
+- `npx electron-builder --windows`
+- look for the `.exe` in the `dist/` subfolder of exosphere
+
+When running downloaded package, you'll see a scary message from Windows, click "more info" and then "run anyway".
+
 Note:
 
-- Currently only tested with MacOS and Linux (Ubuntu 16.04) - need testing and instructions for Windows.
 - Add instructions for [code signing](https://www.electron.build/code-signing)  
 
 ## UI, Layout, and Style
