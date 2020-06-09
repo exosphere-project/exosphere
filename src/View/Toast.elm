@@ -73,7 +73,7 @@ genericToast variantClass title actionContext error maybeRecoveryHint =
             , Element.spacing 10
             ]
             [ Element.paragraph []
-                [ Element.text "While Exosphere was trying to "
+                [ Element.text "While trying to "
                 , Element.text actionContext
                 , Element.text ", this happened:"
                 ]
