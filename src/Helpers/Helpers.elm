@@ -22,8 +22,8 @@ module Helpers.Helpers exposing
     , modelUpdateUnscopedProvider
     , newServerNetworkOptions
     , overallQuotaAvailServers
-    , processError
     , processOpenRc
+    , processStringError
     , processSynchronousApiError
     , projectDeleteServer
     , projectLookup
@@ -119,18 +119,18 @@ toastConfig =
         |> Toasty.containerAttrs containerAttrs
 
 
-processError : Model -> ErrorContext -> a -> ( Model, Cmd Msg )
-processError model errorContext error =
+processStringError : Model -> ErrorContext -> String -> ( Model, Cmd Msg )
+processStringError model errorContext error =
     let
         logMessageProto =
             LogMessage
-                (Debug.toString error)
+                error
                 errorContext
 
         toast =
             Toast
                 errorContext
-                (Debug.toString error)
+                error
 
         cmd =
             Task.perform
@@ -154,20 +154,20 @@ processSynchronousApiError model errorContext httpError =
                     case apiErrorDecodeResult of
                         Ok syncApiError ->
                             syncApiError.message
-                                ++ "(response code: "
+                                ++ " (response code: "
                                 ++ String.fromInt syncApiError.code
                                 ++ ")"
 
                         Err _ ->
                             httpError.body
-                                ++ "(response code: "
+                                ++ " (response code: "
                                 ++ String.fromInt code
                                 ++ ")"
 
                 _ ->
                     Debug.toString httpError
     in
-    processError model errorContext formattedError
+    processStringError model errorContext formattedError
 
 
 stringIsUuidOrDefault : String -> Bool

@@ -306,7 +306,7 @@ updateUnderlying msg model =
         ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             "decode scoped auth token"
@@ -318,7 +318,7 @@ updateUnderlying msg model =
                 Ok authToken ->
                     case Helpers.serviceCatalogToEndpoints authToken.catalog of
                         Err e ->
-                            Helpers.processError
+                            Helpers.processStringError
                                 model
                                 (ErrorContext
                                     "Decode project endpoints"
@@ -340,7 +340,7 @@ updateUnderlying msg model =
                                 ( Helpers.projectLookup model <| projectId, maybePassword )
                             of
                                 ( Nothing, Nothing ) ->
-                                    Helpers.processError
+                                    Helpers.processStringError
                                         model
                                         (ErrorContext
                                             "this is an impossible state"
@@ -371,7 +371,7 @@ updateUnderlying msg model =
         ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             "decode scoped auth token"
@@ -476,7 +476,7 @@ updateUnderlying msg model =
                     ( newModel, Cmd.batch loginRequests )
 
                 Nothing ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
@@ -1050,7 +1050,7 @@ processProjectSpecificMsg model project msg =
                     ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
 
                 Nothing ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             ("look for server UUID with attached volume " ++ volumeUuid)
