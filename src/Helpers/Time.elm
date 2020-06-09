@@ -1,69 +1,69 @@
 module Helpers.Time exposing (humanReadableTime, iso8601StringToPosix)
 
 import ISO8601
-import Time exposing (..)
+import Time
 
 
-humanReadableTime : Posix -> String
+humanReadableTime : Time.Posix -> String
 humanReadableTime posix =
     let
         monthToStr month =
             case month of
-                Jan ->
+                Time.Jan ->
                     "01"
 
-                Feb ->
+                Time.Feb ->
                     "02"
 
-                Mar ->
+                Time.Mar ->
                     "03"
 
-                Apr ->
+                Time.Apr ->
                     "04"
 
-                May ->
+                Time.May ->
                     "05"
 
-                Jun ->
+                Time.Jun ->
                     "06"
 
-                Jul ->
+                Time.Jul ->
                     "07"
 
-                Aug ->
+                Time.Aug ->
                     "08"
 
-                Sep ->
+                Time.Sep ->
                     "09"
 
-                Oct ->
+                Time.Oct ->
                     "10"
 
-                Nov ->
+                Time.Nov ->
                     "11"
 
-                Dec ->
+                Time.Dec ->
                     "12"
     in
-    [ toYear utc posix |> String.fromInt
+    [ Time.toYear Time.utc posix |> String.fromInt
     , "-"
-    , toMonth utc posix |> monthToStr
+    , Time.toMonth Time.utc posix |> monthToStr
     , "-"
-    , toDay utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , Time.toDay Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
     , " "
-    , toHour utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , Time.toHour Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
     , ":"
-    , toMinute utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , Time.toMinute Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
     , ":"
-    , toSecond utc posix |> String.fromInt |> String.padLeft 2 '0'
+    , Time.toSecond Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
     , "."
-    , toMillis utc posix |> String.fromInt |> String.padLeft 3 '0'
+    , Time.toMillis Time.utc posix |> String.fromInt |> String.padLeft 3 '0'
     , " UTC"
     ]
         |> String.concat
 
 
-iso8601StringToPosix : String -> Result String Posix
+iso8601StringToPosix : String -> Result String Time.Posix
 iso8601StringToPosix str =
     ISO8601.fromString str
         |> Result.map ISO8601.toPosix
