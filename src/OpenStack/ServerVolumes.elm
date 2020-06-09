@@ -6,7 +6,13 @@ import Http
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -79,9 +85,8 @@ requestDetachVolume project serverUuid volumeUuid =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)
         Http.emptyBody
-        (expectJsonWithErrorBody
+        (expectStringWithErrorBody
             resultToMsg_
-            (Decode.succeed "")
         )
 
 

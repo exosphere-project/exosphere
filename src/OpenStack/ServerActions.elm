@@ -8,10 +8,9 @@ import Framework.Modifier as Modifier
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
-import Json.Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
 import Types.Types
     exposing
@@ -260,7 +259,6 @@ doAction body project server =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
-        (expectJsonWithErrorBody
+        (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> ProjectMsg (Helpers.getProjectId project) <| RequestServer server.osProps.uuid))
-            (Json.Decode.succeed "")
         )

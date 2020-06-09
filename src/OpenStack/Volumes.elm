@@ -13,7 +13,13 @@ import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -113,7 +119,7 @@ requestDeleteVolume project volumeUuid =
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
-        (expectJsonWithErrorBody resultToMsg_ (Decode.succeed ""))
+        (expectStringWithErrorBody resultToMsg_)
 
 
 requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd Msg
@@ -145,7 +151,7 @@ requestUpdateVolumeName project volumeUuid name =
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         (Http.jsonBody body)
-        (expectJsonWithErrorBody resultToMsg_ (Decode.succeed ""))
+        (expectStringWithErrorBody resultToMsg_)
 
 
 volumeDecoder : Decode.Decoder OSTypes.Volume

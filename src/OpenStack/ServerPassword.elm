@@ -5,7 +5,13 @@ import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project, ProjectSpecificMsgConstructor(..))
 
 
@@ -51,9 +57,8 @@ requestClearServerPassword project serverUuid =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
         Http.emptyBody
-        (expectJsonWithErrorBody
+        (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))
-            (Decode.succeed "")
         )
 
 

@@ -28,7 +28,13 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -199,9 +205,8 @@ requestDeleteFloatingIp project uuid =
         Nothing
         (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ uuid)
         Http.emptyBody
-        (expectJsonWithErrorBody
+        (expectStringWithErrorBody
             resultToMsg_
-            (Decode.succeed "")
         )
 
 
@@ -318,9 +323,8 @@ requestCreateSecurityGroupRules project group rules errorMessage =
                 Nothing
                 (project.endpoints.neutron ++ "/v2.0/security-group-rules")
                 (Http.jsonBody body)
-                (expectJsonWithErrorBody
+                (expectStringWithErrorBody
                     (resultToMsgErrorBody errorContext (\_ -> NoOp))
-                    (Decode.succeed "")
                 )
 
         bodies =

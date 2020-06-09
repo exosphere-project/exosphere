@@ -39,7 +39,13 @@ import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Cockpit exposing (requestCockpitIfRequestable)
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Rest.Neutron exposing (requestNetworks)
 import Types.Types
     exposing
@@ -370,10 +376,7 @@ requestDeleteServer project server =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
-        (expectJsonWithErrorBody
-            resultToMsg_
-            (Decode.succeed "")
-        )
+        (expectStringWithErrorBody resultToMsg_)
 
 
 requestDeleteServers : Project -> List Server -> Cmd Msg
@@ -424,9 +427,8 @@ requestCreateServerImage project serverUuid imageName =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
-        (expectJsonWithErrorBody
+        (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))
-            (Decode.succeed "")
         )
 
 
