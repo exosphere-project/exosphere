@@ -2,6 +2,7 @@ module Helpers.Error exposing
     ( ErrorContext
     , ErrorLevel(..)
     , HttpErrorWithBody
+    , toFriendlyErrorLevel
     )
 
 import Http
@@ -29,3 +30,19 @@ type alias HttpErrorWithBody =
     { error : Http.Error
     , body : String
     }
+
+
+toFriendlyErrorLevel : ErrorLevel -> String
+toFriendlyErrorLevel level =
+    case level of
+        ErrorDebug ->
+            "debug"
+
+        ErrorInfo ->
+            "info"
+
+        ErrorWarn ->
+            "warn"
+
+        ErrorCrit ->
+            "critical"

@@ -16,7 +16,6 @@ module Helpers.Helpers exposing
     , hostnameFromUrl
     , imageLookup
     , isBootVol
-    , iso8601StringToPosix
     , jetstreamToOpenstackCreds
     , modelUpdateProject
     , modelUpdateUnscopedProvider
@@ -57,7 +56,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
 import Http
-import ISO8601
 import Json.Decode as Decode
 import Maybe.Extra
 import OpenStack.Error as OSError
@@ -315,12 +313,6 @@ titleFromHostname hostname =
 
         _ ->
             hostname
-
-
-iso8601StringToPosix : String -> Result String Time.Posix
-iso8601StringToPosix str =
-    ISO8601.fromString str
-        |> Result.map ISO8601.toPosix
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints

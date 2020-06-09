@@ -11,6 +11,7 @@ module Rest.Helpers exposing
 
 import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.Helpers as Helpers
+import Helpers.Time exposing (iso8601StringToPosix)
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -222,7 +223,7 @@ idOrName str =
 
 iso8601StringToPosixDecodeError : String -> Decode.Decoder Time.Posix
 iso8601StringToPosixDecodeError str =
-    case Helpers.iso8601StringToPosix str of
+    case iso8601StringToPosix str of
         Ok posix ->
             Decode.succeed posix
 
