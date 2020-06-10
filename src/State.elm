@@ -1,7 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -36,7 +36,6 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
-        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -49,7 +48,6 @@ import Types.Types
         , Server
         , ServerOrigin(..)
         , TickInterval
-        , Toast
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
@@ -254,6 +252,7 @@ updateUnderlying msg model =
             Toasty.update Helpers.toastConfig ToastyMsg subMsg model
 
         NewLogMessage logMessage ->
+            -- TODO This no longer requires a trip through the runtime now that we're storing current time in model?
             let
                 newLogMessages =
                     logMessage :: model.logMessages
@@ -278,8 +277,8 @@ updateUnderlying msg model =
                 _ ->
                     ( newModel, Cmd.none )
 
-        HandleApiError errorContext error ->
-            processApiError model errorContext error
+        HandleApiErrorWithBody errorContext error ->
+            Helpers.processSynchronousApiError model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
             ( model, Rest.Keystone.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
@@ -307,7 +306,7 @@ updateUnderlying msg model =
         ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             "decode scoped auth token"
@@ -319,7 +318,7 @@ updateUnderlying msg model =
                 Ok authToken ->
                     case Helpers.serviceCatalogToEndpoints authToken.catalog of
                         Err e ->
-                            Helpers.processError
+                            Helpers.processStringError
                                 model
                                 (ErrorContext
                                     "Decode project endpoints"
@@ -341,7 +340,7 @@ updateUnderlying msg model =
                                 ( Helpers.projectLookup model <| projectId, maybePassword )
                             of
                                 ( Nothing, Nothing ) ->
-                                    Helpers.processError
+                                    Helpers.processStringError
                                         model
                                         (ErrorContext
                                             "this is an impossible state"
@@ -372,7 +371,7 @@ updateUnderlying msg model =
         ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             "decode scoped auth token"
@@ -477,7 +476,7 @@ updateUnderlying msg model =
                     ( newModel, Cmd.batch loginRequests )
 
                 Nothing ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
@@ -1051,7 +1050,7 @@ processProjectSpecificMsg model project msg =
                     ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
 
                 Nothing ->
-                    Helpers.processError
+                    Helpers.processStringError
                         model
                         (ErrorContext
                             ("look for server UUID with attached volume " ++ volumeUuid)
@@ -1164,15 +1163,18 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processError newModel errorContext e
+                    Helpers.processSynchronousApiError newModel errorContext e
 
         ReceiveServer serverUuid errorContext result ->
             case result of
                 Ok server ->
                     Rest.Nova.receiveServer model project server
 
-                Err e ->
+                Err httpErrorWithBody ->
                     let
+                        httpError =
+                            httpErrorWithBody.error
+
                         non404 =
                             case Helpers.serverLookup project serverUuid of
                                 Nothing ->
@@ -1200,9 +1202,9 @@ processProjectSpecificMsg model project msg =
                                         newModel =
                                             Helpers.modelUpdateProject model newProject
                                     in
-                                    Helpers.processError newModel errorContext e
+                                    Helpers.processSynchronousApiError newModel errorContext httpErrorWithBody
                     in
-                    case e of
+                    case httpError of
                         Http.BadStatus code ->
                             if code == 404 then
                                 let
@@ -1220,7 +1222,7 @@ processProjectSpecificMsg model project msg =
                                     newModel =
                                         Helpers.modelUpdateProject model newProject
                                 in
-                                Helpers.processError newModel newErrorContext e
+                                Helpers.processSynchronousApiError newModel newErrorContext httpErrorWithBody
 
                             else
                                 non404
@@ -1311,7 +1313,7 @@ processProjectSpecificMsg model project msg =
                 Ok networks ->
                     Rest.Neutron.receiveNetworks model project networks
 
-                Err e ->
+                Err httpError ->
                     let
                         oldNetworksData =
                             project.networks.data
@@ -1321,13 +1323,13 @@ processProjectSpecificMsg model project msg =
                                 | networks =
                                     RDPP.RemoteDataPlusPlus
                                         oldNetworksData
-                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
                             }
 
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processError newModel errorContext e
+                    Helpers.processSynchronousApiError newModel errorContext httpError
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
@@ -1346,7 +1348,7 @@ processProjectSpecificMsg model project msg =
                     in
                     ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
-                Err e ->
+                Err httpError ->
                     let
                         oldPortsData =
                             project.ports.data
@@ -1356,13 +1358,13 @@ processProjectSpecificMsg model project msg =
                                 | ports =
                                     RDPP.RemoteDataPlusPlus
                                         oldPortsData
-                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
                             }
 
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processError newModel errorContext e
+                    Helpers.processSynchronousApiError newModel errorContext httpError
 
         ReceiveCreateFloatingIp serverUuid ip ->
             Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
@@ -1692,22 +1694,3 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
     Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
-
-
-processApiError : Model -> ErrorContext -> Http.Error -> ( Model, Cmd Msg )
-processApiError model errorContext httpError =
-    let
-        logMessageProto =
-            LogMessage
-                (Debug.toString httpError)
-                errorContext
-    in
-    Toasty.addToastIfUnique
-        Helpers.toastConfig
-        ToastyMsg
-        (Toast errorContext (Debug.toString httpError))
-        ( model
-        , Task.perform
-            (\posix -> NewLogMessage (logMessageProto posix))
-            Time.now
-        )

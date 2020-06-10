@@ -17,13 +17,22 @@ module Rest.Keystone exposing
     )
 
 import Dict
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (idOrName, iso8601StringToPosixDecodeError, keystoneUrlWithVersion, openstackCredentialedRequest, proxyifyRequest, resultToMsg)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , idOrName
+        , iso8601StringToPosixDecodeError
+        , keystoneUrlWithVersion
+        , openstackCredentialedRequest
+        , proxyifyRequest
+        , resultToMsgErrorBody
+        )
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -90,7 +99,7 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         requestBody
         creds.authUrl
         maybeProxyUrl
-        (resultToMsg errorContext (ReceiveUnscopedAuthToken creds.authUrl creds.password))
+        (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl creds.password))
 
 
 requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
@@ -194,10 +203,10 @@ requestScopedAuthToken maybeProxyUrl input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsg errorContext (ReceiveScopedAuthToken maybePassword))
+        (resultToMsgErrorBody errorContext (ReceiveScopedAuthToken maybePassword))
 
 
-requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result Http.Error ( Http.Metadata, String ) -> Msg) -> Cmd Msg
+requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> Msg) -> Cmd Msg
 requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
     let
         correctedUrl =
@@ -235,16 +244,16 @@ requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
                 (\response ->
                     case response of
                         Http.BadUrl_ url_ ->
-                            Err (Http.BadUrl url_)
+                            Err <| HttpErrorWithBody (Http.BadUrl url_) ""
 
                         Http.Timeout_ ->
-                            Err Http.Timeout
+                            Err <| HttpErrorWithBody Http.Timeout ""
 
                         Http.NetworkError_ ->
-                            Err Http.NetworkError
+                            Err <| HttpErrorWithBody Http.NetworkError ""
 
-                        Http.BadStatus_ metadata _ ->
-                            Err (Http.BadStatus metadata.statusCode)
+                        Http.BadStatus_ metadata body ->
+                            Err <| HttpErrorWithBody (Http.BadStatus metadata.statusCode) body
 
                         Http.GoodStatus_ metadata body ->
                             Ok ( metadata, body )
@@ -286,7 +295,7 @@ requestAppCredential project clientUuid posixTime =
                 (Just "Perhaps you are trying to use a cloud that is too old to support Application Credentials? Exosphere supports OpenStack Queens release and newer. Check with your cloud administrator if you are unsure.")
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\appCred ->
                     ProjectMsg
@@ -300,7 +309,7 @@ requestAppCredential project clientUuid posixTime =
         Nothing
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
         (Http.jsonBody requestBody)
-        (Http.expectJson resultToMsg_ decodeAppCredential)
+        (expectJsonWithErrorBody resultToMsg_ decodeAppCredential)
 
 
 requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
@@ -334,7 +343,7 @@ requestUnscopedProjects provider maybeProxyUrl =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (ReceiveUnscopedProjects provider.authUrl)
     in
@@ -344,7 +353,7 @@ requestUnscopedProjects provider maybeProxyUrl =
         , url = url
         , body = Http.emptyBody
         , expect =
-            Http.expectJson
+            expectJsonWithErrorBody
                 resultToMsg_
                 decodeUnscopedProjects
         , timeout = Nothing

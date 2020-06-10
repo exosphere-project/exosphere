@@ -20,6 +20,8 @@ import Element.Events
 import Element.Font as Font
 import Element.Region as Region
 import Framework.Color
+import Helpers.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
+import Helpers.Time exposing (humanReadableTime)
 import Types.HelperTypes
 import Types.Types exposing (LogMessage, Msg(..))
 import View.Types
@@ -72,7 +74,7 @@ compactKVRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
         [ Element.paragraph [ Element.alignTop, Element.width (Element.px 200), Font.bold ] [ Element.text key ]
-        , Element.el [] value
+        , value
         ]
 
 
@@ -117,8 +119,47 @@ hint hintText =
 
 renderMessage : LogMessage -> Element.Element Msg
 renderMessage message =
-    -- TODO fixme
-    Element.paragraph [] [ Element.text (Debug.toString message) ]
+    let
+        levelColor : ErrorLevel -> Element.Color
+        levelColor errLevel =
+            case errLevel of
+                ErrorDebug ->
+                    Element.rgb 0 0.55 0
+
+                ErrorInfo ->
+                    Element.rgb 0 0 0
+
+                ErrorWarn ->
+                    Element.rgb 0.8 0.5 0
+
+                ErrorCrit ->
+                    Element.rgb 0.7 0 0
+    in
+    Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
+        [ Element.row [ Element.alignRight ]
+            [ Element.el
+                [ Font.color <| levelColor message.context.level
+                , Font.bold
+                ]
+                (Element.text
+                    (toFriendlyErrorLevel message.context.level)
+                )
+            , Element.el [ Font.color <| Element.rgb 0.4 0.4 0.4 ]
+                (Element.text
+                    (" at " ++ humanReadableTime message.timestamp)
+                )
+            ]
+        , compactKVRow "We were trying to"
+            (Element.paragraph [] [ Element.text message.context.actionContext ])
+        , compactKVRow "Message"
+            (Element.paragraph [] [ Element.text message.message ])
+        , case message.context.recoveryHint of
+            Just hint_ ->
+                compactKVRow "Recovery hint" (Element.paragraph [] [ Element.text hint_ ])
+
+            Nothing ->
+                Element.none
+        ]
 
 
 browserLink : Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg

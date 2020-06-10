@@ -6,14 +6,20 @@ module OpenStack.Volumes exposing
     , volumeLookup
     )
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -43,7 +49,7 @@ requestCreateVolume project createVolumeRequest =
                 (Just "Confirm that your quota has sufficient capacity to create a volume of this size, perhaps check with your cloud administrator.")
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -57,7 +63,7 @@ requestCreateVolume project createVolumeRequest =
         Nothing
         (project.endpoints.cinder ++ "/volumes")
         (Http.jsonBody body)
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             (Decode.field "volume" <| volumeDecoder)
         )
@@ -73,7 +79,7 @@ requestVolumes project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\vols ->
                     ProjectMsg
@@ -87,7 +93,7 @@ requestVolumes project =
         Nothing
         (project.endpoints.cinder ++ "/volumes/detail")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             (Decode.field "volumes" <| Decode.list volumeDecoder)
         )
@@ -103,7 +109,7 @@ requestDeleteVolume project volumeUuid =
                 (Just "Perhaps you are trying to delete a volume that is attached to a server? If so, please detach it first.")
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveDeleteVolume)
     in
@@ -113,7 +119,7 @@ requestDeleteVolume project volumeUuid =
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         Http.emptyBody
-        (Http.expectString resultToMsg_)
+        (expectStringWithErrorBody resultToMsg_)
 
 
 requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd Msg
@@ -135,7 +141,7 @@ requestUpdateVolumeName project volumeUuid name =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveUpdateVolumeName)
     in
@@ -145,7 +151,7 @@ requestUpdateVolumeName project volumeUuid name =
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
         (Http.jsonBody body)
-        (Http.expectString resultToMsg_)
+        (expectStringWithErrorBody resultToMsg_)
 
 
 volumeDecoder : Decode.Decoder OSTypes.Volume

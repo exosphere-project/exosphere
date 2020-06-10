@@ -16,14 +16,14 @@ module Helpers.Helpers exposing
     , hostnameFromUrl
     , imageLookup
     , isBootVol
-    , iso8601StringToPosix
     , jetstreamToOpenstackCreds
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , newServerNetworkOptions
     , overallQuotaAvailServers
-    , processError
     , processOpenRc
+    , processStringError
+    , processSynchronousApiError
     , projectDeleteServer
     , projectLookup
     , projectSetServerLoading
@@ -50,13 +50,15 @@ module Helpers.Helpers exposing
 import Color
 import Debug
 import Dict
-import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Color
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
-import ISO8601
+import Http
+import Json.Decode as Decode
 import Maybe.Extra
+import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
@@ -115,18 +117,18 @@ toastConfig =
         |> Toasty.containerAttrs containerAttrs
 
 
-processError : Model -> ErrorContext -> a -> ( Model, Cmd Msg )
-processError model errorContext error =
+processStringError : Model -> ErrorContext -> String -> ( Model, Cmd Msg )
+processStringError model errorContext error =
     let
         logMessageProto =
             LogMessage
-                (Debug.toString error)
+                error
                 errorContext
 
         toast =
             Toast
                 errorContext
-                (Debug.toString error)
+                error
 
         cmd =
             Task.perform
@@ -134,6 +136,36 @@ processError model errorContext error =
                 Time.now
     in
     Toasty.addToastIfUnique toastConfig ToastyMsg toast ( model, cmd )
+
+
+processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
+processSynchronousApiError model errorContext httpError =
+    let
+        apiErrorDecodeResult =
+            Decode.decodeString
+                OSError.decodeSynchronousErrorJson
+                httpError.body
+
+        formattedError =
+            case httpError.error of
+                Http.BadStatus code ->
+                    case apiErrorDecodeResult of
+                        Ok syncApiError ->
+                            syncApiError.message
+                                ++ " (response code: "
+                                ++ String.fromInt syncApiError.code
+                                ++ ")"
+
+                        Err _ ->
+                            httpError.body
+                                ++ " (response code: "
+                                ++ String.fromInt code
+                                ++ ")"
+
+                _ ->
+                    Debug.toString httpError
+    in
+    processStringError model errorContext formattedError
 
 
 stringIsUuidOrDefault : String -> Bool
@@ -281,12 +313,6 @@ titleFromHostname hostname =
 
         _ ->
             hostname
-
-
-iso8601StringToPosix : String -> Result String Time.Posix
-iso8601StringToPosix str =
-    ISO8601.fromString str
-        |> Result.map ISO8601.toPosix
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints

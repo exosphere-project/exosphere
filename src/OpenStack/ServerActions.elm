@@ -4,13 +4,13 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
-import Error exposing (ErrorContext, ErrorLevel(..))
 import Framework.Modifier as Modifier
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
 import Types.Types
     exposing
@@ -259,6 +259,6 @@ doAction body project server =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
-        (Http.expectString
-            (resultToMsg errorContext (\_ -> ProjectMsg (Helpers.getProjectId project) <| RequestServer server.osProps.uuid))
+        (expectStringWithErrorBody
+            (resultToMsgErrorBody errorContext (\_ -> ProjectMsg (Helpers.getProjectId project) <| RequestServer server.osProps.uuid))
         )

@@ -3,7 +3,7 @@ module View.Toast exposing (toast)
 import Element
 import Element.Font as Font
 import Element.Region as Region
-import Error exposing (ErrorLevel(..))
+import Helpers.Error exposing (ErrorLevel(..))
 import Html exposing (Html)
 import Html.Attributes
 import Types.Types exposing (Msg, Toast)
@@ -73,7 +73,7 @@ genericToast variantClass title actionContext error maybeRecoveryHint =
             , Element.spacing 10
             ]
             [ Element.paragraph []
-                [ Element.text "While Exosphere was trying to "
+                [ Element.text "While trying to "
                 , Element.text actionContext
                 , Element.text ", this happened:"
                 ]

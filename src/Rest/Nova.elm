@@ -28,7 +28,7 @@ module Rest.Nova exposing
 
 import Array
 import Base64
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -39,7 +39,13 @@ import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Cockpit exposing (requestCockpitIfRequestable)
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers
+    exposing
+        ( expectJsonWithErrorBody
+        , expectStringWithErrorBody
+        , openstackCredentialedRequest
+        , resultToMsgErrorBody
+        )
 import Rest.Neutron exposing (requestNetworks)
 import Types.Types
     exposing
@@ -86,7 +92,7 @@ requestServers project =
         (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/detail")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg
             decodeServers
         )
@@ -112,7 +118,7 @@ requestServer project serverUuid =
         (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg
             (Decode.at [ "server" ] decodeServer)
         )
@@ -149,7 +155,7 @@ requestConsoleUrls project serverUuid =
                 Nothing
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
-                (Http.expectJson
+                (expectJsonWithErrorBody
                     (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveConsoleUrl serverUuid result))
                     decodeConsoleUrl
                 )
@@ -168,7 +174,7 @@ requestFlavors project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\flavors -> ProjectMsg (Helpers.getProjectId project) <| ReceiveFlavors flavors)
     in
@@ -178,7 +184,7 @@ requestFlavors project =
         Nothing
         (project.endpoints.nova ++ "/flavors/detail")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             decodeFlavors
         )
@@ -194,7 +200,7 @@ requestKeypairs project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\keypairs -> ProjectMsg (Helpers.getProjectId project) <| ReceiveKeypairs keypairs)
     in
@@ -204,7 +210,7 @@ requestKeypairs project =
         Nothing
         (project.endpoints.nova ++ "/os-keypairs")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             decodeKeypairs
         )
@@ -316,7 +322,7 @@ requestCreateServer project exoClientUuid createServerRequest =
                 (Just <| "It's possible your quota is not large enough to launch the requested server" ++ plural)
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\serverUuid ->
                     ProjectMsg
@@ -334,7 +340,7 @@ requestCreateServer project exoClientUuid createServerRequest =
                         Nothing
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
-                        (Http.expectJson
+                        (expectJsonWithErrorBody
                             resultToMsg_
                             (Decode.field "server" serverUuidDecoder)
                         )
@@ -356,7 +362,7 @@ requestDeleteServer project server =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\_ ->
                     ProjectMsg
@@ -370,9 +376,7 @@ requestDeleteServer project server =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
-        (Http.expectString
-            resultToMsg_
-        )
+        (expectStringWithErrorBody resultToMsg_)
 
 
 requestDeleteServers : Project -> List Server -> Cmd Msg
@@ -423,8 +427,8 @@ requestCreateServerImage project serverUuid imageName =
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
         (Http.jsonBody body)
-        (Http.expectString
-            (resultToMsg errorContext (\_ -> NoOp))
+        (expectStringWithErrorBody
+            (resultToMsgErrorBody errorContext (\_ -> NoOp))
         )
 
 
@@ -609,7 +613,7 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
 receiveConsoleUrl model project serverUuid result =
     let
         maybeServer =

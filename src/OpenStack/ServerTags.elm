@@ -1,9 +1,9 @@
 module OpenStack.ServerTags exposing (requestCreateServerTag)
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project)
 
 
@@ -22,6 +22,6 @@ requestCreateServerTag project serverUuid tag =
         (Just "compute 2.26")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)
         Http.emptyBody
-        (Http.expectString
-            (resultToMsg errorContext (\_ -> NoOp))
+        (expectStringWithErrorBody
+            (resultToMsgErrorBody errorContext (\_ -> NoOp))
         )

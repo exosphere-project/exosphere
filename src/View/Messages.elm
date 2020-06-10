@@ -11,7 +11,7 @@ messageLog model =
         VH.exoColumnAttributes
         [ Element.el
             VH.heading2
-            (Element.text "Messages")
+            (Element.text "Recent Messages")
         , if List.isEmpty model.logMessages then
             Element.text "(No Messages)"
 

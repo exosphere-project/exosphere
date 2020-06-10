@@ -38,6 +38,7 @@ module OpenStack.Types exposing
     , ServerUuid
     , Service
     , ServiceCatalog
+    , SynchronousAPIError
     , UnscopedAuthToken
     , UserUuid
     , Volume
@@ -50,8 +51,9 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
+import Helpers.Error exposing (HttpErrorWithBody)
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
-import RemoteData exposing (WebData)
+import RemoteData exposing (RemoteData)
 import Time
 import Types.HelperTypes as HelperTypes
 
@@ -73,6 +75,12 @@ type alias QuotaItemDetail =
     -- OpenStack uses -1 for "no limit", but we'll use Nothing for that case
     { inUse : Int
     , limit : Maybe Int
+    }
+
+
+type alias SynchronousAPIError =
+    { message : String
+    , code : Int
     }
 
 
@@ -231,7 +239,7 @@ type alias Server =
     { name : String
     , uuid : ServerUuid
     , details : ServerDetails
-    , consoleUrl : WebData ConsoleUrl
+    , consoleUrl : RemoteData HttpErrorWithBody ConsoleUrl
     }
 
 

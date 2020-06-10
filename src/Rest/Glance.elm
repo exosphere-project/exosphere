@@ -6,13 +6,13 @@ module Rest.Glance exposing
     , requestImages
     )
 
-import Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import OpenStack.Types as OSTypes
-import Rest.Helpers exposing (openstackCredentialedRequest, resultToMsg)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -43,7 +43,7 @@ requestImages project =
                 Nothing
 
         resultToMsg_ =
-            resultToMsg
+            resultToMsgErrorBody
                 errorContext
                 (\images -> ProjectMsg (Helpers.getProjectId project) <| ReceiveImages images)
     in
@@ -53,7 +53,7 @@ requestImages project =
         Nothing
         (project.endpoints.glance ++ "/v2/images?limit=999999")
         Http.emptyBody
-        (Http.expectJson
+        (expectJsonWithErrorBody
             resultToMsg_
             decodeImages
         )

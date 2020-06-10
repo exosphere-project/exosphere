@@ -43,7 +43,7 @@ module Types.Types exposing
     , currentExoServerVersion
     )
 
-import Error exposing (ErrorContext)
+import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -130,13 +130,13 @@ type alias Project =
     , auth : OSTypes.ScopedAuthToken
     , endpoints : Endpoints
     , images : List OSTypes.Image
-    , servers : RDPP.RemoteDataPlusPlus Http.Error (List Server)
+    , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , flavors : List OSTypes.Flavor
     , keypairs : List OSTypes.Keypair
     , volumes : WebData (List OSTypes.Volume)
-    , networks : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Network)
+    , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , floatingIps : List OSTypes.IpAddress
-    , ports : RDPP.RemoteDataPlusPlus Http.Error (List OSTypes.Port)
+    , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
@@ -169,7 +169,7 @@ type Msg
     = Tick TickInterval Time.Posix
     | DoOrchestration Time.Posix
     | SetNonProjectView NonProjectViewConstructor
-    | HandleApiError ErrorContext Http.Error
+    | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
@@ -212,16 +212,16 @@ type ProjectSpecificMsgConstructor
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
-    | ReceiveServer OSTypes.ServerUuid ErrorContext (Result Http.Error OSTypes.Server)
-    | ReceiveServers ErrorContext (Result Http.Error (List OSTypes.Server))
-    | ReceiveConsoleUrl OSTypes.ServerUuid (Result Http.Error OSTypes.ConsoleUrl)
+    | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
+    | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
+    | ReceiveConsoleUrl OSTypes.ServerUuid (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
-    | ReceiveNetworks ErrorContext (Result Http.Error (List OSTypes.Network))
+    | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveFloatingIps (List OSTypes.IpAddress)
-    | ReceivePorts ErrorContext (Result Http.Error (List OSTypes.Port))
+    | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
     | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
