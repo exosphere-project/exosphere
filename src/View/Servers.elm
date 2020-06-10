@@ -88,7 +88,11 @@ servers project serverFilter deleteConfirmations =
                             Nothing
 
                         else
-                            Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers selectedServers))
+                            let
+                                uuidsToDelete =
+                                    List.map (\s -> s.osProps.uuid) selectedServers
+                            in
+                            Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
 
                     deleteButtonModifiers =
                         if noServersSelected == True then
@@ -796,7 +800,7 @@ renderServer project serverFilter deleteConfirmations server =
                     , IconButton.iconButton
                         [ Modifier.Danger, Modifier.Small ]
                         (Just
-                            (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server))
+                            (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
                         )
                         (Icon.remove Framework.Color.white 16)
                     , IconButton.iconButton

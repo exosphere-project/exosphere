@@ -979,21 +979,12 @@ processProjectSpecificMsg model project msg =
         RequestCreateServer createServerRequest ->
             ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
 
-        RequestDeleteServer server ->
+        RequestDeleteServer serverUuid ->
             let
-                oldExoProps =
-                    server.exoProps
-
-                newServer =
-                    Server server.osProps { oldExoProps | deletionAttempted = True }
-
-                newProject =
-                    Helpers.projectUpdateServer project newServer
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
+                ( newProject, cmd ) =
+                    requestDeleteServer project serverUuid
             in
-            ( newModel, Rest.Nova.requestDeleteServer newProject newServer )
+            ( Helpers.modelUpdateProject model newProject, cmd )
 
         RequestServerAction server func targetStatus ->
             let
@@ -1069,25 +1060,25 @@ processProjectSpecificMsg model project msg =
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
 
-        RequestDeleteServers serversToDelete ->
+        RequestDeleteServers serverUuidsToDelete ->
             let
-                markDeletionAttempted someServer =
+                applyDelete : OSTypes.ServerUuid -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+                applyDelete serverUuid projCmdTuple =
                     let
-                        oldExoProps =
-                            someServer.exoProps
+                        ( delServerProj, delServerCmd ) =
+                            requestDeleteServer (Tuple.first projCmdTuple) serverUuid
                     in
-                    Server someServer.osProps { oldExoProps | deletionAttempted = True }
+                    ( delServerProj, Cmd.batch [ Tuple.second projCmdTuple, delServerCmd ] )
 
-                newServers =
-                    List.map markDeletionAttempted serversToDelete
-
-                newProject =
-                    Helpers.projectUpdateServers project newServers
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
+                ( newProject, cmd ) =
+                    List.foldl
+                        applyDelete
+                        ( project, Cmd.none )
+                        serverUuidsToDelete
             in
-            ( newModel, Rest.Nova.requestDeleteServers newProject serversToDelete )
+            ( Helpers.modelUpdateProject model newProject
+            , cmd
+            )
 
         SelectServer server newSelectionState ->
             let
@@ -1685,3 +1676,24 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
     Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
+
+
+requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
+requestDeleteServer project serverUuid =
+    case Helpers.serverLookup project serverUuid of
+        Nothing ->
+            -- Server likely deleted already, do nothing
+            ( project, Cmd.none )
+
+        Just server ->
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newServer =
+                    Server server.osProps { oldExoProps | deletionAttempted = True }
+
+                newProject =
+                    Helpers.projectUpdateServer project newServer
+            in
+            ( newProject, Rest.Nova.requestDeleteServer newProject newServer )
