@@ -723,29 +723,25 @@ processProjectSpecificMsg model project msg =
                             )
 
                 ServerDetail serverUuid _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ServerDetail _ _) ->
-                                    Cmd.none
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (ServerDetail _ _) ->
+                            ( modelUpdatedView model, Cmd.none )
 
-                                _ ->
-                                    Cmd.batch
-                                        [ Rest.Nova.requestServer project serverUuid
-                                        , Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages project
-                                        , OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-                    in
-                    ( project
-                        |> (\p -> Helpers.projectSetServerLoading p serverUuid)
-                        |> projectResetCockpitStatuses
-                        |> Helpers.modelUpdateProject model
-                        |> modelUpdatedView
-                    , cmd
-                    )
+                        _ ->
+                            ( project
+                                |> (\p -> Helpers.projectSetServerLoading p serverUuid)
+                                |> projectResetCockpitStatuses
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
+                            , Cmd.batch
+                                [ Rest.Nova.requestServer project serverUuid
+                                , Rest.Nova.requestFlavors project
+                                , Rest.Glance.requestImages project
+                                , OSVolumes.requestVolumes project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                            )
 
                 CreateServerImage _ _ ->
                     ( modelUpdatedView model, Cmd.none )
