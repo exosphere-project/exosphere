@@ -704,27 +704,23 @@ processProjectSpecificMsg model project msg =
                     ( modelUpdatedView model, cmd )
 
                 ListProjectServers _ _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ListProjectServers _ _) ->
-                                    Cmd.none
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (ListProjectServers _ _) ->
+                            ( modelUpdatedView model, Cmd.none )
 
-                                _ ->
-                                    [ Rest.Nova.requestServers
-                                    , Rest.Neutron.requestFloatingIps
-                                    ]
-                                        |> List.map (\x -> x project)
-                                        |> Cmd.batch
-                    in
-                    ( project
-                        |> Helpers.projectSetServersLoading model.clientCurrentTime
-                        |> projectResetCockpitStatuses
-                        |> Helpers.modelUpdateProject model
-                        |> modelUpdatedView
-                    , cmd
-                    )
+                        _ ->
+                            ( project
+                                |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                |> projectResetCockpitStatuses
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
+                            , [ Rest.Nova.requestServers
+                              , Rest.Neutron.requestFloatingIps
+                              ]
+                                |> List.map (\x -> x project)
+                                |> Cmd.batch
+                            )
 
                 ServerDetail serverUuid _ ->
                     let
@@ -858,25 +854,20 @@ processProjectSpecificMsg model project msg =
                     ( modelUpdatedView model, Cmd.none )
 
                 AttachVolumeModal _ _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (AttachVolumeModal _ _) ->
-                                    Cmd.none
+                    case prevProjectViewConstructor of
+                        Just (AttachVolumeModal _ _) ->
+                            ( modelUpdatedView model, Cmd.none )
 
-                                _ ->
-                                    Cmd.batch
-                                        [ Rest.Nova.requestServers project
-                                        , OSVolumes.requestVolumes project
-                                        ]
-                    in
-                    ( project
-                        |> Helpers.projectSetServersLoading model.clientCurrentTime
-                        |> Helpers.modelUpdateProject model
-                        |> modelUpdatedView
-                    , cmd
-                    )
+                        _ ->
+                            ( project
+                                |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
+                            , Cmd.batch
+                                [ Rest.Nova.requestServers project
+                                , OSVolumes.requestVolumes project
+                                ]
+                            )
 
                 MountVolInstructions _ ->
                     ( modelUpdatedView model, Cmd.none )
