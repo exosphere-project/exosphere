@@ -29,7 +29,6 @@ module Helpers.Helpers exposing
     , projectSetServerLoading
     , projectSetServersLoading
     , projectUpdateServer
-    , projectUpdateServers
     , providerLookup
     , renderUserDataTemplate
     , serverFromThisExoClient
@@ -528,11 +527,6 @@ projectUpdateServer project server =
                     { oldServersRDPP | data = RDPP.DoHave newServersSorted recTime }
             in
             { project | servers = newServersRDPP }
-
-
-projectUpdateServers : Project -> List Server -> Project
-projectUpdateServers project servers =
-    List.foldl (\s p -> projectUpdateServer p s) project servers
 
 
 projectDeleteServer : Project -> OSTypes.ServerUuid -> Project
