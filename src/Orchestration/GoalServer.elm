@@ -15,8 +15,7 @@ goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd Msg )
 goalNewServer exoClientUuid time project =
     let
         steps =
-            [ stepServerPoll time
-            , stepServerRequestPorts time
+            [ stepServerRequestPorts time
             , stepServerRequestNetworks time
             , stepServerRequestFloatingIp time
             ]
