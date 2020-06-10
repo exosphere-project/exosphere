@@ -1,6 +1,6 @@
 module Orchestration.Orchestration exposing (orchModel)
 
-import Orchestration.GoalNewServer exposing (goalNewServer)
+import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.Types exposing (FloatingIpState(..), Model, Msg, Project)
@@ -24,6 +24,7 @@ orchProject exoClientUuid time project =
         goals =
             [ goalDummy exoClientUuid time
             , goalNewServer exoClientUuid time
+            , goalPollServers time
             ]
 
         ( newProject, newCmds ) =

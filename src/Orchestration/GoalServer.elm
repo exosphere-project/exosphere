@@ -1,9 +1,9 @@
-module Orchestration.GoalNewServer exposing (goalNewServer)
+module Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
-import Orchestration.Helpers exposing (applyStepToAllServersThisExo)
+import Orchestration.Helpers exposing (applyStepToAllServers)
 import Rest.Neutron
 import Rest.Nova
 import Time
@@ -23,7 +23,22 @@ goalNewServer exoClientUuid time project =
 
         ( newProject, newCmds ) =
             List.foldl
-                (applyStepToAllServersThisExo exoClientUuid)
+                (applyStepToAllServers (Just exoClientUuid))
+                ( project, Cmd.none )
+                steps
+    in
+    ( newProject, newCmds )
+
+
+goalPollServers : Time.Posix -> Project -> ( Project, Cmd Msg )
+goalPollServers time project =
+    let
+        steps =
+            [ stepServerPoll time ]
+
+        ( newProject, newCmds ) =
+            List.foldl
+                (applyStepToAllServers Nothing)
                 ( project, Cmd.none )
                 steps
     in
@@ -60,13 +75,11 @@ stepServerPoll time project server =
 
                     else
                         infrequentPollIntervalMs
-
-                receivedRecently recTime interval =
-                    Time.posixToMillis time < (Time.posixToMillis recTime + interval)
             in
-            receivedRecently receivedTime pollInterval
+            Time.posixToMillis time < (Time.posixToMillis receivedTime + pollInterval)
 
-        serverIsLoading =
+        dontPollBecauseServerIsLoading : Bool
+        dontPollBecauseServerIsLoading =
             case project.servers.refreshStatus of
                 RDPP.Loading _ ->
                     True
@@ -77,7 +90,7 @@ stepServerPoll time project server =
     if serverReceivedRecentlyEnough then
         ( project, Cmd.none )
 
-    else if serverIsLoading then
+    else if dontPollBecauseServerIsLoading then
         ( project, Cmd.none )
 
     else
