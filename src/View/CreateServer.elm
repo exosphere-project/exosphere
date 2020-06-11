@@ -64,7 +64,6 @@ createServer project createServerRequest =
         contents flavor computeQuota volumeQuota =
             [ Input.text
                 [ Element.spacing 12 ]
-                -- :: serverNameEmptyHint)
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> updateCreateServerRequest project { createServerRequest | name = n }
