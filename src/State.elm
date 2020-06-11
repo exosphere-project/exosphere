@@ -117,6 +117,9 @@ mounts:
 """
             }
 
+        currentTime =
+            Time.millisToPosix flags.epoch
+
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { projects = []
@@ -135,7 +138,7 @@ mounts:
             , proxyUrl = flags.proxyUrl
             , isElectron = flags.isElectron
             , clientUuid = uuid
-            , clientCurrentTime = Time.millisToPosix flags.epoch
+            , clientCurrentTime = currentTime
             , showDebugMsgs = showDebugMsgs
             }
 
@@ -188,19 +191,25 @@ mounts:
             in
             List.filter projectNeedsAppCredential hydratedModel.projects
 
-        getAppCredentialCmds =
-            List.map getTimeForAppCredential projectsNeedingAppCredentials
-    in
-    case hydratedModel.viewState of
-        ProjectView projectName _ (ListProjectServers _ _) ->
-            let
-                ( newModel, newCmds ) =
-                    update (ProjectMsg projectName RequestServers) hydratedModel
-            in
-            ( newModel, Cmd.batch (newCmds :: getAppCredentialCmds) )
+        otherCmds =
+            [ List.map getTimeForAppCredential projectsNeedingAppCredentials |> Cmd.batch
+            , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
+            , List.map Rest.Nova.requestServers hydratedModel.projects |> Cmd.batch
+            ]
+                |> Cmd.batch
 
-        _ ->
-            ( hydratedModel, Cmd.batch getAppCredentialCmds )
+        newModel =
+            let
+                projectsServersLoading =
+                    List.map
+                        (Helpers.projectSetServersLoading currentTime)
+                        hydratedModel.projects
+            in
+            { hydratedModel | projects = projectsServersLoading }
+    in
+    ( newModel
+    , otherCmds
+    )
 
 
 subscriptions : Model -> Sub Msg
@@ -704,52 +713,44 @@ processProjectSpecificMsg model project msg =
                     ( modelUpdatedView model, cmd )
 
                 ListProjectServers _ _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ListProjectServers _ _) ->
-                                    Cmd.none
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (ListProjectServers _ _) ->
+                            ( modelUpdatedView model, Cmd.none )
 
-                                _ ->
-                                    [ Rest.Nova.requestServers
-                                    , Rest.Neutron.requestFloatingIps
-                                    ]
-                                        |> List.map (\x -> x project)
-                                        |> Cmd.batch
-                    in
-                    ( project
-                        |> Helpers.projectSetServersLoading model.clientCurrentTime
-                        |> projectResetCockpitStatuses
-                        |> Helpers.modelUpdateProject model
-                        |> modelUpdatedView
-                    , cmd
-                    )
+                        _ ->
+                            ( project
+                                |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                |> projectResetCockpitStatuses
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
+                            , [ Rest.Nova.requestServers
+                              , Rest.Neutron.requestFloatingIps
+                              ]
+                                |> List.map (\x -> x project)
+                                |> Cmd.batch
+                            )
 
                 ServerDetail serverUuid _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ServerDetail _ _) ->
-                                    Cmd.none
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (ServerDetail _ _) ->
+                            ( modelUpdatedView model, Cmd.none )
 
-                                _ ->
-                                    Cmd.batch
-                                        [ Rest.Nova.requestServer project serverUuid
-                                        , Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages project
-                                        , OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-                    in
-                    ( project
-                        |> (\p -> Helpers.projectSetServerLoading p serverUuid)
-                        |> projectResetCockpitStatuses
-                        |> Helpers.modelUpdateProject model
-                        |> modelUpdatedView
-                    , cmd
-                    )
+                        _ ->
+                            ( project
+                                |> (\p -> Helpers.projectSetServerLoading p serverUuid)
+                                |> projectResetCockpitStatuses
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
+                            , Cmd.batch
+                                [ Rest.Nova.requestServer project serverUuid
+                                , Rest.Nova.requestFlavors project
+                                , Rest.Glance.requestImages project
+                                , OSVolumes.requestVolumes project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                            )
 
                 CreateServerImage _ _ ->
                     ( modelUpdatedView model, Cmd.none )
@@ -858,25 +859,20 @@ processProjectSpecificMsg model project msg =
                     ( modelUpdatedView model, Cmd.none )
 
                 AttachVolumeModal _ _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (AttachVolumeModal _ _) ->
-                                    Cmd.none
+                    case prevProjectViewConstructor of
+                        Just (AttachVolumeModal _ _) ->
+                            ( modelUpdatedView model, Cmd.none )
 
-                                _ ->
-                                    Cmd.batch
-                                        [ Rest.Nova.requestServers project
-                                        , OSVolumes.requestVolumes project
-                                        ]
-                    in
-                    ( project
-                        |> Helpers.projectSetServersLoading model.clientCurrentTime
-                        |> Helpers.modelUpdateProject model
-                        |> modelUpdatedView
-                    , cmd
-                    )
+                        _ ->
+                            ( project
+                                |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                |> Helpers.modelUpdateProject model
+                                |> modelUpdatedView
+                            , Cmd.batch
+                                [ Rest.Nova.requestServers project
+                                , OSVolumes.requestVolumes project
+                                ]
+                            )
 
                 MountVolInstructions _ ->
                     ( modelUpdatedView model, Cmd.none )
@@ -988,21 +984,12 @@ processProjectSpecificMsg model project msg =
         RequestCreateServer createServerRequest ->
             ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
 
-        RequestDeleteServer server ->
+        RequestDeleteServer serverUuid ->
             let
-                oldExoProps =
-                    server.exoProps
-
-                newServer =
-                    Server server.osProps { oldExoProps | deletionAttempted = True }
-
-                newProject =
-                    Helpers.projectUpdateServer project newServer
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
+                ( newProject, cmd ) =
+                    requestDeleteServer project serverUuid
             in
-            ( newModel, Rest.Nova.requestDeleteServer newProject newServer )
+            ( Helpers.modelUpdateProject model newProject, cmd )
 
         RequestServerAction server func targetStatus ->
             let
@@ -1078,25 +1065,25 @@ processProjectSpecificMsg model project msg =
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
 
-        RequestDeleteServers serversToDelete ->
+        RequestDeleteServers serverUuidsToDelete ->
             let
-                markDeletionAttempted someServer =
+                applyDelete : OSTypes.ServerUuid -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+                applyDelete serverUuid projCmdTuple =
                     let
-                        oldExoProps =
-                            someServer.exoProps
+                        ( delServerProj, delServerCmd ) =
+                            requestDeleteServer (Tuple.first projCmdTuple) serverUuid
                     in
-                    Server someServer.osProps { oldExoProps | deletionAttempted = True }
+                    ( delServerProj, Cmd.batch [ Tuple.second projCmdTuple, delServerCmd ] )
 
-                newServers =
-                    List.map markDeletionAttempted serversToDelete
-
-                newProject =
-                    Helpers.projectUpdateServers project newServers
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
+                ( newProject, cmd ) =
+                    List.foldl
+                        applyDelete
+                        ( project, Cmd.none )
+                        serverUuidsToDelete
             in
-            ( newModel, Rest.Nova.requestDeleteServers newProject serversToDelete )
+            ( Helpers.modelUpdateProject model newProject
+            , cmd
+            )
 
         SelectServer server newSelectionState ->
             let
@@ -1285,28 +1272,35 @@ processProjectSpecificMsg model project msg =
                     { newModelProto
                         | viewState = newViewState
                     }
-
-                ( deleteIpAddressModel, deleteIpAddressCmd ) =
-                    case maybeIpAddress of
-                        Nothing ->
-                            ( serverDeletedModel, Cmd.none )
-
-                        Just ipAddress ->
-                            let
-                                maybeFloatingIpUuid =
-                                    project.floatingIps
-                                        |> List.filter (\i -> i.address == ipAddress)
-                                        |> List.head
-                                        |> Maybe.andThen .uuid
-                            in
-                            case maybeFloatingIpUuid of
-                                Nothing ->
-                                    ( serverDeletedModel, Cmd.none )
-
-                                Just uuid ->
-                                    ( serverDeletedModel, Rest.Neutron.requestDeleteFloatingIp project uuid )
             in
-            ( deleteIpAddressModel, deleteIpAddressCmd )
+            case maybeIpAddress of
+                Nothing ->
+                    ( serverDeletedModel, Cmd.none )
+
+                Just ipAddress ->
+                    let
+                        maybeFloatingIpUuid =
+                            project.floatingIps
+                                |> List.filter (\i -> i.address == ipAddress)
+                                |> List.head
+                                |> Maybe.andThen .uuid
+                    in
+                    case maybeFloatingIpUuid of
+                        Nothing ->
+                            let
+                                errorContext =
+                                    ErrorContext
+                                        "Look for a floating IP address to delete now that we have just deleted its server"
+                                        ErrorInfo
+                                        Nothing
+                            in
+                            Helpers.processStringError
+                                serverDeletedModel
+                                errorContext
+                                ("Could not find a UUID for floating IP address from deleted server with UUID " ++ serverUuid)
+
+                        Just uuid ->
+                            ( serverDeletedModel, Rest.Neutron.requestDeleteFloatingIp project uuid )
 
         ReceiveNetworks errorContext result ->
             case result of
@@ -1694,3 +1688,24 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
     Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
+
+
+requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
+requestDeleteServer project serverUuid =
+    case Helpers.serverLookup project serverUuid of
+        Nothing ->
+            -- Server likely deleted already, do nothing
+            ( project, Cmd.none )
+
+        Just server ->
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newServer =
+                    Server server.osProps { oldExoProps | deletionAttempted = True }
+
+                newProject =
+                    Helpers.projectUpdateServer project newServer
+            in
+            ( newProject, Rest.Nova.requestDeleteServer newProject newServer )

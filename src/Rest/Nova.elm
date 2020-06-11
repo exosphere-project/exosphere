@@ -17,7 +17,6 @@ module Rest.Nova exposing
     , requestCreateServer
     , requestCreateServerImage
     , requestDeleteServer
-    , requestDeleteServers
     , requestFlavors
     , requestKeypairs
     , requestServer
@@ -377,15 +376,6 @@ requestDeleteServer project server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
-
-
-requestDeleteServers : Project -> List Server -> Cmd Msg
-requestDeleteServers project serversToDelete =
-    let
-        deleteRequests =
-            List.map (requestDeleteServer project) serversToDelete
-    in
-    Cmd.batch deleteRequests
 
 
 requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg

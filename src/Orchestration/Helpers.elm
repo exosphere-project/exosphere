@@ -1,4 +1,4 @@
-module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServersThisExo)
+module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers)
 
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -19,19 +19,26 @@ applyProjectStep step ( project, cmds ) =
     ( stepProj, Cmd.batch [ cmds, stepCmds ] )
 
 
-applyStepToAllServersThisExo : UUID.UUID -> (Project -> Server -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
-applyStepToAllServersThisExo exoClientUuid step ( project, cmds ) =
+applyStepToAllServers : Maybe UUID.UUID -> (Project -> Server -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+applyStepToAllServers maybeExoClientUuid step ( project, cmds ) =
+    -- If maybeExoClientUuid is Just a client UUID, we only apply to servers created by that client UUID.
+    -- Otherwise, we apply to all servers in the project.
     let
         applyServerStep server_ ( project_, cmds_ ) =
             let
                 ( stepProj, stepCmds ) =
                     step project_ server_
             in
-            if serverFromThisExoClient exoClientUuid server_ then
-                ( stepProj, Cmd.batch [ cmds_, stepCmds ] )
+            case maybeExoClientUuid of
+                Just exoClientUuid ->
+                    if serverFromThisExoClient exoClientUuid server_ then
+                        ( stepProj, Cmd.batch [ cmds_, stepCmds ] )
 
-            else
-                ( project_, cmds_ )
+                    else
+                        ( project_, cmds_ )
+
+                Nothing ->
+                    ( stepProj, Cmd.batch [ cmds_, stepCmds ] )
     in
     case project.servers.data of
         RDPP.DoHave servers _ ->

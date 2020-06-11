@@ -203,8 +203,8 @@ type ProjectSpecificMsgConstructor
     | RequestServers
     | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest
-    | RequestDeleteServer Server
-    | RequestDeleteServers (List Server)
+    | RequestDeleteServer OSTypes.ServerUuid
+    | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestServerAction Server (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
