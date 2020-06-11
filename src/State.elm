@@ -117,6 +117,9 @@ mounts:
 """
             }
 
+        currentTime =
+            Time.millisToPosix flags.epoch
+
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { projects = []
@@ -135,7 +138,7 @@ mounts:
             , proxyUrl = flags.proxyUrl
             , isElectron = flags.isElectron
             , clientUuid = uuid
-            , clientCurrentTime = Time.millisToPosix flags.epoch
+            , clientCurrentTime = currentTime
             , showDebugMsgs = showDebugMsgs
             }
 
@@ -188,19 +191,25 @@ mounts:
             in
             List.filter projectNeedsAppCredential hydratedModel.projects
 
-        getAppCredentialCmds =
-            List.map getTimeForAppCredential projectsNeedingAppCredentials
-    in
-    case hydratedModel.viewState of
-        ProjectView projectName _ (ListProjectServers _ _) ->
-            let
-                ( newModel, newCmds ) =
-                    update (ProjectMsg projectName RequestServers) hydratedModel
-            in
-            ( newModel, Cmd.batch (newCmds :: getAppCredentialCmds) )
+        otherCmds =
+            [ List.map getTimeForAppCredential projectsNeedingAppCredentials |> Cmd.batch
+            , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
+            , List.map Rest.Nova.requestServers hydratedModel.projects |> Cmd.batch
+            ]
+                |> Cmd.batch
 
-        _ ->
-            ( hydratedModel, Cmd.batch getAppCredentialCmds )
+        newModel =
+            let
+                projectsServersLoading =
+                    List.map
+                        (Helpers.projectSetServersLoading currentTime)
+                        hydratedModel.projects
+            in
+            { hydratedModel | projects = projectsServersLoading }
+    in
+    ( newModel
+    , otherCmds
+    )
 
 
 subscriptions : Model -> Sub Msg
