@@ -1263,28 +1263,35 @@ processProjectSpecificMsg model project msg =
                     { newModelProto
                         | viewState = newViewState
                     }
-
-                ( deleteIpAddressModel, deleteIpAddressCmd ) =
-                    case maybeIpAddress of
-                        Nothing ->
-                            ( serverDeletedModel, Cmd.none )
-
-                        Just ipAddress ->
-                            let
-                                maybeFloatingIpUuid =
-                                    project.floatingIps
-                                        |> List.filter (\i -> i.address == ipAddress)
-                                        |> List.head
-                                        |> Maybe.andThen .uuid
-                            in
-                            case maybeFloatingIpUuid of
-                                Nothing ->
-                                    ( serverDeletedModel, Cmd.none )
-
-                                Just uuid ->
-                                    ( serverDeletedModel, Rest.Neutron.requestDeleteFloatingIp project uuid )
             in
-            ( deleteIpAddressModel, deleteIpAddressCmd )
+            case maybeIpAddress of
+                Nothing ->
+                    ( serverDeletedModel, Cmd.none )
+
+                Just ipAddress ->
+                    let
+                        maybeFloatingIpUuid =
+                            project.floatingIps
+                                |> List.filter (\i -> i.address == ipAddress)
+                                |> List.head
+                                |> Maybe.andThen .uuid
+                    in
+                    case maybeFloatingIpUuid of
+                        Nothing ->
+                            let
+                                errorContext =
+                                    ErrorContext
+                                        "Look for a floating IP address to delete now that we have just deleted its server"
+                                        ErrorInfo
+                                        Nothing
+                            in
+                            Helpers.processStringError
+                                serverDeletedModel
+                                errorContext
+                                ("Could not find a UUID for floating IP address from deleted server with UUID " ++ serverUuid)
+
+                        Just uuid ->
+                            ( serverDeletedModel, Rest.Neutron.requestDeleteFloatingIp project uuid )
 
         ReceiveNetworks errorContext result ->
             case result of
