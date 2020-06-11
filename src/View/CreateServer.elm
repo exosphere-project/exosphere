@@ -10,6 +10,7 @@ import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
+import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Types.Types
@@ -34,35 +35,41 @@ updateCreateServerRequest project createServerRequest =
 createServer : Project -> CreateServerRequest -> Element.Element Msg
 createServer project createServerRequest =
     let
-        serverNameEmptyHint =
-            if createServerRequest.name == "" then
-                [ VH.hint "Server name can't be empty" ]
+        invalidNameReasons =
+            serverNameValidator createServerRequest.name
 
-            else
-                []
+        renderInvalidNameReasons =
+            case invalidNameReasons of
+                Just reasons ->
+                    Element.column
+                        [ Font.color (Element.rgb 1 0 0)
+                        , Font.size 14
+                        , Element.alignRight
+                        , Element.moveDown 6
+                        ]
+                    <|
+                        List.map Element.text reasons
 
-        requestIsValid =
-            if createServerRequest.name == "" then
-                False
-
-            else
-                not (createServerRequest.flavorUuid == "")
+                Nothing ->
+                    Element.none
 
         createOnPress =
-            if requestIsValid == True then
-                Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
+            case invalidNameReasons of
+                Nothing ->
+                    Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
 
-            else
-                Nothing
+                Just _ ->
+                    Nothing
 
         contents flavor computeQuota volumeQuota =
             [ Input.text
-                (Element.spacing 12 :: serverNameEmptyHint)
+                [ Element.spacing 12 ]
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> updateCreateServerRequest project { createServerRequest | name = n }
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
+            , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
             , flavorPicker project createServerRequest computeQuota
             , volBackedPrompt project createServerRequest volumeQuota flavor
