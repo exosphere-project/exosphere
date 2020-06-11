@@ -22,6 +22,12 @@ serverNameValidator name =
                 Regex.contains badChars name
               , "only include alphanumeric characters, hyphen, underscore and space"
               )
+            , ( String.left 1 name == " "
+              , "not start with a space"
+              )
+            , ( String.right 1 name == " "
+              , "not end with a space"
+              )
             , ( String.right 1 name == "-"
               , "not end with a hyphen"
               )
