@@ -13,7 +13,8 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
-import Widget.Style exposing (ColumnStyle, TextInputStyle)
+import Widget
+import Widget.Style exposing (ColumnStyle, SortTableStyle, TextInputStyle)
 import Widget.Style.Material as Material
 
 
@@ -21,8 +22,13 @@ import Widget.Style.Material as Material
 {- When you create a new widget, add example usages to the `widgets` list here! -}
 
 
-type alias Msg =
-    Style.Widgets.ChipsFilter.ChipsFilterMsg
+type ChangedSortingMsgLocal
+    = ChangedSorting String
+
+
+type Msg
+    = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
+    | ChangedSortingMsg ChangedSortingMsgLocal
 
 
 widgets : (Msg -> msg) -> Style style msg -> Model -> List (Element.Element msg)
@@ -55,8 +61,50 @@ widgets msgMapper style model =
     , Element.text "Style.Widgets.IconButton.chip (with badge)"
     , chip Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
     , Element.text "chipsFilter"
-    , chipsFilter msgMapper style model
+    , chipsFilter (ChipsFilterMsg >> msgMapper) style model.chipFilterModel
+    , Element.text "viewSortTable"
+    , viewSortTable (ChangedSortingMsg >> msgMapper) style model.sortTableModel
     ]
+
+
+viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
+viewSortTable msgMapper style model =
+    Widget.sortTable style.sortTable
+        { content =
+            [ { id = 1, name = "Antonio", rating = 2.456, hash = Nothing }
+            , { id = 2, name = "Ana", rating = 1.34, hash = Just "45jf" }
+            , { id = 3, name = "Alfred", rating = 4.22, hash = Just "6fs1" }
+            , { id = 4, name = "Thomas", rating = 3, hash = Just "k52f" }
+            ]
+        , columns =
+            [ Widget.intColumn
+                { title = "Id"
+                , value = .id
+                , toString = \int -> "#" ++ String.fromInt int
+                , width = Element.fill
+                }
+            , Widget.stringColumn
+                { title = "Name"
+                , value = .name
+                , toString = identity
+                , width = Element.fill
+                }
+            , Widget.floatColumn
+                { title = "Rating"
+                , value = .rating
+                , toString = String.fromFloat
+                , width = Element.fill
+                }
+            , Widget.unsortableColumn
+                { title = "Hash"
+                , toString = .hash >> Maybe.withDefault "None"
+                , width = Element.fill
+                }
+            ]
+        , asc = model.asc
+        , sortBy = model.title
+        , onChange = ChangedSorting >> msgMapper
+        }
 
 
 intro : List (Element.Element a)
@@ -80,6 +128,7 @@ type alias Style style msg =
     { style
         | textInput : TextInputStyle msg
         , column : ColumnStyle msg
+        , sortTable : SortTableStyle msg
     }
 
 
@@ -87,6 +136,17 @@ materialStyle : Style {} msg
 materialStyle =
     { textInput = Material.textInput Material.defaultPalette
     , column = Material.column
+    , sortTable =
+        { containerTable = []
+        , headerButton = Material.textButton Material.defaultPalette
+        , ascIcon =
+            Material.expansionPanel Material.defaultPalette
+                |> .collapseIcon
+        , descIcon =
+            Material.expansionPanel Material.defaultPalette
+                |> .expandIcon
+        , defaultIcon = Element.none
+        }
     }
 
 
@@ -109,18 +169,33 @@ options =
     ]
 
 
-type alias Model =
+type alias ChipFilterModel =
     { selected : Set String
     , textInput : String
     , options : List String
     }
 
 
+type alias SortTableModel =
+    { title : String
+    , asc : Bool
+    }
+
+
+type alias Model =
+    { chipFilterModel : ChipFilterModel
+    , sortTableModel : SortTableModel
+    }
+
+
 init : ( Model, Cmd Msg )
 init =
-    ( { selected = Set.empty
-      , textInput = ""
-      , options = options
+    ( { chipFilterModel =
+            { selected = Set.empty
+            , textInput = ""
+            , options = options
+            }
+      , sortTableModel = { title = "Name", asc = True }
       }
     , Cmd.none
     )
@@ -129,22 +204,53 @@ init =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Style.Widgets.ChipsFilter.ToggleSelection string ->
+        ChipsFilterMsg (Style.Widgets.ChipsFilter.ToggleSelection string) ->
+            let
+                cfm =
+                    model.chipFilterModel
+            in
             ( { model
-                | selected =
-                    model.selected
-                        |> (if model.selected |> Set.member string then
-                                Set.remove string
+                | chipFilterModel =
+                    { cfm
+                        | selected =
+                            model.chipFilterModel.selected
+                                |> (if model.chipFilterModel.selected |> Set.member string then
+                                        Set.remove string
 
-                            else
-                                Set.insert string
-                           )
+                                    else
+                                        Set.insert string
+                                   )
+                    }
               }
             , Cmd.none
             )
 
-        Style.Widgets.ChipsFilter.SetTextInput string ->
-            ( { model | textInput = string }, Cmd.none )
+        ChipsFilterMsg (Style.Widgets.ChipsFilter.SetTextInput string) ->
+            let
+                cfm =
+                    model.chipFilterModel
+            in
+            ( { model
+                | chipFilterModel =
+                    { cfm | textInput = string }
+              }
+            , Cmd.none
+            )
+
+        ChangedSortingMsg (ChangedSorting string) ->
+            ( { model
+                | sortTableModel =
+                    { title = string
+                    , asc =
+                        if model.sortTableModel.title == string then
+                            not model.sortTableModel.asc
+
+                        else
+                            True
+                    }
+              }
+            , Cmd.none
+            )
 
 
 subscriptions : Model -> Sub Msg
