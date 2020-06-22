@@ -18,7 +18,7 @@ materialStyle =
     { textInput = Material.textInput Material.defaultPalette
     , column = Material.column
     , sortTable =
-        { containerTable = []
+        { containerTable = [ Element.spacingXY 5 20 ]
         , headerButton = Material.textButton Material.defaultPalette
         , ascIcon =
             Material.expansionPanel Material.defaultPalette
