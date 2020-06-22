@@ -34,6 +34,7 @@ module Types.Types exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , SortTableModel
     , TickInterval
     , Toast
     , UnscopedProvider
@@ -265,6 +266,12 @@ type alias ImageFilter =
     }
 
 
+type alias SortTableModel =
+    { title : String
+    , asc : Bool
+    }
+
+
 type alias ServerFilter =
     { onlyOwnServers : Bool
     }
@@ -276,7 +283,7 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = ListImages ImageFilter
+    = ListImages ImageFilter SortTableModel
     | ListProjectServers ServerFilter (List DeleteConfirmation)
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams

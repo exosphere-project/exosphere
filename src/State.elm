@@ -706,12 +706,12 @@ processProjectSpecificMsg model project msg =
                         |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project_
             in
             case projectViewConstructor of
-                ListImages _ ->
+                ListImages _ _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListImages _) ->
+                                Just (ListImages _ _) ->
                                     Cmd.none
 
                                 _ ->

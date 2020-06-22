@@ -12,23 +12,24 @@ import List.Extra
 import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
+import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
-import Types.Types exposing (ChangedSortingMsgLocal(..), CreateServerRequest, GlobalDefaults, ImageFilter, Msg(..), Project, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..))
+import Types.Types exposing (ChangedSortingMsgLocal(..), CreateServerRequest, GlobalDefaults, ImageFilter, Msg(..), Project, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..), SortTableModel)
 import View.Helpers as VH
-import View.Types exposing (ImageTag, SortTableModel)
+import View.Types exposing (ImageTag)
 import Widget
 import Widget.Style exposing (SortTableStyle)
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
-imagesIfLoaded globalDefaults project imageFilter =
+imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> SortTableModel -> Element.Element Msg
+imagesIfLoaded globalDefaults project imageFilter sortTableModel =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project imageFilter
+        images globalDefaults project imageFilter sortTableModel
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -79,8 +80,8 @@ filterImages imageFilter project someImages =
         |> filterBySearchText imageFilter.searchText
 
 
-images : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
-images globalDefaults project imageFilter =
+images : GlobalDefaults -> Project -> ImageFilter -> SortTableModel -> Element.Element Msg
+images globalDefaults project imageFilter sortTableModel =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -130,7 +131,7 @@ images globalDefaults project imageFilter =
                         \_ ->
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
+                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags } sortTableModel
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
@@ -145,7 +146,7 @@ images globalDefaults project imageFilter =
                     Element.text tag.label
 
                 unselectTag =
-                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags }
+                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags } sortTableModel
             in
             if tagChecked then
                 chip (Just unselectTag) chipLabel
@@ -171,13 +172,13 @@ images globalDefaults project imageFilter =
         , Input.text []
             { text = imageFilter.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t }
+            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t } sortTableModel
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
         , tagsView
         , Input.checkbox []
             { checked = imageFilter.onlyOwnImages
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new }
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new } sortTableModel
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
@@ -190,6 +191,7 @@ images globalDefaults project imageFilter =
                             , tags = Set.empty
                             , onlyOwnImages = False
                             }
+                            sortTableModel
             )
             "Clear filters (show all)"
         , if noMatchWarning then
@@ -200,6 +202,7 @@ images globalDefaults project imageFilter =
         , Element.wrappedRow
             (VH.exoRowAttributes ++ [ Element.spacing 15 ])
             (List.map (renderImage globalDefaults project) filteredImages)
+        , viewSortTable (ImageChangedSorting >> identity) Style.Theme.materialStyle sortTableModel
         ]
 
 
