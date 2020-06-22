@@ -1,6 +1,7 @@
 module View.Types exposing
     ( BrowserLinkLabel(..)
     , ImageTag
+    , SortTableModel
     )
 
 import Element
@@ -15,4 +16,10 @@ type BrowserLinkLabel
 type alias ImageTag =
     { label : String
     , frequency : Int
+    }
+
+
+type alias SortTableModel =
+    { title : String
+    , asc : Bool
     }

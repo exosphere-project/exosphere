@@ -1,5 +1,6 @@
 module Types.Types exposing
-    ( CockpitLoginStatus(..)
+    ( ChangedSortingMsgLocal(..)
+    , CockpitLoginStatus(..)
     , CreateServerRequest
     , DeleteConfirmation
     , DeleteVolumeConfirmation
@@ -185,6 +186,11 @@ type Msg
     | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
     | NoOp
+    | ImageChangedSorting ChangedSortingMsgLocal
+
+
+type ChangedSortingMsgLocal
+    = ChangedSorting String
 
 
 type alias TickInterval =

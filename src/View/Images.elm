@@ -15,18 +15,11 @@ import Set.Extra
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
-import Types.Types
-    exposing
-        ( CreateServerRequest
-        , GlobalDefaults
-        , ImageFilter
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        )
+import Types.Types exposing (ChangedSortingMsgLocal(..), CreateServerRequest, GlobalDefaults, ImageFilter, Msg(..), Project, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..))
 import View.Helpers as VH
-import View.Types exposing (ImageTag)
+import View.Types exposing (ImageTag, SortTableModel)
+import Widget
+import Widget.Style exposing (SortTableStyle)
 
 
 imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
@@ -208,6 +201,52 @@ images globalDefaults project imageFilter =
             (VH.exoRowAttributes ++ [ Element.spacing 15 ])
             (List.map (renderImage globalDefaults project) filteredImages)
         ]
+
+
+type alias Style style msg =
+    { style
+        | sortTable : SortTableStyle msg
+    }
+
+
+viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
+viewSortTable msgMapper style model =
+    Widget.sortTable style.sortTable
+        { content =
+            [ { id = 1, name = "Antonio", rating = 2.456, hash = Nothing }
+            , { id = 2, name = "Ana", rating = 1.34, hash = Just "45jf" }
+            , { id = 3, name = "Alfred", rating = 4.22, hash = Just "6fs1" }
+            , { id = 4, name = "Thomas", rating = 3, hash = Just "k52f" }
+            ]
+        , columns =
+            [ Widget.intColumn
+                { title = "Id"
+                , value = .id
+                , toString = \int -> "#" ++ String.fromInt int
+                , width = Element.fill
+                }
+            , Widget.stringColumn
+                { title = "Name"
+                , value = .name
+                , toString = identity
+                , width = Element.fill
+                }
+            , Widget.floatColumn
+                { title = "Rating"
+                , value = .rating
+                , toString = String.fromFloat
+                , width = Element.fill
+                }
+            , Widget.unsortableColumn
+                { title = "Hash"
+                , toString = .hash >> Maybe.withDefault "None"
+                , width = Element.fill
+                }
+            ]
+        , asc = model.asc
+        , sortBy = model.title
+        , onChange = ChangedSorting >> msgMapper
+        }
 
 
 renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg

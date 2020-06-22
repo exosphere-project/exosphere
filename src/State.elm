@@ -523,6 +523,13 @@ updateUnderlying msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        ImageChangedSorting changedSortingMsgLocal ->
+            let
+                _ =
+                    Debug.log "ImageChangedSorting changedSortingMsgLocal" changedSortingMsgLocal
+            in
+            ( model, Cmd.none )
+
 
 processTick : Model -> TickInterval -> Time.Posix -> ( Model, Cmd Msg )
 processTick model interval time =
