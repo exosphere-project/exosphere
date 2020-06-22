@@ -234,7 +234,7 @@ viewSortTable msgMapper style sortModel filteredImages =
                 }
             , Widget.unsortableColumn
                 { title = "Tags"
-                , toString = .tags >> String.join ","
+                , toString = .tags >> String.join ", "
                 , width = Element.fill
                 }
             ]
