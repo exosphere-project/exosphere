@@ -224,13 +224,13 @@ viewSortTable msgMapper style sortModel filteredImages =
                 { title = "Size"
                 , value = .size >> Maybe.withDefault 0
                 , toString = Filesize.format
-                , width = Element.fill
+                , width = Element.shrink
                 }
             , Widget.stringColumn
                 { title = "Status"
                 , value = .status >> Debug.toString
                 , toString = identity
-                , width = Element.fill
+                , width = Element.shrink
                 }
             , Widget.unsortableColumn
                 { title = "Tags"
