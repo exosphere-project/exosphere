@@ -199,10 +199,7 @@ images globalDefaults project imageFilter sortTableModel =
 
           else
             Element.none
-        , Element.wrappedRow
-            (VH.exoRowAttributes ++ [ Element.spacing 15 ])
-            (List.map (renderImage globalDefaults project) filteredImages)
-        , viewSortTable (ImageChangedSorting >> identity) Style.Theme.materialStyle sortTableModel
+        , viewSortTable (ImageChangedSorting >> identity) Style.Theme.materialStyle sortTableModel filteredImages
         ]
 
 
@@ -212,42 +209,37 @@ type alias Style style msg =
     }
 
 
-viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
-viewSortTable msgMapper style model =
+viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> List OSTypes.Image -> Element.Element msg
+viewSortTable msgMapper style sortModel filteredImages =
     Widget.sortTable style.sortTable
-        { content =
-            [ { id = 1, name = "Antonio", rating = 2.456, hash = Nothing }
-            , { id = 2, name = "Ana", rating = 1.34, hash = Just "45jf" }
-            , { id = 3, name = "Alfred", rating = 4.22, hash = Just "6fs1" }
-            , { id = 4, name = "Thomas", rating = 3, hash = Just "k52f" }
-            ]
+        { content = filteredImages
         , columns =
-            [ Widget.intColumn
-                { title = "Id"
-                , value = .id
-                , toString = \int -> "#" ++ String.fromInt int
-                , width = Element.fill
-                }
-            , Widget.stringColumn
+            [ Widget.stringColumn
                 { title = "Name"
                 , value = .name
                 , toString = identity
                 , width = Element.fill
                 }
-            , Widget.floatColumn
-                { title = "Rating"
-                , value = .rating
-                , toString = String.fromFloat
+            , Widget.intColumn
+                { title = "Size"
+                , value = .size >> Maybe.withDefault 0
+                , toString = Filesize.format
+                , width = Element.fill
+                }
+            , Widget.stringColumn
+                { title = "Status"
+                , value = .status >> Debug.toString
+                , toString = identity
                 , width = Element.fill
                 }
             , Widget.unsortableColumn
-                { title = "Hash"
-                , toString = .hash >> Maybe.withDefault "None"
+                { title = "Tags"
+                , toString = .tags >> String.join ","
                 , width = Element.fill
                 }
             ]
-        , asc = model.asc
-        , sortBy = model.title
+        , asc = sortModel.asc
+        , sortBy = sortModel.title
         , onChange = ChangedSorting >> msgMapper
         }
 
