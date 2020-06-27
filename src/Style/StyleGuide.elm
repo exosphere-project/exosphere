@@ -249,6 +249,16 @@ init =
               , tags = [ "distro-base", "ubuntu" ]
               , projectUuid = "38F0560E-846A-4F71-967B-0C85A63B2006"
               }
+            , { name = "Windows 3.1"
+              , status = OSTypes.ImageKilled
+              , uuid = "79DAD7DA-65E4-4C56-88E9-6CACE40BBF61"
+              , size = Just 666
+              , checksum = Just "68C93527-26FC-47AF-A6D2-C763EBC38C4A"
+              , diskFormat = Just "qemu"
+              , containerFormat = Just "vbox"
+              , tags = [ "distro-base", "windows" ]
+              , projectUuid = "38F0560E-846A-4F71-967B-0C85A63B2006"
+              }
             , { name = "RedHat 20.1"
               , status = OSTypes.ImageActive
               , uuid = "B27D9BC6-5D8B-4C19-801D-98D81D015053"
