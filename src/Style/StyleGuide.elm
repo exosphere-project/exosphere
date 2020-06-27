@@ -6,6 +6,7 @@ import Element
 import Element.Font as Font
 import Element.Region as Region
 import Framework.Modifier exposing (Modifier(..))
+import OpenStack.Types as OSTypes
 import Set exposing (Set)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
@@ -26,9 +27,14 @@ type ChangedSortingMsgLocal
     = ChangedSorting String
 
 
+type ImagePressedMsgLocal
+    = ImagePressed OSTypes.Image
+
+
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
     | ChangedSortingMsg ChangedSortingMsgLocal
+    | ImagePressedMsg ImagePressedMsgLocal
 
 
 widgets : (Msg -> msg) -> Style style msg -> Model -> List (Element.Element msg)
@@ -62,9 +68,20 @@ widgets msgMapper style model =
     , chip Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
     , Element.text "chipsFilter"
     , chipsFilter (ChipsFilterMsg >> msgMapper) style model.chipFilterModel
+    , Element.text "viewList"
+    , viewImageList (ImagePressedMsg >> msgMapper) style model.imageListModel
     , Element.text "viewSortTable"
     , viewSortTable (ChangedSortingMsg >> msgMapper) style model.sortTableModel
     ]
+
+
+viewImageList : (ImagePressedMsgLocal -> msg) -> Style style msg -> List OSTypes.Image -> Element.Element msg
+viewImageList msgMapper style images =
+    [ Element.text <| "A"
+    , Element.text <| "B"
+    , Element.text <| "C"
+    ]
+        |> Widget.column style.cardColumn
 
 
 viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
@@ -129,6 +146,7 @@ type alias Style style msg =
         | textInput : TextInputStyle msg
         , column : ColumnStyle msg
         , sortTable : SortTableStyle msg
+        , cardColumn : ColumnStyle msg
     }
 
 
@@ -147,6 +165,7 @@ materialStyle =
                 |> .expandIcon
         , defaultIcon = Element.none
         }
+    , cardColumn = Material.cardColumn Material.defaultPalette
     }
 
 
@@ -185,6 +204,7 @@ type alias SortTableModel =
 type alias Model =
     { chipFilterModel : ChipFilterModel
     , sortTableModel : SortTableModel
+    , imageListModel : List OSTypes.Image
     }
 
 
@@ -196,6 +216,7 @@ init =
             , options = options
             }
       , sortTableModel = { title = "Name", asc = True }
+      , imageListModel = []
       }
     , Cmd.none
     )
@@ -251,6 +272,13 @@ update msg model =
               }
             , Cmd.none
             )
+
+        ImagePressedMsg imagePressedMsgLocal ->
+            let
+                _ =
+                    Debug.log "imagePressedMsgLocal" imagePressedMsgLocal
+            in
+            ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
