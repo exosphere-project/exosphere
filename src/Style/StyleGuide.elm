@@ -77,11 +77,13 @@ widgets msgMapper style model =
 
 viewImageList : (ImagePressedMsgLocal -> msg) -> Style style msg -> List OSTypes.Image -> Element.Element msg
 viewImageList msgMapper style images =
-    [ Element.text <| "A"
-    , Element.text <| "B"
-    , Element.text <| "C"
-    ]
+    List.map renderImage images
         |> Widget.column style.cardColumn
+
+
+renderImage : OSTypes.Image -> Element.Element msg
+renderImage image =
+    Element.text image.name
 
 
 viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
@@ -216,7 +218,28 @@ init =
             , options = options
             }
       , sortTableModel = { title = "Name", asc = True }
-      , imageListModel = []
+      , imageListModel =
+            [ { name = "Ubuntu 0.9"
+              , status = OSTypes.ImageActive
+              , uuid = "C9E9DA8D-FA63-489B-B4CF-9D045D36FB79"
+              , size = Just 1000
+              , checksum = Just "BCAC4727-3DD5-48FE-8A4E-492052899382"
+              , diskFormat = Just "qemu"
+              , containerFormat = Just "vbox"
+              , tags = [ "distro-base", "ubuntu" ]
+              , projectUuid = "38F0560E-846A-4F71-967B-0C85A63B2006"
+              }
+            , { name = "RedHat 20.1"
+              , status = OSTypes.ImageActive
+              , uuid = "B27D9BC6-5D8B-4C19-801D-98D81D015053"
+              , size = Just 333
+              , checksum = Just "07AA5229-F5A6-49AA-BF49-9C50510A19BF"
+              , diskFormat = Just "qemu"
+              , containerFormat = Just "vbox"
+              , tags = [ "distro-base", "redhat" ]
+              , projectUuid = "38F0560E-846A-4F71-967B-0C85A63B2006"
+              }
+            ]
       }
     , Cmd.none
     )
