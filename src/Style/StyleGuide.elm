@@ -11,11 +11,11 @@ import Set exposing (Set)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
+import Style.Widgets.Icon exposing (bell, question, remove, rightArrow, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Widget
-import Widget.Style exposing (ColumnStyle, SortTableStyle, TextInputStyle)
+import Widget.Style exposing (ButtonStyle, ColumnStyle, RowStyle, SortTableStyle, TextInputStyle)
 import Widget.Style.Material as Material
 
 
@@ -77,13 +77,27 @@ widgets msgMapper style model =
 
 viewImageList : (ImagePressedMsgLocal -> msg) -> Style style msg -> List OSTypes.Image -> Element.Element msg
 viewImageList msgMapper style images =
-    List.map renderImage images
+    List.map (renderImage msgMapper) images
         |> Widget.column style.cardColumn
 
 
-renderImage : OSTypes.Image -> Element.Element msg
-renderImage image =
-    Element.text image.name
+renderImage : (ImagePressedMsgLocal -> msg) -> OSTypes.Image -> Element.Element msg
+renderImage msgMapper image =
+    [ Element.text image.name
+    , Widget.button materialStyle.primaryButton
+        { text = "Launch"
+        , icon = rightArrow Color.white 16
+        , onPress =
+            if image.status == OSTypes.ImageActive then
+                ImagePressed image
+                    |> msgMapper
+                    |> Just
+
+            else
+                Nothing
+        }
+    ]
+        |> Widget.row materialStyle.row
 
 
 viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
@@ -149,6 +163,9 @@ type alias Style style msg =
         , column : ColumnStyle msg
         , sortTable : SortTableStyle msg
         , cardColumn : ColumnStyle msg
+        , primaryButton : ButtonStyle msg
+        , button : ButtonStyle msg
+        , row : RowStyle msg
     }
 
 
@@ -168,6 +185,9 @@ materialStyle =
         , defaultIcon = Element.none
         }
     , cardColumn = Material.cardColumn Material.defaultPalette
+    , primaryButton = Material.containedButton Material.defaultPalette
+    , button = Material.outlinedButton Material.defaultPalette
+    , row = Material.row
     }
 
 
