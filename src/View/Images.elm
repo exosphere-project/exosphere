@@ -12,7 +12,7 @@ import List.Extra
 import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
-import Style.Theme
+import Style.Theme exposing (Style)
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
@@ -20,7 +20,6 @@ import Types.Types exposing (ChangedSortingMsgLocal(..), CreateServerRequest, Gl
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
 import Widget
-import Widget.Style exposing (SortTableStyle)
 
 
 imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> SortTableModel -> Element.Element Msg
@@ -203,12 +202,6 @@ images globalDefaults project imageFilter sortTableModel =
             |> Widget.column Style.Theme.materialStyle.cardColumn
         , viewSortTable (ImageChangedSorting >> identity) Style.Theme.materialStyle sortTableModel filteredImages
         ]
-
-
-type alias Style style msg =
-    { style
-        | sortTable : SortTableStyle msg
-    }
 
 
 viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> List OSTypes.Image -> Element.Element msg
