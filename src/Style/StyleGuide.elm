@@ -83,21 +83,48 @@ viewImageList msgMapper style images =
 
 renderImage : (ImagePressedMsgLocal -> msg) -> OSTypes.Image -> Element.Element msg
 renderImage msgMapper image =
-    [ Element.text image.name
-    , Widget.button materialStyle.primaryButton
-        { text = "Launch"
-        , icon = rightArrow Color.white 16
-        , onPress =
-            if image.status == OSTypes.ImageActive then
-                ImagePressed image
-                    |> msgMapper
-                    |> Just
+    let
+        tagChip : String -> Element.Element msg
+        tagChip tag =
+            Widget.button materialStyle.chipButton
+                { text = tag
+                , icon = Element.none
+                , onPress =
+                    Nothing
+                }
+    in
+    Element.column [ Element.width Element.fill ]
+        [ [ Element.el [ Element.width Element.fill ] (Element.text image.name)
+          , Element.el [ Element.alignRight ]
+                (Widget.button materialStyle.primaryButton
+                    { text = "Launch"
+                    , icon = rightArrow Color.white 16
+                    , onPress =
+                        if image.status == OSTypes.ImageActive then
+                            ImagePressed image
+                                |> msgMapper
+                                |> Just
 
-            else
-                Nothing
-        }
-    ]
-        |> Widget.row materialStyle.row
+                        else
+                            Nothing
+                    }
+                )
+          ]
+            |> Element.row
+                [ Element.width Element.fill
+                ]
+        , Element.row [ Element.width Element.fill ]
+            [ Element.el [ Element.width Element.shrink ] (Element.text ("Size: " ++ (image.size |> Maybe.map String.fromInt |> Maybe.withDefault "N/A")))
+            ]
+        , Element.row [ Element.width Element.fill ]
+            [ [ Element.el [] (Element.text "Tags:") ]
+                ++ List.map tagChip image.tags
+                |> Element.wrappedRow
+                    [ Element.width Element.fill
+                    , Element.spacingXY 10 0
+                    ]
+            ]
+        ]
 
 
 viewSortTable : (ChangedSortingMsgLocal -> msg) -> Style style msg -> SortTableModel -> Element.Element msg
@@ -165,6 +192,7 @@ type alias Style style msg =
         , cardColumn : ColumnStyle msg
         , primaryButton : ButtonStyle msg
         , button : ButtonStyle msg
+        , chipButton : ButtonStyle msg
         , row : RowStyle msg
     }
 
@@ -187,7 +215,24 @@ materialStyle =
     , cardColumn = Material.cardColumn Material.defaultPalette
     , primaryButton = Material.containedButton Material.defaultPalette
     , button = Material.outlinedButton Material.defaultPalette
-    , row = Material.row
+    , chipButton = Material.chip Material.defaultPalette
+
+    --, row = Material.row
+    , row =
+        { containerRow =
+            [ Element.paddingXY 0 8
+            , Element.spacing 8
+            , Element.width Element.fill
+            , Element.explain Debug.todo
+            ]
+        , element =
+            [ Element.width Element.fill
+            , Element.explain Debug.todo
+            ]
+        , ifFirst = []
+        , ifLast = []
+        , otherwise = []
+        }
     }
 
 
