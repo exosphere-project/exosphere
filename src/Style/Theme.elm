@@ -1,7 +1,7 @@
 module Style.Theme exposing (Style, materialStyle)
 
 import Element
-import Widget.Style exposing (ColumnStyle, SortTableStyle, TextInputStyle)
+import Widget.Style exposing (ButtonStyle, ColumnStyle, RowStyle, SortTableStyle, TextInputStyle)
 import Widget.Style.Material as Material
 
 
@@ -11,6 +11,10 @@ type alias Style style msg =
         , column : ColumnStyle msg
         , sortTable : SortTableStyle msg
         , cardColumn : ColumnStyle msg
+        , primaryButton : ButtonStyle msg
+        , button : ButtonStyle msg
+        , chipButton : ButtonStyle msg
+        , row : RowStyle msg
     }
 
 
@@ -30,4 +34,24 @@ materialStyle =
         , defaultIcon = Element.none
         }
     , cardColumn = Material.cardColumn Material.defaultPalette
+    , primaryButton = Material.containedButton Material.defaultPalette
+    , button = Material.outlinedButton Material.defaultPalette
+    , chipButton = Material.chip Material.defaultPalette
+
+    --, row = Material.row
+    , row =
+        { containerRow =
+            [ Element.paddingXY 0 8
+            , Element.spacing 8
+            , Element.width Element.fill
+            , Element.explain Debug.todo
+            ]
+        , element =
+            [ Element.width Element.fill
+            , Element.explain Debug.todo
+            ]
+        , ifFirst = []
+        , ifLast = []
+        , otherwise = []
+        }
     }
