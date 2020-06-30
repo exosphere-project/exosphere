@@ -10,6 +10,7 @@ type alias Style style msg =
         | textInput : TextInputStyle msg
         , column : ColumnStyle msg
         , sortTable : SortTableStyle msg
+        , cardColumn : ColumnStyle msg
     }
 
 
@@ -28,4 +29,5 @@ materialStyle =
                 |> .expandIcon
         , defaultIcon = Element.none
         }
+    , cardColumn = Material.cardColumn Material.defaultPalette
     }

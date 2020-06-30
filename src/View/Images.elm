@@ -199,6 +199,8 @@ images globalDefaults project imageFilter sortTableModel =
 
           else
             Element.none
+        , List.map (renderImage globalDefaults project) filteredImages
+            |> Widget.column Style.Theme.materialStyle.cardColumn
         , viewSortTable (ImageChangedSorting >> identity) Style.Theme.materialStyle sortTableModel filteredImages
         ]
 
