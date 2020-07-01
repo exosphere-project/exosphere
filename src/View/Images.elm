@@ -268,6 +268,14 @@ renderImage globalDefaults project image =
                             ""
                             False
 
+        tagChip tag =
+            Widget.button Style.Theme.materialStyle.chipButton
+                { text = tag
+                , icon = Element.none
+                , onPress =
+                    Nothing
+                }
+
         chooseButton =
             Widget.button Style.Theme.materialStyle.primaryButton
                 { text = "Launch"
@@ -302,9 +310,9 @@ renderImage globalDefaults project image =
                         , Element.text (Debug.toString image.status)
                         ]
                    , Element.row VH.exoRowAttributes
-                        [ Element.text "Tags: "
-                        , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                        ]
+                        ([ Element.text "Tags: " ]
+                            ++ List.map tagChip image.tags
+                        )
                    , Element.el
                         [ Element.alignRight ]
                         chooseButton
