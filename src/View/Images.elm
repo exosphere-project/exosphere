@@ -176,7 +176,10 @@ images globalDefaults project imageFilter sortTableModel =
                     (List.map tagView tagsAfterFilteringImages)
                 ]
     in
-    Element.column VH.exoColumnAttributes
+    Element.column
+        (VH.exoColumnAttributes
+            ++ [ Element.width Element.fill ]
+        )
         [ Element.el VH.heading2 (Element.text "Choose an image")
         , Input.text []
             { text = imageFilter.searchText
@@ -210,12 +213,18 @@ images globalDefaults project imageFilter sortTableModel =
             Element.none
         , List.map (renderImage globalDefaults project) filteredImages
             |> Widget.column
-                (Style.Theme.materialStyle.cardColumn
+                (Style.Theme.materialStyle.column
                     |> (\x ->
                             { x
-                                | element =
-                                    Style.Theme.materialStyle.cardColumn.element
-                                        ++ [ Element.padding 5
+                                | containerColumn =
+                                    Style.Theme.materialStyle.column.containerColumn
+                                        ++ [ Element.width Element.fill
+                                           , Element.spacing 2
+                                           , Element.padding 0
+                                           ]
+                                , element =
+                                    Style.Theme.materialStyle.column.element
+                                        ++ [ Element.width Element.fill
                                            ]
                             }
                        )
@@ -268,7 +277,7 @@ renderImage globalDefaults project image =
         chooseButton =
             Element.el
                 [ Element.alignRight
-                , Element.alignTop
+                , Element.centerY
                 , Element.width Element.shrink
                 ]
                 (Widget.button Style.Theme.materialStyle.primaryButton
@@ -291,26 +300,42 @@ renderImage globalDefaults project image =
             else
                 Element.none
     in
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacingXY 0 0
-        ]
-        [ Element.wrappedRow
+    Widget.column
+        (Style.Theme.materialStyle.cardColumn
+            |> (\x ->
+                    { x
+                        | containerColumn =
+                            Style.Theme.materialStyle.cardColumn.containerColumn
+                                ++ [ Element.padding 0
+                                   ]
+                        , element =
+                            Style.Theme.materialStyle.cardColumn.element
+                                ++ [ Element.padding 3
+                                   ]
+                    }
+               )
+        )
+        [ Element.row
             [ Element.width Element.fill
+            , Element.spacingXY 0 0
             ]
-            ([ Element.el
-                [ Font.bold
-                , Element.padding 5
+            [ Element.wrappedRow
+                [ Element.width Element.fill
                 ]
-                (Element.text image.name)
-             , Element.el
-                [ Font.color <| Color.toElementColor Framework.Color.grey
-                , Element.padding 5
-                ]
-                (Element.text size)
-             , ownerBadge
-             ]
-                ++ List.map tagChip image.tags
-            )
-        , chooseButton
+                ([ Element.el
+                    [ Font.bold
+                    , Element.padding 5
+                    ]
+                    (Element.text image.name)
+                 , Element.el
+                    [ Font.color <| Color.toElementColor Framework.Color.grey
+                    , Element.padding 5
+                    ]
+                    (Element.text size)
+                 , ownerBadge
+                 ]
+                    ++ List.map tagChip image.tags
+                )
+            , chooseButton
+            ]
         ]
