@@ -269,18 +269,17 @@ renderImage globalDefaults project image =
                             False
 
         chooseButton =
-            case image.status of
-                OSTypes.ImageActive ->
-                    Button.button
-                        [ Modifier.Primary ]
-                        (Just chooseMsg)
-                        "Choose"
+            Widget.button Style.Theme.materialStyle.primaryButton
+                { text = "Launch"
+                , icon = Icon.rightArrow Color.white 16
+                , onPress =
+                    if image.status == OSTypes.ImageActive then
+                        chooseMsg
+                            |> Just
 
-                _ ->
-                    Button.button
-                        [ Modifier.Disabled ]
+                    else
                         Nothing
-                        "Choose"
+                }
 
         ownerRows =
             if projectOwnsImage project image then
