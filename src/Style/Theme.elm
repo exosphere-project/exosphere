@@ -37,21 +37,5 @@ materialStyle =
     , primaryButton = Material.containedButton Material.defaultPalette
     , button = Material.outlinedButton Material.defaultPalette
     , chipButton = Material.chip Material.defaultPalette
-
-    --, row = Material.row
-    , row =
-        { containerRow =
-            [ Element.paddingXY 0 8
-            , Element.spacing 8
-            , Element.width Element.fill
-            , Element.explain Debug.todo
-            ]
-        , element =
-            [ Element.width Element.fill
-            , Element.explain Debug.todo
-            ]
-        , ifFirst = []
-        , ifLast = []
-        , otherwise = []
-        }
+    , row = Material.row
     }

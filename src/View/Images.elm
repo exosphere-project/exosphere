@@ -6,7 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Filesize
 import Framework.Button as Button
-import Framework.Modifier as Modifier
+import Framework.Color
 import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -199,7 +199,17 @@ images globalDefaults project imageFilter sortTableModel =
           else
             Element.none
         , List.map (renderImage globalDefaults project) filteredImages
-            |> Widget.column Style.Theme.materialStyle.cardColumn
+            |> Widget.column
+                (Style.Theme.materialStyle.cardColumn
+                    |> (\x ->
+                            { x
+                                | element =
+                                    Style.Theme.materialStyle.cardColumn.element
+                                        ++ [ Element.padding 5
+                                           ]
+                            }
+                       )
+                )
         , viewSortTable (ImageChangedSorting >> identity) Style.Theme.materialStyle sortTableModel filteredImages
         ]
 
@@ -243,12 +253,15 @@ renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
 renderImage globalDefaults project image =
     let
         size =
-            case image.size of
-                Just s ->
-                    Filesize.format s
+            "("
+                ++ (case image.size of
+                        Just s ->
+                            Filesize.format s
 
-                Nothing ->
-                    "N/A"
+                        Nothing ->
+                            "size unknown"
+                   )
+                ++ ")"
 
         chooseMsg =
             ProjectMsg (Helpers.getProjectId project) <|
@@ -269,52 +282,61 @@ renderImage globalDefaults project image =
                             False
 
         tagChip tag =
-            Widget.button Style.Theme.materialStyle.chipButton
-                { text = tag
-                , icon = Element.none
-                , onPress =
-                    Nothing
-                }
+            Element.el [ Element.paddingXY 5 0 ]
+                (Widget.button Style.Theme.materialStyle.chipButton
+                    { text = tag
+                    , icon = Element.none
+                    , onPress =
+                        Nothing
+                    }
+                )
 
         chooseButton =
-            Widget.button Style.Theme.materialStyle.primaryButton
-                { text = "Launch"
-                , icon = Icon.rightArrow Color.white 16
-                , onPress =
-                    if image.status == OSTypes.ImageActive then
-                        chooseMsg
-                            |> Just
-
-                    else
-                        Nothing
-                }
-
-        ownerRows =
-            if projectOwnsImage project image then
-                [ Element.row VH.exoRowAttributes
-                    [ ExoCard.badge "belongs to this project"
-                    ]
+            Element.el
+                [ Element.alignRight
+                , Element.alignTop
+                , Element.width Element.shrink
                 ]
+                (Widget.button Style.Theme.materialStyle.primaryButton
+                    { text = "Launch"
+                    , icon = Icon.rightArrow Color.white 16
+                    , onPress =
+                        if image.status == OSTypes.ImageActive then
+                            chooseMsg
+                                |> Just
+
+                        else
+                            Nothing
+                    }
+                )
+
+        ownerBadge =
+            if projectOwnsImage project image then
+                ExoCard.badge "belongs to this project"
 
             else
-                []
+                Element.none
     in
-    ExoCard.exoCard
-        image.name
-        size
-    <|
-        Element.column VH.exoColumnAttributes
-            (ownerRows
-                ++ [ Element.row VH.exoRowAttributes
-                        [ Element.text "Status: "
-                        , Element.text (Debug.toString image.status)
-                        ]
-                   , Element.row VH.exoRowAttributes
-                        ([ Element.text "Tags: " ]
-                            ++ List.map tagChip image.tags
-                        )
-                   , Element.el
-                        [ Element.alignRight ]
-                        chooseButton
-                   ]
+    Element.row
+        [ Element.width Element.fill
+        , Element.spacingXY 0 0
+        ]
+        [ Element.wrappedRow
+            [ Element.width Element.fill
+            ]
+            ([ Element.el
+                [ Font.bold
+                , Element.padding 5
+                ]
+                (Element.text image.name)
+             , Element.el
+                [ Font.color <| Color.toElementColor Framework.Color.grey
+                , Element.padding 5
+                ]
+                (Element.text size)
+             , ownerBadge
+             ]
+                ++ List.map tagChip image.tags
             )
+        , chooseButton
+        ]
