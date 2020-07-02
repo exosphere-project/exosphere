@@ -53,9 +53,11 @@ Exosphere requires Queens release of OpenStack (released February 2018).
 
 ## Try Exosphere
 
-The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).
+There are three ways to get started using Exosphere.
 
-If you want to try all app features, you can run Exosphere locally using [Electron](https://electronjs.org/).
+1. Very Quick Start: The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).
+2. Install on your computer: The next easiest way is to download a pre-compiled installer for your operating system. You can find the latest builds for OSX, Linux, and Windows here: https://try.exosphere.app/packages/
+3. Build yourself: If you want to try all app features, you can run Exosphere locally using [Electron](https://electronjs.org/). This is described below.
 
 ### Build and Run Exosphere as Electron App
 
