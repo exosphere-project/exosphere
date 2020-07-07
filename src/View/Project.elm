@@ -34,8 +34,8 @@ project model p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
-                ListImages imageFilter sortTableModel ->
-                    View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableModel
+                ListImages imageFilter sortTableParams ->
+                    View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
 
                 ListProjectServers serverFilter deleteConfirmations ->
                     View.Servers.servers p serverFilter deleteConfirmations

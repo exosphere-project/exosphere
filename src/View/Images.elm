@@ -25,20 +25,20 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , SortTableModel
+        , SortTableParams
         )
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
 import Widget
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> SortTableModel -> Element.Element Msg
-imagesIfLoaded globalDefaults project imageFilter sortTableModel =
+imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> SortTableParams -> Element.Element Msg
+imagesIfLoaded globalDefaults project imageFilter sortTableParams =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project imageFilter sortTableModel
+        images globalDefaults project imageFilter sortTableParams
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -89,8 +89,8 @@ filterImages imageFilter project someImages =
         |> filterBySearchText imageFilter.searchText
 
 
-images : GlobalDefaults -> Project -> ImageFilter -> SortTableModel -> Element.Element Msg
-images globalDefaults project imageFilter sortTableModel =
+images : GlobalDefaults -> Project -> ImageFilter -> SortTableParams -> Element.Element Msg
+images globalDefaults project imageFilter sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -140,7 +140,7 @@ images globalDefaults project imageFilter sortTableModel =
                         \_ ->
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags } sortTableModel
+                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags } sortTableParams
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
@@ -155,7 +155,7 @@ images globalDefaults project imageFilter sortTableModel =
                     Element.text tag.label
 
                 unselectTag =
-                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags } sortTableModel
+                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags } sortTableParams
             in
             if tagChecked then
                 chip (Just unselectTag) chipLabel
@@ -184,13 +184,13 @@ images globalDefaults project imageFilter sortTableModel =
         , Input.text []
             { text = imageFilter.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t } sortTableModel
+            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t } sortTableParams
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
         , tagsView
         , Input.checkbox []
             { checked = imageFilter.onlyOwnImages
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new } sortTableModel
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new } sortTableParams
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
@@ -203,7 +203,7 @@ images globalDefaults project imageFilter sortTableModel =
                             , tags = Set.empty
                             , onlyOwnImages = False
                             }
-                            sortTableModel
+                            sortTableParams
             )
             "Clear filters (show all)"
         , if noMatchWarning then
