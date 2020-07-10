@@ -222,7 +222,6 @@ images globalDefaults project imageListViewParams sortTableParams =
                                 | containerColumn =
                                     Style.Theme.materialStyle.column.containerColumn
                                         ++ [ Element.width Element.fill
-                                           , Element.spacing 2
                                            , Element.padding 0
                                            ]
                                 , element =
