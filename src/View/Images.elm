@@ -6,12 +6,15 @@ import Element.Font as Font
 import Element.Input as Input
 import Filesize
 import Framework.Button as Button
+import Framework.Color
+import Framework.Icon
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
+import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
@@ -19,23 +22,25 @@ import Types.Types
     exposing
         ( CreateServerRequest
         , GlobalDefaults
-        , ImageFilter
+        , ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , SortTableParams
         )
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
+import Widget
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
-imagesIfLoaded globalDefaults project imageFilter =
+imagesIfLoaded : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+imagesIfLoaded globalDefaults project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project imageFilter
+        images globalDefaults project imageListViewParams sortTableParams
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -78,16 +83,16 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
-filterImages : ImageFilter -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages imageFilter project someImages =
+filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages imageListViewParams project someImages =
     someImages
-        |> filterByOwner imageFilter.onlyOwnImages project
-        |> filterByTags imageFilter.tags
-        |> filterBySearchText imageFilter.searchText
+        |> filterByOwner imageListViewParams.onlyOwnImages project
+        |> filterByTags imageListViewParams.tags
+        |> filterBySearchText imageListViewParams.searchText
 
 
-images : GlobalDefaults -> Project -> ImageFilter -> Element.Element Msg
-images globalDefaults project imageFilter =
+images : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+images globalDefaults project imageListViewParams sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -100,13 +105,13 @@ images globalDefaults project imageFilter =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages imageFilter project
+            project.images |> filterImages imageListViewParams project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
 
         noMatchWarning =
-            (imageFilter.tags /= Set.empty) && (List.length filteredImages == 0)
+            (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
         projectId =
             Helpers.getProjectId project
@@ -122,7 +127,7 @@ images globalDefaults project imageFilter =
                         Icon.plusCircle Color.black 12
 
                 tagChecked =
-                    Set.member tag.label imageFilter.tags
+                    Set.member tag.label imageListViewParams.tags
 
                 checkboxLabel =
                     tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
@@ -137,7 +142,7 @@ images globalDefaults project imageFilter =
                         \_ ->
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags }
+                                    ListImages { imageListViewParams | tags = Set.Extra.toggle tag.label imageListViewParams.tags } sortTableParams
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
@@ -146,13 +151,13 @@ images globalDefaults project imageFilter =
         tagChipView tag =
             let
                 tagChecked =
-                    Set.member tag.label imageFilter.tags
+                    Set.member tag.label imageListViewParams.tags
 
                 chipLabel =
                     Element.text tag.label
 
                 unselectTag =
-                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags }
+                    ProjectMsg projectId <| SetProjectView <| ListImages { imageListViewParams | tags = Set.remove tag.label imageListViewParams.tags } sortTableParams
             in
             if tagChecked then
                 chip (Just unselectTag) chipLabel
@@ -173,18 +178,21 @@ images globalDefaults project imageFilter =
                     (List.map tagView tagsAfterFilteringImages)
                 ]
     in
-    Element.column VH.exoColumnAttributes
+    Element.column
+        (VH.exoColumnAttributes
+            ++ [ Element.width Element.fill ]
+        )
         [ Element.el VH.heading2 (Element.text "Choose an image")
         , Input.text []
-            { text = imageFilter.searchText
+            { text = imageListViewParams.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t }
+            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageListViewParams | searchText = t } sortTableParams
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
         , tagsView
         , Input.checkbox []
-            { checked = imageFilter.onlyOwnImages
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new }
+            { checked = imageListViewParams.onlyOwnImages
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageListViewParams | onlyOwnImages = new } sortTableParams
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
@@ -196,7 +204,9 @@ images globalDefaults project imageFilter =
                             { searchText = ""
                             , tags = Set.empty
                             , onlyOwnImages = False
+                            , expandImageDetails = Set.empty
                             }
+                            sortTableParams
             )
             "Clear filters (show all)"
         , if noMatchWarning then
@@ -204,22 +214,76 @@ images globalDefaults project imageFilter =
 
           else
             Element.none
-        , Element.wrappedRow
-            (VH.exoRowAttributes ++ [ Element.spacing 15 ])
-            (List.map (renderImage globalDefaults project) filteredImages)
+        , List.map (renderImage globalDefaults project imageListViewParams sortTableParams) filteredImages
+            |> Widget.column
+                (Style.Theme.materialStyle.column
+                    |> (\x ->
+                            { x
+                                | containerColumn =
+                                    Style.Theme.materialStyle.column.containerColumn
+                                        ++ [ Element.width Element.fill
+                                           , Element.spacing 2
+                                           , Element.padding 0
+                                           ]
+                                , element =
+                                    Style.Theme.materialStyle.column.element
+                                        ++ [ Element.width Element.fill
+                                           ]
+                            }
+                       )
+                )
         ]
 
 
-renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
-renderImage globalDefaults project image =
+renderImage : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage globalDefaults project imageListViewParams sortTableParams image =
     let
-        size =
-            case image.size of
-                Just s ->
-                    Filesize.format s
+        projectId =
+            Helpers.getProjectId project
 
-                Nothing ->
-                    "N/A"
+        imageDetailsExpanded =
+            Set.member image.uuid imageListViewParams.expandImageDetails
+
+        expandImageDetailsButton : Element.Element Msg
+        expandImageDetailsButton =
+            let
+                iconFunction checked =
+                    if checked then
+                        Icon.chevronUp Color.black 12
+
+                    else
+                        Framework.Icon.chevronDown Color.black 12
+
+                checkboxLabel =
+                    ""
+            in
+            Element.el
+                [ Element.alignLeft
+                , Element.centerY
+                , Element.width Element.shrink
+                ]
+                (Input.checkbox [ Element.paddingXY 10 5 ]
+                    { checked = imageDetailsExpanded
+                    , onChange =
+                        \_ ->
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ListImages { imageListViewParams | expandImageDetails = Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails } sortTableParams
+                    , icon = iconFunction
+                    , label = Input.labelRight [] (Element.text checkboxLabel)
+                    }
+                )
+
+        size =
+            "("
+                ++ (case image.size of
+                        Just s ->
+                            Filesize.format s
+
+                        Nothing ->
+                            "size unknown"
+                   )
+                ++ ")"
 
         chooseMsg =
             ProjectMsg (Helpers.getProjectId project) <|
@@ -239,6 +303,16 @@ renderImage globalDefaults project image =
                             ""
                             False
 
+        tagChip tag =
+            Element.el [ Element.paddingXY 5 0 ]
+                (Widget.button Style.Theme.materialStyle.chipButton
+                    { text = tag
+                    , icon = Element.none
+                    , onPress =
+                        Nothing
+                    }
+                )
+
         chooseButton =
             case image.status of
                 OSTypes.ImageActive ->
@@ -253,32 +327,73 @@ renderImage globalDefaults project image =
                         Nothing
                         "Choose"
 
-        ownerRows =
+        ownerBadge =
             if projectOwnsImage project image then
-                [ Element.row VH.exoRowAttributes
-                    [ ExoCard.badge "belongs to this project"
-                    ]
-                ]
+                ExoCard.badge "belongs to this project"
 
             else
-                []
+                Element.none
+
+        imageBriefView =
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacingXY 0 0
+                ]
+                [ Element.wrappedRow
+                    [ Element.width Element.fill
+                    ]
+                    [ expandImageDetailsButton
+                    , Element.el
+                        [ Font.bold
+                        , Element.padding 5
+                        ]
+                        (Element.text image.name)
+                    , Element.el
+                        [ Font.color <| Color.toElementColor Framework.Color.grey
+                        , Element.padding 5
+                        ]
+                        (Element.text size)
+                    , ownerBadge
+                    ]
+                , chooseButton
+                ]
+
+        imageDetailsView =
+            Element.column []
+                [ Element.wrappedRow
+                    [ Element.width Element.fill
+                    ]
+                    (Element.el
+                        [ Font.color <| Color.toElementColor Framework.Color.grey
+                        , Element.padding 5
+                        ]
+                        (Element.text "Tags:")
+                        :: List.map
+                            tagChip
+                            image.tags
+                    )
+                ]
     in
-    ExoCard.exoCard
-        image.name
-        size
-    <|
-        Element.column VH.exoColumnAttributes
-            (ownerRows
-                ++ [ Element.row VH.exoRowAttributes
-                        [ Element.text "Status: "
-                        , Element.text (Debug.toString image.status)
-                        ]
-                   , Element.row VH.exoRowAttributes
-                        [ Element.text "Tags: "
-                        , Element.paragraph [] [ Element.text (List.foldl (\a b -> a ++ ", " ++ b) "" image.tags) ]
-                        ]
-                   , Element.el
-                        [ Element.alignRight ]
-                        chooseButton
-                   ]
-            )
+    Widget.column
+        (Style.Theme.materialStyle.cardColumn
+            |> (\x ->
+                    { x
+                        | containerColumn =
+                            Style.Theme.materialStyle.cardColumn.containerColumn
+                                ++ [ Element.padding 0
+                                   ]
+                        , element =
+                            Style.Theme.materialStyle.cardColumn.element
+                                ++ [ Element.padding 3
+                                   ]
+                    }
+               )
+        )
+        (if imageDetailsExpanded then
+            [ imageBriefView
+            , imageDetailsView
+            ]
+
+         else
+            [ imageBriefView ]
+        )

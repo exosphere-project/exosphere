@@ -10,7 +10,7 @@ module Types.Types exposing
     , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
-    , ImageFilter
+    , ImageListViewParams
     , JetstreamCreds
     , JetstreamProvider(..)
     , LogMessage
@@ -33,6 +33,7 @@ module Types.Types exposing
     , ServerFromExoProps
     , ServerOrigin(..)
     , ServerUiStatus(..)
+    , SortTableParams
     , TickInterval
     , Toast
     , UnscopedProvider
@@ -252,10 +253,17 @@ type NonProjectViewConstructor
     | HelpAbout
 
 
-type alias ImageFilter =
+type alias ImageListViewParams =
     { searchText : String
     , tags : Set.Set String
     , onlyOwnImages : Bool
+    , expandImageDetails : Set.Set OSTypes.ImageUuid
+    }
+
+
+type alias SortTableParams =
+    { title : String
+    , asc : Bool
     }
 
 
@@ -270,7 +278,7 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = ListImages ImageFilter
+    = ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerFilter (List DeleteConfirmation)
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams

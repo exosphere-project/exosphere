@@ -34,8 +34,8 @@ project model p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
-                ListImages imageFilter ->
-                    View.Images.imagesIfLoaded model.globalDefaults p imageFilter
+                ListImages imageFilter sortTableParams ->
+                    View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
 
                 ListProjectServers serverFilter deleteConfirmations ->
                     View.Servers.servers p serverFilter deleteConfirmations
@@ -132,7 +132,15 @@ createButton projectId expanded =
                         (Just <|
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False }
+                                    ListImages
+                                        { searchText = ""
+                                        , tags = Set.empty
+                                        , onlyOwnImages = False
+                                        , expandImageDetails = Set.empty
+                                        }
+                                        { title = "Name"
+                                        , asc = True
+                                        }
                         )
                         "Server"
 
