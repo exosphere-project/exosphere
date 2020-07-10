@@ -8,6 +8,7 @@ import Filesize
 import Framework.Button as Button
 import Framework.Color
 import Framework.Icon
+import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -313,23 +314,18 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                 )
 
         chooseButton =
-            Element.el
-                [ Element.alignRight
-                , Element.centerY
-                , Element.width Element.shrink
-                ]
-                (Widget.button Style.Theme.materialStyle.primaryButton
-                    { text = "Launch"
-                    , icon = Icon.rightArrow Color.white 16
-                    , onPress =
-                        if image.status == OSTypes.ImageActive then
-                            chooseMsg
-                                |> Just
+            case image.status of
+                OSTypes.ImageActive ->
+                    Button.button
+                        [ Modifier.Primary ]
+                        (Just chooseMsg)
+                        "Choose"
 
-                        else
-                            Nothing
-                    }
-                )
+                _ ->
+                    Button.button
+                        [ Modifier.Disabled ]
+                        Nothing
+                        "Choose"
 
         ownerBadge =
             if projectOwnsImage project image then
