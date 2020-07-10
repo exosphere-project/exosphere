@@ -132,7 +132,15 @@ createButton projectId expanded =
                         (Just <|
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { searchText = "", tags = Set.empty, onlyOwnImages = False } { title = "Name", asc = True }
+                                    ListImages
+                                        { searchText = ""
+                                        , tags = Set.empty
+                                        , onlyOwnImages = False
+                                        , expandImageDetails = Set.empty
+                                        }
+                                        { title = "Name"
+                                        , asc = True
+                                        }
                         )
                         "Server"
 

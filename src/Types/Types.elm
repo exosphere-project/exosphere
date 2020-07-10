@@ -257,6 +257,7 @@ type alias ImageFilter =
     { searchText : String
     , tags : Set.Set String
     , onlyOwnImages : Bool
+    , expandImageDetails : Set.Set OSTypes.ImageUuid
     }
 
 

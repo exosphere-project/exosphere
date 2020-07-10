@@ -7,6 +7,7 @@ import Element.Input as Input
 import Filesize
 import Framework.Button as Button
 import Framework.Color
+import Framework.Icon
 import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -202,6 +203,7 @@ images globalDefaults project imageFilter sortTableParams =
                             { searchText = ""
                             , tags = Set.empty
                             , onlyOwnImages = False
+                            , expandImageDetails = Set.empty
                             }
                             sortTableParams
             )
@@ -211,7 +213,7 @@ images globalDefaults project imageFilter sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage globalDefaults project) filteredImages
+        , List.map (renderImage globalDefaults project imageFilter sortTableParams) filteredImages
             |> Widget.column
                 (Style.Theme.materialStyle.column
                     |> (\x ->
@@ -232,9 +234,45 @@ images globalDefaults project imageFilter sortTableParams =
         ]
 
 
-renderImage : GlobalDefaults -> Project -> OSTypes.Image -> Element.Element Msg
-renderImage globalDefaults project image =
+renderImage : GlobalDefaults -> Project -> ImageFilter -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage globalDefaults project imageFilter sortTableParams image =
     let
+        projectId =
+            Helpers.getProjectId project
+
+        imageDetailsExpanded =
+            Set.member image.uuid imageFilter.expandImageDetails
+
+        expandImageDetailsButton : Element.Element Msg
+        expandImageDetailsButton =
+            let
+                iconFunction checked =
+                    if checked then
+                        Icon.chevronUp Color.black 12
+
+                    else
+                        Framework.Icon.chevronDown Color.black 12
+
+                checkboxLabel =
+                    ""
+            in
+            Element.el
+                [ Element.alignLeft
+                , Element.centerY
+                , Element.width Element.shrink
+                ]
+                (Input.checkbox [ Element.paddingXY 10 5 ]
+                    { checked = imageDetailsExpanded
+                    , onChange =
+                        \_ ->
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ListImages { imageFilter | expandImageDetails = Set.Extra.toggle image.uuid imageFilter.expandImageDetails } sortTableParams
+                    , icon = iconFunction
+                    , label = Input.labelRight [] (Element.text checkboxLabel)
+                    }
+                )
+
         size =
             "("
                 ++ (case image.size of
@@ -299,6 +337,46 @@ renderImage globalDefaults project image =
 
             else
                 Element.none
+
+        imageBriefView =
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacingXY 0 0
+                ]
+                [ Element.wrappedRow
+                    [ Element.width Element.fill
+                    ]
+                    [ expandImageDetailsButton
+                    , Element.el
+                        [ Font.bold
+                        , Element.padding 5
+                        ]
+                        (Element.text image.name)
+                    , Element.el
+                        [ Font.color <| Color.toElementColor Framework.Color.grey
+                        , Element.padding 5
+                        ]
+                        (Element.text size)
+                    , ownerBadge
+                    ]
+                , chooseButton
+                ]
+
+        imageDetailsView =
+            Element.column []
+                [ Element.wrappedRow
+                    [ Element.width Element.fill
+                    ]
+                    (Element.el
+                        [ Font.color <| Color.toElementColor Framework.Color.grey
+                        , Element.padding 5
+                        ]
+                        (Element.text "Tags:")
+                        :: List.map
+                            tagChip
+                            image.tags
+                    )
+                ]
     in
     Widget.column
         (Style.Theme.materialStyle.cardColumn
@@ -315,27 +393,11 @@ renderImage globalDefaults project image =
                     }
                )
         )
-        [ Element.row
-            [ Element.width Element.fill
-            , Element.spacingXY 0 0
+        (if imageDetailsExpanded then
+            [ imageBriefView
+            , imageDetailsView
             ]
-            [ Element.wrappedRow
-                [ Element.width Element.fill
-                ]
-                ([ Element.el
-                    [ Font.bold
-                    , Element.padding 5
-                    ]
-                    (Element.text image.name)
-                 , Element.el
-                    [ Font.color <| Color.toElementColor Framework.Color.grey
-                    , Element.padding 5
-                    ]
-                    (Element.text size)
-                 , ownerBadge
-                 ]
-                    ++ List.map tagChip image.tags
-                )
-            , chooseButton
-            ]
-        ]
+
+         else
+            [ imageBriefView ]
+        )
