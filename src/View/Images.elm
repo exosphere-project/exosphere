@@ -21,7 +21,7 @@ import Types.Types
     exposing
         ( CreateServerRequest
         , GlobalDefaults
-        , ImageFilter
+        , ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -33,13 +33,13 @@ import View.Types exposing (ImageTag)
 import Widget
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> ImageFilter -> SortTableParams -> Element.Element Msg
-imagesIfLoaded globalDefaults project imageFilter sortTableParams =
+imagesIfLoaded : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+imagesIfLoaded globalDefaults project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project imageFilter sortTableParams
+        images globalDefaults project imageListViewParams sortTableParams
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -82,16 +82,16 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
-filterImages : ImageFilter -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages imageFilter project someImages =
+filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages imageListViewParams project someImages =
     someImages
-        |> filterByOwner imageFilter.onlyOwnImages project
-        |> filterByTags imageFilter.tags
-        |> filterBySearchText imageFilter.searchText
+        |> filterByOwner imageListViewParams.onlyOwnImages project
+        |> filterByTags imageListViewParams.tags
+        |> filterBySearchText imageListViewParams.searchText
 
 
-images : GlobalDefaults -> Project -> ImageFilter -> SortTableParams -> Element.Element Msg
-images globalDefaults project imageFilter sortTableParams =
+images : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+images globalDefaults project imageListViewParams sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -104,13 +104,13 @@ images globalDefaults project imageFilter sortTableParams =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages imageFilter project
+            project.images |> filterImages imageListViewParams project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
 
         noMatchWarning =
-            (imageFilter.tags /= Set.empty) && (List.length filteredImages == 0)
+            (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
         projectId =
             Helpers.getProjectId project
@@ -126,7 +126,7 @@ images globalDefaults project imageFilter sortTableParams =
                         Icon.plusCircle Color.black 12
 
                 tagChecked =
-                    Set.member tag.label imageFilter.tags
+                    Set.member tag.label imageListViewParams.tags
 
                 checkboxLabel =
                     tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
@@ -141,7 +141,7 @@ images globalDefaults project imageFilter sortTableParams =
                         \_ ->
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { imageFilter | tags = Set.Extra.toggle tag.label imageFilter.tags } sortTableParams
+                                    ListImages { imageListViewParams | tags = Set.Extra.toggle tag.label imageListViewParams.tags } sortTableParams
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
@@ -150,13 +150,13 @@ images globalDefaults project imageFilter sortTableParams =
         tagChipView tag =
             let
                 tagChecked =
-                    Set.member tag.label imageFilter.tags
+                    Set.member tag.label imageListViewParams.tags
 
                 chipLabel =
                     Element.text tag.label
 
                 unselectTag =
-                    ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | tags = Set.remove tag.label imageFilter.tags } sortTableParams
+                    ProjectMsg projectId <| SetProjectView <| ListImages { imageListViewParams | tags = Set.remove tag.label imageListViewParams.tags } sortTableParams
             in
             if tagChecked then
                 chip (Just unselectTag) chipLabel
@@ -183,15 +183,15 @@ images globalDefaults project imageFilter sortTableParams =
         )
         [ Element.el VH.heading2 (Element.text "Choose an image")
         , Input.text []
-            { text = imageFilter.searchText
+            { text = imageListViewParams.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageFilter | searchText = t } sortTableParams
+            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageListViewParams | searchText = t } sortTableParams
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
         , tagsView
         , Input.checkbox []
-            { checked = imageFilter.onlyOwnImages
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageFilter | onlyOwnImages = new } sortTableParams
+            { checked = imageListViewParams.onlyOwnImages
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageListViewParams | onlyOwnImages = new } sortTableParams
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
@@ -213,7 +213,7 @@ images globalDefaults project imageFilter sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage globalDefaults project imageFilter sortTableParams) filteredImages
+        , List.map (renderImage globalDefaults project imageListViewParams sortTableParams) filteredImages
             |> Widget.column
                 (Style.Theme.materialStyle.column
                     |> (\x ->
@@ -234,14 +234,14 @@ images globalDefaults project imageFilter sortTableParams =
         ]
 
 
-renderImage : GlobalDefaults -> Project -> ImageFilter -> SortTableParams -> OSTypes.Image -> Element.Element Msg
-renderImage globalDefaults project imageFilter sortTableParams image =
+renderImage : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage globalDefaults project imageListViewParams sortTableParams image =
     let
         projectId =
             Helpers.getProjectId project
 
         imageDetailsExpanded =
-            Set.member image.uuid imageFilter.expandImageDetails
+            Set.member image.uuid imageListViewParams.expandImageDetails
 
         expandImageDetailsButton : Element.Element Msg
         expandImageDetailsButton =
@@ -267,7 +267,7 @@ renderImage globalDefaults project imageFilter sortTableParams image =
                         \_ ->
                             ProjectMsg projectId <|
                                 SetProjectView <|
-                                    ListImages { imageFilter | expandImageDetails = Set.Extra.toggle image.uuid imageFilter.expandImageDetails } sortTableParams
+                                    ListImages { imageListViewParams | expandImageDetails = Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails } sortTableParams
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }

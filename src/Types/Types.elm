@@ -10,7 +10,7 @@ module Types.Types exposing
     , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
-    , ImageFilter
+    , ImageListViewParams
     , JetstreamCreds
     , JetstreamProvider(..)
     , LogMessage
@@ -253,7 +253,7 @@ type NonProjectViewConstructor
     | HelpAbout
 
 
-type alias ImageFilter =
+type alias ImageListViewParams =
     { searchText : String
     , tags : Set.Set String
     , onlyOwnImages : Bool
@@ -278,7 +278,7 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = ListImages ImageFilter SortTableParams
+    = ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerFilter (List DeleteConfirmation)
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
