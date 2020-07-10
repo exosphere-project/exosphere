@@ -5,13 +5,14 @@ import Color
 import Element
 import Element.Font as Font
 import Element.Region as Region
+import Framework.Icon exposing (chevronDown)
 import Framework.Modifier exposing (Modifier(..))
 import Set exposing (Set)
 import Style.Theme exposing (Style)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
+import Style.Widgets.Icon exposing (bell, chevronUp, question, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 
@@ -29,6 +30,10 @@ widgets msgMapper style model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
     , menuItem Active "Active menu item" Nothing
     , menuItem Inactive "Inactive menu item" Nothing
+    , Element.text "Style.Widgets.Icon.chevronUp"
+    , chevronUp Color.black 40
+    , Element.text "Framework.Icon.chevronDown"
+    , chevronDown Color.black 40
     , Element.text "Style.Widgets.Icon.roundRect"
     , roundRect Color.black 40
     , Element.text "Style.Widgets.Icon.bell"
