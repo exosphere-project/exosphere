@@ -1,6 +1,5 @@
 module View.Servers exposing (serverDetail, servers)
 
-import Color
 import Element
 import Element.Border as Border
 import Element.Events as Events
@@ -22,6 +21,7 @@ import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
+import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -959,7 +959,7 @@ serverVolumes project server =
                     Input.button
                         [ Border.width 1
                         , Border.rounded 6
-                        , Border.color <| Color.toElementColor <| Framework.Color.grey
+                        , Border.color <| SFColor.toElementColor <| Framework.Color.grey
                         , Element.padding 3
                         ]
                         { onPress =

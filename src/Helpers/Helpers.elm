@@ -46,7 +46,6 @@ module Helpers.Helpers exposing
     , volumeQuotaAvail
     )
 
-import Color
 import Debug
 import Dict
 import Framework.Color
@@ -61,6 +60,7 @@ import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import StyleFrameworkColor as SFColor
 import Task
 import Time
 import Toasty
@@ -737,7 +737,7 @@ getServerUiStatusStr status =
             "Deleted"
 
 
-getServerUiStatusColor : ServerUiStatus -> Color.Color
+getServerUiStatusColor : ServerUiStatus -> SFColor.Color
 getServerUiStatusColor status =
     case status of
         ServerUiStatusUnknown ->

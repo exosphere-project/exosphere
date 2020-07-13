@@ -1,7 +1,6 @@
 module Style.StyleGuide exposing (main)
 
 import Browser
-import Color
 import Element
 import Element.Font as Font
 import Element.Region as Region
@@ -15,6 +14,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, chevronUp, question, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
+import StyleFrameworkColor as SFColor
 
 
 
@@ -31,27 +31,27 @@ widgets msgMapper style model =
     , menuItem Active "Active menu item" Nothing
     , menuItem Inactive "Inactive menu item" Nothing
     , Element.text "Style.Widgets.Icon.chevronUp"
-    , chevronUp Color.black 40
+    , chevronUp SFColor.black 40
     , Element.text "Framework.Icon.chevronDown"
-    , chevronDown Color.black 40
+    , chevronDown SFColor.black 40
     , Element.text "Style.Widgets.Icon.roundRect"
-    , roundRect Color.black 40
+    , roundRect SFColor.black 40
     , Element.text "Style.Widgets.Icon.bell"
-    , bell Color.black 40
+    , bell SFColor.black 40
     , Element.text "Style.Widgets.Icon.question"
-    , question Color.black 40
+    , question SFColor.black 40
     , Element.text "Style.Widgets.Icon.remove"
-    , remove Color.black 40
+    , remove SFColor.black 40
     , Element.text "Style.Widgets.Icon.timesCircle (black)"
-    , timesCircle Color.black 40
+    , timesCircle SFColor.black 40
     , Element.text "Style.Widgets.Icon.timesCircle (white)"
-    , timesCircle Color.white 40
+    , timesCircle SFColor.white 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
     , Element.text "Style.Widgets.IconButton.iconButton"
-    , iconButton [ Small, Danger ] Nothing (remove Color.white 16)
+    , iconButton [ Small, Danger ] Nothing (remove SFColor.white 16)
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText "foobar"
     , Element.text "Style.Widgets.IconButton.chip"

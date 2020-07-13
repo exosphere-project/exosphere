@@ -1,12 +1,12 @@
 module Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 
-import Color exposing (toElementColor)
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Color
+import StyleFrameworkColor exposing (toElementColor)
 
 
 type MenuItemState

@@ -1,12 +1,12 @@
 module Style.Widgets.Card exposing (badge, exoCard)
 
-import Color
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Framework.Card as Card
 import Framework.Color
+import StyleFrameworkColor as SFColor
 
 
 exoCard : String -> String -> Element msg -> Element msg
@@ -20,7 +20,7 @@ exoCard title subTitle content =
         , colorFontSecondary = Framework.Color.grey
         , colorBorder = Framework.Color.grey_light
         , colorBorderSecondary = Framework.Color.grey_light
-        , colorShadow = Color.rgba 0 0 0 0.05
+        , colorShadow = SFColor.rgba 0 0 0 0.05
         , extraAttributes = []
         }
 
@@ -30,25 +30,25 @@ badge title =
     Element.el
         [ Border.shadow
             { blur = 10
-            , color = Color.toElementColor <| Color.rgba 0 0 0 0.05
+            , color = SFColor.toElementColor <| SFColor.rgba 0 0 0 0.05
             , offset = ( 0, 2 )
             , size = 1
             }
         , Border.width 1
-        , Border.color <| Color.toElementColor Framework.Color.grey_light
+        , Border.color <| SFColor.toElementColor Framework.Color.grey_light
         , Background.gradient
             { angle = pi
             , steps =
-                [ Color.toElementColor <| Color.hexToColor "A0A0A0"
-                , Color.toElementColor <| Color.hexToColor "8F8F8F"
+                [ SFColor.toElementColor <| SFColor.hexToColor "A0A0A0"
+                , SFColor.toElementColor <| SFColor.hexToColor "8F8F8F"
                 ]
             }
-        , Font.color <| Color.toElementColor Framework.Color.white
+        , Font.color <| SFColor.toElementColor Framework.Color.white
         , Font.size 11
         , Font.shadow
             { offset = ( 0, 2 )
             , blur = 10
-            , color = Color.toElementColor Framework.Color.grey_dark
+            , color = SFColor.toElementColor Framework.Color.grey_dark
             }
         , Border.rounded 4
         , Element.paddingEach

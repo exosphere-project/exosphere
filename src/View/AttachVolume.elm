@@ -1,6 +1,5 @@
 module View.AttachVolume exposing (attachVolume, mountVolInstructions)
 
-import Color
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -11,6 +10,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
+import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( IPInfoLevel(..)
@@ -116,7 +116,7 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
           Element.row [ Element.width Element.fill ]
             [ case params.warnText of
                 Just warnText ->
-                    Element.el [ Font.color <| Color.toElementColor Framework.Color.red ] <| Element.text warnText
+                    Element.el [ Font.color <| SFColor.toElementColor Framework.Color.red ] <| Element.text warnText
 
                 Nothing ->
                     Element.none
