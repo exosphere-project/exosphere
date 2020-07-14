@@ -1,6 +1,5 @@
 module View.Project exposing (project)
 
-import Color
 import Element
 import Framework.Button as Button
 import Framework.Modifier as Modifier
@@ -8,6 +7,7 @@ import Helpers.Helpers as Helpers
 import Set
 import Style.Widgets.Icon exposing (downArrow, upArrow)
 import Style.Widgets.IconButton exposing (iconButton)
+import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( Model
@@ -166,7 +166,7 @@ createButton projectId expanded =
                 (Element.row
                     [ Element.spacing 5 ]
                     [ Element.text "Create"
-                    , upArrow Color.white 15
+                    , upArrow SFColor.white 15
                     ]
                 )
             ]
@@ -183,7 +183,7 @@ createButton projectId expanded =
                 (Element.row
                     [ Element.spacing 5 ]
                     [ Element.text "Create"
-                    , downArrow Color.white 15
+                    , downArrow SFColor.white 15
                     ]
                 )
             ]

@@ -1,12 +1,12 @@
 module Style.Widgets.CopyableText exposing (copyableText)
 
-import Color
 import Element exposing (Element)
 import Element.Input as Input
 import Html
 import Html.Attributes
 import Murmur3
 import Style.Widgets.Icon exposing (copyToClipboard)
+import StyleFrameworkColor as SFColor
 
 
 {-| Display text with a button to copy to the clipboard. Requires you to do a Ports.InstantiateClipboardJS
@@ -32,7 +32,7 @@ copyableText text =
                     , Element.spacing 10
                     ]
                 <|
-                    [ copyToClipboard (Color.hexToColor "1F89C7") 18
+                    [ copyToClipboard (SFColor.hexToColor "1F89C7") 18
                     , Element.text "Copy"
                     ]
             ]
@@ -40,7 +40,7 @@ copyableText text =
             , label =
                 Element.el
                     [ Element.mouseOver [ Element.transparent True ] ]
-                    (copyToClipboard Color.black 18)
+                    (copyToClipboard SFColor.black 18)
             }
         ]
 

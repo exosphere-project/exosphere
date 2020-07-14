@@ -1,6 +1,5 @@
 module View.Images exposing (imagesIfLoaded)
 
-import Color
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -18,6 +17,7 @@ import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
+import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -124,7 +124,7 @@ images globalDefaults project imageListViewParams sortTableParams =
                         Element.none
 
                     else
-                        Icon.plusCircle Color.black 12
+                        Icon.plusCircle SFColor.black 12
 
                 tagChecked =
                     Set.member tag.label imageListViewParams.tags
@@ -248,10 +248,10 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
             let
                 iconFunction checked =
                     if checked then
-                        Icon.chevronUp Color.black 12
+                        Icon.chevronUp SFColor.black 12
 
                     else
-                        Framework.Icon.chevronDown Color.black 12
+                        Framework.Icon.chevronDown SFColor.black 12
 
                 checkboxLabel =
                     ""
@@ -348,7 +348,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                         ]
                         (Element.text image.name)
                     , Element.el
-                        [ Font.color <| Color.toElementColor Framework.Color.grey
+                        [ Font.color <| SFColor.toElementColor Framework.Color.grey
                         , Element.padding 5
                         ]
                         (Element.text size)
@@ -363,7 +363,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                     [ Element.width Element.fill
                     ]
                     (Element.el
-                        [ Font.color <| Color.toElementColor Framework.Color.grey
+                        [ Font.color <| SFColor.toElementColor Framework.Color.grey
                         , Element.padding 5
                         ]
                         (Element.text "Tags:")

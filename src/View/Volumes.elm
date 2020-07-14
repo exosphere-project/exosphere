@@ -1,6 +1,5 @@
 module View.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
 
-import Color
 import Element
 import Element.Border as Border
 import Element.Font as Font
@@ -16,6 +15,7 @@ import RemoteData
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( DeleteVolumeConfirmation
@@ -217,7 +217,7 @@ renderAttachment project attachment =
             , Input.button
                 [ Border.width 1
                 , Border.rounded 6
-                , Border.color <| Color.toElementColor <| Framework.Color.grey
+                , Border.color <| SFColor.toElementColor <| Framework.Color.grey
                 , Element.padding 3
                 ]
                 { onPress =
@@ -289,7 +289,7 @@ createVolume project volName volSizeStr =
           Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
             [ case params.warnText of
                 Just warnText ->
-                    Element.el [ Font.color <| Color.toElementColor Framework.Color.red ] <| Element.text warnText
+                    Element.el [ Font.color <| SFColor.toElementColor Framework.Color.red ] <| Element.text warnText
 
                 Nothing ->
                     Element.none

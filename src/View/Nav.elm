@@ -1,6 +1,5 @@
 module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 
-import Color
 import Element
 import Element.Background as Background
 import Element.Font as Font
@@ -10,6 +9,7 @@ import Framework.Color
 import Helpers.Helpers as Helpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
+import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( Model
@@ -87,7 +87,7 @@ navMenu model =
             MenuItem.menuItem active "Add Project" (Just (SetNonProjectView LoginPicker))
     in
     Element.column
-        [ Background.color <| Color.toElementColor <| Framework.Color.black_ter
+        [ Background.color <| SFColor.toElementColor <| Framework.Color.black_ter
         , Font.color (Element.rgb255 209 209 209)
         , Element.width (Element.px navMenuWidth)
         , Element.height Element.shrink
