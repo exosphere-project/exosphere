@@ -177,18 +177,18 @@ remove_ cl size =
         ]
 
 
-roundRect : SFColor.Color -> Int -> Element.Element msg
+roundRect : Element.Color -> Int -> Element.Element msg
 roundRect cl size =
     Element.el [] <|
         Element.html <|
             roundRect_ cl size
 
 
-roundRect_ : SFColor.Color -> Int -> Html.Html msg
+roundRect_ : Element.Color -> Int -> Html.Html msg
 roundRect_ cl size =
     Svg.svg
         [ SA.width <| String.fromInt size, SA.height <| String.fromInt size, SA.viewBox "0 0 60 60" ]
-        [ Svg.rect [ SA.x "0", SA.y "0", SA.width "60", SA.height "60", SA.rx "15", SA.ry "15", SA.fill (SFColor.colorToHex cl) ] [] ]
+        [ Svg.rect [ SA.x "0", SA.y "0", SA.width "60", SA.height "60", SA.rx "15", SA.ry "15", SA.fill (elementColorToSvgColor cl) ] [] ]
 
 
 copyToClipboard : SFColor.Color -> Int -> Element.Element msg
@@ -235,14 +235,14 @@ timesCircle_ cl size =
         ]
 
 
-plusCircle : SFColor.Color -> Int -> Element.Element msg
+plusCircle : Element.Color -> Int -> Element.Element msg
 plusCircle cl size =
     Element.el [] <|
         Element.html <|
             plusCircle_ cl size
 
 
-plusCircle_ : SFColor.Color -> Int -> Html.Html msg
+plusCircle_ : Element.Color -> Int -> Html.Html msg
 plusCircle_ cl size =
     Svg.svg
         [ SA.width <| String.fromInt size
@@ -250,7 +250,7 @@ plusCircle_ cl size =
         , SA.viewBox "0 0 1792 1792"
         ]
         [ Svg.path
-            [ SA.fill (SFColor.colorToHex cl)
+            [ SA.fill (elementColorToSvgColor cl)
             , SA.d "M1344 960v-128q0-26-19-45t-45-19h-256v-256q0-26-19-45t-45-19h-128q-26 0-45 19t-19 45v256h-256q-26 0-45 19t-19 45v128q0 26 19 45t45 19h256v256q0 26 19 45t45 19h128q26 0 45-19t19-45v-256h256q26 0 45-19t19-45zm320-64q0 209-103 385.5t-279.5 279.5-385.5 103-385.5-103-279.5-279.5-103-385.5 103-385.5 279.5-279.5 385.5-103 385.5 103 279.5 279.5 103 385.5z"
             ]
             []
@@ -324,3 +324,18 @@ lockOpen_ cl size =
             ]
             []
         ]
+
+
+elementColorToSvgColor : Element.Color -> String
+elementColorToSvgColor elColor =
+    let
+        rgb =
+            Element.toRgb elColor
+
+        strVals =
+            [ rgb.red, rgb.green, rgb.blue ]
+                |> List.map (\float -> float * 255)
+                |> List.map String.fromFloat
+                |> String.join ","
+    in
+    "rgb(" ++ strVals ++ ")"

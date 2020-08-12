@@ -48,7 +48,7 @@ module Helpers.Helpers exposing
 
 import Debug
 import Dict
-import Framework.Color
+import Element
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
@@ -60,7 +60,6 @@ import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
-import StyleFrameworkColor as SFColor
 import Task
 import Time
 import Toasty
@@ -737,50 +736,64 @@ getServerUiStatusStr status =
             "Deleted"
 
 
-getServerUiStatusColor : ServerUiStatus -> SFColor.Color
+getServerUiStatusColor : ServerUiStatus -> Element.Color
 getServerUiStatusColor status =
     case status of
         ServerUiStatusUnknown ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusBuilding ->
-            Framework.Color.yellow
+            -- yellow
+            Element.rgb255 255 221 87
 
         ServerUiStatusPartiallyActive ->
-            Framework.Color.yellow
+            -- yellow
+            Element.rgb255 255 221 87
 
         ServerUiStatusReady ->
-            Framework.Color.green
+            -- green
+            Element.rgb255 35 209 96
 
         ServerUiStatusReboot ->
-            Framework.Color.yellow
+            -- yellow
+            Element.rgb255 255 221 87
 
         ServerUiStatusPaused ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusSuspended ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusShutoff ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusStopped ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusSoftDeleted ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusError ->
-            Framework.Color.red
+            -- red
+            Element.rgb255 255 56 96
 
         ServerUiStatusRescued ->
-            Framework.Color.red
+            -- red
+            Element.rgb255 255 56 96
 
         ServerUiStatusShelved ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
         ServerUiStatusDeleted ->
-            Framework.Color.grey
+            -- gray
+            Element.rgb255 122 122 122
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor

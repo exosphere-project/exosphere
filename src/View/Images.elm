@@ -6,7 +6,6 @@ import Element.Input as Input
 import FeatherIcons
 import Filesize
 import Framework.Button as Button
-import Framework.Color
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import List.Extra
@@ -17,7 +16,6 @@ import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
-import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -124,7 +122,7 @@ images globalDefaults project imageListViewParams sortTableParams =
                         Element.none
 
                     else
-                        Icon.plusCircle SFColor.black 12
+                        Icon.plusCircle (Element.rgb255 10 10 10) 12
 
                 tagChecked =
                     Set.member tag.label imageListViewParams.tags
@@ -352,7 +350,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                         ]
                         (Element.text image.name)
                     , Element.el
-                        [ Font.color <| SFColor.toElementColor Framework.Color.grey
+                        [ Font.color <| Element.rgb255 122 122 122
                         , Element.padding 5
                         ]
                         (Element.text size)
@@ -367,7 +365,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                     [ Element.width Element.fill
                     ]
                     (Element.el
-                        [ Font.color <| SFColor.toElementColor Framework.Color.grey
+                        [ Font.color <| Element.rgb255 122 122 122
                         , Element.padding 5
                         ]
                         (Element.text "Tags:")
