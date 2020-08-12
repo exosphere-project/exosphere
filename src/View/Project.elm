@@ -7,7 +7,6 @@ import Helpers.Helpers as Helpers
 import Set
 import Style.Widgets.Icon exposing (downArrow, upArrow)
 import Style.Widgets.IconButton exposing (iconButton)
-import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( Model
@@ -166,7 +165,7 @@ createButton projectId expanded =
                 (Element.row
                     [ Element.spacing 5 ]
                     [ Element.text "Create"
-                    , upArrow SFColor.white 15
+                    , upArrow (Element.rgb255 255 255 255) 15
                     ]
                 )
             ]
@@ -183,7 +182,7 @@ createButton projectId expanded =
                 (Element.row
                     [ Element.spacing 5 ]
                     [ Element.text "Create"
-                    , downArrow SFColor.white 15
+                    , downArrow (Element.rgb255 255 255 255) 15
                     ]
                 )
             ]

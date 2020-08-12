@@ -5,7 +5,6 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Framework.Color
 import Helpers.Helpers as Helpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
@@ -172,7 +171,7 @@ navBar _ =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.bell Framework.Color.white 20
+                                [ Icon.bell (Element.rgb255 255 255 255) 20
                                 , Element.text "Messages"
                                 ]
                         }
@@ -186,7 +185,7 @@ navBar _ =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.question Framework.Color.white 20
+                                [ Icon.question (Element.rgb255 255 255 255) 20
                                 , Element.text "Help / About"
                                 ]
                         }

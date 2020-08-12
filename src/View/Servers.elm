@@ -21,7 +21,6 @@ import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton as IconButton
-import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -313,14 +312,14 @@ serverStatus projectId server serverDetailViewParams =
                 OSTypes.ServerLocked ->
                     Element.row
                         []
-                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lock Framework.Color.black 28
+                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lock (Element.rgb255 10 10 10) 28
                         , Element.text "Locked"
                         ]
 
                 OSTypes.ServerUnlocked ->
                     Element.row
                         []
-                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lockOpen Framework.Color.black 28
+                        [ Element.el [ Element.paddingEach { edges | right = 15 } ] <| Icon.lockOpen (Element.rgb255 10 10 10) 28
                         , Element.text "Unlocked"
                         ]
 
@@ -739,7 +738,7 @@ renderServer project serverFilter deleteConfirmations server =
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = server.exoProps.selected
                         , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock Framework.Color.black 14
+                        , icon = \_ -> Icon.lock (Element.rgb255 10 10 10) 14
                         , label = Input.labelHidden server.osProps.name
                         }
 
@@ -802,7 +801,7 @@ renderServer project serverFilter deleteConfirmations server =
                         (Just
                             (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
                         )
-                        (Icon.remove Framework.Color.white 16)
+                        (Icon.remove (Element.rgb255 255 255 255) 16)
                     , IconButton.iconButton
                         [ Modifier.Primary, Modifier.Small ]
                         (Just
@@ -815,7 +814,7 @@ renderServer project serverFilter deleteConfirmations server =
                                 )
                             )
                         )
-                        (Icon.windowClose Framework.Color.white 16)
+                        (Icon.windowClose (Element.rgb255 255 255 255) 16)
                     ]
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
@@ -826,14 +825,14 @@ renderServer project serverFilter deleteConfirmations server =
                                 (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
                             )
                         )
-                        (Icon.remove Framework.Color.white 16)
+                        (Icon.remove (Element.rgb255 255 255 255) 16)
                     ]
 
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ IconButton.iconButton
                         [ Modifier.Disabled, Modifier.Small ]
                         Nothing
-                        (Icon.remove Framework.Color.white 16)
+                        (Icon.remove (Element.rgb255 255 255 255) 16)
                     ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
@@ -959,7 +958,7 @@ serverVolumes project server =
                     Input.button
                         [ Border.width 1
                         , Border.rounded 6
-                        , Border.color <| SFColor.toElementColor <| Framework.Color.grey
+                        , Border.color <| Element.rgb255 122 122 122
                         , Element.padding 3
                         ]
                         { onPress =
@@ -968,7 +967,7 @@ serverVolumes project server =
                                     (Helpers.getProjectId project)
                                     (SetProjectView <| VolumeDetail v.uuid [])
                                 )
-                        , label = Icon.rightArrow Framework.Color.grey 16
+                        , label = Icon.rightArrow (Element.rgb255 122 122 122) 16
                         }
 
                 volumeRow v =

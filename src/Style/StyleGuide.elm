@@ -13,7 +13,6 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip, iconButton)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
-import StyleFrameworkColor as SFColor
 
 
 
@@ -30,23 +29,23 @@ widgets msgMapper style model =
     , menuItem Active "Active menu item" Nothing
     , menuItem Inactive "Inactive menu item" Nothing
     , Element.text "Style.Widgets.Icon.roundRect"
-    , roundRect SFColor.black 40
+    , roundRect (Element.rgb255 10 10 10) 40
     , Element.text "Style.Widgets.Icon.bell"
-    , bell SFColor.black 40
+    , bell (Element.rgb255 10 10 10) 40
     , Element.text "Style.Widgets.Icon.question"
-    , question SFColor.black 40
+    , question (Element.rgb255 10 10 10) 40
     , Element.text "Style.Widgets.Icon.remove"
-    , remove SFColor.black 40
+    , remove (Element.rgb255 10 10 10) 40
     , Element.text "Style.Widgets.Icon.timesCircle (black)"
-    , timesCircle SFColor.black 40
+    , timesCircle (Element.rgb255 10 10 10) 40
     , Element.text "Style.Widgets.Icon.timesCircle (white)"
-    , timesCircle SFColor.white 40
+    , timesCircle (Element.rgb255 255 255 255) 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
     , Element.text "Style.Widgets.IconButton.iconButton"
-    , iconButton [ Small, Danger ] Nothing (remove SFColor.white 16)
+    , iconButton [ Small, Danger ] Nothing (remove (Element.rgb255 255 255 255) 16)
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText "foobar"
     , Element.text "Style.Widgets.IconButton.chip"
