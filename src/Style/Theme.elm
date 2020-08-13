@@ -1,6 +1,6 @@
 module Style.Theme exposing (Style, materialStyle)
 
-import Color exposing (Color)
+import Color
 import Widget.Style exposing (ButtonStyle, ColumnStyle, ProgressIndicatorStyle, RowStyle, TextInputStyle)
 import Widget.Style.Material as Material
 
