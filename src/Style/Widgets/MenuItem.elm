@@ -49,8 +49,7 @@ menuItem state itemLabel onPress =
                 borderProps =
                     case state of
                         Active ->
-                            -- Turquoise??
-                            [ Border.color (Element.rgb255 0 209 178)
+                            [ Border.color (Element.rgb255 0 136 206)
                             , Border.widthEach { bottom = 0, left = 3, right = 0, top = 0 }
                             ]
 
