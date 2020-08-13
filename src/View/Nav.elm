@@ -5,11 +5,9 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Framework.Color
 import Helpers.Helpers as Helpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
-import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( Model
@@ -87,7 +85,7 @@ navMenu model =
             MenuItem.menuItem active "Add Project" (Just (SetNonProjectView LoginPicker))
     in
     Element.column
-        [ Background.color <| SFColor.toElementColor <| Framework.Color.black_ter
+        [ Background.color (Element.rgb255 36 36 36)
         , Font.color (Element.rgb255 209 209 209)
         , Element.width (Element.px navMenuWidth)
         , Element.height Element.shrink
@@ -173,7 +171,7 @@ navBar _ =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.bell Framework.Color.white 20
+                                [ Icon.bell (Element.rgb255 255 255 255) 20
                                 , Element.text "Messages"
                                 ]
                         }
@@ -187,7 +185,7 @@ navBar _ =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.question Framework.Color.white 20
+                                [ Icon.question (Element.rgb255 255 255 255) 20
                                 , Element.text "Help / About"
                                 ]
                         }

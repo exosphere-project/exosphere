@@ -18,10 +18,8 @@ import Element
 import Element.Events
 import Element.Font as Font
 import Element.Region as Region
-import Framework.Color
 import Helpers.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Helpers.Time exposing (humanReadableTime)
-import StyleFrameworkColor as SFColor
 import Types.HelperTypes
 import Types.Types exposing (LogMessage, Msg(..))
 import View.Types
@@ -166,7 +164,7 @@ browserLink : Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> El
 browserLink isElectron url label =
     let
         linkAttribs =
-            [ Font.color <| SFColor.toElementColor <| Framework.Color.blue
+            [ Font.color (Element.rgb255 50 115 220)
             , Font.underline
             , Element.pointer
             ]

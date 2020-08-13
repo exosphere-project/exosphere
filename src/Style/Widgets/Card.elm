@@ -30,25 +30,25 @@ badge title =
     Element.el
         [ Border.shadow
             { blur = 10
-            , color = SFColor.toElementColor <| SFColor.rgba 0 0 0 0.05
+            , color = Element.rgba255 0 0 0 0.05
             , offset = ( 0, 2 )
             , size = 1
             }
         , Border.width 1
-        , Border.color <| SFColor.toElementColor Framework.Color.grey_light
+        , Border.color <| Element.rgb255 181 181 181
         , Background.gradient
             { angle = pi
             , steps =
-                [ SFColor.toElementColor <| SFColor.hexToColor "A0A0A0"
-                , SFColor.toElementColor <| SFColor.hexToColor "8F8F8F"
+                [ Element.rgb255 160 160 160
+                , Element.rgb255 143 143 143
                 ]
             }
-        , Font.color <| SFColor.toElementColor Framework.Color.white
+        , Font.color <| Element.rgb255 255 255 255
         , Font.size 11
         , Font.shadow
             { offset = ( 0, 2 )
             , blur = 10
-            , color = SFColor.toElementColor Framework.Color.grey_dark
+            , color = Element.rgb255 74 74 74
             }
         , Border.rounded 4
         , Element.paddingEach

@@ -4,13 +4,11 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
-import Framework.Color
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
-import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( IPInfoLevel(..)
@@ -116,7 +114,7 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
           Element.row [ Element.width Element.fill ]
             [ case params.warnText of
                 Just warnText ->
-                    Element.el [ Font.color <| SFColor.toElementColor Framework.Color.red ] <| Element.text warnText
+                    Element.el [ Font.color <| Element.rgb255 255 56 96 ] <| Element.text warnText
 
                 Nothing ->
                     Element.none

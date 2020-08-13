@@ -5,10 +5,8 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Button
-import Framework.Color
 import Framework.Modifier exposing (Modifier(..))
 import Style.Widgets.Icon exposing (timesCircle)
-import StyleFrameworkColor as SFColor
 
 
 {-| Generate an Input.button element with an icon and no text label
@@ -32,16 +30,16 @@ chip onPress label =
         , Element.padding 8
         , Border.width 1
         , Font.size 12
-        , Border.color <| SFColor.toElementColor Framework.Color.grey_darker
+        , Border.color <| Element.rgb255 54 54 54
         , Border.rounded 3
         ]
         [ label
         , Input.button
             [ Element.mouseOver
-                [ Border.color <| SFColor.toElementColor SFColor.black
+                [ Border.color <| Element.rgb255 10 10 10
                 ]
             ]
             { onPress = onPress
-            , label = timesCircle SFColor.white 12
+            , label = timesCircle (Element.rgb255 255 255 255) 12
             }
         ]

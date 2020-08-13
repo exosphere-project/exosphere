@@ -15,7 +15,6 @@ import RemoteData
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
-import StyleFrameworkColor as SFColor
 import Types.Types
     exposing
         ( DeleteVolumeConfirmation
@@ -217,7 +216,7 @@ renderAttachment project attachment =
             , Input.button
                 [ Border.width 1
                 , Border.rounded 6
-                , Border.color <| SFColor.toElementColor <| Framework.Color.grey
+                , Border.color (Element.rgb255 122 122 122)
                 , Element.padding 3
                 ]
                 { onPress =
@@ -226,7 +225,7 @@ renderAttachment project attachment =
                             (Helpers.getProjectId project)
                             (SetProjectView <| ServerDetail attachment.serverUuid <| ServerDetailViewParams False PasswordHidden IPSummary Nothing)
                         )
-                , label = Icon.rightArrow Framework.Color.grey 16
+                , label = Icon.rightArrow (Element.rgb255 122 122 122) 16
                 }
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
@@ -289,7 +288,7 @@ createVolume project volName volSizeStr =
           Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
             [ case params.warnText of
                 Just warnText ->
-                    Element.el [ Font.color <| SFColor.toElementColor Framework.Color.red ] <| Element.text warnText
+                    Element.el [ Font.color <| Element.rgb255 255 56 96 ] <| Element.text warnText
 
                 Nothing ->
                     Element.none

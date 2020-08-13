@@ -5,8 +5,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Color
-import StyleFrameworkColor exposing (toElementColor)
 
 
 type MenuItemState
@@ -26,24 +24,24 @@ menuItem state itemLabel onPress =
             case state of
                 Active ->
                     ( Font.bold
-                    , Framework.Color.white
-                    , Framework.Color.grey_darker
+                    , Element.rgb255 255 255 255
+                    , Element.rgb255 51 51 51
                     )
 
                 Inactive ->
                     ( Font.regular
-                    , Framework.Color.grey_light
-                    , Framework.Color.black_ter
+                    , Element.rgb255 181 181 181
+                    , Element.rgb255 36 36 36
                     )
 
         menuItemButtonAttrs =
             [ Element.width Element.fill
-            , Border.color (toElementColor <| Framework.Color.black)
+            , Border.color (Element.rgb255 10 10 10)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
             , Element.paddingXY 15 24
-            , Background.color (toElementColor <| backgroundColor)
-            , Font.color (toElementColor <| fontColor)
+            , Background.color backgroundColor
+            , Font.color fontColor
             ]
 
         menuItemElementAttrs =
@@ -51,7 +49,7 @@ menuItem state itemLabel onPress =
                 borderProps =
                     case state of
                         Active ->
-                            [ Border.color (toElementColor <| Framework.Color.primary)
+                            [ Border.color (Element.rgb255 0 136 206)
                             , Border.widthEach { bottom = 0, left = 3, right = 0, top = 0 }
                             ]
 
