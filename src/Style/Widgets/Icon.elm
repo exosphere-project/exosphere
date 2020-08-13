@@ -1,6 +1,5 @@
 module Style.Widgets.Icon exposing
     ( bell
-    , chevronUp
     , copyToClipboard
     , downArrow
     , lock
@@ -322,32 +321,6 @@ lockOpen_ cl size =
 
             -- From view-source:https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/svg/unlock.svg
             , SA.d "M1728 576v256q0 26-19 45t-45 19h-64q-26 0-45-19t-19-45v-256q0-106-75-181t-181-75-181 75-75 181v192h96q40 0 68 28t28 68v576q0 40-28 68t-68 28h-960q-40 0-68-28t-28-68v-576q0-40 28-68t68-28h672v-192q0-185 131.5-316.5t316.5-131.5 316.5 131.5 131.5 316.5z"
-            ]
-            []
-        ]
-
-
-chevronUp : SFColor.Color -> Int -> Element.Element msg
-chevronUp cl size =
-    Element.el [] <|
-        Element.html <|
-            chevronUp_ cl size
-
-
-chevronUp_ : SFColor.Color -> Int -> Html.Html msg
-chevronUp_ cl size =
-    Svg.svg
-        [ SA.viewBox "0 0 256 256"
-        , SA.height <| String.fromInt size
-        , SA.fill "none"
-        , SA.stroke "currentColor"
-        , SA.stroke (SFColor.colorToHex cl)
-        , SA.strokeWidth "4"
-        , SA.viewBox "0 0 24 24"
-        , SA.width <| String.fromInt size
-        ]
-        [ Svg.polyline
-            [ SA.points "22 20 12 9 2 20"
             ]
             []
         ]

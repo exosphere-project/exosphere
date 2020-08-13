@@ -3,10 +3,10 @@ module View.Images exposing (imagesIfLoaded)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Filesize
 import Framework.Button as Button
 import Framework.Color
-import Framework.Icon
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import List.Extra
@@ -247,11 +247,15 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
         expandImageDetailsButton =
             let
                 iconFunction checked =
-                    if checked then
-                        Icon.chevronUp SFColor.black 12
+                    let
+                        featherIcon =
+                            if checked then
+                                FeatherIcons.chevronUp
 
-                    else
-                        Framework.Icon.chevronDown SFColor.black 12
+                            else
+                                FeatherIcons.chevronDown
+                    in
+                    featherIcon |> FeatherIcons.toHtml [] |> Element.html
 
                 checkboxLabel =
                     ""
