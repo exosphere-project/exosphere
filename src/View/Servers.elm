@@ -7,9 +7,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
 import Framework.Card as Card
-import Framework.Color
 import Framework.Modifier as Modifier
-import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
@@ -17,6 +15,7 @@ import Html.Attributes
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -41,6 +40,7 @@ import Types.Types
         )
 import View.Helpers as VH exposing (edges)
 import View.Types
+import Widget
 
 
 servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
@@ -291,13 +291,16 @@ serverStatus projectId server serverDetailViewParams =
 
         statusGraphic =
             let
+                spinner =
+                    Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+
                 g =
                     case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
                         ( OSTypes.ServerBuilding, _ ) ->
-                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.yellow
+                            spinner
 
                         ( _, Just _ ) ->
-                            Spinner.spinner Spinner.ThreeCircles 30 Framework.Color.grey_darker
+                            spinner
 
                         ( _, Nothing ) ->
                             Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 28

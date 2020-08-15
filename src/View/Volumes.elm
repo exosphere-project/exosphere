@@ -5,13 +5,12 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Button as Button
-import Framework.Color
 import Framework.Modifier as Modifier
-import Framework.Spinner as Spinner
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
+import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -27,6 +26,7 @@ import Types.Types
         , ServerDetailViewParams
         )
 import View.Helpers as VH
+import Widget
 
 
 volumes : Project -> List DeleteVolumeConfirmation -> Element.Element Msg
@@ -113,7 +113,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
         deleteButton =
             case ( volume.status, confirmationNeeded ) of
                 ( OSTypes.Deleting, _ ) ->
-                    Spinner.spinner Spinner.ThreeCircles 20 Framework.Color.grey_darker
+                    Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
 
                 ( _, True ) ->
                     Element.row [ Element.spacing 10 ]
