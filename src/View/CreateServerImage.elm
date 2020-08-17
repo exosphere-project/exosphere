@@ -2,10 +2,9 @@ module View.CreateServerImage exposing (createServerImage)
 
 import Element
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
+import Style.Theme
 import Types.Types
     exposing
         ( Msg(..)
@@ -14,6 +13,8 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
+import Widget
+import Widget.Style.Material
 
 
 createServerImage : Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
@@ -27,11 +28,12 @@ createServerImage project serverUuid imageName =
             , onChange = \n -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateServerImage serverUuid n
             , label = Input.labelAbove [] (Element.text "Image name")
             }
-        , Button.button
-            [ Modifier.Primary ]
-            (Just <|
-                ProjectMsg (Helpers.getProjectId project) <|
-                    RequestCreateServerImage serverUuid imageName
-            )
-            "Create"
+        , Widget.textButton
+            (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+            { text = "Create"
+            , onPress =
+                Just <|
+                    ProjectMsg (Helpers.getProjectId project) <|
+                        RequestCreateServerImage serverUuid imageName
+            }
         ]
