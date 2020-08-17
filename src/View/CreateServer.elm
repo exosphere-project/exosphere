@@ -5,14 +5,13 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Theme
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -23,6 +22,8 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH exposing (edges)
+import Widget
+import Widget.Style.Material
 
 
 updateCreateServerRequest : Project -> CreateServerRequest -> Msg
@@ -99,10 +100,11 @@ createServer project createServerRequest =
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
-                Button.button
-                    [ Modifier.Primary ]
-                    createOnPress
-                    "Create"
+                Widget.textButton
+                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                    { text = "Create"
+                    , onPress = createOnPress
+                    }
             ]
     in
     Element.row VH.exoRowAttributes
