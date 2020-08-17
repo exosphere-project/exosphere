@@ -3,12 +3,11 @@ module View.AttachVolume exposing (attachVolume, mountVolInstructions)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Theme
 import Types.Types
     exposing
         ( IPInfoLevel(..)
@@ -19,6 +18,8 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
+import Widget
+import Widget.Style.Material
 
 
 attachVolume : Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
@@ -86,30 +87,28 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
                                     |> Maybe.withDefault False
                         in
                         if volAttachedToServer then
-                            { attribs = [ Modifier.Disabled ]
-                            , onPress = Nothing
+                            { onPress = Nothing
                             , warnText = Just "This volume is already attached to this server."
                             }
 
                         else
-                            { attribs = [ Modifier.Primary ]
-                            , onPress = Just <| ProjectMsg (Helpers.getProjectId project) (RequestAttachVolume serverUuid volumeUuid)
+                            { onPress = Just <| ProjectMsg (Helpers.getProjectId project) (RequestAttachVolume serverUuid volumeUuid)
                             , warnText = Nothing
                             }
 
                     _ ->
                         {- User hasn't selected a server and volume yet so we keep the button disabled but don't yell at him/her -}
-                        { attribs = [ Modifier.Disabled ]
-                        , onPress = Nothing
+                        { onPress = Nothing
                         , warnText = Nothing
                         }
 
             button =
                 Element.el [ Element.alignRight ] <|
-                    Button.button
-                        params.attribs
-                        params.onPress
-                        "Attach"
+                    Widget.textButton
+                        (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                        { text = "Attach"
+                        , onPress = params.onPress
+                        }
           in
           Element.row [ Element.width Element.fill ]
             [ case params.warnText of
@@ -150,21 +149,22 @@ mountVolInstructions project attachment =
                         "We attached the volume but couldn't determine a mountpoint from the device path. You "
                             ++ "may need to format and/or mount the volume manually."
             ]
-        , Button.button
-            []
-            (Just <|
-                ProjectMsg
-                    (Helpers.getProjectId project)
-                <|
-                    SetProjectView
-                        (ServerDetail
-                            attachment.serverUuid
-                            { verboseStatus = False
-                            , passwordVisibility = PasswordHidden
-                            , ipInfoLevel = IPSummary
-                            , serverActionNamePendingConfirmation = Nothing
-                            }
-                        )
-            )
-            "Go to my server"
+        , Widget.textButton
+            (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+            { text = "Go to my server"
+            , onPress =
+                Just <|
+                    ProjectMsg
+                        (Helpers.getProjectId project)
+                    <|
+                        SetProjectView
+                            (ServerDetail
+                                attachment.serverUuid
+                                { verboseStatus = False
+                                , passwordVisibility = PasswordHidden
+                                , ipInfoLevel = IPSummary
+                                , serverActionNamePendingConfirmation = Nothing
+                                }
+                            )
+            }
         ]
