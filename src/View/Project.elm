@@ -82,8 +82,6 @@ projectNav p viewParams =
                 Helpers.hostnameFromUrl p.endpoints.keystone
                     ++ " - "
                     ++ p.auth.project.name
-
-        {- TODO nest these somehow, perhaps put the "create server" and "create volume" buttons as a dropdown under a big "Create" button -}
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
