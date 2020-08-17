@@ -4,13 +4,12 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
 import Style.Theme
+import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -27,6 +26,7 @@ import Types.Types
         )
 import View.Helpers as VH
 import Widget
+import Widget.Style.Material
 
 
 volumes : Project -> List DeleteVolumeConfirmation -> Element.Element Msg
@@ -76,33 +76,36 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
         attachDetachButton =
             case volume.status of
                 OSTypes.Available ->
-                    Button.button
-                        []
-                        (Just
-                            (ProjectMsg
-                                (Helpers.getProjectId project)
-                                (SetProjectView <| AttachVolumeModal Nothing (Just volume.uuid))
-                            )
-                        )
-                        "Attach"
+                    Widget.textButton
+                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        { text = "Attach"
+                        , onPress =
+                            Just
+                                (ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (SetProjectView <| AttachVolumeModal Nothing (Just volume.uuid))
+                                )
+                        }
 
                 OSTypes.InUse ->
                     if Helpers.isBootVol Nothing volume then
-                        Button.button
-                            [ Modifier.Disabled ]
-                            Nothing
-                            "Detach"
+                        Widget.textButton
+                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            { text = "Detach"
+                            , onPress = Nothing
+                            }
 
                     else
-                        Button.button
-                            []
-                            (Just
-                                (ProjectMsg
-                                    (Helpers.getProjectId project)
-                                    (RequestDetachVolume volume.uuid)
-                                )
-                            )
-                            "Detach"
+                        Widget.textButton
+                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            { text = "Detach"
+                            , onPress =
+                                Just
+                                    (ProjectMsg
+                                        (Helpers.getProjectId project)
+                                        (RequestDetachVolume volume.uuid)
+                                    )
+                            }
 
                 _ ->
                     Element.none
@@ -118,42 +121,46 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                 ( _, True ) ->
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
-                        , Button.button
-                            [ Modifier.Danger ]
-                            (Just <|
-                                ProjectMsg
-                                    (Helpers.getProjectId project)
-                                    (RequestDeleteVolume volume.uuid)
-                            )
-                            "Delete"
-                        , Button.button
-                            [ Modifier.Primary ]
-                            (Just <|
-                                ProjectMsg
-                                    (Helpers.getProjectId project)
-                                    (SetProjectView <|
-                                        toProjectViewConstructor (deleteVolumeConfirmations |> List.filter ((/=) volume.uuid))
-                                    )
-                            )
-                            "Cancel"
+                        , Widget.textButton
+                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                            { text = "Delete"
+                            , onPress =
+                                Just <|
+                                    ProjectMsg
+                                        (Helpers.getProjectId project)
+                                        (RequestDeleteVolume volume.uuid)
+                            }
+                        , Widget.textButton
+                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            { text = "Cancel"
+                            , onPress =
+                                Just <|
+                                    ProjectMsg
+                                        (Helpers.getProjectId project)
+                                        (SetProjectView <|
+                                            toProjectViewConstructor (deleteVolumeConfirmations |> List.filter ((/=) volume.uuid))
+                                        )
+                            }
                         ]
 
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
-                        Button.button
-                            [ Modifier.Disabled ]
-                            Nothing
-                            "Delete"
+                        Widget.textButton
+                            (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                            { text = "Delete"
+                            , onPress = Nothing
+                            }
 
                     else
-                        Button.button
-                            [ Modifier.Danger ]
-                            (Just <|
-                                ProjectMsg
-                                    (Helpers.getProjectId project)
-                                    (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
-                            )
-                            "Delete"
+                        Widget.textButton
+                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                            { text = "Delete"
+                            , onPress =
+                                Just <|
+                                    ProjectMsg
+                                        (Helpers.getProjectId project)
+                                        (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
+                            }
     in
     Element.column (Element.width Element.fill :: VH.exoColumnAttributes)
         [ volDetachDeleteWarning
@@ -274,14 +281,12 @@ createVolume project volName volSizeStr =
             params =
                 case String.toInt volSizeStr of
                     Just volSizeInt ->
-                        { attribs = [ Modifier.Primary ]
-                        , onPress = Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateVolume volName volSizeInt))
+                        { onPress = Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateVolume volName volSizeInt))
                         , warnText = Nothing
                         }
 
                     _ ->
-                        { attribs = [ Modifier.Disabled ]
-                        , onPress = Nothing
+                        { onPress = Nothing
                         , warnText = Just "Volume size must be an integer"
                         }
           in
@@ -293,9 +298,10 @@ createVolume project volName volSizeStr =
                 Nothing ->
                     Element.none
             , Element.el [ Element.alignRight ] <|
-                Button.button
-                    params.attribs
-                    params.onPress
-                    "Create"
+                Widget.textButton
+                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                    { text = "Create"
+                    , onPress = params.onPress
+                    }
             ]
         ]
