@@ -5,8 +5,6 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Filesize
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -30,6 +28,7 @@ import Types.Types
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
 import Widget
+import Widget.Style.Material
 
 
 imagesIfLoaded : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
@@ -194,19 +193,21 @@ images globalDefaults project imageListViewParams sortTableParams =
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
-        , Button.button []
-            (Just <|
-                ProjectMsg projectId <|
-                    SetProjectView <|
-                        ListImages
-                            { searchText = ""
-                            , tags = Set.empty
-                            , onlyOwnImages = False
-                            , expandImageDetails = Set.empty
-                            }
-                            sortTableParams
-            )
-            "Clear filters (show all)"
+        , Widget.textButton
+            (Widget.Style.Material.textButton Style.Theme.exoPalette)
+            { text = "Clear filters (show all)"
+            , onPress =
+                Just <|
+                    ProjectMsg projectId <|
+                        SetProjectView <|
+                            ListImages
+                                { searchText = ""
+                                , tags = Set.empty
+                                , onlyOwnImages = False
+                                , expandImageDetails = Set.empty
+                                }
+                                sortTableParams
+            }
         , if noMatchWarning then
             Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
@@ -315,18 +316,17 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                 )
 
         chooseButton =
-            case image.status of
-                OSTypes.ImageActive ->
-                    Button.button
-                        [ Modifier.Primary ]
-                        (Just chooseMsg)
-                        "Choose"
+            Widget.textButton
+                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                { text = "Choose"
+                , onPress =
+                    case image.status of
+                        OSTypes.ImageActive ->
+                            Just chooseMsg
 
-                _ ->
-                    Button.button
-                        [ Modifier.Disabled ]
-                        Nothing
-                        "Choose"
+                        _ ->
+                            Nothing
+                }
 
         ownerBadge =
             if projectOwnsImage project image then
