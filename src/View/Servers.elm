@@ -675,7 +675,7 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            serverActionSelectModButton serverAction.selectMod
+            Widget.textButton (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
                 { text = "No"
                 , onPress = cancelMsg
                 }
