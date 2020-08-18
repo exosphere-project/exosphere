@@ -5,7 +5,6 @@ import Color
 import Element
 import Element.Font as Font
 import Element.Region as Region
-import Framework.Modifier exposing (Modifier(..))
 import Set exposing (Set)
 import Style.Theme exposing (Style)
 import Style.Widgets.Button exposing (dangerButton, warningButton)
@@ -13,7 +12,7 @@ import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
-import Style.Widgets.IconButton exposing (chip, iconButton)
+import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Widget
 
@@ -48,8 +47,6 @@ widgets msgMapper style model =
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
-    , Element.text "Style.Widgets.IconButton.iconButton"
-    , iconButton [ Small, Danger ] Nothing (remove (Element.rgb255 255 255 255) 16)
     , Element.text "Style.Widgets.Button.dangerButton"
     , Widget.textButton
         (dangerButton Style.Theme.exoPalette)
