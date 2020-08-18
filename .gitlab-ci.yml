@@ -1,8 +1,5 @@
 image: node:carbon-stretch
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-
 stages:
   - build
   - test

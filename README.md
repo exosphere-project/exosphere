@@ -72,12 +72,6 @@ Then install the project's dependencies (including Elm & Electron). Convenience 
 npm install
 ```
 
-git Sync the Git submodules:
-
-```bash
-git submodule sync --recursive
-git submodule update --init --recursive
-```
 
 To compile and run the app:
 
@@ -112,12 +106,6 @@ Then install the project's dependencies (including Elm). Convenience command to 
 npm install
 ```
 
-Sync the Git submodules:
-
-```bash
-git submodule sync --recursive
-git submodule update --init --recursive
-```
 
 To compile the app:
 ```
@@ -211,8 +199,6 @@ This uses [electron-builder](https://www.electron.build/). See the link for more
 ### On/For Mac OS X
 
 ```bash
-git submodule sync --recursive
-git submodule update --init --recursive
 npm install
 npm run electron-build
 npm run dist
@@ -225,8 +211,6 @@ To launch Exosphere from the OS X package, [you may need to right-click and then
 (Tested with Ubuntu 16.04)
 
 ```bash
-git submodule sync --recursive
-git submodule update --init --recursive
 npm install
 npm run electron-build
 npx electron-builder --linux deb tar.xz
@@ -256,14 +240,12 @@ Note:
 ### Basics
 
 - Exosphere uses [elm-ui](https://github.com/mdgriffith/elm-ui) for UI layout and styling. Where we can, we avoid defining HTML and CSS manually.
-- Exosphere also uses parts of the experimental [elm-style-framework](https://github.com/lucamug/elm-style-framework), which is consumed as a git submodule rather than an Elm package (because of <https://github.com/lucamug/elm-style-framework/issues/7>).
-- Exosphere also uses app-specific elm-ui "widgets", see `src/Widgets`. Some of these are extended/modified elm-style-framework widgets, and some are unique to Exosphere. We are moving toward using these re-usable widgets as the basis of our UI.  
+- Exosphere also consumes some [elm-ui-widgets](https://package.elm-lang.org/packages/Orasund/elm-ui-widgets/latest/)
+- Exosphere also uses app-specific elm-ui "widgets", see `src/Widgets`.
 
 ### Style Guide
 
-- You can view a rendering of all the widgets included in elm-style-framework here: <http://guupa.com/elm-style-framework/framework.html>
-  - Note that Exosphere overrides default colors in elm-style-framework, so the colors in this demo will not match up exactly what you will see in Exosphere or its style guide.
-- There is also an Exosphere "style guide" demonstrating use of Exosphere's custom widgets, some of which are modified widgets from elm-style-framework.
+- There is an Exosphere "style guide" demonstrating use of Exosphere's custom widgets.
 
 You can launch a live-updating Exosphere style guide by doing the following:
 - Run `npm run live-style-guide`

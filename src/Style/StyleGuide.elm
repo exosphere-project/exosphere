@@ -74,7 +74,6 @@ intro =
     , Element.paragraph
         []
         [ Element.text "This page demonstrates usage of Exosphere's UI widgets. "
-        , Element.text "See also the style guide for elm-style-framework (TODO link to demo style guide)"
         ]
     ]
 

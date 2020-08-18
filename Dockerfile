@@ -25,9 +25,6 @@ RUN npm install && \
 # Add remainder of files
 COPY . .
 
-RUN git submodule sync --recursive && \
-    git submodule update --init --recursive
-
 RUN elm make src/Exosphere.elm --output elm.js
 EXPOSE 8080
 

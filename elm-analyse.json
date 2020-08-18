@@ -4,6 +4,5 @@
         "SingleFieldRecord": false
     },
     "excludedPaths" : [
-        "elm-style-framework"
     ]
 }
