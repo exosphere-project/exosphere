@@ -174,7 +174,7 @@ createButton projectId expanded =
                     Element.row
                         [ Element.spacing 5 ]
                         [ Element.text "Create"
-                        , upArrow (Element.rgb255 0 0 0) 15
+                        , upArrow (Element.rgb255 255 255 255) 15
                         ]
                 , onPress =
                     Just <|
@@ -193,7 +193,7 @@ createButton projectId expanded =
                     Element.row
                         [ Element.spacing 5 ]
                         [ Element.text "Create"
-                        , downArrow (Element.rgb255 0 0 0) 15
+                        , downArrow (Element.rgb255 255 255 255) 15
                         ]
                 , onPress =
                     Just <|
