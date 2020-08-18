@@ -6,7 +6,6 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Card as Card
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
@@ -400,39 +399,40 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
 
                 RemoteData.Success consoleUrl ->
                     let
-                        flippyCardContents : PasswordVisibility -> Element.Element Msg -> Element.Element Msg
-                        flippyCardContents pwVizOnClick contents =
-                            Element.el
-                                [ Events.onClick
-                                    (ProjectMsg (Helpers.getProjectId project) <|
-                                        SetProjectView <|
-                                            ServerDetail serverUuid
-                                                { serverDetailViewParams | passwordVisibility = pwVizOnClick }
-                                    )
-                                , Element.centerX
-                                , Element.centerY
-                                , Element.height Element.fill
-                                , Element.width Element.fill
+                        passwordShower password =
+                            Element.column
+                                [ Element.spacing 10 ]
+                                [ case serverDetailViewParams.passwordVisibility of
+                                    PasswordShown ->
+                                        copyableText password
+
+                                    PasswordHidden ->
+                                        Element.none
+                                , let
+                                    changeMsg newValue =
+                                        ProjectMsg (Helpers.getProjectId project) <|
+                                            SetProjectView <|
+                                                ServerDetail serverUuid
+                                                    { serverDetailViewParams | passwordVisibility = newValue }
+
+                                    ( buttonText, onPressMsg ) =
+                                        case serverDetailViewParams.passwordVisibility of
+                                            PasswordShown ->
+                                                ( "Hide password"
+                                                , changeMsg PasswordHidden
+                                                )
+
+                                            PasswordHidden ->
+                                                ( "Show password"
+                                                , changeMsg PasswordShown
+                                                )
+                                  in
+                                  Widget.textButton
+                                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                                    { text = buttonText
+                                    , onPress = Just onPressMsg
+                                    }
                                 ]
-                                (Element.el
-                                    [ Element.centerX ]
-                                    contents
-                                )
-
-                        passwordFlippyCard password =
-                            Card.flipping
-                                { width = 550
-                                , height = 30
-                                , activeFront =
-                                    case serverDetailViewParams.passwordVisibility of
-                                        PasswordShown ->
-                                            False
-
-                                        PasswordHidden ->
-                                            True
-                                , front = flippyCardContents PasswordShown <| Element.text "(click to view password)"
-                                , back = flippyCardContents PasswordHidden <| copyableText password
-                                }
 
                         passwordHint =
                             Helpers.getServerExouserPassword details
@@ -442,7 +442,7 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
                                         Element.column
                                             [ Element.spacing 10 ]
                                             [ Element.text "Try logging in with username \"exouser\" and the following password:"
-                                            , passwordFlippyCard password
+                                            , passwordShower password
                                             ]
                                     )
                     in
@@ -461,8 +461,8 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
                             [ Element.text <|
                                 "Launching the console is like connecting a screen, mouse, and keyboard to your server. "
                                     ++ "If your server has a desktop environment then you can interact with it here."
-                            , passwordHint
                             ]
+                        , passwordHint
                         ]
 
         OSTypes.ServerBuilding ->
