@@ -16,6 +16,7 @@ import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
+import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -41,6 +42,7 @@ import Types.Types
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
+import Widget.Style.Material
 
 
 servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
@@ -92,13 +94,6 @@ servers project serverFilter deleteConfirmations =
                                     List.map (\s -> s.osProps.uuid) selectedServers
                             in
                             Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
-
-                    deleteButtonModifiers =
-                        if noServersSelected == True then
-                            [ Modifier.Danger, Modifier.Disabled ]
-
-                        else
-                            [ Modifier.Danger ]
                 in
                 Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
                     [ Element.el VH.heading2 (Element.text "My Servers")
@@ -110,7 +105,11 @@ servers project serverFilter deleteConfirmations =
                             , icon = Input.defaultCheckbox
                             , label = Input.labelRight [] (Element.text "Select All")
                             }
-                        , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
+                        , Widget.textButton
+                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                            { text = "Delete"
+                            , onPress = deleteButtonOnPress
+                            }
                         ]
                     , Input.checkbox []
                         { checked = serverFilter.onlyOwnServers
@@ -217,16 +216,17 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
                                     , OSTypes.ServerBuilding
                                     ]
                           then
-                            Button.button
-                                []
-                                (Just <|
-                                    ProjectMsg projectId <|
-                                        SetProjectView <|
-                                            AttachVolumeModal
-                                                (Just serverUuid)
-                                                Nothing
-                                )
-                                "Attach volume"
+                            Widget.textButton
+                                (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                                { text = "Attach volume"
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                AttachVolumeModal
+                                                    (Just serverUuid)
+                                                    Nothing
+                                }
 
                           else
                             Element.none
@@ -335,16 +335,17 @@ serverStatus projectId server serverDetailViewParams =
                 ]
 
             else
-                [ Button.button
-                    []
-                    (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                ServerDetail
-                                    server.osProps.uuid
-                                    { serverDetailViewParams | verboseStatus = True }
-                    )
-                    "See detail"
+                [ Widget.textButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = "See detail"
+                    , onPress =
+                        Just <|
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ServerDetail
+                                        server.osProps.uuid
+                                        { serverDetailViewParams | verboseStatus = True }
+                    }
                 ]
 
         statusString =
@@ -452,7 +453,12 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
                         [ VH.browserLink
                             appIsElectron
                             consoleUrl
-                            (View.Types.BrowserLinkFancyLabel (Button.button [] Nothing "Console"))
+                            (View.Types.BrowserLinkFancyLabel
+                                (Widget.textButton
+                                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                    { text = "Console", onPress = Just NoOp }
+                                )
+                            )
                         , Element.paragraph []
                             [ Element.text <|
                                 "Launching the console is like connecting a screen, mouse, and keyboard to your server. "
@@ -484,27 +490,29 @@ cockpitInteraction serverOrigin maybeFloatingIp =
                                 Element.column VH.exoColumnAttributes
                                     [ Element.text "Server Dashboard and Terminal are ready..."
                                     , Element.row VH.exoRowAttributes
-                                        [ Button.button
-                                            []
-                                            (Just <|
-                                                OpenNewWindow <|
-                                                    "https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                            )
-                                            "Type commands in a shell!"
+                                        [ Widget.textButton
+                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                            { text = "Type commands in a shell!"
+                                            , onPress =
+                                                Just <|
+                                                    OpenNewWindow <|
+                                                        "https://"
+                                                            ++ floatingIp
+                                                            ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                            }
                                         ]
                                     , Element.row
                                         VH.exoRowAttributes
-                                        [ Button.button
-                                            []
-                                            (Just <|
-                                                OpenNewWindow <|
-                                                    "https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090"
-                                            )
-                                            "Server Dashboard"
+                                        [ Widget.textButton
+                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                            { text = "Server Dashboard"
+                                            , onPress =
+                                                Just <|
+                                                    OpenNewWindow <|
+                                                        "https://"
+                                                            ++ floatingIp
+                                                            ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                            }
                                         ]
                                     ]
                         in
