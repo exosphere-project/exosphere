@@ -1,11 +1,11 @@
 module View.Servers exposing (serverDetail, servers)
 
+import Color
 import Element
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button as Button
 import Framework.Card as Card
 import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
@@ -629,17 +629,33 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
+serverActionSelectModButton : ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
+serverActionSelectModButton selectMod =
+    case selectMod of
+        ServerActions.NoMod ->
+            Widget.textButton (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+
+        ServerActions.Primary ->
+            Widget.textButton (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+
+        ServerActions.Warning ->
+            Widget.textButton (Style.Widgets.Button.warningButton Style.Theme.exoPalette (Color.rgb255 255 221 87))
+
+        ServerActions.Danger ->
+            Widget.textButton (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+
+
 renderActionButton : ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
         [ Element.el
-            [ Element.width <| Element.px 100 ]
+            [ Element.width <| Element.px 120 ]
           <|
-            Button.button
-                serverAction.selectMods
-                actionMsg
-                title
+            serverActionSelectModButton serverAction.selectMod
+                { text = title
+                , onPress = actionMsg
+                }
         , Element.text serverAction.description
 
         -- TODO hover text with description
@@ -654,17 +670,17 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            Button.button
-                serverAction.selectMods
-                actionMsg
-                "Yes"
+            serverActionSelectModButton serverAction.selectMod
+                { text = "Yes"
+                , onPress = actionMsg
+                }
         , Element.el
             []
           <|
-            Button.button
-                [ Modifier.Primary ]
-                cancelMsg
-                "No"
+            serverActionSelectModButton serverAction.selectMod
+                { text = "No"
+                , onPress = cancelMsg
+                }
 
         -- TODO hover text with description
         ]
