@@ -7,7 +7,6 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Framework.Card as Card
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
@@ -20,7 +19,6 @@ import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton as IconButton
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -823,43 +821,51 @@ renderServer project serverFilter deleteConfirmations server =
 
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
-                    , IconButton.iconButton
-                        [ Modifier.Danger, Modifier.Small ]
-                        (Just
-                            (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
-                        )
-                        (Icon.remove (Element.rgb255 255 255 255) 16)
-                    , IconButton.iconButton
-                        [ Modifier.Primary, Modifier.Small ]
-                        (Just
-                            (ProjectMsg
-                                (Helpers.getProjectId project)
-                                (SetProjectView <|
-                                    ListProjectServers
-                                        serverFilter
-                                        (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
+                    , Widget.iconButton
+                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        , text = "Delete"
+                        , onPress =
+                            Just
+                                (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
+                        }
+                    , Widget.iconButton
+                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        { icon = Icon.windowClose (Element.rgb255 0 0 0) 16
+                        , text = "Cancel"
+                        , onPress =
+                            Just
+                                (ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (SetProjectView <|
+                                        ListProjectServers
+                                            serverFilter
+                                            (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
+                                    )
                                 )
-                            )
-                        )
-                        (Icon.windowClose (Element.rgb255 255 255 255) 16)
+                        }
                     ]
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
-                    [ IconButton.iconButton
-                        [ Modifier.Danger, Modifier.Small ]
-                        (Just
-                            (ProjectMsg (Helpers.getProjectId project)
-                                (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
-                            )
-                        )
-                        (Icon.remove (Element.rgb255 255 255 255) 16)
+                    [ Widget.iconButton
+                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        , text = "Delete"
+                        , onPress =
+                            Just
+                                (ProjectMsg (Helpers.getProjectId project)
+                                    (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
+                                )
+                        }
                     ]
 
                 ( False, OSTypes.ServerLocked, _ ) ->
-                    [ IconButton.iconButton
-                        [ Modifier.Disabled, Modifier.Small ]
-                        Nothing
-                        (Icon.remove (Element.rgb255 255 255 255) 16)
+                    [ Widget.iconButton
+                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        , text = "Delete"
+                        , onPress = Nothing
+                        }
                     ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
