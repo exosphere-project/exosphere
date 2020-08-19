@@ -2,11 +2,10 @@ module View.SelectProjects exposing (selectProjects)
 
 import Element
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Theme
 import Types.Types
     exposing
         ( Model
@@ -15,6 +14,8 @@ import Types.Types
         , UnscopedProviderProject
         )
 import View.Helpers as VH
+import Widget
+import Widget.Style.Material
 
 
 selectProjects : Model -> OSTypes.KeystoneUrl -> List UnscopedProviderProject -> Element.Element Msg
@@ -36,12 +37,13 @@ selectProjects model keystoneUrl selectedProjects =
                                     (renderProject keystoneUrl selectedProjects)
                                     projectsAvailable
                                 )
-                                [ Button.button
-                                    [ Modifier.Primary ]
-                                    (Just <|
-                                        RequestProjectLoginFromProvider keystoneUrl provider.keystonePassword selectedProjects
-                                    )
-                                    "Choose"
+                                [ Widget.textButton
+                                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                                    { text = "Choose"
+                                    , onPress =
+                                        Just <|
+                                            RequestProjectLoginFromProvider keystoneUrl provider.keystonePassword selectedProjects
+                                    }
                                 ]
 
                     RemoteData.Loading ->

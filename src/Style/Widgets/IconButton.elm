@@ -1,26 +1,10 @@
-module Style.Widgets.IconButton exposing (chip, iconButton)
+module Style.Widgets.IconButton exposing (chip)
 
 import Element exposing (Element)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button
-import Framework.Modifier exposing (Modifier(..))
 import Style.Widgets.Icon exposing (timesCircle)
-
-
-{-| Generate an Input.button element with an icon and no text label
-
-    iconButton [ Medium, Success, Outlined ] Nothing (edit black 32)
-
--}
-iconButton : List Modifier -> Maybe msg -> Element msg -> Element msg
-iconButton modifiers onPress icon =
-    Input.button
-        (Framework.Button.buttonAttr modifiers)
-        { onPress = onPress
-        , label = icon
-        }
 
 
 chip : Maybe msg -> Element msg -> Element msg

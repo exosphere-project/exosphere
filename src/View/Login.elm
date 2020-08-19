@@ -3,12 +3,13 @@ module View.Login exposing (viewLoginJetstream, viewLoginOpenstack, viewLoginPic
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import OpenStack.Types as OSTypes
+import Style.Theme
 import Types.Types exposing (JetstreamCreds, JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
+import Widget
+import Widget.Style.Material
 
 
 viewLoginPicker : Element.Element Msg
@@ -18,29 +19,31 @@ viewLoginPicker =
         , Element.row VH.exoRowAttributes
             [ Element.column VH.exoColumnAttributes
                 [ Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
-                , Button.button
-                    []
-                    (Just
-                        (SetNonProjectView
-                            (LoginOpenstack
-                                (OSTypes.OpenstackLogin "" "" "" "" "" "")
+                , Widget.textButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Add OpenStack Account"
+                    , onPress =
+                        Just
+                            (SetNonProjectView
+                                (LoginOpenstack
+                                    (OSTypes.OpenstackLogin "" "" "" "" "" "")
+                                )
                             )
-                        )
-                    )
-                    "Add OpenStack Account"
+                    }
                 ]
             , Element.column VH.exoColumnAttributes
                 [ Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
-                , Button.button
-                    []
-                    (Just
-                        (SetNonProjectView
-                            (LoginJetstream
-                                (JetstreamCreds BothJetstreamClouds "" "" "")
+                , Widget.textButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Add Jetstream Cloud Account"
+                    , onPress =
+                        Just
+                            (SetNonProjectView
+                                (LoginJetstream
+                                    (JetstreamCreds BothJetstreamClouds "" "" "")
+                                )
                             )
-                        )
-                    )
-                    "Add Jetstream Cloud Account"
+                    }
                 ]
             ]
         ]
@@ -58,10 +61,12 @@ viewLoginOpenstack model openstackCreds =
             , loginOpenstackOpenRcEntry model openstackCreds
             ]
         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-            (Button.button
-                [ Modifier.Primary ]
-                (Just <| RequestUnscopedToken openstackCreds)
-                "Log In"
+            (Widget.textButton
+                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                { text = "Log In"
+                , onPress =
+                    Just <| RequestUnscopedToken openstackCreds
+                }
             )
         ]
 
@@ -183,10 +188,12 @@ viewLoginJetstream model jetstreamCreds =
                 , selected = Just jetstreamCreds.jetstreamProviderChoice
                 }
             , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                (Button.button
-                    [ Modifier.Primary ]
-                    (Just (JetstreamLogin jetstreamCreds))
-                    "Log In"
+                (Widget.textButton
+                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                    { text = "Log In"
+                    , onPress =
+                        Just (JetstreamLogin jetstreamCreds)
+                    }
                 )
             ]
         ]

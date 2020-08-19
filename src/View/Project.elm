@@ -1,12 +1,10 @@
 module View.Project exposing (project)
 
 import Element
-import Framework.Button as Button
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Set
+import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
-import Style.Widgets.IconButton exposing (iconButton)
 import Types.Types
     exposing
         ( Model
@@ -26,6 +24,8 @@ import View.Helpers as VH
 import View.Images
 import View.Servers
 import View.Volumes
+import Widget
+import Widget.Style.Material
 
 
 project : Model -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
@@ -82,29 +82,38 @@ projectNav p viewParams =
                 Helpers.hostnameFromUrl p.endpoints.keystone
                     ++ " - "
                     ++ p.auth.project.name
-
-        {- TODO nest these somehow, perhaps put the "create server" and "create volume" buttons as a dropdown under a big "Create" button -}
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]
             [ Element.el
                 []
-                (Button.button
-                    []
-                    (Just <|
-                        ProjectMsg (Helpers.getProjectId p) <|
-                            SetProjectView <|
-                                ListProjectServers { onlyOwnServers = False } []
-                    )
-                    "My Servers"
-                )
-            , Element.el []
-                (Button.button
-                    []
-                    (Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| ListProjectVolumes [])
-                    "My Volumes"
-                )
+              <|
+                Widget.textButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "My Servers"
+                    , onPress =
+                        Just <|
+                            ProjectMsg (Helpers.getProjectId p) <|
+                                SetProjectView <|
+                                    ListProjectServers { onlyOwnServers = False } []
+                    }
             , Element.el
+                []
+              <|
+                Widget.textButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "My Volumes"
+                    , onPress =
+                        Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| ListProjectVolumes []
+                    }
+            , Element.el
+                -- TODO replace these
                 [ Element.alignRight ]
-                (Button.button [ Modifier.Muted ] (Just <| ProjectMsg (Helpers.getProjectId p) RemoveProject) "Remove Project")
+              <|
+                Widget.textButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = "Remove Project"
+                    , onPress =
+                        Just <| ProjectMsg (Helpers.getProjectId p) RemoveProject
+                    }
             , Element.el
                 [ Element.alignRight ]
                 (createButton (Helpers.getProjectId p) viewParams.createPopup)
@@ -126,63 +135,69 @@ createButton projectId expanded =
                         , left = 0
                         }
                     ]
-                    [ Button.button
-                        []
-                        (Just <|
-                            ProjectMsg projectId <|
-                                SetProjectView <|
-                                    ListImages
-                                        { searchText = ""
-                                        , tags = Set.empty
-                                        , onlyOwnImages = False
-                                        , expandImageDetails = Set.empty
-                                        }
-                                        { title = "Name"
-                                        , asc = True
-                                        }
-                        )
-                        "Server"
+                    [ Widget.textButton
+                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        { text = "Server"
+                        , onPress =
+                            Just <|
+                                ProjectMsg projectId <|
+                                    SetProjectView <|
+                                        ListImages
+                                            { searchText = ""
+                                            , tags = Set.empty
+                                            , onlyOwnImages = False
+                                            , expandImageDetails = Set.empty
+                                            }
+                                            { title = "Name"
+                                            , asc = True
+                                            }
+                        }
 
                     {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
-                    , Button.button
-                        []
-                        (Just <|
-                            ProjectMsg projectId <|
-                                SetProjectView <|
-                                    CreateVolume "" "10"
-                        )
-                        "Volume"
+                    , Widget.textButton
+                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        { text = "Volume"
+                        , onPress =
+                            Just <|
+                                ProjectMsg projectId <|
+                                    SetProjectView <|
+                                        CreateVolume "" "10"
+                        }
                     ]
         in
         Element.column
             [ Element.below belowStuff ]
-            [ iconButton
-                [ Modifier.Primary ]
-                (Just <|
-                    ProjectMsg projectId <|
-                        ToggleCreatePopup
-                )
-                (Element.row
-                    [ Element.spacing 5 ]
-                    [ Element.text "Create"
-                    , upArrow (Element.rgb255 255 255 255) 15
-                    ]
-                )
+            [ Widget.iconButton
+                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                { text = "Create"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Create"
+                        , upArrow (Element.rgb255 255 255 255) 15
+                        ]
+                , onPress =
+                    Just <|
+                        ProjectMsg projectId <|
+                            ToggleCreatePopup
+                }
             ]
 
     else
         Element.column
             []
-            [ iconButton
-                [ Modifier.Primary ]
-                (Just <|
-                    ProjectMsg projectId <|
-                        ToggleCreatePopup
-                )
-                (Element.row
-                    [ Element.spacing 5 ]
-                    [ Element.text "Create"
-                    , downArrow (Element.rgb255 255 255 255) 15
-                    ]
-                )
+            [ Widget.iconButton
+                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                { text = "Create"
+                , icon =
+                    Element.row
+                        [ Element.spacing 5 ]
+                        [ Element.text "Create"
+                        , downArrow (Element.rgb255 255 255 255) 15
+                        ]
+                , onPress =
+                    Just <|
+                        ProjectMsg projectId <|
+                            ToggleCreatePopup
+                }
             ]

@@ -1,4 +1,0 @@
-[submodule "elm-style-framework"]
-	path = elm-style-framework
-	url = https://github.com/c-mart/elm-style-framework.git
-	branch = luca/updating-019

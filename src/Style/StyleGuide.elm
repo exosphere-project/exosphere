@@ -1,18 +1,20 @@
 module Style.StyleGuide exposing (main)
 
 import Browser
+import Color
 import Element
 import Element.Font as Font
 import Element.Region as Region
-import Framework.Modifier exposing (Modifier(..))
 import Set exposing (Set)
 import Style.Theme exposing (Style)
+import Style.Widgets.Button exposing (dangerButton, warningButton)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
-import Style.Widgets.IconButton exposing (chip, iconButton)
+import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
+import Widget
 
 
 
@@ -21,6 +23,7 @@ import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
+    | NoOp
 
 
 widgets : (Msg -> msg) -> Style style msg -> Model -> List (Element.Element msg)
@@ -44,8 +47,14 @@ widgets msgMapper style model =
     , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
-    , Element.text "Style.Widgets.IconButton.iconButton"
-    , iconButton [ Small, Danger ] Nothing (remove (Element.rgb255 255 255 255) 16)
+    , Element.text "Style.Widgets.Button.dangerButton"
+    , Widget.textButton
+        (dangerButton Style.Theme.exoPalette)
+        { text = "Danger button", onPress = Just (msgMapper NoOp) }
+    , Element.text "Style.Widgets.Button.warningButton"
+    , Widget.textButton
+        (warningButton Style.Theme.exoPalette (Color.rgb255 255 221 87))
+        { text = "Warning button", onPress = Just (msgMapper NoOp) }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText "foobar"
     , Element.text "Style.Widgets.IconButton.chip"
@@ -65,7 +74,6 @@ intro =
     , Element.paragraph
         []
         [ Element.text "This page demonstrates usage of Exosphere's UI widgets. "
-        , Element.text "See also the style guide for elm-style-framework (TODO link to demo style guide)"
         ]
     ]
 
@@ -152,6 +160,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        NoOp ->
+            ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg

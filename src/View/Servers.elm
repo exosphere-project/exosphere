@@ -1,13 +1,11 @@
 module View.Servers exposing (serverDetail, servers)
 
+import Color
 import Element
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Framework.Button as Button
-import Framework.Card as Card
-import Framework.Modifier as Modifier
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Html
@@ -16,10 +14,10 @@ import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
+import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
-import Style.Widgets.IconButton as IconButton
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -41,6 +39,7 @@ import Types.Types
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
+import Widget.Style.Material
 
 
 servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
@@ -92,13 +91,6 @@ servers project serverFilter deleteConfirmations =
                                     List.map (\s -> s.osProps.uuid) selectedServers
                             in
                             Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
-
-                    deleteButtonModifiers =
-                        if noServersSelected == True then
-                            [ Modifier.Danger, Modifier.Disabled ]
-
-                        else
-                            [ Modifier.Danger ]
                 in
                 Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
                     [ Element.el VH.heading2 (Element.text "My Servers")
@@ -110,7 +102,11 @@ servers project serverFilter deleteConfirmations =
                             , icon = Input.defaultCheckbox
                             , label = Input.labelRight [] (Element.text "Select All")
                             }
-                        , Button.button deleteButtonModifiers deleteButtonOnPress "Delete"
+                        , Widget.textButton
+                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                            { text = "Delete"
+                            , onPress = deleteButtonOnPress
+                            }
                         ]
                     , Input.checkbox []
                         { checked = serverFilter.onlyOwnServers
@@ -217,16 +213,17 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
                                     , OSTypes.ServerBuilding
                                     ]
                           then
-                            Button.button
-                                []
-                                (Just <|
-                                    ProjectMsg projectId <|
-                                        SetProjectView <|
-                                            AttachVolumeModal
-                                                (Just serverUuid)
-                                                Nothing
-                                )
-                                "Attach volume"
+                            Widget.textButton
+                                (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                                { text = "Attach volume"
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                AttachVolumeModal
+                                                    (Just serverUuid)
+                                                    Nothing
+                                }
 
                           else
                             Element.none
@@ -335,16 +332,17 @@ serverStatus projectId server serverDetailViewParams =
                 ]
 
             else
-                [ Button.button
-                    []
-                    (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                ServerDetail
-                                    server.osProps.uuid
-                                    { serverDetailViewParams | verboseStatus = True }
-                    )
-                    "See detail"
+                [ Widget.textButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = "See detail"
+                    , onPress =
+                        Just <|
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ServerDetail
+                                        server.osProps.uuid
+                                        { serverDetailViewParams | verboseStatus = True }
+                    }
                 ]
 
         statusString =
@@ -401,39 +399,40 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
 
                 RemoteData.Success consoleUrl ->
                     let
-                        flippyCardContents : PasswordVisibility -> Element.Element Msg -> Element.Element Msg
-                        flippyCardContents pwVizOnClick contents =
-                            Element.el
-                                [ Events.onClick
-                                    (ProjectMsg (Helpers.getProjectId project) <|
-                                        SetProjectView <|
-                                            ServerDetail serverUuid
-                                                { serverDetailViewParams | passwordVisibility = pwVizOnClick }
-                                    )
-                                , Element.centerX
-                                , Element.centerY
-                                , Element.height Element.fill
-                                , Element.width Element.fill
+                        passwordShower password =
+                            Element.column
+                                [ Element.spacing 10 ]
+                                [ case serverDetailViewParams.passwordVisibility of
+                                    PasswordShown ->
+                                        copyableText password
+
+                                    PasswordHidden ->
+                                        Element.none
+                                , let
+                                    changeMsg newValue =
+                                        ProjectMsg (Helpers.getProjectId project) <|
+                                            SetProjectView <|
+                                                ServerDetail serverUuid
+                                                    { serverDetailViewParams | passwordVisibility = newValue }
+
+                                    ( buttonText, onPressMsg ) =
+                                        case serverDetailViewParams.passwordVisibility of
+                                            PasswordShown ->
+                                                ( "Hide password"
+                                                , changeMsg PasswordHidden
+                                                )
+
+                                            PasswordHidden ->
+                                                ( "Show password"
+                                                , changeMsg PasswordShown
+                                                )
+                                  in
+                                  Widget.textButton
+                                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                                    { text = buttonText
+                                    , onPress = Just onPressMsg
+                                    }
                                 ]
-                                (Element.el
-                                    [ Element.centerX ]
-                                    contents
-                                )
-
-                        passwordFlippyCard password =
-                            Card.flipping
-                                { width = 550
-                                , height = 30
-                                , activeFront =
-                                    case serverDetailViewParams.passwordVisibility of
-                                        PasswordShown ->
-                                            False
-
-                                        PasswordHidden ->
-                                            True
-                                , front = flippyCardContents PasswordShown <| Element.text "(click to view password)"
-                                , back = flippyCardContents PasswordHidden <| copyableText password
-                                }
 
                         passwordHint =
                             Helpers.getServerExouserPassword details
@@ -443,7 +442,7 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
                                         Element.column
                                             [ Element.spacing 10 ]
                                             [ Element.text "Try logging in with username \"exouser\" and the following password:"
-                                            , passwordFlippyCard password
+                                            , passwordShower password
                                             ]
                                     )
                     in
@@ -452,13 +451,18 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
                         [ VH.browserLink
                             appIsElectron
                             consoleUrl
-                            (View.Types.BrowserLinkFancyLabel (Button.button [] Nothing "Console"))
+                            (View.Types.BrowserLinkFancyLabel
+                                (Widget.textButton
+                                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                    { text = "Console", onPress = Just NoOp }
+                                )
+                            )
                         , Element.paragraph []
                             [ Element.text <|
                                 "Launching the console is like connecting a screen, mouse, and keyboard to your server. "
                                     ++ "If your server has a desktop environment then you can interact with it here."
-                            , passwordHint
                             ]
+                        , passwordHint
                         ]
 
         OSTypes.ServerBuilding ->
@@ -484,27 +488,29 @@ cockpitInteraction serverOrigin maybeFloatingIp =
                                 Element.column VH.exoColumnAttributes
                                     [ Element.text "Server Dashboard and Terminal are ready..."
                                     , Element.row VH.exoRowAttributes
-                                        [ Button.button
-                                            []
-                                            (Just <|
-                                                OpenNewWindow <|
-                                                    "https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                            )
-                                            "Type commands in a shell!"
+                                        [ Widget.textButton
+                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                            { text = "Type commands in a shell!"
+                                            , onPress =
+                                                Just <|
+                                                    OpenNewWindow <|
+                                                        "https://"
+                                                            ++ floatingIp
+                                                            ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                            }
                                         ]
                                     , Element.row
                                         VH.exoRowAttributes
-                                        [ Button.button
-                                            []
-                                            (Just <|
-                                                OpenNewWindow <|
-                                                    "https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090"
-                                            )
-                                            "Server Dashboard"
+                                        [ Widget.textButton
+                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                            { text = "Server Dashboard"
+                                            , onPress =
+                                                Just <|
+                                                    OpenNewWindow <|
+                                                        "https://"
+                                                            ++ floatingIp
+                                                            ++ ":9090"
+                                            }
                                         ]
                                     ]
                         in
@@ -621,17 +627,33 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
+serverActionSelectModButton : ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
+serverActionSelectModButton selectMod =
+    case selectMod of
+        ServerActions.NoMod ->
+            Widget.textButton (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+
+        ServerActions.Primary ->
+            Widget.textButton (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+
+        ServerActions.Warning ->
+            Widget.textButton (Style.Widgets.Button.warningButton Style.Theme.exoPalette (Color.rgb255 255 221 87))
+
+        ServerActions.Danger ->
+            Widget.textButton (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+
+
 renderActionButton : ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
         [ Element.el
-            [ Element.width <| Element.px 100 ]
+            [ Element.width <| Element.px 120 ]
           <|
-            Button.button
-                serverAction.selectMods
-                actionMsg
-                title
+            serverActionSelectModButton serverAction.selectMod
+                { text = title
+                , onPress = actionMsg
+                }
         , Element.text serverAction.description
 
         -- TODO hover text with description
@@ -646,17 +668,17 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            Button.button
-                serverAction.selectMods
-                actionMsg
-                "Yes"
+            serverActionSelectModButton serverAction.selectMod
+                { text = "Yes"
+                , onPress = actionMsg
+                }
         , Element.el
             []
           <|
-            Button.button
-                [ Modifier.Primary ]
-                cancelMsg
-                "No"
+            Widget.textButton (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                { text = "No"
+                , onPress = cancelMsg
+                }
 
         -- TODO hover text with description
         ]
@@ -799,43 +821,51 @@ renderServer project serverFilter deleteConfirmations server =
 
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
-                    , IconButton.iconButton
-                        [ Modifier.Danger, Modifier.Small ]
-                        (Just
-                            (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
-                        )
-                        (Icon.remove (Element.rgb255 255 255 255) 16)
-                    , IconButton.iconButton
-                        [ Modifier.Primary, Modifier.Small ]
-                        (Just
-                            (ProjectMsg
-                                (Helpers.getProjectId project)
-                                (SetProjectView <|
-                                    ListProjectServers
-                                        serverFilter
-                                        (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
+                    , Widget.iconButton
+                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        , text = "Delete"
+                        , onPress =
+                            Just
+                                (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
+                        }
+                    , Widget.iconButton
+                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        { icon = Icon.windowClose (Element.rgb255 0 0 0) 16
+                        , text = "Cancel"
+                        , onPress =
+                            Just
+                                (ProjectMsg
+                                    (Helpers.getProjectId project)
+                                    (SetProjectView <|
+                                        ListProjectServers
+                                            serverFilter
+                                            (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
+                                    )
                                 )
-                            )
-                        )
-                        (Icon.windowClose (Element.rgb255 255 255 255) 16)
+                        }
                     ]
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
-                    [ IconButton.iconButton
-                        [ Modifier.Danger, Modifier.Small ]
-                        (Just
-                            (ProjectMsg (Helpers.getProjectId project)
-                                (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
-                            )
-                        )
-                        (Icon.remove (Element.rgb255 255 255 255) 16)
+                    [ Widget.iconButton
+                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        , text = "Delete"
+                        , onPress =
+                            Just
+                                (ProjectMsg (Helpers.getProjectId project)
+                                    (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
+                                )
+                        }
                     ]
 
                 ( False, OSTypes.ServerLocked, _ ) ->
-                    [ IconButton.iconButton
-                        [ Modifier.Disabled, Modifier.Small ]
-                        Nothing
-                        (Icon.remove (Element.rgb255 255 255 255) 16)
+                    [ Widget.iconButton
+                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        , text = "Delete"
+                        , onPress = Nothing
+                        }
                     ]
     in
     Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])

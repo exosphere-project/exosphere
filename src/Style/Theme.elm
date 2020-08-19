@@ -33,7 +33,7 @@ materialStyle =
 
 exoPalette : Material.Palette
 exoPalette =
-    { primary = Color.rgb255 0 136 206
+    { primary = Color.rgb255 0 108 163
 
     -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
     , secondary = Color.rgb255 96 239 255
