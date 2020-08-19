@@ -509,7 +509,7 @@ cockpitInteraction serverOrigin maybeFloatingIp =
                                                     OpenNewWindow <|
                                                         "https://"
                                                             ++ floatingIp
-                                                            ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                                            ++ ":9090"
                                             }
                                         ]
                                     ]
