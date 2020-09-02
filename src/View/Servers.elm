@@ -128,19 +128,19 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
         ]
 
 
-serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-serverDetail appIsElectron project serverUuid serverDetailViewParams =
+serverDetail : Project -> Bool -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail project appIsElectron serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case Helpers.serverLookup project serverUuid of
         Just server ->
-            serverDetail_ appIsElectron project serverDetailViewParams server
+            serverDetail_ project appIsElectron serverDetailViewParams server
 
         Nothing ->
             Element.text "No server found"
 
 
-serverDetail_ : Bool -> Project -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverDetail_ appIsElectron project serverDetailViewParams server =
+serverDetail_ : Project -> Bool -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ project appIsElectron serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -197,7 +197,7 @@ serverDetail_ appIsElectron project serverDetailViewParams server =
                 (Element.text "Server Details")
             , passwordVulnWarning appIsElectron server
             , VH.compactKVRow "Name" (Element.text server.osProps.name)
-            , VH.compactKVRow "Status" (serverStatus projectId server serverDetailViewParams)
+            , VH.compactKVRow "Status" (serverStatus projectId serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
             , VH.compactKVRow "Image" (Element.text imageText)
@@ -205,10 +205,10 @@ serverDetail_ appIsElectron project serverDetailViewParams server =
             , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
             , VH.compactKVRow "IP addresses"
                 (renderIpAddresses
-                    details.ipAddresses
                     projectId
                     server.osProps.uuid
                     serverDetailViewParams
+                    details.ipAddresses
                 )
             , Element.el VH.heading3 (Element.text "Volumes Attached")
             , serverVolumes project server
@@ -248,13 +248,13 @@ serverDetail_ appIsElectron project serverDetailViewParams server =
             , Element.el VH.heading3 (Element.text "SSH")
             , sshInstructions maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Console")
-            , consoleLink appIsElectron project server server.osProps.uuid serverDetailViewParams
+            , consoleLink project appIsElectron serverDetailViewParams server server.osProps.uuid
             , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
             , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
             [ Element.el VH.heading3 (Element.text "Server Actions")
-            , viewServerActions projectId server serverDetailViewParams
+            , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
             , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
             ]
@@ -288,8 +288,8 @@ passwordVulnWarning appIsElectron server =
                 Element.none
 
 
-serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
-serverStatus projectId server serverDetailViewParams =
+serverStatus : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverStatus projectId serverDetailViewParams server =
     let
         details =
             server.osProps.details
@@ -392,8 +392,8 @@ sshInstructions maybeFloatingIp =
             copyableText ("exouser@" ++ floatingIp)
 
 
-consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-consoleLink appIsElectron project server serverUuid serverDetailViewParams =
+consoleLink : Project -> Bool -> ServerDetailViewParams -> Server -> OSTypes.ServerUuid -> Element.Element Msg
+consoleLink project appIsElectron serverDetailViewParams server serverUuid =
     let
         details =
             server.osProps.details
@@ -545,23 +545,23 @@ cockpitInteraction serverOrigin maybeFloatingIp =
             )
 
 
-viewServerActions : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
-viewServerActions projectId server serverDetailViewParams =
+viewServerActions : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+viewServerActions projectId serverDetailViewParams server =
     Element.column
         [ Element.spacingXY 0 10 ]
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
                 List.map
-                    (renderServerActionButton projectId server serverDetailViewParams)
+                    (renderServerActionButton projectId serverDetailViewParams server)
                     (ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus)
 
             Just _ ->
                 []
 
 
-renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> ServerActions.ServerAction -> Element.Element Msg
-renderServerActionButton projectId server serverDetailViewParams serverAction =
+renderServerActionButton : ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton projectId serverDetailViewParams server serverAction =
     let
         displayConfirmation =
             case serverDetailViewParams.serverActionNamePendingConfirmation of
@@ -889,8 +889,8 @@ renderServer projectId userUuid serverFilter deleteConfirmations server =
         )
 
 
-renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-renderIpAddresses ipAddresses projectId serverUuid serverDetailViewParams =
+renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
+renderIpAddresses projectId serverUuid serverDetailViewParams ipAddresses =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =

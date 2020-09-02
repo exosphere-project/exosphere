@@ -40,7 +40,7 @@ project model p viewParams viewConstructor =
                     View.Servers.serverList p serverFilter deleteConfirmations
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.Servers.serverDetail model.isElectron p serverUuid serverDetailViewParams
+                    View.Servers.serverDetail p model.isElectron serverDetailViewParams serverUuid
 
                 CreateServer createServerRequest ->
                     View.CreateServer.createServer p createServerRequest
