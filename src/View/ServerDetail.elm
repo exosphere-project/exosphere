@@ -1,4 +1,4 @@
-module View.Servers exposing (serverDetail)
+module View.ServerDetail exposing (serverDetail)
 
 import Color
 import Element
