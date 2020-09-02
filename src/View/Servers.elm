@@ -1,4 +1,4 @@
-module View.Servers exposing (serverDetail, servers)
+module View.Servers exposing (serverDetail, serverList)
 
 import Color
 import Element
@@ -42,8 +42,8 @@ import Widget
 import Widget.Style.Material
 
 
-servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
-servers project serverFilter deleteConfirmations =
+serverList : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
+serverList project serverFilter deleteConfirmations =
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
             Element.paragraph [] [ Element.text "Please wait..." ]

@@ -37,7 +37,7 @@ project model p viewParams viewConstructor =
                     View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
 
                 ListProjectServers serverFilter deleteConfirmations ->
-                    View.Servers.servers p serverFilter deleteConfirmations
+                    View.Servers.serverList p serverFilter deleteConfirmations
 
                 ServerDetail serverUuid serverDetailViewParams ->
                     View.Servers.serverDetail model.isElectron p serverUuid serverDetailViewParams
