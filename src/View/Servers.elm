@@ -126,128 +126,133 @@ serverList_ project serverFilter deleteConfirmations servers =
 
 serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
 serverDetail appIsElectron project serverUuid serverDetailViewParams =
-    Helpers.serverLookup project serverUuid
-        |> Maybe.withDefault (Element.text "No server found")
-        << Maybe.map
-            (\server ->
-                let
-                    details =
-                        server.osProps.details
+    case Helpers.serverLookup project serverUuid of
+        Just server ->
+            serverDetail_ appIsElectron project serverDetailViewParams server
 
-                    flavorText =
-                        Helpers.flavorLookup project details.flavorUuid
-                            |> Maybe.map .name
-                            |> Maybe.withDefault "Unknown flavor"
+        Nothing ->
+            Element.text "No server found"
 
-                    imageText =
-                        let
-                            maybeImageName =
-                                Helpers.imageLookup
-                                    project
-                                    details.imageUuid
-                                    |> Maybe.map .name
 
-                            maybeVolBackedImageName =
-                                let
-                                    vols =
-                                        RemoteData.withDefault [] project.volumes
-                                in
-                                Helpers.getBootVol vols serverUuid
-                                    |> Maybe.andThen .imageMetadata
-                                    |> Maybe.map .name
-                        in
-                        case maybeImageName of
-                            Just name ->
-                                name
+serverDetail_ : Bool -> Project -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ appIsElectron project serverDetailViewParams server =
+    let
+        details =
+            server.osProps.details
 
-                            Nothing ->
-                                case maybeVolBackedImageName of
-                                    Just name_ ->
-                                        name_
+        flavorText =
+            Helpers.flavorLookup project details.flavorUuid
+                |> Maybe.map .name
+                |> Maybe.withDefault "Unknown flavor"
 
-                                    Nothing ->
-                                        "N/A"
+        imageText =
+            let
+                maybeImageName =
+                    Helpers.imageLookup
+                        project
+                        details.imageUuid
+                        |> Maybe.map .name
 
-                    maybeFloatingIp =
-                        Helpers.getServerFloatingIp details.ipAddresses
+                maybeVolBackedImageName =
+                    let
+                        vols =
+                            RemoteData.withDefault [] project.volumes
+                    in
+                    Helpers.getBootVol vols server.osProps.uuid
+                        |> Maybe.andThen .imageMetadata
+                        |> Maybe.map .name
+            in
+            case maybeImageName of
+                Just name ->
+                    name
 
-                    projectId =
-                        Helpers.getProjectId project
-                in
-                Element.wrappedRow []
-                    [ Element.column
-                        (Element.alignTop
-                            :: Element.width (Element.px 585)
-                            :: VH.exoColumnAttributes
-                        )
-                        [ Element.el
-                            VH.heading2
-                            (Element.text "Server Details")
-                        , passwordVulnWarning appIsElectron server
-                        , VH.compactKVRow "Name" (Element.text server.osProps.name)
-                        , VH.compactKVRow "Status" (serverStatus projectId server serverDetailViewParams)
-                        , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
-                        , VH.compactKVRow "Created on" (Element.text details.created)
-                        , VH.compactKVRow "Image" (Element.text imageText)
-                        , VH.compactKVRow "Flavor" (Element.text flavorText)
-                        , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                        , VH.compactKVRow "IP addresses"
-                            (renderIpAddresses
-                                details.ipAddresses
-                                projectId
-                                server.osProps.uuid
-                                serverDetailViewParams
-                            )
-                        , Element.el VH.heading3 (Element.text "Volumes Attached")
-                        , serverVolumes project server
-                        , case Helpers.getVolsAttachedToServer project server of
-                            [] ->
-                                Element.none
+                Nothing ->
+                    case maybeVolBackedImageName of
+                        Just name_ ->
+                            name_
 
-                            _ ->
-                                Element.paragraph [ Font.size 11 ] <|
-                                    [ Element.text "* Volume will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)." ]
-                        , if
-                            not <|
-                                List.member
-                                    server.osProps.details.openstackStatus
-                                    [ OSTypes.ServerShelved
-                                    , OSTypes.ServerShelvedOffloaded
-                                    , OSTypes.ServerError
-                                    , OSTypes.ServerSoftDeleted
-                                    , OSTypes.ServerBuilding
-                                    ]
-                          then
-                            Widget.textButton
-                                (Widget.Style.Material.textButton Style.Theme.exoPalette)
-                                { text = "Attach volume"
-                                , onPress =
-                                    Just <|
-                                        ProjectMsg projectId <|
-                                            SetProjectView <|
-                                                AttachVolumeModal
-                                                    (Just serverUuid)
-                                                    Nothing
-                                }
+                        Nothing ->
+                            "N/A"
 
-                          else
-                            Element.none
-                        , Element.el VH.heading2 (Element.text "Interact with server")
-                        , Element.el VH.heading3 (Element.text "SSH")
-                        , sshInstructions maybeFloatingIp
-                        , Element.el VH.heading3 (Element.text "Console")
-                        , consoleLink appIsElectron project server serverUuid serverDetailViewParams
-                        , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
-                        , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
-                        ]
-                    , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
-                        [ Element.el VH.heading3 (Element.text "Server Actions")
-                        , viewServerActions projectId server serverDetailViewParams
-                        , Element.el VH.heading3 (Element.text "System Resource Usage")
-                        , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
-                        ]
-                    ]
+        maybeFloatingIp =
+            Helpers.getServerFloatingIp details.ipAddresses
+
+        projectId =
+            Helpers.getProjectId project
+    in
+    Element.wrappedRow []
+        [ Element.column
+            (Element.alignTop
+                :: Element.width (Element.px 585)
+                :: VH.exoColumnAttributes
             )
+            [ Element.el
+                VH.heading2
+                (Element.text "Server Details")
+            , passwordVulnWarning appIsElectron server
+            , VH.compactKVRow "Name" (Element.text server.osProps.name)
+            , VH.compactKVRow "Status" (serverStatus projectId server serverDetailViewParams)
+            , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
+            , VH.compactKVRow "Created on" (Element.text details.created)
+            , VH.compactKVRow "Image" (Element.text imageText)
+            , VH.compactKVRow "Flavor" (Element.text flavorText)
+            , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
+            , VH.compactKVRow "IP addresses"
+                (renderIpAddresses
+                    details.ipAddresses
+                    projectId
+                    server.osProps.uuid
+                    serverDetailViewParams
+                )
+            , Element.el VH.heading3 (Element.text "Volumes Attached")
+            , serverVolumes project server
+            , case Helpers.getVolsAttachedToServer project server of
+                [] ->
+                    Element.none
+
+                _ ->
+                    Element.paragraph [ Font.size 11 ] <|
+                        [ Element.text "* Volume will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)." ]
+            , if
+                not <|
+                    List.member
+                        server.osProps.details.openstackStatus
+                        [ OSTypes.ServerShelved
+                        , OSTypes.ServerShelvedOffloaded
+                        , OSTypes.ServerError
+                        , OSTypes.ServerSoftDeleted
+                        , OSTypes.ServerBuilding
+                        ]
+              then
+                Widget.textButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = "Attach volume"
+                    , onPress =
+                        Just <|
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    AttachVolumeModal
+                                        (Just server.osProps.uuid)
+                                        Nothing
+                    }
+
+              else
+                Element.none
+            , Element.el VH.heading2 (Element.text "Interact with server")
+            , Element.el VH.heading3 (Element.text "SSH")
+            , sshInstructions maybeFloatingIp
+            , Element.el VH.heading3 (Element.text "Console")
+            , consoleLink appIsElectron project server server.osProps.uuid serverDetailViewParams
+            , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
+            , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
+            ]
+        , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
+            [ Element.el VH.heading3 (Element.text "Server Actions")
+            , viewServerActions projectId server serverDetailViewParams
+            , Element.el VH.heading3 (Element.text "System Resource Usage")
+            , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
+            ]
+        ]
 
 
 passwordVulnWarning : Bool -> Server -> Element.Element Msg
