@@ -59,15 +59,17 @@ serverList project serverFilter deleteConfirmations =
                 Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
             else
-                serverList_ project serverFilter deleteConfirmations servers
+                serverList_
+                    (Helpers.getProjectId project)
+                    project.auth.user.uuid
+                    serverFilter
+                    deleteConfirmations
+                    servers
 
 
-serverList_ : Project -> ServerFilter -> List DeleteConfirmation -> List Server -> Element.Element Msg
-serverList_ project serverFilter deleteConfirmations servers =
+serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List DeleteConfirmation -> List Server -> Element.Element Msg
+serverList_ projectId userUuid serverFilter deleteConfirmations servers =
     let
-        userUuid =
-            project.auth.user.uuid
-
         someServers =
             if serverFilter.onlyOwnServers == True then
                 List.filter (\s -> s.osProps.details.userUuid == userUuid) servers
@@ -95,7 +97,7 @@ serverList_ project serverFilter deleteConfirmations servers =
                     uuidsToDelete =
                         List.map (\s -> s.osProps.uuid) selectedServers
                 in
-                Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
+                Just (ProjectMsg projectId (RequestDeleteServers uuidsToDelete))
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2 (Element.text "My Servers")
@@ -103,7 +105,7 @@ serverList_ project serverFilter deleteConfirmations servers =
             [ Element.text "Bulk Actions"
             , Input.checkbox []
                 { checked = allServersSelected
-                , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
+                , onChange = \new -> ProjectMsg projectId (SelectAllServers new)
                 , icon = Input.defaultCheckbox
                 , label = Input.labelRight [] (Element.text "Select All")
                 }
@@ -115,12 +117,12 @@ serverList_ project serverFilter deleteConfirmations servers =
             ]
         , Input.checkbox []
             { checked = serverFilter.onlyOwnServers
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
+            , onChange = \new -> ProjectMsg projectId <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only servers created by me")
             }
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-            (List.map (renderServer project serverFilter deleteConfirmations) someServers)
+            (List.map (renderServer projectId userUuid serverFilter deleteConfirmations) someServers)
         ]
 
 
@@ -750,12 +752,9 @@ resourceUsageGraphs serverOrigin maybeFloatingIp =
             )
 
 
-renderServer : Project -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
-renderServer project serverFilter deleteConfirmations server =
+renderServer : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
+renderServer projectId userUuid serverFilter deleteConfirmations server =
     let
-        userUuid =
-            project.auth.user.uuid
-
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
@@ -764,7 +763,7 @@ renderServer project serverFilter deleteConfirmations server =
                 OSTypes.ServerUnlocked ->
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = server.exoProps.selected
-                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
+                        , onChange = \new -> ProjectMsg projectId (SelectServer server new)
                         , icon = Input.defaultCheckbox
                         , label = Input.labelHidden server.osProps.name
                         }
@@ -797,7 +796,7 @@ renderServer project serverFilter deleteConfirmations server =
 
         serverNameClickEvent : Msg
         serverNameClickEvent =
-            ProjectMsg (Helpers.getProjectId project) <|
+            ProjectMsg projectId <|
                 SetProjectView <|
                     ServerDetail
                         server.osProps.uuid
@@ -837,7 +836,7 @@ renderServer project serverFilter deleteConfirmations server =
                         , text = "Delete"
                         , onPress =
                             Just
-                                (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
+                                (ProjectMsg projectId (RequestDeleteServer server.osProps.uuid))
                         }
                     , Widget.iconButton
                         (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
@@ -846,7 +845,7 @@ renderServer project serverFilter deleteConfirmations server =
                         , onPress =
                             Just
                                 (ProjectMsg
-                                    (Helpers.getProjectId project)
+                                    projectId
                                     (SetProjectView <|
                                         ListProjectServers
                                             serverFilter
@@ -863,7 +862,7 @@ renderServer project serverFilter deleteConfirmations server =
                         , text = "Delete"
                         , onPress =
                             Just
-                                (ProjectMsg (Helpers.getProjectId project)
+                                (ProjectMsg projectId
                                     (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
                                 )
                         }
