@@ -44,6 +44,7 @@ import Widget.Style.Material
 
 serverList : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
 serverList project serverFilter deleteConfirmations =
+    {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
             Element.paragraph [] [ Element.text "Please wait..." ]
@@ -69,6 +70,7 @@ serverList project serverFilter deleteConfirmations =
 
 serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List DeleteConfirmation -> List Server -> Element.Element Msg
 serverList_ projectId userUuid serverFilter deleteConfirmations servers =
+    {- Render a list of servers -}
     let
         someServers =
             if serverFilter.onlyOwnServers == True then
@@ -128,6 +130,7 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
 
 serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
 serverDetail appIsElectron project serverUuid serverDetailViewParams =
+    {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case Helpers.serverLookup project serverUuid of
         Just server ->
             serverDetail_ appIsElectron project serverDetailViewParams server
@@ -138,6 +141,7 @@ serverDetail appIsElectron project serverUuid serverDetailViewParams =
 
 serverDetail_ : Bool -> Project -> ServerDetailViewParams -> Server -> Element.Element Msg
 serverDetail_ appIsElectron project serverDetailViewParams server =
+    {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
             server.osProps.details
