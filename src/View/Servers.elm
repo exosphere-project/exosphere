@@ -54,26 +54,26 @@ serverList project serverFilter deleteConfirmations =
         ( RDPP.DontHave, RDPP.Loading _ ) ->
             Element.paragraph [] [ Element.text "Loading..." ]
 
-        ( RDPP.DoHave allServers _, _ ) ->
-            if List.isEmpty allServers then
+        ( RDPP.DoHave servers _, _ ) ->
+            if List.isEmpty servers then
                 Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
             else
-                serverList_ project serverFilter deleteConfirmations allServers
+                serverList_ project serverFilter deleteConfirmations servers
 
 
 serverList_ : Project -> ServerFilter -> List DeleteConfirmation -> List Server -> Element.Element Msg
-serverList_ project serverFilter deleteConfirmations allServers =
+serverList_ project serverFilter deleteConfirmations servers =
     let
         userUuid =
             project.auth.user.uuid
 
         someServers =
             if serverFilter.onlyOwnServers == True then
-                List.filter (\s -> s.osProps.details.userUuid == userUuid) allServers
+                List.filter (\s -> s.osProps.details.userUuid == userUuid) servers
 
             else
-                allServers
+                servers
 
         noServersSelected =
             List.any (\s -> s.exoProps.selected) someServers |> not
