@@ -248,7 +248,7 @@ serverDetail_ project appIsElectron serverDetailViewParams server =
             , Element.el VH.heading3 (Element.text "SSH")
             , sshInstructions maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Console")
-            , consoleLink project appIsElectron serverDetailViewParams server server.osProps.uuid
+            , consoleLink projectId appIsElectron serverDetailViewParams server server.osProps.uuid
             , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
             , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
             ]
@@ -392,8 +392,8 @@ sshInstructions maybeFloatingIp =
             copyableText ("exouser@" ++ floatingIp)
 
 
-consoleLink : Project -> Bool -> ServerDetailViewParams -> Server -> OSTypes.ServerUuid -> Element.Element Msg
-consoleLink project appIsElectron serverDetailViewParams server serverUuid =
+consoleLink : ProjectIdentifier -> Bool -> ServerDetailViewParams -> Server -> OSTypes.ServerUuid -> Element.Element Msg
+consoleLink projectId appIsElectron serverDetailViewParams server serverUuid =
     let
         details =
             server.osProps.details
@@ -426,7 +426,7 @@ consoleLink project appIsElectron serverDetailViewParams server serverUuid =
                                         Element.none
                                 , let
                                     changeMsg newValue =
-                                        ProjectMsg (Helpers.getProjectId project) <|
+                                        ProjectMsg projectId <|
                                             SetProjectView <|
                                                 ServerDetail serverUuid
                                                     { serverDetailViewParams | passwordVisibility = newValue }
