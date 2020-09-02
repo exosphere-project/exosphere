@@ -59,64 +59,69 @@ serverList project serverFilter deleteConfirmations =
                 Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
 
             else
+                serverList_ project serverFilter deleteConfirmations allServers
+
+
+serverList_ : Project -> ServerFilter -> List DeleteConfirmation -> List Server -> Element.Element Msg
+serverList_ project serverFilter deleteConfirmations allServers =
+    let
+        userUuid =
+            project.auth.user.uuid
+
+        someServers =
+            if serverFilter.onlyOwnServers == True then
+                List.filter (\s -> s.osProps.details.userUuid == userUuid) allServers
+
+            else
+                allServers
+
+        noServersSelected =
+            List.any (\s -> s.exoProps.selected) someServers |> not
+
+        allServersSelected =
+            someServers
+                |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+                |> List.all (\s -> s.exoProps.selected)
+
+        selectedServers =
+            List.filter (\s -> s.exoProps.selected) someServers
+
+        deleteButtonOnPress =
+            if noServersSelected == True then
+                Nothing
+
+            else
                 let
-                    userUuid =
-                        project.auth.user.uuid
-
-                    someServers =
-                        if serverFilter.onlyOwnServers == True then
-                            List.filter (\s -> s.osProps.details.userUuid == userUuid) allServers
-
-                        else
-                            allServers
-
-                    noServersSelected =
-                        List.any (\s -> s.exoProps.selected) someServers |> not
-
-                    allServersSelected =
-                        someServers
-                            |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
-                            |> List.all (\s -> s.exoProps.selected)
-
-                    selectedServers =
-                        List.filter (\s -> s.exoProps.selected) someServers
-
-                    deleteButtonOnPress =
-                        if noServersSelected == True then
-                            Nothing
-
-                        else
-                            let
-                                uuidsToDelete =
-                                    List.map (\s -> s.osProps.uuid) selectedServers
-                            in
-                            Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
+                    uuidsToDelete =
+                        List.map (\s -> s.osProps.uuid) selectedServers
                 in
-                Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                    [ Element.el VH.heading2 (Element.text "My Servers")
-                    , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
-                        [ Element.text "Bulk Actions"
-                        , Input.checkbox []
-                            { checked = allServersSelected
-                            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
-                            , icon = Input.defaultCheckbox
-                            , label = Input.labelRight [] (Element.text "Select All")
-                            }
-                        , Widget.textButton
-                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
-                            { text = "Delete"
-                            , onPress = deleteButtonOnPress
-                            }
-                        ]
-                    , Input.checkbox []
-                        { checked = serverFilter.onlyOwnServers
-                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
-                        , icon = Input.defaultCheckbox
-                        , label = Input.labelRight [] (Element.text "Show only servers created by me")
-                        }
-                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-                        (List.map (renderServer project serverFilter deleteConfirmations) someServers)
-                    ]
+                Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
+    in
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.el VH.heading2 (Element.text "My Servers")
+        , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
+            [ Element.text "Bulk Actions"
+            , Input.checkbox []
+                { checked = allServersSelected
+                , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
+                , icon = Input.defaultCheckbox
+                , label = Input.labelRight [] (Element.text "Select All")
+                }
+            , Widget.textButton
+                (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                { text = "Delete"
+                , onPress = deleteButtonOnPress
+                }
+            ]
+        , Input.checkbox []
+            { checked = serverFilter.onlyOwnServers
+            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
+            , icon = Input.defaultCheckbox
+            , label = Input.labelRight [] (Element.text "Show only servers created by me")
+            }
+        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
+            (List.map (renderServer project serverFilter deleteConfirmations) someServers)
+        ]
 
 
 serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
