@@ -18,7 +18,6 @@ import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , DeleteConfirmation
         , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -29,7 +28,6 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , ServerDetailViewParams
-        , ServerFilter
         , ServerOrigin(..)
         , ViewState(..)
         )

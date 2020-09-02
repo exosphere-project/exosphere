@@ -25,7 +25,6 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
-        , ServerDetailViewParams
         , ServerFilter
         , ServerOrigin(..)
         , ViewState(..)
