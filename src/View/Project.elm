@@ -22,7 +22,8 @@ import View.CreateServer
 import View.CreateServerImage
 import View.Helpers as VH
 import View.Images
-import View.Servers
+import View.ServerDetail
+import View.ServerList
 import View.Volumes
 import Widget
 import Widget.Style.Material
@@ -37,10 +38,10 @@ project model p viewParams viewConstructor =
                     View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
 
                 ListProjectServers serverFilter deleteConfirmations ->
-                    View.Servers.servers p serverFilter deleteConfirmations
+                    View.ServerList.serverList p serverFilter deleteConfirmations
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.Servers.serverDetail model.isElectron p serverUuid serverDetailViewParams
+                    View.ServerDetail.serverDetail p model.isElectron serverDetailViewParams serverUuid
 
                 CreateServer createServerRequest ->
                     View.CreateServer.createServer p createServerRequest

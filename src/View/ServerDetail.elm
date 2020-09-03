@@ -1,13 +1,11 @@
-module View.Servers exposing (serverDetail, servers)
+module View.ServerDetail exposing (serverDetail)
 
 import Color
 import Element
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
-import Helpers.RemoteDataPlusPlus as RDPP
 import Html
 import Html.Attributes
 import OpenStack.ServerActions as ServerActions
@@ -15,13 +13,11 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
 import Style.Widgets.Button
-import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , DeleteConfirmation
         , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -32,7 +28,6 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , ServerDetailViewParams
-        , ServerFilter
         , ServerOrigin(..)
         , ViewState(..)
         )
@@ -42,207 +37,137 @@ import Widget
 import Widget.Style.Material
 
 
-servers : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
-servers project serverFilter deleteConfirmations =
-    case ( project.servers.data, project.servers.refreshStatus ) of
-        ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
-            Element.paragraph [] [ Element.text "Please wait..." ]
+serverDetail : Project -> Bool -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail project appIsElectron serverDetailViewParams serverUuid =
+    {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
+    case Helpers.serverLookup project serverUuid of
+        Just server ->
+            serverDetail_ project appIsElectron serverDetailViewParams server
 
-        ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
-            Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
-
-        ( RDPP.DontHave, RDPP.Loading _ ) ->
-            Element.paragraph [] [ Element.text "Loading..." ]
-
-        ( RDPP.DoHave allServers _, _ ) ->
-            if List.isEmpty allServers then
-                Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
-
-            else
-                let
-                    userUuid =
-                        project.auth.user.uuid
-
-                    someServers =
-                        if serverFilter.onlyOwnServers == True then
-                            List.filter (\s -> s.osProps.details.userUuid == userUuid) allServers
-
-                        else
-                            allServers
-
-                    noServersSelected =
-                        List.any (\s -> s.exoProps.selected) someServers |> not
-
-                    allServersSelected =
-                        someServers
-                            |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
-                            |> List.all (\s -> s.exoProps.selected)
-
-                    selectedServers =
-                        List.filter (\s -> s.exoProps.selected) someServers
-
-                    deleteButtonOnPress =
-                        if noServersSelected == True then
-                            Nothing
-
-                        else
-                            let
-                                uuidsToDelete =
-                                    List.map (\s -> s.osProps.uuid) selectedServers
-                            in
-                            Just (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServers uuidsToDelete))
-                in
-                Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                    [ Element.el VH.heading2 (Element.text "My Servers")
-                    , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
-                        [ Element.text "Bulk Actions"
-                        , Input.checkbox []
-                            { checked = allServersSelected
-                            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectAllServers new)
-                            , icon = Input.defaultCheckbox
-                            , label = Input.labelRight [] (Element.text "Select All")
-                            }
-                        , Widget.textButton
-                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
-                            { text = "Delete"
-                            , onPress = deleteButtonOnPress
-                            }
-                        ]
-                    , Input.checkbox []
-                        { checked = serverFilter.onlyOwnServers
-                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
-                        , icon = Input.defaultCheckbox
-                        , label = Input.labelRight [] (Element.text "Show only servers created by me")
-                        }
-                    , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-                        (List.map (renderServer project serverFilter deleteConfirmations) someServers)
-                    ]
+        Nothing ->
+            Element.text "No server found"
 
 
-serverDetail : Bool -> Project -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-serverDetail appIsElectron project serverUuid serverDetailViewParams =
-    Helpers.serverLookup project serverUuid
-        |> Maybe.withDefault (Element.text "No server found")
-        << Maybe.map
-            (\server ->
-                let
-                    details =
-                        server.osProps.details
+serverDetail_ : Project -> Bool -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ project appIsElectron serverDetailViewParams server =
+    {- Render details of a server type and associated resources (e.g. volumes) -}
+    let
+        details =
+            server.osProps.details
 
-                    flavorText =
-                        Helpers.flavorLookup project details.flavorUuid
-                            |> Maybe.map .name
-                            |> Maybe.withDefault "Unknown flavor"
+        flavorText =
+            Helpers.flavorLookup project details.flavorUuid
+                |> Maybe.map .name
+                |> Maybe.withDefault "Unknown flavor"
 
-                    imageText =
-                        let
-                            maybeImageName =
-                                Helpers.imageLookup
-                                    project
-                                    details.imageUuid
-                                    |> Maybe.map .name
+        imageText =
+            let
+                maybeImageName =
+                    Helpers.imageLookup
+                        project
+                        details.imageUuid
+                        |> Maybe.map .name
 
-                            maybeVolBackedImageName =
-                                let
-                                    vols =
-                                        RemoteData.withDefault [] project.volumes
-                                in
-                                Helpers.getBootVol vols serverUuid
-                                    |> Maybe.andThen .imageMetadata
-                                    |> Maybe.map .name
-                        in
-                        case maybeImageName of
-                            Just name ->
-                                name
+                maybeVolBackedImageName =
+                    let
+                        vols =
+                            RemoteData.withDefault [] project.volumes
+                    in
+                    Helpers.getBootVol vols server.osProps.uuid
+                        |> Maybe.andThen .imageMetadata
+                        |> Maybe.map .name
+            in
+            case maybeImageName of
+                Just name ->
+                    name
 
-                            Nothing ->
-                                case maybeVolBackedImageName of
-                                    Just name_ ->
-                                        name_
+                Nothing ->
+                    case maybeVolBackedImageName of
+                        Just name_ ->
+                            name_
 
-                                    Nothing ->
-                                        "N/A"
+                        Nothing ->
+                            "N/A"
 
-                    maybeFloatingIp =
-                        Helpers.getServerFloatingIp details.ipAddresses
+        maybeFloatingIp =
+            Helpers.getServerFloatingIp details.ipAddresses
 
-                    projectId =
-                        Helpers.getProjectId project
-                in
-                Element.wrappedRow []
-                    [ Element.column
-                        (Element.alignTop
-                            :: Element.width (Element.px 585)
-                            :: VH.exoColumnAttributes
-                        )
-                        [ Element.el
-                            VH.heading2
-                            (Element.text "Server Details")
-                        , passwordVulnWarning appIsElectron server
-                        , VH.compactKVRow "Name" (Element.text server.osProps.name)
-                        , VH.compactKVRow "Status" (serverStatus projectId server serverDetailViewParams)
-                        , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
-                        , VH.compactKVRow "Created on" (Element.text details.created)
-                        , VH.compactKVRow "Image" (Element.text imageText)
-                        , VH.compactKVRow "Flavor" (Element.text flavorText)
-                        , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
-                        , VH.compactKVRow "IP addresses"
-                            (renderIpAddresses
-                                details.ipAddresses
-                                projectId
-                                server.osProps.uuid
-                                serverDetailViewParams
-                            )
-                        , Element.el VH.heading3 (Element.text "Volumes Attached")
-                        , serverVolumes project server
-                        , case Helpers.getVolsAttachedToServer project server of
-                            [] ->
-                                Element.none
-
-                            _ ->
-                                Element.paragraph [ Font.size 11 ] <|
-                                    [ Element.text "* Volume will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)." ]
-                        , if
-                            not <|
-                                List.member
-                                    server.osProps.details.openstackStatus
-                                    [ OSTypes.ServerShelved
-                                    , OSTypes.ServerShelvedOffloaded
-                                    , OSTypes.ServerError
-                                    , OSTypes.ServerSoftDeleted
-                                    , OSTypes.ServerBuilding
-                                    ]
-                          then
-                            Widget.textButton
-                                (Widget.Style.Material.textButton Style.Theme.exoPalette)
-                                { text = "Attach volume"
-                                , onPress =
-                                    Just <|
-                                        ProjectMsg projectId <|
-                                            SetProjectView <|
-                                                AttachVolumeModal
-                                                    (Just serverUuid)
-                                                    Nothing
-                                }
-
-                          else
-                            Element.none
-                        , Element.el VH.heading2 (Element.text "Interact with server")
-                        , Element.el VH.heading3 (Element.text "SSH")
-                        , sshInstructions maybeFloatingIp
-                        , Element.el VH.heading3 (Element.text "Console")
-                        , consoleLink appIsElectron project server serverUuid serverDetailViewParams
-                        , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
-                        , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
-                        ]
-                    , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
-                        [ Element.el VH.heading3 (Element.text "Server Actions")
-                        , viewServerActions projectId server serverDetailViewParams
-                        , Element.el VH.heading3 (Element.text "System Resource Usage")
-                        , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
-                        ]
-                    ]
+        projectId =
+            Helpers.getProjectId project
+    in
+    Element.wrappedRow []
+        [ Element.column
+            (Element.alignTop
+                :: Element.width (Element.px 585)
+                :: VH.exoColumnAttributes
             )
+            [ Element.el
+                VH.heading2
+                (Element.text "Server Details")
+            , passwordVulnWarning appIsElectron server
+            , VH.compactKVRow "Name" (Element.text server.osProps.name)
+            , VH.compactKVRow "Status" (serverStatus projectId serverDetailViewParams server)
+            , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
+            , VH.compactKVRow "Created on" (Element.text details.created)
+            , VH.compactKVRow "Image" (Element.text imageText)
+            , VH.compactKVRow "Flavor" (Element.text flavorText)
+            , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
+            , VH.compactKVRow "IP addresses"
+                (renderIpAddresses
+                    projectId
+                    server.osProps.uuid
+                    serverDetailViewParams
+                    details.ipAddresses
+                )
+            , Element.el VH.heading3 (Element.text "Volumes Attached")
+            , serverVolumes project server
+            , case Helpers.getVolsAttachedToServer project server of
+                [] ->
+                    Element.none
+
+                _ ->
+                    Element.paragraph [ Font.size 11 ] <|
+                        [ Element.text "* Volume will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)." ]
+            , if
+                not <|
+                    List.member
+                        server.osProps.details.openstackStatus
+                        [ OSTypes.ServerShelved
+                        , OSTypes.ServerShelvedOffloaded
+                        , OSTypes.ServerError
+                        , OSTypes.ServerSoftDeleted
+                        , OSTypes.ServerBuilding
+                        ]
+              then
+                Widget.textButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = "Attach volume"
+                    , onPress =
+                        Just <|
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    AttachVolumeModal
+                                        (Just server.osProps.uuid)
+                                        Nothing
+                    }
+
+              else
+                Element.none
+            , Element.el VH.heading2 (Element.text "Interact with server")
+            , Element.el VH.heading3 (Element.text "SSH")
+            , sshInstructions maybeFloatingIp
+            , Element.el VH.heading3 (Element.text "Console")
+            , consoleLink projectId appIsElectron serverDetailViewParams server server.osProps.uuid
+            , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
+            , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
+            ]
+        , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
+            [ Element.el VH.heading3 (Element.text "Server Actions")
+            , viewServerActions projectId serverDetailViewParams server
+            , Element.el VH.heading3 (Element.text "System Resource Usage")
+            , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
+            ]
+        ]
 
 
 passwordVulnWarning : Bool -> Server -> Element.Element Msg
@@ -272,8 +197,8 @@ passwordVulnWarning appIsElectron server =
                 Element.none
 
 
-serverStatus : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
-serverStatus projectId server serverDetailViewParams =
+serverStatus : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverStatus projectId serverDetailViewParams server =
     let
         details =
             server.osProps.details
@@ -376,8 +301,8 @@ sshInstructions maybeFloatingIp =
             copyableText ("exouser@" ++ floatingIp)
 
 
-consoleLink : Bool -> Project -> Server -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-consoleLink appIsElectron project server serverUuid serverDetailViewParams =
+consoleLink : ProjectIdentifier -> Bool -> ServerDetailViewParams -> Server -> OSTypes.ServerUuid -> Element.Element Msg
+consoleLink projectId appIsElectron serverDetailViewParams server serverUuid =
     let
         details =
             server.osProps.details
@@ -410,7 +335,7 @@ consoleLink appIsElectron project server serverUuid serverDetailViewParams =
                                         Element.none
                                 , let
                                     changeMsg newValue =
-                                        ProjectMsg (Helpers.getProjectId project) <|
+                                        ProjectMsg projectId <|
                                             SetProjectView <|
                                                 ServerDetail serverUuid
                                                     { serverDetailViewParams | passwordVisibility = newValue }
@@ -529,23 +454,23 @@ cockpitInteraction serverOrigin maybeFloatingIp =
             )
 
 
-viewServerActions : ProjectIdentifier -> Server -> ServerDetailViewParams -> Element.Element Msg
-viewServerActions projectId server serverDetailViewParams =
+viewServerActions : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+viewServerActions projectId serverDetailViewParams server =
     Element.column
         [ Element.spacingXY 0 10 ]
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
                 List.map
-                    (renderServerActionButton projectId server serverDetailViewParams)
+                    (renderServerActionButton projectId serverDetailViewParams server)
                     (ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus)
 
             Just _ ->
                 []
 
 
-renderServerActionButton : ProjectIdentifier -> Server -> ServerDetailViewParams -> ServerActions.ServerAction -> Element.Element Msg
-renderServerActionButton projectId server serverDetailViewParams serverAction =
+renderServerActionButton : ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton projectId serverDetailViewParams server serverAction =
     let
         displayConfirmation =
             case serverDetailViewParams.serverActionNamePendingConfirmation of
@@ -740,144 +665,8 @@ resourceUsageGraphs serverOrigin maybeFloatingIp =
             )
 
 
-renderServer : Project -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
-renderServer project serverFilter deleteConfirmations server =
-    let
-        userUuid =
-            project.auth.user.uuid
-
-        statusIcon =
-            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
-
-        checkbox =
-            case server.osProps.details.lockStatus of
-                OSTypes.ServerUnlocked ->
-                    Input.checkbox [ Element.width Element.shrink ]
-                        { checked = server.exoProps.selected
-                        , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SelectServer server new)
-                        , icon = Input.defaultCheckbox
-                        , label = Input.labelHidden server.osProps.name
-                        }
-
-                OSTypes.ServerLocked ->
-                    Input.checkbox [ Element.width Element.shrink ]
-                        { checked = server.exoProps.selected
-                        , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock (Element.rgb255 10 10 10) 14
-                        , label = Input.labelHidden server.osProps.name
-                        }
-
-        serverLabelName : Server -> Element.Element Msg
-        serverLabelName aServer =
-            Element.row [ Element.width Element.fill ] <|
-                [ statusIcon ]
-                    ++ (if aServer.osProps.details.userUuid == userUuid then
-                            [ Element.el
-                                [ Font.bold
-                                , Element.paddingEach { edges | right = 15 }
-                                ]
-                                (Element.text aServer.osProps.name)
-                            , ExoCard.badge "created by you"
-                            ]
-
-                        else
-                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                            ]
-                       )
-
-        serverNameClickEvent : Msg
-        serverNameClickEvent =
-            ProjectMsg (Helpers.getProjectId project) <|
-                SetProjectView <|
-                    ServerDetail
-                        server.osProps.uuid
-                        { verboseStatus = False
-                        , passwordVisibility = PasswordHidden
-                        , ipInfoLevel = IPSummary
-                        , serverActionNamePendingConfirmation = Nothing
-                        }
-
-        serverLabel : Server -> Element.Element Msg
-        serverLabel aServer =
-            Element.row
-                [ Element.width Element.fill
-                , Events.onClick serverNameClickEvent
-                , Element.pointer
-                ]
-                [ serverLabelName aServer
-                , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
-                ]
-
-        deletionAttempted =
-            server.exoProps.deletionAttempted
-
-        confirmationNeeded =
-            List.member server.osProps.uuid deleteConfirmations
-
-        deleteWidget =
-            case ( deletionAttempted, server.osProps.details.lockStatus, confirmationNeeded ) of
-                ( True, _, _ ) ->
-                    [ Element.text "Deleting..." ]
-
-                ( False, OSTypes.ServerUnlocked, True ) ->
-                    [ Element.text "Confirm delete?"
-                    , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
-                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
-                        , text = "Delete"
-                        , onPress =
-                            Just
-                                (ProjectMsg (Helpers.getProjectId project) (RequestDeleteServer server.osProps.uuid))
-                        }
-                    , Widget.iconButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                        { icon = Icon.windowClose (Element.rgb255 0 0 0) 16
-                        , text = "Cancel"
-                        , onPress =
-                            Just
-                                (ProjectMsg
-                                    (Helpers.getProjectId project)
-                                    (SetProjectView <|
-                                        ListProjectServers
-                                            serverFilter
-                                            (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
-                                    )
-                                )
-                        }
-                    ]
-
-                ( False, OSTypes.ServerUnlocked, False ) ->
-                    [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
-                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
-                        , text = "Delete"
-                        , onPress =
-                            Just
-                                (ProjectMsg (Helpers.getProjectId project)
-                                    (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
-                                )
-                        }
-                    ]
-
-                ( False, OSTypes.ServerLocked, _ ) ->
-                    [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
-                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
-                        , text = "Delete"
-                        , onPress = Nothing
-                        }
-                    ]
-    in
-    Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        ([ checkbox
-         , serverLabel server
-         ]
-            ++ deleteWidget
-        )
-
-
-renderIpAddresses : List OSTypes.IpAddress -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> Element.Element Msg
-renderIpAddresses ipAddresses projectId serverUuid serverDetailViewParams =
+renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
+renderIpAddresses projectId serverUuid serverDetailViewParams ipAddresses =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
