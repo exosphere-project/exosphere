@@ -474,7 +474,7 @@ updateUnderlying msg model =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                ListProjectServers { onlyOwnServers = False } []
+                                                ListProjectServers { onlyOwnServers = True } []
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -952,7 +952,7 @@ processProjectSpecificMsg model project msg =
                                         { createPopup = False }
                                     <|
                                         ListProjectServers
-                                            { onlyOwnServers = False }
+                                            { onlyOwnServers = True }
                                             []
 
                                 Nothing ->
@@ -1056,7 +1056,7 @@ processProjectSpecificMsg model project msg =
                                 { createPopup = False }
                             <|
                                 ListProjectServers
-                                    { onlyOwnServers = False }
+                                    { onlyOwnServers = True }
                                     []
                     }
             in
@@ -1240,7 +1240,7 @@ processProjectSpecificMsg model project msg =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (ListProjectServers { onlyOwnServers = False } [])
+                                            (ListProjectServers { onlyOwnServers = True } [])
 
                                     else
                                         model.viewState
@@ -1565,14 +1565,14 @@ createProject model password authToken endpoints =
                         (Helpers.getProjectId newProject)
                         { createPopup = False }
                     <|
-                        ListProjectServers { onlyOwnServers = False } []
+                        ListProjectServers { onlyOwnServers = True } []
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         (Helpers.getProjectId newProject)
                         projectViewParams
                     <|
-                        ListProjectServers { onlyOwnServers = False } []
+                        ListProjectServers { onlyOwnServers = True } []
 
         newModel =
             { model

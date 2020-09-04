@@ -94,7 +94,7 @@ projectNav p viewParams =
                         Just <|
                             ProjectMsg (Helpers.getProjectId p) <|
                                 SetProjectView <|
-                                    ListProjectServers { onlyOwnServers = False } []
+                                    ListProjectServers { onlyOwnServers = True } []
                     }
             , Element.el
                 []
