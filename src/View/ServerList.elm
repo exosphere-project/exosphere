@@ -10,7 +10,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Style.Theme
 import Style.Widgets.Button
-import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
@@ -114,19 +113,19 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
             ]
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
-                [ List.map (renderServer projectId userUuid serverFilter deleteConfirmations) ownServers
+                [ List.map (renderServer projectId serverFilter deleteConfirmations) ownServers
                 , [ onlyOwnExpander projectId serverFilter (List.length otherUsersServers) ]
                 , if serverFilter.onlyOwnServers then
                     []
 
                   else
-                    List.map (renderServer projectId userUuid serverFilter deleteConfirmations) otherUsersServers
+                    List.map (renderServer projectId serverFilter deleteConfirmations) otherUsersServers
                 ]
         ]
 
 
-renderServer : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
-renderServer projectId userUuid serverFilter deleteConfirmations server =
+renderServer : ProjectIdentifier -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
+renderServer projectId serverFilter deleteConfirmations server =
     let
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
@@ -151,21 +150,10 @@ renderServer projectId userUuid serverFilter deleteConfirmations server =
 
         serverLabelName : Server -> Element.Element Msg
         serverLabelName aServer =
-            Element.row [ Element.width Element.fill ] <|
-                [ statusIcon ]
-                    ++ (if ownServer userUuid aServer then
-                            [ Element.el
-                                [ Font.bold
-                                , Element.paddingEach { edges | right = 15 }
-                                ]
-                                (Element.text aServer.osProps.name)
-                            , ExoCard.badge "created by you"
-                            ]
-
-                        else
-                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                            ]
-                       )
+            Element.row [ Element.width Element.fill ]
+                [ statusIcon
+                , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                ]
 
         serverNameClickEvent : Msg
         serverNameClickEvent =
