@@ -64,9 +64,12 @@ serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List Dele
 serverList_ projectId userUuid serverFilter deleteConfirmations servers =
     {- Render a list of servers -}
     let
+        ( ownServers, otherUsersServers ) =
+            List.partition (ownServer userUuid) servers
+
         shownServers =
-            if serverFilter.onlyOwnServers == True then
-                List.filter (\s -> ownServer userUuid s) servers
+            if serverFilter.onlyOwnServers then
+                ownServers
 
             else
                 servers
