@@ -66,7 +66,7 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
     let
         someServers =
             if serverFilter.onlyOwnServers == True then
-                List.filter (\s -> s.osProps.details.userUuid == userUuid) servers
+                List.filter (\s -> ownServer userUuid s) servers
 
             else
                 servers
@@ -148,7 +148,7 @@ renderServer projectId userUuid serverFilter deleteConfirmations server =
         serverLabelName aServer =
             Element.row [ Element.width Element.fill ] <|
                 [ statusIcon ]
-                    ++ (if aServer.osProps.details.userUuid == userUuid then
+                    ++ (if ownServer userUuid aServer then
                             [ Element.el
                                 [ Font.bold
                                 , Element.paddingEach { edges | right = 15 }
@@ -251,3 +251,8 @@ renderServer projectId userUuid serverFilter deleteConfirmations server =
          ]
             ++ deleteWidget
         )
+
+
+ownServer : OSTypes.UserUuid -> Server -> Bool
+ownServer userUuid server =
+    server.osProps.details.userUuid == userUuid
