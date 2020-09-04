@@ -64,7 +64,7 @@ serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List Dele
 serverList_ projectId userUuid serverFilter deleteConfirmations servers =
     {- Render a list of servers -}
     let
-        someServers =
+        shownServers =
             if serverFilter.onlyOwnServers == True then
                 List.filter (\s -> ownServer userUuid s) servers
 
@@ -72,15 +72,15 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
                 servers
 
         noServersSelected =
-            List.any (\s -> s.exoProps.selected) someServers |> not
+            List.any (\s -> s.exoProps.selected) shownServers |> not
 
         allServersSelected =
-            someServers
+            shownServers
                 |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
                 |> List.all (\s -> s.exoProps.selected)
 
         selectedServers =
-            List.filter (\s -> s.exoProps.selected) someServers
+            List.filter (\s -> s.exoProps.selected) shownServers
 
         deleteButtonOnPress =
             if noServersSelected == True then
@@ -116,7 +116,7 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
             , label = Input.labelRight [] (Element.text "Show only servers created by me")
             }
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-            (List.map (renderServer projectId userUuid serverFilter deleteConfirmations) someServers)
+            (List.map (renderServer projectId userUuid serverFilter deleteConfirmations) shownServers)
         ]
 
 
