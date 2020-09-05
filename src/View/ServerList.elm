@@ -10,7 +10,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Style.Theme
 import Style.Widgets.Button
-import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
@@ -64,23 +63,26 @@ serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List Dele
 serverList_ projectId userUuid serverFilter deleteConfirmations servers =
     {- Render a list of servers -}
     let
-        someServers =
-            if serverFilter.onlyOwnServers == True then
-                List.filter (\s -> s.osProps.details.userUuid == userUuid) servers
+        ( ownServers, otherUsersServers ) =
+            List.partition (ownServer userUuid) servers
+
+        shownServers =
+            if serverFilter.onlyOwnServers then
+                ownServers
 
             else
                 servers
 
         noServersSelected =
-            List.any (\s -> s.exoProps.selected) someServers |> not
+            List.any (\s -> s.exoProps.selected) shownServers |> not
 
         allServersSelected =
-            someServers
+            shownServers
                 |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
                 |> List.all (\s -> s.exoProps.selected)
 
         selectedServers =
-            List.filter (\s -> s.exoProps.selected) someServers
+            List.filter (\s -> s.exoProps.selected) shownServers
 
         deleteButtonOnPress =
             if noServersSelected == True then
@@ -109,19 +111,21 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
                 , onPress = deleteButtonOnPress
                 }
             ]
-        , Input.checkbox []
-            { checked = serverFilter.onlyOwnServers
-            , onChange = \new -> ProjectMsg projectId <| SetProjectView <| ListProjectServers { serverFilter | onlyOwnServers = new } []
-            , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.text "Show only servers created by me")
-            }
-        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ])
-            (List.map (renderServer projectId userUuid serverFilter deleteConfirmations) someServers)
+        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
+            List.concat
+                [ List.map (renderServer projectId serverFilter deleteConfirmations) ownServers
+                , [ onlyOwnExpander projectId serverFilter (List.length otherUsersServers) ]
+                , if serverFilter.onlyOwnServers then
+                    []
+
+                  else
+                    List.map (renderServer projectId serverFilter deleteConfirmations) otherUsersServers
+                ]
         ]
 
 
-renderServer : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
-renderServer projectId userUuid serverFilter deleteConfirmations server =
+renderServer : ProjectIdentifier -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
+renderServer projectId serverFilter deleteConfirmations server =
     let
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
@@ -146,21 +150,10 @@ renderServer projectId userUuid serverFilter deleteConfirmations server =
 
         serverLabelName : Server -> Element.Element Msg
         serverLabelName aServer =
-            Element.row [ Element.width Element.fill ] <|
-                [ statusIcon ]
-                    ++ (if aServer.osProps.details.userUuid == userUuid then
-                            [ Element.el
-                                [ Font.bold
-                                , Element.paddingEach { edges | right = 15 }
-                                ]
-                                (Element.text aServer.osProps.name)
-                            , ExoCard.badge "created by you"
-                            ]
-
-                        else
-                            [ Element.el [ Font.bold ] (Element.text aServer.osProps.name)
-                            ]
-                       )
+            Element.row [ Element.width Element.fill ]
+                [ statusIcon
+                , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
+                ]
 
         serverNameClickEvent : Msg
         serverNameClickEvent =
@@ -251,3 +244,77 @@ renderServer projectId userUuid serverFilter deleteConfirmations server =
          ]
             ++ deleteWidget
         )
+
+
+onlyOwnExpander : ProjectIdentifier -> ServerFilter -> Int -> Element.Element Msg
+onlyOwnExpander projectId serverFilter numOtherUsersServers =
+    let
+        statusText =
+            let
+                ( serversPluralization, usersPluralization ) =
+                    if numOtherUsersServers == 1 then
+                        ( "server", "another user" )
+
+                    else
+                        ( "servers", "other users" )
+            in
+            if serverFilter.onlyOwnServers then
+                String.concat
+                    [ "Hiding "
+                    , String.fromInt numOtherUsersServers
+                    , " "
+                    , serversPluralization
+                    , " created by "
+                    , usersPluralization
+                    ]
+
+            else
+                "Servers created by other users"
+
+        ( changeActionVerb, changeActionIcon ) =
+            if serverFilter.onlyOwnServers then
+                ( "Show", Icon.downArrow )
+
+            else
+                ( "Hide", Icon.upArrow )
+
+        changeOnlyOwnMsg : Msg
+        changeOnlyOwnMsg =
+            ProjectMsg projectId <|
+                SetProjectView <|
+                    ListProjectServers
+                        { serverFilter | onlyOwnServers = not serverFilter.onlyOwnServers }
+                        []
+
+        changeButton =
+            Widget.button
+                (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                { onPress = Just changeOnlyOwnMsg
+                , icon =
+                    changeActionIcon (Element.rgb255 0 108 163) 16
+                , text = changeActionVerb
+                }
+    in
+    if numOtherUsersServers == 0 then
+        Element.none
+
+    else
+        Element.column (VH.exoColumnAttributes ++ [ Element.padding 0, Element.width Element.fill ])
+            [ Element.el
+                [ Element.width Element.fill
+                , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
+                , Border.color (Element.rgb255 10 10 10)
+                ]
+                Element.none
+            , Element.el
+                [ Element.centerX, Font.size 14 ]
+                (Element.text statusText)
+            , Element.el
+                [ Element.centerX ]
+                changeButton
+            ]
+
+
+ownServer : OSTypes.UserUuid -> Server -> Bool
+ownServer userUuid server =
+    server.osProps.details.userUuid == userUuid
