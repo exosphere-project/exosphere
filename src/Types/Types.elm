@@ -29,8 +29,8 @@ module Types.Types exposing
     , ProjectViewParams
     , Server
     , ServerDetailViewParams
-    , ServerFilter
     , ServerFromExoProps
+    , ServerListViewParams
     , ServerOrigin(..)
     , ServerUiStatus(..)
     , SortTableParams
@@ -267,11 +267,6 @@ type alias SortTableParams =
     }
 
 
-type alias ServerFilter =
-    { onlyOwnServers : Bool
-    }
-
-
 type alias ProjectViewParams =
     { createPopup : Bool
     }
@@ -279,7 +274,7 @@ type alias ProjectViewParams =
 
 type ProjectViewConstructor
     = ListImages ImageListViewParams SortTableParams
-    | ListProjectServers ServerFilter (List DeleteConfirmation)
+    | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
@@ -288,6 +283,12 @@ type ProjectViewConstructor
     | CreateVolume OSTypes.VolumeName String
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
+
+
+type alias ServerListViewParams =
+    { onlyOwnServers : Bool
+    , deleteConfirmations : List DeleteConfirmation
+    }
 
 
 type alias ServerDetailViewParams =
