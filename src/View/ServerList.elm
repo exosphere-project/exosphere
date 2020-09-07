@@ -14,7 +14,6 @@ import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , DeleteConfirmation
         , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
