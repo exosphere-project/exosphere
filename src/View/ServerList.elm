@@ -77,9 +77,13 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
             List.any (\s -> s.exoProps.selected) shownServers |> not
 
         allServersSelected =
-            shownServers
-                |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
-                |> List.all (\s -> s.exoProps.selected)
+            if List.isEmpty shownServers then
+                False
+
+            else
+                shownServers
+                    |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+                    |> List.all (\s -> s.exoProps.selected)
 
         selectedServers =
             List.filter (\s -> s.exoProps.selected) shownServers
