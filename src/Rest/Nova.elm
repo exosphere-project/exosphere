@@ -719,7 +719,10 @@ receiveCreateServer model project _ =
                 (Helpers.getProjectId project)
                 { createPopup = False }
             <|
-                ListProjectServers { onlyOwnServers = True } []
+                ListProjectServers
+                    { onlyOwnServers = True
+                    , deleteConfirmations = []
+                    }
 
         newProject =
             Helpers.projectSetServersLoading model.clientCurrentTime project

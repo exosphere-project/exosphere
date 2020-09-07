@@ -37,8 +37,8 @@ project model p viewParams viewConstructor =
                 ListImages imageFilter sortTableParams ->
                     View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
 
-                ListProjectServers serverFilter deleteConfirmations ->
-                    View.ServerList.serverList p serverFilter deleteConfirmations
+                ListProjectServers serverListViewParams ->
+                    View.ServerList.serverList p serverListViewParams
 
                 ServerDetail serverUuid serverDetailViewParams ->
                     View.ServerDetail.serverDetail p model.isElectron serverDetailViewParams serverUuid
@@ -94,7 +94,7 @@ projectNav p viewParams =
                         Just <|
                             ProjectMsg (Helpers.getProjectId p) <|
                                 SetProjectView <|
-                                    ListProjectServers { onlyOwnServers = True } []
+                                    ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
                     }
             , Element.el
                 []

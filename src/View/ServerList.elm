@@ -24,7 +24,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
-        , ServerFilter
+        , ServerListViewParams
         , ServerOrigin(..)
         , ViewState(..)
         )
@@ -33,8 +33,8 @@ import Widget
 import Widget.Style.Material
 
 
-serverList : Project -> ServerFilter -> List DeleteConfirmation -> Element.Element Msg
-serverList project serverFilter deleteConfirmations =
+serverList : Project -> ServerListViewParams -> Element.Element Msg
+serverList project serverListViewParams =
     {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
@@ -54,20 +54,19 @@ serverList project serverFilter deleteConfirmations =
                 serverList_
                     (Helpers.getProjectId project)
                     project.auth.user.uuid
-                    serverFilter
-                    deleteConfirmations
+                    serverListViewParams
                     servers
 
 
-serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerFilter -> List DeleteConfirmation -> List Server -> Element.Element Msg
-serverList_ projectId userUuid serverFilter deleteConfirmations servers =
+serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
+serverList_ projectId userUuid serverListViewParams servers =
     {- Render a list of servers -}
     let
         ( ownServers, otherUsersServers ) =
             List.partition (ownServer userUuid) servers
 
         shownServers =
-            if serverFilter.onlyOwnServers then
+            if serverListViewParams.onlyOwnServers then
                 ownServers
 
             else
@@ -117,19 +116,19 @@ serverList_ projectId userUuid serverFilter deleteConfirmations servers =
             ]
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
-                [ List.map (renderServer projectId serverFilter deleteConfirmations) ownServers
-                , [ onlyOwnExpander projectId serverFilter (List.length otherUsersServers) ]
-                , if serverFilter.onlyOwnServers then
+                [ List.map (renderServer projectId serverListViewParams) ownServers
+                , [ onlyOwnExpander projectId serverListViewParams (List.length otherUsersServers) ]
+                , if serverListViewParams.onlyOwnServers then
                     []
 
                   else
-                    List.map (renderServer projectId serverFilter deleteConfirmations) otherUsersServers
+                    List.map (renderServer projectId serverListViewParams) otherUsersServers
                 ]
         ]
 
 
-renderServer : ProjectIdentifier -> ServerFilter -> List DeleteConfirmation -> Server -> Element.Element Msg
-renderServer projectId serverFilter deleteConfirmations server =
+renderServer : ProjectIdentifier -> ServerListViewParams -> Server -> Element.Element Msg
+renderServer projectId serverListViewParams server =
     let
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
@@ -186,7 +185,7 @@ renderServer projectId serverFilter deleteConfirmations server =
             server.exoProps.deletionAttempted
 
         confirmationNeeded =
-            List.member server.osProps.uuid deleteConfirmations
+            List.member server.osProps.uuid serverListViewParams.deleteConfirmations
 
         deleteWidget =
             case ( deletionAttempted, server.osProps.details.lockStatus, confirmationNeeded ) of
@@ -213,8 +212,11 @@ renderServer projectId serverFilter deleteConfirmations server =
                                     projectId
                                     (SetProjectView <|
                                         ListProjectServers
-                                            serverFilter
-                                            (deleteConfirmations |> List.filter ((/=) server.osProps.uuid))
+                                            { serverListViewParams
+                                                | deleteConfirmations =
+                                                    serverListViewParams.deleteConfirmations
+                                                        |> List.filter ((/=) server.osProps.uuid)
+                                            }
                                     )
                                 )
                         }
@@ -228,7 +230,10 @@ renderServer projectId serverFilter deleteConfirmations server =
                         , onPress =
                             Just
                                 (ProjectMsg projectId
-                                    (SetProjectView <| ListProjectServers serverFilter [ server.osProps.uuid ])
+                                    (SetProjectView <|
+                                        ListProjectServers
+                                            { serverListViewParams | deleteConfirmations = [ server.osProps.uuid ] }
+                                    )
                                 )
                         }
                     ]
@@ -250,8 +255,8 @@ renderServer projectId serverFilter deleteConfirmations server =
         )
 
 
-onlyOwnExpander : ProjectIdentifier -> ServerFilter -> Int -> Element.Element Msg
-onlyOwnExpander projectId serverFilter numOtherUsersServers =
+onlyOwnExpander : ProjectIdentifier -> ServerListViewParams -> Int -> Element.Element Msg
+onlyOwnExpander projectId serverListViewParams numOtherUsersServers =
     let
         statusText =
             let
@@ -262,7 +267,7 @@ onlyOwnExpander projectId serverFilter numOtherUsersServers =
                     else
                         ( "servers", "other users" )
             in
-            if serverFilter.onlyOwnServers then
+            if serverListViewParams.onlyOwnServers then
                 String.concat
                     [ "Hiding "
                     , String.fromInt numOtherUsersServers
@@ -276,7 +281,7 @@ onlyOwnExpander projectId serverFilter numOtherUsersServers =
                 "Servers created by other users"
 
         ( changeActionVerb, changeActionIcon ) =
-            if serverFilter.onlyOwnServers then
+            if serverListViewParams.onlyOwnServers then
                 ( "Show", Icon.downArrow )
 
             else
@@ -287,8 +292,10 @@ onlyOwnExpander projectId serverFilter numOtherUsersServers =
             ProjectMsg projectId <|
                 SetProjectView <|
                     ListProjectServers
-                        { serverFilter | onlyOwnServers = not serverFilter.onlyOwnServers }
-                        []
+                        { serverListViewParams
+                            | onlyOwnServers =
+                                not serverListViewParams.onlyOwnServers
+                        }
 
         changeButton =
             Widget.button

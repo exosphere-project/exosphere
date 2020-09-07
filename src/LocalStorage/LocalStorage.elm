@@ -45,7 +45,14 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
                     Types.NonProjectView Types.LoginPicker
 
                 firstProject :: _ ->
-                    Types.ProjectView (Helpers.getProjectId firstProject) { createPopup = False } (Types.ListProjectServers { onlyOwnServers = True } [])
+                    Types.ProjectView
+                        (Helpers.getProjectId firstProject)
+                        { createPopup = False }
+                        (Types.ListProjectServers
+                            { onlyOwnServers = True
+                            , deleteConfirmations = []
+                            }
+                        )
 
         clientUuid =
             -- If client UUID exists in stored state then use that, else set a new one

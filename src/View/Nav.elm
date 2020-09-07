@@ -57,7 +57,10 @@ navMenu model =
                 (Just
                     (ProjectMsg (Helpers.getProjectId project)
                         (SetProjectView <|
-                            ListProjectServers { onlyOwnServers = True } []
+                            ListProjectServers
+                                { onlyOwnServers = True
+                                , deleteConfirmations = []
+                                }
                         )
                     )
                 )

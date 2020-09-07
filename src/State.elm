@@ -474,7 +474,7 @@ updateUnderlying msg model =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                ListProjectServers { onlyOwnServers = True } []
+                                                ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -712,10 +712,10 @@ processProjectSpecificMsg model project msg =
                     in
                     ( modelUpdatedView model, cmd )
 
-                ListProjectServers _ _ ->
+                ListProjectServers _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (ListProjectServers _ _) ->
+                        Just (ListProjectServers _) ->
                             ( modelUpdatedView model, Cmd.none )
 
                         _ ->
@@ -952,8 +952,9 @@ processProjectSpecificMsg model project msg =
                                         { createPopup = False }
                                     <|
                                         ListProjectServers
-                                            { onlyOwnServers = True }
-                                            []
+                                            { onlyOwnServers = True
+                                            , deleteConfirmations = []
+                                            }
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -1056,8 +1057,9 @@ processProjectSpecificMsg model project msg =
                                 { createPopup = False }
                             <|
                                 ListProjectServers
-                                    { onlyOwnServers = True }
-                                    []
+                                    { onlyOwnServers = True
+                                    , deleteConfirmations = []
+                                    }
                     }
             in
             ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
@@ -1240,7 +1242,11 @@ processProjectSpecificMsg model project msg =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (ListProjectServers { onlyOwnServers = True } [])
+                                            (ListProjectServers
+                                                { onlyOwnServers = True
+                                                , deleteConfirmations = []
+                                                }
+                                            )
 
                                     else
                                         model.viewState
@@ -1565,14 +1571,14 @@ createProject model password authToken endpoints =
                         (Helpers.getProjectId newProject)
                         { createPopup = False }
                     <|
-                        ListProjectServers { onlyOwnServers = True } []
+                        ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         (Helpers.getProjectId newProject)
                         projectViewParams
                     <|
-                        ListProjectServers { onlyOwnServers = True } []
+                        ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
 
         newModel =
             { model
