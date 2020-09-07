@@ -287,6 +287,7 @@ type ProjectViewConstructor
 
 type alias ServerListViewParams =
     { onlyOwnServers : Bool
+    , selectedServers : Set.Set ServerSelection
     , deleteConfirmations : List DeleteConfirmation
     }
 
@@ -297,6 +298,10 @@ type alias ServerDetailViewParams =
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     }
+
+
+type alias ServerSelection =
+    OSTypes.ServerUuid
 
 
 type alias DeleteConfirmation =
@@ -347,7 +352,6 @@ type alias Server =
 
 type alias ExoServerProps =
     { priorFloatingIpState : FloatingIpState
-    , selected : Bool
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
