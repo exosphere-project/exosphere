@@ -8,6 +8,7 @@ import Element.Input as Input
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
+import Set
 import Style.Theme
 import Style.Widgets.Button
 import Style.Widgets.Icon as Icon
@@ -25,6 +26,7 @@ import Types.Types
         , Server
         , ServerListViewParams
         , ServerOrigin(..)
+        , ServerSelection
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -71,23 +73,18 @@ serverList_ projectId userUuid serverListViewParams servers =
             else
                 servers
 
-        noServersSelected =
-            List.any (\s -> s.exoProps.selected) shownServers |> not
+        selectedServers =
+            List.filter (serverIsSelected serverListViewParams.selectedServers) shownServers
 
         allServersSelected =
             if List.isEmpty shownServers then
                 False
 
             else
-                shownServers
-                    |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
-                    |> List.all (\s -> s.exoProps.selected)
-
-        selectedServers =
-            List.filter (\s -> s.exoProps.selected) shownServers
+                shownServers == selectedServers
 
         deleteButtonOnPress =
-            if noServersSelected == True then
+            if List.isEmpty selectedServers then
                 Nothing
 
             else
@@ -103,7 +100,25 @@ serverList_ projectId userUuid serverListViewParams servers =
             [ Element.text "Bulk Actions"
             , Input.checkbox []
                 { checked = allServersSelected
-                , onChange = \new -> ProjectMsg projectId (SelectAllServers new)
+                , onChange =
+                    \new ->
+                        let
+                            newSelection =
+                                if new {- == true -} then
+                                    shownServers
+                                        |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+                                        |> List.map (\s -> s.osProps.uuid)
+                                        |> Set.fromList
+
+                                else
+                                    Set.empty
+
+                            newParams =
+                                { serverListViewParams | selectedServers = newSelection }
+                        in
+                        ProjectMsg projectId <|
+                            SetProjectView <|
+                                ListProjectServers newParams
                 , icon = Input.defaultCheckbox
                 , label = Input.labelRight [] (Element.text "Select All")
                 }
@@ -136,15 +151,28 @@ renderServer projectId serverListViewParams server =
             case server.osProps.details.lockStatus of
                 OSTypes.ServerUnlocked ->
                     Input.checkbox [ Element.width Element.shrink ]
-                        { checked = server.exoProps.selected
-                        , onChange = \new -> ProjectMsg projectId (SelectServer server new)
+                        { checked = serverIsSelected serverListViewParams.selectedServers server
+                        , onChange =
+                            \new ->
+                                let
+                                    action =
+                                        if new {- == true -} then
+                                            AddServer
+
+                                        else
+                                            RemoveServer
+
+                                    newParams =
+                                        modifyServerSelection server action serverListViewParams
+                                in
+                                ProjectMsg projectId <| SetProjectView <| ListProjectServers newParams
                         , icon = Input.defaultCheckbox
                         , label = Input.labelHidden server.osProps.name
                         }
 
                 OSTypes.ServerLocked ->
                     Input.checkbox [ Element.width Element.shrink ]
-                        { checked = server.exoProps.selected
+                        { checked = False
                         , onChange = \_ -> NoOp
                         , icon = \_ -> Icon.lock (Element.rgb255 10 10 10) 14
                         , label = Input.labelHidden server.osProps.name
@@ -328,3 +356,30 @@ onlyOwnExpander projectId serverListViewParams numOtherUsersServers =
 ownServer : OSTypes.UserUuid -> Server -> Bool
 ownServer userUuid server =
     server.osProps.details.userUuid == userUuid
+
+
+serverIsSelected : Set.Set ServerSelection -> Server -> Bool
+serverIsSelected selectedUuids server =
+    Set.member server.osProps.uuid selectedUuids
+
+
+modifyServerSelection : Server -> ModifyServerSelectionAction -> ServerListViewParams -> ServerListViewParams
+modifyServerSelection server action serverListViewParams =
+    let
+        actionFunc =
+            case action of
+                AddServer ->
+                    Set.insert
+
+                RemoveServer ->
+                    Set.remove
+
+        newSelectedServers =
+            actionFunc server.osProps.uuid serverListViewParams.selectedServers
+    in
+    { serverListViewParams | selectedServers = newSelectedServers }
+
+
+type ModifyServerSelectionAction
+    = AddServer
+    | RemoveServer

@@ -32,6 +32,7 @@ module Types.Types exposing
     , ServerFromExoProps
     , ServerListViewParams
     , ServerOrigin(..)
+    , ServerSelection
     , ServerUiStatus(..)
     , SortTableParams
     , TickInterval
@@ -199,8 +200,6 @@ type ProjectSpecificMsgConstructor
     | RequestAppCredential Time.Posix
     | ToggleCreatePopup
     | RemoveProject
-    | SelectServer Server Bool
-    | SelectAllServers Bool
     | RequestServers
     | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest

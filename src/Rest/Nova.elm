@@ -528,7 +528,6 @@ receiveServer_ project osServer =
                             ExoServerProps
                                 Unknown
                                 False
-                                False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
                                 Nothing
