@@ -28,6 +28,7 @@ import Rest.Nova
 import Task
 import Time
 import Toasty
+import Types.Defaults as Defaults
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -474,7 +475,7 @@ updateUnderlying msg model =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
+                                                ListProjectServers Defaults.serverListViewParams
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -952,9 +953,7 @@ processProjectSpecificMsg model project msg =
                                         { createPopup = False }
                                     <|
                                         ListProjectServers
-                                            { onlyOwnServers = True
-                                            , deleteConfirmations = []
-                                            }
+                                            Defaults.serverListViewParams
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -1057,9 +1056,7 @@ processProjectSpecificMsg model project msg =
                                 { createPopup = False }
                             <|
                                 ListProjectServers
-                                    { onlyOwnServers = True
-                                    , deleteConfirmations = []
-                                    }
+                                    Defaults.serverListViewParams
                     }
             in
             ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
@@ -1243,9 +1240,7 @@ processProjectSpecificMsg model project msg =
                                             projectId
                                             viewParams
                                             (ListProjectServers
-                                                { onlyOwnServers = True
-                                                , deleteConfirmations = []
-                                                }
+                                                Defaults.serverListViewParams
                                             )
 
                                     else
@@ -1571,14 +1566,14 @@ createProject model password authToken endpoints =
                         (Helpers.getProjectId newProject)
                         { createPopup = False }
                     <|
-                        ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
+                        ListProjectServers Defaults.serverListViewParams
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         (Helpers.getProjectId newProject)
                         projectViewParams
                     <|
-                        ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
+                        ListProjectServers Defaults.serverListViewParams
 
         newModel =
             { model

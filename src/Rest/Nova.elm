@@ -46,6 +46,7 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Rest.Neutron exposing (requestNetworks)
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -720,9 +721,7 @@ receiveCreateServer model project _ =
                 { createPopup = False }
             <|
                 ListProjectServers
-                    { onlyOwnServers = True
-                    , deleteConfirmations = []
-                    }
+                    Defaults.serverListViewParams
 
         newProject =
             Helpers.projectSetServersLoading model.clientCurrentTime project

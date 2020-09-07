@@ -12,6 +12,7 @@ import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
+import Types.Defaults as Defaults
 import Types.Types as Types
 import UUID
 
@@ -49,9 +50,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
                         (Helpers.getProjectId firstProject)
                         { createPopup = False }
                         (Types.ListProjectServers
-                            { onlyOwnServers = True
-                            , deleteConfirmations = []
-                            }
+                            Defaults.serverListViewParams
                         )
 
         clientUuid =

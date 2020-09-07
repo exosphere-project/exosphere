@@ -5,6 +5,7 @@ import Helpers.Helpers as Helpers
 import Set
 import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( Model
@@ -94,7 +95,7 @@ projectNav p viewParams =
                         Just <|
                             ProjectMsg (Helpers.getProjectId p) <|
                                 SetProjectView <|
-                                    ListProjectServers { onlyOwnServers = True, deleteConfirmations = [] }
+                                    ListProjectServers Defaults.serverListViewParams
                     }
             , Element.el
                 []
