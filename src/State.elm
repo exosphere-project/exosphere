@@ -1084,51 +1084,6 @@ processProjectSpecificMsg model project msg =
             , cmd
             )
 
-        {-
-           SelectServer server newSelectionState ->
-               let
-                   oldExoProps =
-                       server.exoProps
-
-                   newServer =
-                       Server server.osProps { oldExoProps | selected = newSelectionState }
-
-                   newProject =
-                       Helpers.projectUpdateServer project newServer
-
-                   newModel =
-                       Helpers.modelUpdateProject model newProject
-               in
-               ( newModel
-               , Cmd.none
-               )
-
-           SelectAllServers allServersSelected ->
-               let
-                   updateServer someServer =
-                       let
-                           oldExoProps =
-                               someServer.exoProps
-                       in
-                       case someServer.osProps.details.lockStatus of
-                           OSTypes.ServerUnlocked ->
-                               Server someServer.osProps { oldExoProps | selected = allServersSelected }
-
-                           OSTypes.ServerLocked ->
-                               someServer
-
-                   newProject =
-                       RDPP.withDefault [] project.servers
-                           |> List.map updateServer
-                           |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project
-
-                   newModel =
-                       Helpers.modelUpdateProject model newProject
-               in
-               ( newModel
-               , Cmd.none
-               )
-        -}
         ReceiveServers errorContext result ->
             case result of
                 Ok servers ->
