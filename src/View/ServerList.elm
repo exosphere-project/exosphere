@@ -134,7 +134,7 @@ serverList_ projectId userUuid serverListViewParams servers =
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
                 [ List.map (renderServer projectId serverListViewParams) ownServers
-                , [ onlyOwnExpander projectId serverListViewParams (List.length otherUsersServers) ]
+                , [ onlyOwnExpander projectId serverListViewParams otherUsersServers ]
                 , if serverListViewParams.onlyOwnServers then
                     []
 
@@ -285,9 +285,12 @@ renderServer projectId serverListViewParams server =
         )
 
 
-onlyOwnExpander : ProjectIdentifier -> ServerListViewParams -> Int -> Element.Element Msg
-onlyOwnExpander projectId serverListViewParams numOtherUsersServers =
+onlyOwnExpander : ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
+onlyOwnExpander projectId serverListViewParams otherUsersServers =
     let
+        numOtherUsersServers =
+            List.length otherUsersServers
+
         statusText =
             let
                 ( serversPluralization, usersPluralization ) =
@@ -310,22 +313,38 @@ onlyOwnExpander projectId serverListViewParams numOtherUsersServers =
             else
                 "Servers created by other users"
 
-        ( changeActionVerb, changeActionIcon ) =
+        ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
             if serverListViewParams.onlyOwnServers then
-                ( "Show", Icon.downArrow )
+                ( ( "Show", Icon.downArrow )
+                , { serverListViewParams
+                    | onlyOwnServers = False
+                  }
+                )
 
             else
-                ( "Hide", Icon.upArrow )
+                -- When hiding other users' servers, ensure that they are de-selected!
+                let
+                    serverUuidsToDeselect =
+                        List.map (\s -> s.osProps.uuid) otherUsersServers
+
+                    newSelectedServers =
+                        Set.filter
+                            (\u -> not <| List.member u serverUuidsToDeselect)
+                            serverListViewParams.selectedServers
+                in
+                ( ( "Hide", Icon.upArrow )
+                , { serverListViewParams
+                    | onlyOwnServers = True
+                    , selectedServers = newSelectedServers
+                  }
+                )
 
         changeOnlyOwnMsg : Msg
         changeOnlyOwnMsg =
             ProjectMsg projectId <|
                 SetProjectView <|
                     ListProjectServers
-                        { serverListViewParams
-                            | onlyOwnServers =
-                                not serverListViewParams.onlyOwnServers
-                        }
+                        newServerListViewParams
 
         changeButton =
             Widget.button
