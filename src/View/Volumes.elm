@@ -23,7 +23,6 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , ServerDetailViewParams
         )
 import View.Helpers as VH
 import Widget
