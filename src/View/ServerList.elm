@@ -73,6 +73,10 @@ serverList_ projectId userUuid serverListViewParams servers =
             else
                 servers
 
+        selectableServers =
+            shownServers
+                |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+
         selectedServers =
             List.filter (serverIsSelected serverListViewParams.selectedServers) shownServers
 
@@ -81,7 +85,7 @@ serverList_ projectId userUuid serverListViewParams servers =
                 False
 
             else
-                shownServers == selectedServers
+                selectableServers == selectedServers
 
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
@@ -105,8 +109,7 @@ serverList_ projectId userUuid serverListViewParams servers =
                         let
                             newSelection =
                                 if new {- == true -} then
-                                    shownServers
-                                        |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
+                                    selectableServers
                                         |> List.map (\s -> s.osProps.uuid)
                                         |> Set.fromList
 
