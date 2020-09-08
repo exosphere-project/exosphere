@@ -12,6 +12,7 @@ import Set
 import Style.Theme
 import Style.Widgets.Button
 import Style.Widgets.Icon as Icon
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -194,11 +195,7 @@ renderServer projectId serverListViewParams server =
                 SetProjectView <|
                     ServerDetail
                         server.osProps.uuid
-                        { verboseStatus = False
-                        , passwordVisibility = PasswordHidden
-                        , ipInfoLevel = IPSummary
-                        , serverActionNamePendingConfirmation = Nothing
-                        }
+                        Defaults.serverDetailViewParams
 
         serverLabel : Server -> Element.Element Msg
         serverLabel aServer =

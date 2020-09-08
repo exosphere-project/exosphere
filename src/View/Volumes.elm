@@ -13,6 +13,7 @@ import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( DeleteVolumeConfirmation
@@ -230,7 +231,7 @@ renderAttachment project attachment =
                     Just
                         (ProjectMsg
                             (Helpers.getProjectId project)
-                            (SetProjectView <| ServerDetail attachment.serverUuid <| ServerDetailViewParams False PasswordHidden IPSummary Nothing)
+                            (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
                         )
                 , label = Icon.rightArrow (Element.rgb255 122 122 122) 16
                 }
