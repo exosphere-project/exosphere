@@ -46,6 +46,7 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Rest.Neutron exposing (requestNetworks)
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -527,7 +528,6 @@ receiveServer_ project osServer =
                             ExoServerProps
                                 Unknown
                                 False
-                                False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
                                 Nothing
@@ -719,7 +719,8 @@ receiveCreateServer model project _ =
                 (Helpers.getProjectId project)
                 { createPopup = False }
             <|
-                ListProjectServers { onlyOwnServers = True } []
+                ListProjectServers
+                    Defaults.serverListViewParams
 
         newProject =
             Helpers.projectSetServersLoading model.clientCurrentTime project

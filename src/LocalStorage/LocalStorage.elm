@@ -12,6 +12,7 @@ import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
+import Types.Defaults as Defaults
 import Types.Types as Types
 import UUID
 
@@ -45,7 +46,12 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
                     Types.NonProjectView Types.LoginPicker
 
                 firstProject :: _ ->
-                    Types.ProjectView (Helpers.getProjectId firstProject) { createPopup = False } (Types.ListProjectServers { onlyOwnServers = True } [])
+                    Types.ProjectView
+                        (Helpers.getProjectId firstProject)
+                        { createPopup = False }
+                        (Types.ListProjectServers
+                            Defaults.serverListViewParams
+                        )
 
         clientUuid =
             -- If client UUID exists in stored state then use that, else set a new one

@@ -28,6 +28,7 @@ import Rest.Nova
 import Task
 import Time
 import Toasty
+import Types.Defaults as Defaults
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -474,7 +475,7 @@ updateUnderlying msg model =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                ListProjectServers { onlyOwnServers = True } []
+                                                ListProjectServers Defaults.serverListViewParams
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -712,10 +713,10 @@ processProjectSpecificMsg model project msg =
                     in
                     ( modelUpdatedView model, cmd )
 
-                ListProjectServers _ _ ->
+                ListProjectServers _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (ListProjectServers _ _) ->
+                        Just (ListProjectServers _) ->
                             ( modelUpdatedView model, Cmd.none )
 
                         _ ->
@@ -952,8 +953,7 @@ processProjectSpecificMsg model project msg =
                                         { createPopup = False }
                                     <|
                                         ListProjectServers
-                                            { onlyOwnServers = True }
-                                            []
+                                            Defaults.serverListViewParams
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -1056,8 +1056,7 @@ processProjectSpecificMsg model project msg =
                                 { createPopup = False }
                             <|
                                 ListProjectServers
-                                    { onlyOwnServers = True }
-                                    []
+                                    Defaults.serverListViewParams
                     }
             in
             ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
@@ -1083,50 +1082,6 @@ processProjectSpecificMsg model project msg =
             in
             ( Helpers.modelUpdateProject model newProject
             , cmd
-            )
-
-        SelectServer server newSelectionState ->
-            let
-                oldExoProps =
-                    server.exoProps
-
-                newServer =
-                    Server server.osProps { oldExoProps | selected = newSelectionState }
-
-                newProject =
-                    Helpers.projectUpdateServer project newServer
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel
-            , Cmd.none
-            )
-
-        SelectAllServers allServersSelected ->
-            let
-                updateServer someServer =
-                    let
-                        oldExoProps =
-                            someServer.exoProps
-                    in
-                    case someServer.osProps.details.lockStatus of
-                        OSTypes.ServerUnlocked ->
-                            Server someServer.osProps { oldExoProps | selected = allServersSelected }
-
-                        OSTypes.ServerLocked ->
-                            someServer
-
-                newProject =
-                    RDPP.withDefault [] project.servers
-                        |> List.map updateServer
-                        |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project
-
-                newModel =
-                    Helpers.modelUpdateProject model newProject
-            in
-            ( newModel
-            , Cmd.none
             )
 
         ReceiveServers errorContext result ->
@@ -1240,7 +1195,9 @@ processProjectSpecificMsg model project msg =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (ListProjectServers { onlyOwnServers = True } [])
+                                            (ListProjectServers
+                                                Defaults.serverListViewParams
+                                            )
 
                                     else
                                         model.viewState
@@ -1565,14 +1522,14 @@ createProject model password authToken endpoints =
                         (Helpers.getProjectId newProject)
                         { createPopup = False }
                     <|
-                        ListProjectServers { onlyOwnServers = True } []
+                        ListProjectServers Defaults.serverListViewParams
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         (Helpers.getProjectId newProject)
                         projectViewParams
                     <|
-                        ListProjectServers { onlyOwnServers = True } []
+                        ListProjectServers Defaults.serverListViewParams
 
         newModel =
             { model

@@ -29,9 +29,10 @@ module Types.Types exposing
     , ProjectViewParams
     , Server
     , ServerDetailViewParams
-    , ServerFilter
     , ServerFromExoProps
+    , ServerListViewParams
     , ServerOrigin(..)
+    , ServerSelection
     , ServerUiStatus(..)
     , SortTableParams
     , TickInterval
@@ -199,8 +200,6 @@ type ProjectSpecificMsgConstructor
     | RequestAppCredential Time.Posix
     | ToggleCreatePopup
     | RemoveProject
-    | SelectServer Server Bool
-    | SelectAllServers Bool
     | RequestServers
     | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest
@@ -267,11 +266,6 @@ type alias SortTableParams =
     }
 
 
-type alias ServerFilter =
-    { onlyOwnServers : Bool
-    }
-
-
 type alias ProjectViewParams =
     { createPopup : Bool
     }
@@ -279,7 +273,7 @@ type alias ProjectViewParams =
 
 type ProjectViewConstructor
     = ListImages ImageListViewParams SortTableParams
-    | ListProjectServers ServerFilter (List DeleteConfirmation)
+    | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
@@ -290,12 +284,23 @@ type ProjectViewConstructor
     | MountVolInstructions OSTypes.VolumeAttachment
 
 
+type alias ServerListViewParams =
+    { onlyOwnServers : Bool
+    , selectedServers : Set.Set ServerSelection
+    , deleteConfirmations : List DeleteConfirmation
+    }
+
+
 type alias ServerDetailViewParams =
     { verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     }
+
+
+type alias ServerSelection =
+    OSTypes.ServerUuid
 
 
 type alias DeleteConfirmation =
@@ -346,7 +351,6 @@ type alias Server =
 
 type alias ExoServerProps =
     { priorFloatingIpState : FloatingIpState
-    , selected : Bool
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin

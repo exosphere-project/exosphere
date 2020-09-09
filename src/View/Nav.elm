@@ -8,6 +8,7 @@ import Element.Region as Region
 import Helpers.Helpers as Helpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( Model
@@ -57,7 +58,8 @@ navMenu model =
                 (Just
                     (ProjectMsg (Helpers.getProjectId project)
                         (SetProjectView <|
-                            ListProjectServers { onlyOwnServers = True } []
+                            ListProjectServers
+                                Defaults.serverListViewParams
                         )
                     )
                 )

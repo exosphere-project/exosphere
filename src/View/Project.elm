@@ -5,6 +5,7 @@ import Helpers.Helpers as Helpers
 import Set
 import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( Model
@@ -37,8 +38,8 @@ project model p viewParams viewConstructor =
                 ListImages imageFilter sortTableParams ->
                     View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
 
-                ListProjectServers serverFilter deleteConfirmations ->
-                    View.ServerList.serverList p serverFilter deleteConfirmations
+                ListProjectServers serverListViewParams ->
+                    View.ServerList.serverList p serverListViewParams
 
                 ServerDetail serverUuid serverDetailViewParams ->
                     View.ServerDetail.serverDetail p model.isElectron serverDetailViewParams serverUuid
@@ -94,7 +95,7 @@ projectNav p viewParams =
                         Just <|
                             ProjectMsg (Helpers.getProjectId p) <|
                                 SetProjectView <|
-                                    ListProjectServers { onlyOwnServers = True } []
+                                    ListProjectServers Defaults.serverListViewParams
                     }
             , Element.el
                 []
