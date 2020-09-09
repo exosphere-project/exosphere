@@ -8,6 +8,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( IPInfoLevel(..)
@@ -160,11 +161,7 @@ mountVolInstructions project attachment =
                         SetProjectView
                             (ServerDetail
                                 attachment.serverUuid
-                                { verboseStatus = False
-                                , passwordVisibility = PasswordHidden
-                                , ipInfoLevel = IPSummary
-                                , serverActionNamePendingConfirmation = Nothing
-                                }
+                                Defaults.serverDetailViewParams
                             )
             }
         ]
