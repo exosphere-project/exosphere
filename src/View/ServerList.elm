@@ -82,7 +82,7 @@ serverList_ projectId userUuid serverListViewParams servers =
             List.filter (serverIsSelected serverListViewParams.selectedServers) shownServers
 
         allServersSelected =
-            if List.isEmpty shownServers then
+            if List.isEmpty selectableServers then
                 False
 
             else
