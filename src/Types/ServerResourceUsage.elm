@@ -8,6 +8,7 @@ type alias ResourceUsageHistory =
     Dict.Dict Time.Posix ResourceUsageRecord
 
 
+emptyResourceUsageHistory : ResourceUsageHistory
 emptyResourceUsageHistory =
     Dict.empty
 
