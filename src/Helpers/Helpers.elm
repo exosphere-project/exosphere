@@ -1073,12 +1073,12 @@ serverOrigin serverDetails =
     case exoServerVersion_ of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked Types.ServerResourceUsage.emptyResourceUsageHistory
+                ServerFromExoProps v NotChecked RDPP.empty
 
         Nothing ->
             if version0 then
                 ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked Types.ServerResourceUsage.emptyResourceUsageHistory
+                    ServerFromExoProps 0 NotChecked RDPP.empty
 
             else
                 ServerNotFromExo

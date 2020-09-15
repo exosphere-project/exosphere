@@ -10,4 +10,5 @@ import Types.ServerResourceUsage exposing (ResourceUsageHistory, ResourceUsageRe
 parseConsoleLog : String -> ResourceUsageHistory -> ResourceUsageHistory
 parseConsoleLog consoleLog resUsgHist =
     -- TODO implement me!
+    -- No results in console log should result in a blank resource usage history
     resUsgHist

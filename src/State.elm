@@ -31,6 +31,7 @@ import Time
 import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes as HelperTypes
+import Types.ServerResourceUsage
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -1495,7 +1496,7 @@ processProjectSpecificMsg model project msg =
                 in
                 ( model, cmd )
 
-        ReceiveConsoleLog serverUuid consoleLog ->
+        ReceiveConsoleLog serverUuid result ->
             case Helpers.serverLookup project serverUuid of
                 Nothing ->
                     ( model, Cmd.none )
@@ -1507,11 +1508,29 @@ processProjectSpecificMsg model project msg =
 
                         ServerFromExo exoOriginProps ->
                             let
-                                newResourceUsageHistory =
-                                    Helpers.ServerResourceUsage.parseConsoleLog consoleLog exoOriginProps.resourceUsage
+                                newResourceUsage =
+                                    case result of
+                                        Err httpError ->
+                                            RDPP.RemoteDataPlusPlus
+                                                exoOriginProps.resourceUsage.data
+                                                (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+
+                                        Ok consoleLog ->
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave
+                                                    (Helpers.ServerResourceUsage.parseConsoleLog
+                                                        consoleLog
+                                                        (RDPP.withDefault
+                                                            Types.ServerResourceUsage.emptyResourceUsageHistory
+                                                            exoOriginProps.resourceUsage
+                                                        )
+                                                    )
+                                                    model.clientCurrentTime
+                                                )
+                                                (RDPP.NotLoading Nothing)
 
                                 newOriginProps =
-                                    { exoOriginProps | resourceUsage = newResourceUsageHistory }
+                                    { exoOriginProps | resourceUsage = newResourceUsage }
 
                                 oldExoProps =
                                     server.exoProps

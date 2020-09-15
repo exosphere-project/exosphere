@@ -237,7 +237,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
-    | ReceiveConsoleLog OSTypes.ServerUuid String
+    | ReceiveConsoleLog OSTypes.ServerUuid (Result HttpErrorWithBody String)
 
 
 type ViewState
@@ -369,7 +369,7 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
-    , resourceUsage : Types.ServerResourceUsage.ResourceUsageHistory
+    , resourceUsage : RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.ResourceUsageHistory
     }
 
 
