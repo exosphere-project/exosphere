@@ -379,7 +379,7 @@ type alias ExoServerVersion =
 
 currentExoServerVersion : ExoServerVersion
 currentExoServerVersion =
-    1
+    2
 
 
 type FloatingIpState
