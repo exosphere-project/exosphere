@@ -5,6 +5,7 @@ import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ServerResourceUsage
 import Http
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -1493,6 +1494,40 @@ processProjectSpecificMsg model project msg =
                                 Cmd.none
                 in
                 ( model, cmd )
+
+        ReceiveConsoleLog serverUuid consoleLog ->
+            case Helpers.serverLookup project serverUuid of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just server ->
+                    case server.exoProps.serverOrigin of
+                        ServerNotFromExo ->
+                            ( model, Cmd.none )
+
+                        ServerFromExo exoOriginProps ->
+                            let
+                                newResourceUsageHistory =
+                                    Helpers.ServerResourceUsage.parseConsoleLog consoleLog exoOriginProps.resourceUsage
+
+                                newOriginProps =
+                                    { exoOriginProps | resourceUsage = newResourceUsageHistory }
+
+                                oldExoProps =
+                                    server.exoProps
+
+                                newExoProps =
+                                    { oldExoProps | serverOrigin = ServerFromExo newOriginProps }
+
+                                newServer =
+                                    { server | exoProps = newExoProps }
+
+                                newProject =
+                                    Helpers.projectUpdateServer project newServer
+                            in
+                            ( Helpers.modelUpdateProject model newProject
+                            , Cmd.none
+                            )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )

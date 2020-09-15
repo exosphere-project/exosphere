@@ -65,6 +65,7 @@ import Time
 import Toasty
 import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
+import Types.ServerResourceUsage
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -1072,12 +1073,12 @@ serverOrigin serverDetails =
     case exoServerVersion_ of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked
+                ServerFromExoProps v NotChecked Types.ServerResourceUsage.emptyResourceUsageHistory
 
         Nothing ->
             if version0 then
                 ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked
+                    ServerFromExoProps 0 NotChecked Types.ServerResourceUsage.emptyResourceUsageHistory
 
             else
                 ServerNotFromExo

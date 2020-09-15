@@ -55,6 +55,7 @@ import Set
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes
+import Types.ServerResourceUsage
 import UUID
 
 
@@ -368,6 +369,7 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
+    , resourceUsage : Types.ServerResourceUsage.ResourceUsageHistory
     }
 
 
