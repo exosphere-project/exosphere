@@ -93,7 +93,8 @@ runcmd:
   - "systemctl daemon-reload"
   - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
   - "chown exouser:exouser /media/volume/*"
-  - SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
+  - |
+    SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
     SYS_LOAD_SCRIPT_SHA512=cb051ee5ce5caeb6b2b52cbd2742fbb8d18bdd56112d41d4a9ecc298614fa913752c225e39882f0d547b7e9cb91bac21f84530ac10c0429860eb6f105b2cfc6d
     SYS_LOAD_SCRIPT_FILE=/opt/system_load_json.py
     wget --quiet --output-document=$SYS_LOAD_SCRIPT_FILE $SYS_LOAD_SCRIPT_URL
