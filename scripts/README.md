@@ -1,1 +1,0 @@
-This directory contains code that is used by the Exosphere project, but is separate from the main Elm codebase. Files here may be in a language other than Elm.
