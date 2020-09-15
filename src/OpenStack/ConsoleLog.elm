@@ -1,4 +1,4 @@
-module OpenStack.ConsoleLog exposing (doAction)
+module OpenStack.ConsoleLog exposing (requestConsoleLog)
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
@@ -17,8 +17,8 @@ import Types.Types
         )
 
 
-doAction : Project -> Server -> Int -> Cmd Msg
-doAction project server length =
+requestConsoleLog : Project -> Server -> Int -> Cmd Msg
+requestConsoleLog project server length =
     let
         body =
             Json.Encode.object
@@ -33,7 +33,7 @@ doAction project server length =
 
         errorContext =
             ErrorContext
-                ("perform action for server " ++ server.osProps.uuid)
+                ("request console log for server " ++ server.osProps.uuid)
                 ErrorCrit
                 Nothing
     in
@@ -44,7 +44,13 @@ doAction project server length =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            (resultToMsgErrorBody errorContext (\result -> ProjectMsg (Helpers.getProjectId project) <| ReceiveConsoleLog server.osProps.uuid result))
+            (resultToMsgErrorBody
+                errorContext
+                (\result ->
+                    ProjectMsg (Helpers.getProjectId project) <|
+                        ReceiveConsoleLog server.osProps.uuid result
+                )
+            )
             decodeConsoleLog
         )
 
