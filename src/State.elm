@@ -1497,6 +1497,7 @@ processProjectSpecificMsg model project msg =
                 ( model, cmd )
 
         ReceiveConsoleLog serverUuid result ->
+            -- TODO when we don't receive any new JSON in console log, increment number of strikes. When we do receive valid JSON, reset strikes to 0.
             case Helpers.serverLookup project serverUuid of
                 Nothing ->
                     ( model, Cmd.none )

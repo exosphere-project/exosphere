@@ -5,12 +5,17 @@ import Time
 
 
 type alias History =
-    Dict.Dict Time.Posix DataPoint
+    { timeseries : Dict.Dict Time.Posix DataPoint
+
+    -- pollingStrikes indicate when we have polled the console log but not received any new JSON.
+    -- This way we can eventually give up on polling if server is not logging resource usage.
+    , pollingStrikes : Int
+    }
 
 
 emptyResourceUsageHistory : History
 emptyResourceUsageHistory =
-    Dict.empty
+    History Dict.empty 0
 
 
 type alias DataPoint =
