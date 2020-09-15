@@ -7,6 +7,7 @@
 import json
 import subprocess
 import sys
+import time
 
 
 def cmd_stdout_lines(cmd_list):
@@ -61,6 +62,7 @@ def disk():
 
 
 json_dict = {
+        "epoch:": round(time.time()),
         "cpuPctUsed:": cpu(),
         "memPctUsed:": mem(),
         "rootfsPctUsed:": disk()
