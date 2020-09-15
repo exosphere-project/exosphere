@@ -33,7 +33,9 @@ goalPollServers : Time.Posix -> Project -> ( Project, Cmd Msg )
 goalPollServers time project =
     let
         steps =
-            [ stepServerPoll time ]
+            [ stepServerPoll time
+            , stepServerPollConsoleLog time
+            ]
 
         ( newProject, newCmds ) =
             List.foldl
@@ -246,3 +248,27 @@ stepServerRequestFloatingIp _ project server =
 
         _ ->
             ( project, Cmd.none )
+
+
+stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerPollConsoleLog time project server =
+    {- TODO implement me
+
+       Figure out whether to poll
+       Poll if server is created by e7e, exoServerVersion at least 2, OS status active, RDPP is not Loading, and:
+        - We don't have data (i.e. we haven't ever polled)
+        - We have data and one of these:
+          - The dict is not empty, and it's been at least 1 minute since most recent key in dict
+          - The dict is empty, it's been at least 1 minute since last ReceivedTime, and one of these:
+            - The server is <30 mins old
+            - We have <5 strikes
+        - When else?
+
+       Figure out how many lines to poll
+       - If server is <30 mins old, get 1000 lines (because cloud-init makes a lot of console output)
+       - If it's our first time polling since starting app, get 1000 lines (so we catch historical data)
+       - If there is at least one strike, get last 1000 lines (because there may be a lot of console output)
+       - Otherwise, get last 10 lines
+
+    -}
+    ( project, Cmd.none )
