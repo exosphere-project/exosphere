@@ -1,19 +1,19 @@
-module Types.ServerResourceUsage exposing (ResourceUsageHistory, ResourceUsageRecord, emptyResourceUsageHistory)
+module Types.ServerResourceUsage exposing (DataPoint, History, emptyResourceUsageHistory)
 
 import Dict
 import Time
 
 
-type alias ResourceUsageHistory =
-    Dict.Dict Time.Posix ResourceUsageRecord
+type alias History =
+    Dict.Dict Time.Posix DataPoint
 
 
-emptyResourceUsageHistory : ResourceUsageHistory
+emptyResourceUsageHistory : History
 emptyResourceUsageHistory =
     Dict.empty
 
 
-type alias ResourceUsageRecord =
+type alias DataPoint =
     { cpuPctUsed : Int
     , memPctUsed : Int
     , rootfsPctUsed : Int

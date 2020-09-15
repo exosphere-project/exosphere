@@ -369,7 +369,7 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
-    , resourceUsage : RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.ResourceUsageHistory
+    , resourceUsage : RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
     }
 
 
