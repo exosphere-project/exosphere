@@ -236,6 +236,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
+    | ReceiveConsoleLog OSTypes.ServerUuid String
 
 
 type ViewState
