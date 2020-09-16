@@ -65,7 +65,6 @@ import Time
 import Toasty
 import Toasty.Defaults
 import Types.HelperTypes as HelperTypes
-import Types.ServerResourceUsage
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)

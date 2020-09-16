@@ -11,15 +11,13 @@ import Orchestration.Helpers exposing (applyStepToAllServers)
 import Rest.Neutron
 import Rest.Nova
 import Time
-import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
+import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
         ( FloatingIpState(..)
         , Msg
         , Project
-        , ResourceUsageRDPP
         , Server
-        , ServerFromExoProps
         , ServerOrigin(..)
         )
 import UUID
