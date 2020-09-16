@@ -1,13 +1,13 @@
 module View.ServerDetail exposing (serverDetail)
 
 import Color
+import Dict
 import Element
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
-import Html
-import Html.Attributes
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -611,8 +611,21 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
 
 resourceUsageGraphs : ServerOrigin -> Maybe String -> Element.Element Msg
 resourceUsageGraphs serverOrigin maybeFloatingIp =
-    -- TODO
-    Element.none
+    case serverOrigin of
+        ServerNotFromExo ->
+            Element.none
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.resourceUsage.data of
+                RDPP.DoHave history _ ->
+                    history.timeSeries
+                        |> Dict.toList
+                        |> List.map Debug.toString
+                        |> List.map Element.text
+                        |> Element.column []
+
+                _ ->
+                    Element.none
 
 
 renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
