@@ -1,7 +1,6 @@
 module Types.ServerResourceUsage exposing (DataPoint, History, TimeSeries, emptyResourceUsageHistory)
 
 import Dict
-import Time
 
 
 type alias History =
