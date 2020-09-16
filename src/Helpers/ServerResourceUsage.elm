@@ -1,7 +1,7 @@
 module Helpers.ServerResourceUsage exposing (getMostRecentDataPoint, parseConsoleLog)
 
 import Dict
-import Time
+import Json.Decode
 import Types.ServerResourceUsage exposing (DataPoint, History)
 
 
@@ -11,11 +11,30 @@ import Types.ServerResourceUsage exposing (DataPoint, History)
 
 parseConsoleLog : String -> History -> History
 parseConsoleLog consoleLog prevHistory =
-    -- TODO implement me!
-    -- TODO No results in console log should result in a blank resource usage history
-    -- TODO Increment pollingStrikes if no new log entries received
-    -- TODO when new log entries received, reset pollingStrikes to 0
-    prevHistory
+    let
+        loglines =
+            --- Removing the backslash from double quotes so that JSON decoding works.
+            String.split "\n" consoleLog
+
+        decodedData =
+            List.filterMap
+                (\l -> Json.Decode.decodeString decodeLogLine l |> Result.toMaybe)
+                loglines
+
+        newTimeSeries =
+            List.foldl
+                (\( k, v ) -> Dict.insert k v)
+                prevHistory.timeSeries
+                decodedData
+
+        newStrikes =
+            if newTimeSeries == prevHistory.timeSeries then
+                prevHistory.pollingStrikes + 1
+
+            else
+                0
+    in
+    History newTimeSeries newStrikes
 
 
 getMostRecentDataPoint : Dict.Dict Int DataPoint -> Maybe ( Int, DataPoint )
@@ -25,3 +44,19 @@ getMostRecentDataPoint timeSeries =
         |> List.sortBy Tuple.first
         |> List.reverse
         |> List.head
+
+
+decodeLogLine : Json.Decode.Decoder ( Int, DataPoint )
+decodeLogLine =
+    Json.Decode.map2
+        Tuple.pair
+        (Json.Decode.field "epoch" Json.Decode.int
+            |> Json.Decode.map (\epoch -> epoch * 1000)
+         -- This gets us milliseconds
+        )
+        (Json.Decode.map3
+            DataPoint
+            (Json.Decode.field "cpuPctUsed" Json.Decode.int)
+            (Json.Decode.field "memPctUsed" Json.Decode.int)
+            (Json.Decode.field "rootfsPctUsed" Json.Decode.int)
+        )
