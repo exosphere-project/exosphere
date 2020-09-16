@@ -611,58 +611,8 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
 
 resourceUsageGraphs : ServerOrigin -> Maybe String -> Element.Element Msg
 resourceUsageGraphs serverOrigin maybeFloatingIp =
-    maybeFloatingIp
-        |> Maybe.withDefault (Element.text "Graphs not ready yet.")
-        << Maybe.map
-            (\floatingIp ->
-                case serverOrigin of
-                    ServerNotFromExo ->
-                        Element.text "Not available (server launched outside of Exosphere)."
-
-                    ServerFromExo serverFromExoProps ->
-                        let
-                            graphs =
-                                let
-                                    graphsUrl =
-                                        "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
-                                in
-                                -- I am so sorry
-                                Element.html
-                                    (Html.div
-                                        [ Html.Attributes.style "position" "relative"
-                                        , Html.Attributes.style "overflow" "hidden"
-                                        , Html.Attributes.style "width" "550px"
-                                        , Html.Attributes.style "height" "650px"
-                                        ]
-                                        [ Html.iframe
-                                            [ Html.Attributes.style "position" "absolute"
-                                            , Html.Attributes.style "top" "-320px"
-                                            , Html.Attributes.style "left" "-30px"
-                                            , Html.Attributes.style "width" "600px"
-                                            , Html.Attributes.style "height" "1000px"
-
-                                            -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
-                                            -- This is not compliant HTML5 but still works
-                                            , Html.Attributes.attribute "scrolling" "no"
-                                            , Html.Attributes.src graphsUrl
-                                            ]
-                                            []
-                                        ]
-                                    )
-                        in
-                        case serverFromExoProps.cockpitStatus of
-                            Ready ->
-                                graphs
-
-                            ReadyButRecheck ->
-                                graphs
-
-                            NotChecked ->
-                                Element.text "Graphs not ready yet."
-
-                            CheckedNotReady ->
-                                Element.text "Graphs not ready yet."
-            )
+    -- TODO
+    Element.none
 
 
 renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
