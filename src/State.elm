@@ -1496,7 +1496,7 @@ processProjectSpecificMsg model project msg =
                 in
                 ( model, cmd )
 
-        ReceiveConsoleLog serverUuid result ->
+        ReceiveConsoleLog errorContext serverUuid result ->
             -- TODO when we don't receive any new JSON in console log, increment number of strikes. When we do receive valid JSON, reset strikes to 0.
             case Helpers.serverLookup project serverUuid of
                 Nothing ->
@@ -1544,10 +1544,16 @@ processProjectSpecificMsg model project msg =
 
                                 newProject =
                                     Helpers.projectUpdateServer project newServer
+
+                                newModel =
+                                    Helpers.modelUpdateProject model newProject
                             in
-                            ( Helpers.modelUpdateProject model newProject
-                            , Cmd.none
-                            )
+                            case result of
+                                Err httpError ->
+                                    Helpers.processSynchronousApiError newModel errorContext httpError
+
+                                Ok _ ->
+                                    ( newModel, Cmd.none )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )

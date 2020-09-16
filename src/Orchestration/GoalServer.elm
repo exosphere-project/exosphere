@@ -1,13 +1,27 @@
 module Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 
+import Dict
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
+import Helpers.Time exposing (iso8601StringToPosix)
+import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
 import Rest.Neutron
 import Rest.Nova
 import Time
-import Types.Types exposing (FloatingIpState(..), Msg, Project, Server)
+import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
+import Types.Types
+    exposing
+        ( FloatingIpState(..)
+        , Msg
+        , Project
+        , ResourceUsageRDPP
+        , Server
+        , ServerFromExoProps
+        , ServerOrigin(..)
+        )
 import UUID
 
 
@@ -252,23 +266,128 @@ stepServerRequestFloatingIp _ project server =
 
 stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerPollConsoleLog time project server =
-    {- TODO implement me
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            -- Don't poll server that won't be logging resource usage to console
+            ( project, Cmd.none )
 
-       Figure out whether to poll
-       Poll if server is created by e7e, exoServerVersion at least 2, OS status active, RDPP is not Loading, and:
-        - We don't have data (i.e. we haven't ever polled)
-        - We have data and one of these:
-          - The dict is not empty, and it's been at least 1 minute since most recent key in dict
-          - The dict is empty, it's been at least 1 minute since last ReceivedTime, and one of these:
-            - The server is <30 mins old
-            - We have <5 strikes
-        - When else?
+        ServerFromExo exoOriginProps ->
+            let
+                oneMinMillis =
+                    60000
 
-       Figure out how many lines to poll
-       - If server is <30 mins old, get 1000 lines (because cloud-init makes a lot of console output)
-       - If it's our first time polling since starting app, get 1000 lines (so we catch historical data)
-       - If there is at least one strike, get last 1000 lines (because there may be a lot of console output)
-       - Otherwise, get last 10 lines
+                thirtyMinMillis =
+                    1800000
 
-    -}
-    ( project, Cmd.none )
+                curTimeMillis =
+                    Time.posixToMillis time
+
+                doPollLines : Maybe Int
+                doPollLines =
+                    let
+                        serverIsActive =
+                            server.osProps.details.openstackStatus == OSTypes.ServerActive
+
+                        consoleLogNotLoading =
+                            case exoOriginProps.resourceUsage.refreshStatus of
+                                RDPP.NotLoading _ ->
+                                    True
+
+                                RDPP.Loading _ ->
+                                    False
+                    in
+                    if
+                        serverIsActive
+                            && (exoOriginProps.exoServerVersion >= 2)
+                            && consoleLogNotLoading
+                    then
+                        case exoOriginProps.resourceUsage.data of
+                            RDPP.DontHave ->
+                                -- Get a lot of log if we haven't polled for it before
+                                Just 1000
+
+                            RDPP.DoHave data recTime ->
+                                let
+                                    tsDataOlderThanOneMinute : TimeSeries -> Bool
+                                    tsDataOlderThanOneMinute timeSeries =
+                                        getMostRecentDataPoint timeSeries
+                                            |> Maybe.map Tuple.first
+                                            |> Maybe.map Time.posixToMillis
+                                            |> Maybe.map
+                                                (\logTimeMillis ->
+                                                    (curTimeMillis - logTimeMillis) > oneMinMillis
+                                                )
+                                            -- Defaults to False if timeseries is empty
+                                            |> Maybe.withDefault False
+
+                                    serverLessThan30MinsOld : Bool
+                                    serverLessThan30MinsOld =
+                                        case iso8601StringToPosix server.osProps.details.created of
+                                            -- Defaults to False if cannot determine server created time
+                                            Err _ ->
+                                                False
+
+                                            Ok createdTime ->
+                                                (curTimeMillis - Time.posixToMillis createdTime) < thirtyMinMillis
+
+                                    atLeastOneMinSinceLogReceived : Bool
+                                    atLeastOneMinSinceLogReceived =
+                                        (curTimeMillis - Time.posixToMillis recTime) > oneMinMillis
+
+                                    linesToPoll : Int
+                                    linesToPoll =
+                                        if serverLessThan30MinsOld || (data.pollingStrikes > 0) then
+                                            1000
+
+                                        else
+                                            10
+                                in
+                                if
+                                    -- Poll if we have time series data with last data point at least one minute old.
+                                    ((not <| Dict.isEmpty data.timeSeries)
+                                        && tsDataOlderThanOneMinute data.timeSeries
+                                    )
+                                        -- Poll if server <30 mins old or has <5 polling strikes,
+                                        -- and the last time we polled was at least one minute ago.
+                                        || ((serverLessThan30MinsOld || (data.pollingStrikes < 5))
+                                                && atLeastOneMinSinceLogReceived
+                                           )
+                                then
+                                    Just linesToPoll
+
+                                else
+                                    Nothing
+
+                    else
+                        Nothing
+            in
+            case doPollLines of
+                Nothing ->
+                    ( project, Cmd.none )
+
+                Just pollLines ->
+                    let
+                        newResourceUsage =
+                            RDPP.setLoading exoOriginProps.resourceUsage time
+
+                        newExoOriginProps =
+                            { exoOriginProps | resourceUsage = newResourceUsage }
+
+                        oldExoProps =
+                            server.exoProps
+
+                        newExoProps =
+                            { oldExoProps | serverOrigin = ServerFromExo newExoOriginProps }
+
+                        newServer =
+                            { server | exoProps = newExoProps }
+
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
+                    in
+                    ( newProject
+                    , OpenStack.ConsoleLog.requestConsoleLog
+                        project
+                        server
+                        pollLines
+                    )

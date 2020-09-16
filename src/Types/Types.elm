@@ -27,6 +27,7 @@ module Types.Types exposing
     , ProjectTitle
     , ProjectViewConstructor(..)
     , ProjectViewParams
+    , ResourceUsageRDPP
     , Server
     , ServerDetailViewParams
     , ServerFromExoProps
@@ -237,7 +238,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
-    | ReceiveConsoleLog OSTypes.ServerUuid (Result HttpErrorWithBody String)
+    | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
 
 
 type ViewState
@@ -369,8 +370,12 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
-    , resourceUsage : RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
+    , resourceUsage : ResourceUsageRDPP
     }
+
+
+type alias ResourceUsageRDPP =
+    RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
 
 
 type alias ExoServerVersion =

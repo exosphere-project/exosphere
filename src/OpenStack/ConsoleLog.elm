@@ -5,7 +5,7 @@ import Helpers.Helpers as Helpers
 import Http
 import Json.Decode
 import Json.Encode
-import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -36,6 +36,10 @@ requestConsoleLog project server length =
                 ("request console log for server " ++ server.osProps.uuid)
                 ErrorCrit
                 Nothing
+
+        resultToMsg result =
+            ProjectMsg (Helpers.getProjectId project) <|
+                ReceiveConsoleLog errorContext server.osProps.uuid result
     in
     openstackCredentialedRequest
         project
@@ -44,13 +48,7 @@ requestConsoleLog project server length =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (expectJsonWithErrorBody
-            (resultToMsgErrorBody
-                errorContext
-                (\result ->
-                    ProjectMsg (Helpers.getProjectId project) <|
-                        ReceiveConsoleLog server.osProps.uuid result
-                )
-            )
+            resultToMsg
             decodeConsoleLog
         )
 
