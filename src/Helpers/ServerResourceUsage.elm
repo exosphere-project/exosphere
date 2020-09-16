@@ -10,10 +10,12 @@ import Types.ServerResourceUsage exposing (DataPoint, History)
 
 
 parseConsoleLog : String -> History -> History
-parseConsoleLog consoleLog resUsgHist =
+parseConsoleLog consoleLog prevHistory =
     -- TODO implement me!
-    -- No results in console log should result in a blank resource usage history
-    resUsgHist
+    -- TODO No results in console log should result in a blank resource usage history
+    -- TODO Increment pollingStrikes if no new log entries received
+    -- TODO when new log entries received, reset pollingStrikes to 0
+    prevHistory
 
 
 getMostRecentDataPoint : Dict.Dict Time.Posix DataPoint -> Maybe ( Time.Posix, DataPoint )
