@@ -19,7 +19,8 @@ emptyResourceUsageHistory =
 
 
 type alias TimeSeries =
-    Dict.Dict Time.Posix DataPoint
+    -- Here the Int is milliseconds since the epoch (what you would get from Time.posixToMillis)
+    Dict.Dict Int DataPoint
 
 
 type alias DataPoint =

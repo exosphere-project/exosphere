@@ -310,7 +310,6 @@ stepServerPollConsoleLog time project server =
                                     tsDataOlderThanOneMinute timeSeries =
                                         getMostRecentDataPoint timeSeries
                                             |> Maybe.map Tuple.first
-                                            |> Maybe.map Time.posixToMillis
                                             |> Maybe.map
                                                 (\logTimeMillis ->
                                                     (curTimeMillis - logTimeMillis) > oneMinMillis

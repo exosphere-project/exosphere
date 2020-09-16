@@ -18,15 +18,10 @@ parseConsoleLog consoleLog prevHistory =
     prevHistory
 
 
-getMostRecentDataPoint : Dict.Dict Time.Posix DataPoint -> Maybe ( Time.Posix, DataPoint )
+getMostRecentDataPoint : Dict.Dict Int DataPoint -> Maybe ( Int, DataPoint )
 getMostRecentDataPoint timeSeries =
     timeSeries
         |> Dict.toList
-        |> List.sortBy
-            (\i ->
-                i
-                    |> Tuple.first
-                    |> Time.posixToMillis
-            )
+        |> List.sortBy Tuple.first
         |> List.reverse
         |> List.head
