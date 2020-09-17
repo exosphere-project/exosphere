@@ -1,7 +1,6 @@
 module View.ServerDetail exposing (serverDetail)
 
 import Color
-import Dict
 import Element
 import Element.Border as Border
 import Element.Font as Font
@@ -15,6 +14,7 @@ import Style.Theme
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import Time
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -32,24 +32,25 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
+import View.ResourceUsageCharts
 import View.Types
 import Widget
 import Widget.Style.Material
 
 
-serverDetail : Project -> Bool -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
-serverDetail project appIsElectron serverDetailViewParams serverUuid =
+serverDetail : Project -> Bool -> Time.Posix -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail project appIsElectron currentTime serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case Helpers.serverLookup project serverUuid of
         Just server ->
-            serverDetail_ project appIsElectron serverDetailViewParams server
+            serverDetail_ project appIsElectron currentTime serverDetailViewParams server
 
         Nothing ->
             Element.text "No server found"
 
 
-serverDetail_ : Project -> Bool -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverDetail_ project appIsElectron serverDetailViewParams server =
+serverDetail_ : Project -> Bool -> Time.Posix -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ project appIsElectron currentTime serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -165,7 +166,7 @@ serverDetail_ project appIsElectron serverDetailViewParams server =
             [ Element.el VH.heading3 (Element.text "Server Actions")
             , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageCharts server.exoProps.serverOrigin maybeFloatingIp
+            , resourceUsageCharts currentTime server.exoProps.serverOrigin
             ]
         ]
 
@@ -609,8 +610,9 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : ServerOrigin -> Maybe String -> Element.Element Msg
-resourceUsageCharts serverOrigin maybeFloatingIp =
+resourceUsageCharts : Time.Posix -> ServerOrigin -> Element.Element Msg
+resourceUsageCharts currentTime serverOrigin =
+    -- TODO let user select last 30 mins, 3 hours, 1 day, or max, depending how much data there are?
     case serverOrigin of
         ServerNotFromExo ->
             Element.none
@@ -618,11 +620,7 @@ resourceUsageCharts serverOrigin maybeFloatingIp =
         ServerFromExo exoOriginProps ->
             case exoOriginProps.resourceUsage.data of
                 RDPP.DoHave history _ ->
-                    history.timeSeries
-                        |> Dict.toList
-                        |> List.map Debug.toString
-                        |> List.map Element.text
-                        |> Element.column []
+                    View.ResourceUsageCharts.charts currentTime history.timeSeries
 
                 _ ->
                     Element.none
