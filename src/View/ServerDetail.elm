@@ -165,7 +165,7 @@ serverDetail_ project appIsElectron serverDetailViewParams server =
             [ Element.el VH.heading3 (Element.text "Server Actions")
             , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
+            , resourceUsageCharts server.exoProps.serverOrigin maybeFloatingIp
             ]
         ]
 
@@ -609,8 +609,8 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageGraphs : ServerOrigin -> Maybe String -> Element.Element Msg
-resourceUsageGraphs serverOrigin maybeFloatingIp =
+resourceUsageCharts : ServerOrigin -> Maybe String -> Element.Element Msg
+resourceUsageCharts serverOrigin maybeFloatingIp =
     case serverOrigin of
         ServerNotFromExo ->
             Element.none
