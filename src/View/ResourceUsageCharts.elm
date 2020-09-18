@@ -25,8 +25,8 @@ import Tuple
 import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
 
 
-charts : Time.Posix -> TimeSeries -> Element.Element msg
-charts currentTime timeSeriesDict =
+charts : ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element msg
+charts ( currentTime, timeZone ) timeSeriesDict =
     -- TODO need times on X-axis to look sane, either "minutes before present" or local time
     -- TODO label most recent value? With a custom tick or something?
     let
@@ -80,17 +80,13 @@ charts currentTime timeSeriesDict =
             timeRange
 
         timeRange getDataFunc =
-            let
-                ticks =
-                    Ticks.time Time.utc 6
-            in
             Axis.custom
                 { title = Title.default ""
                 , variable = Just << getDataFunc
                 , pixels = 700
                 , range = Range.default
                 , axisLine = AxisLine.full Color.black
-                , ticks = ticks
+                , ticks = Ticks.time timeZone 6
                 }
 
         chartConfig : (( Int, DataPoint ) -> Float) -> Bool -> LineChart.Config ( Int, DataPoint ) msg

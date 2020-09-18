@@ -38,19 +38,19 @@ import Widget
 import Widget.Style.Material
 
 
-serverDetail : Project -> Bool -> Time.Posix -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
-serverDetail project appIsElectron currentTime serverDetailViewParams serverUuid =
+serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail project appIsElectron currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case Helpers.serverLookup project serverUuid of
         Just server ->
-            serverDetail_ project appIsElectron currentTime serverDetailViewParams server
+            serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams server
 
         Nothing ->
             Element.text "No server found"
 
 
-serverDetail_ : Project -> Bool -> Time.Posix -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverDetail_ project appIsElectron currentTime serverDetailViewParams server =
+serverDetail_ : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -166,7 +166,7 @@ serverDetail_ project appIsElectron currentTime serverDetailViewParams server =
             [ Element.el VH.heading3 (Element.text "Server Actions")
             , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageCharts currentTime server.exoProps.serverOrigin
+            , resourceUsageCharts currentTimeAndZone server.exoProps.serverOrigin
             ]
         ]
 
@@ -610,8 +610,8 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : Time.Posix -> ServerOrigin -> Element.Element Msg
-resourceUsageCharts currentTime serverOrigin =
+resourceUsageCharts : ( Time.Posix, Time.Zone ) -> ServerOrigin -> Element.Element Msg
+resourceUsageCharts currentTimeAndZone serverOrigin =
     -- TODO let user select last 30 mins, 3 hours, 1 day, or max, depending how much data there are?
     case serverOrigin of
         ServerNotFromExo ->
@@ -620,7 +620,7 @@ resourceUsageCharts currentTime serverOrigin =
         ServerFromExo exoOriginProps ->
             case exoOriginProps.resourceUsage.data of
                 RDPP.DoHave history _ ->
-                    View.ResourceUsageCharts.charts currentTime history.timeSeries
+                    View.ResourceUsageCharts.charts currentTimeAndZone history.timeSeries
 
                 _ ->
                     Element.none

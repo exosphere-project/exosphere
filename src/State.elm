@@ -133,6 +133,9 @@ mounts:
         currentTime =
             Time.millisToPosix flags.epoch
 
+        timeZone =
+            Time.customZone -flags.timeZone []
+
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { projects = []
@@ -152,6 +155,7 @@ mounts:
             , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
+            , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
             }
 

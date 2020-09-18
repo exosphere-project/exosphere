@@ -75,6 +75,7 @@ type alias Flags =
     , randomSeed2 : Int
     , randomSeed3 : Int
     , epoch : Int
+    , timeZone : Int
     , showDebugMsgs : Bool
     }
 
@@ -97,6 +98,7 @@ type alias Model =
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
+    , timeZone : Time.Zone
     , showDebugMsgs : Bool
     }
 
