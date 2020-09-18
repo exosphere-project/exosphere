@@ -29,7 +29,6 @@ import View.Helpers as VH
 
 charts : ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
 charts ( currentTime, timeZone ) timeSeriesDict =
-    -- TODO label most recent value? With a custom tick or something?
     let
         timeSeriesList =
             Dict.toList timeSeriesDict
@@ -76,10 +75,6 @@ charts ( currentTime, timeZone ) timeSeriesDict =
                 , ticks = ticks
                 }
 
-        -- TODO implement this
-        timeRangeNoLabel =
-            timeRange
-
         timeRange getDataFunc =
             Axis.custom
                 { title = Title.default ""
@@ -90,16 +85,11 @@ charts ( currentTime, timeZone ) timeSeriesDict =
                 , ticks = Ticks.time timeZone 6
                 }
 
-        chartConfig : (( Int, DataPoint ) -> Float) -> Bool -> LineChart.Config ( Int, DataPoint ) msg
-        chartConfig getYData isBottom =
+        chartConfig : (( Int, DataPoint ) -> Float) -> LineChart.Config ( Int, DataPoint ) msg
+        chartConfig getYData =
             { y = percentRange getYData
-            , x =
-                if isBottom then
-                    timeRange getTime
-
-                else
-                    timeRangeNoLabel getTime
-            , container = Container.spaced "line-chart-1" 40 70 40 70
+            , x = timeRange getTime
+            , container = Container.spaced "line-chart-1" 40 20 40 70
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
             , legends = Legends.none
@@ -111,31 +101,23 @@ charts ( currentTime, timeZone ) timeSeriesDict =
             , dots = Dots.default
             }
 
-        series : String -> LineChart.Series ( Int, DataPoint )
-        series label =
-            LineChart.line
+        series : List (LineChart.Series ( Int, DataPoint ))
+        series =
+            [ LineChart.line
                 (Color.rgb255 0 108 163)
                 Dots.circle
-                label
+                ""
                 timeSeriesListLast30m
-
-        makeChart chartParamTuple =
-            Element.html <| LineChart.viewCustom (Tuple.first chartParamTuple) (Tuple.second chartParamTuple)
+            ]
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading4 (Element.text "CPU Usage")
-        , makeChart
-            ( chartConfig (getMetricUsedPct .cpuPctUsed) False
-            , [ series "CPU" ]
-            )
+        , Element.html <|
+            LineChart.viewCustom (chartConfig (getMetricUsedPct .cpuPctUsed)) series
         , Element.el VH.heading4 (Element.text "Memory Usage")
-        , makeChart
-            ( chartConfig (getMetricUsedPct .memPctUsed) False
-            , [ series "Memory" ]
-            )
+        , Element.html <|
+            LineChart.viewCustom (chartConfig (getMetricUsedPct .memPctUsed)) series
         , Element.el VH.heading4 (Element.text "Root Filesystem Usage")
-        , makeChart
-            ( chartConfig (getMetricUsedPct .rootfsPctUsed) True
-            , [ series "Root Filesystem" ]
-            )
+        , Element.html <|
+            LineChart.viewCustom (chartConfig (getMetricUsedPct .rootfsPctUsed)) series
         ]
