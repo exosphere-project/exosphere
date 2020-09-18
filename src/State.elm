@@ -134,6 +134,7 @@ mounts:
             Time.millisToPosix flags.epoch
 
         timeZone =
+            -- The minus sign is important here, as getTimezoneOffset() in JS uses the opposite sign of Elm's customZone
             Time.customZone -flags.timeZone []
 
         emptyStoredState : LocalStorageTypes.StoredState

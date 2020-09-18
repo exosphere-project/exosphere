@@ -612,7 +612,6 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
 
 resourceUsageCharts : ( Time.Posix, Time.Zone ) -> ServerOrigin -> Element.Element Msg
 resourceUsageCharts currentTimeAndZone serverOrigin =
-    -- TODO let user select last 30 mins, 3 hours, 1 day, or max, depending how much data there are?
     case serverOrigin of
         ServerNotFromExo ->
             Element.text "Charts not available as server was not launched via Exosphere."

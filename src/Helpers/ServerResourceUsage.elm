@@ -13,7 +13,6 @@ parseConsoleLog : String -> History -> History
 parseConsoleLog consoleLog prevHistory =
     let
         loglines =
-            --- Removing the backslash from double quotes so that JSON decoding works.
             String.split "\n" consoleLog
 
         decodedData =
@@ -51,8 +50,8 @@ decodeLogLine =
     Json.Decode.map2
         Tuple.pair
         (Json.Decode.field "epoch" Json.Decode.int
+            -- This gets us milliseconds
             |> Json.Decode.map (\epoch -> epoch * 1000)
-         -- This gets us milliseconds
         )
         (Json.Decode.map3
             DataPoint
