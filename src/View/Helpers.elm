@@ -9,6 +9,7 @@ module View.Helpers exposing
     , exoRowAttributes
     , heading2
     , heading3
+    , heading4
     , hint
     , possiblyUntitledResource
     , renderMessage
@@ -64,6 +65,14 @@ heading3 =
     [ Region.heading 3
     , Font.bold
     , Font.size 20
+    ]
+
+
+heading4 : List (Element.Attribute Msg)
+heading4 =
+    [ Region.heading 4
+    , Font.bold
+    , Font.size 16
     ]
 
 

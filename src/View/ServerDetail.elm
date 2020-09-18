@@ -458,7 +458,7 @@ cockpitInteraction serverOrigin maybeFloatingIp =
 viewServerActions : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
 viewServerActions projectId serverDetailViewParams server =
     Element.column
-        [ Element.spacingXY 0 10 ]
+        (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
@@ -615,7 +615,7 @@ resourceUsageCharts currentTimeAndZone serverOrigin =
     -- TODO let user select last 30 mins, 3 hours, 1 day, or max, depending how much data there are?
     case serverOrigin of
         ServerNotFromExo ->
-            Element.none
+            Element.text "Charts not available as server was not launched via Exosphere."
 
         ServerFromExo exoOriginProps ->
             case exoOriginProps.resourceUsage.data of
@@ -623,7 +623,7 @@ resourceUsageCharts currentTimeAndZone serverOrigin =
                     View.ResourceUsageCharts.charts currentTimeAndZone history.timeSeries
 
                 _ ->
-                    Element.none
+                    Element.text "Charts not available."
 
 
 renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg

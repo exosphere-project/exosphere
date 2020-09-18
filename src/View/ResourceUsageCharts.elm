@@ -23,9 +23,11 @@ import LineChart.Line as Line
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
+import Types.Types exposing (Msg)
+import View.Helpers as VH
 
 
-charts : ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element msg
+charts : ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
 charts ( currentTime, timeZone ) timeSeriesDict =
     -- TODO need times on X-axis to look sane, either "minutes before present" or local time
     -- TODO label most recent value? With a custom tick or something?
@@ -69,7 +71,7 @@ charts ( currentTime, timeZone ) timeSeriesDict =
             Axis.custom
                 { title = Title.default "Percent"
                 , variable = Just << getDataFunc
-                , pixels = 200
+                , pixels = 220
                 , range = Range.window 0 100
                 , axisLine = AxisLine.full Color.black
                 , ticks = ticks
@@ -83,7 +85,7 @@ charts ( currentTime, timeZone ) timeSeriesDict =
             Axis.custom
                 { title = Title.default ""
                 , variable = Just << getDataFunc
-                , pixels = 700
+                , pixels = 550
                 , range = Range.default
                 , axisLine = AxisLine.full Color.black
                 , ticks = Ticks.time timeZone 6
@@ -98,10 +100,10 @@ charts ( currentTime, timeZone ) timeSeriesDict =
 
                 else
                     timeRangeNoLabel getTime
-            , container = Container.default "line-chart-1"
+            , container = Container.spaced "line-chart-1" 40 70 40 70
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
-            , legends = Legends.default
+            , legends = Legends.none
             , events = Events.default
             , junk = Junk.default
             , grid = Grid.default
@@ -117,17 +119,24 @@ charts ( currentTime, timeZone ) timeSeriesDict =
                 Dots.circle
                 label
                 timeSeriesListLast30m
+
+        makeChart chartParamTuple =
+            Element.html <| LineChart.viewCustom (Tuple.first chartParamTuple) (Tuple.second chartParamTuple)
     in
-    Element.column [] <|
-        List.map
-            (\x -> Element.html <| LineChart.viewCustom (Tuple.first x) (Tuple.second x))
-            [ ( chartConfig (getMetricUsedPct .cpuPctUsed) False
-              , [ series "CPU" ]
-              )
-            , ( chartConfig (getMetricUsedPct .memPctUsed) False
-              , [ series "Memory" ]
-              )
-            , ( chartConfig (getMetricUsedPct .rootfsPctUsed) True
-              , [ series "Root Filesystem" ]
-              )
-            ]
+    Element.column VH.exoColumnAttributes
+        [ Element.el VH.heading4 (Element.text "CPU Usage")
+        , makeChart
+            ( chartConfig (getMetricUsedPct .cpuPctUsed) False
+            , [ series "CPU" ]
+            )
+        , Element.el VH.heading4 (Element.text "Memory Usage")
+        , makeChart
+            ( chartConfig (getMetricUsedPct .memPctUsed) False
+            , [ series "Memory" ]
+            )
+        , Element.el VH.heading4 (Element.text "Root Filesystem Usage")
+        , makeChart
+            ( chartConfig (getMetricUsedPct .rootfsPctUsed) True
+            , [ series "Root Filesystem" ]
+            )
+        ]
