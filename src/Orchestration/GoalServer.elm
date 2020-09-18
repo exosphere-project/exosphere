@@ -4,7 +4,6 @@ import Dict
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
-import Helpers.Time exposing (iso8601StringToPosix)
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
@@ -274,9 +273,6 @@ stepServerPollConsoleLog time project server =
                 oneMinMillis =
                     60000
 
-                thirtyMinMillis =
-                    1800000
-
                 curTimeMillis =
                     Time.posixToMillis time
 
@@ -317,23 +313,13 @@ stepServerPollConsoleLog time project server =
                                             -- Defaults to False if timeseries is empty
                                             |> Maybe.withDefault False
 
-                                    serverLessThan30MinsOld : Bool
-                                    serverLessThan30MinsOld =
-                                        case iso8601StringToPosix server.osProps.details.created of
-                                            -- Defaults to False if cannot determine server created time
-                                            Err _ ->
-                                                False
-
-                                            Ok createdTime ->
-                                                (curTimeMillis - Time.posixToMillis createdTime) < thirtyMinMillis
-
                                     atLeastOneMinSinceLogReceived : Bool
                                     atLeastOneMinSinceLogReceived =
                                         (curTimeMillis - Time.posixToMillis recTime) > oneMinMillis
 
                                     linesToPoll : Int
                                     linesToPoll =
-                                        if serverLessThan30MinsOld || (data.pollingStrikes > 0) then
+                                        if Helpers.serverLessThan30MinsOld server time || (data.pollingStrikes > 0) then
                                             1000
 
                                         else
@@ -346,7 +332,7 @@ stepServerPollConsoleLog time project server =
                                     )
                                         -- Poll if server <30 mins old or has <5 polling strikes,
                                         -- and the last time we polled was at least one minute ago.
-                                        || ((serverLessThan30MinsOld || (data.pollingStrikes < 5))
+                                        || ((Helpers.serverLessThan30MinsOld server time || (data.pollingStrikes < 5))
                                                 && atLeastOneMinSinceLogReceived
                                            )
                                 then

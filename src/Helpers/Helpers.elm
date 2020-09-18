@@ -32,6 +32,7 @@ module Helpers.Helpers exposing
     , providerLookup
     , renderUserDataTemplate
     , serverFromThisExoClient
+    , serverLessThan30MinsOld
     , serverLookup
     , serverNeedsFrequentPoll
     , serverOrigin
@@ -51,6 +52,7 @@ import Dict
 import Element
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Time exposing (iso8601StringToPosix)
 import Html
 import Html.Attributes
 import Http
@@ -1110,3 +1112,21 @@ serverNeedsFrequentPoll server =
 
         _ ->
             True
+
+
+serverLessThan30MinsOld : Server -> Time.Posix -> Bool
+serverLessThan30MinsOld server currentTime =
+    let
+        curTimeMillis =
+            Time.posixToMillis currentTime
+
+        thirtyMinMillis =
+            1800000
+    in
+    case iso8601StringToPosix server.osProps.details.created of
+        -- Defaults to False if cannot determine server created time
+        Err _ ->
+            False
+
+        Ok createdTime ->
+            (curTimeMillis - Time.posixToMillis createdTime) < thirtyMinMillis

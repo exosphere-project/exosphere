@@ -1,6 +1,7 @@
 module View.ServerDetail exposing (serverDetail)
 
 import Color
+import Dict
 import Element
 import Element.Border as Border
 import Element.Font as Font
@@ -166,7 +167,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             [ Element.el VH.heading3 (Element.text "Server Actions")
             , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageCharts currentTimeAndZone server.exoProps.serverOrigin
+            , resourceUsageCharts currentTimeAndZone server
             ]
         ]
 
@@ -610,23 +611,31 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : ( Time.Posix, Time.Zone ) -> ServerOrigin -> Element.Element Msg
-resourceUsageCharts currentTimeAndZone serverOrigin =
-    case serverOrigin of
+resourceUsageCharts : ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts currentTimeAndZone server =
+    case server.exoProps.serverOrigin of
         ServerNotFromExo ->
             Element.text "Charts not available because server was not created by Exosphere."
 
         ServerFromExo exoOriginProps ->
             case exoOriginProps.resourceUsage.data of
                 RDPP.DoHave history _ ->
-                    View.ResourceUsageCharts.charts currentTimeAndZone history.timeSeries
+                    if Dict.isEmpty history.timeSeries then
+                        if Helpers.serverLessThan30MinsOld server (Tuple.first currentTimeAndZone) then
+                            Element.text "No chart data yet. This server is new and may take a few minutes to start reporting data."
+
+                        else
+                            Element.text "No chart data to show."
+
+                    else
+                        View.ResourceUsageCharts.charts currentTimeAndZone history.timeSeries
 
                 _ ->
                     if exoOriginProps.exoServerVersion < 2 then
                         Element.text "Charts not available because server was not created using a new enough build of Exosphere."
 
                     else
-                        Element.text "Charts not available."
+                        Element.text "Could not access the server console log, charts not available."
 
 
 renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
