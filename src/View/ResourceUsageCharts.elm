@@ -29,7 +29,6 @@ import View.Helpers as VH
 
 charts : ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
 charts ( currentTime, timeZone ) timeSeriesDict =
-    -- TODO need times on X-axis to look sane, either "minutes before present" or local time
     -- TODO label most recent value? With a custom tick or something?
     let
         timeSeriesList =
