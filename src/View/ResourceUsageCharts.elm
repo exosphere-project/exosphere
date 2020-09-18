@@ -9,6 +9,7 @@ import LineChart.Axis as Axis
 import LineChart.Axis.Intersection as Intersection
 import LineChart.Axis.Line as AxisLine
 import LineChart.Axis.Range as Range
+import LineChart.Axis.Tick as Tick
 import LineChart.Axis.Ticks as Ticks
 import LineChart.Axis.Title as Title
 import LineChart.Container as Container
@@ -26,7 +27,6 @@ import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
 
 charts : Time.Posix -> TimeSeries -> Element.Element msg
 charts currentTime timeSeriesDict =
-    -- TODO need ticks evenly spaced across range (e.g. 0, 25, 50, 75, 100 percent)
     -- TODO need times on X-axis to look sane, either "minutes before present" or local time
     -- TODO label most recent value? With a custom tick or something?
     let
@@ -55,19 +55,53 @@ charts currentTime timeSeriesDict =
                 |> toFloat
 
         percentRange getDataFunc =
+            let
+                ticks =
+                    Ticks.custom <|
+                        \_ _ ->
+                            [ Tick.int 0
+                            , Tick.int 25
+                            , Tick.int 50
+                            , Tick.int 75
+                            , Tick.int 100
+                            ]
+            in
             Axis.custom
                 { title = Title.default "Percent"
                 , variable = Just << getDataFunc
                 , pixels = 200
                 , range = Range.window 0 100
                 , axisLine = AxisLine.full Color.black
-                , ticks = Ticks.int 4
+                , ticks = ticks
                 }
 
-        chartConfig : (( Int, DataPoint ) -> Float) -> LineChart.Config ( Int, DataPoint ) msg
-        chartConfig getYData =
+        -- TODO implement this
+        timeRangeNoLabel =
+            timeRange
+
+        timeRange getDataFunc =
+            let
+                ticks =
+                    Ticks.time Time.utc 6
+            in
+            Axis.custom
+                { title = Title.default ""
+                , variable = Just << getDataFunc
+                , pixels = 700
+                , range = Range.default
+                , axisLine = AxisLine.full Color.black
+                , ticks = ticks
+                }
+
+        chartConfig : (( Int, DataPoint ) -> Float) -> Bool -> LineChart.Config ( Int, DataPoint ) msg
+        chartConfig getYData isBottom =
             { y = percentRange getYData
-            , x = Axis.time Time.utc 700 "Time" getTime
+            , x =
+                if isBottom then
+                    timeRange getTime
+
+                else
+                    timeRangeNoLabel getTime
             , container = Container.default "line-chart-1"
             , interpolation = Interpolation.monotone
             , intersection = Intersection.default
@@ -91,13 +125,13 @@ charts currentTime timeSeriesDict =
     Element.column [] <|
         List.map
             (\x -> Element.html <| LineChart.viewCustom (Tuple.first x) (Tuple.second x))
-            [ ( chartConfig (getMetricUsedPct .cpuPctUsed)
+            [ ( chartConfig (getMetricUsedPct .cpuPctUsed) False
               , [ series "CPU" ]
               )
-            , ( chartConfig (getMetricUsedPct .memPctUsed)
+            , ( chartConfig (getMetricUsedPct .memPctUsed) False
               , [ series "Memory" ]
               )
-            , ( chartConfig (getMetricUsedPct .rootfsPctUsed)
+            , ( chartConfig (getMetricUsedPct .rootfsPctUsed) True
               , [ series "Root Filesystem" ]
               )
             ]
