@@ -614,7 +614,7 @@ resourceUsageCharts : ( Time.Posix, Time.Zone ) -> ServerOrigin -> Element.Eleme
 resourceUsageCharts currentTimeAndZone serverOrigin =
     case serverOrigin of
         ServerNotFromExo ->
-            Element.text "Charts not available as server was not launched via Exosphere."
+            Element.text "Charts not available because server was not created by Exosphere."
 
         ServerFromExo exoOriginProps ->
             case exoOriginProps.resourceUsage.data of
@@ -622,7 +622,11 @@ resourceUsageCharts currentTimeAndZone serverOrigin =
                     View.ResourceUsageCharts.charts currentTimeAndZone history.timeSeries
 
                 _ ->
-                    Element.text "Charts not available."
+                    if exoOriginProps.exoServerVersion < 2 then
+                        Element.text "Charts not available because server was not created using a new enough build of Exosphere."
+
+                    else
+                        Element.text "Charts not available."
 
 
 renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
