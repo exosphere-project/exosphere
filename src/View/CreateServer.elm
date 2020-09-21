@@ -318,33 +318,12 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
                             Just False
                 }
 
-        volSizeSlider : Int -> Element.Element Msg
-        volSizeSlider sizeGb =
-            Input.slider
-                [ Element.height (Element.px 30)
-                , Element.width (Element.px 100 |> Element.minimum 200)
-
-                -- Here is where we're creating/styling the "track"
-                , Element.behindContent
-                    (Element.el
-                        [ Element.width Element.fill
-                        , Element.height (Element.px 2)
-                        , Element.centerY
-                        , Background.color (Element.rgb 0.5 0.5 0.5)
-                        , Border.rounded 2
-                        ]
-                        Element.none
-                    )
-                ]
-                { onChange = \c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = Just <| round c }
-                , label = Input.labelHidden (String.fromInt sizeGb ++ " GB")
-                , min = 2
-                , max = volumeSizeGbAvail |> Maybe.withDefault 1000 |> toFloat
-                , step = Just 1
-                , value = toFloat sizeGb
-                , thumb =
-                    Input.defaultThumb
-                }
+        volSizePicker : Int -> Element.Element Msg
+        volSizePicker sizeGb =
+            VH.numericPicker
+                sizeGb
+                ( 2, volumeSizeGbAvail |> Maybe.withDefault 1000 )
+                (\c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = Just c })
     in
     Element.column VH.exoColumnAttributes
         [ Element.text "Choose a root disk size"
@@ -359,7 +338,7 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
 
             Just sizeGb ->
                 Element.row VH.exoRowAttributes
-                    [ volSizeSlider sizeGb
+                    [ volSizePicker sizeGb
                     , Element.text <| String.fromInt sizeGb ++ " GB"
                     , case volumeSizeGbAvail of
                         Just volumeSizeAvail_ ->
