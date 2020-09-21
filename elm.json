@@ -7,8 +7,7 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
-            "Orasund/elm-ui-widgets": "2.1.0",
-            "Skinney/murmur3": "2.0.8",
+            "Orasund/elm-ui-widgets": "2.1.1",
             "TSFoster/elm-uuid": "4.0.0",
             "avh4/elm-color": "1.0.0",
             "basti1302/elm-human-readable-filesize": "1.2.0",
@@ -30,6 +29,7 @@
             "krisajenkins/remotedata": "6.0.1",
             "mdgriffith/elm-ui": "1.1.7",
             "pablen/toasty": "1.2.0",
+            "robinheghan/murmur3": "1.0.0",
             "stoeffel/set-extra": "1.2.3",
             "truqu/elm-base64": "2.0.4"
         },
@@ -44,7 +44,6 @@
             "elm/virtual-dom": "1.0.2",
             "elm-community/intdict": "3.0.0",
             "fredcy/elm-parseint": "2.0.1",
-            "jasonliang512/elm-heroicons": "1.2.0",
             "myrho/elm-round": "1.0.4",
             "noahzgordon/elm-color-extra": "1.0.2",
             "owanturist/elm-union-find": "1.0.0",
