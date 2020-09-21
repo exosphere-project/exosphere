@@ -664,11 +664,14 @@ receiveFlavors model project flavors =
             case model.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer createServerRequest ->
-                            if createServerRequest.flavorUuid == "" then
+                        CreateServer createServerViewParams ->
+                            if createServerViewParams.createServerRequest.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
                                         Helpers.sortedFlavors flavors |> List.head
+
+                                    createServerRequest =
+                                        createServerViewParams.createServerRequest
                                 in
                                 case maybeSmallestFlavor of
                                     Just smallestFlavor ->
@@ -676,8 +679,11 @@ receiveFlavors model project flavors =
                                             (Helpers.getProjectId project)
                                             { createPopup = False }
                                             (CreateServer
-                                                { createServerRequest
-                                                    | flavorUuid = smallestFlavor.uuid
+                                                { createServerViewParams
+                                                    | createServerRequest =
+                                                        { createServerRequest
+                                                            | flavorUuid = smallestFlavor.uuid
+                                                        }
                                                 }
                                             )
 

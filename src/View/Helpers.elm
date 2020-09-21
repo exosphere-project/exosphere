@@ -11,17 +11,13 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
-    , numericPicker
     , possiblyUntitledResource
     , renderMessage
     )
 
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Events
 import Element.Font as Font
-import Element.Input as Input
 import Element.Region as Region
 import Helpers.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Helpers.Time exposing (humanReadableTime)
@@ -217,32 +213,3 @@ possiblyUntitledResource name resourceType =
 
         _ ->
             name
-
-
-numericPicker : Int -> ( Int, Int ) -> (Int -> Msg) -> Element.Element Msg
-numericPicker currentVal ( minVal, maxVal ) onchangeFunc =
-    Input.slider
-        [ Element.height (Element.px 30)
-        , Element.width (Element.px 100 |> Element.minimum 200)
-
-        -- Here is where we're creating/styling the "track"
-        , Element.behindContent
-            (Element.el
-                [ Element.width Element.fill
-                , Element.height (Element.px 2)
-                , Element.centerY
-                , Background.color (Element.rgb 0.5 0.5 0.5)
-                , Border.rounded 2
-                ]
-                Element.none
-            )
-        ]
-        { onChange = \c -> round c |> onchangeFunc
-        , label = Input.labelHidden (String.fromInt currentVal ++ " GB")
-        , min = toFloat minVal
-        , max = toFloat maxVal
-        , step = Just 1
-        , value = toFloat currentVal
-        , thumb =
-            Input.defaultThumb
-        }

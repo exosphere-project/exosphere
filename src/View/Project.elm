@@ -44,8 +44,8 @@ project model p viewParams viewConstructor =
                 ServerDetail serverUuid serverDetailViewParams ->
                     View.ServerDetail.serverDetail p model.isElectron ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
-                CreateServer createServerRequest ->
-                    View.CreateServer.createServer p createServerRequest
+                CreateServer createServerViewParams ->
+                    View.CreateServer.createServer p createServerViewParams
 
                 ListProjectVolumes deleteVolumeConfirmations ->
                     View.Volumes.volumes p deleteVolumeConfirmations

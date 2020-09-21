@@ -773,7 +773,11 @@ processProjectSpecificMsg model project msg =
                 CreateServerImage _ _ ->
                     ( modelUpdatedView model, Cmd.none )
 
-                CreateServer createServerRequest ->
+                CreateServer createServerViewParams ->
+                    let
+                        createServerRequest =
+                            createServerViewParams.createServerRequest
+                    in
                     case model.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
@@ -819,7 +823,7 @@ processProjectSpecificMsg model project msg =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                CreateServer newCSR
+                                                CreateServer { createServerViewParams | createServerRequest = newCSR }
                                     }
                             in
                             ( newModel
@@ -838,7 +842,7 @@ processProjectSpecificMsg model project msg =
                                     in
                                     ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
-                                            CreateServer newCSR
+                                            CreateServer { createServerViewParams | createServerRequest = newCSR }
 
                                 newProject =
                                     { project
