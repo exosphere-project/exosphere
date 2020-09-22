@@ -6,6 +6,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
@@ -37,6 +38,29 @@ import View.ResourceUsageCharts
 import View.Types
 import Widget
 import Widget.Style.Material
+
+
+updateServerDetail : Project -> ServerDetailViewParams -> Server -> Msg
+updateServerDetail project serverDetailViewParams server =
+    -- TODO: Remove this debug stuff
+    --let
+    --    _ =
+    --        Debug.log "updateServerDetail - serverDetailViewParams" serverDetailViewParams
+    --in
+    ProjectMsg (Helpers.getProjectId project) <|
+        SetProjectView <|
+            ServerDetail server.osProps.uuid serverDetailViewParams
+
+
+updateEditServerRequest : Project -> String -> Msg
+updateEditServerRequest _ _ =
+    -- TODO: Remove this debug stuff
+    -- TODO: Set updated server name somewhere sensible
+    --let
+    --    _ =
+    --        Debug.log "updateEditServerRequest - serverName" serverName
+    --in
+    NoOp
 
 
 serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
@@ -96,6 +120,77 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
         projectId =
             Helpers.getProjectId project
+
+        serverNameViewPlain =
+            Element.row
+                [ Element.spacing 10
+
+                --, Element.explain Debug.todo
+                ]
+                [ Element.text server.osProps.name
+                , Widget.iconButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Edit"
+                    , icon =
+                        FeatherIcons.edit3
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress = Just (updateServerDetail project { serverDetailViewParams | editServerName = True } server)
+                    }
+                ]
+
+        serverNameViewEdit =
+            let
+                rowStyle =
+                    { containerRow =
+                        [ Element.paddingXY 0 8
+                        , Element.spacing 8
+                        , Element.width Element.fill
+
+                        --, Element.explain Debug.todo
+                        ]
+                    , element =
+                        [--Element.explain Debug.todo
+                        ]
+                    , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
+                    , ifLast = []
+                    , otherwise = []
+                    }
+            in
+            Widget.row
+                rowStyle
+                [ Widget.textInput (Widget.Style.Material.textInput Style.Theme.exoPalette)
+                    { chips = []
+                    , text = server.osProps.name
+
+                    --, placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                    , placeholder = Nothing
+                    , label = "Name"
+                    , onChange = \n -> updateEditServerRequest project n
+                    }
+
+                --, renderInvalidNameReasons
+                , Widget.iconButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Cancel"
+                    , icon =
+                        FeatherIcons.xCircle
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress = Just (updateServerDetail project { serverDetailViewParams | editServerName = False } server)
+                    }
+                ]
+
+        serverNameView =
+            if serverDetailViewParams.editServerName then
+                serverNameViewEdit
+
+            else
+                serverNameViewPlain
     in
     Element.wrappedRow []
         [ Element.column
@@ -107,7 +202,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 VH.heading2
                 (Element.text "Server Details")
             , passwordVulnWarning appIsElectron server
-            , VH.compactKVRow "Name" (Element.text server.osProps.name)
+            , VH.compactKVRow "Name" serverNameView
             , VH.compactKVRow "Status" (serverStatus projectId serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)

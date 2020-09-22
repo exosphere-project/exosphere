@@ -21,4 +21,5 @@ serverDetailViewParams =
     , passwordVisibility = Types.PasswordHidden
     , ipInfoLevel = Types.IPSummary
     , serverActionNamePendingConfirmation = Nothing
+    , editServerName = False
     }
