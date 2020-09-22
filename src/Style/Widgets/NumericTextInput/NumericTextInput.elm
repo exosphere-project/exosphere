@@ -1,15 +1,13 @@
-module Style.Widgets.NumericPicker.NumericPicker exposing (numericPicker)
+module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Style.Widgets.NumericPicker.Types exposing (NumericPickerParams, NumericTextInput(..))
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
 
 
-numericPicker : NumericTextInput -> NumericPickerParams -> (NumericTextInput -> msg) -> Element.Element msg
-numericPicker currentVal params onchangeFunc =
-    -- TODO rename numericPicker to numericInput
-    -- TODO input is not valid if currentVal exceeds maxVal or is exceeded by minVal?
+numericTextInput : NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
+numericTextInput currentVal params onchangeFunc =
     let
         currentValStr =
             case currentVal of

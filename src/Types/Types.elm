@@ -54,7 +54,7 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Set
-import Style.Widgets.NumericPicker.Types exposing (NumericTextInput(..))
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes

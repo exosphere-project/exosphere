@@ -1,4 +1,4 @@
-module Style.Widgets.NumericPicker.Types exposing (NumericPickerParams, NumericTextInput(..))
+module Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
 
 
 type NumericTextInput
@@ -6,7 +6,7 @@ type NumericTextInput
     | InvalidNumericTextInput String
 
 
-type alias NumericPickerParams =
+type alias NumericTextInputParams =
     { labelText : String
     , minVal : Maybe Int
     , maxVal : Maybe Int

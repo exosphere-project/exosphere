@@ -26,7 +26,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
-import Style.Widgets.NumericPicker.Types exposing (NumericTextInput(..))
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Task
 import Time
 import Toasty
@@ -788,8 +788,8 @@ processProjectSpecificMsg model project msg =
                                     let
                                         volBackedSizeGb =
                                             case createServerViewParams.volSizeTextInput of
-                                                Just numericPickerInput ->
-                                                    case numericPickerInput of
+                                                Just numericTextInput ->
+                                                    case numericTextInput of
                                                         ValidNumericTextInput i ->
                                                             Just i
 

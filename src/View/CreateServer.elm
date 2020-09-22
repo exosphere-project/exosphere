@@ -12,8 +12,8 @@ import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
-import Style.Widgets.NumericPicker.NumericPicker exposing (numericPicker)
-import Style.Widgets.NumericPicker.Types exposing (NumericTextInput(..))
+import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -369,7 +369,7 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
 
             Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
-                    [ numericPicker
+                    [ numericTextInput
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> updateCreateServerRequest project { createServerViewParams | volSizeTextInput = Just newInput })
