@@ -38,12 +38,9 @@ numericPicker currentVal params onchangeFunc =
                 []
                 { text = currentValStr
                 , placeholder =
-                    case params.defaultVal of
-                        Just v ->
-                            Just <| Input.placeholder [] (Element.text <| String.fromInt v)
-
-                        Nothing ->
-                            Nothing
+                    Maybe.map
+                        (\v -> Input.placeholder [] (Element.text <| String.fromInt v))
+                        params.defaultVal
                 , onChange = \v -> isValid v |> onchangeFunc
                 , label = Input.labelAbove [] (Element.text params.labelText)
                 }
