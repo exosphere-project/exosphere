@@ -8,7 +8,7 @@ type NumericTextInput
 
 type alias NumericPickerParams =
     { labelText : String
-    , minVal : Int
-    , maxVal : Int
+    , minVal : Maybe Int
+    , maxVal : Maybe Int
     , defaultVal : Maybe Int
     }

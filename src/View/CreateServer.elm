@@ -320,8 +320,8 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
 
         defaultVolNumericInputParams =
             { labelText = "Root disk size (GB)"
-            , minVal = 2
-            , maxVal = volumeSizeGbAvail |> Maybe.withDefault 1000
+            , minVal = Just 2
+            , maxVal = volumeSizeGbAvail
             , defaultVal = Just defaultVolSizeGB
             }
 
