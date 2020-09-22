@@ -13,6 +13,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
 import Style.Widgets.NumericPicker.NumericPicker exposing (numericPicker)
+import Style.Widgets.NumericPicker.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -64,11 +65,25 @@ createServer project createServerViewParams =
                     Element.none
 
         createOnPress =
-            case invalidNameReasons of
-                Nothing ->
+            let
+                invalidVolSizeTextInput =
+                    case createServerViewParams.volSizeTextInput of
+                        Just input ->
+                            case input of
+                                ValidNumericTextInput _ ->
+                                    False
+
+                                InvalidNumericTextInput _ ->
+                                    True
+
+                        Nothing ->
+                            False
+            in
+            case ( invalidNameReasons, invalidVolSizeTextInput ) of
+                ( Nothing, False ) ->
                     Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
 
-                Just _ ->
+                ( _, _ ) ->
                     Nothing
 
         contents flavor computeQuota volumeQuota =
@@ -275,9 +290,6 @@ flavorPicker project createServerRequest computeQuota msgFunc =
 volBackedPrompt : Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
 volBackedPrompt project createServerViewParams volumeQuota flavor =
     let
-        createServerRequest =
-            createServerViewParams.createServerRequest
-
         ( volumeCountAvail, volumeSizeGbAvail ) =
             Helpers.volumeQuotaAvail volumeQuota
 
@@ -303,49 +315,46 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
             else
                 String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
 
+        defaultVolSizeGB =
+            10
+
+        defaultVolNumericInputParams =
+            { labelText = "Root disk size (GB)"
+            , minVal = 2
+            , maxVal = volumeSizeGbAvail |> Maybe.withDefault 1000
+            , defaultVal = Just defaultVolSizeGB
+            }
+
         radioInput =
             Input.radio []
                 { label = Input.labelHidden "Root disk size"
                 , onChange =
                     \new ->
+                        let
+                            newVolSizeTextInput =
+                                if new == True then
+                                    Just <| ValidNumericTextInput defaultVolSizeGB
+
+                                else
+                                    Nothing
+                        in
                         updateCreateServerRequest project
                             { createServerViewParams
-                                | createServerRequest =
-                                    { createServerRequest
-                                        | volBackedSizeGb =
-                                            if new then
-                                                Just 2
-
-                                            else
-                                                Nothing
-                                    }
+                                | volSizeTextInput =
+                                    newVolSizeTextInput
                             }
                 , options =
                     [ Input.option False (Element.text nonVolBackedOptionText)
                     , Input.option True (Element.text "Custom disk size (volume-backed)")
                     ]
                 , selected =
-                    case createServerRequest.volBackedSizeGb of
+                    case createServerViewParams.volSizeTextInput of
                         Just _ ->
                             Just True
 
                         Nothing ->
                             Just False
                 }
-
-        volSizePicker : Int -> Element.Element Msg
-        volSizePicker sizeGb =
-            numericPicker
-                sizeGb
-                ( 2, volumeSizeGbAvail |> Maybe.withDefault 1000 )
-                (\c ->
-                    updateCreateServerRequest
-                        project
-                        { createServerViewParams
-                            | createServerRequest =
-                                { createServerRequest | volBackedSizeGb = Just c }
-                        }
-                )
     in
     Element.column VH.exoColumnAttributes
         [ Element.text "Choose a root disk size"
@@ -354,23 +363,25 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
 
           else
             Element.text "(N/A: volume quota exhausted, cannot launch a volume-backed instance)"
-        , case createServerRequest.volBackedSizeGb of
+        , case createServerViewParams.volSizeTextInput of
             Nothing ->
                 Element.none
 
-            Just sizeGb ->
+            Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
-                    [ volSizePicker sizeGb
-                    , Element.text <| String.fromInt sizeGb ++ " GB"
-                    , case volumeSizeGbAvail of
-                        Just volumeSizeAvail_ ->
-                            if sizeGb == volumeSizeAvail_ then
+                    [ numericPicker
+                        volSizeTextInput
+                        defaultVolNumericInputParams
+                        (\newInput -> updateCreateServerRequest project { createServerViewParams | volSizeTextInput = Just newInput })
+                    , case ( volumeSizeGbAvail, volSizeTextInput ) of
+                        ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
+                            if i == volumeSizeAvail_ then
                                 Element.text "(quota max)"
 
                             else
                                 Element.none
 
-                        Nothing ->
+                        ( _, _ ) ->
                             Element.none
                     ]
         ]

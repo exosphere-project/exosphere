@@ -26,6 +26,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Style.Widgets.NumericPicker.Types exposing (NumericTextInput(..))
 import Task
 import Time
 import Toasty
@@ -783,6 +784,23 @@ processProjectSpecificMsg model project msg =
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         ProjectView _ _ (CreateServer _) ->
                             let
+                                csrUpdatedVolBackedness =
+                                    let
+                                        volBackedSizeGb =
+                                            case createServerViewParams.volSizeTextInput of
+                                                Just numericPickerInput ->
+                                                    case numericPickerInput of
+                                                        ValidNumericTextInput i ->
+                                                            Just i
+
+                                                        InvalidNumericTextInput _ ->
+                                                            Nothing
+
+                                                Nothing ->
+                                                    Nothing
+                                    in
+                                    { createServerRequest | volBackedSizeGb = volBackedSizeGb }
+
                                 newCSR =
                                     case
                                         ( Helpers.flavorLookup project createServerRequest.flavorUuid
@@ -799,7 +817,7 @@ processProjectSpecificMsg model project msg =
                                                         computeQuota
                                                         volumeQuota
                                             in
-                                            { createServerRequest
+                                            { csrUpdatedVolBackedness
                                                 | count =
                                                     case availServers of
                                                         Just availServers_ ->
@@ -814,7 +832,7 @@ processProjectSpecificMsg model project msg =
                                             }
 
                                         ( _, _, _ ) ->
-                                            createServerRequest
+                                            csrUpdatedVolBackedness
 
                                 newModel =
                                     { model
