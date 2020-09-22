@@ -918,7 +918,17 @@ processProjectSpecificMsg model project msg =
                     ( modelUpdatedView model, Cmd.none )
 
                 CreateVolume _ _ ->
-                    ( modelUpdatedView model, Cmd.none )
+                    let
+                        cmd =
+                            -- If just entering this view, get volume quota
+                            case model.viewState of
+                                ProjectView _ _ (CreateVolume _ _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    OpenStack.Quotas.requestVolumeQuota project
+                    in
+                    ( modelUpdatedView model, cmd )
 
         PrepareCredentialedRequest requestProto posixTime ->
             let

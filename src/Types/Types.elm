@@ -286,7 +286,7 @@ type ProjectViewConstructor
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
     | CreateServer CreateServerViewParams
-    | CreateVolume OSTypes.VolumeName String
+    | CreateVolume OSTypes.VolumeName NumericTextInput
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
 
