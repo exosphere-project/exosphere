@@ -27,6 +27,7 @@ module Types.Types exposing
     , ProjectTitle
     , ProjectViewConstructor(..)
     , ProjectViewParams
+    , ResourceUsageRDPP
     , Server
     , ServerDetailViewParams
     , ServerFromExoProps
@@ -55,6 +56,7 @@ import Set
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes
+import Types.ServerResourceUsage
 import UUID
 
 
@@ -73,6 +75,7 @@ type alias Flags =
     , randomSeed2 : Int
     , randomSeed3 : Int
     , epoch : Int
+    , timeZone : Int
     , showDebugMsgs : Bool
     }
 
@@ -95,6 +98,7 @@ type alias Model =
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
+    , timeZone : Time.Zone
     , showDebugMsgs : Bool
     }
 
@@ -236,6 +240,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
+    | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
 
 
 type ViewState
@@ -367,7 +372,12 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
+    , resourceUsage : ResourceUsageRDPP
     }
+
+
+type alias ResourceUsageRDPP =
+    RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
 
 
 type alias ExoServerVersion =
@@ -376,7 +386,7 @@ type alias ExoServerVersion =
 
 currentExoServerVersion : ExoServerVersion
 currentExoServerVersion =
-    1
+    2
 
 
 type FloatingIpState

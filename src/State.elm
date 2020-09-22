@@ -5,6 +5,7 @@ import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.ServerResourceUsage
 import Http
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -30,6 +31,7 @@ import Time
 import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes as HelperTypes
+import Types.ServerResourceUsage
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -93,6 +95,16 @@ runcmd:
   - "systemctl daemon-reload"
   - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
   - "chown exouser:exouser /media/volume/*"
+  - |
+    SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
+    SYS_LOAD_SCRIPT_SHA512=0667348aeb268ac8e0b642b03c14a8f87ddd38e11a50243fe1ab6ee764ebd724949c5ec98f95c03aaa7c16c77652bc968cc7aba50f6b1038b1a20ceefc133a73
+    SYS_LOAD_SCRIPT_FILE=/opt/system_load_json.py
+    wget --quiet --output-document=$SYS_LOAD_SCRIPT_FILE $SYS_LOAD_SCRIPT_URL
+    if echo $SYS_LOAD_SCRIPT_SHA512 $SYS_LOAD_SCRIPT_FILE | sha512sum --check --quiet; then
+      chmod +x $SYS_LOAD_SCRIPT_FILE
+      $SYS_LOAD_SCRIPT_FILE > /dev/console
+      echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
+    fi
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
@@ -121,6 +133,10 @@ mounts:
         currentTime =
             Time.millisToPosix flags.epoch
 
+        timeZone =
+            -- The minus sign is important here, as getTimezoneOffset() in JS uses the opposite sign of Elm's customZone
+            Time.customZone -flags.timeZone []
+
         emptyStoredState : LocalStorageTypes.StoredState
         emptyStoredState =
             { projects = []
@@ -140,6 +156,7 @@ mounts:
             , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
+            , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
             }
 
@@ -1483,6 +1500,64 @@ processProjectSpecificMsg model project msg =
                                 Cmd.none
                 in
                 ( model, cmd )
+
+        ReceiveConsoleLog errorContext serverUuid result ->
+            case Helpers.serverLookup project serverUuid of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just server ->
+                    case server.exoProps.serverOrigin of
+                        ServerNotFromExo ->
+                            ( model, Cmd.none )
+
+                        ServerFromExo exoOriginProps ->
+                            let
+                                newResourceUsage =
+                                    case result of
+                                        Err httpError ->
+                                            RDPP.RemoteDataPlusPlus
+                                                exoOriginProps.resourceUsage.data
+                                                (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+
+                                        Ok consoleLog ->
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave
+                                                    (Helpers.ServerResourceUsage.parseConsoleLog
+                                                        consoleLog
+                                                        (RDPP.withDefault
+                                                            Types.ServerResourceUsage.emptyResourceUsageHistory
+                                                            exoOriginProps.resourceUsage
+                                                        )
+                                                    )
+                                                    model.clientCurrentTime
+                                                )
+                                                (RDPP.NotLoading Nothing)
+
+                                newOriginProps =
+                                    { exoOriginProps | resourceUsage = newResourceUsage }
+
+                                oldExoProps =
+                                    server.exoProps
+
+                                newExoProps =
+                                    { oldExoProps | serverOrigin = ServerFromExo newOriginProps }
+
+                                newServer =
+                                    { server | exoProps = newExoProps }
+
+                                newProject =
+                                    Helpers.projectUpdateServer project newServer
+
+                                newModel =
+                                    Helpers.modelUpdateProject model newProject
+                            in
+                            case result of
+                                Err httpError ->
+                                    Helpers.processSynchronousApiError newModel errorContext httpError
+
+                                Ok _ ->
+                                    ( newModel, Cmd.none )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )

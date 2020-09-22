@@ -1,13 +1,13 @@
 module View.ServerDetail exposing (serverDetail)
 
 import Color
+import Dict
 import Element
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
-import Html
-import Html.Attributes
+import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -15,6 +15,7 @@ import Style.Theme
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import Time
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -32,24 +33,25 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
+import View.ResourceUsageCharts
 import View.Types
 import Widget
 import Widget.Style.Material
 
 
-serverDetail : Project -> Bool -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
-serverDetail project appIsElectron serverDetailViewParams serverUuid =
+serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail project appIsElectron currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case Helpers.serverLookup project serverUuid of
         Just server ->
-            serverDetail_ project appIsElectron serverDetailViewParams server
+            serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams server
 
         Nothing ->
             Element.text "No server found"
 
 
-serverDetail_ : Project -> Bool -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverDetail_ project appIsElectron serverDetailViewParams server =
+serverDetail_ : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -165,7 +167,7 @@ serverDetail_ project appIsElectron serverDetailViewParams server =
             [ Element.el VH.heading3 (Element.text "Server Actions")
             , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageGraphs server.exoProps.serverOrigin maybeFloatingIp
+            , resourceUsageCharts currentTimeAndZone server
             ]
         ]
 
@@ -457,7 +459,7 @@ cockpitInteraction serverOrigin maybeFloatingIp =
 viewServerActions : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
 viewServerActions projectId serverDetailViewParams server =
     Element.column
-        [ Element.spacingXY 0 10 ]
+        (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
@@ -609,60 +611,31 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageGraphs : ServerOrigin -> Maybe String -> Element.Element Msg
-resourceUsageGraphs serverOrigin maybeFloatingIp =
-    maybeFloatingIp
-        |> Maybe.withDefault (Element.text "Graphs not ready yet.")
-        << Maybe.map
-            (\floatingIp ->
-                case serverOrigin of
-                    ServerNotFromExo ->
-                        Element.text "Not available (server launched outside of Exosphere)."
+resourceUsageCharts : ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts currentTimeAndZone server =
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Element.text "Charts not available because server was not created by Exosphere."
 
-                    ServerFromExo serverFromExoProps ->
-                        let
-                            graphs =
-                                let
-                                    graphsUrl =
-                                        "https://" ++ floatingIp ++ ":9090/cockpit/@localhost/system/index.html"
-                                in
-                                -- I am so sorry
-                                Element.html
-                                    (Html.div
-                                        [ Html.Attributes.style "position" "relative"
-                                        , Html.Attributes.style "overflow" "hidden"
-                                        , Html.Attributes.style "width" "550px"
-                                        , Html.Attributes.style "height" "650px"
-                                        ]
-                                        [ Html.iframe
-                                            [ Html.Attributes.style "position" "absolute"
-                                            , Html.Attributes.style "top" "-320px"
-                                            , Html.Attributes.style "left" "-30px"
-                                            , Html.Attributes.style "width" "600px"
-                                            , Html.Attributes.style "height" "1000px"
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.resourceUsage.data of
+                RDPP.DoHave history _ ->
+                    if Dict.isEmpty history.timeSeries then
+                        if Helpers.serverLessThan30MinsOld server (Tuple.first currentTimeAndZone) then
+                            Element.text "No chart data yet. This server is new and may take a few minutes to start reporting data."
 
-                                            -- https://stackoverflow.com/questions/15494568/html-iframe-disable-scroll
-                                            -- This is not compliant HTML5 but still works
-                                            , Html.Attributes.attribute "scrolling" "no"
-                                            , Html.Attributes.src graphsUrl
-                                            ]
-                                            []
-                                        ]
-                                    )
-                        in
-                        case serverFromExoProps.cockpitStatus of
-                            Ready ->
-                                graphs
+                        else
+                            Element.text "No chart data to show."
 
-                            ReadyButRecheck ->
-                                graphs
+                    else
+                        View.ResourceUsageCharts.charts currentTimeAndZone history.timeSeries
 
-                            NotChecked ->
-                                Element.text "Graphs not ready yet."
+                _ ->
+                    if exoOriginProps.exoServerVersion < 2 then
+                        Element.text "Charts not available because server was not created using a new enough build of Exosphere."
 
-                            CheckedNotReady ->
-                                Element.text "Graphs not ready yet."
-            )
+                    else
+                        Element.text "Could not access the server console log, charts not available."
 
 
 renderIpAddresses : ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
