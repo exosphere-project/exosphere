@@ -5,6 +5,7 @@ import Helpers.Helpers as Helpers
 import Set
 import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.Types
     exposing
@@ -44,8 +45,8 @@ project model p viewParams viewConstructor =
                 ServerDetail serverUuid serverDetailViewParams ->
                     View.ServerDetail.serverDetail p model.isElectron ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
-                CreateServer createServerRequest ->
-                    View.CreateServer.createServer p createServerRequest
+                CreateServer createServerViewParams ->
+                    View.CreateServer.createServer p createServerViewParams
 
                 ListProjectVolumes deleteVolumeConfirmations ->
                     View.Volumes.volumes p deleteVolumeConfirmations
@@ -53,8 +54,8 @@ project model p viewParams viewConstructor =
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
                     View.Volumes.volumeDetailView p deleteVolumeConfirmations volumeUuid
 
-                CreateVolume volName volSizeStr ->
-                    View.Volumes.createVolume p volName volSizeStr
+                CreateVolume volName volSizeInput ->
+                    View.Volumes.createVolume p volName volSizeInput
 
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
                     View.AttachVolume.attachVolume p maybeServerUuid maybeVolumeUuid
@@ -163,7 +164,7 @@ createButton projectId expanded =
                             Just <|
                                 ProjectMsg projectId <|
                                     SetProjectView <|
-                                        CreateVolume "" "10"
+                                        CreateVolume "" (ValidNumericTextInput 10)
                         }
                     ]
         in

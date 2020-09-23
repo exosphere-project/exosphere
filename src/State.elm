@@ -26,6 +26,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Task
 import Time
 import Toasty
@@ -773,12 +774,33 @@ processProjectSpecificMsg model project msg =
                 CreateServerImage _ _ ->
                     ( modelUpdatedView model, Cmd.none )
 
-                CreateServer createServerRequest ->
+                CreateServer createServerViewParams ->
+                    let
+                        createServerRequest =
+                            createServerViewParams.createServerRequest
+                    in
                     case model.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         ProjectView _ _ (CreateServer _) ->
                             let
+                                csrUpdatedVolBackedness =
+                                    let
+                                        volBackedSizeGb =
+                                            case createServerViewParams.volSizeTextInput of
+                                                Just numericTextInput ->
+                                                    case numericTextInput of
+                                                        ValidNumericTextInput i ->
+                                                            Just i
+
+                                                        InvalidNumericTextInput _ ->
+                                                            Nothing
+
+                                                Nothing ->
+                                                    Nothing
+                                    in
+                                    { createServerRequest | volBackedSizeGb = volBackedSizeGb }
+
                                 newCSR =
                                     case
                                         ( Helpers.flavorLookup project createServerRequest.flavorUuid
@@ -795,7 +817,7 @@ processProjectSpecificMsg model project msg =
                                                         computeQuota
                                                         volumeQuota
                                             in
-                                            { createServerRequest
+                                            { csrUpdatedVolBackedness
                                                 | count =
                                                     case availServers of
                                                         Just availServers_ ->
@@ -810,7 +832,7 @@ processProjectSpecificMsg model project msg =
                                             }
 
                                         ( _, _, _ ) ->
-                                            createServerRequest
+                                            csrUpdatedVolBackedness
 
                                 newModel =
                                     { model
@@ -819,7 +841,7 @@ processProjectSpecificMsg model project msg =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                CreateServer newCSR
+                                                CreateServer { createServerViewParams | createServerRequest = newCSR }
                                     }
                             in
                             ( newModel
@@ -838,7 +860,7 @@ processProjectSpecificMsg model project msg =
                                     in
                                     ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
-                                            CreateServer newCSR
+                                            CreateServer { createServerViewParams | createServerRequest = newCSR }
 
                                 newProject =
                                     { project
@@ -896,7 +918,17 @@ processProjectSpecificMsg model project msg =
                     ( modelUpdatedView model, Cmd.none )
 
                 CreateVolume _ _ ->
-                    ( modelUpdatedView model, Cmd.none )
+                    let
+                        cmd =
+                            -- If just entering this view, get volume quota
+                            case model.viewState of
+                                ProjectView _ _ (CreateVolume _ _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    OpenStack.Quotas.requestVolumeQuota project
+                    in
+                    ( modelUpdatedView model, cmd )
 
         PrepareCredentialedRequest requestProto posixTime ->
             let

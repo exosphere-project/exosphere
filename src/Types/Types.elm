@@ -1,6 +1,7 @@
 module Types.Types exposing
     ( CockpitLoginStatus(..)
     , CreateServerRequest
+    , CreateServerViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
@@ -53,6 +54,7 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Set
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
 import Types.HelperTypes as HelperTypes
@@ -283,8 +285,8 @@ type ProjectViewConstructor
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
-    | CreateServer CreateServerRequest
-    | CreateVolume OSTypes.VolumeName String
+    | CreateServer CreateServerViewParams
+    | CreateVolume OSTypes.VolumeName NumericTextInput
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
 
@@ -301,6 +303,12 @@ type alias ServerDetailViewParams =
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
+    }
+
+
+type alias CreateServerViewParams =
+    { createServerRequest : CreateServerRequest
+    , volSizeTextInput : Maybe NumericTextInput
     }
 
 
@@ -429,12 +437,16 @@ type alias CreateServerRequest =
     , imageName : String
     , count : Int
     , flavorUuid : OSTypes.FlavorUuid
-    , volBackedSizeGb : Maybe Int
+    , volBackedSizeGb : Maybe VolumeSize
     , keypairName : Maybe String
     , userData : String
     , networkUuid : OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
     }
+
+
+type alias VolumeSize =
+    Int
 
 
 type alias ProjectName =

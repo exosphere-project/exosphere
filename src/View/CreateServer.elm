@@ -12,9 +12,12 @@ import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
+import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( CreateServerRequest
+        , CreateServerViewParams
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
@@ -26,18 +29,25 @@ import Widget
 import Widget.Style.Material
 
 
-updateCreateServerRequest : Project -> CreateServerRequest -> Msg
-updateCreateServerRequest project createServerRequest =
+updateCreateServerRequest : Project -> CreateServerViewParams -> Msg
+updateCreateServerRequest project createServerViewParams =
     ProjectMsg (Helpers.getProjectId project) <|
         SetProjectView <|
-            CreateServer createServerRequest
+            CreateServer createServerViewParams
 
 
-createServer : Project -> CreateServerRequest -> Element.Element Msg
-createServer project createServerRequest =
+createServer : Project -> CreateServerViewParams -> Element.Element Msg
+createServer project createServerViewParams =
     let
+        createServerRequest =
+            createServerViewParams.createServerRequest
+
+        msgFunc : CreateServerRequest -> Msg
+        msgFunc newCSR =
+            updateCreateServerRequest project { createServerViewParams | createServerRequest = newCSR }
+
         invalidNameReasons =
-            serverNameValidator createServerRequest.name
+            serverNameValidator createServerViewParams.createServerRequest.name
 
         renderInvalidNameReasons =
             case invalidNameReasons of
@@ -55,11 +65,25 @@ createServer project createServerRequest =
                     Element.none
 
         createOnPress =
-            case invalidNameReasons of
-                Nothing ->
+            let
+                invalidVolSizeTextInput =
+                    case createServerViewParams.volSizeTextInput of
+                        Just input ->
+                            case input of
+                                ValidNumericTextInput _ ->
+                                    False
+
+                                InvalidNumericTextInput _ ->
+                                    True
+
+                        Nothing ->
+                            False
+            in
+            case ( invalidNameReasons, invalidVolSizeTextInput ) of
+                ( Nothing, False ) ->
                     Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
 
-                Just _ ->
+                ( _, _ ) ->
                     Nothing
 
         contents flavor computeQuota volumeQuota =
@@ -67,20 +91,20 @@ createServer project createServerRequest =
                 [ Element.spacing 12 ]
                 { text = createServerRequest.name
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
-                , onChange = \n -> updateCreateServerRequest project { createServerRequest | name = n }
+                , onChange = \n -> msgFunc { createServerRequest | name = n }
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
-            , flavorPicker project createServerRequest computeQuota
-            , volBackedPrompt project createServerRequest volumeQuota flavor
-            , countPicker project createServerRequest computeQuota volumeQuota flavor
+            , flavorPicker project createServerRequest computeQuota msgFunc
+            , volBackedPrompt project createServerViewParams volumeQuota flavor
+            , countPicker createServerRequest computeQuota volumeQuota flavor msgFunc
             , Element.column
                 VH.exoColumnAttributes
               <|
                 [ Input.radioRow [ Element.spacing 10 ]
                     { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
-                    , onChange = \new -> updateCreateServerRequest project { createServerRequest | showAdvancedOptions = new }
+                    , onChange = \new -> msgFunc { createServerRequest | showAdvancedOptions = new }
                     , options =
                         [ Input.option False (Element.text "Hide")
                         , Input.option True (Element.text "Show")
@@ -94,9 +118,9 @@ createServer project createServerRequest =
                             [ Element.none ]
 
                         else
-                            [ networkPicker project createServerRequest
-                            , keypairPicker project createServerRequest
-                            , userDataInput project createServerRequest
+                            [ networkPicker project createServerRequest msgFunc
+                            , keypairPicker project createServerRequest msgFunc
+                            , userDataInput createServerRequest msgFunc
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
@@ -135,8 +159,8 @@ createServer project createServerRequest =
         ]
 
 
-flavorPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> Element.Element Msg
-flavorPicker project createServerRequest computeQuota =
+flavorPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> (CreateServerRequest -> Msg) -> Element.Element Msg
+flavorPicker project createServerRequest computeQuota msgFunc =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -148,7 +172,7 @@ flavorPicker project createServerRequest computeQuota =
                     Input.radio
                         []
                         { label = Input.labelHidden flavor.name
-                        , onChange = \f -> updateCreateServerRequest project { createServerRequest | flavorUuid = f }
+                        , onChange = \f -> msgFunc { createServerRequest | flavorUuid = f }
                         , options = [ Input.option flavor.uuid (Element.text " ") ]
                         , selected =
                             if flavor.uuid == createServerRequest.flavorUuid then
@@ -263,8 +287,8 @@ flavorPicker project createServerRequest computeQuota =
         ]
 
 
-volBackedPrompt : Project -> CreateServerRequest -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt project createServerRequest volumeQuota flavor =
+volBackedPrompt : Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt project createServerViewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             Helpers.volumeQuotaAvail volumeQuota
@@ -291,59 +315,45 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
             else
                 String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
 
+        defaultVolSizeGB =
+            10
+
+        defaultVolNumericInputParams =
+            { labelText = "Root disk size (GB)"
+            , minVal = Just 2
+            , maxVal = volumeSizeGbAvail
+            , defaultVal = Just defaultVolSizeGB
+            }
+
         radioInput =
             Input.radio []
                 { label = Input.labelHidden "Root disk size"
                 , onChange =
                     \new ->
-                        updateCreateServerRequest project
-                            { createServerRequest
-                                | volBackedSizeGb =
-                                    if new then
-                                        Just 2
+                        let
+                            newVolSizeTextInput =
+                                if new == True then
+                                    Just <| ValidNumericTextInput defaultVolSizeGB
 
-                                    else
-                                        Nothing
+                                else
+                                    Nothing
+                        in
+                        updateCreateServerRequest project
+                            { createServerViewParams
+                                | volSizeTextInput =
+                                    newVolSizeTextInput
                             }
                 , options =
                     [ Input.option False (Element.text nonVolBackedOptionText)
                     , Input.option True (Element.text "Custom disk size (volume-backed)")
                     ]
                 , selected =
-                    case createServerRequest.volBackedSizeGb of
+                    case createServerViewParams.volSizeTextInput of
                         Just _ ->
                             Just True
 
                         Nothing ->
                             Just False
-                }
-
-        volSizeSlider : Int -> Element.Element Msg
-        volSizeSlider sizeGb =
-            Input.slider
-                [ Element.height (Element.px 30)
-                , Element.width (Element.px 100 |> Element.minimum 200)
-
-                -- Here is where we're creating/styling the "track"
-                , Element.behindContent
-                    (Element.el
-                        [ Element.width Element.fill
-                        , Element.height (Element.px 2)
-                        , Element.centerY
-                        , Background.color (Element.rgb 0.5 0.5 0.5)
-                        , Border.rounded 2
-                        ]
-                        Element.none
-                    )
-                ]
-                { onChange = \c -> updateCreateServerRequest project { createServerRequest | volBackedSizeGb = Just <| round c }
-                , label = Input.labelHidden (String.fromInt sizeGb ++ " GB")
-                , min = 2
-                , max = volumeSizeGbAvail |> Maybe.withDefault 1000 |> toFloat
-                , step = Just 1
-                , value = toFloat sizeGb
-                , thumb =
-                    Input.defaultThumb
                 }
     in
     Element.column VH.exoColumnAttributes
@@ -353,30 +363,38 @@ volBackedPrompt project createServerRequest volumeQuota flavor =
 
           else
             Element.text "(N/A: volume quota exhausted, cannot launch a volume-backed instance)"
-        , case createServerRequest.volBackedSizeGb of
+        , case createServerViewParams.volSizeTextInput of
             Nothing ->
                 Element.none
 
-            Just sizeGb ->
+            Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
-                    [ volSizeSlider sizeGb
-                    , Element.text <| String.fromInt sizeGb ++ " GB"
-                    , case volumeSizeGbAvail of
-                        Just volumeSizeAvail_ ->
-                            if sizeGb == volumeSizeAvail_ then
+                    [ numericTextInput
+                        volSizeTextInput
+                        defaultVolNumericInputParams
+                        (\newInput -> updateCreateServerRequest project { createServerViewParams | volSizeTextInput = Just newInput })
+                    , case ( volumeSizeGbAvail, volSizeTextInput ) of
+                        ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
+                            if i == volumeSizeAvail_ then
                                 Element.text "(quota max)"
 
                             else
                                 Element.none
 
-                        Nothing ->
+                        ( _, _ ) ->
                             Element.none
                     ]
         ]
 
 
-countPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-countPicker project createServerRequest computeQuota volumeQuota flavor =
+countPicker :
+    CreateServerRequest
+    -> OSTypes.ComputeQuota
+    -> OSTypes.VolumeQuota
+    -> OSTypes.Flavor
+    -> (CreateServerRequest -> Msg)
+    -> Element.Element Msg
+countPicker createServerRequest computeQuota volumeQuota flavor msgFunc =
     let
         countAvail =
             Helpers.overallQuotaAvailServers
@@ -410,7 +428,7 @@ countPicker project createServerRequest computeQuota volumeQuota flavor =
                         Element.none
                     )
                 ]
-                { onChange = \c -> updateCreateServerRequest project { createServerRequest | count = round c }
+                { onChange = \c -> msgFunc { createServerRequest | count = round c }
                 , label = Input.labelHidden "How many?"
                 , min = 1
                 , max = countAvail |> Maybe.withDefault 20 |> toFloat
@@ -419,7 +437,9 @@ countPicker project createServerRequest computeQuota volumeQuota flavor =
                 , thumb =
                     Input.defaultThumb
                 }
-            , Element.el [ Element.width Element.shrink ] (Element.text <| String.fromInt createServerRequest.count)
+            , Element.el
+                [ Element.width Element.shrink ]
+                (Element.text <| String.fromInt createServerRequest.count)
             , case countAvail of
                 Just countAvail_ ->
                     if createServerRequest.count == countAvail_ then
@@ -434,8 +454,8 @@ countPicker project createServerRequest computeQuota volumeQuota flavor =
         ]
 
 
-networkPicker : Project -> CreateServerRequest -> Element.Element Msg
-networkPicker project createServerRequest =
+networkPicker : Project -> CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg
+networkPicker project createServerRequest msgFunc =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -481,7 +501,7 @@ networkPicker project createServerRequest =
                     in
                     [ Input.radio networkEmptyHint
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
-                        , onChange = \networkUuid -> updateCreateServerRequest project { createServerRequest | networkUuid = networkUuid }
+                        , onChange = \networkUuid -> msgFunc { createServerRequest | networkUuid = networkUuid }
                         , options =
                             case project.networks.data of
                                 RDPP.DoHave networks _ ->
@@ -499,8 +519,8 @@ networkPicker project createServerRequest =
         (Element.el [ Font.bold ] (Element.text "Network") :: contents)
 
 
-keypairPicker : Project -> CreateServerRequest -> Element.Element Msg
-keypairPicker project createServerRequest =
+keypairPicker : Project -> CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg
+keypairPicker project createServerRequest msgFunc =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
@@ -512,7 +532,7 @@ keypairPicker project createServerRequest =
             else
                 Input.radio []
                     { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
-                    , onChange = \keypairName -> updateCreateServerRequest project { createServerRequest | keypairName = Just keypairName }
+                    , onChange = \keypairName -> msgFunc { createServerRequest | keypairName = Just keypairName }
                     , options = List.map keypairAsOption project.keypairs
                     , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
                     }
@@ -524,13 +544,13 @@ keypairPicker project createServerRequest =
         ]
 
 
-userDataInput : Project -> CreateServerRequest -> Element.Element Msg
-userDataInput project createServerRequest =
+userDataInput : CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg
+userDataInput createServerRequest msgFunc =
     Input.multiline
         [ Element.width (Element.px 600)
         , Element.height (Element.px 500)
         ]
-        { onChange = \u -> updateCreateServerRequest project { createServerRequest | userData = u }
+        { onChange = \u -> msgFunc { createServerRequest | userData = u }
         , text = createServerRequest.userData
         , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
         , label =

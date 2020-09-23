@@ -357,8 +357,8 @@ receiveNetworks model project networks =
             case model.viewState of
                 ProjectView _ viewParams projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer createServerRequest ->
-                            if createServerRequest.networkUuid == "" then
+                        CreateServer createServerViewParams ->
+                            if createServerViewParams.createServerRequest.networkUuid == "" then
                                 let
                                     defaultNetUuid =
                                         case Helpers.newServerNetworkOptions newProject of
@@ -370,13 +370,19 @@ receiveNetworks model project networks =
 
                                             MultipleNetsWithGuess _ guessNet _ ->
                                                 guessNet.uuid
+
+                                    createServerRequest =
+                                        createServerViewParams.createServerRequest
                                 in
                                 ProjectView
                                     (Helpers.getProjectId project)
                                     viewParams
                                     (CreateServer
-                                        { createServerRequest
-                                            | networkUuid = defaultNetUuid
+                                        { createServerViewParams
+                                            | createServerRequest =
+                                                { createServerRequest
+                                                    | networkUuid = defaultNetUuid
+                                                }
                                         }
                                     )
 

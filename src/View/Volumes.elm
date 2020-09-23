@@ -13,6 +13,8 @@ import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.Types
     exposing
@@ -258,42 +260,61 @@ renderAttachments project volume =
                     List.map (renderAttachment project) volume.attachments
 
 
-createVolume : Project -> OSTypes.VolumeName -> String -> Element.Element Msg
-createVolume project volName volSizeStr =
+createVolume : Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
+createVolume project volName volSizeInput =
+    let
+        maybeVolumeQuotaAvail =
+            project.volumeQuota
+                |> RemoteData.toMaybe
+                |> Maybe.map Helpers.volumeQuotaAvail
+
+        ( canAttemptCreateVol, volGbAvail ) =
+            case maybeVolumeQuotaAvail of
+                Just ( numVolsAvail, volGbAvail_ ) ->
+                    ( numVolsAvail |> Maybe.map (\v -> v >= 1) |> Maybe.withDefault True
+                    , volGbAvail_
+                    )
+
+                Nothing ->
+                    ( True, Nothing )
+    in
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20 ])
         [ Element.el VH.heading2 (Element.text "Create Volume")
         , Input.text
             [ Element.spacing 12 ]
             { text = volName
             , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
-            , onChange = \n -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateVolume n volSizeStr
+            , onChange = \n -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateVolume n volSizeInput
             , label = Input.labelAbove [] (Element.text "Name")
             }
         , Element.text "(Suggestion: choose a good name that describes what the volume will store.)"
-        , Input.text
-            []
-            { text = volSizeStr
-            , placeholder = Just (Input.placeholder [] (Element.text "10"))
-            , onChange = \s -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateVolume volName s
-            , label = Input.labelAbove [] (Element.text "Size in GB")
+        , numericTextInput
+            volSizeInput
+            { labelText = "Size in GB"
+            , minVal = Just 1
+            , maxVal = volGbAvail
+            , defaultVal = Just 2
             }
+            (\newInput -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateVolume volName newInput)
         , let
-            params =
-                case String.toInt volSizeStr of
-                    Just volSizeInt ->
-                        { onPress = Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateVolume volName volSizeInt))
-                        , warnText = Nothing
-                        }
+            ( onPress, quotaWarnText ) =
+                if canAttemptCreateVol then
+                    case volSizeInput of
+                        ValidNumericTextInput volSizeGb ->
+                            ( Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateVolume volName volSizeGb))
+                            , Nothing
+                            )
 
-                    _ ->
-                        { onPress = Nothing
-                        , warnText = Just "Volume size must be an integer"
-                        }
+                        InvalidNumericTextInput _ ->
+                            ( Nothing, Nothing )
+
+                else
+                    ( Nothing, Just "Your quota does not allow for creation of another volume." )
           in
           Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
-            [ case params.warnText of
-                Just warnText ->
-                    Element.el [ Font.color <| Element.rgb255 255 56 96 ] <| Element.text warnText
+            [ case quotaWarnText of
+                Just text ->
+                    Element.el [ Font.color <| Element.rgb255 255 56 96 ] <| Element.text text
 
                 Nothing ->
                     Element.none
@@ -301,7 +322,7 @@ createVolume project volName volSizeStr =
                 Widget.textButton
                     (Widget.Style.Material.containedButton Style.Theme.exoPalette)
                     { text = "Create"
-                    , onPress = params.onPress
+                    , onPress = onPress
                     }
             ]
         ]

@@ -17,6 +17,7 @@ import Style.Widgets.IconButton exposing (chip)
 import Types.Types
     exposing
         ( CreateServerRequest
+        , CreateServerViewParams
         , GlobalDefaults
         , ImageListViewParams
         , Msg(..)
@@ -291,19 +292,22 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
             ProjectMsg (Helpers.getProjectId project) <|
                 SetProjectView <|
                     CreateServer <|
-                        -- TODO this should not be hard-coded here
-                        CreateServerRequest
-                            image.name
-                            (Helpers.getProjectId project)
-                            image.uuid
-                            image.name
-                            1
-                            ""
+                        CreateServerViewParams
+                            -- TODO this should not be hard-coded here
+                            (CreateServerRequest
+                                image.name
+                                (Helpers.getProjectId project)
+                                image.uuid
+                                image.name
+                                1
+                                ""
+                                Nothing
+                                Nothing
+                                globalDefaults.shellUserData
+                                ""
+                                False
+                            )
                             Nothing
-                            Nothing
-                            globalDefaults.shellUserData
-                            ""
-                            False
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
