@@ -187,7 +187,15 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                             |> FeatherIcons.toHtml []
                             |> Element.html
                             |> Element.el []
-                    , onPress = Just (updateServerDetail project { serverDetailViewParams | editServerName = False } server)
+                    , onPress =
+                        Just
+                            (updateServerDetail project
+                                { serverDetailViewParams
+                                    | editServerName = False
+                                    , serverNamePendingConfirmation = Nothing
+                                }
+                                server
+                            )
                     }
                 ]
 
