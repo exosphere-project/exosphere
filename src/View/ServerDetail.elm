@@ -171,10 +171,8 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 rowStyle
                 [ Widget.textInput (Widget.Style.Material.textInput Style.Theme.exoPalette)
                     { chips = []
-                    , text = server.osProps.name
-
-                    --, placeholder = Just (Input.placeholder [] (Element.text "My Server"))
-                    , placeholder = Nothing
+                    , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
+                    , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                     , label = "Name"
                     , onChange = \n -> updateEditServerRequest project n
                     }
