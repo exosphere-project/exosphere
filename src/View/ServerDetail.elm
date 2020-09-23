@@ -42,11 +42,6 @@ import Widget.Style.Material
 
 updateServerDetail : Project -> ServerDetailViewParams -> Server -> Msg
 updateServerDetail project serverDetailViewParams server =
-    -- TODO: Remove this debug stuff
-    --let
-    --    _ =
-    --        Debug.log "updateServerDetail - serverDetailViewParams" serverDetailViewParams
-    --in
     ProjectMsg (Helpers.getProjectId project) <|
         SetProjectView <|
             ServerDetail server.osProps.uuid serverDetailViewParams
