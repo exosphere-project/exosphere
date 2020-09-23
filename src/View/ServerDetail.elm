@@ -52,17 +52,6 @@ updateServerDetail project serverDetailViewParams server =
             ServerDetail server.osProps.uuid serverDetailViewParams
 
 
-updateEditServerRequest : Project -> String -> Msg
-updateEditServerRequest _ _ =
-    -- TODO: Remove this debug stuff
-    -- TODO: Set updated server name somewhere sensible
-    --let
-    --    _ =
-    --        Debug.log "updateEditServerRequest - serverName" serverName
-    --in
-    NoOp
-
-
 serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
 serverDetail project appIsElectron currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
@@ -174,7 +163,13 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
                     , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                     , label = "Name"
-                    , onChange = \n -> updateEditServerRequest project n
+                    , onChange =
+                        \n ->
+                            updateServerDetail project
+                                { serverDetailViewParams
+                                    | serverNamePendingConfirmation = Just n
+                                }
+                                server
                     }
 
                 --, renderInvalidNameReasons
