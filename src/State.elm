@@ -891,7 +891,10 @@ processProjectSpecificMsg model project msg =
                                     Cmd.none
 
                                 _ ->
-                                    OSVolumes.requestVolumes project
+                                    Cmd.batch
+                                        [ OSVolumes.requestVolumes project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
                     in
                     ( modelUpdatedView model, cmd )
 
