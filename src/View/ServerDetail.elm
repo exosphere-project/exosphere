@@ -193,8 +193,6 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                                     server
                         }
                     )
-
-                --, renderInvalidNameReasons
                 , Widget.iconButton
                     (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
                     { text = "Cancel"
