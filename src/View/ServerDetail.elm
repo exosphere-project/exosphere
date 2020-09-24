@@ -10,6 +10,7 @@ import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
+import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
@@ -135,17 +136,39 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
         serverNameViewEdit =
             let
+                invalidNameReasons =
+                    serverNameValidator
+                        (serverDetailViewParams.serverNamePendingConfirmation
+                            |> Maybe.withDefault ""
+                        )
+
+                renderInvalidNameReasons =
+                    case invalidNameReasons of
+                        Just reasons ->
+                            Element.column
+                                [ Font.color (Element.rgb 1 0 0)
+                                , Font.size 14
+                                , Element.alignRight
+                                , Element.moveDown 6
+                                ]
+                            <|
+                                List.map Element.text reasons
+
+                        Nothing ->
+                            Element.none
+
                 rowStyle =
                     { containerRow =
-                        [ Element.paddingXY 0 8
-                        , Element.spacing 8
+                        [ Element.spacing 8
+                        , Element.paddingEach
+                            { top = 0
+                            , right = 0
+                            , bottom = 20
+                            , left = 0
+                            }
                         , Element.width Element.fill
-
-                        --, Element.explain Debug.todo
                         ]
-                    , element =
-                        [--Element.explain Debug.todo
-                        ]
+                    , element = []
                     , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
                     , ifLast = []
                     , otherwise = []
@@ -153,19 +176,23 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             in
             Widget.row
                 rowStyle
-                [ Widget.textInput (Widget.Style.Material.textInput Style.Theme.exoPalette)
-                    { chips = []
-                    , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
-                    , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
-                    , label = "Name"
-                    , onChange =
-                        \n ->
-                            updateServerDetail project
-                                { serverDetailViewParams
-                                    | serverNamePendingConfirmation = Just n
-                                }
-                                server
-                    }
+                [ Element.el
+                    [ Element.below renderInvalidNameReasons
+                    ]
+                    (Widget.textInput (Widget.Style.Material.textInput Style.Theme.exoPalette)
+                        { chips = []
+                        , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
+                        , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                        , label = "Name"
+                        , onChange =
+                            \n ->
+                                updateServerDetail project
+                                    { serverDetailViewParams
+                                        | serverNamePendingConfirmation = Just n
+                                    }
+                                    server
+                        }
+                    )
 
                 --, renderInvalidNameReasons
                 , Widget.iconButton
