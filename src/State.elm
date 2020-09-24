@@ -1594,6 +1594,10 @@ processProjectSpecificMsg model project msg =
                                 Ok _ ->
                                     ( newModel, Cmd.none )
 
+        RequestSetServerName serverUuid string ->
+            -- TODO: Trigger a call to the Nova API to set the server name
+            ( model, Cmd.none )
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
 createProject model password authToken endpoints =

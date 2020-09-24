@@ -210,8 +210,7 @@ type ProjectSpecificMsgConstructor
     | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer OSTypes.ServerUuid
-      -- TODO: Add new message to update server name
-      --| RequestSetServerName OSTypes.ServerUuid String
+    | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestServerAction Server (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
