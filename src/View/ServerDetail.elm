@@ -173,6 +173,21 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     , ifLast = []
                     , otherwise = []
                     }
+
+                saveOnPress =
+                    case invalidNameReasons of
+                        Nothing ->
+                            Just
+                                (updateServerDetail project
+                                    { serverDetailViewParams
+                                        | editServerName = False
+                                        , serverNamePendingConfirmation = Nothing
+                                    }
+                                    server
+                                )
+
+                        Just _ ->
+                            Nothing
             in
             Widget.row
                 rowStyle
@@ -203,14 +218,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                             |> Element.html
                             |> Element.el []
                     , onPress =
-                        Just
-                            (updateServerDetail project
-                                { serverDetailViewParams
-                                    | editServerName = False
-                                    , serverNamePendingConfirmation = Nothing
-                                }
-                                server
-                            )
+                        saveOnPress
                     }
                 , Widget.iconButton
                     (Widget.Style.Material.textButton Style.Theme.exoPalette)
