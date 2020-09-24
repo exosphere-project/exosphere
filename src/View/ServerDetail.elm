@@ -195,6 +195,25 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     )
                 , Widget.iconButton
                     (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Save"
+                    , icon =
+                        FeatherIcons.save
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        Just
+                            (updateServerDetail project
+                                { serverDetailViewParams
+                                    | editServerName = False
+                                    , serverNamePendingConfirmation = Nothing
+                                }
+                                server
+                            )
+                    }
+                , Widget.iconButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
                     { text = "Cancel"
                     , icon =
                         FeatherIcons.xCircle
