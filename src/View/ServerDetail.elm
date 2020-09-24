@@ -280,7 +280,7 @@ passwordVulnWarning appIsElectron server =
         ServerFromExo serverFromExoProps ->
             if serverFromExoProps.exoServerVersion < 1 then
                 Element.paragraph
-                    [ Font.color (Element.rgb 255 0 0) ]
+                    [ Font.color (Element.rgb255 255 0 0) ]
                     [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
                     , VH.browserLink
                         appIsElectron
