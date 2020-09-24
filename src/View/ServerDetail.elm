@@ -175,18 +175,14 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     }
 
                 saveOnPress =
-                    case invalidNameReasons of
-                        Nothing ->
+                    case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
+                        ( Nothing, Just validName ) ->
                             Just
-                                (updateServerDetail project
-                                    { serverDetailViewParams
-                                        | editServerName = False
-                                        , serverNamePendingConfirmation = Nothing
-                                    }
-                                    server
+                                (ProjectMsg (Helpers.getProjectId project)
+                                    (RequestSetServerName server.osProps.uuid validName)
                                 )
 
-                        Just _ ->
+                        ( _, _ ) ->
                             Nothing
             in
             Widget.row
