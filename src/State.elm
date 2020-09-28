@@ -1605,6 +1605,12 @@ processProjectSpecificMsg model project msg =
             let
                 _ =
                     Debug.log "ReceiveSetServerName - serverUuid, newServerName" ( serverUuid, newServerName )
+
+                _ =
+                    Debug.log "ReceiveSetServerName - errorContext" errorContext
+
+                _ =
+                    Debug.log "ReceiveSetServerName - result" result
             in
             Rest.Nova.receiveSetServerName model project serverUuid newServerName
 
