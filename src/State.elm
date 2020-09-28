@@ -1601,6 +1601,13 @@ processProjectSpecificMsg model project msg =
                                 Ok _ ->
                                     ( newModel, Cmd.none )
 
+        ReceiveSetServerName serverUuid newServerName ->
+            let
+                _ =
+                    Debug.log "ReceiveSetServerName - serverUuid, newServerName" ( serverUuid, newServerName )
+            in
+            ( model, Cmd.none )
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
 createProject model password authToken endpoints =
