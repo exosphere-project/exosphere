@@ -1113,6 +1113,13 @@ processProjectSpecificMsg model project msg =
             in
             ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
 
+        RequestSetServerName serverUuid newServerName ->
+            let
+                _ =
+                    Debug.log "RequestSetServerName" ( serverUuid, newServerName )
+            in
+            ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
+
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
 
@@ -1593,10 +1600,6 @@ processProjectSpecificMsg model project msg =
 
                                 Ok _ ->
                                     ( newModel, Cmd.none )
-
-        RequestSetServerName serverUuid string ->
-            -- TODO: Trigger a call to the Nova API to set the server name
-            ( model, Cmd.none )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
