@@ -458,7 +458,7 @@ requestSetServerName project serverUuid newServerName =
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
-            (Decode.at [ "server" ] decodeServer)
+            (Decode.at [ "server", "name" ] Decode.string)
         )
 
 
