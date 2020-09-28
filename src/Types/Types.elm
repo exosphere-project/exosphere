@@ -244,7 +244,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
     | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
-    | ReceiveSetServerName OSTypes.ServerUuid String
+    | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody OSTypes.Server)
 
 
 type ViewState

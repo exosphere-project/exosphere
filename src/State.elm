@@ -1601,7 +1601,7 @@ processProjectSpecificMsg model project msg =
                                 Ok _ ->
                                     ( newModel, Cmd.none )
 
-        ReceiveSetServerName serverUuid newServerName ->
+        ReceiveSetServerName serverUuid newServerName errorContext result ->
             let
                 _ =
                     Debug.log "ReceiveSetServerName - serverUuid, newServerName" ( serverUuid, newServerName )
