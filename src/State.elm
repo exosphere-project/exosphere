@@ -1606,7 +1606,7 @@ processProjectSpecificMsg model project msg =
                 _ =
                     Debug.log "ReceiveSetServerName - serverUuid, newServerName" ( serverUuid, newServerName )
             in
-            ( model, Cmd.none )
+            Rest.Nova.receiveSetServerName model project serverUuid newServerName
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
