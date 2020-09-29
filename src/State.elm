@@ -1114,10 +1114,6 @@ processProjectSpecificMsg model project msg =
             ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
 
         RequestSetServerName serverUuid newServerName ->
-            let
-                _ =
-                    Debug.log "RequestSetServerName" ( serverUuid, newServerName )
-            in
             ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
 
         ReceiveImages images ->
@@ -1601,17 +1597,7 @@ processProjectSpecificMsg model project msg =
                                 Ok _ ->
                                     ( newModel, Cmd.none )
 
-        ReceiveSetServerName serverUuid newServerName errorContext result ->
-            let
-                _ =
-                    Debug.log "ReceiveSetServerName - serverUuid, newServerName" ( serverUuid, newServerName )
-
-                _ =
-                    Debug.log "ReceiveSetServerName - errorContext" errorContext
-
-                _ =
-                    Debug.log "ReceiveSetServerName - result" result
-            in
+        ReceiveSetServerName serverUuid _ errorContext result ->
             case ( Helpers.serverLookup project serverUuid, result ) of
                 ( Nothing, _ ) ->
                     -- Ensure that the server UUID we get back exists in the model. If not, ignore.
