@@ -1,4 +1,4 @@
-image: node:carbon-stretch
+image: node:current-buster
 
 stages:
   - build
