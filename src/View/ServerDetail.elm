@@ -3,6 +3,7 @@ module View.ServerDetail exposing (serverDetail)
 import Color
 import Dict
 import Element
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -142,14 +143,25 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 renderInvalidNameReasons =
                     case invalidNameReasons of
                         Just reasons ->
-                            Element.column
-                                [ Font.color (Element.rgb 1 0 0)
-                                , Font.size 14
-                                , Element.alignRight
-                                , Element.moveDown 6
-                                ]
-                            <|
-                                List.map Element.text reasons
+                            List.map Element.text reasons
+                                |> List.map List.singleton
+                                |> List.map (Element.paragraph [])
+                                |> Element.column
+                                    [ Font.color (Element.rgb 1 0 0)
+                                    , Font.size 14
+                                    , Element.alignRight
+                                    , Element.moveDown 6
+                                    , Background.color (Element.rgba 1 1 1 0.9)
+                                    , Element.spacing 10
+                                    , Element.padding 10
+                                    , Border.rounded 4
+                                    , Border.shadow
+                                        { blur = 10
+                                        , color = Element.rgba255 0 0 0 0.2
+                                        , offset = ( 0, 2 )
+                                        , size = 1
+                                        }
+                                    ]
 
                         Nothing ->
                             Element.none
@@ -157,12 +169,6 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 rowStyle =
                     { containerRow =
                         [ Element.spacing 8
-                        , Element.paddingEach
-                            { top = 0
-                            , right = 0
-                            , bottom = 20
-                            , left = 0
-                            }
                         , Element.width Element.fill
                         ]
                     , element = []
