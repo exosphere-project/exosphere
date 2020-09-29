@@ -21,6 +21,7 @@ module Rest.Nova exposing
     , requestKeypairs
     , requestServer
     , requestServers
+    , requestSetServerName
     , serverIpAddressDecoder
     , serverPowerStateDecoder
     )
@@ -420,6 +421,43 @@ requestCreateServerImage project serverUuid imageName =
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody errorContext (\_ -> NoOp))
+        )
+
+
+requestSetServerName : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestSetServerName project serverUuid newServerName =
+    let
+        body =
+            Encode.object
+                [ ( "server"
+                  , Encode.object
+                        [ ( "name"
+                          , Encode.string newServerName
+                          )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("rename server with UUID " ++ serverUuid ++ " to " ++ newServerName)
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveSetServerName serverUuid newServerName errorContext result)
+    in
+    openstackCredentialedRequest
+        project
+        Put
+        Nothing
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "server", "name" ] Decode.string)
         )
 
 

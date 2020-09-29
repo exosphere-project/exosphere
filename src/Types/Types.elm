@@ -210,6 +210,7 @@ type ProjectSpecificMsgConstructor
     | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerRequest
     | RequestDeleteServer OSTypes.ServerUuid
+    | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestServerAction Server (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
@@ -243,6 +244,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
     | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
+    | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody String)
 
 
 type ViewState
@@ -303,6 +305,8 @@ type alias ServerDetailViewParams =
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
+    , editServerName : Bool
+    , serverNamePendingConfirmation : Maybe String
     }
 
 

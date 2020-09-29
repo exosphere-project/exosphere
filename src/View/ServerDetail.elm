@@ -3,12 +3,15 @@ module View.ServerDetail exposing (serverDetail)
 import Color
 import Dict
 import Element
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
+import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
@@ -37,6 +40,13 @@ import View.ResourceUsageCharts
 import View.Types
 import Widget
 import Widget.Style.Material
+
+
+updateServerDetail : Project -> ServerDetailViewParams -> Server -> Msg
+updateServerDetail project serverDetailViewParams server =
+    ProjectMsg (Helpers.getProjectId project) <|
+        SetProjectView <|
+            ServerDetail server.osProps.uuid serverDetailViewParams
 
 
 serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
@@ -96,6 +106,146 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
         projectId =
             Helpers.getProjectId project
+
+        serverNameViewPlain =
+            Element.row
+                [ Element.spacing 10 ]
+                [ Element.text server.osProps.name
+                , Widget.iconButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Edit"
+                    , icon =
+                        FeatherIcons.edit3
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        Just
+                            (updateServerDetail project
+                                { serverDetailViewParams
+                                    | editServerName = True
+                                    , serverNamePendingConfirmation = Just server.osProps.name
+                                }
+                                server
+                            )
+                    }
+                ]
+
+        serverNameViewEdit =
+            let
+                invalidNameReasons =
+                    serverNameValidator
+                        (serverDetailViewParams.serverNamePendingConfirmation
+                            |> Maybe.withDefault ""
+                        )
+
+                renderInvalidNameReasons =
+                    case invalidNameReasons of
+                        Just reasons ->
+                            List.map Element.text reasons
+                                |> List.map List.singleton
+                                |> List.map (Element.paragraph [])
+                                |> Element.column
+                                    [ Font.color (Element.rgb 1 0 0)
+                                    , Font.size 14
+                                    , Element.alignRight
+                                    , Element.moveDown 6
+                                    , Background.color (Element.rgba 1 1 1 0.9)
+                                    , Element.spacing 10
+                                    , Element.padding 10
+                                    , Border.rounded 4
+                                    , Border.shadow
+                                        { blur = 10
+                                        , color = Element.rgba255 0 0 0 0.2
+                                        , offset = ( 0, 2 )
+                                        , size = 1
+                                        }
+                                    ]
+
+                        Nothing ->
+                            Element.none
+
+                rowStyle =
+                    { containerRow =
+                        [ Element.spacing 8
+                        , Element.width Element.fill
+                        ]
+                    , element = []
+                    , ifFirst = [ Element.width <| Element.minimum 200 <| Element.fill ]
+                    , ifLast = []
+                    , otherwise = []
+                    }
+
+                saveOnPress =
+                    case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
+                        ( Nothing, Just validName ) ->
+                            Just
+                                (ProjectMsg (Helpers.getProjectId project)
+                                    (RequestSetServerName server.osProps.uuid validName)
+                                )
+
+                        ( _, _ ) ->
+                            Nothing
+            in
+            Widget.row
+                rowStyle
+                [ Element.el
+                    [ Element.below renderInvalidNameReasons
+                    ]
+                    (Widget.textInput (Widget.Style.Material.textInput Style.Theme.exoPalette)
+                        { chips = []
+                        , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
+                        , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                        , label = "Name"
+                        , onChange =
+                            \n ->
+                                updateServerDetail project
+                                    { serverDetailViewParams
+                                        | serverNamePendingConfirmation = Just n
+                                    }
+                                    server
+                        }
+                    )
+                , Widget.iconButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Save"
+                    , icon =
+                        FeatherIcons.save
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        saveOnPress
+                    }
+                , Widget.iconButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = "Cancel"
+                    , icon =
+                        FeatherIcons.xCircle
+                            |> FeatherIcons.withSize 16
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                    , onPress =
+                        Just
+                            (updateServerDetail project
+                                { serverDetailViewParams
+                                    | editServerName = False
+                                    , serverNamePendingConfirmation = Nothing
+                                }
+                                server
+                            )
+                    }
+                ]
+
+        serverNameView =
+            if serverDetailViewParams.editServerName then
+                serverNameViewEdit
+
+            else
+                serverNameViewPlain
     in
     Element.wrappedRow []
         [ Element.column
@@ -107,7 +257,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 VH.heading2
                 (Element.text "Server Details")
             , passwordVulnWarning appIsElectron server
-            , VH.compactKVRow "Name" (Element.text server.osProps.name)
+            , VH.compactKVRow "Name" serverNameView
             , VH.compactKVRow "Status" (serverStatus projectId serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
@@ -181,7 +331,7 @@ passwordVulnWarning appIsElectron server =
         ServerFromExo serverFromExoProps ->
             if serverFromExoProps.exoServerVersion < 1 then
                 Element.paragraph
-                    [ Font.color (Element.rgb 255 0 0) ]
+                    [ Font.color (Element.rgb255 255 0 0) ]
                     [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
                     , VH.browserLink
                         appIsElectron
