@@ -13,7 +13,6 @@ module Rest.Nova exposing
     , receiveKeypairs
     , receiveServer
     , receiveServers
-    , receiveSetServerName
     , requestConsoleUrls
     , requestCreateServer
     , requestCreateServerImage
@@ -780,15 +779,6 @@ receiveCreateServer model project _ =
         |> List.map (\x -> x project)
         |> Cmd.batch
     )
-
-
-receiveSetServerName : Model -> Project -> OSTypes.ServerUuid -> String -> ( Model, Cmd Msg )
-receiveSetServerName model project serverUuid newServerName =
-    let
-        _ =
-            Debug.log "receiveSetServerName - serverUuid, newServerName" ( serverUuid, newServerName )
-    in
-    ( model, Cmd.none )
 
 
 
