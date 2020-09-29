@@ -108,10 +108,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
         serverNameViewPlain =
             Element.row
-                [ Element.spacing 10
-
-                --, Element.explain Debug.todo
-                ]
+                [ Element.spacing 10 ]
                 [ Element.text server.osProps.name
                 , Widget.iconButton
                     (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
