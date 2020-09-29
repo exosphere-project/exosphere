@@ -1612,7 +1612,58 @@ processProjectSpecificMsg model project msg =
                 _ =
                     Debug.log "ReceiveSetServerName - result" result
             in
-            Rest.Nova.receiveSetServerName model project serverUuid newServerName
+            case ( Helpers.serverLookup project serverUuid, result ) of
+                ( Nothing, _ ) ->
+                    -- Ensure that the server UUID we get back exists in the model. If not, ignore.
+                    ( model, Cmd.none )
+
+                ( _, Err e ) ->
+                    Helpers.processSynchronousApiError model errorContext e
+
+                ( Just server, Ok actualNewServerName ) ->
+                    let
+                        oldOsProps =
+                            server.osProps
+
+                        newOsProps =
+                            { oldOsProps | name = actualNewServerName }
+
+                        newServer =
+                            { server | osProps = newOsProps }
+
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
+
+                        modelWithUpdatedProject =
+                            Helpers.modelUpdateProject model newProject
+
+                        -- Only update the view if we are on the server details view for the server we're interested in
+                        updatedView =
+                            case model.viewState of
+                                ProjectView projectIdentifier projectViewParams (ServerDetail serverUuid_ serverDetailViewParams) ->
+                                    if serverUuid == serverUuid_ then
+                                        let
+                                            newServerDetailsViewParams =
+                                                { serverDetailViewParams
+                                                    | editServerName = False
+                                                    , serverNamePendingConfirmation = Nothing
+                                                }
+                                        in
+                                        ProjectView projectIdentifier
+                                            projectViewParams
+                                            (ServerDetail serverUuid_ newServerDetailsViewParams)
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        -- Later, maybe: Check that newServerName == actualNewServerName
+                        newModel =
+                            { modelWithUpdatedProject | viewState = updatedView }
+                    in
+                    ( newModel, Cmd.none )
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
