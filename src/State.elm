@@ -1631,8 +1631,7 @@ processProjectSpecificMsg model project msg =
                                         let
                                             newServerDetailsViewParams =
                                                 { serverDetailViewParams
-                                                    | editServerName = False
-                                                    , serverNamePendingConfirmation = Nothing
+                                                    | serverNamePendingConfirmation = Nothing
                                                 }
                                         in
                                         ProjectView projectIdentifier

@@ -305,7 +305,6 @@ type alias ServerDetailViewParams =
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
-    , editServerName : Bool
     , serverNamePendingConfirmation : Maybe String
     }
 
