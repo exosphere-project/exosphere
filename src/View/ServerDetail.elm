@@ -124,8 +124,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                         Just
                             (updateServerDetail project
                                 { serverDetailViewParams
-                                    | editServerName = True
-                                    , serverNamePendingConfirmation = Just server.osProps.name
+                                    | serverNamePendingConfirmation = Just server.osProps.name
                                 }
                                 server
                             )
@@ -232,8 +231,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                         Just
                             (updateServerDetail project
                                 { serverDetailViewParams
-                                    | editServerName = False
-                                    , serverNamePendingConfirmation = Nothing
+                                    | serverNamePendingConfirmation = Nothing
                                 }
                                 server
                             )
@@ -241,11 +239,12 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 ]
 
         serverNameView =
-            if serverDetailViewParams.editServerName then
-                serverNameViewEdit
+            case serverDetailViewParams.serverNamePendingConfirmation of
+                Just _ ->
+                    serverNameViewEdit
 
-            else
-                serverNameViewPlain
+                Nothing ->
+                    serverNameViewPlain
     in
     Element.wrappedRow []
         [ Element.column
