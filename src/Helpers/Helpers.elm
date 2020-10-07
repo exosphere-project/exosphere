@@ -62,6 +62,7 @@ import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import ServerDeploy
 import Task
 import Time
 import Toasty
@@ -806,8 +807,8 @@ sortedFlavors flavors =
         |> List.sortBy .vcpu
 
 
-renderUserDataTemplate : Project -> String -> Maybe String -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName =
+renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole =
     {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -821,9 +822,20 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName =
         generateYamlFromPublicKey selectedPublicKey =
             "ssh-authorized-keys:\n      - " ++ selectedPublicKey
 
+        guacamoleSetupCmds : String
+        guacamoleSetupCmds =
+            if deployGuacamole then
+                ServerDeploy.guacamoleUserData
+
+            else
+                "echo \"Not deploying Guacamole\""
+
         renderUserData : String -> String
         renderUserData authorizedKeyYaml =
-            String.replace "{ssh-authorized-keys}\n" authorizedKeyYaml userDataTemplate
+            [ ( "{ssh-authorized-keys}\n", authorizedKeyYaml )
+            , ( "{guacamole-setup}\n", guacamoleSetupCmds )
+            ]
+                |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
     in
     maybeKeypairName
         |> Maybe.andThen getPublicKeyFromKeypairName

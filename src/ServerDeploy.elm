@@ -1,4 +1,4 @@
-module ServerDeploy exposing (cloudInitUserDataTemplate)
+module ServerDeploy exposing (cloudInitUserDataTemplate, guacamoleUserData)
 
 
 cloudInitUserDataTemplate : String
@@ -45,6 +45,7 @@ runcmd:
       $SYS_LOAD_SCRIPT_FILE > /dev/console
       echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
     fi
+  - {guacamole-setup}
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
@@ -67,4 +68,10 @@ mounts:
   - [ /dev/vdi, /media/volume/vdi ]
   - [ /dev/vdj, /media/volume/vdj ]
   - [ /dev/vdk, /media/volume/vdk ]
+"""
+
+
+guacamoleUserData : String
+guacamoleUserData =
+    """echo TODO
 """

@@ -953,7 +953,11 @@ processProjectSpecificMsg model project msg =
                     , networkUuid = viewParams.networkUuid
                     , keypairName = viewParams.keypairName
                     , userData =
-                        Helpers.renderUserDataTemplate project viewParams.userDataTemplate viewParams.keypairName
+                        Helpers.renderUserDataTemplate
+                            project
+                            viewParams.userDataTemplate
+                            viewParams.keypairName
+                            (viewParams.deployGuacamole |> Maybe.withDefault False)
                     }
             in
             ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
