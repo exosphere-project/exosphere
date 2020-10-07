@@ -1,9 +1,12 @@
 module Types.Defaults exposing
-    ( createServerViewParams
+    ( createServerRequest
+    , createServerViewParams
     , serverDetailViewParams
     , serverListViewParams
     )
 
+import Helpers.Helpers as Helpers
+import OpenStack.Types as OSTypes
 import Set
 import Types.Types as Types
 
@@ -27,8 +30,24 @@ serverDetailViewParams =
 
 
 createServerViewParams : Types.CreateServerRequest -> Maybe Bool -> Types.CreateServerViewParams
-createServerViewParams createServerRequest deployGuacamole =
-    { createServerRequest = createServerRequest
+createServerViewParams createServerRequest_ deployGuacamole =
+    { createServerRequest = createServerRequest_
     , volSizeTextInput = Nothing
     , deployGuacamole = deployGuacamole
+    }
+
+
+createServerRequest : Types.Project -> OSTypes.Image -> Types.GlobalDefaults -> Types.CreateServerRequest
+createServerRequest project image globalDefaults =
+    { name = image.name
+    , projectId = Helpers.getProjectId project
+    , imageUuid = image.uuid
+    , imageName = image.name
+    , count = 1
+    , flavorUuid = ""
+    , volBackedSizeGb = Nothing
+    , keypairName = Nothing
+    , userData = globalDefaults.shellUserData
+    , networkUuid = ""
+    , showAdvancedOptions = False
     }

@@ -294,20 +294,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                 SetProjectView <|
                     CreateServer <|
                         Defaults.createServerViewParams
-                            -- TODO this should not be hard-coded here
-                            (CreateServerRequest
-                                image.name
-                                (Helpers.getProjectId project)
-                                image.uuid
-                                image.name
-                                1
-                                ""
-                                Nothing
-                                Nothing
-                                globalDefaults.shellUserData
-                                ""
-                                False
-                            )
+                            (Defaults.createServerRequest project image globalDefaults)
                             (project.tlsReverseProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =
