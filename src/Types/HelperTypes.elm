@@ -1,7 +1,11 @@
-module Types.HelperTypes exposing (Password, Url, Uuid)
+module Types.HelperTypes exposing (Hostname, Password, Url, Uuid)
 
 
 type alias Url =
+    String
+
+
+type alias Hostname =
     String
 
 

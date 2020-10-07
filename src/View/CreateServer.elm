@@ -118,7 +118,8 @@ createServer project createServerViewParams =
                             [ Element.none ]
 
                         else
-                            [ networkPicker project createServerRequest msgFunc
+                            [ guacamolePicker project createServerViewParams
+                            , networkPicker project createServerRequest msgFunc
                             , keypairPicker project createServerRequest msgFunc
                             , userDataInput createServerRequest msgFunc
                             ]
@@ -452,6 +453,28 @@ countPicker createServerRequest computeQuota volumeQuota flavor msgFunc =
                     Element.none
             ]
         ]
+
+
+guacamolePicker : Project -> CreateServerViewParams -> Element.Element Msg
+guacamolePicker project createServerViewParams =
+    case createServerViewParams.deployGuacamole of
+        Nothing ->
+            Element.text "Guacamole deployment is not supported for this OpenStack cloud."
+
+        Just deployGuacamole ->
+            Element.column VH.exoColumnAttributes
+                [ Input.radioRow [ Element.spacing 10 ]
+                    { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
+                    , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployGuacamole = Just new }
+                    , options =
+                        [ Input.option True (Element.text "Yes")
+                        , Input.option False (Element.text "No")
+
+                        {- -}
+                        ]
+                    , selected = Just deployGuacamole
+                    }
+                ]
 
 
 networkPicker : Project -> CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg

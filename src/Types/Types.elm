@@ -1,5 +1,6 @@
 module Types.Types exposing
-    ( CockpitLoginStatus(..)
+    ( CloudsWithTlsReverseProxy
+    , CockpitLoginStatus(..)
     , CreateServerRequest
     , CreateServerViewParams
     , DeleteConfirmation
@@ -14,6 +15,7 @@ module Types.Types exposing
     , ImageListViewParams
     , JetstreamCreds
     , JetstreamProvider(..)
+    , KeystoneHostname
     , LogMessage
     , Model
     , Msg(..)
@@ -38,6 +40,7 @@ module Types.Types exposing
     , ServerUiStatus(..)
     , SortTableParams
     , TickInterval
+    , TlsReverseProxyHostname
     , Toast
     , UnscopedProvider
     , UnscopedProviderProject
@@ -102,7 +105,7 @@ type alias Model =
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
-    , cloudsWithTlsReverseProxy : Dict.Dict String String
+    , cloudsWithTlsReverseProxy : CloudsWithTlsReverseProxy
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
@@ -113,6 +116,18 @@ type alias Model =
 
 type alias CloudCorsProxyUrl =
     HelperTypes.Url
+
+
+type alias CloudsWithTlsReverseProxy =
+    Dict.Dict KeystoneHostname TlsReverseProxyHostname
+
+
+type alias KeystoneHostname =
+    HelperTypes.Hostname
+
+
+type alias TlsReverseProxyHostname =
+    HelperTypes.Hostname
 
 
 type alias LogMessage =
@@ -159,6 +174,7 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
+    , tlsReverseProxyHostname : Maybe TlsReverseProxyHostname
     }
 
 
@@ -322,6 +338,7 @@ type alias ServerDetailViewParams =
 type alias CreateServerViewParams =
     { createServerRequest : CreateServerRequest
     , volSizeTextInput : Maybe NumericTextInput
+    , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     }
 
 

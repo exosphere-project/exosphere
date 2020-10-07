@@ -1,5 +1,6 @@
 module Types.Defaults exposing
-    ( serverDetailViewParams
+    ( createServerViewParams
+    , serverDetailViewParams
     , serverListViewParams
     )
 
@@ -22,4 +23,12 @@ serverDetailViewParams =
     , ipInfoLevel = Types.IPSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
+    }
+
+
+createServerViewParams : Types.CreateServerRequest -> Maybe Bool -> Types.CreateServerViewParams
+createServerViewParams createServerRequest deployGuacamole =
+    { createServerRequest = createServerRequest
+    , volSizeTextInput = Nothing
+    , deployGuacamole = deployGuacamole
     }

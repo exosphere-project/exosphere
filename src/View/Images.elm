@@ -14,6 +14,7 @@ import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CreateServerRequest
@@ -292,7 +293,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
             ProjectMsg (Helpers.getProjectId project) <|
                 SetProjectView <|
                     CreateServer <|
-                        CreateServerViewParams
+                        Defaults.createServerViewParams
                             -- TODO this should not be hard-coded here
                             (CreateServerRequest
                                 image.name
@@ -307,7 +308,7 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
                                 ""
                                 False
                             )
-                            Nothing
+                            (project.tlsReverseProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]

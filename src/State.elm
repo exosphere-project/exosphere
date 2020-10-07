@@ -1674,6 +1674,10 @@ createProject model password authToken endpoints =
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , pendingCredentialedRequests = []
+            , tlsReverseProxyHostname =
+                endpoints.keystone
+                    |> Helpers.hostnameFromUrl
+                    |> (\h -> Dict.get h model.cloudsWithTlsReverseProxy)
             }
 
         newProjects =
