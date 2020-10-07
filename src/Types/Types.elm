@@ -6,6 +6,7 @@ module Types.Types exposing
     , DeleteVolumeConfirmation
     , Endpoints
     , ExoServerProps
+    , ExoServerVersion
     , Flags
     , FloatingIpState(..)
     , HttpRequestMethod(..)

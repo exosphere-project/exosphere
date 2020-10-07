@@ -19,6 +19,7 @@ module Helpers.Helpers exposing
     , jetstreamToOpenstackCreds
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , newServerMetadata
     , newServerNetworkOptions
     , overallQuotaAvailServers
     , processOpenRc
@@ -57,6 +58,7 @@ import Html
 import Html.Attributes
 import Http
 import Json.Decode as Decode
+import Json.Encode
 import Maybe.Extra
 import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
@@ -72,6 +74,7 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , Endpoints
+        , ExoServerVersion
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
@@ -842,6 +845,17 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> Maybe.map generateYamlFromPublicKey
         |> Maybe.withDefault ""
         |> renderUserData
+
+
+newServerMetadata : ExoServerVersion -> UUID.UUID -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid =
+    [ ( "exoServerVersion"
+      , Json.Encode.string (String.fromInt exoServerVersion)
+      )
+    , ( "exoClientUuid"
+      , Json.Encode.string (UUID.toString exoClientUuid)
+      )
+    ]
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions

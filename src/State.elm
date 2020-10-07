@@ -56,6 +56,7 @@ import Types.Types
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
+        , currentExoServerVersion
         )
 import UUID
 
@@ -958,9 +959,11 @@ processProjectSpecificMsg model project msg =
                             viewParams.userDataTemplate
                             viewParams.keypairName
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
+                    , metadata =
+                        Helpers.newServerMetadata currentExoServerVersion model.clientUuid
                     }
             in
-            ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
+            ( model, Rest.Nova.requestCreateServer project createServerRequest )
 
         RequestDeleteServer serverUuid ->
             let

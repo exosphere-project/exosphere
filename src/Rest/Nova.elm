@@ -63,9 +63,7 @@ import Types.Types
         , Server
         , ServerOrigin(..)
         , ViewState(..)
-        , currentExoServerVersion
         )
-import UUID
 
 
 
@@ -216,8 +214,8 @@ requestKeypairs project =
         )
 
 
-requestCreateServer : Project -> UUID.UUID -> OSTypes.CreateServerRequest -> Cmd Msg
-requestCreateServer project exoClientUuid createServerRequest =
+requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd Msg
+requestCreateServer project createServerRequest =
     let
         instanceNumbers =
             List.range 1 createServerRequest.count
@@ -259,17 +257,7 @@ requestCreateServer project exoClientUuid createServerRequest =
                 , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
                 , ( "metadata"
-                  , Encode.object
-                        [ ( "exoServerVersion"
-                          , Encode.string (String.fromInt currentExoServerVersion)
-                          )
-                        , ( "exoClientUuid"
-                          , Encode.string (UUID.toString exoClientUuid)
-                          )
-                        , ( "exoCreatorUsername"
-                          , Encode.string project.auth.user.name
-                          )
-                        ]
+                  , Encode.object createServerRequest.metadata
                   )
                 ]
 

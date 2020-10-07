@@ -53,6 +53,7 @@ module OpenStack.Types exposing
     )
 
 import Helpers.Error exposing (HttpErrorWithBody)
+import Json.Encode
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (RemoteData)
 import Time
@@ -332,6 +333,7 @@ type alias CreateServerRequest =
     , networkUuid : NetworkUuid
     , keypairName : Maybe String
     , userData : String
+    , metadata : List ( String, Json.Encode.Value )
     }
 
 
