@@ -47,6 +47,7 @@ module Types.Types exposing
     , currentExoServerVersion
     )
 
+import Dict
 import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -82,6 +83,7 @@ type alias Flags =
     , randomSeed3 : Int
     , epoch : Int
     , timeZone : Int
+    , cloudsWithTlsReverseProxy : List ( String, String )
     }
 
 
@@ -100,6 +102,7 @@ type alias Model =
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
+    , cloudsWithTlsReverseProxy : Dict.Dict String String
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix

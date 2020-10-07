@@ -186,6 +186,16 @@ Do not enable this by default.
 
 Until the permanent solution has been implemented, please do not use the terminal or server dashboard functionality over untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or dashboard view.
 
+## Runtime configuration options
+
+Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in the `flags` JSON object in `port.js`.
+
+| *Option*                  | *Possible Values* | *Description*                                                       |
+|---------------------------|-------------------|---------------------------------------------------------------------|
+| showDebugMsgs             | false, true       |                                                                     |
+| openstackApiProxyUrl      | null, string      | See `docs/cors-proxy.md`; required for using Exosphere in a browser |
+| cloudsWithTlsReverseProxy | array of TODO     | TODO document me                                                    |
+
 ## Collaborate
 
 Talk to Exosphere developers and other users in real-time via [gitter](https://gitter.im/exosphere-app/community), or `#exosphere:matrix.org` on [Matrix / Riot](https://riot.im/app/#/room/#exosphere:matrix.org). The chat is bridged across both platforms, so join whichever you prefer. You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.

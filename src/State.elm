@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
+import Dict
 import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
@@ -154,6 +155,7 @@ mounts:
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
+            , cloudsWithTlsReverseProxy = Dict.fromList flags.cloudsWithTlsReverseProxy
             , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
