@@ -24,20 +24,20 @@ var app = Elm.Exosphere.init({
     node: container,
     flags:
     {
+        // Flags intended to be configured by cloud operators who offer Exosphere
+        showDebugMsgs : false,
         cloudCorsProxyUrl: null,
+        // Flags that Exosphere sets dynamically
         width: window.innerWidth,
         height: window.innerHeight,
         storedState: startingState,
-        proxyUrl: null,
         isElectron: isElectron,
         randomSeed0: randomSeeds[0],
         randomSeed1: randomSeeds[1],
         randomSeed2: randomSeeds[2],
         randomSeed3: randomSeeds[3],
         epoch : Date.now(),
-        timeZone : d.getTimezoneOffset(),
-        showDebugMsgs : false
-
+        timeZone : d.getTimezoneOffset()
     }
 });
 

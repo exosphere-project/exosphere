@@ -67,10 +67,14 @@ import UUID
 
 
 type alias Flags =
-    { width : Int
+    -- Flags intended to be configured by cloud operators
+    { showDebugMsgs : Bool
+    , cloudCorsProxyUrl : Maybe HelperTypes.Url
+
+    -- Flags that Exosphere sets dynamically
+    , width : Int
     , height : Int
     , storedState : Maybe Decode.Value
-    , cloudCorsProxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     , randomSeed0 : Int
     , randomSeed1 : Int
@@ -78,7 +82,6 @@ type alias Flags =
     , randomSeed3 : Int
     , epoch : Int
     , timeZone : Int
-    , showDebugMsgs : Bool
     }
 
 
