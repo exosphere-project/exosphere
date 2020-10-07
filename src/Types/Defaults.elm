@@ -7,6 +7,7 @@ module Types.Defaults exposing
 
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
+import ServerDeploy exposing (cloudInitUserData)
 import Set
 import Types.Types as Types
 
@@ -37,8 +38,8 @@ createServerViewParams createServerRequest_ deployGuacamole =
     }
 
 
-createServerRequest : Types.Project -> OSTypes.Image -> Types.GlobalDefaults -> Types.CreateServerRequest
-createServerRequest project image globalDefaults =
+createServerRequest : Types.Project -> OSTypes.Image -> Types.CreateServerRequest
+createServerRequest project image =
     { name = image.name
     , projectId = Helpers.getProjectId project
     , imageUuid = image.uuid
@@ -47,7 +48,7 @@ createServerRequest project image globalDefaults =
     , flavorUuid = ""
     , volBackedSizeGb = Nothing
     , keypairName = Nothing
-    , userData = globalDefaults.shellUserData
+    , userData = cloudInitUserData
     , networkUuid = ""
     , showAdvancedOptions = False
     }

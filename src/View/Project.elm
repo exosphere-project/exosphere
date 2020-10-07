@@ -37,7 +37,7 @@ project model p viewParams viewConstructor =
         v =
             case viewConstructor of
                 ListImages imageFilter sortTableParams ->
-                    View.Images.imagesIfLoaded model.globalDefaults p imageFilter sortTableParams
+                    View.Images.imagesIfLoaded p imageFilter sortTableParams
 
                 ListProjectServers serverListViewParams ->
                     View.ServerList.serverList p serverListViewParams

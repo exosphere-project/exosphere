@@ -9,7 +9,6 @@ module Types.Types exposing
     , ExoServerProps
     , Flags
     , FloatingIpState(..)
-    , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
@@ -102,7 +101,6 @@ type alias Model =
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider
     , projects : List Project
-    , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , cloudsWithTlsReverseProxy : CloudsWithTlsReverseProxy
