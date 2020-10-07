@@ -51,7 +51,6 @@ import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , CreateServerRequest
         , ExoServerProps
         , FloatingIpState(..)
         , HttpRequestMethod(..)
@@ -217,7 +216,7 @@ requestKeypairs project =
         )
 
 
-requestCreateServer : Project -> UUID.UUID -> CreateServerRequest -> Cmd Msg
+requestCreateServer : Project -> UUID.UUID -> OSTypes.CreateServerRequest -> Cmd Msg
 requestCreateServer project exoClientUuid createServerRequest =
     let
         instanceNumbers =
@@ -230,9 +229,6 @@ requestCreateServer project exoClientUuid createServerRequest =
 
             else
                 baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt createServerRequest.count
-
-        renderedUserData =
-            Helpers.renderUserDataTemplate project createServerRequest
 
         instanceNames =
             instanceNumbers
@@ -260,7 +256,7 @@ requestCreateServer project exoClientUuid createServerRequest =
                     , Encode.list Encode.object
                         [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
                     )
-                , ( "user_data", Encode.string (Base64.encode renderedUserData) )
+                , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
                 , ( "metadata"
                   , Encode.object
@@ -705,14 +701,11 @@ receiveFlavors model project flavors =
             case model.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer createServerViewParams ->
-                            if createServerViewParams.createServerRequest.flavorUuid == "" then
+                        CreateServer viewParams ->
+                            if viewParams.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
                                         Helpers.sortedFlavors flavors |> List.head
-
-                                    createServerRequest =
-                                        createServerViewParams.createServerRequest
                                 in
                                 case maybeSmallestFlavor of
                                     Just smallestFlavor ->
@@ -720,11 +713,8 @@ receiveFlavors model project flavors =
                                             (Helpers.getProjectId project)
                                             { createPopup = False }
                                             (CreateServer
-                                                { createServerViewParams
-                                                    | createServerRequest =
-                                                        { createServerRequest
-                                                            | flavorUuid = smallestFlavor.uuid
-                                                        }
+                                                { viewParams
+                                                    | flavorUuid = smallestFlavor.uuid
                                                 }
                                             )
 

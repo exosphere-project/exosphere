@@ -5,6 +5,7 @@ module OpenStack.Types exposing
     , AuthTokenString
     , ComputeQuota
     , ConsoleUrl
+    , CreateServerRequest
     , CreateVolumeRequest
     , CredentialsForAuthToken(..)
     , Endpoint
@@ -320,6 +321,18 @@ type alias ServerTag =
 
 type alias ServerPassword =
     String
+
+
+type alias CreateServerRequest =
+    { name : String
+    , count : Int
+    , imageUuid : ImageUuid
+    , flavorUuid : FlavorUuid
+    , volBackedSizeGb : Maybe VolumeSize
+    , networkUuid : NetworkUuid
+    , keypairName : Maybe String
+    , userData : String
+    }
 
 
 

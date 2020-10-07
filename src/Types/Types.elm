@@ -1,7 +1,6 @@
 module Types.Types exposing
     ( CloudsWithTlsReverseProxy
     , CockpitLoginStatus(..)
-    , CreateServerRequest
     , CreateServerViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
@@ -135,11 +134,6 @@ type alias LogMessage =
     }
 
 
-type alias GlobalDefaults =
-    { shellUserData : String
-    }
-
-
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , keystonePassword : HelperTypes.Password
@@ -232,7 +226,7 @@ type ProjectSpecificMsgConstructor
     | RemoveProject
     | RequestServers
     | RequestServer OSTypes.ServerUuid
-    | RequestCreateServer CreateServerRequest
+    | RequestCreateServer CreateServerViewParams
     | RequestDeleteServer OSTypes.ServerUuid
     | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
@@ -334,8 +328,16 @@ type alias ServerDetailViewParams =
 
 
 type alias CreateServerViewParams =
-    { createServerRequest : CreateServerRequest
+    { serverName : String
+    , imageUuid : OSTypes.ImageUuid
+    , imageName : String
+    , count : Int
+    , flavorUuid : OSTypes.FlavorUuid
     , volSizeTextInput : Maybe NumericTextInput
+    , userDataTemplate : String
+    , networkUuid : OSTypes.NetworkUuid
+    , showAdvancedOptions : Bool
+    , keypairName : Maybe String
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     }
 
@@ -456,25 +458,6 @@ type ServerUiStatus
     | ServerUiStatusRescued
     | ServerUiStatusShelved
     | ServerUiStatusDeleted
-
-
-type alias CreateServerRequest =
-    { name : String
-    , projectId : ProjectIdentifier
-    , imageUuid : OSTypes.ImageUuid
-    , imageName : String
-    , count : Int
-    , flavorUuid : OSTypes.FlavorUuid
-    , volBackedSizeGb : Maybe VolumeSize
-    , keypairName : Maybe String
-    , userData : String
-    , networkUuid : OSTypes.NetworkUuid
-    , showAdvancedOptions : Bool
-    }
-
-
-type alias VolumeSize =
-    Int
 
 
 type alias ProjectName =

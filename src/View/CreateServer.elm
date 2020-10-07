@@ -16,8 +16,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
-        ( CreateServerRequest
-        , CreateServerViewParams
+        ( CreateServerViewParams
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
@@ -30,24 +29,17 @@ import Widget.Style.Material
 
 
 updateCreateServerRequest : Project -> CreateServerViewParams -> Msg
-updateCreateServerRequest project createServerViewParams =
+updateCreateServerRequest project viewParams =
     ProjectMsg (Helpers.getProjectId project) <|
         SetProjectView <|
-            CreateServer createServerViewParams
+            CreateServer viewParams
 
 
 createServer : Project -> CreateServerViewParams -> Element.Element Msg
-createServer project createServerViewParams =
+createServer project viewParams =
     let
-        createServerRequest =
-            createServerViewParams.createServerRequest
-
-        msgFunc : CreateServerRequest -> Msg
-        msgFunc newCSR =
-            updateCreateServerRequest project { createServerViewParams | createServerRequest = newCSR }
-
         invalidNameReasons =
-            serverNameValidator createServerViewParams.createServerRequest.name
+            serverNameValidator viewParams.serverName
 
         renderInvalidNameReasons =
             case invalidNameReasons of
@@ -67,7 +59,7 @@ createServer project createServerViewParams =
         createOnPress =
             let
                 invalidVolSizeTextInput =
-                    case createServerViewParams.volSizeTextInput of
+                    case viewParams.volSizeTextInput of
                         Just input ->
                             case input of
                                 ValidNumericTextInput _ ->
@@ -81,7 +73,7 @@ createServer project createServerViewParams =
             in
             case ( invalidNameReasons, invalidVolSizeTextInput ) of
                 ( Nothing, False ) ->
-                    Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer createServerRequest))
+                    Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer viewParams))
 
                 ( _, _ ) ->
                     Nothing
@@ -89,39 +81,39 @@ createServer project createServerViewParams =
         contents flavor computeQuota volumeQuota =
             [ Input.text
                 [ Element.spacing 12 ]
-                { text = createServerRequest.name
+                { text = viewParams.serverName
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
-                , onChange = \n -> msgFunc { createServerRequest | name = n }
+                , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , renderInvalidNameReasons
-            , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text createServerRequest.imageName ]
-            , flavorPicker project createServerRequest computeQuota msgFunc
-            , volBackedPrompt project createServerViewParams volumeQuota flavor
-            , countPicker createServerRequest computeQuota volumeQuota flavor msgFunc
+            , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
+            , flavorPicker project viewParams computeQuota
+            , volBackedPrompt project viewParams volumeQuota flavor
+            , countPicker project viewParams computeQuota volumeQuota flavor
             , Element.column
                 VH.exoColumnAttributes
               <|
                 [ Input.radioRow [ Element.spacing 10 ]
                     { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
-                    , onChange = \new -> msgFunc { createServerRequest | showAdvancedOptions = new }
+                    , onChange = \new -> updateCreateServerRequest project { viewParams | showAdvancedOptions = new }
                     , options =
                         [ Input.option False (Element.text "Hide")
                         , Input.option True (Element.text "Show")
 
                         {- -}
                         ]
-                    , selected = Just createServerRequest.showAdvancedOptions
+                    , selected = Just viewParams.showAdvancedOptions
                     }
                 ]
-                    ++ (if not createServerRequest.showAdvancedOptions then
+                    ++ (if not viewParams.showAdvancedOptions then
                             [ Element.none ]
 
                         else
-                            [ guacamolePicker project createServerViewParams
-                            , networkPicker project createServerRequest msgFunc
-                            , keypairPicker project createServerRequest msgFunc
-                            , userDataInput createServerRequest msgFunc
+                            [ guacamolePicker project viewParams
+                            , networkPicker project viewParams
+                            , keypairPicker project viewParams
+                            , userDataInput project viewParams
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
@@ -140,7 +132,7 @@ createServer project createServerViewParams =
           <|
             [ Element.el VH.heading2 (Element.text "Create Server") ]
                 ++ (case
-                        ( Helpers.flavorLookup project createServerRequest.flavorUuid
+                        ( Helpers.flavorLookup project viewParams.flavorUuid
                         , project.computeQuota
                         , project.volumeQuota
                         )
@@ -160,8 +152,8 @@ createServer project createServerViewParams =
         ]
 
 
-flavorPicker : Project -> CreateServerRequest -> OSTypes.ComputeQuota -> (CreateServerRequest -> Msg) -> Element.Element Msg
-flavorPicker project createServerRequest computeQuota msgFunc =
+flavorPicker : Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -173,10 +165,10 @@ flavorPicker project createServerRequest computeQuota msgFunc =
                     Input.radio
                         []
                         { label = Input.labelHidden flavor.name
-                        , onChange = \f -> msgFunc { createServerRequest | flavorUuid = f }
+                        , onChange = \f -> updateCreateServerRequest project { viewParams | flavorUuid = f }
                         , options = [ Input.option flavor.uuid (Element.text " ") ]
                         , selected =
-                            if flavor.uuid == createServerRequest.flavorUuid then
+                            if flavor.uuid == viewParams.flavorUuid then
                                 Just flavor.uuid
 
                             else
@@ -258,7 +250,7 @@ flavorPicker project createServerRequest computeQuota msgFunc =
                     ""
 
         flavorEmptyHint =
-            if createServerRequest.flavorUuid == "" then
+            if viewParams.flavorUuid == "" then
                 [ VH.hint "Please pick a size" ]
 
             else
@@ -289,7 +281,7 @@ flavorPicker project createServerRequest computeQuota msgFunc =
 
 
 volBackedPrompt : Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt project createServerViewParams volumeQuota flavor =
+volBackedPrompt project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             Helpers.volumeQuotaAvail volumeQuota
@@ -340,7 +332,7 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
                                     Nothing
                         in
                         updateCreateServerRequest project
-                            { createServerViewParams
+                            { viewParams
                                 | volSizeTextInput =
                                     newVolSizeTextInput
                             }
@@ -349,7 +341,7 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
                     , Input.option True (Element.text "Custom disk size (volume-backed)")
                     ]
                 , selected =
-                    case createServerViewParams.volSizeTextInput of
+                    case viewParams.volSizeTextInput of
                         Just _ ->
                             Just True
 
@@ -364,7 +356,7 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
 
           else
             Element.text "(N/A: volume quota exhausted, cannot launch a volume-backed instance)"
-        , case createServerViewParams.volSizeTextInput of
+        , case viewParams.volSizeTextInput of
             Nothing ->
                 Element.none
 
@@ -373,7 +365,7 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
                     [ numericTextInput
                         volSizeTextInput
                         defaultVolNumericInputParams
-                        (\newInput -> updateCreateServerRequest project { createServerViewParams | volSizeTextInput = Just newInput })
+                        (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
                     , case ( volumeSizeGbAvail, volSizeTextInput ) of
                         ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
                             if i == volumeSizeAvail_ then
@@ -389,17 +381,19 @@ volBackedPrompt project createServerViewParams volumeQuota flavor =
 
 
 countPicker :
-    CreateServerRequest
+    Project
+    -> CreateServerViewParams
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
-    -> (CreateServerRequest -> Msg)
     -> Element.Element Msg
-countPicker createServerRequest computeQuota volumeQuota flavor msgFunc =
+countPicker project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
             Helpers.overallQuotaAvailServers
-                createServerRequest
+                (viewParams.volSizeTextInput
+                    |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                )
                 flavor
                 computeQuota
                 volumeQuota
@@ -429,21 +423,21 @@ countPicker createServerRequest computeQuota volumeQuota flavor msgFunc =
                         Element.none
                     )
                 ]
-                { onChange = \c -> msgFunc { createServerRequest | count = round c }
+                { onChange = \c -> updateCreateServerRequest project { viewParams | count = round c }
                 , label = Input.labelHidden "How many?"
                 , min = 1
                 , max = countAvail |> Maybe.withDefault 20 |> toFloat
                 , step = Just 1
-                , value = toFloat createServerRequest.count
+                , value = toFloat viewParams.count
                 , thumb =
                     Input.defaultThumb
                 }
             , Element.el
                 [ Element.width Element.shrink ]
-                (Element.text <| String.fromInt createServerRequest.count)
+                (Element.text <| String.fromInt viewParams.count)
             , case countAvail of
                 Just countAvail_ ->
-                    if createServerRequest.count == countAvail_ then
+                    if viewParams.count == countAvail_ then
                         Element.text "(quota max)"
 
                     else
@@ -477,8 +471,8 @@ guacamolePicker project createServerViewParams =
                 ]
 
 
-networkPicker : Project -> CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg
-networkPicker project createServerRequest msgFunc =
+networkPicker : Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker project viewParams =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -516,7 +510,7 @@ networkPicker project createServerRequest msgFunc =
                             Input.option network.uuid (Element.text network.name)
 
                         networkEmptyHint =
-                            if createServerRequest.networkUuid == "" then
+                            if viewParams.networkUuid == "" then
                                 [ VH.hint "Please pick a network" ]
 
                             else
@@ -524,7 +518,7 @@ networkPicker project createServerRequest msgFunc =
                     in
                     [ Input.radio networkEmptyHint
                         { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
-                        , onChange = \networkUuid -> msgFunc { createServerRequest | networkUuid = networkUuid }
+                        , onChange = \networkUuid -> updateCreateServerRequest project { viewParams | networkUuid = networkUuid }
                         , options =
                             case project.networks.data of
                                 RDPP.DoHave networks _ ->
@@ -532,7 +526,7 @@ networkPicker project createServerRequest msgFunc =
 
                                 RDPP.DontHave ->
                                     []
-                        , selected = Just createServerRequest.networkUuid
+                        , selected = Just viewParams.networkUuid
                         }
                     , guessText
                     ]
@@ -542,8 +536,8 @@ networkPicker project createServerRequest msgFunc =
         (Element.el [ Font.bold ] (Element.text "Network") :: contents)
 
 
-keypairPicker : Project -> CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg
-keypairPicker project createServerRequest msgFunc =
+keypairPicker : Project -> CreateServerViewParams -> Element.Element Msg
+keypairPicker project viewParams =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
@@ -555,9 +549,9 @@ keypairPicker project createServerRequest msgFunc =
             else
                 Input.radio []
                     { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
-                    , onChange = \keypairName -> msgFunc { createServerRequest | keypairName = Just keypairName }
+                    , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
                     , options = List.map keypairAsOption project.keypairs
-                    , selected = Just (Maybe.withDefault "" createServerRequest.keypairName)
+                    , selected = Just (Maybe.withDefault "" viewParams.keypairName)
                     }
     in
     Element.column
@@ -567,14 +561,14 @@ keypairPicker project createServerRequest msgFunc =
         ]
 
 
-userDataInput : CreateServerRequest -> (CreateServerRequest -> Msg) -> Element.Element Msg
-userDataInput createServerRequest msgFunc =
+userDataInput : Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput project viewParams =
     Input.multiline
         [ Element.width (Element.px 600)
         , Element.height (Element.px 500)
         ]
-        { onChange = \u -> msgFunc { createServerRequest | userData = u }
-        , text = createServerRequest.userData
+        { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
+        , text = viewParams.userDataTemplate
         , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
         , label =
             Input.labelAbove

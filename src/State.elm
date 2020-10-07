@@ -27,7 +27,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time
 import Toasty
@@ -706,36 +706,15 @@ processProjectSpecificMsg model project msg =
                 CreateServerImage _ _ ->
                     ( modelUpdatedView model, Cmd.none )
 
-                CreateServer createServerViewParams ->
-                    let
-                        createServerRequest =
-                            createServerViewParams.createServerRequest
-                    in
+                CreateServer viewParams ->
                     case model.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         ProjectView _ _ (CreateServer _) ->
                             let
-                                csrUpdatedVolBackedness =
-                                    let
-                                        volBackedSizeGb =
-                                            case createServerViewParams.volSizeTextInput of
-                                                Just numericTextInput ->
-                                                    case numericTextInput of
-                                                        ValidNumericTextInput i ->
-                                                            Just i
-
-                                                        InvalidNumericTextInput _ ->
-                                                            Nothing
-
-                                                Nothing ->
-                                                    Nothing
-                                    in
-                                    { createServerRequest | volBackedSizeGb = volBackedSizeGb }
-
-                                newCSR =
+                                newViewParams =
                                     case
-                                        ( Helpers.flavorLookup project createServerRequest.flavorUuid
+                                        ( Helpers.flavorLookup project viewParams.flavorUuid
                                         , project.computeQuota
                                         , project.volumeQuota
                                         )
@@ -744,27 +723,29 @@ processProjectSpecificMsg model project msg =
                                             let
                                                 availServers =
                                                     Helpers.overallQuotaAvailServers
-                                                        createServerRequest
+                                                        (viewParams.volSizeTextInput
+                                                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                                                        )
                                                         flavor
                                                         computeQuota
                                                         volumeQuota
                                             in
-                                            { csrUpdatedVolBackedness
+                                            { viewParams
                                                 | count =
                                                     case availServers of
                                                         Just availServers_ ->
-                                                            if createServerRequest.count > availServers_ then
+                                                            if viewParams.count > availServers_ then
                                                                 availServers_
 
                                                             else
-                                                                createServerRequest.count
+                                                                viewParams.count
 
                                                         Nothing ->
-                                                            createServerRequest.count
+                                                            viewParams.count
                                             }
 
                                         ( _, _, _ ) ->
-                                            csrUpdatedVolBackedness
+                                            viewParams
 
                                 newModel =
                                     { model
@@ -773,7 +754,7 @@ processProjectSpecificMsg model project msg =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                CreateServer { createServerViewParams | createServerRequest = newCSR }
+                                                CreateServer newViewParams
                                     }
                             in
                             ( newModel
@@ -783,16 +764,10 @@ processProjectSpecificMsg model project msg =
                         -- If we are just entering this view then gather everything we need
                         _ ->
                             let
-                                newCSRMsg serverName_ =
-                                    let
-                                        newCSR =
-                                            { createServerRequest
-                                                | name = serverName_
-                                            }
-                                    in
+                                newViewParamsMsg serverName_ =
                                     ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
-                                            CreateServer { createServerViewParams | createServerRequest = newCSR }
+                                            CreateServer { viewParams | serverName = serverName_ }
 
                                 newProject =
                                     { project
@@ -808,7 +783,7 @@ processProjectSpecificMsg model project msg =
                                 [ Rest.Nova.requestFlavors project
                                 , Rest.Nova.requestKeypairs project
                                 , Rest.Neutron.requestNetworks project
-                                , RandomHelpers.generateServerName newCSRMsg
+                                , RandomHelpers.generateServerName newViewParamsMsg
                                 , OpenStack.Quotas.requestComputeQuota project
                                 , OpenStack.Quotas.requestVolumeQuota project
                                 ]
@@ -965,7 +940,22 @@ processProjectSpecificMsg model project msg =
             , Rest.Nova.requestServer project serverUuid
             )
 
-        RequestCreateServer createServerRequest ->
+        RequestCreateServer viewParams ->
+            let
+                createServerRequest =
+                    { name = viewParams.serverName
+                    , count = viewParams.count
+                    , imageUuid = viewParams.imageUuid
+                    , flavorUuid = viewParams.flavorUuid
+                    , volBackedSizeGb =
+                        viewParams.volSizeTextInput
+                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                    , networkUuid = viewParams.networkUuid
+                    , keypairName = viewParams.keypairName
+                    , userData =
+                        Helpers.renderUserDataTemplate project viewParams.userDataTemplate viewParams.keypairName
+                    }
+            in
             ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
 
         RequestDeleteServer serverUuid ->

@@ -70,7 +70,6 @@ import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , CreateServerRequest
         , Endpoints
         , FloatingIpState(..)
         , JetstreamCreds
@@ -807,8 +806,8 @@ sortedFlavors flavors =
         |> List.sortBy .vcpu
 
 
-renderUserDataTemplate : Project -> CreateServerRequest -> String
-renderUserDataTemplate project createServerRequest =
+renderUserDataTemplate : Project -> String -> Maybe String -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName =
     {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -824,9 +823,9 @@ renderUserDataTemplate project createServerRequest =
 
         renderUserData : String -> String
         renderUserData authorizedKeyYaml =
-            String.replace "{ssh-authorized-keys}\n" authorizedKeyYaml createServerRequest.userData
+            String.replace "{ssh-authorized-keys}\n" authorizedKeyYaml userDataTemplate
     in
-    createServerRequest.keypairName
+    maybeKeypairName
         |> Maybe.andThen getPublicKeyFromKeypairName
         |> Maybe.map generateYamlFromPublicKey
         |> Maybe.withDefault ""
@@ -1027,13 +1026,13 @@ volumeQuotaAvail volumeQuota =
     )
 
 
-overallQuotaAvailServers : CreateServerRequest -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
-overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
+overallQuotaAvailServers : Maybe OSTypes.VolumeSize -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
+overallQuotaAvailServers maybeVolBackedGb flavor computeQuota volumeQuota =
     let
         computeQuotaAvailServers =
             computeQuotaFlavorAvailServers computeQuota flavor
     in
-    case createServerRequest.volBackedSizeGb of
+    case maybeVolBackedGb of
         Nothing ->
             computeQuotaAvailServers
 

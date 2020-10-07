@@ -17,9 +17,7 @@ import Style.Widgets.IconButton exposing (chip)
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( CreateServerRequest
-        , CreateServerViewParams
-        , ImageListViewParams
+        ( ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -293,7 +291,7 @@ renderImage project imageListViewParams sortTableParams image =
                 SetProjectView <|
                     CreateServer <|
                         Defaults.createServerViewParams
-                            (Defaults.createServerRequest project image)
+                            image
                             (project.tlsReverseProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =

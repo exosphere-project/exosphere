@@ -1,8 +1,8 @@
-module ServerDeploy exposing (cloudInitUserData)
+module ServerDeploy exposing (cloudInitUserDataTemplate)
 
 
-cloudInitUserData : String
-cloudInitUserData =
+cloudInitUserDataTemplate : String
+cloudInitUserDataTemplate =
     """#cloud-config
 users:
   - default

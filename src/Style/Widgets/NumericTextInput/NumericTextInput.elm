@@ -1,4 +1,4 @@
-module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
+module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput, toMaybe)
 
 import Element
 import Element.Font as Font
@@ -90,3 +90,13 @@ numericTextInput currentVal params onchangeFunc =
         [ textInput
         , warnText
         ]
+
+
+toMaybe : NumericTextInput -> Maybe Int
+toMaybe numericTextInput_ =
+    case numericTextInput_ of
+        ValidNumericTextInput i ->
+            Just i
+
+        InvalidNumericTextInput _ ->
+            Nothing

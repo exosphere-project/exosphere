@@ -1,13 +1,11 @@
 module Types.Defaults exposing
-    ( createServerRequest
-    , createServerViewParams
+    ( createServerViewParams
     , serverDetailViewParams
     , serverListViewParams
     )
 
-import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
-import ServerDeploy exposing (cloudInitUserData)
+import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Types.Types as Types
 
@@ -30,25 +28,17 @@ serverDetailViewParams =
     }
 
 
-createServerViewParams : Types.CreateServerRequest -> Maybe Bool -> Types.CreateServerViewParams
-createServerViewParams createServerRequest_ deployGuacamole =
-    { createServerRequest = createServerRequest_
-    , volSizeTextInput = Nothing
-    , deployGuacamole = deployGuacamole
-    }
-
-
-createServerRequest : Types.Project -> OSTypes.Image -> Types.CreateServerRequest
-createServerRequest project image =
-    { name = image.name
-    , projectId = Helpers.getProjectId project
+createServerViewParams : OSTypes.Image -> Maybe Bool -> Types.CreateServerViewParams
+createServerViewParams image deployGuacamole =
+    { serverName = image.name
     , imageUuid = image.uuid
     , imageName = image.name
     , count = 1
     , flavorUuid = ""
-    , volBackedSizeGb = Nothing
-    , keypairName = Nothing
-    , userData = cloudInitUserData
+    , volSizeTextInput = Nothing
+    , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = ""
     , showAdvancedOptions = False
+    , keypairName = Nothing
+    , deployGuacamole = deployGuacamole
     }
