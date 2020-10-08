@@ -847,15 +847,30 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> renderUserData
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid =
-    [ ( "exoServerVersion"
-      , Json.Encode.string (String.fromInt exoServerVersion)
-      )
-    , ( "exoClientUuid"
-      , Json.Encode.string (UUID.toString exoClientUuid)
-      )
-    ]
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
+    let
+        guacMetadata =
+            if deployGuacamole then
+                [ ( "exoGuac"
+                  , Json.Encode.string
+                        "{v:\"1\",ssh:\"true\",vnc:\"false\",deploy_complete=\"false\"}"
+                  )
+                ]
+
+            else
+                []
+    in
+    List.concat
+        [ guacMetadata
+        , [ ( "exoServerVersion"
+            , Json.Encode.string (String.fromInt exoServerVersion)
+            )
+          , ( "exoClientUuid"
+            , Json.Encode.string (UUID.toString exoClientUuid)
+            )
+          ]
+        ]
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions

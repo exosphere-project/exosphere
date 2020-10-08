@@ -960,7 +960,10 @@ processProjectSpecificMsg model project msg =
                             viewParams.keypairName
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
                     , metadata =
-                        Helpers.newServerMetadata currentExoServerVersion model.clientUuid
+                        Helpers.newServerMetadata
+                            currentExoServerVersion
+                            model.clientUuid
+                            (viewParams.deployGuacamole |> Maybe.withDefault False)
                     }
             in
             ( model, Rest.Nova.requestCreateServer project createServerRequest )
