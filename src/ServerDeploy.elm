@@ -88,7 +88,7 @@ guacamoleUserData =
                 <param name="hostname">172.17.0.1</param>
                 <param name="port">22</param>
                 <param name="username">exouser</param>
-                <param name="password">TODO automatically pass password used to log into guacamole</param>
+                <param name="password">${GUAC_PASSWORD}</param>
             </connection>
         </authorize>
     </user-mapping>
