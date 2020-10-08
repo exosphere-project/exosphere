@@ -26,7 +26,6 @@ runcmd:
       if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
         echo exouser:$PASSPHRASE | chpasswd
       fi
-      unset PASSPHRASE
     fi
   - systemctl enable cockpit.socket
   - systemctl start cockpit.socket
@@ -47,6 +46,7 @@ runcmd:
       echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
     fi
   - {guacamole-setup}
+  - unset PASSPHRASE
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
@@ -75,4 +75,22 @@ mounts:
 guacamoleUserData : String
 guacamoleUserData =
     """echo TODO
-"""
+    cd /opt; mkdir guacamole; cd guacamole
+    mkdir config
+    # TODO cat to EOF
+    <user-mapping>
+        <authorize
+                username="exouser"
+                password="$(echo $PASSPHRASE | md5sum | cut --fields=1 --only-delimited --delimiter=" ")"
+                encoding="md5">
+            <connection name="shell">
+                <protocol>ssh</protocol>
+                <param name="hostname">172.17.0.1</param>
+                <param name="port">22</param>
+                <param name="username">exouser</param>
+                <param name="password">TODO automatically pass password used to log into guacamole</param>
+            </connection>
+        </authorize>
+    </user-mapping>
+    EOF
+    """
