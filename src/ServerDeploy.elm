@@ -11,6 +11,7 @@ users:
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     {ssh-authorized-keys}
+ssh_pwauth: yes
 package_update: true
 packages:
   - cockpit
