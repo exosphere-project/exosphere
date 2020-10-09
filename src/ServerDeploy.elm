@@ -74,23 +74,15 @@ mounts:
 
 guacamoleUserData : String
 guacamoleUserData =
-    """echo TODO
-    cd /opt; mkdir guacamole; cd guacamole
-    mkdir config
-    # TODO cat to EOF
-    <user-mapping>
-        <authorize
-                username="exouser"
-                password="$(echo $PASSPHRASE | md5sum | cut --fields=1 --only-delimited --delimiter=" ")"
-                encoding="md5">
-            <connection name="shell">
-                <protocol>ssh</protocol>
-                <param name="hostname">172.17.0.1</param>
-                <param name="port">22</param>
-                <param name="username">exouser</param>
-                <param name="password">${GUAC_PASSWORD}</param>
-            </connection>
-        </authorize>
-    </user-mapping>
-    EOF
+    """cd /opt
+    GUAC_CONFIG_GIT_TAG=0
+    GUAC_CONFIG_URL=https://gitlab.com/exosphere/guacamole-config/-/archive/0/guacamole-config-$GUAC_CONFIG_GIT_TAG.tar.gz
+    GUAC_CONFIG_SHA512=c865e601e0b0e820be0bdd6e1316b1d0e00995a5194ef07c1c8a29258a6fccf55635c03a02874bf400fb9650e754ec222c589c19a1cc5fde8cfe8c87daa8bb7d
+    wget --quiet --output-document=guacamole-config.tar.gz $GUAC_CONFIG_URL
+    if echo $GUAC_CONFIG_SHA512 guacamole-config.tar.gz | sha512sum --check --quiet; then
+      tar -zxvf guacamole-config.tar.gz
+      mv guacamole-config-$GUAC_CONFIG_GIT_TAG guacamole-config
+      cd guacamole-config
+      ./deploy-guac.sh $PASSPHRASE
+    fi
     """
