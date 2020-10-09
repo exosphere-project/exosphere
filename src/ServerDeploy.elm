@@ -11,7 +11,7 @@ users:
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     {ssh-authorized-keys}
-ssh_pwauth: yes
+ssh_pwauth: true
 package_update: true
 packages:
   - cockpit
@@ -45,7 +45,8 @@ runcmd:
       $SYS_LOAD_SCRIPT_FILE > /dev/console
       echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
     fi
-  - {guacamole-setup}
+  - |
+    {guacamole-setup}
   - unset PASSPHRASE
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
@@ -77,12 +78,12 @@ guacamoleUserData =
     """cd /opt
     GUAC_CONFIG_GIT_TAG=0
     GUAC_CONFIG_URL=https://gitlab.com/exosphere/guacamole-config/-/archive/0/guacamole-config-$GUAC_CONFIG_GIT_TAG.tar.gz
-    GUAC_CONFIG_SHA512=c865e601e0b0e820be0bdd6e1316b1d0e00995a5194ef07c1c8a29258a6fccf55635c03a02874bf400fb9650e754ec222c589c19a1cc5fde8cfe8c87daa8bb7d
+    GUAC_CONFIG_SHA512=cbd2582a4460ad5d194b29a73fc4206c51f9586382c11b2c2558f271d44c7c5705f3187e0befe765226c0814737e406b30e422641fa26f7ef78727f1c5b8cb0f
     wget --quiet --output-document=guacamole-config.tar.gz $GUAC_CONFIG_URL
     if echo $GUAC_CONFIG_SHA512 guacamole-config.tar.gz | sha512sum --check --quiet; then
       tar -zxvf guacamole-config.tar.gz
       mv guacamole-config-$GUAC_CONFIG_GIT_TAG guacamole-config
       cd guacamole-config
-      ./deploy-guac.sh $PASSPHRASE
+      /bin/bash deploy-guac.sh "$PASSPHRASE"
     fi
-    """
+"""

@@ -823,7 +823,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
         generateYamlFromPublicKey : String -> String
         generateYamlFromPublicKey selectedPublicKey =
-            "ssh-authorized-keys:\n      - " ++ selectedPublicKey
+            "ssh-authorized-keys:\n      - " ++ selectedPublicKey ++ "\n"
 
         guacamoleSetupCmds : String
         guacamoleSetupCmds =
