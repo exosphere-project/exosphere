@@ -7,6 +7,7 @@ import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
+import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
 import Time
@@ -14,8 +15,9 @@ import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
         ( FloatingIpState(..)
-        , Msg
+        , Msg(..)
         , Project
+        , ProjectSpecificMsgConstructor(..)
         , Server
         , ServerOrigin(..)
         )
@@ -46,6 +48,7 @@ goalPollServers time project =
         steps =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
+            , stepServerGuacamoleAuth time
             ]
 
         ( newProject, newCmds ) =
@@ -374,3 +377,89 @@ stepServerPollConsoleLog time project server =
                         server
                         pollLines
                     )
+
+
+stepServerGuacamoleAuth : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerGuacamoleAuth time project server =
+    let
+        -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
+        maxGuacTokenLifetimeMillis =
+            3300000
+
+        guacUpstreamPort =
+            49528
+    in
+    case ( server.exoProps.serverOrigin, project.tlsReverseProxyHostname ) of
+        ( ServerFromExo exoOriginProps, Just proxyHostname ) ->
+            let
+                ( requestTokenProj, requestTokenCmd ) =
+                    -- TODO this logic is very ugly, needs a rework
+                    case
+                        ( Helpers.getServerFloatingIp server.osProps.details.ipAddresses
+                        , Helpers.getServerExouserPassword server.osProps.details
+                        )
+                    of
+                        ( Just floatingIp, Just exouserPassword ) ->
+                            let
+                                oldGuacToken =
+                                    exoOriginProps.guacamoleToken
+
+                                newGuacToken =
+                                    { oldGuacToken | refreshStatus = RDPP.Loading time }
+
+                                newExoOriginProps =
+                                    { exoOriginProps | guacamoleToken = newGuacToken }
+
+                                oldExoProps =
+                                    server.exoProps
+
+                                newExoProps =
+                                    { oldExoProps | serverOrigin = ServerFromExo newExoOriginProps }
+
+                                newServer =
+                                    { server | exoProps = newExoProps }
+
+                                url =
+                                    Helpers.buildProxyUrl
+                                        proxyHostname
+                                        floatingIp
+                                        guacUpstreamPort
+                                        "/guacamole/api/tokens"
+                                        False
+                            in
+                            ( Helpers.projectUpdateServer project newServer
+                            , Rest.Guacamole.requestLoginToken
+                                url
+                                "exouser"
+                                exouserPassword
+                                (\result ->
+                                    ProjectMsg (Helpers.getProjectId project) <|
+                                        ReceiveGuacamoleAuthToken server.osProps.uuid result
+                                )
+                            )
+
+                        _ ->
+                            ( project, Cmd.none )
+            in
+            if exoOriginProps.exoServerVersion >= 3 then
+                case exoOriginProps.guacamoleToken.refreshStatus of
+                    RDPP.Loading _ ->
+                        ( project, Cmd.none )
+
+                    RDPP.NotLoading _ ->
+                        case exoOriginProps.guacamoleToken.data of
+                            RDPP.DontHave ->
+                                ( requestTokenProj, requestTokenCmd )
+
+                            RDPP.DoHave _ recTime ->
+                                if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
+                                    ( project, Cmd.none )
+
+                                else
+                                    ( requestTokenProj, requestTokenCmd )
+
+            else
+                ( project, Cmd.none )
+
+        _ ->
+            ( project, Cmd.none )

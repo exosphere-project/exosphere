@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
+    , buildProxyUrl
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
     , flavorLookup
@@ -88,6 +89,7 @@ import Types.Types
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
+        , TlsReverseProxyHostname
         , Toast
         , UnscopedProvider
         )
@@ -1114,12 +1116,12 @@ serverOrigin serverDetails =
     case exoServerVersion_ of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked RDPP.empty
+                ServerFromExoProps v NotChecked RDPP.empty RDPP.empty
 
         Nothing ->
             if version0 then
                 ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked RDPP.empty
+                    ServerFromExoProps 0 NotChecked RDPP.empty RDPP.empty
 
             else
                 ServerNotFromExo
@@ -1170,3 +1172,21 @@ serverLessThan30MinsOld server currentTime =
 
         Ok createdTime ->
             (curTimeMillis - Time.posixToMillis createdTime) < thirtyMinMillis
+
+
+buildProxyUrl : TlsReverseProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
+buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
+    [ "https://"
+    , if https_upstream then
+        ""
+
+      else
+        "http-"
+    , destinationIp |> String.replace "." "-"
+    , "-"
+    , String.fromInt port_
+    , "."
+    , proxyHostname
+    , path
+    ]
+        |> String.concat

@@ -1582,6 +1582,45 @@ processProjectSpecificMsg model project msg =
                     in
                     ( newModel, Cmd.none )
 
+        ReceiveGuacamoleAuthToken serverUuid result ->
+            case Helpers.serverLookup project serverUuid of
+                Just server ->
+                    case ( server.exoProps.serverOrigin, result ) of
+                        ( ServerFromExo exoOriginProps, Ok tokenValue ) ->
+                            let
+                                guacToken =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave tokenValue model.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+
+                                newOriginProps =
+                                    { exoOriginProps | guacamoleToken = guacToken }
+
+                                oldExoProps =
+                                    server.exoProps
+
+                                newExoProps =
+                                    { oldExoProps | serverOrigin = ServerFromExo newOriginProps }
+
+                                newServer =
+                                    { server | exoProps = newExoProps }
+
+                                newProject =
+                                    Helpers.projectUpdateServer project newServer
+
+                                newModel =
+                                    Helpers.modelUpdateProject model newProject
+                            in
+                            ( newModel, Cmd.none )
+
+                        _ ->
+                            -- TODO error, set RDPP not loading and handle sanely
+                            ( model, Cmd.none )
+
+                Nothing ->
+                    -- TODO could not find a server, log debug error? iono
+                    ( model, Cmd.none )
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
 createProject model password authToken endpoints =
