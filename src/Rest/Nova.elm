@@ -21,6 +21,7 @@ module Rest.Nova exposing
     , requestKeypairs
     , requestServer
     , requestServers
+    , requestSetServerMetadata
     , requestSetServerName
     , serverIpAddressDecoder
     , serverPowerStateDecoder
@@ -445,6 +446,47 @@ requestSetServerName project serverUuid newServerName =
         (expectJsonWithErrorBody
             resultToMsg
             (Decode.at [ "server", "name" ] Decode.string)
+        )
+
+
+requestSetServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataItem -> Cmd Msg
+requestSetServerMetadata project serverUuid metadataItem =
+    let
+        body =
+            Encode.object
+                [ ( "metadata"
+                  , Encode.object [ ( metadataItem.key, Encode.string metadataItem.value ) ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                (String.concat
+                    [ "set metadata with key \""
+                    , metadataItem.key
+                    , "\" and value \""
+                    , metadataItem.value
+                    , "for server with UUID "
+                    , serverUuid
+                    ]
+                )
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveSetServerMetadata serverUuid metadataItem errorContext result)
+    in
+    openstackCredentialedRequest
+        project
+        Post
+        Nothing
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg
+            metadataDecoder
         )
 
 

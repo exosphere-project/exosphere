@@ -265,6 +265,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
     | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
     | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody String)
+    | ReceiveSetServerMetadata OSTypes.ServerUuid OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveGuacamoleAuthToken OSTypes.ServerUuid (Result Http.Error GuacamoleAuthToken)
 
 

@@ -1584,6 +1584,50 @@ processProjectSpecificMsg model project msg =
                     in
                     ( newModel, Cmd.none )
 
+        ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
+            case ( Helpers.serverLookup project serverUuid, result ) of
+                ( Nothing, _ ) ->
+                    -- Server does not exist in the model, ignore it
+                    ( model, Cmd.none )
+
+                ( _, Err e ) ->
+                    -- Error from API
+                    Helpers.processSynchronousApiError model errorContext e
+
+                ( Just server, Ok newServerMetadata ) ->
+                    -- Update the model after ensuring the intended metadata item was actually added
+                    if List.member intendedMetadataItem newServerMetadata then
+                        let
+                            oldServerDetails =
+                                server.osProps.details
+
+                            newServerDetails =
+                                { oldServerDetails | metadata = newServerMetadata }
+
+                            oldOsProps =
+                                server.osProps
+
+                            newOsProps =
+                                { oldOsProps | details = newServerDetails }
+
+                            newServer =
+                                { server | osProps = newOsProps }
+
+                            newProject =
+                                Helpers.projectUpdateServer project newServer
+
+                            newModel =
+                                Helpers.modelUpdateProject model newProject
+                        in
+                        ( newModel, Cmd.none )
+
+                    else
+                        -- This is bonkers, throw an error
+                        Helpers.processStringError
+                            model
+                            errorContext
+                            "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
+
         ReceiveGuacamoleAuthToken serverUuid result ->
             let
                 modelUpdateGuacToken : Server -> ServerFromExoProps -> GuacamoleTokenRDPP -> Model
