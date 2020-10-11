@@ -9,6 +9,7 @@ module Types.Types exposing
     , ExoServerVersion
     , Flags
     , FloatingIpState(..)
+    , GuacamoleTokenRDPP
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
@@ -413,12 +414,16 @@ type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
-    , guacamoleToken : RDPP.RemoteDataPlusPlus HttpErrorWithBody GuacamoleAuthToken
+    , guacamoleToken : GuacamoleTokenRDPP
     }
 
 
 type alias ResourceUsageRDPP =
     RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
+
+
+type alias GuacamoleTokenRDPP =
+    RDPP.RemoteDataPlusPlus Http.Error GuacamoleAuthToken
 
 
 type alias ExoServerVersion =
