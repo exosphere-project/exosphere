@@ -40,6 +40,7 @@ import Types.Types
         , Endpoints
         , Flags
         , FloatingIpState(..)
+        , GuacamoleTokenRDPP
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -51,6 +52,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerFromExoProps
         , ServerOrigin(..)
         , TickInterval
         , UnscopedProvider
@@ -1583,44 +1585,87 @@ processProjectSpecificMsg model project msg =
                     ( newModel, Cmd.none )
 
         ReceiveGuacamoleAuthToken serverUuid result ->
-            -- TODO ensure server metadata is set indicating that Guacamole deployment is complete?
+            let
+                modelUpdateGuacToken : Server -> ServerFromExoProps -> GuacamoleTokenRDPP -> Model
+                modelUpdateGuacToken server exoOriginProps guacToken =
+                    let
+                        newOriginProps =
+                            { exoOriginProps | guacamoleToken = guacToken }
+
+                        oldExoProps =
+                            server.exoProps
+
+                        newExoProps =
+                            { oldExoProps | serverOrigin = ServerFromExo newOriginProps }
+
+                        newServer =
+                            { server | exoProps = newExoProps }
+
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    newModel
+            in
             case Helpers.serverLookup project serverUuid of
                 Just server ->
                     case ( server.exoProps.serverOrigin, result ) of
                         ( ServerFromExo exoOriginProps, Ok tokenValue ) ->
+                            -- TODO ensure server metadata is set indicating that Guacamole deployment is complete?
                             let
                                 guacToken =
                                     RDPP.RemoteDataPlusPlus
                                         (RDPP.DoHave tokenValue model.clientCurrentTime)
                                         (RDPP.NotLoading Nothing)
-
-                                newOriginProps =
-                                    { exoOriginProps | guacamoleToken = guacToken }
-
-                                oldExoProps =
-                                    server.exoProps
-
-                                newExoProps =
-                                    { oldExoProps | serverOrigin = ServerFromExo newOriginProps }
-
-                                newServer =
-                                    { server | exoProps = newExoProps }
-
-                                newProject =
-                                    Helpers.projectUpdateServer project newServer
-
-                                newModel =
-                                    Helpers.modelUpdateProject model newProject
                             in
-                            ( newModel, Cmd.none )
+                            ( modelUpdateGuacToken
+                                server
+                                exoOriginProps
+                                guacToken
+                            , Cmd.none
+                            )
 
-                        _ ->
-                            -- TODO error, set RDPP not loading and handle sanely
-                            ( model, Cmd.none )
+                        ( ServerFromExo exoOriginProps, Err e ) ->
+                            let
+                                guacToken =
+                                    RDPP.RemoteDataPlusPlus
+                                        exoOriginProps.guacamoleToken.data
+                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                            in
+                            ( modelUpdateGuacToken
+                                server
+                                exoOriginProps
+                                guacToken
+                            , Cmd.none
+                            )
+
+                        ( ServerNotFromExo, _ ) ->
+                            let
+                                errorContext =
+                                    ErrorContext
+                                        "Receive a response from Guacamole auth token API"
+                                        ErrorDebug
+                                        Nothing
+                            in
+                            Helpers.processStringError
+                                model
+                                errorContext
+                                "Server does not appear to have been launched from Exosphere"
 
                 Nothing ->
-                    -- TODO could not find a server, log debug error? iono
-                    ( model, Cmd.none )
+                    let
+                        errorContext =
+                            ErrorContext
+                                "Receive a response from Guacamole auth token API"
+                                ErrorDebug
+                                Nothing
+                    in
+                    Helpers.processStringError
+                        model
+                        errorContext
+                        "Could not find server in the model, maybe it has been deleted."
 
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
