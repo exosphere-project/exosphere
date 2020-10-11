@@ -381,6 +381,7 @@ stepServerPollConsoleLog time project server =
 
 stepServerGuacamoleAuth : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerGuacamoleAuth time project server =
+    -- TODO verify that server was actually deployed with guacamole (exoGuac metadata property set)
     let
         -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
         maxGuacTokenLifetimeMillis =

@@ -1583,6 +1583,7 @@ processProjectSpecificMsg model project msg =
                     ( newModel, Cmd.none )
 
         ReceiveGuacamoleAuthToken serverUuid result ->
+            -- TODO ensure server metadata is set indicating that Guacamole deployment is complete?
             case Helpers.serverLookup project serverUuid of
                 Just server ->
                     case ( server.exoProps.serverOrigin, result ) of

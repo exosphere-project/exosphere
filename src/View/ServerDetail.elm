@@ -33,6 +33,7 @@ import Types.Types
         , Server
         , ServerDetailViewParams
         , ServerOrigin(..)
+        , TlsReverseProxyHostname
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -321,6 +322,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             , Element.el VH.heading3 (Element.text "Console")
             , consoleLink projectId appIsElectron serverDetailViewParams server server.osProps.uuid
             , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
+            , guacShell project.tlsReverseProxyHostname server.exoProps.serverOrigin maybeFloatingIp
             , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
@@ -557,6 +559,39 @@ consoleLink projectId appIsElectron serverDetailViewParams server serverUuid =
 
         _ ->
             Element.text "Console not available with server in this state."
+
+
+guacShell : Maybe TlsReverseProxyHostname -> ServerOrigin -> Maybe String -> Element.Element Msg
+guacShell tlsReverseProxyHostname serverOrigin maybeFloatingIp =
+    let
+        guacUpstreamPort =
+            49528
+    in
+    case ( tlsReverseProxyHostname, serverOrigin, maybeFloatingIp ) of
+        ( Just proxyHostname, ServerFromExo exoOriginProps, Just floatingIp ) ->
+            case exoOriginProps.guacamoleToken.data of
+                RDPP.DoHave token _ ->
+                    Widget.textButton
+                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        { text = "Open Guacamole Shell"
+                        , onPress =
+                            Just <|
+                                OpenNewWindow <|
+                                    Helpers.buildProxyUrl
+                                        proxyHostname
+                                        floatingIp
+                                        guacUpstreamPort
+                                        ("/guacamole/#/client/c2hlbGwAYwBkZWZhdWx0?token=" ++ token)
+                                        False
+                        }
+
+                _ ->
+                    -- TODO display appropriate messages to user when Guacamole failed or hasn't happened yet or something
+                    Element.none
+
+        _ ->
+            -- TODO display appropriate messages to user when we are here
+            Element.none
 
 
 cockpitInteraction : ServerOrigin -> Maybe String -> Element.Element Msg
