@@ -460,6 +460,7 @@ stepServerGuacamoleAuth time project server =
                                     doNothing
 
                                 RDPP.NotLoading _ ->
+                                    -- TODO if received an error, wait a minute before requesting another token
                                     case launchedWithGuacProps.authToken.data of
                                         RDPP.DontHave ->
                                             doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps

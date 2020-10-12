@@ -858,7 +858,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
             if deployGuacamole then
                 [ ( "exoGuac"
                   , Json.Encode.string
-                        "{v:\"1\",ssh:\"true\",vnc:\"false\",deployComplete=\"false\"}"
+                        """{"v":"1","ssh":true,"vnc":false,"deployComplete":false}"""
                   )
                 ]
 
