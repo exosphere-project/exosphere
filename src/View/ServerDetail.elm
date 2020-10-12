@@ -19,6 +19,7 @@ import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Time
+import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -569,25 +570,30 @@ guacShell tlsReverseProxyHostname serverOrigin maybeFloatingIp =
     in
     case ( tlsReverseProxyHostname, serverOrigin, maybeFloatingIp ) of
         ( Just proxyHostname, ServerFromExo exoOriginProps, Just floatingIp ) ->
-            case exoOriginProps.guacamoleToken.data of
-                RDPP.DoHave token _ ->
-                    Widget.textButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                        { text = "Open Guacamole Shell"
-                        , onPress =
-                            Just <|
-                                OpenNewWindow <|
-                                    Helpers.buildProxyUrl
-                                        proxyHostname
-                                        floatingIp
-                                        guacUpstreamPort
-                                        ("/guacamole/#/client/c2hlbGwAYwBkZWZhdWx0?token=" ++ token)
-                                        False
-                        }
-
-                _ ->
-                    -- TODO display appropriate messages to user when Guacamole failed or hasn't happened yet or something
+            case exoOriginProps.guacamoleStatus of
+                GuacTypes.NotLaunchedWithGuacamole ->
                     Element.none
+
+                GuacTypes.LaunchedWithGuacamole guacProps ->
+                    case guacProps.authToken.data of
+                        RDPP.DoHave token _ ->
+                            Widget.textButton
+                                (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                { text = "Open Guacamole Shell"
+                                , onPress =
+                                    Just <|
+                                        OpenNewWindow <|
+                                            Helpers.buildProxyUrl
+                                                proxyHostname
+                                                floatingIp
+                                                guacUpstreamPort
+                                                ("/guacamole/#/client/c2hlbGwAYwBkZWZhdWx0?token=" ++ token)
+                                                False
+                                }
+
+                        RDPP.DontHave ->
+                            -- TODO display appropriate messages to user when Guacamole failed or hasn't happened yet or something
+                            Element.none
 
         _ ->
             -- TODO display appropriate messages to user when we are here

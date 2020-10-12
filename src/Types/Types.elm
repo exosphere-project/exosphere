@@ -9,7 +9,6 @@ module Types.Types exposing
     , ExoServerVersion
     , Flags
     , FloatingIpState(..)
-    , GuacamoleTokenRDPP
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
@@ -61,6 +60,7 @@ import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
+import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
 import UUID
@@ -266,7 +266,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
     | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.ServerUuid OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
-    | ReceiveGuacamoleAuthToken OSTypes.ServerUuid (Result Http.Error GuacamoleAuthToken)
+    | ReceiveGuacamoleAuthToken OSTypes.ServerUuid (Result Http.Error GuacTypes.GuacamoleAuthToken)
 
 
 type ViewState
@@ -415,16 +415,12 @@ type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
-    , guacamoleToken : GuacamoleTokenRDPP
+    , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
     }
 
 
 type alias ResourceUsageRDPP =
     RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
-
-
-type alias GuacamoleTokenRDPP =
-    RDPP.RemoteDataPlusPlus Http.Error GuacamoleAuthToken
 
 
 type alias ExoServerVersion =
@@ -485,10 +481,6 @@ type NewServerNetworkOptions
 
 type alias GoodGuess =
     Bool
-
-
-type alias GuacamoleAuthToken =
-    String
 
 
 

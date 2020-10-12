@@ -11,6 +11,7 @@ import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
 import Time
+import Types.Guacamole as GuacTypes
 import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
@@ -19,7 +20,9 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , Server
+        , ServerFromExoProps
         , ServerOrigin(..)
+        , TlsReverseProxyHostname
         )
 import UUID
 
@@ -381,7 +384,6 @@ stepServerPollConsoleLog time project server =
 
 stepServerGuacamoleAuth : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerGuacamoleAuth time project server =
-    -- TODO verify that server was actually deployed with guacamole (exoGuac metadata property set)
     let
         -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
         maxGuacTokenLifetimeMillis =
@@ -389,78 +391,86 @@ stepServerGuacamoleAuth time project server =
 
         guacUpstreamPort =
             49528
-    in
-    case ( server.exoProps.serverOrigin, project.tlsReverseProxyHostname ) of
-        ( ServerFromExo exoOriginProps, Just proxyHostname ) ->
+
+        doNothing =
+            ( project, Cmd.none )
+
+        doRequestToken : String -> String -> TlsReverseProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd Msg )
+        doRequestToken floatingIp password proxyHostname oldExoOriginProps oldGuacProps =
             let
-                ( requestTokenProj, requestTokenCmd ) =
-                    -- TODO this logic is very ugly, needs a rework
+                oldAuthToken =
+                    oldGuacProps.authToken
+
+                newAuthToken =
+                    { oldAuthToken | refreshStatus = RDPP.Loading time }
+
+                newGuacProps =
+                    { oldGuacProps | authToken = newAuthToken }
+
+                newExoOriginProps =
+                    { oldExoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole newGuacProps }
+
+                oldExoProps =
+                    server.exoProps
+
+                newExoProps =
+                    { oldExoProps | serverOrigin = ServerFromExo newExoOriginProps }
+
+                newServer =
+                    { server | exoProps = newExoProps }
+
+                url =
+                    Helpers.buildProxyUrl
+                        proxyHostname
+                        floatingIp
+                        guacUpstreamPort
+                        "/guacamole/api/tokens"
+                        False
+            in
+            ( Helpers.projectUpdateServer project newServer
+            , Rest.Guacamole.requestLoginToken
+                url
+                "exouser"
+                password
+                (\result ->
+                    ProjectMsg (Helpers.getProjectId project) <|
+                        ReceiveGuacamoleAuthToken server.osProps.uuid result
+                )
+            )
+    in
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            doNothing
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.guacamoleStatus of
+                GuacTypes.NotLaunchedWithGuacamole ->
+                    doNothing
+
+                GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
                         ( Helpers.getServerFloatingIp server.osProps.details.ipAddresses
                         , Helpers.getServerExouserPassword server.osProps.details
+                        , project.tlsReverseProxyHostname
                         )
                     of
-                        ( Just floatingIp, Just exouserPassword ) ->
-                            let
-                                oldGuacToken =
-                                    exoOriginProps.guacamoleToken
+                        ( Just floatingIp, Just password, Just tlsReverseProxyHostname ) ->
+                            case launchedWithGuacProps.authToken.refreshStatus of
+                                RDPP.Loading _ ->
+                                    doNothing
 
-                                newGuacToken =
-                                    { oldGuacToken | refreshStatus = RDPP.Loading time }
+                                RDPP.NotLoading _ ->
+                                    case launchedWithGuacProps.authToken.data of
+                                        RDPP.DontHave ->
+                                            doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
 
-                                newExoOriginProps =
-                                    { exoOriginProps | guacamoleToken = newGuacToken }
+                                        RDPP.DoHave _ recTime ->
+                                            if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
+                                                doNothing
 
-                                oldExoProps =
-                                    server.exoProps
-
-                                newExoProps =
-                                    { oldExoProps | serverOrigin = ServerFromExo newExoOriginProps }
-
-                                newServer =
-                                    { server | exoProps = newExoProps }
-
-                                url =
-                                    Helpers.buildProxyUrl
-                                        proxyHostname
-                                        floatingIp
-                                        guacUpstreamPort
-                                        "/guacamole/api/tokens"
-                                        False
-                            in
-                            ( Helpers.projectUpdateServer project newServer
-                            , Rest.Guacamole.requestLoginToken
-                                url
-                                "exouser"
-                                exouserPassword
-                                (\result ->
-                                    ProjectMsg (Helpers.getProjectId project) <|
-                                        ReceiveGuacamoleAuthToken server.osProps.uuid result
-                                )
-                            )
+                                            else
+                                                doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
 
                         _ ->
-                            ( project, Cmd.none )
-            in
-            if exoOriginProps.exoServerVersion >= 3 then
-                case exoOriginProps.guacamoleToken.refreshStatus of
-                    RDPP.Loading _ ->
-                        ( project, Cmd.none )
-
-                    RDPP.NotLoading _ ->
-                        case exoOriginProps.guacamoleToken.data of
-                            RDPP.DontHave ->
-                                ( requestTokenProj, requestTokenCmd )
-
-                            RDPP.DoHave _ recTime ->
-                                if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
-                                    ( project, Cmd.none )
-
-                                else
-                                    ( requestTokenProj, requestTokenCmd )
-
-            else
-                ( project, Cmd.none )
-
-        _ ->
-            ( project, Cmd.none )
+                            -- Missing either a floating IP, password, or TLS-terminating reverse proxy server
+                            doNothing

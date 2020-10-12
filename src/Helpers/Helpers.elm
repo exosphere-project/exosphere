@@ -70,6 +70,7 @@ import Task
 import Time
 import Toasty
 import Toasty.Defaults
+import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -856,7 +857,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
             if deployGuacamole then
                 [ ( "exoGuac"
                   , Json.Encode.string
-                        "{v:\"1\",ssh:\"true\",vnc:\"false\",deploy_complete=\"false\"}"
+                        "{v:\"1\",ssh:\"true\",vnc:\"false\",deployComplete=\"false\"}"
                   )
                 ]
 
@@ -1112,16 +1113,41 @@ serverOrigin serverDetails =
                 |> List.head
                 |> Maybe.map .value
                 |> Maybe.andThen String.toInt
+
+        decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
+        decodeGuacamoleProps =
+            Decode.map4
+                GuacTypes.LaunchedWithGuacProps
+                (Decode.field "ssh" Decode.bool)
+                (Decode.field "vnc" Decode.bool)
+                (Decode.field "deployComplete" Decode.bool)
+                (Decode.succeed RDPP.empty)
+
+        guacamoleStatus =
+            case
+                List.filter (\i -> i.key == "exoGuac") serverDetails.metadata
+                    |> List.head
+            of
+                Nothing ->
+                    GuacTypes.NotLaunchedWithGuacamole
+
+                Just item ->
+                    case Decode.decodeString decodeGuacamoleProps item.value of
+                        Ok launchedWithGuacProps ->
+                            GuacTypes.LaunchedWithGuacamole launchedWithGuacProps
+
+                        Err _ ->
+                            GuacTypes.NotLaunchedWithGuacamole
     in
     case exoServerVersion_ of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked RDPP.empty RDPP.empty
+                ServerFromExoProps v NotChecked RDPP.empty guacamoleStatus
 
         Nothing ->
             if version0 then
                 ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked RDPP.empty RDPP.empty
+                    ServerFromExoProps 0 NotChecked RDPP.empty guacamoleStatus
 
             else
                 ServerNotFromExo

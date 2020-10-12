@@ -32,6 +32,7 @@ import Task
 import Time
 import Toasty
 import Types.Defaults as Defaults
+import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
 import Types.Types
@@ -40,7 +41,6 @@ import Types.Types
         , Endpoints
         , Flags
         , FloatingIpState(..)
-        , GuacamoleTokenRDPP
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -1629,12 +1629,22 @@ processProjectSpecificMsg model project msg =
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
 
         ReceiveGuacamoleAuthToken serverUuid result ->
+            -- TODO ensure server metadata is set indicating that Guacamole deployment is complete?
             let
-                modelUpdateGuacToken : Server -> ServerFromExoProps -> GuacamoleTokenRDPP -> Model
-                modelUpdateGuacToken server exoOriginProps guacToken =
+                errorContext =
+                    ErrorContext
+                        "Receive a response from Guacamole auth token API"
+                        ErrorDebug
+                        Nothing
+
+                modelUpdateGuacToken : Server -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> GuacTypes.GuacamoleTokenRDPP -> Model
+                modelUpdateGuacToken server exoOriginProps guacProps guacToken =
                     let
+                        newGuacProps =
+                            { guacProps | authToken = guacToken }
+
                         newOriginProps =
-                            { exoOriginProps | guacamoleToken = guacToken }
+                            { exoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole newGuacProps }
 
                         oldExoProps =
                             server.exoProps
@@ -1655,57 +1665,44 @@ processProjectSpecificMsg model project msg =
             in
             case Helpers.serverLookup project serverUuid of
                 Just server ->
-                    case ( server.exoProps.serverOrigin, result ) of
-                        ( ServerFromExo exoOriginProps, Ok tokenValue ) ->
-                            -- TODO ensure server metadata is set indicating that Guacamole deployment is complete?
-                            let
-                                guacToken =
-                                    RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave tokenValue model.clientCurrentTime)
-                                        (RDPP.NotLoading Nothing)
-                            in
-                            ( modelUpdateGuacToken
-                                server
-                                exoOriginProps
-                                guacToken
-                            , Cmd.none
-                            )
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.guacamoleStatus of
+                                GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
+                                    let
+                                        guacToken =
+                                            case result of
+                                                Ok tokenValue ->
+                                                    RDPP.RemoteDataPlusPlus
+                                                        (RDPP.DoHave tokenValue model.clientCurrentTime)
+                                                        (RDPP.NotLoading Nothing)
 
-                        ( ServerFromExo exoOriginProps, Err e ) ->
-                            let
-                                guacToken =
-                                    RDPP.RemoteDataPlusPlus
-                                        exoOriginProps.guacamoleToken.data
-                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
-                            in
-                            ( modelUpdateGuacToken
-                                server
-                                exoOriginProps
-                                guacToken
-                            , Cmd.none
-                            )
+                                                Err e ->
+                                                    RDPP.RemoteDataPlusPlus
+                                                        launchedWithGuacProps.authToken.data
+                                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                    in
+                                    ( modelUpdateGuacToken
+                                        server
+                                        exoOriginProps
+                                        launchedWithGuacProps
+                                        guacToken
+                                    , Cmd.none
+                                    )
 
-                        ( ServerNotFromExo, _ ) ->
-                            let
-                                errorContext =
-                                    ErrorContext
-                                        "Receive a response from Guacamole auth token API"
-                                        ErrorDebug
-                                        Nothing
-                            in
+                                GuacTypes.NotLaunchedWithGuacamole ->
+                                    Helpers.processStringError
+                                        model
+                                        errorContext
+                                        "Server does not appear to have been launched with Guacamole support"
+
+                        ServerNotFromExo ->
                             Helpers.processStringError
                                 model
                                 errorContext
                                 "Server does not appear to have been launched from Exosphere"
 
                 Nothing ->
-                    let
-                        errorContext =
-                            ErrorContext
-                                "Receive a response from Guacamole auth token API"
-                                ErrorDebug
-                                Nothing
-                    in
                     Helpers.processStringError
                         model
                         errorContext
