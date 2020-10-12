@@ -1629,7 +1629,6 @@ processProjectSpecificMsg model project msg =
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
 
         ReceiveGuacamoleAuthToken serverUuid result ->
-            -- TODO ensure server metadata is set indicating that Guacamole deployment is complete?
             let
                 errorContext =
                     ErrorContext
