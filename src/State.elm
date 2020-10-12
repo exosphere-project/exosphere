@@ -1637,14 +1637,11 @@ processProjectSpecificMsg model project msg =
                         ErrorDebug
                         Nothing
 
-                modelUpdateGuacToken : Server -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> GuacTypes.GuacamoleTokenRDPP -> Model
-                modelUpdateGuacToken server exoOriginProps guacProps guacToken =
+                modelUpdateGuacProps : Server -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> Model
+                modelUpdateGuacProps server exoOriginProps guacProps =
                     let
-                        newGuacProps =
-                            { guacProps | authToken = guacToken }
-
                         newOriginProps =
-                            { exoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole newGuacProps }
+                            { exoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole guacProps }
 
                         oldExoProps =
                             server.exoProps
@@ -1662,32 +1659,66 @@ processProjectSpecificMsg model project msg =
                             Helpers.modelUpdateProject model newProject
                     in
                     newModel
+
+                serverMetadataSetGuacDeployComplete : GuacTypes.LaunchedWithGuacProps -> Cmd Msg
+                serverMetadataSetGuacDeployComplete launchedWithGuacProps =
+                    let
+                        value =
+                            Helpers.newGuacMetadata launchedWithGuacProps
+
+                        metadataItem =
+                            OSTypes.MetadataItem
+                                "exoGuac"
+                                value
+                    in
+                    Rest.Nova.requestSetServerMetadata project serverUuid metadataItem
             in
             case Helpers.serverLookup project serverUuid of
                 Just server ->
                     case server.exoProps.serverOrigin of
                         ServerFromExo exoOriginProps ->
                             case exoOriginProps.guacamoleStatus of
-                                GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
+                                GuacTypes.LaunchedWithGuacamole oldGuacProps ->
                                     let
-                                        guacToken =
+                                        newGuacProps =
                                             case result of
                                                 Ok tokenValue ->
-                                                    RDPP.RemoteDataPlusPlus
-                                                        (RDPP.DoHave tokenValue model.clientCurrentTime)
-                                                        (RDPP.NotLoading Nothing)
+                                                    { oldGuacProps
+                                                        | authToken =
+                                                            RDPP.RemoteDataPlusPlus
+                                                                (RDPP.DoHave
+                                                                    tokenValue
+                                                                    model.clientCurrentTime
+                                                                )
+                                                                (RDPP.NotLoading Nothing)
+                                                    }
 
                                                 Err e ->
-                                                    RDPP.RemoteDataPlusPlus
-                                                        launchedWithGuacProps.authToken.data
-                                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                                    { oldGuacProps
+                                                        | authToken =
+                                                            RDPP.RemoteDataPlusPlus
+                                                                oldGuacProps.authToken.data
+                                                                (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                                    }
+
+                                        updateMetadataCmd =
+                                            -- TODO not super happy with this factoring
+                                            if oldGuacProps.deploymentComplete then
+                                                Cmd.none
+
+                                            else
+                                                case result of
+                                                    Ok _ ->
+                                                        serverMetadataSetGuacDeployComplete newGuacProps
+
+                                                    Err _ ->
+                                                        Cmd.none
                                     in
-                                    ( modelUpdateGuacToken
+                                    ( modelUpdateGuacProps
                                         server
                                         exoOriginProps
-                                        launchedWithGuacProps
-                                        guacToken
-                                    , Cmd.none
+                                        newGuacProps
+                                    , updateMetadataCmd
                                     )
 
                                 GuacTypes.NotLaunchedWithGuacamole ->

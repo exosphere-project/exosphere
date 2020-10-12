@@ -20,6 +20,7 @@ module Helpers.Helpers exposing
     , jetstreamToOpenstackCreds
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , newGuacMetadata
     , newServerMetadata
     , newServerNetworkOptions
     , overallQuotaAvailServers
@@ -874,6 +875,17 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
             )
           ]
         ]
+
+
+newGuacMetadata : GuacTypes.LaunchedWithGuacProps -> String
+newGuacMetadata launchedWithGuacProps =
+    Json.Encode.object
+        [ ( "v", Json.Encode.int 1 )
+        , ( "ssh", Json.Encode.bool launchedWithGuacProps.sshSupported )
+        , ( "vnc", Json.Encode.bool launchedWithGuacProps.vncSupported )
+        , ( "deployComplete", Json.Encode.bool launchedWithGuacProps.deploymentComplete )
+        ]
+        |> Json.Encode.encode 0
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions
