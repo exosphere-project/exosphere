@@ -389,6 +389,9 @@ stepServerGuacamoleAuth time project server =
         maxGuacTokenLifetimeMillis =
             3300000
 
+        errorRetryIntervalMillis =
+            15000
+
         guacUpstreamPort =
             49528
 
@@ -455,22 +458,34 @@ stepServerGuacamoleAuth time project server =
                         )
                     of
                         ( Just floatingIp, Just password, Just tlsReverseProxyHostname ) ->
+                            let
+                                doRequestToken_ =
+                                    doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+                            in
                             case launchedWithGuacProps.authToken.refreshStatus of
                                 RDPP.Loading _ ->
                                     doNothing
 
-                                RDPP.NotLoading _ ->
-                                    -- TODO if received an error, wait a minute before requesting another token
+                                RDPP.NotLoading maybeErrorTimeTuple ->
                                     case launchedWithGuacProps.authToken.data of
                                         RDPP.DontHave ->
-                                            doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+                                            case maybeErrorTimeTuple of
+                                                Nothing ->
+                                                    doRequestToken_
+
+                                                Just ( _, recTime ) ->
+                                                    if Time.posixToMillis recTime + errorRetryIntervalMillis > Time.posixToMillis time then
+                                                        doNothing
+
+                                                    else
+                                                        doRequestToken_
 
                                         RDPP.DoHave _ recTime ->
                                             if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
                                                 doNothing
 
                                             else
-                                                doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+                                                doRequestToken_
 
                         _ ->
                             -- Missing either a floating IP, password, or TLS-terminating reverse proxy server
