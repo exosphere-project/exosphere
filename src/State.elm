@@ -1703,7 +1703,7 @@ processProjectSpecificMsg model project msg =
 
                                         updateMetadataCmd =
                                             -- TODO not super happy with this factoring
-                                            if oldGuacProps.deploymentComplete then
+                                            if oldGuacProps.deployComplete then
                                                 Cmd.none
 
                                             else

@@ -883,7 +883,7 @@ newGuacMetadata launchedWithGuacProps =
         [ ( "v", Json.Encode.int 1 )
         , ( "ssh", Json.Encode.bool launchedWithGuacProps.sshSupported )
         , ( "vnc", Json.Encode.bool launchedWithGuacProps.vncSupported )
-        , ( "deployComplete", Json.Encode.bool launchedWithGuacProps.deploymentComplete )
+        , ( "deployComplete", Json.Encode.bool launchedWithGuacProps.deployComplete )
         ]
         |> Json.Encode.encode 0
 
