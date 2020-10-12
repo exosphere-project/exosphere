@@ -35,7 +35,7 @@ module Helpers.Helpers exposing
     , providerLookup
     , renderUserDataTemplate
     , serverFromThisExoClient
-    , serverLessThan30MinsOld
+    , serverLessThanThisOld
     , serverLookup
     , serverNeedsFrequentPoll
     , serverOrigin
@@ -1194,14 +1194,11 @@ serverNeedsFrequentPoll server =
             True
 
 
-serverLessThan30MinsOld : Server -> Time.Posix -> Bool
-serverLessThan30MinsOld server currentTime =
+serverLessThanThisOld : Server -> Time.Posix -> Int -> Bool
+serverLessThanThisOld server currentTime maxServerAgeMillis =
     let
         curTimeMillis =
             Time.posixToMillis currentTime
-
-        thirtyMinMillis =
-            1800000
     in
     case iso8601StringToPosix server.osProps.details.created of
         -- Defaults to False if cannot determine server created time
@@ -1209,7 +1206,7 @@ serverLessThan30MinsOld server currentTime =
             False
 
         Ok createdTime ->
-            (curTimeMillis - Time.posixToMillis createdTime) < thirtyMinMillis
+            (curTimeMillis - Time.posixToMillis createdTime) < maxServerAgeMillis
 
 
 buildProxyUrl : TlsReverseProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String

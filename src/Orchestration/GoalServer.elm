@@ -279,6 +279,9 @@ stepServerPollConsoleLog time project server =
                 oneMinMillis =
                     60000
 
+                thirtyMinMillis =
+                    1000 * 60 * 30
+
                 curTimeMillis =
                     Time.posixToMillis time
 
@@ -325,7 +328,7 @@ stepServerPollConsoleLog time project server =
 
                                     linesToPoll : Int
                                     linesToPoll =
-                                        if Helpers.serverLessThan30MinsOld server time || (data.pollingStrikes > 0) then
+                                        if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
                                             1000
 
                                         else
@@ -338,7 +341,7 @@ stepServerPollConsoleLog time project server =
                                     )
                                         -- Poll if server <30 mins old or has <5 polling strikes,
                                         -- and the last time we polled was at least one minute ago.
-                                        || ((Helpers.serverLessThan30MinsOld server time || (data.pollingStrikes < 5))
+                                        || ((Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes < 5))
                                                 && atLeastOneMinSinceLogReceived
                                            )
                                 then
@@ -384,6 +387,7 @@ stepServerPollConsoleLog time project server =
 
 stepServerGuacamoleAuth : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerGuacamoleAuth time project server =
+    -- TODO ensure server is active
     let
         -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
         maxGuacTokenLifetimeMillis =
