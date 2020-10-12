@@ -486,7 +486,7 @@ requestSetServerMetadata project serverUuid metadataItem =
         (Http.jsonBody body)
         (expectJsonWithErrorBody
             resultToMsg
-            metadataDecoder
+            (Decode.field "metadata" metadataDecoder)
         )
 
 
