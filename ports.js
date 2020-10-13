@@ -29,6 +29,7 @@ var app = Elm.Exosphere.init({
         cloudCorsProxyUrl: null,
         cloudsWithTlsReverseProxy:
         [ ["iu.jetstream-cloud.org", "proxy-j7m-iu.exosphere.app"],
+          ["tacc.jetstream-cloud.org", "proxy-j7m-tacc.exosphere.app"],
         ],
         // Flags that Exosphere sets dynamically
         width: window.innerWidth,
