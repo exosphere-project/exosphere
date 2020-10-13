@@ -194,7 +194,7 @@ Most users should not need to change these; they are primarily intended for clou
 |---------------------------|-------------------|---------------------------------------------------------------------|
 | showDebugMsgs             | false, true       |                                                                     |
 | openstackApiProxyUrl      | null, string      | See `docs/cors-proxy.md`; required for using Exosphere in a browser |
-| cloudsWithTlsReverseProxy | array of TODO     | TODO document me                                                    |
+| cloudsWithTlsReverseProxy | (see docs)        | See `docs/tls-terminating-proxy.md`; required for Guacamole support |
 
 ## Collaborate
 
