@@ -24,6 +24,7 @@ var app = Elm.Exosphere.init({
     node: container,
     flags:
     {
+        cloudCorsProxyUrl: null,
         width: window.innerWidth,
         height: window.innerHeight,
         storedState: startingState,
