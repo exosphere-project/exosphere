@@ -188,13 +188,13 @@ Until the permanent solution has been implemented, please do not use the termina
 
 ## Runtime configuration options
 
-Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in the `flags` JSON object in `port.js`.
+Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in the `flags` JSON object in `ports.js`.
 
 | *Option*                  | *Possible Values* | *Description*                                                       |
 |---------------------------|-------------------|---------------------------------------------------------------------|
 | showDebugMsgs             | false, true       |                                                                     |
 | openstackApiProxyUrl      | null, string      | See `docs/cors-proxy.md`; required for using Exosphere in a browser |
-| cloudsWithTlsReverseProxy | (see docs)        | See `docs/tls-terminating-proxy.md`; required for Guacamole support |
+| cloudsWithUserAppProxy    | (see docs)        | See `docs/user-app-proxy.md`; required for Guacamole support        |
 
 ## Collaborate
 
