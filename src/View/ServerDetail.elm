@@ -34,7 +34,7 @@ import Types.Types
         , Server
         , ServerDetailViewParams
         , ServerOrigin(..)
-        , TlsReverseProxyHostname
+        , UserAppProxyHostname
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -325,7 +325,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             , Element.el VH.heading3 (Element.text "Guacamole Terminal/Desktop")
             , guacShell
                 (Tuple.first currentTimeAndZone)
-                project.tlsReverseProxyHostname
+                project.userAppProxyHostname
                 server
                 maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
@@ -567,7 +567,7 @@ consoleLink projectId appIsElectron serverDetailViewParams server serverUuid =
             Element.text "Console not available with server in this state."
 
 
-guacShell : Time.Posix -> Maybe TlsReverseProxyHostname -> Server -> Maybe String -> Element.Element Msg
+guacShell : Time.Posix -> Maybe UserAppProxyHostname -> Server -> Maybe String -> Element.Element Msg
 guacShell currentTime tlsReverseProxyHostname server maybeFloatingIp =
     let
         guacUpstreamPort =

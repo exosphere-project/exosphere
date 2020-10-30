@@ -42,7 +42,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
             emptyModel clientUuid
 
         projects =
-            List.map (hydrateProjectFromStoredProject model.cloudsWithTlsReverseProxy) storedState.projects
+            List.map (hydrateProjectFromStoredProject model.cloudsWithUserAppProxy) storedState.projects
 
         viewState =
             case projects of
@@ -69,7 +69,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
     { model | projects = projects, viewState = viewState }
 
 
-hydrateProjectFromStoredProject : Types.CloudsWithTlsReverseProxy -> StoredProject -> Types.Project
+hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> StoredProject -> Types.Project
 hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
@@ -86,7 +86,7 @@ hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
     , computeQuota = RemoteData.NotAsked
     , volumeQuota = RemoteData.NotAsked
     , pendingCredentialedRequests = []
-    , tlsReverseProxyHostname =
+    , userAppProxyHostname =
         storedProject.endpoints.keystone
             |> Helpers.hostnameFromUrl
             |> (\h -> Dict.get h cloudsWithTlsReverseProxy)

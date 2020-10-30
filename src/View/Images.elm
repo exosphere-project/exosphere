@@ -292,7 +292,7 @@ renderImage project imageListViewParams sortTableParams image =
                     CreateServer <|
                         Defaults.createServerViewParams
                             image
-                            (project.tlsReverseProxyHostname |> Maybe.map (\_ -> True))
+                            (project.userAppProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]

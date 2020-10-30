@@ -91,9 +91,9 @@ import Types.Types
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
-        , TlsReverseProxyHostname
         , Toast
         , UnscopedProvider
+        , UserAppProxyHostname
         )
 import UUID
 import Url
@@ -1209,7 +1209,7 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
             (curTimeMillis - Time.posixToMillis createdTime) < maxServerAgeMillis
 
 
-buildProxyUrl : TlsReverseProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
+buildProxyUrl : UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
 buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
     [ "https://"
     , if https_upstream then

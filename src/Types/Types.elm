@@ -1,5 +1,5 @@
 module Types.Types exposing
-    ( CloudsWithTlsReverseProxy
+    ( CloudsWithUserAppProxy
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
@@ -39,10 +39,10 @@ module Types.Types exposing
     , ServerUiStatus(..)
     , SortTableParams
     , TickInterval
-    , TlsReverseProxyHostname
     , Toast
     , UnscopedProvider
     , UnscopedProviderProject
+    , UserAppProxyHostname
     , VerboseStatus
     , ViewState(..)
     , WindowSize
@@ -86,7 +86,7 @@ type alias Flags =
     , randomSeed3 : Int
     , epoch : Int
     , timeZone : Int
-    , cloudsWithTlsReverseProxy : List ( String, String )
+    , cloudsWithUserAppProxy : List ( String, String )
     }
 
 
@@ -104,7 +104,7 @@ type alias Model =
     , projects : List Project
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
-    , cloudsWithTlsReverseProxy : CloudsWithTlsReverseProxy
+    , cloudsWithUserAppProxy : CloudsWithUserAppProxy
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
@@ -117,15 +117,15 @@ type alias CloudCorsProxyUrl =
     HelperTypes.Url
 
 
-type alias CloudsWithTlsReverseProxy =
-    Dict.Dict KeystoneHostname TlsReverseProxyHostname
+type alias CloudsWithUserAppProxy =
+    Dict.Dict KeystoneHostname UserAppProxyHostname
 
 
 type alias KeystoneHostname =
     HelperTypes.Hostname
 
 
-type alias TlsReverseProxyHostname =
+type alias UserAppProxyHostname =
     HelperTypes.Hostname
 
 
@@ -168,7 +168,7 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
-    , tlsReverseProxyHostname : Maybe TlsReverseProxyHostname
+    , userAppProxyHostname : Maybe UserAppProxyHostname
     }
 
 

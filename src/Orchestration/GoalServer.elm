@@ -22,7 +22,7 @@ import Types.Types
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
-        , TlsReverseProxyHostname
+        , UserAppProxyHostname
         )
 import UUID
 
@@ -402,7 +402,7 @@ stepServerGuacamoleAuth time project server =
         doNothing =
             ( project, Cmd.none )
 
-        doRequestToken : String -> String -> TlsReverseProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd Msg )
+        doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd Msg )
         doRequestToken floatingIp password proxyHostname oldExoOriginProps oldGuacProps =
             let
                 oldAuthToken =
@@ -458,7 +458,7 @@ stepServerGuacamoleAuth time project server =
                     case
                         ( Helpers.getServerFloatingIp server.osProps.details.ipAddresses
                         , Helpers.getServerExouserPassword server.osProps.details
-                        , project.tlsReverseProxyHostname
+                        , project.userAppProxyHostname
                         )
                     of
                         ( Just floatingIp, Just password, Just tlsReverseProxyHostname ) ->
