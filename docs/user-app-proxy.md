@@ -1,4 +1,76 @@
-## Problem Statement
+# User Application Proxy (UAP)
+
+## Overview
+
+The User Application proxy (UAP) facilitates encrypted, server-authenticated connections between the Exosphere client and web-based services that are hosted on users' cloud instances. These web services include Guacamole for shell and streaming desktop sessions, and data science workbenches like JupyterLab and RStudio Server. In order to securely deliver these services to the user's web browser, they must be served using Transport Layer Security (TLS) with an x.509 certificate that has been signed by a certificate authority like Let's Encrypt. For reasons detailed below in "Background" section, it appears infeasible to obtain a CA-signed cert for each server that a user creates in an automatic and scalable way. UAP is a solution to this problem: it re-terminates TLS connections between users and instance-hosted web applications at each OpenStack cloud using a wildcard certificate from Let's Encrypt.
+
+![Exosphere architecture diagram](architecture.png)
+
+URL parts diagram showing how a client connects to a service running :
+```
+https://http-198-51-100-99-12345.myexampleproxy.example.com/foobar
+        \___/\___________/ \___/ \________________________/ \____/
+          |        |         |               |                |
+          |    upstream     port  hostname of proxy server    |
+          |   instance IP                                     |
+          |                                                   |
+    optional upstream protocol, defaults to https             |
+                                                              |
+                Entire URL path is passed along to the instance
+```
+
+
+## Security/Threat Model
+
+In a properly configured OpenStack deployment, Neutron and its supporting technologies (ebtables and iptables) protect IP traffic between the UAP and cloud instances, as long as the UAP and instances are on the same Neutron network. This prevents the upstream connection from being intercepted or modified.  At this time, Exosphere is not deploying upstream services (like Guacamole) to serve TLS to the UAP, though this may change in the future.
+
+Until upstream connections between UAP and instances use TLS, a dedicated UAP must be deployed at each OpenStack cloud, on the same public Neutron networks(s) as instances. Fortunately, a UAP is simple to deploy and maintain.
+
+## How to set up a UAP in your cloud
+
+A UAP is just Nginx with a specific configuration. The example Nginx configuration below implements a UAP for an OpenStack deployment whose instances are assigned public IP addresses in the range `198.51.100.0/24`. The UAP's hostname is myexampleproxy.example.com. Note that you must also set up a wildcard DNS entry for your UAP's hostname, obtain a wildcard certificate (perhaps using Let's Encrypt), and configure Nginx to use it. Those steps are not shown here, but the Exosphere developers are happy to assist with this process (which will likely also result in better documentation).
+
+```
+map $host $proto {
+    default https;
+    "~*(^(http|https)-198-51-100-(\d+)-(\d+)\.proxy-j7m-iu\.exosphere\.app$)" $2;
+}
+
+# Fourth octet can be 0 to 255
+map $host $octet4 {
+    "~*(^(http-|https-)?198-51-100-([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])-(\d+)\.proxy-j7m-iu\.exosphere\.app$)" $4;
+}
+
+# Port can be whatever
+map $host $port {
+    "~*(^(http-|https-)?198-51-100-(\d+)-(\d+)\.proxy-j7m-iu\.exosphere\.app$)" $5;
+}
+
+server {
+        server_name *.myexampleproxy.example.com;
+        location / {
+                proxy_pass $proto://198.51.100.$octet4:$port;
+                proxy_ssl_verify off;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-Proto $scheme;
+        }
+}
+
+```
+
+## How to configure Exosphere to know about a new UAP
+
+In order for Exosphere to deploy instances with Guacamole support on a given cloud, Exosphere must know about a UAP at that cloud. UAPs known to Exosphere are configured in `ports.js`, in the `cloudsWithUserAppProxy` flag. This flag is passed to Exosphere on startup.
+
+The `cloudsWithUserAppProxy` flag is an array of 2-element arrays. In each inner array, the first element is the hostname of the Keystone API for a given OpenStack cloud, and the second element is the hostname of the UAP.
+
+Known UAPs are already configured in `ports.js` on the master branch of Exosphere. If you operate an OpenStack cloud, you may wish to add an entry for your UAP to the master branch, so that everyone can benefit from using it; feel free to submit a merge request.
+
+## Background
+
+For more context of how this solution was explored, see [issue 381](https://gitlab.com/exosphere/exosphere/-/issues/381) in the Exosphere project on GitLab.
+
+### Problem Statement
 
 Exosphere relies on a rich ecosystem of free, open-source software services to provide users with rich interactivity to their cloud servers (a.k.a. instances). A few important examples of these:
 
@@ -6,7 +78,7 @@ Exosphere relies on a rich ecosystem of free, open-source software services to p
 - [Cockpit](https://cockpit-project.org) (Exosphere may deprecate this integration soon), which provides a graphical server management dashboard interface in the user's web browser
 - [JupyterLab](https://jupyter.org/), which is not tightly integrated with Exosphere yet but is already used in the community of Exosphere users. (Several other data science tools and workbenches are also in this category.) 
 
-What do these share in common? They are all web-based services. In the Exosphere ecosystem, they are all served from a user's cloud _server_, and accessed in the user's web browser (the _client_).
+What do these share in common? They are all web-based services. In the Exosphere ecosystem, they are all served from a user's cloud _server_ (a.k.a. instance) and accessed in the user's web browser (the _client_).
 
 In order to serve a web-based service in a way that is reasonably secure and reliable, we must configure Transport Layer Security (TLS) on the _server_ end of the connection, and this is a challenge in the Exosphere ecosystem. To understand why, a high-level understanding of TLS is needed; skim or skip the following lesson if you don't need it.
 
@@ -28,29 +100,7 @@ In brief: Let's Encrypt does not issue certificates for public IP addresses, onl
 
 Under these rate limits, the only way to obtain a certificate for hundreds of hostnames per domain is to batch them, i.e. make each certificate valid for many hostnames (with each hostname corresponding to one public IP address or one cloud server). This would cause a security problem, because the certificates for different users' instances would share the same private key, which may allow one user to impersonate another user's instance to decrypt traffic and intercept sensitive information.  The only apparent workaround for these rate limits is to register many domains (one per public IP address), but this is costly (because registering a domain requires a yearly fee), thus it would not scale for an open-source software project.
 
-## Solution: TLS-Terminating Reverse Proxy Server
-
-Reverse proxies are widely used by those providing web-based services.
-
-The proxy re-terminates TLS
-
-we don't need a CA-signed cert on each instance, only one on the
-
-
-Our use case is a little different because of the following:
-- Proxy isn't hard-coded to communicate with just one or a few upstream servers 
-
-Each OpenStack deployment that wishes to support the above activities can deploy a TLS-terminating (reverse) proxy server
-
-Nginx
-
-The idea is that there is a relatively small opportunity for man-in-the-middle between a TLS-terminating proxy server and instances on the same Neutron network.
-
-(This has not been scrutinized super carefully from an infosec perspective.)
-
-Nginx
-
-Let's Encrypt now issues wildcard certificates
+The current UAP solution centralizes the work of terminating TLS to one sever for an entire cloud. This server is maintained by that cloud's operator (or by the Exosphere team) and it provides secure connections for all instances running on that cloud.
 
 ## Footnotes
 
