@@ -19,12 +19,12 @@ helpAbout model =
             ]
         , Element.el VH.heading2 <| Element.text "App Config Info"
         , Element.paragraph [] <|
-            case model.proxyUrl of
+            case model.cloudCorsProxyUrl of
                 Nothing ->
                     [ Element.text "You are not using a proxy server." ]
 
                 Just proxyUrl ->
-                    [ Element.text ("You are using a proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack is passing through this server.") ]
+                    [ Element.text ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
         , Element.paragraph [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
         , Element.el VH.heading2 <| Element.text "Getting Help"
         , Element.paragraph []

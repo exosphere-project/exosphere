@@ -86,7 +86,7 @@ deploy_dogfood:
     - chmod 644 ~/.ssh/known_hosts
     - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
   script:
-    - 'sed -i -e ''s/proxyUrl: null/proxyUrl: \"https:\/\/try.exosphere.app\/proxy"/g'' public/ports.js'
+    - 'sed -i -e ''s/cloudCorsProxyUrl: null/cloudCorsProxyUrl: \"https:\/\/try.exosphere.app\/proxy"/g'' public/ports.js'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
   environment:
     name: dogfood

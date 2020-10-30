@@ -70,7 +70,7 @@ type alias Flags =
     { width : Int
     , height : Int
     , storedState : Maybe Decode.Value
-    , proxyUrl : Maybe HelperTypes.Url
+    , cloudCorsProxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     , randomSeed0 : Int
     , randomSeed1 : Int
@@ -96,13 +96,17 @@ type alias Model =
     , projects : List Project
     , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toast
-    , proxyUrl : Maybe HelperTypes.Url
+    , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
     }
+
+
+type alias CloudCorsProxyUrl =
+    HelperTypes.Url
 
 
 type alias LogMessage =

@@ -8,7 +8,7 @@ Connecting to cloud providers from Exosphere running in a browser is complicated
 
 (todo are there more security implications that should be explained here?)
 
-## Proxy Server
+## Cloud CORS Proxy (CCP) Server
 
 With a bit of configuration, [Nginx](https://nginx.org/en/) can handle all of Exosphere's requests to OpenStack providers.
 

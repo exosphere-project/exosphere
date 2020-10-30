@@ -153,7 +153,7 @@ mounts:
             , projects = []
             , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
-            , proxyUrl = flags.proxyUrl
+            , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
             , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
@@ -309,7 +309,7 @@ updateUnderlying msg model =
             Helpers.processSynchronousApiError model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
-            ( model, Rest.Keystone.requestUnscopedAuthToken model.proxyUrl openstackLoginUnscoped )
+            ( model, Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl openstackLoginUnscoped )
 
         RequestNewProjectToken openstackCreds ->
             let
@@ -317,7 +317,7 @@ updateUnderlying msg model =
                 newOpenstackCreds =
                     { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
-            ( model, Rest.Keystone.requestScopedAuthToken model.proxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
+            ( model, Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
 
         JetstreamLogin jetstreamCreds ->
             let
@@ -326,7 +326,7 @@ updateUnderlying msg model =
 
                 cmds =
                     List.map
-                        (\creds -> Rest.Keystone.requestUnscopedAuthToken model.proxyUrl creds)
+                        (\creds -> Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl creds)
                         openstackCredsList
             in
             ( model, Cmd.batch cmds )
@@ -458,7 +458,7 @@ updateUnderlying msg model =
                         buildLoginRequest : UnscopedProviderProject -> Cmd Msg
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
-                                model.proxyUrl
+                                model.cloudCorsProxyUrl
                             <|
                                 OSTypes.PasswordCreds <|
                                     OSTypes.OpenstackLogin
@@ -937,7 +937,7 @@ processProjectSpecificMsg model project msg =
             let
                 -- Add proxy URL
                 requestNeedingToken =
-                    requestProto model.proxyUrl
+                    requestProto model.cloudCorsProxyUrl
 
                 currentTimeMillis =
                     posixTime |> Time.posixToMillis
@@ -1741,7 +1741,7 @@ createUnscopedProvider model password authToken authUrl =
             newProvider :: model.unscopedProviders
     in
     ( { model | unscopedProviders = newProviders }
-    , Rest.Keystone.requestUnscopedProjects newProvider model.proxyUrl
+    , Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
     )
 
 
@@ -1810,7 +1810,7 @@ requestAuthToken model project =
                 ApplicationCredential appCred ->
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
-    Rest.Keystone.requestScopedAuthToken model.proxyUrl creds
+    Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl creds
 
 
 requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
