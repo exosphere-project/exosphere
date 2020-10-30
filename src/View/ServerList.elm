@@ -151,6 +151,23 @@ renderServer projectId serverListViewParams server =
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
+        creatorName =
+            List.filter (\i -> i.key == "exoCreatorUsername") server.osProps.details.metadata
+                |> List.head
+                |> Maybe.map .value
+
+        creatorNameView =
+            case creatorName of
+                Just creatorNameFound ->
+                    Element.el
+                        [ Element.width Element.shrink
+                        , Font.size 12
+                        ]
+                        (Element.text ("(creator: " ++ creatorNameFound ++ ")"))
+
+                Nothing ->
+                    Element.none
+
         checkbox =
             case server.osProps.details.lockStatus of
                 OSTypes.ServerUnlocked ->
@@ -203,8 +220,10 @@ renderServer projectId serverListViewParams server =
                 [ Element.width Element.fill
                 , Events.onClick serverNameClickEvent
                 , Element.pointer
+                , Element.spacing 10
                 ]
                 [ serverLabelName aServer
+                , creatorNameView
                 , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
                 ]
 

@@ -270,6 +270,9 @@ requestCreateServer project exoClientUuid createServerRequest =
                         , ( "exoClientUuid"
                           , Encode.string (UUID.toString exoClientUuid)
                           )
+                        , ( "exoCreatorUsername"
+                          , Encode.string project.auth.user.name
+                          )
                         ]
                   )
                 ]
