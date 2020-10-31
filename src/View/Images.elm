@@ -14,12 +14,10 @@ import Style.Theme
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
+import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( CreateServerRequest
-        , CreateServerViewParams
-        , GlobalDefaults
-        , ImageListViewParams
+        ( ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -32,13 +30,13 @@ import Widget
 import Widget.Style.Material
 
 
-imagesIfLoaded : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
-imagesIfLoaded globalDefaults project imageListViewParams sortTableParams =
+imagesIfLoaded : Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+imagesIfLoaded project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.text "Images loading"
 
     else
-        images globalDefaults project imageListViewParams sortTableParams
+        images project imageListViewParams sortTableParams
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -89,8 +87,8 @@ filterImages imageListViewParams project someImages =
         |> filterBySearchText imageListViewParams.searchText
 
 
-images : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
-images globalDefaults project imageListViewParams sortTableParams =
+images : Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+images project imageListViewParams sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -214,7 +212,7 @@ images globalDefaults project imageListViewParams sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage globalDefaults project imageListViewParams sortTableParams) filteredImages
+        , List.map (renderImage project imageListViewParams sortTableParams) filteredImages
             |> Widget.column
                 (Style.Theme.materialStyle.column
                     |> (\x ->
@@ -234,8 +232,8 @@ images globalDefaults project imageListViewParams sortTableParams =
         ]
 
 
-renderImage : GlobalDefaults -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
-renderImage globalDefaults project imageListViewParams sortTableParams image =
+renderImage : Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage project imageListViewParams sortTableParams image =
     let
         projectId =
             Helpers.getProjectId project
@@ -292,22 +290,9 @@ renderImage globalDefaults project imageListViewParams sortTableParams image =
             ProjectMsg (Helpers.getProjectId project) <|
                 SetProjectView <|
                     CreateServer <|
-                        CreateServerViewParams
-                            -- TODO this should not be hard-coded here
-                            (CreateServerRequest
-                                image.name
-                                (Helpers.getProjectId project)
-                                image.uuid
-                                image.name
-                                1
-                                ""
-                                Nothing
-                                Nothing
-                                globalDefaults.shellUserData
-                                ""
-                                False
-                            )
-                            Nothing
+                        Defaults.createServerViewParams
+                            image
+                            (project.userAppProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]

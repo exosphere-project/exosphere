@@ -1,19 +1,20 @@
 module Types.Types exposing
-    ( CockpitLoginStatus(..)
-    , CreateServerRequest
+    ( CloudsWithUserAppProxy
+    , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
     , ExoServerProps
+    , ExoServerVersion
     , Flags
     , FloatingIpState(..)
-    , GlobalDefaults
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
     , JetstreamCreds
     , JetstreamProvider(..)
+    , KeystoneHostname
     , LogMessage
     , Model
     , Msg(..)
@@ -41,12 +42,14 @@ module Types.Types exposing
     , Toast
     , UnscopedProvider
     , UnscopedProviderProject
+    , UserAppProxyHostname
     , VerboseStatus
     , ViewState(..)
     , WindowSize
     , currentExoServerVersion
     )
 
+import Dict
 import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -57,6 +60,7 @@ import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
+import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
 import UUID
@@ -67,10 +71,14 @@ import UUID
 
 
 type alias Flags =
-    { width : Int
+    -- Flags intended to be configured by cloud operators
+    { showDebugMsgs : Bool
+    , cloudCorsProxyUrl : Maybe HelperTypes.Url
+
+    -- Flags that Exosphere sets dynamically
+    , width : Int
     , height : Int
     , storedState : Maybe Decode.Value
-    , cloudCorsProxyUrl : Maybe HelperTypes.Url
     , isElectron : Bool
     , randomSeed0 : Int
     , randomSeed1 : Int
@@ -78,7 +86,7 @@ type alias Flags =
     , randomSeed3 : Int
     , epoch : Int
     , timeZone : Int
-    , showDebugMsgs : Bool
+    , cloudsWithUserAppProxy : List ( String, String )
     }
 
 
@@ -94,9 +102,9 @@ type alias Model =
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider
     , projects : List Project
-    , globalDefaults : GlobalDefaults
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
+    , cloudsWithUserAppProxy : CloudsWithUserAppProxy
     , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
@@ -109,15 +117,22 @@ type alias CloudCorsProxyUrl =
     HelperTypes.Url
 
 
+type alias CloudsWithUserAppProxy =
+    Dict.Dict KeystoneHostname UserAppProxyHostname
+
+
+type alias KeystoneHostname =
+    HelperTypes.Hostname
+
+
+type alias UserAppProxyHostname =
+    HelperTypes.Hostname
+
+
 type alias LogMessage =
     { message : String
     , context : ErrorContext
     , timestamp : Time.Posix
-    }
-
-
-type alias GlobalDefaults =
-    { shellUserData : String
     }
 
 
@@ -153,6 +168,7 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
+    , userAppProxyHostname : Maybe UserAppProxyHostname
     }
 
 
@@ -212,7 +228,7 @@ type ProjectSpecificMsgConstructor
     | RemoveProject
     | RequestServers
     | RequestServer OSTypes.ServerUuid
-    | RequestCreateServer CreateServerRequest
+    | RequestCreateServer CreateServerViewParams
     | RequestDeleteServer OSTypes.ServerUuid
     | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
@@ -249,6 +265,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
     | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
     | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody String)
+    | ReceiveSetServerMetadata OSTypes.ServerUuid OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
+    | ReceiveGuacamoleAuthToken OSTypes.ServerUuid (Result Http.Error GuacTypes.GuacamoleAuthToken)
 
 
 type ViewState
@@ -314,8 +332,17 @@ type alias ServerDetailViewParams =
 
 
 type alias CreateServerViewParams =
-    { createServerRequest : CreateServerRequest
+    { serverName : String
+    , imageUuid : OSTypes.ImageUuid
+    , imageName : String
+    , count : Int
+    , flavorUuid : OSTypes.FlavorUuid
     , volSizeTextInput : Maybe NumericTextInput
+    , userDataTemplate : String
+    , networkUuid : OSTypes.NetworkUuid
+    , showAdvancedOptions : Bool
+    , keypairName : Maybe String
+    , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     }
 
 
@@ -388,6 +415,7 @@ type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
+    , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
     }
 
 
@@ -401,7 +429,7 @@ type alias ExoServerVersion =
 
 currentExoServerVersion : ExoServerVersion
 currentExoServerVersion =
-    2
+    3
 
 
 type FloatingIpState
@@ -435,25 +463,6 @@ type ServerUiStatus
     | ServerUiStatusRescued
     | ServerUiStatusShelved
     | ServerUiStatusDeleted
-
-
-type alias CreateServerRequest =
-    { name : String
-    , projectId : ProjectIdentifier
-    , imageUuid : OSTypes.ImageUuid
-    , imageName : String
-    , count : Int
-    , flavorUuid : OSTypes.FlavorUuid
-    , volBackedSizeGb : Maybe VolumeSize
-    , keypairName : Maybe String
-    , userData : String
-    , networkUuid : OSTypes.NetworkUuid
-    , showAdvancedOptions : Bool
-    }
-
-
-type alias VolumeSize =
-    Int
 
 
 type alias ProjectName =

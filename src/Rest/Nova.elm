@@ -21,6 +21,7 @@ module Rest.Nova exposing
     , requestKeypairs
     , requestServer
     , requestServers
+    , requestSetServerMetadata
     , requestSetServerName
     , serverIpAddressDecoder
     , serverPowerStateDecoder
@@ -51,7 +52,6 @@ import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , CreateServerRequest
         , ExoServerProps
         , FloatingIpState(..)
         , HttpRequestMethod(..)
@@ -64,9 +64,7 @@ import Types.Types
         , Server
         , ServerOrigin(..)
         , ViewState(..)
-        , currentExoServerVersion
         )
-import UUID
 
 
 
@@ -217,8 +215,8 @@ requestKeypairs project =
         )
 
 
-requestCreateServer : Project -> UUID.UUID -> CreateServerRequest -> Cmd Msg
-requestCreateServer project exoClientUuid createServerRequest =
+requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd Msg
+requestCreateServer project createServerRequest =
     let
         instanceNumbers =
             List.range 1 createServerRequest.count
@@ -230,9 +228,6 @@ requestCreateServer project exoClientUuid createServerRequest =
 
             else
                 baseName ++ " " ++ String.fromInt index ++ " of " ++ String.fromInt createServerRequest.count
-
-        renderedUserData =
-            Helpers.renderUserDataTemplate project createServerRequest
 
         instanceNames =
             instanceNumbers
@@ -260,20 +255,10 @@ requestCreateServer project exoClientUuid createServerRequest =
                     , Encode.list Encode.object
                         [ [ ( "uuid", Encode.string innerCreateServerRequest.networkUuid ) ] ]
                     )
-                , ( "user_data", Encode.string (Base64.encode renderedUserData) )
+                , ( "user_data", Encode.string (Base64.encode createServerRequest.userData) )
                 , ( "security_groups", Encode.array Encode.object (Array.fromList [ [ ( "name", Encode.string "exosphere" ) ] ]) )
                 , ( "metadata"
-                  , Encode.object
-                        [ ( "exoServerVersion"
-                          , Encode.string (String.fromInt currentExoServerVersion)
-                          )
-                        , ( "exoClientUuid"
-                          , Encode.string (UUID.toString exoClientUuid)
-                          )
-                        , ( "exoCreatorUsername"
-                          , Encode.string project.auth.user.name
-                          )
-                        ]
+                  , Encode.object createServerRequest.metadata
                   )
                 ]
 
@@ -461,6 +446,47 @@ requestSetServerName project serverUuid newServerName =
         (expectJsonWithErrorBody
             resultToMsg
             (Decode.at [ "server", "name" ] Decode.string)
+        )
+
+
+requestSetServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataItem -> Cmd Msg
+requestSetServerMetadata project serverUuid metadataItem =
+    let
+        body =
+            Encode.object
+                [ ( "metadata"
+                  , Encode.object [ ( metadataItem.key, Encode.string metadataItem.value ) ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                (String.concat
+                    [ "set metadata with key \""
+                    , metadataItem.key
+                    , "\" and value \""
+                    , metadataItem.value
+                    , "for server with UUID "
+                    , serverUuid
+                    ]
+                )
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                (Helpers.getProjectId project)
+                (ReceiveSetServerMetadata serverUuid metadataItem errorContext result)
+    in
+    openstackCredentialedRequest
+        project
+        Post
+        Nothing
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.field "metadata" metadataDecoder)
         )
 
 
@@ -705,14 +731,11 @@ receiveFlavors model project flavors =
             case model.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer createServerViewParams ->
-                            if createServerViewParams.createServerRequest.flavorUuid == "" then
+                        CreateServer viewParams ->
+                            if viewParams.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
                                         Helpers.sortedFlavors flavors |> List.head
-
-                                    createServerRequest =
-                                        createServerViewParams.createServerRequest
                                 in
                                 case maybeSmallestFlavor of
                                     Just smallestFlavor ->
@@ -720,11 +743,8 @@ receiveFlavors model project flavors =
                                             (Helpers.getProjectId project)
                                             { createPopup = False }
                                             (CreateServer
-                                                { createServerViewParams
-                                                    | createServerRequest =
-                                                        { createServerRequest
-                                                            | flavorUuid = smallestFlavor.uuid
-                                                        }
+                                                { viewParams
+                                                    | flavorUuid = smallestFlavor.uuid
                                                 }
                                             )
 

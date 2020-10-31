@@ -70,7 +70,7 @@ pages:
   only:
     - master
 
-deploy_dogfood:
+deploy_prod:
   stage: deploy
   dependencies:
     - elm_make
@@ -89,11 +89,35 @@ deploy_dogfood:
     - 'sed -i -e ''s/cloudCorsProxyUrl: null/cloudCorsProxyUrl: \"https:\/\/try.exosphere.app\/proxy"/g'' public/ports.js'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:'
   environment:
-    name: dogfood
+    name: prod
     url: https://try.exosphere.app/exosphere
   only:
     - master
-    - dogfood-continuous-deployment
+
+deploy_dev:
+  stage: deploy
+  dependencies:
+    - elm_make
+  before_script:
+    # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    # https://docs.gitlab.com/ee/ci/ssh_keys/README.html#verifying-the-ssh-host-keys
+    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+  script:
+    - 'sed -i -e ''s/cloudCorsProxyUrl: null/cloudCorsProxyUrl: \"https:\/\/try-dev.exosphere.app\/proxy"/g'' public/ports.js'
+    - 'rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/'
+  environment:
+    name: dev
+    url: https://try-dev.exosphere.app/exosphere
+  only:
+    - dev
+
 
 include:
   - template: Dependency-Scanning.gitlab-ci.yml

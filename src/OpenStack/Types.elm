@@ -5,6 +5,7 @@ module OpenStack.Types exposing
     , AuthTokenString
     , ComputeQuota
     , ConsoleUrl
+    , CreateServerRequest
     , CreateVolumeRequest
     , CredentialsForAuthToken(..)
     , Endpoint
@@ -52,6 +53,7 @@ module OpenStack.Types exposing
     )
 
 import Helpers.Error exposing (HttpErrorWithBody)
+import Json.Encode
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (RemoteData)
 import Time
@@ -320,6 +322,19 @@ type alias ServerTag =
 
 type alias ServerPassword =
     String
+
+
+type alias CreateServerRequest =
+    { name : String
+    , count : Int
+    , imageUuid : ImageUuid
+    , flavorUuid : FlavorUuid
+    , volBackedSizeGb : Maybe VolumeSize
+    , networkUuid : NetworkUuid
+    , keypairName : Maybe String
+    , userData : String
+    , metadata : List ( String, Json.Encode.Value )
+    }
 
 
 

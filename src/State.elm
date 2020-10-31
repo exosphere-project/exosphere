@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
+import Dict
 import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
@@ -26,11 +27,12 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time
 import Toasty
 import Types.Defaults as Defaults
+import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
 import Types.Types
@@ -50,11 +52,13 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerFromExoProps
         , ServerOrigin(..)
         , TickInterval
         , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
+        , currentExoServerVersion
         )
 import UUID
 
@@ -62,75 +66,6 @@ import UUID
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     let
-        globalDefaults =
-            { shellUserData =
-                """#cloud-config
-users:
-  - default
-  - name: exouser
-    shell: /bin/bash
-    groups: sudo, admin
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    {ssh-authorized-keys}
-package_update: true
-packages:
-  - cockpit
-runcmd:
-  - |
-    WORDS_URL=https://gitlab.com/exosphere/exosphere/snippets/1943838/raw
-    WORDS_SHA512=a71dd2806263d6bce2b45775d80530a4187921a6d4d974d6502f02f6228612e685e2f6dcc1d7f53f5e2a260d0f8a14773458a1a6e7553430727a9b46d5d6e002
-    wget --quiet --output-document=words $WORDS_URL
-    if echo $WORDS_SHA512 words | sha512sum --check --quiet; then
-      PASSPHRASE=$(cat words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1)
-      POST_URL=http://169.254.169.254/openstack/latest/password
-      if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
-        echo exouser:$PASSPHRASE | chpasswd
-      fi
-      unset PASSPHRASE
-    fi
-  - systemctl enable cockpit.socket
-  - systemctl start cockpit.socket
-  - systemctl daemon-reload
-  - "mkdir -p /media/volume"
-  - "cd /media/volume; for x in b c d e f g h i j k; do mkdir -p sd$x; mkdir -p vd$x; done"
-  - "systemctl daemon-reload"
-  - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
-  - "chown exouser:exouser /media/volume/*"
-  - |
-    SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
-    SYS_LOAD_SCRIPT_SHA512=0667348aeb268ac8e0b642b03c14a8f87ddd38e11a50243fe1ab6ee764ebd724949c5ec98f95c03aaa7c16c77652bc968cc7aba50f6b1038b1a20ceefc133a73
-    SYS_LOAD_SCRIPT_FILE=/opt/system_load_json.py
-    wget --quiet --output-document=$SYS_LOAD_SCRIPT_FILE $SYS_LOAD_SCRIPT_URL
-    if echo $SYS_LOAD_SCRIPT_SHA512 $SYS_LOAD_SCRIPT_FILE | sha512sum --check --quiet; then
-      chmod +x $SYS_LOAD_SCRIPT_FILE
-      $SYS_LOAD_SCRIPT_FILE > /dev/console
-      echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
-    fi
-mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
-mounts:
-  - [ /dev/sdb, /media/volume/sdb ]
-  - [ /dev/sdc, /media/volume/sdc ]
-  - [ /dev/sdd, /media/volume/sdd ]
-  - [ /dev/sde, /media/volume/sde ]
-  - [ /dev/sdf, /media/volume/sdf ]
-  - [ /dev/sdg, /media/volume/sdg ]
-  - [ /dev/sdh, /media/volume/sdh ]
-  - [ /dev/sdi, /media/volume/sdi ]
-  - [ /dev/sdj, /media/volume/sdj ]
-  - [ /dev/sdk, /media/volume/sdk ]
-  - [ /dev/vdb, /media/volume/vdb ]
-  - [ /dev/vdc, /media/volume/vdc ]
-  - [ /dev/vdd, /media/volume/vdd ]
-  - [ /dev/vde, /media/volume/vde ]
-  - [ /dev/vdf, /media/volume/vdf ]
-  - [ /dev/vdg, /media/volume/vdg ]
-  - [ /dev/vdh, /media/volume/vdh ]
-  - [ /dev/vdi, /media/volume/vdi ]
-  - [ /dev/vdj, /media/volume/vdj ]
-  - [ /dev/vdk, /media/volume/vdk ]
-"""
-            }
-
         currentTime =
             Time.millisToPosix flags.epoch
 
@@ -151,9 +86,9 @@ mounts:
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
-            , globalDefaults = globalDefaults
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
+            , cloudsWithUserAppProxy = Dict.fromList flags.cloudsWithUserAppProxy
             , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
@@ -774,36 +709,15 @@ processProjectSpecificMsg model project msg =
                 CreateServerImage _ _ ->
                     ( modelUpdatedView model, Cmd.none )
 
-                CreateServer createServerViewParams ->
-                    let
-                        createServerRequest =
-                            createServerViewParams.createServerRequest
-                    in
+                CreateServer viewParams ->
                     case model.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         ProjectView _ _ (CreateServer _) ->
                             let
-                                csrUpdatedVolBackedness =
-                                    let
-                                        volBackedSizeGb =
-                                            case createServerViewParams.volSizeTextInput of
-                                                Just numericTextInput ->
-                                                    case numericTextInput of
-                                                        ValidNumericTextInput i ->
-                                                            Just i
-
-                                                        InvalidNumericTextInput _ ->
-                                                            Nothing
-
-                                                Nothing ->
-                                                    Nothing
-                                    in
-                                    { createServerRequest | volBackedSizeGb = volBackedSizeGb }
-
-                                newCSR =
+                                newViewParams =
                                     case
-                                        ( Helpers.flavorLookup project createServerRequest.flavorUuid
+                                        ( Helpers.flavorLookup project viewParams.flavorUuid
                                         , project.computeQuota
                                         , project.volumeQuota
                                         )
@@ -812,27 +726,29 @@ processProjectSpecificMsg model project msg =
                                             let
                                                 availServers =
                                                     Helpers.overallQuotaAvailServers
-                                                        createServerRequest
+                                                        (viewParams.volSizeTextInput
+                                                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                                                        )
                                                         flavor
                                                         computeQuota
                                                         volumeQuota
                                             in
-                                            { csrUpdatedVolBackedness
+                                            { viewParams
                                                 | count =
                                                     case availServers of
                                                         Just availServers_ ->
-                                                            if createServerRequest.count > availServers_ then
+                                                            if viewParams.count > availServers_ then
                                                                 availServers_
 
                                                             else
-                                                                createServerRequest.count
+                                                                viewParams.count
 
                                                         Nothing ->
-                                                            createServerRequest.count
+                                                            viewParams.count
                                             }
 
                                         ( _, _, _ ) ->
-                                            csrUpdatedVolBackedness
+                                            viewParams
 
                                 newModel =
                                     { model
@@ -841,7 +757,7 @@ processProjectSpecificMsg model project msg =
                                                 (Helpers.getProjectId project)
                                                 { createPopup = False }
                                             <|
-                                                CreateServer { createServerViewParams | createServerRequest = newCSR }
+                                                CreateServer newViewParams
                                     }
                             in
                             ( newModel
@@ -851,16 +767,10 @@ processProjectSpecificMsg model project msg =
                         -- If we are just entering this view then gather everything we need
                         _ ->
                             let
-                                newCSRMsg serverName_ =
-                                    let
-                                        newCSR =
-                                            { createServerRequest
-                                                | name = serverName_
-                                            }
-                                    in
+                                newViewParamsMsg serverName_ =
                                     ProjectMsg (Helpers.getProjectId project) <|
                                         SetProjectView <|
-                                            CreateServer { createServerViewParams | createServerRequest = newCSR }
+                                            CreateServer { viewParams | serverName = serverName_ }
 
                                 newProject =
                                     { project
@@ -876,7 +786,7 @@ processProjectSpecificMsg model project msg =
                                 [ Rest.Nova.requestFlavors project
                                 , Rest.Nova.requestKeypairs project
                                 , Rest.Neutron.requestNetworks project
-                                , RandomHelpers.generateServerName newCSRMsg
+                                , RandomHelpers.generateServerName newViewParamsMsg
                                 , OpenStack.Quotas.requestComputeQuota project
                                 , OpenStack.Quotas.requestVolumeQuota project
                                 ]
@@ -1033,8 +943,32 @@ processProjectSpecificMsg model project msg =
             , Rest.Nova.requestServer project serverUuid
             )
 
-        RequestCreateServer createServerRequest ->
-            ( model, Rest.Nova.requestCreateServer project model.clientUuid createServerRequest )
+        RequestCreateServer viewParams ->
+            let
+                createServerRequest =
+                    { name = viewParams.serverName
+                    , count = viewParams.count
+                    , imageUuid = viewParams.imageUuid
+                    , flavorUuid = viewParams.flavorUuid
+                    , volBackedSizeGb =
+                        viewParams.volSizeTextInput
+                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                    , networkUuid = viewParams.networkUuid
+                    , keypairName = viewParams.keypairName
+                    , userData =
+                        Helpers.renderUserDataTemplate
+                            project
+                            viewParams.userDataTemplate
+                            viewParams.keypairName
+                            (viewParams.deployGuacamole |> Maybe.withDefault False)
+                    , metadata =
+                        Helpers.newServerMetadata
+                            currentExoServerVersion
+                            model.clientUuid
+                            (viewParams.deployGuacamole |> Maybe.withDefault False)
+                    }
+            in
+            ( model, Rest.Nova.requestCreateServer project createServerRequest )
 
         RequestDeleteServer serverUuid ->
             let
@@ -1650,6 +1584,160 @@ processProjectSpecificMsg model project msg =
                     in
                     ( newModel, Cmd.none )
 
+        ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
+            case ( Helpers.serverLookup project serverUuid, result ) of
+                ( Nothing, _ ) ->
+                    -- Server does not exist in the model, ignore it
+                    ( model, Cmd.none )
+
+                ( _, Err e ) ->
+                    -- Error from API
+                    Helpers.processSynchronousApiError model errorContext e
+
+                ( Just server, Ok newServerMetadata ) ->
+                    -- Update the model after ensuring the intended metadata item was actually added
+                    if List.member intendedMetadataItem newServerMetadata then
+                        let
+                            oldServerDetails =
+                                server.osProps.details
+
+                            newServerDetails =
+                                { oldServerDetails | metadata = newServerMetadata }
+
+                            oldOsProps =
+                                server.osProps
+
+                            newOsProps =
+                                { oldOsProps | details = newServerDetails }
+
+                            newServer =
+                                { server | osProps = newOsProps }
+
+                            newProject =
+                                Helpers.projectUpdateServer project newServer
+
+                            newModel =
+                                Helpers.modelUpdateProject model newProject
+                        in
+                        ( newModel, Cmd.none )
+
+                    else
+                        -- This is bonkers, throw an error
+                        Helpers.processStringError
+                            model
+                            errorContext
+                            "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
+
+        ReceiveGuacamoleAuthToken serverUuid result ->
+            let
+                errorContext =
+                    ErrorContext
+                        "Receive a response from Guacamole auth token API"
+                        ErrorDebug
+                        Nothing
+
+                modelUpdateGuacProps : Server -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> Model
+                modelUpdateGuacProps server exoOriginProps guacProps =
+                    let
+                        newOriginProps =
+                            { exoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole guacProps }
+
+                        oldExoProps =
+                            server.exoProps
+
+                        newExoProps =
+                            { oldExoProps | serverOrigin = ServerFromExo newOriginProps }
+
+                        newServer =
+                            { server | exoProps = newExoProps }
+
+                        newProject =
+                            Helpers.projectUpdateServer project newServer
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+                    in
+                    newModel
+
+                serverMetadataSetGuacDeployComplete : GuacTypes.LaunchedWithGuacProps -> Cmd Msg
+                serverMetadataSetGuacDeployComplete launchedWithGuacProps =
+                    let
+                        value =
+                            Helpers.newGuacMetadata launchedWithGuacProps
+
+                        metadataItem =
+                            OSTypes.MetadataItem
+                                "exoGuac"
+                                value
+                    in
+                    Rest.Nova.requestSetServerMetadata project serverUuid metadataItem
+            in
+            case Helpers.serverLookup project serverUuid of
+                Just server ->
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo exoOriginProps ->
+                            case exoOriginProps.guacamoleStatus of
+                                GuacTypes.LaunchedWithGuacamole oldGuacProps ->
+                                    let
+                                        newGuacProps =
+                                            case result of
+                                                Ok tokenValue ->
+                                                    { oldGuacProps
+                                                        | authToken =
+                                                            RDPP.RemoteDataPlusPlus
+                                                                (RDPP.DoHave
+                                                                    tokenValue
+                                                                    model.clientCurrentTime
+                                                                )
+                                                                (RDPP.NotLoading Nothing)
+                                                    }
+
+                                                Err e ->
+                                                    { oldGuacProps
+                                                        | authToken =
+                                                            RDPP.RemoteDataPlusPlus
+                                                                oldGuacProps.authToken.data
+                                                                (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                                    }
+
+                                        updateMetadataCmd =
+                                            -- TODO not super happy with this factoring
+                                            if oldGuacProps.deployComplete then
+                                                Cmd.none
+
+                                            else
+                                                case result of
+                                                    Ok _ ->
+                                                        serverMetadataSetGuacDeployComplete newGuacProps
+
+                                                    Err _ ->
+                                                        Cmd.none
+                                    in
+                                    ( modelUpdateGuacProps
+                                        server
+                                        exoOriginProps
+                                        newGuacProps
+                                    , updateMetadataCmd
+                                    )
+
+                                GuacTypes.NotLaunchedWithGuacamole ->
+                                    Helpers.processStringError
+                                        model
+                                        errorContext
+                                        "Server does not appear to have been launched with Guacamole support"
+
+                        ServerNotFromExo ->
+                            Helpers.processStringError
+                                model
+                                errorContext
+                                "Server does not appear to have been launched from Exosphere"
+
+                Nothing ->
+                    Helpers.processStringError
+                        model
+                        errorContext
+                        "Could not find server in the model, maybe it has been deleted."
+
 
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
 createProject model password authToken endpoints =
@@ -1672,6 +1760,10 @@ createProject model password authToken endpoints =
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , pendingCredentialedRequests = []
+            , userAppProxyHostname =
+                endpoints.keystone
+                    |> Helpers.hostnameFromUrl
+                    |> (\h -> Dict.get h model.cloudsWithUserAppProxy)
             }
 
         newProjects =

@@ -19,6 +19,7 @@ import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Time
+import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -33,6 +34,7 @@ import Types.Types
         , Server
         , ServerDetailViewParams
         , ServerOrigin(..)
+        , UserAppProxyHostname
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -320,6 +322,12 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             , sshInstructions maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Console")
             , consoleLink projectId appIsElectron serverDetailViewParams server server.osProps.uuid
+            , Element.el VH.heading3 (Element.text "Guacamole Terminal/Desktop")
+            , guacShell
+                (Tuple.first currentTimeAndZone)
+                project.userAppProxyHostname
+                server
+                maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
             , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
             ]
@@ -559,6 +567,105 @@ consoleLink projectId appIsElectron serverDetailViewParams server serverUuid =
             Element.text "Console not available with server in this state."
 
 
+guacShell : Time.Posix -> Maybe UserAppProxyHostname -> Server -> Maybe String -> Element.Element Msg
+guacShell currentTime tlsReverseProxyHostname server maybeFloatingIp =
+    let
+        guacUpstreamPort =
+            49528
+
+        fifteenMinMillis =
+            1000 * 60 * 15
+
+        newServer =
+            Helpers.serverLessThanThisOld server currentTime
+    in
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Element.text "Unavailable (server not launched from Exosphere)"
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.guacamoleStatus of
+                GuacTypes.NotLaunchedWithGuacamole ->
+                    if exoOriginProps.exoServerVersion < 3 then
+                        Element.text "Unavailable (server was created with an older version of Exosphere)"
+
+                    else
+                        Element.text "Unavailable (server deployed with Guacamole support disabled)"
+
+                GuacTypes.LaunchedWithGuacamole guacProps ->
+                    if
+                        not
+                            (List.member
+                                server.osProps.details.openstackStatus
+                                [ OSTypes.ServerBuilding, OSTypes.ServerActive ]
+                            )
+                    then
+                        Element.text "Unavailable (server is not active)"
+
+                    else
+                        case guacProps.authToken.data of
+                            RDPP.DoHave token _ ->
+                                case ( tlsReverseProxyHostname, maybeFloatingIp ) of
+                                    ( Just proxyHostname, Just floatingIp ) ->
+                                        Widget.textButton
+                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                            { text = "Open Guacamole Terminal"
+                                            , onPress =
+                                                Just <|
+                                                    OpenNewWindow <|
+                                                        Helpers.buildProxyUrl
+                                                            proxyHostname
+                                                            floatingIp
+                                                            guacUpstreamPort
+                                                            ("/guacamole/#/client/c2hlbGwAYwBkZWZhdWx0?token=" ++ token)
+                                                            False
+                                            }
+
+                                    ( Nothing, _ ) ->
+                                        Element.text "Unavailable (cannot find TLS-terminating reverse proxy server)"
+
+                                    ( _, Nothing ) ->
+                                        Element.text "Unavailable (server does not have a floating IP address)"
+
+                            RDPP.DontHave ->
+                                if newServer fifteenMinMillis then
+                                    Element.text "Guacamole is still deploying to this new server, check back in a few minutes."
+
+                                else
+                                    case
+                                        ( tlsReverseProxyHostname
+                                        , maybeFloatingIp
+                                        , Helpers.getServerExouserPassword server.osProps.details
+                                        )
+                                    of
+                                        ( Nothing, _, _ ) ->
+                                            Element.text "Unavailable (cannot find TLS-terminating reverse proxy server)"
+
+                                        ( _, Nothing, _ ) ->
+                                            Element.text "Unavailable (server does not have a floating IP address)"
+
+                                        ( _, _, Nothing ) ->
+                                            Element.text "Unavailable (cannot find server password to authenticate)"
+
+                                        ( Just _, Just _, Just _ ) ->
+                                            case guacProps.authToken.refreshStatus of
+                                                RDPP.Loading _ ->
+                                                    Element.text "Authenticating to Guacamole API, one moment..."
+
+                                                RDPP.NotLoading maybeErrorTuple ->
+                                                    -- If deployment is complete but we can't get a token, show error to user
+                                                    case maybeErrorTuple of
+                                                        Nothing ->
+                                                            -- This is a slight misrepresentation; we haven't requested
+                                                            -- a token yet but orchestration code will make request soon
+                                                            Element.text "Authenticating to Guacamole API, one moment..."
+
+                                                        Just ( error, _ ) ->
+                                                            Element.text <|
+                                                                "Exosphere tried to authenticate to the Guacamole API, and received this error: "
+                                                                    ++ Debug.toString error
+
+
 cockpitInteraction : ServerOrigin -> Maybe String -> Element.Element Msg
 cockpitInteraction serverOrigin maybeFloatingIp =
     maybeFloatingIp
@@ -773,6 +880,10 @@ renderConfirmationButton serverAction actionMsg cancelMsg title =
 
 resourceUsageCharts : ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
 resourceUsageCharts currentTimeAndZone server =
+    let
+        thirtyMinMillis =
+            1000 * 60 * 30
+    in
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
             Element.text "Charts not available because server was not created by Exosphere."
@@ -781,7 +892,7 @@ resourceUsageCharts currentTimeAndZone server =
             case exoOriginProps.resourceUsage.data of
                 RDPP.DoHave history _ ->
                     if Dict.isEmpty history.timeSeries then
-                        if Helpers.serverLessThan30MinsOld server (Tuple.first currentTimeAndZone) then
+                        if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
                             Element.text "No chart data yet. This server is new and may take a few minutes to start reporting data."
 
                         else

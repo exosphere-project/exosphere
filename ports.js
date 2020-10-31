@@ -24,49 +24,60 @@ var app = Elm.Exosphere.init({
     node: container,
     flags:
     {
+        // Flags intended to be configured by cloud operators who offer Exosphere
+        showDebugMsgs : false,
         cloudCorsProxyUrl: null,
+        cloudsWithUserAppProxy:
+        [ ["iu.jetstream-cloud.org", "proxy-j7m-iu.exosphere.app"],
+          ["tacc.jetstream-cloud.org", "proxy-j7m-tacc.exosphere.app"],
+        ],
+        // Flags that Exosphere sets dynamically
         width: window.innerWidth,
         height: window.innerHeight,
         storedState: startingState,
-        proxyUrl: null,
         isElectron: isElectron,
         randomSeed0: randomSeeds[0],
         randomSeed1: randomSeeds[1],
         randomSeed2: randomSeeds[2],
         randomSeed3: randomSeeds[3],
         epoch : Date.now(),
-        timeZone : d.getTimezoneOffset(),
-        showDebugMsgs : false
-
+        timeZone : d.getTimezoneOffset()
     }
 });
 
 app.ports.openInBrowser.subscribe(function (url) {
-    // Open link in user's browser rather than Electron app
-    const { shell } = require('electron')
-    shell.openExternal(url)
+    if (isElectron) {
+        // Open link in user's browser rather than Electron app
+        const { shell } = require('electron')
+        shell.openExternal(url)
+    } else {
+        window.open(url);
+    }
 });
 
 
 app.ports.openNewWindow.subscribe(function (url) {
-  // Open link in new Electron window, with 'nodeIntegration: false' so
-  // Bootstrap will work.
-  const electron = require('electron');
-  const BrowserWindow = electron.remote.BrowserWindow;
-  let newWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      nodeIntegration: false
+    if (isElectron) {
+        // Open link in new Electron window, with 'nodeIntegration: false' so
+        // Bootstrap will work.
+        const electron = require('electron');
+        const BrowserWindow = electron.remote.BrowserWindow;
+        let newWindow = new BrowserWindow({
+            width: 800,
+            height: 600,
+            webPreferences: {
+                nodeIntegration: false
+            }
+        });
+        console.log('after constructor');
+        newWindow.on('closed', () => {
+            newWindow = null
+        });
+        // display the index.html file
+        newWindow.loadURL(url);
+    } else {
+        window.open(url);
     }
-  });
-  console.log('after constructor');
-  newWindow.on('closed', () => {
-    newWindow = null
-  });
-
-  // display the index.html file
-  newWindow.loadURL(url);
 });
 
 app.ports.setStorage.subscribe(function(state) {

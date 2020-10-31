@@ -7,17 +7,22 @@ import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
+import Rest.Guacamole
 import Rest.Neutron
 import Rest.Nova
 import Time
+import Types.Guacamole as GuacTypes
 import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
         ( FloatingIpState(..)
-        , Msg
+        , Msg(..)
         , Project
+        , ProjectSpecificMsgConstructor(..)
         , Server
+        , ServerFromExoProps
         , ServerOrigin(..)
+        , UserAppProxyHostname
         )
 import UUID
 
@@ -46,6 +51,7 @@ goalPollServers time project =
         steps =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
+            , stepServerGuacamoleAuth time
             ]
 
         ( newProject, newCmds ) =
@@ -273,6 +279,9 @@ stepServerPollConsoleLog time project server =
                 oneMinMillis =
                     60000
 
+                thirtyMinMillis =
+                    1000 * 60 * 30
+
                 curTimeMillis =
                     Time.posixToMillis time
 
@@ -319,7 +328,7 @@ stepServerPollConsoleLog time project server =
 
                                     linesToPoll : Int
                                     linesToPoll =
-                                        if Helpers.serverLessThan30MinsOld server time || (data.pollingStrikes > 0) then
+                                        if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
                                             1000
 
                                         else
@@ -332,7 +341,7 @@ stepServerPollConsoleLog time project server =
                                     )
                                         -- Poll if server <30 mins old or has <5 polling strikes,
                                         -- and the last time we polled was at least one minute ago.
-                                        || ((Helpers.serverLessThan30MinsOld server time || (data.pollingStrikes < 5))
+                                        || ((Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes < 5))
                                                 && atLeastOneMinSinceLogReceived
                                            )
                                 then
@@ -374,3 +383,114 @@ stepServerPollConsoleLog time project server =
                         server
                         pollLines
                     )
+
+
+stepServerGuacamoleAuth : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerGuacamoleAuth time project server =
+    -- TODO ensure server is active
+    let
+        -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
+        maxGuacTokenLifetimeMillis =
+            3300000
+
+        errorRetryIntervalMillis =
+            15000
+
+        guacUpstreamPort =
+            49528
+
+        doNothing =
+            ( project, Cmd.none )
+
+        doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd Msg )
+        doRequestToken floatingIp password proxyHostname oldExoOriginProps oldGuacProps =
+            let
+                oldAuthToken =
+                    oldGuacProps.authToken
+
+                newAuthToken =
+                    { oldAuthToken | refreshStatus = RDPP.Loading time }
+
+                newGuacProps =
+                    { oldGuacProps | authToken = newAuthToken }
+
+                newExoOriginProps =
+                    { oldExoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole newGuacProps }
+
+                oldExoProps =
+                    server.exoProps
+
+                newExoProps =
+                    { oldExoProps | serverOrigin = ServerFromExo newExoOriginProps }
+
+                newServer =
+                    { server | exoProps = newExoProps }
+
+                url =
+                    Helpers.buildProxyUrl
+                        proxyHostname
+                        floatingIp
+                        guacUpstreamPort
+                        "/guacamole/api/tokens"
+                        False
+            in
+            ( Helpers.projectUpdateServer project newServer
+            , Rest.Guacamole.requestLoginToken
+                url
+                "exouser"
+                password
+                (\result ->
+                    ProjectMsg (Helpers.getProjectId project) <|
+                        ReceiveGuacamoleAuthToken server.osProps.uuid result
+                )
+            )
+    in
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            doNothing
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.guacamoleStatus of
+                GuacTypes.NotLaunchedWithGuacamole ->
+                    doNothing
+
+                GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
+                    case
+                        ( Helpers.getServerFloatingIp server.osProps.details.ipAddresses
+                        , Helpers.getServerExouserPassword server.osProps.details
+                        , project.userAppProxyHostname
+                        )
+                    of
+                        ( Just floatingIp, Just password, Just tlsReverseProxyHostname ) ->
+                            let
+                                doRequestToken_ =
+                                    doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
+                            in
+                            case launchedWithGuacProps.authToken.refreshStatus of
+                                RDPP.Loading _ ->
+                                    doNothing
+
+                                RDPP.NotLoading maybeErrorTimeTuple ->
+                                    case launchedWithGuacProps.authToken.data of
+                                        RDPP.DontHave ->
+                                            case maybeErrorTimeTuple of
+                                                Nothing ->
+                                                    doRequestToken_
+
+                                                Just ( _, recTime ) ->
+                                                    if Time.posixToMillis recTime + errorRetryIntervalMillis > Time.posixToMillis time then
+                                                        doNothing
+
+                                                    else
+                                                        doRequestToken_
+
+                                        RDPP.DoHave _ recTime ->
+                                            if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
+                                                doNothing
+
+                                            else
+                                                doRequestToken_
+
+                        _ ->
+                            -- Missing either a floating IP, password, or TLS-terminating reverse proxy server
+                            doNothing

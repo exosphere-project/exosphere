@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
     ( authUrlWithPortAndVersion
+    , buildProxyUrl
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
     , flavorLookup
@@ -19,6 +20,8 @@ module Helpers.Helpers exposing
     , jetstreamToOpenstackCreds
     , modelUpdateProject
     , modelUpdateUnscopedProvider
+    , newGuacMetadata
+    , newServerMetadata
     , newServerNetworkOptions
     , overallQuotaAvailServers
     , processOpenRc
@@ -32,7 +35,7 @@ module Helpers.Helpers exposing
     , providerLookup
     , renderUserDataTemplate
     , serverFromThisExoClient
-    , serverLessThan30MinsOld
+    , serverLessThanThisOld
     , serverLookup
     , serverNeedsFrequentPoll
     , serverOrigin
@@ -57,21 +60,24 @@ import Html
 import Html.Attributes
 import Http
 import Json.Decode as Decode
+import Json.Encode
 import Maybe.Extra
 import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
+import ServerDeploy
 import Task
 import Time
 import Toasty
 import Toasty.Defaults
+import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
-        , CreateServerRequest
         , Endpoints
+        , ExoServerVersion
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
@@ -87,6 +93,7 @@ import Types.Types
         , ServerUiStatus(..)
         , Toast
         , UnscopedProvider
+        , UserAppProxyHostname
         )
 import UUID
 import Url
@@ -807,8 +814,8 @@ sortedFlavors flavors =
         |> List.sortBy .vcpu
 
 
-renderUserDataTemplate : Project -> CreateServerRequest -> String
-renderUserDataTemplate project createServerRequest =
+renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole =
     {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -820,17 +827,65 @@ renderUserDataTemplate project createServerRequest =
 
         generateYamlFromPublicKey : String -> String
         generateYamlFromPublicKey selectedPublicKey =
-            "ssh-authorized-keys:\n      - " ++ selectedPublicKey
+            "ssh-authorized-keys:\n      - " ++ selectedPublicKey ++ "\n"
+
+        guacamoleSetupCmds : String
+        guacamoleSetupCmds =
+            if deployGuacamole then
+                ServerDeploy.guacamoleUserData
+
+            else
+                "echo \"Not deploying Guacamole\""
 
         renderUserData : String -> String
         renderUserData authorizedKeyYaml =
-            String.replace "{ssh-authorized-keys}\n" authorizedKeyYaml createServerRequest.userData
+            [ ( "{ssh-authorized-keys}\n", authorizedKeyYaml )
+            , ( "{guacamole-setup}\n", guacamoleSetupCmds )
+            ]
+                |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
     in
-    createServerRequest.keypairName
+    maybeKeypairName
         |> Maybe.andThen getPublicKeyFromKeypairName
         |> Maybe.map generateYamlFromPublicKey
         |> Maybe.withDefault ""
         |> renderUserData
+
+
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
+    let
+        guacMetadata =
+            if deployGuacamole then
+                [ ( "exoGuac"
+                  , Json.Encode.string
+                        """{"v":"1","ssh":true,"vnc":false,"deployComplete":false}"""
+                  )
+                ]
+
+            else
+                []
+    in
+    List.concat
+        [ guacMetadata
+        , [ ( "exoServerVersion"
+            , Json.Encode.string (String.fromInt exoServerVersion)
+            )
+          , ( "exoClientUuid"
+            , Json.Encode.string (UUID.toString exoClientUuid)
+            )
+          ]
+        ]
+
+
+newGuacMetadata : GuacTypes.LaunchedWithGuacProps -> String
+newGuacMetadata launchedWithGuacProps =
+    Json.Encode.object
+        [ ( "v", Json.Encode.int 1 )
+        , ( "ssh", Json.Encode.bool launchedWithGuacProps.sshSupported )
+        , ( "vnc", Json.Encode.bool launchedWithGuacProps.vncSupported )
+        , ( "deployComplete", Json.Encode.bool launchedWithGuacProps.deployComplete )
+        ]
+        |> Json.Encode.encode 0
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions
@@ -1027,13 +1082,13 @@ volumeQuotaAvail volumeQuota =
     )
 
 
-overallQuotaAvailServers : CreateServerRequest -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
-overallQuotaAvailServers createServerRequest flavor computeQuota volumeQuota =
+overallQuotaAvailServers : Maybe OSTypes.VolumeSize -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
+overallQuotaAvailServers maybeVolBackedGb flavor computeQuota volumeQuota =
     let
         computeQuotaAvailServers =
             computeQuotaFlavorAvailServers computeQuota flavor
     in
-    case createServerRequest.volBackedSizeGb of
+    case maybeVolBackedGb of
         Nothing ->
             computeQuotaAvailServers
 
@@ -1070,16 +1125,41 @@ serverOrigin serverDetails =
                 |> List.head
                 |> Maybe.map .value
                 |> Maybe.andThen String.toInt
+
+        decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
+        decodeGuacamoleProps =
+            Decode.map4
+                GuacTypes.LaunchedWithGuacProps
+                (Decode.field "ssh" Decode.bool)
+                (Decode.field "vnc" Decode.bool)
+                (Decode.field "deployComplete" Decode.bool)
+                (Decode.succeed RDPP.empty)
+
+        guacamoleStatus =
+            case
+                List.filter (\i -> i.key == "exoGuac") serverDetails.metadata
+                    |> List.head
+            of
+                Nothing ->
+                    GuacTypes.NotLaunchedWithGuacamole
+
+                Just item ->
+                    case Decode.decodeString decodeGuacamoleProps item.value of
+                        Ok launchedWithGuacProps ->
+                            GuacTypes.LaunchedWithGuacamole launchedWithGuacProps
+
+                        Err _ ->
+                            GuacTypes.NotLaunchedWithGuacamole
     in
     case exoServerVersion_ of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked RDPP.empty
+                ServerFromExoProps v NotChecked RDPP.empty guacamoleStatus
 
         Nothing ->
             if version0 then
                 ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked RDPP.empty
+                    ServerFromExoProps 0 NotChecked RDPP.empty guacamoleStatus
 
             else
                 ServerNotFromExo
@@ -1114,14 +1194,11 @@ serverNeedsFrequentPoll server =
             True
 
 
-serverLessThan30MinsOld : Server -> Time.Posix -> Bool
-serverLessThan30MinsOld server currentTime =
+serverLessThanThisOld : Server -> Time.Posix -> Int -> Bool
+serverLessThanThisOld server currentTime maxServerAgeMillis =
     let
         curTimeMillis =
             Time.posixToMillis currentTime
-
-        thirtyMinMillis =
-            1800000
     in
     case iso8601StringToPosix server.osProps.details.created of
         -- Defaults to False if cannot determine server created time
@@ -1129,4 +1206,22 @@ serverLessThan30MinsOld server currentTime =
             False
 
         Ok createdTime ->
-            (curTimeMillis - Time.posixToMillis createdTime) < thirtyMinMillis
+            (curTimeMillis - Time.posixToMillis createdTime) < maxServerAgeMillis
+
+
+buildProxyUrl : UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
+buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
+    [ "https://"
+    , if https_upstream then
+        ""
+
+      else
+        "http-"
+    , destinationIp |> String.replace "." "-"
+    , "-"
+    , String.fromInt port_
+    , "."
+    , proxyHostname
+    , path
+    ]
+        |> String.concat

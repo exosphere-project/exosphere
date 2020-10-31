@@ -27,10 +27,10 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
   - Persistent servers ("I need this one to stick around for years")
   - Disposable experiments ("I need a place to try this thing")
 - Delivers on each instance:
-  - One-click terminal, no knowledge of SSH required
-  - One-click [graphical dashboard](https://cockpit-project.org/)
+  - One-click terminal, no knowledge of SSH required, served with [Apache Guacamole](http://guacamole.apache.org/)
+  - Very soon, a one-click graphical desktop environment, also served with Guacamole
 - Use with any OpenStack cloud
-- Completely standalone app, no custom backend/server required
+- Completely standalone app, no custom backend/server required*
 - App is engineered for ease of adoption, troubleshooting, and development
   - [No runtime exceptions!](https://elm-lang.org/)
   - Open source and [open](https://gitlab.com/exosphere/exosphere/issues) [development](https://gitlab.com/exosphere/exosphere/merge_requests?scope=all&utf8=%E2%9C%93&state=merged) [process](https://gitlab.com/exosphere/exosphere/wikis/user-testing/Person-L-('L'-as-in-Andrew-Lenards-%F0%9F%99%87)). Come hack with us!
@@ -55,8 +55,8 @@ Exosphere requires Queens release of OpenStack (released February 2018).
 
 There are three ways to get started using Exosphere.
 
-1. Very Quick Start: The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests. It is very easy to try but doesn't yet support all features (e.g. one-click shell and instance dashboard).
-2. Install on your computer: The next easiest way is to download a pre-compiled installer for your operating system. You can find the latest builds for OSX, Linux, and Windows here: https://try.exosphere.app/packages/
+1. Very Quick Start: The easiest way is at <https://try.exosphere.app/exosphere/>. This uses a proxy for OpenStack API requests.
+2. Install on your computer: The next easiest way is to download a pre-compiled installer for your operating system. You can find the latest builds for Mac OS, Linux, and Windows here: <https://try.exosphere.app/packages/>
 3. Build yourself: If you want to try all app features, you can run Exosphere locally using [Electron](https://electronjs.org/). This is described below.
 
 ### Build and Run Exosphere as Electron App
@@ -171,20 +171,28 @@ docker cp exosphere:/usr/src/app/elm.js my-elm.js
 
 When it's time to cleanup, you can do `docker stop exosphere` and `docker rm exosphere`.
 
-### Note about self-signed certificates for terminal and server dashboard
+### Note Cockpit-based terminal and server dashboard
 
-Currently the Cockpit dashboard and terminal for a provisioned server is served using a self-signed TLS certificate.
-While we work on a permanent solution which does not require trusting self-signed certificates we have to enable the
-`ignore-certificate-errors` switch for Electron.   
+Cockpit-based terminal is being deprecated and replaced with a shell and a graphical desktop environment served by [Apache Guacamole](http://guacamole.apache.org/). Soon, Exosphere will stop deploying instances with Cockpit support, and at some point in the future, Exosphere will stop exposing Cockpit-based interactions for older instances that were deployed with an older version of Exosphere. 
+
+Currently the Cockpit dashboard and terminal for a provisioned server is served using a self-signed TLS certificate. In order for this to work in the client (it works only in the Electron app), one must enable the `ignore-certificate-errors` switch for Electron, which is insecure and a bad idea.   
 
 ```javascript
 // Uncomment this for testing with self-signed certificates
 app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
 ```
 
-Do not enable this by default.
+Please do not use the terminal or server dashboard functionality over untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or dashboard view.
 
-Until the permanent solution has been implemented, please do not use the terminal or server dashboard functionality over untrusted networks, and do not type or transfer any sensitive information into a server via a terminal window or dashboard view.
+## Runtime configuration options
+
+Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in the `flags` JSON object in `ports.js`.
+
+| *Option*                  | *Possible Values* | *Description*                                                       |
+|---------------------------|-------------------|---------------------------------------------------------------------|
+| showDebugMsgs             | false, true       |                                                                     |
+| openstackApiProxyUrl      | null, string      | See `docs/cors-proxy.md`; required for using Exosphere in a browser |
+| cloudsWithUserAppProxy    | (see docs)        | See `docs/user-app-proxy.md`; required for Guacamole support        |
 
 ## Collaborate
 
