@@ -14,7 +14,7 @@ requestLoginToken url username password resultToMsg =
         , url = url
         , body = Http.stringBody "text/plain" <| "username=" ++ username ++ "&password=" ++ password
         , expect = Http.expectJson resultToMsg decodeLoginToken
-        , timeout = Just 3000
+        , timeout = Just 10000
         , tracker = Nothing
         }
 
