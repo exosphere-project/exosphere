@@ -851,8 +851,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> renderUserData
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> String -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsername =
     let
         guacMetadata =
             if deployGuacamole then
@@ -872,6 +872,9 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole =
             )
           , ( "exoClientUuid"
             , Json.Encode.string (UUID.toString exoClientUuid)
+            )
+          , ( "exoCreatorUsername"
+            , Json.Encode.string exoCreatorUsername
             )
           ]
         ]
