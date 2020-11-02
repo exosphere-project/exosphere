@@ -151,21 +151,21 @@ renderServer projectId serverListViewParams server =
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
-        creatorName =
-            List.filter (\i -> i.key == "exoCreatorUsername") server.osProps.details.metadata
-                |> List.head
-                |> Maybe.map .value
-
         creatorNameView =
-            case creatorName of
-                Just creatorNameFound ->
-                    Element.el
-                        [ Element.width Element.shrink
-                        , Font.size 12
-                        ]
-                        (Element.text ("(creator: " ++ creatorNameFound ++ ")"))
+            case server.exoProps.serverOrigin of
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.exoCreatorUsername of
+                        Just creatorUsername ->
+                            Element.el
+                                [ Element.width Element.shrink
+                                , Font.size 12
+                                ]
+                                (Element.text ("(creator: " ++ creatorUsername ++ ")"))
 
-                Nothing ->
+                        _ ->
+                            Element.none
+
+                _ ->
                     Element.none
 
         checkbox =

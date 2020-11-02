@@ -69,10 +69,18 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
         details =
             server.osProps.details
 
-        creatorName =
-            List.filter (\i -> i.key == "exoCreatorUsername") server.osProps.details.metadata
-                |> List.head
-                |> Maybe.map .value
+        creatorNameView =
+            case server.exoProps.serverOrigin of
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.exoCreatorUsername of
+                        Just creatorUsername ->
+                            VH.compactKVRow "Created by" (Element.text creatorUsername)
+
+                        _ ->
+                            Element.none
+
+                _ ->
+                    Element.none
 
         flavorText =
             Helpers.flavorLookup project details.flavorUuid
@@ -267,12 +275,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             , VH.compactKVRow "Status" (serverStatus projectId serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
-            , case creatorName of
-                Just creatorNameFound ->
-                    VH.compactKVRow "Created by" (Element.text creatorNameFound)
-
-                Nothing ->
-                    Element.none
+            , creatorNameView
             , VH.compactKVRow "Image" (Element.text imageText)
             , VH.compactKVRow "Flavor" (Element.text flavorText)
             , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))

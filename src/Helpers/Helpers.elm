@@ -1150,16 +1150,21 @@ serverOrigin serverDetails =
 
                         Err _ ->
                             GuacTypes.NotLaunchedWithGuacamole
+
+        creatorName =
+            List.filter (\i -> i.key == "exoCreatorUsername") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
     in
     case exoServerVersion_ of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked RDPP.empty guacamoleStatus
+                ServerFromExoProps v NotChecked RDPP.empty guacamoleStatus creatorName
 
         Nothing ->
             if version0 then
                 ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked RDPP.empty guacamoleStatus
+                    ServerFromExoProps 0 NotChecked RDPP.empty guacamoleStatus creatorName
 
             else
                 ServerNotFromExo
