@@ -134,38 +134,38 @@ serverList_ projectId userUuid serverListViewParams servers =
             ]
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
-                [ List.map (renderServer projectId serverListViewParams) ownServers
+                [ List.map (renderServer projectId serverListViewParams True) ownServers
                 , [ onlyOwnExpander projectId serverListViewParams otherUsersServers ]
                 , if serverListViewParams.onlyOwnServers then
                     []
 
                   else
-                    List.map (renderServer projectId serverListViewParams) otherUsersServers
+                    List.map (renderServer projectId serverListViewParams False) otherUsersServers
                 ]
         ]
 
 
-renderServer : ProjectIdentifier -> ServerListViewParams -> Server -> Element.Element Msg
-renderServer projectId serverListViewParams server =
+renderServer : ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
+renderServer projectId serverListViewParams isMyServer server =
     let
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
 
-        creatorName =
-            List.filter (\i -> i.key == "exoCreatorUsername") server.osProps.details.metadata
-                |> List.head
-                |> Maybe.map .value
-
         creatorNameView =
-            case creatorName of
-                Just creatorNameFound ->
-                    Element.el
-                        [ Element.width Element.shrink
-                        , Font.size 12
-                        ]
-                        (Element.text ("(creator: " ++ creatorNameFound ++ ")"))
+            case ( isMyServer, server.exoProps.serverOrigin ) of
+                ( False, ServerFromExo exoOriginProps ) ->
+                    case exoOriginProps.exoCreatorUsername of
+                        Just creatorUsername ->
+                            Element.el
+                                [ Element.width Element.shrink
+                                , Font.size 12
+                                ]
+                                (Element.text ("(creator: " ++ creatorUsername ++ ")"))
 
-                Nothing ->
+                        _ ->
+                            Element.none
+
+                ( _, _ ) ->
                     Element.none
 
         checkbox =

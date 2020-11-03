@@ -416,6 +416,7 @@ type alias ServerFromExoProps =
     , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
+    , exoCreatorUsername : Maybe String
     }
 
 

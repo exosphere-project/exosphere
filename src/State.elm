@@ -966,6 +966,7 @@ processProjectSpecificMsg model project msg =
                             currentExoServerVersion
                             model.clientUuid
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
+                            project.auth.user.name
                     }
             in
             ( model, Rest.Nova.requestCreateServer project createServerRequest )
