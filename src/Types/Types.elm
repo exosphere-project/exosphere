@@ -7,6 +7,7 @@ module Types.Types exposing
     , Endpoints
     , ExoServerProps
     , ExoServerVersion
+    , ExoSetupStatus(..)
     , Flags
     , FloatingIpState(..)
     , HttpRequestMethod(..)
@@ -413,6 +414,7 @@ type ServerOrigin
 
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
+    , exoSetupStatus : ExoSetupStatus
     , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
@@ -464,6 +466,13 @@ type ServerUiStatus
     | ServerUiStatusRescued
     | ServerUiStatusShelved
     | ServerUiStatusDeleted
+
+
+type ExoSetupStatus
+    = ExoSetupWaiting
+    | ExoSetupRunning
+    | ExoSetupComplete
+    | ExoSetupError
 
 
 type alias ProjectName =
