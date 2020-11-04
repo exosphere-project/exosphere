@@ -1121,16 +1121,29 @@ overallQuotaAvailServers maybeVolBackedGb flavor computeQuota volumeQuota =
 serverOrigin : OSTypes.ServerDetails -> ServerOrigin
 serverOrigin serverDetails =
     let
-        version0 =
-            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-                |> List.isEmpty
-                |> not
+        exoServerVersion =
+            let
+                maybeDecodedVersion =
+                    List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
+                        |> List.head
+                        |> Maybe.map .value
+                        |> Maybe.andThen String.toInt
 
-        exoServerVersion_ =
-            List.filter (\i -> i.key == "exoServerVersion") serverDetails.metadata
-                |> List.head
-                |> Maybe.map .value
-                |> Maybe.andThen String.toInt
+                version0 =
+                    List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                        |> List.isEmpty
+                        |> not
+            in
+            case maybeDecodedVersion of
+                Just v ->
+                    Just v
+
+                Nothing ->
+                    if version0 then
+                        Just 0
+
+                    else
+                        Nothing
 
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
@@ -1162,18 +1175,13 @@ serverOrigin serverDetails =
                 |> List.head
                 |> Maybe.map .value
     in
-    case exoServerVersion_ of
+    case exoServerVersion of
         Just v ->
             ServerFromExo <|
                 ServerFromExoProps v NotChecked RDPP.empty guacamoleStatus creatorName
 
         Nothing ->
-            if version0 then
-                ServerFromExo <|
-                    ServerFromExoProps 0 NotChecked RDPP.empty guacamoleStatus creatorName
-
-            else
-                ServerNotFromExo
+            ServerNotFromExo
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool
