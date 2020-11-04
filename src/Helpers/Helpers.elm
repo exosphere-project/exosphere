@@ -78,6 +78,7 @@ import Types.Types
         ( CockpitLoginStatus(..)
         , Endpoints
         , ExoServerVersion
+        , ExoSetupStatus(..)
         , FloatingIpState(..)
         , JetstreamCreds
         , JetstreamProvider(..)
@@ -1145,6 +1146,34 @@ serverOrigin serverDetails =
                     else
                         Nothing
 
+        exoSetupStatus =
+            let
+                maybeStrStatus =
+                    List.filter (\i -> i.key == "exoSetup") serverDetails.metadata
+                        |> List.head
+                        |> Maybe.map .value
+            in
+            case maybeStrStatus of
+                Nothing ->
+                    ExoSetupUnknown
+
+                Just strStatus ->
+                    case strStatus of
+                        "waiting" ->
+                            ExoSetupWaiting
+
+                        "running" ->
+                            ExoSetupRunning
+
+                        "complete" ->
+                            ExoSetupComplete
+
+                        "error" ->
+                            ExoSetupError
+
+                        _ ->
+                            ExoSetupUnknown
+
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
             Decode.map4
@@ -1178,7 +1207,7 @@ serverOrigin serverDetails =
     case exoServerVersion of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v NotChecked RDPP.empty guacamoleStatus creatorName
+                ServerFromExoProps v exoSetupStatus NotChecked RDPP.empty guacamoleStatus creatorName
 
         Nothing ->
             ServerNotFromExo
