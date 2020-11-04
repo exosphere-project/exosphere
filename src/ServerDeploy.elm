@@ -48,6 +48,7 @@ runcmd:
   - |
     {guacamole-setup}
   - unset PASSPHRASE
+  - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
   - [ /dev/sdb, /media/volume/sdb ]
