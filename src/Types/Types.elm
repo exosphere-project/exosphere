@@ -473,6 +473,7 @@ type ExoSetupStatus
     | ExoSetupRunning
     | ExoSetupComplete
     | ExoSetupError
+    | ExoSetupUnknown
 
 
 type alias ProjectName =
