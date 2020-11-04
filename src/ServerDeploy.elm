@@ -16,6 +16,7 @@ package_update: true
 packages:
   - cockpit
 runcmd:
+  - echo '{"exoSetup":"running"}' > /dev/console
   - |
     WORDS_URL=https://gitlab.com/exosphere/exosphere/snippets/1943838/raw
     WORDS_SHA512=a71dd2806263d6bce2b45775d80530a4187921a6d4d974d6502f02f6228612e685e2f6dcc1d7f53f5e2a260d0f8a14773458a1a6e7553430727a9b46d5d6e002
