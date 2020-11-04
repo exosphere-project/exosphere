@@ -876,6 +876,9 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsern
           , ( "exoCreatorUsername"
             , Json.Encode.string exoCreatorUsername
             )
+          , ( "exoSetup"
+            , Json.Encode.string "waiting"
+            )
           ]
         ]
 
