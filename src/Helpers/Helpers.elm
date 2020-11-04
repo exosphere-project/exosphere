@@ -1174,6 +1174,9 @@ serverOrigin serverDetails =
                         _ ->
                             ExoSetupUnknown
 
+        exoSetupStatusRDPP =
+            RDPP.RemoteDataPlusPlus (RDPP.DoHave exoSetupStatus (Time.millisToPosix 0)) (RDPP.NotLoading Nothing)
+
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
             Decode.map4
@@ -1207,7 +1210,7 @@ serverOrigin serverDetails =
     case exoServerVersion of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v exoSetupStatus NotChecked RDPP.empty guacamoleStatus creatorName
+                ServerFromExoProps v exoSetupStatusRDPP NotChecked RDPP.empty guacamoleStatus creatorName
 
         Nothing ->
             ServerNotFromExo

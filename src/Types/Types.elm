@@ -414,7 +414,7 @@ type ServerOrigin
 
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
-    , exoSetupStatus : ExoSetupStatus
+    , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ExoSetupStatus
     , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
