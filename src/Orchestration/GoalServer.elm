@@ -15,7 +15,8 @@ import Types.Guacamole as GuacTypes
 import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
-        ( FloatingIpState(..)
+        ( ExoSetupStatus(..)
+        , FloatingIpState(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -269,9 +270,9 @@ stepServerRequestFloatingIp _ project server =
 
 stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerPollConsoleLog time project server =
-    -- Now polling console log for two purposes:
+    -- Now polling console log for two possible purposes:
     -- 1. Get system resource usage data
-    -- 2. Look for new exoSetup (running, complete, or error)
+    -- 2. Look for new exoSetup value (e.g. running, complete, or error)
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
             -- Don't poll server that won't be logging resource usage to console
@@ -288,22 +289,48 @@ stepServerPollConsoleLog time project server =
                 curTimeMillis =
                     Time.posixToMillis time
 
-                -- TODO we could poll because we need resource usage data, or we need exoSetup, or both. Poll if we need either of these things, whatever the greater number of lines is.
-                -- TODO when polling because we need new exoSetup, if it's our first time polling since app launch, get entire console log. if it's been >2m since last data received, get entire console log.
-                doPollLines : Maybe (Maybe Int)
-                doPollLines =
-                    let
-                        serverIsActive =
-                            server.osProps.details.openstackStatus == OSTypes.ServerActive
+                serverIsActive =
+                    server.osProps.details.openstackStatus == OSTypes.ServerActive
 
-                        consoleLogNotLoading =
-                            case exoOriginProps.resourceUsage.refreshStatus of
-                                RDPP.NotLoading _ ->
-                                    True
+                consoleLogNotLoading =
+                    -- ugh parallel data structures, should consolidate at some point?
+                    case ( exoOriginProps.exoSetupStatus.refreshStatus, exoOriginProps.resourceUsage.refreshStatus ) of
+                        ( RDPP.NotLoading _, RDPP.NotLoading _ ) ->
+                            True
 
-                                RDPP.Loading _ ->
-                                    False
-                    in
+                        _ ->
+                            False
+
+                -- For return type of next functions, the outer maybe determines whether to poll at all. The inner maybe
+                -- determines whether we poll the whole log (Nothing) or just a set number of lines (Just Int).
+                doPollLinesExoSetupStatus : Maybe (Maybe Int)
+                doPollLinesExoSetupStatus =
+                    if
+                        serverIsActive
+                            && (exoOriginProps.exoServerVersion >= 4)
+                            && consoleLogNotLoading
+                    then
+                        case exoOriginProps.exoSetupStatus.data of
+                            RDPP.DontHave ->
+                                -- Get the whole log
+                                Just Nothing
+
+                            RDPP.DoHave exoSetupStatus recTime ->
+                                -- If setupStatus is in a non-terminal state and we haven't checked in at least 30 seconds, get the whole log
+                                if
+                                    List.member exoSetupStatus [ ExoSetupUnknown, ExoSetupWaiting, ExoSetupRunning ]
+                                        && (Time.posixToMillis recTime + (30 * 1000) < curTimeMillis)
+                                then
+                                    Just Nothing
+
+                                else
+                                    Nothing
+
+                    else
+                        Nothing
+
+                doPollLinesResourceUsage : Maybe (Maybe Int)
+                doPollLinesResourceUsage =
                     if
                         serverIsActive
                             && (exoOriginProps.exoServerVersion >= 2)
@@ -357,8 +384,43 @@ stepServerPollConsoleLog time project server =
 
                     else
                         Nothing
+
+                doPollLinesCombined : Maybe (Maybe Int)
+                doPollLinesCombined =
+                    -- Poll the maximum amount of whatever log is needed between resource usage graphs and setup status
+                    -- This factoring could be nicer
+                    let
+                        pollEntireLog =
+                            [ doPollLinesResourceUsage, doPollLinesExoSetupStatus ]
+                                |> List.filterMap identity
+                                |> List.any
+                                    (\x ->
+                                        case x of
+                                            Nothing ->
+                                                True
+
+                                            Just _ ->
+                                                False
+                                    )
+
+                        pollExplicitNumLines =
+                            [ doPollLinesResourceUsage, doPollLinesExoSetupStatus ]
+                                |> List.filterMap identity
+                                |> List.filterMap identity
+                                |> List.maximum
+                    in
+                    if pollEntireLog then
+                        Just Nothing
+
+                    else
+                        case pollExplicitNumLines of
+                            Just l ->
+                                Just (Just l)
+
+                            Nothing ->
+                                Nothing
             in
-            case doPollLines of
+            case doPollLinesCombined of
                 Nothing ->
                     ( project, Cmd.none )
 
