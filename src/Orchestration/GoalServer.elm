@@ -269,6 +269,9 @@ stepServerRequestFloatingIp _ project server =
 
 stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerPollConsoleLog time project server =
+    -- Now polling console log for two purposes:
+    -- 1. Get system resource usage data
+    -- 2. Look for new exoSetup (running, complete, or error)
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
             -- Don't poll server that won't be logging resource usage to console
@@ -285,7 +288,9 @@ stepServerPollConsoleLog time project server =
                 curTimeMillis =
                     Time.posixToMillis time
 
-                doPollLines : Maybe Int
+                -- TODO we could poll because we need resource usage data, or we need exoSetup, or both. Poll if we need either of these things, whatever the greater number of lines is.
+                -- TODO when polling because we need new exoSetup, if it's our first time polling since app launch, get entire console log. if it's been >2m since last data received, get entire console log.
+                doPollLines : Maybe (Maybe Int)
                 doPollLines =
                     let
                         serverIsActive =
@@ -307,7 +312,7 @@ stepServerPollConsoleLog time project server =
                         case exoOriginProps.resourceUsage.data of
                             RDPP.DontHave ->
                                 -- Get a lot of log if we haven't polled for it before
-                                Just 1000
+                                Just Nothing
 
                             RDPP.DoHave data recTime ->
                                 let
@@ -326,13 +331,13 @@ stepServerPollConsoleLog time project server =
                                     atLeastOneMinSinceLogReceived =
                                         (curTimeMillis - Time.posixToMillis recTime) > oneMinMillis
 
-                                    linesToPoll : Int
+                                    linesToPoll : Maybe Int
                                     linesToPoll =
                                         if Helpers.serverLessThanThisOld server time thirtyMinMillis || (data.pollingStrikes > 0) then
-                                            1000
+                                            Nothing
 
                                         else
-                                            10
+                                            Just 10
                                 in
                                 if
                                     -- Poll if we have time series data with last data point at least one minute old.

@@ -17,17 +17,25 @@ import Types.Types
         )
 
 
-requestConsoleLog : Project -> Server -> Int -> Cmd Msg
-requestConsoleLog project server length =
+requestConsoleLog : Project -> Server -> Maybe Int -> Cmd Msg
+requestConsoleLog project server maybeLength =
     let
+        lengthJson =
+            case maybeLength of
+                Nothing ->
+                    []
+
+                Just length ->
+                    [ ( "length"
+                      , Json.Encode.int length
+                      )
+                    ]
+
         body =
             Json.Encode.object
                 [ ( "os-getConsoleOutput"
                   , Json.Encode.object
-                        [ ( "length"
-                          , Json.Encode.int length
-                          )
-                        ]
+                        lengthJson
                   )
                 ]
 
