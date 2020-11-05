@@ -3,10 +3,12 @@ module State exposing (init, subscriptions, update)
 import Browser.Events
 import Dict
 import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
+import Helpers.ExoSetupStatus
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
+import Helpers.Time as TimeHelpers
 import Http
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -39,6 +41,7 @@ import Types.Types
     exposing
         ( CockpitLoginStatus(..)
         , Endpoints
+        , ExoSetupStatus(..)
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
@@ -1486,6 +1489,61 @@ processProjectSpecificMsg model project msg =
 
                         ServerFromExo exoOriginProps ->
                             let
+                                oldExoSetupStatus =
+                                    case exoOriginProps.exoSetupStatus.data of
+                                        RDPP.DontHave ->
+                                            ExoSetupUnknown
+
+                                        RDPP.DoHave s _ ->
+                                            s
+
+                                ( newExoSetupStatusRDPP, exoSetupStatusMetadataCmd ) =
+                                    case result of
+                                        Err httpError ->
+                                            ( RDPP.RemoteDataPlusPlus
+                                                exoOriginProps.exoSetupStatus.data
+                                                (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+                                            , Cmd.none
+                                            )
+
+                                        Ok consoleLog ->
+                                            let
+                                                newExoSetupStatus =
+                                                    Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
+                                                        oldExoSetupStatus
+                                                        consoleLog
+                                                        (TimeHelpers.iso8601StringToPosix
+                                                            server.osProps.details.created
+                                                            |> Result.withDefault
+                                                                (Time.millisToPosix 0)
+                                                        )
+                                                        model.clientCurrentTime
+
+                                                cmd =
+                                                    if newExoSetupStatus == oldExoSetupStatus then
+                                                        Cmd.none
+
+                                                    else
+                                                        let
+                                                            value =
+                                                                Helpers.ExoSetupStatus.exoSetupStatusToStr newExoSetupStatus
+
+                                                            metadataItem =
+                                                                OSTypes.MetadataItem
+                                                                    "exoSetup"
+                                                                    value
+                                                        in
+                                                        Rest.Nova.requestSetServerMetadata project serverUuid metadataItem
+                                            in
+                                            ( RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave
+                                                    newExoSetupStatus
+                                                    model.clientCurrentTime
+                                                )
+                                                (RDPP.NotLoading Nothing)
+                                            , cmd
+                                            )
+
                                 newResourceUsage =
                                     case result of
                                         Err httpError ->
@@ -1508,7 +1566,10 @@ processProjectSpecificMsg model project msg =
                                                 (RDPP.NotLoading Nothing)
 
                                 newOriginProps =
-                                    { exoOriginProps | resourceUsage = newResourceUsage }
+                                    { exoOriginProps
+                                        | resourceUsage = newResourceUsage
+                                        , exoSetupStatus = newExoSetupStatusRDPP
+                                    }
 
                                 oldExoProps =
                                     server.exoProps
@@ -1530,7 +1591,7 @@ processProjectSpecificMsg model project msg =
                                     Helpers.processSynchronousApiError newModel errorContext httpError
 
                                 Ok _ ->
-                                    ( newModel, Cmd.none )
+                                    ( newModel, exoSetupStatusMetadataCmd )
 
         ReceiveSetServerName serverUuid _ errorContext result ->
             case ( Helpers.serverLookup project serverUuid, result ) of
