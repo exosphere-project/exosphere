@@ -37,7 +37,7 @@ parseConsoleLogExoSetupStatus oldExoSetupStatus consoleLog serverCreatedTime cur
             Time.posixToMillis serverCreatedTime
                 -- 2 hours
                 + 7200000
-                > Time.posixToMillis currentTime
+                < Time.posixToMillis currentTime
 
         finalStatus =
             if statusIsNonTerminal && serverTooOldForNonTerminalStatus then
