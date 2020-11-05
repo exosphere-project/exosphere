@@ -473,6 +473,7 @@ type ExoSetupStatus
     | ExoSetupRunning
     | ExoSetupComplete
     | ExoSetupError
+    | ExoSetupTimeout
     | ExoSetupUnknown
 
 
