@@ -426,11 +426,17 @@ stepServerPollConsoleLog time project server =
 
                 Just pollLines ->
                     let
+                        newExoSetupStatus =
+                            RDPP.setLoading exoOriginProps.exoSetupStatus time
+
                         newResourceUsage =
                             RDPP.setLoading exoOriginProps.resourceUsage time
 
                         newExoOriginProps =
-                            { exoOriginProps | resourceUsage = newResourceUsage }
+                            { exoOriginProps
+                                | resourceUsage = newResourceUsage
+                                , exoSetupStatus = newExoSetupStatus
+                            }
 
                         oldExoProps =
                             server.exoProps
