@@ -642,23 +642,37 @@ getServerExouserPassword serverDetails =
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
     -- TODO move this to view helpers
-    -- TODO reconcile this with orchestration engine's concept of when provisioning is complete
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
             case server.exoProps.serverOrigin of
                 ServerFromExo serverFromExoProps ->
-                    case serverFromExoProps.cockpitStatus of
-                        NotChecked ->
-                            ServerUiStatusPartiallyActive
+                    if serverFromExoProps.exoServerVersion < 4 then
+                        ServerUiStatusReady
 
-                        CheckedNotReady ->
-                            ServerUiStatusPartiallyActive
+                    else
+                        case serverFromExoProps.exoSetupStatus.data of
+                            RDPP.DoHave status _ ->
+                                case status of
+                                    ExoSetupWaiting ->
+                                        ServerUiStatusBuilding
 
-                        Ready ->
-                            ServerUiStatusReady
+                                    ExoSetupRunning ->
+                                        ServerUiStatusPartiallyActive
 
-                        ReadyButRecheck ->
-                            ServerUiStatusReady
+                                    ExoSetupComplete ->
+                                        ServerUiStatusReady
+
+                                    ExoSetupError ->
+                                        ServerUiStatusError
+
+                                    ExoSetupTimeout ->
+                                        ServerUiStatusError
+
+                                    ExoSetupUnknown ->
+                                        ServerUiStatusUnknown
+
+                            RDPP.DontHave ->
+                                ServerUiStatusUnknown
 
                 ServerNotFromExo ->
                     ServerUiStatusReady
