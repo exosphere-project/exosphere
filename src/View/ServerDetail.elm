@@ -9,6 +9,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Helpers.Helpers as Helpers
+import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -20,6 +21,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
+import Types.Interaction as ITypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -320,7 +322,8 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
               else
                 Element.none
-            , Element.el VH.heading2 (Element.text "Interact with server")
+            , Element.el VH.heading2 (Element.text "Interactions")
+            , interactions server appIsElectron (Tuple.first currentTimeAndZone) project.userAppProxyHostname
             , Element.el VH.heading3 (Element.text "SSH")
             , sshInstructions maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Console")
@@ -462,6 +465,73 @@ serverStatus projectId serverDetailViewParams server =
             , [ lockStatus server.osProps.details.lockStatus ]
             , verboseStatus
             ]
+
+
+interactions : Server -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> Element.Element Msg
+interactions server appIsElectron currentTime tlsReverseProxyHostname =
+    let
+        renderInteraction interaction =
+            let
+                interactionStatus =
+                    IHelpers.interactionStatus
+                        server
+                        interaction
+                        appIsElectron
+                        currentTime
+                        tlsReverseProxyHostname
+
+                ( interactionName, interactionDescription ) =
+                    IHelpers.interactionNameDescription interaction
+
+                ( statusEmblem, buttonOnPress ) =
+                    case interactionStatus of
+                        ITypes.Unavailable _ ->
+                            ( Element.text "TODO unavailable emblem"
+                            , Nothing
+                            )
+
+                        ITypes.Loading ->
+                            ( Element.text "TODO loading emblem"
+                            , Nothing
+                            )
+
+                        ITypes.Ready url ->
+                            ( Element.text "TODO ready emblem"
+                            , Just <|
+                                OpenNewWindow url
+                            )
+
+                        ITypes.Error _ ->
+                            ( Element.text "TODO error emblem"
+                            , Nothing
+                            )
+
+                        ITypes.Hidden ->
+                            ( Element.none
+                            , Nothing
+                            )
+            in
+            Element.row
+                VH.exoRowAttributes
+                [ statusEmblem
+                , Widget.iconButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = interactionName
+                    , icon = Element.none
+                    , onPress = buttonOnPress
+                    }
+                , Element.text interactionDescription
+                ]
+    in
+    [ ITypes.GuacTerminal
+    , ITypes.GuacDesktop
+    , ITypes.CockpitDashboard
+    , ITypes.CockpitTerminal
+    , ITypes.NativeSSH
+    , ITypes.Console
+    ]
+        |> List.map renderInteraction
+        |> Element.column VH.exoColumnAttributes
 
 
 sshInstructions : Maybe String -> Element.Element Msg

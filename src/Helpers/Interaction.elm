@@ -120,9 +120,10 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                             ( _, Just floatingIp ) ->
                                 case dashboardOrTerminal of
                                     Dashboard ->
-                                        "https://"
-                                            ++ floatingIp
-                                            ++ ":9090"
+                                        ITypes.Ready <|
+                                            "https://"
+                                                ++ floatingIp
+                                                ++ ":9090"
 
                                     Terminal ->
                                         case guacTerminal of
