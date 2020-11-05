@@ -1,4 +1,4 @@
-module Helpers.InteractionStatus exposing (interactionStatus)
+module Helpers.Interaction exposing (interactionNameDescription, interactionStatus)
 
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -6,13 +6,16 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Time
 import Types.Guacamole as GuacTypes
-import Types.Interactions as ITypes
+import Types.Interaction as ITypes
 import Types.Types exposing (CockpitLoginStatus(..), Server, ServerOrigin(..), UserAppProxyHostname)
 
 
-interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> Maybe String -> ITypes.InteractionStatus
-interactionStatus server interaction isElectron currentTime tlsReverseProxyHostname maybeFloatingIp =
+interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
+interactionStatus server interaction isElectron currentTime tlsReverseProxyHostname =
     let
+        maybeFloatingIp =
+            Helpers.getServerFloatingIp server.osProps.details.ipAddresses
+
         guacTerminal : ITypes.InteractionStatus
         guacTerminal =
             let
@@ -179,6 +182,35 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
 
         _ ->
             ITypes.Unavailable "Server is not active"
+
+
+interactionNameDescription : ITypes.Interaction -> ( String, String )
+interactionNameDescription interaction =
+    -- TODO provide an icon as well
+    case interaction of
+        ITypes.GuacTerminal ->
+            ( "Web Terminal"
+            , "Get a command-line session to your server"
+            )
+
+        ITypes.GuacDesktop ->
+            ( "Streaming Desktop", "Interact with your server's desktop environment" )
+
+        ITypes.CockpitDashboard ->
+            ( "Server Dashboard", "Deprecated feature" )
+
+        ITypes.CockpitTerminal ->
+            ( "Web Terminal", "Deprecated feature" )
+
+        ITypes.NativeSSH ->
+            ( "Native SSH"
+            , "Advanced feature: use your computer's native SSH client to get a command-line session with extra capabilities"
+            )
+
+        ITypes.Console ->
+            ( "Console"
+            , "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your server (useful for troubleshooting if the Web Terminal isn't working)"
+            )
 
 
 type CockpitDashboardOrTerminal
