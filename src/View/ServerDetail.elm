@@ -506,30 +506,20 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                         ]
             in
             case interactionStatus of
-                ITypes.Unavailable _ ->
-                    renderElements
-                        (Element.text "TODO unavailable emblem")
-                        Nothing
-
-                ITypes.Loading ->
-                    renderElements
-                        (Element.text "TODO loading emblem")
-                        Nothing
-
                 ITypes.Ready url ->
                     renderElements
-                        (Element.text "TODO ready emblem")
+                        (Icon.roundRect (IHelpers.interactionStatusColor interactionStatus) 14)
                         (Just <|
                             OpenNewWindow url
                         )
 
-                ITypes.Error _ ->
-                    renderElements
-                        (Element.text "TODO error emblem")
-                        Nothing
-
                 ITypes.Hidden ->
                     Element.none
+
+                _ ->
+                    renderElements
+                        (Icon.roundRect (IHelpers.interactionStatusColor interactionStatus) 14)
+                        Nothing
     in
     [ ITypes.GuacTerminal
     , ITypes.GuacDesktop
