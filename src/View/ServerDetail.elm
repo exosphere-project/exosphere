@@ -480,7 +480,7 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                         currentTime
                         tlsReverseProxyHostname
 
-                ( interactionName, interactionDescription ) =
+                ( interactionName, interactionDescription, icon ) =
                     IHelpers.interactionNameDescription interaction
 
                 renderElements statusEmblem buttonOnPress =
@@ -490,7 +490,16 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                         , Widget.button
                             (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
                             { text = interactionName
-                            , icon = Element.none
+                            , icon =
+                                Element.el
+                                    [ Element.paddingEach
+                                        { top = 0
+                                        , right = 5
+                                        , left = 0
+                                        , bottom = 0
+                                        }
+                                    ]
+                                    (icon (Element.rgb255 0 108 163) 22)
                             , onPress = buttonOnPress
                             }
                         , Element.text interactionDescription

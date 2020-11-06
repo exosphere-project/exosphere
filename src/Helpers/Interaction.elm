@@ -1,9 +1,12 @@
 module Helpers.Interaction exposing (interactionNameDescription, interactionStatus)
 
+import Element
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
@@ -185,32 +188,43 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
             ITypes.Unavailable "Server is not active"
 
 
-interactionNameDescription : ITypes.Interaction -> ( String, String )
+interactionNameDescription : ITypes.Interaction -> ( String, String, Element.Color -> Int -> Element.Element msg )
 interactionNameDescription interaction =
-    -- TODO provide an icon as well
     case interaction of
         ITypes.GuacTerminal ->
             ( "Web Terminal"
             , "Get a command-line session to your server"
+            , \_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html
             )
 
         ITypes.GuacDesktop ->
-            ( "Streaming Desktop", "Interact with your server's desktop environment" )
+            ( "Streaming Desktop"
+            , "Interact with your server's desktop environment"
+            , \_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html
+            )
 
         ITypes.CockpitDashboard ->
-            ( "Server Dashboard", "Deprecated feature" )
+            ( "Server Dashboard"
+            , "Deprecated feature"
+            , Icon.gauge
+            )
 
         ITypes.CockpitTerminal ->
-            ( "Web Terminal", "Deprecated feature" )
+            ( "Old Web Terminal"
+            , "Deprecated feature"
+            , \_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html
+            )
 
         ITypes.NativeSSH ->
             ( "Native SSH"
             , "Advanced feature: use your computer's native SSH client to get a command-line session with extra capabilities"
+            , \_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html
             )
 
         ITypes.Console ->
             ( "Console"
             , "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your server (useful for troubleshooting if the Web Terminal isn't working)"
+            , Icon.console
             )
 
 
