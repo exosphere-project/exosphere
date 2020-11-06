@@ -483,45 +483,44 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                 ( interactionName, interactionDescription ) =
                     IHelpers.interactionNameDescription interaction
 
-                ( statusEmblem, buttonOnPress ) =
-                    case interactionStatus of
-                        ITypes.Unavailable _ ->
-                            ( Element.text "TODO unavailable emblem"
-                            , Nothing
-                            )
-
-                        ITypes.Loading ->
-                            ( Element.text "TODO loading emblem"
-                            , Nothing
-                            )
-
-                        ITypes.Ready url ->
-                            ( Element.text "TODO ready emblem"
-                            , Just <|
-                                OpenNewWindow url
-                            )
-
-                        ITypes.Error _ ->
-                            ( Element.text "TODO error emblem"
-                            , Nothing
-                            )
-
-                        ITypes.Hidden ->
-                            ( Element.none
-                            , Nothing
-                            )
+                renderElements statusEmblem buttonOnPress =
+                    Element.row
+                        VH.exoRowAttributes
+                        [ statusEmblem
+                        , Widget.button
+                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            { text = interactionName
+                            , icon = Element.none
+                            , onPress = buttonOnPress
+                            }
+                        , Element.text interactionDescription
+                        ]
             in
-            Element.row
-                VH.exoRowAttributes
-                [ statusEmblem
-                , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                    { text = interactionName
-                    , icon = Element.none
-                    , onPress = buttonOnPress
-                    }
-                , Element.text interactionDescription
-                ]
+            case interactionStatus of
+                ITypes.Unavailable _ ->
+                    renderElements
+                        (Element.text "TODO unavailable emblem")
+                        Nothing
+
+                ITypes.Loading ->
+                    renderElements
+                        (Element.text "TODO loading emblem")
+                        Nothing
+
+                ITypes.Ready url ->
+                    renderElements
+                        (Element.text "TODO ready emblem")
+                        (Just <|
+                            OpenNewWindow url
+                        )
+
+                ITypes.Error _ ->
+                    renderElements
+                        (Element.text "TODO error emblem")
+                        Nothing
+
+                ITypes.Hidden ->
+                    Element.none
     in
     [ ITypes.GuacTerminal
     , ITypes.GuacDesktop
