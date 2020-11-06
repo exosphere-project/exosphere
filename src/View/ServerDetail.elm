@@ -481,7 +481,7 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                         tlsReverseProxyHostname
 
                 ( interactionName, interactionDescription, icon ) =
-                    IHelpers.interactionNameDescription interaction
+                    IHelpers.interactionNameDescriptionIcon interaction
 
                 renderElements statusEmblem buttonOnPress =
                     Element.row

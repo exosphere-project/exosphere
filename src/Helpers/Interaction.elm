@@ -1,4 +1,4 @@
-module Helpers.Interaction exposing (interactionNameDescription, interactionStatus)
+module Helpers.Interaction exposing (interactionNameDescriptionIcon, interactionStatus)
 
 import Element
 import FeatherIcons
@@ -188,8 +188,8 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
             ITypes.Unavailable "Server is not active"
 
 
-interactionNameDescription : ITypes.Interaction -> ( String, String, Element.Color -> Int -> Element.Element msg )
-interactionNameDescription interaction =
+interactionNameDescriptionIcon : ITypes.Interaction -> ( String, String, Element.Color -> Int -> Element.Element msg )
+interactionNameDescriptionIcon interaction =
     case interaction of
         ITypes.GuacTerminal ->
             ( "Web Terminal"
