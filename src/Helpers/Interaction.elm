@@ -128,7 +128,7 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                     Terminal ->
                                         case guacTerminal of
                                             ITypes.Ready _ ->
-                                                ITypes.Unavailable "Deprecated, use the Web Terminal instead"
+                                                ITypes.Hidden
 
                                             _ ->
                                                 ITypes.Ready <|
