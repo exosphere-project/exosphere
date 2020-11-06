@@ -25,6 +25,7 @@ serverDetailViewParams =
     , ipInfoLevel = Types.IPSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
+    , activeTooltip = Nothing
     }
 
 
