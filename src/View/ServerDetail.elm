@@ -504,11 +504,14 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                             }
                         , Element.text interactionDescription
                         ]
+
+                ( statusWord, statusColor ) =
+                    IHelpers.interactionStatusWordColor interactionStatus
             in
             case interactionStatus of
                 ITypes.Ready url ->
                     renderElements
-                        (Icon.roundRect (IHelpers.interactionStatusColor interactionStatus) 14)
+                        (Icon.roundRect statusColor 14)
                         (Just <|
                             OpenNewWindow url
                         )
@@ -518,7 +521,7 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
 
                 _ ->
                     renderElements
-                        (Icon.roundRect (IHelpers.interactionStatusColor interactionStatus) 14)
+                        (Icon.roundRect statusColor 14)
                         Nothing
     in
     [ ITypes.GuacTerminal

@@ -1,4 +1,4 @@
-module Helpers.Interaction exposing (interactionNameDescriptionIcon, interactionStatus, interactionStatusColor)
+module Helpers.Interaction exposing (interactionNameDescriptionIcon, interactionStatus, interactionStatusWordColor)
 
 import Element
 import FeatherIcons
@@ -188,23 +188,23 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
             ITypes.Unavailable "Server is not active"
 
 
-interactionStatusColor : ITypes.InteractionStatus -> Element.Color
-interactionStatusColor status =
+interactionStatusWordColor : ITypes.InteractionStatus -> ( String, Element.Color )
+interactionStatusWordColor status =
     case status of
         ITypes.Unavailable _ ->
-            Element.rgb255 122 122 122
+            ( "Unavailable", Element.rgb255 122 122 122 )
 
         ITypes.Loading ->
-            Element.rgb255 255 221 87
+            ( "Loading", Element.rgb255 255 221 87 )
 
         ITypes.Ready _ ->
-            Element.rgb255 35 209 96
+            ( "Ready", Element.rgb255 35 209 96 )
 
         ITypes.Error _ ->
-            Element.rgb255 255 56 96
+            ( "Error", Element.rgb255 255 56 96 )
 
         ITypes.Hidden ->
-            Element.rgb255 200 200 200
+            ( "Hidden", Element.rgb255 200 200 200 )
 
 
 interactionNameDescriptionIcon : ITypes.Interaction -> ( String, String, Element.Color -> Int -> Element.Element msg )
