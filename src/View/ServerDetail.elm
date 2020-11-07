@@ -21,7 +21,6 @@ import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Time
-import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
 import Types.Types
     exposing
@@ -119,9 +118,6 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
                         Nothing ->
                             "N/A"
-
-        maybeFloatingIp =
-            Helpers.getServerFloatingIp details.ipAddresses
 
         projectId =
             Helpers.getProjectId project
@@ -332,18 +328,8 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 (Tuple.first currentTimeAndZone)
                 project.userAppProxyHostname
                 serverDetailViewParams
-            , Element.el VH.heading3 (Element.text "SSH")
-            , sshInstructions maybeFloatingIp
-            , Element.el VH.heading3 (Element.text "Console")
-            , consoleLink projectId appIsElectron serverDetailViewParams server server.osProps.uuid
-            , Element.el VH.heading3 (Element.text "Guacamole Terminal/Desktop")
-            , guacShell
-                (Tuple.first currentTimeAndZone)
-                project.userAppProxyHostname
-                server
-                maybeFloatingIp
-            , Element.el VH.heading3 (Element.text "Terminal / Dashboard")
-            , cockpitInteraction server.exoProps.serverOrigin maybeFloatingIp
+            , Element.el VH.heading3 (Element.text "Server Password")
+            , serverPassword projectId serverDetailViewParams server
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
             [ Element.el VH.heading3 (Element.text "Server Actions")
@@ -601,266 +587,60 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
         |> Element.column []
 
 
-sshInstructions : Maybe String -> Element.Element Msg
-sshInstructions maybeFloatingIp =
-    case maybeFloatingIp of
-        Nothing ->
-            Element.none
-
-        Just floatingIp ->
-            copyableText ("exouser@" ++ floatingIp)
-
-
-consoleLink : ProjectIdentifier -> Bool -> ServerDetailViewParams -> Server -> OSTypes.ServerUuid -> Element.Element Msg
-consoleLink projectId appIsElectron serverDetailViewParams server serverUuid =
+serverPassword : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverPassword projectId serverDetailViewParams server =
     let
-        details =
-            server.osProps.details
-    in
-    case details.openstackStatus of
-        OSTypes.ServerActive ->
-            case server.osProps.consoleUrl of
-                RemoteData.NotAsked ->
-                    Element.text "Console not available yet"
+        passwordShower password =
+            Element.column
+                [ Element.spacing 10 ]
+                [ case serverDetailViewParams.passwordVisibility of
+                    PasswordShown ->
+                        copyableText password
 
-                RemoteData.Loading ->
-                    Element.text "Requesting console link..."
+                    PasswordHidden ->
+                        Element.none
+                , let
+                    changeMsg newValue =
+                        ProjectMsg projectId <|
+                            SetProjectView <|
+                                ServerDetail server.osProps.uuid
+                                    { serverDetailViewParams | passwordVisibility = newValue }
 
-                RemoteData.Failure error ->
-                    Element.column VH.exoColumnAttributes
-                        [ Element.text "Console not available. The following error was returned when Exosphere asked for a console:"
-                        , Element.paragraph [] [ Element.text (Debug.toString error) ]
-                        ]
-
-                RemoteData.Success consoleUrl ->
-                    let
-                        passwordShower password =
-                            Element.column
-                                [ Element.spacing 10 ]
-                                [ case serverDetailViewParams.passwordVisibility of
-                                    PasswordShown ->
-                                        copyableText password
-
-                                    PasswordHidden ->
-                                        Element.none
-                                , let
-                                    changeMsg newValue =
-                                        ProjectMsg projectId <|
-                                            SetProjectView <|
-                                                ServerDetail serverUuid
-                                                    { serverDetailViewParams | passwordVisibility = newValue }
-
-                                    ( buttonText, onPressMsg ) =
-                                        case serverDetailViewParams.passwordVisibility of
-                                            PasswordShown ->
-                                                ( "Hide password"
-                                                , changeMsg PasswordHidden
-                                                )
-
-                                            PasswordHidden ->
-                                                ( "Show password"
-                                                , changeMsg PasswordShown
-                                                )
-                                  in
-                                  Widget.textButton
-                                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
-                                    { text = buttonText
-                                    , onPress = Just onPressMsg
-                                    }
-                                ]
-
-                        passwordHint =
-                            Helpers.getServerExouserPassword details
-                                |> Maybe.withDefault Element.none
-                                << Maybe.map
-                                    (\password ->
-                                        Element.column
-                                            [ Element.spacing 10 ]
-                                            [ Element.text "Try logging in with username \"exouser\" and the following password:"
-                                            , passwordShower password
-                                            ]
-                                    )
-                    in
-                    Element.column
-                        VH.exoColumnAttributes
-                        [ VH.browserLink
-                            appIsElectron
-                            consoleUrl
-                            (View.Types.BrowserLinkFancyLabel
-                                (Widget.textButton
-                                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                                    { text = "Console", onPress = Just NoOp }
+                    ( buttonText, onPressMsg ) =
+                        case serverDetailViewParams.passwordVisibility of
+                            PasswordShown ->
+                                ( "Hide password"
+                                , changeMsg PasswordHidden
                                 )
-                            )
-                        , Element.paragraph []
-                            [ Element.text <|
-                                "Launching the console is like connecting a screen, mouse, and keyboard to your server. "
-                                    ++ "If your server has a desktop environment then you can interact with it here."
+
+                            PasswordHidden ->
+                                ( "Show password"
+                                , changeMsg PasswordShown
+                                )
+                  in
+                  Widget.textButton
+                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    { text = buttonText
+                    , onPress = Just onPressMsg
+                    }
+                ]
+
+        passwordHint =
+            Helpers.getServerExouserPassword server.osProps.details
+                |> Maybe.withDefault Element.none
+                << Maybe.map
+                    (\password ->
+                        Element.column
+                            [ Element.spacing 10 ]
+                            [ Element.text "Try logging in with username \"exouser\" and the following password:"
+                            , passwordShower password
                             ]
-                        , passwordHint
-                        ]
-
-        OSTypes.ServerBuilding ->
-            Element.text "Server building, console not available yet."
-
-        _ ->
-            Element.text "Console not available with server in this state."
-
-
-guacShell : Time.Posix -> Maybe UserAppProxyHostname -> Server -> Maybe String -> Element.Element Msg
-guacShell currentTime tlsReverseProxyHostname server maybeFloatingIp =
-    let
-        guacUpstreamPort =
-            49528
-
-        fifteenMinMillis =
-            1000 * 60 * 15
-
-        newServer =
-            Helpers.serverLessThanThisOld server currentTime
+                    )
     in
-    case server.exoProps.serverOrigin of
-        ServerNotFromExo ->
-            Element.text "Unavailable (server not launched from Exosphere)"
-
-        ServerFromExo exoOriginProps ->
-            case exoOriginProps.guacamoleStatus of
-                GuacTypes.NotLaunchedWithGuacamole ->
-                    if exoOriginProps.exoServerVersion < 3 then
-                        Element.text "Unavailable (server was created with an older version of Exosphere)"
-
-                    else
-                        Element.text "Unavailable (server deployed with Guacamole support disabled)"
-
-                GuacTypes.LaunchedWithGuacamole guacProps ->
-                    if
-                        not
-                            (List.member
-                                server.osProps.details.openstackStatus
-                                [ OSTypes.ServerBuilding, OSTypes.ServerActive ]
-                            )
-                    then
-                        Element.text "Unavailable (server is not active)"
-
-                    else
-                        case guacProps.authToken.data of
-                            RDPP.DoHave token _ ->
-                                case ( tlsReverseProxyHostname, maybeFloatingIp ) of
-                                    ( Just proxyHostname, Just floatingIp ) ->
-                                        Widget.textButton
-                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                                            { text = "Open Guacamole Terminal"
-                                            , onPress =
-                                                Just <|
-                                                    OpenNewWindow <|
-                                                        Helpers.buildProxyUrl
-                                                            proxyHostname
-                                                            floatingIp
-                                                            guacUpstreamPort
-                                                            ("/guacamole/#/client/c2hlbGwAYwBkZWZhdWx0?token=" ++ token)
-                                                            False
-                                            }
-
-                                    ( Nothing, _ ) ->
-                                        Element.text "Unavailable (cannot find TLS-terminating reverse proxy server)"
-
-                                    ( _, Nothing ) ->
-                                        Element.text "Unavailable (server does not have a floating IP address)"
-
-                            RDPP.DontHave ->
-                                if newServer fifteenMinMillis then
-                                    Element.text "Guacamole is still deploying to this new server, check back in a few minutes."
-
-                                else
-                                    case
-                                        ( tlsReverseProxyHostname
-                                        , maybeFloatingIp
-                                        , Helpers.getServerExouserPassword server.osProps.details
-                                        )
-                                    of
-                                        ( Nothing, _, _ ) ->
-                                            Element.text "Unavailable (cannot find TLS-terminating reverse proxy server)"
-
-                                        ( _, Nothing, _ ) ->
-                                            Element.text "Unavailable (server does not have a floating IP address)"
-
-                                        ( _, _, Nothing ) ->
-                                            Element.text "Unavailable (cannot find server password to authenticate)"
-
-                                        ( Just _, Just _, Just _ ) ->
-                                            case guacProps.authToken.refreshStatus of
-                                                RDPP.Loading _ ->
-                                                    Element.text "Authenticating to Guacamole API, one moment..."
-
-                                                RDPP.NotLoading maybeErrorTuple ->
-                                                    -- If deployment is complete but we can't get a token, show error to user
-                                                    case maybeErrorTuple of
-                                                        Nothing ->
-                                                            -- This is a slight misrepresentation; we haven't requested
-                                                            -- a token yet but orchestration code will make request soon
-                                                            Element.text "Authenticating to Guacamole API, one moment..."
-
-                                                        Just ( error, _ ) ->
-                                                            Element.text <|
-                                                                "Exosphere tried to authenticate to the Guacamole API, and received this error: "
-                                                                    ++ Debug.toString error
-
-
-cockpitInteraction : ServerOrigin -> Maybe String -> Element.Element Msg
-cockpitInteraction serverOrigin maybeFloatingIp =
-    maybeFloatingIp
-        |> Maybe.withDefault (Element.text "Server Dashboard and Terminal not ready yet.")
-        << Maybe.map
-            (\floatingIp ->
-                case serverOrigin of
-                    ServerNotFromExo ->
-                        Element.text "Not available (server launched outside of Exosphere)."
-
-                    ServerFromExo serverFromExoProps ->
-                        let
-                            interaction =
-                                Element.column VH.exoColumnAttributes
-                                    [ Element.text "Server Dashboard and Terminal are ready..."
-                                    , Element.row VH.exoRowAttributes
-                                        [ Widget.textButton
-                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                                            { text = "Type commands in a shell!"
-                                            , onPress =
-                                                Just <|
-                                                    OpenNewWindow <|
-                                                        "https://"
-                                                            ++ floatingIp
-                                                            ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                            }
-                                        ]
-                                    , Element.row
-                                        VH.exoRowAttributes
-                                        [ Widget.textButton
-                                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                                            { text = "Server Dashboard"
-                                            , onPress =
-                                                Just <|
-                                                    OpenNewWindow <|
-                                                        "https://"
-                                                            ++ floatingIp
-                                                            ++ ":9090"
-                                            }
-                                        ]
-                                    ]
-                        in
-                        case serverFromExoProps.cockpitStatus of
-                            NotChecked ->
-                                Element.text "Status of server dashboard and terminal not available yet."
-
-                            CheckedNotReady ->
-                                Element.text "Server Dashboard and Terminal not ready yet."
-
-                            Ready ->
-                                interaction
-
-                            ReadyButRecheck ->
-                                interaction
-            )
+    Element.column
+        VH.exoColumnAttributes
+        [ passwordHint
+        ]
 
 
 viewServerActions : ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
