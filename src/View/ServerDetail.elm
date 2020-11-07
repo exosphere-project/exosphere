@@ -328,11 +328,11 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 (Tuple.first currentTimeAndZone)
                 project.userAppProxyHostname
                 serverDetailViewParams
-            , Element.el VH.heading3 (Element.text "Server Password")
+            , Element.el VH.heading3 (Element.text "Password")
             , serverPassword projectId serverDetailViewParams server
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
-            [ Element.el VH.heading3 (Element.text "Server Actions")
+            [ Element.el VH.heading3 (Element.text "Actions")
             , viewServerActions projectId serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
             , resourceUsageCharts currentTimeAndZone server
