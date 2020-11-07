@@ -483,7 +483,8 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                 renderElements : Maybe String -> Maybe Msg -> Element.Element Msg
                 renderElements maybeStatusDescription maybeButtonOnPress =
                     let
-                        tooltip =
+                        statusTooltip =
+                            -- TODO deduplicate with below function?
                             case serverDetailViewParams.activeTooltip of
                                 Just (InteractionStatusTooltip interaction_) ->
                                     if interaction == interaction_ then
@@ -510,7 +511,34 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                 _ ->
                                     Element.none
 
-                        showHideTooltipMsg =
+                        interactionTooltip =
+                            -- TODO deduplicate with above function?
+                            case serverDetailViewParams.activeTooltip of
+                                Just (InteractionTooltip interaction_) ->
+                                    if interaction == interaction_ then
+                                        Element.el
+                                            [ Element.paddingEach { top = 0, right = 0, left = 10, bottom = 0 } ]
+                                        <|
+                                            Element.column
+                                                [ Element.padding 5
+                                                , Background.color <| Element.rgb255 0 0 0
+                                                , Font.color <| Element.rgb255 255 255 255
+                                                , Element.width (Element.maximum 300 Element.shrink)
+                                                ]
+                                                [ Element.paragraph
+                                                    -- Ugh? https://github.com/mdgriffith/elm-ui/issues/157
+                                                    [ Element.width (Element.minimum 200 Element.fill) ]
+                                                    [ Element.text interactionDescription ]
+                                                ]
+
+                                    else
+                                        Element.none
+
+                                _ ->
+                                    Element.none
+
+                        showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
+                        showHideTooltipMsg tooltip =
                             let
                                 newValue =
                                     case serverDetailViewParams.activeTooltip of
@@ -518,7 +546,7 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                             Nothing
 
                                         Nothing ->
-                                            Just <| InteractionStatusTooltip interaction
+                                            Just <| tooltip
                             in
                             ProjectMsg projectId <|
                                 SetProjectView <|
@@ -528,8 +556,8 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                     Element.row
                         VH.exoRowAttributes
                         [ Element.el
-                            [ Element.below tooltip
-                            , Events.onClick showHideTooltipMsg
+                            [ Element.below statusTooltip
+                            , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
                             ]
                             (Icon.roundRect statusColor 14)
                         , Widget.button
@@ -547,7 +575,11 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                     (icon (Element.rgb255 0 108 163) 22)
                             , onPress = maybeButtonOnPress
                             }
-                        , Element.text interactionDescription
+                        , Element.el
+                            [ Element.onRight interactionTooltip
+                            , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
+                            ]
+                            (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
                         ]
             in
             case interactionStatus of
@@ -577,7 +609,6 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                     Element.none
     in
     [ ITypes.GuacTerminal
-    , ITypes.GuacDesktop
     , ITypes.CockpitDashboard
     , ITypes.CockpitTerminal
     , ITypes.NativeSSH
