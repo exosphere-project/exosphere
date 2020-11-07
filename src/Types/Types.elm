@@ -64,7 +64,7 @@ import Time
 import Toasty
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
-import Types.Interaction exposing (Interaction, InteractionStatus)
+import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
 import UUID
 
