@@ -5,6 +5,7 @@ import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -34,6 +35,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerDetailActiveTooltip(..)
         , ServerDetailViewParams
         , ServerOrigin(..)
         , UserAppProxyHostname
@@ -323,7 +325,13 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
               else
                 Element.none
             , Element.el VH.heading2 (Element.text "Interactions")
-            , interactions server appIsElectron (Tuple.first currentTimeAndZone) project.userAppProxyHostname
+            , interactions
+                server
+                projectId
+                appIsElectron
+                (Tuple.first currentTimeAndZone)
+                project.userAppProxyHostname
+                serverDetailViewParams
             , Element.el VH.heading3 (Element.text "SSH")
             , sshInstructions maybeFloatingIp
             , Element.el VH.heading3 (Element.text "Console")
@@ -467,8 +475,8 @@ serverStatus projectId serverDetailViewParams server =
             ]
 
 
-interactions : Server -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> Element.Element Msg
-interactions server appIsElectron currentTime tlsReverseProxyHostname =
+interactions : Server -> ProjectIdentifier -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
+interactions server projectId appIsElectron currentTime tlsReverseProxyHostname serverDetailViewParams =
     let
         renderInteraction interaction =
             let
@@ -483,10 +491,61 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                 ( interactionName, interactionDescription, icon ) =
                     IHelpers.interactionNameDescriptionIcon interaction
 
-                renderElements statusEmblem buttonOnPress =
+                ( statusWord, statusColor ) =
+                    IHelpers.interactionStatusWordColor interactionStatus
+
+                renderElements : Maybe String -> Maybe Msg -> Element.Element Msg
+                renderElements maybeStatusDescription maybeButtonOnPress =
+                    let
+                        tooltip =
+                            case serverDetailViewParams.activeTooltip of
+                                Just (InteractionStatusTooltip interaction_) ->
+                                    if interaction == interaction_ then
+                                        Element.el
+                                            [ Element.paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
+                                        <|
+                                            Element.column
+                                                [ Element.padding 5
+                                                , Background.color <| Element.rgb255 0 0 0
+                                                , Font.color <| Element.rgb255 255 255 255
+                                                ]
+                                                [ Element.text statusWord
+                                                , case maybeStatusDescription of
+                                                    Just statusDesciprtion ->
+                                                        Element.text statusDesciprtion
+
+                                                    Nothing ->
+                                                        Element.none
+                                                ]
+
+                                    else
+                                        Element.none
+
+                                _ ->
+                                    Element.none
+
+                        showHideTooltipMsg =
+                            let
+                                newValue =
+                                    case serverDetailViewParams.activeTooltip of
+                                        Just _ ->
+                                            Nothing
+
+                                        Nothing ->
+                                            Just <| InteractionStatusTooltip interaction
+                            in
+                            ProjectMsg projectId <|
+                                SetProjectView <|
+                                    ServerDetail server.osProps.uuid
+                                        { serverDetailViewParams | activeTooltip = newValue }
+                    in
                     Element.row
                         VH.exoRowAttributes
-                        [ statusEmblem
+                        [ Element.el
+                            [ Element.below tooltip
+                            , Events.onClick showHideTooltipMsg
+                            ]
+                            (Icon.roundRect statusColor 14)
                         , Widget.button
                             (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
                             { text = interactionName
@@ -500,29 +559,36 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
                                         }
                                     ]
                                     (icon (Element.rgb255 0 108 163) 22)
-                            , onPress = buttonOnPress
+                            , onPress = maybeButtonOnPress
                             }
                         , Element.text interactionDescription
                         ]
-
-                ( statusWord, statusColor ) =
-                    IHelpers.interactionStatusWordColor interactionStatus
             in
             case interactionStatus of
+                ITypes.Unavailable reason ->
+                    renderElements
+                        (Just reason)
+                        Nothing
+
+                ITypes.Loading ->
+                    renderElements
+                        Nothing
+                        Nothing
+
                 ITypes.Ready url ->
                     renderElements
-                        (Icon.roundRect statusColor 14)
+                        Nothing
                         (Just <|
                             OpenNewWindow url
                         )
 
+                ITypes.Error reason ->
+                    renderElements
+                        (Just reason)
+                        Nothing
+
                 ITypes.Hidden ->
                     Element.none
-
-                _ ->
-                    renderElements
-                        (Icon.roundRect statusColor 14)
-                        Nothing
     in
     [ ITypes.GuacTerminal
     , ITypes.GuacDesktop
@@ -532,7 +598,7 @@ interactions server appIsElectron currentTime tlsReverseProxyHostname =
     , ITypes.Console
     ]
         |> List.map renderInteraction
-        |> Element.column VH.exoColumnAttributes
+        |> Element.column []
 
 
 sshInstructions : Maybe String -> Element.Element Msg

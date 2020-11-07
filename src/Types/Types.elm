@@ -32,7 +32,7 @@ module Types.Types exposing
     , ProjectViewParams
     , ResourceUsageRDPP
     , Server
-    , ServerDetailActiveTooltip
+    , ServerDetailActiveTooltip(..)
     , ServerDetailViewParams
     , ServerFromExoProps
     , ServerListViewParams
@@ -337,7 +337,7 @@ type alias ServerDetailViewParams =
 
 type ServerDetailActiveTooltip
     = InteractionTooltip Interaction
-    | InteractionStatusTooltip InteractionStatus
+    | InteractionStatusTooltip Interaction
 
 
 type alias CreateServerViewParams =
