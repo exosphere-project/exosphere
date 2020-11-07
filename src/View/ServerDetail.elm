@@ -497,8 +497,8 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                                 ]
                                                 [ Element.text statusWord
                                                 , case maybeStatusDescription of
-                                                    Just statusDesciprtion ->
-                                                        Element.text statusDesciprtion
+                                                    Just statusDescription ->
+                                                        Element.text statusDescription
 
                                                     Nothing ->
                                                         Element.none
