@@ -1,5 +1,11 @@
-module Types.Interaction exposing (Interaction(..), InteractionStatus(..))
+module Types.Interaction exposing
+    ( Interaction(..)
+    , InteractionDetails
+    , InteractionStatus(..)
+    , InteractionType(..)
+    )
 
+import Element
 import Types.HelperTypes as HelperTypes
 
 
@@ -15,7 +21,7 @@ type Interaction
 type InteractionStatus
     = Unavailable InteractionStatusReason
     | Loading
-    | Ready InteractionUrl
+    | Ready String
     | Error InteractionStatusReason
     | Hidden
 
@@ -24,5 +30,14 @@ type alias InteractionStatusReason =
     String
 
 
-type alias InteractionUrl =
-    HelperTypes.Url
+type InteractionType
+    = TextInteraction
+    | UrlInteraction
+
+
+type alias InteractionDetails =
+    { name : String
+    , description : String
+    , icon : Element.Color -> Int -> Element.Element Never
+    , type_ : InteractionType
+    }

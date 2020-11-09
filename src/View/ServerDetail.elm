@@ -474,8 +474,8 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                         currentTime
                         tlsReverseProxyHostname
 
-                ( interactionName, interactionDescription, icon ) =
-                    IHelpers.interactionNameDescriptionIcon interaction
+                interactionDetails =
+                    IHelpers.interactionDetails interaction
 
                 ( statusWord, statusColor ) =
                     IHelpers.interactionStatusWordColor interactionStatus
@@ -528,7 +528,7 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                                 [ Element.paragraph
                                                     -- Ugh? https://github.com/mdgriffith/elm-ui/issues/157
                                                     [ Element.width (Element.minimum 200 Element.fill) ]
-                                                    [ Element.text interactionDescription ]
+                                                    [ Element.text interactionDetails.description ]
                                                 ]
 
                                     else
@@ -562,7 +562,7 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                             (Icon.roundRect statusColor 14)
                         , Widget.button
                             (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                            { text = interactionName
+                            { text = interactionDetails.name
                             , icon =
                                 Element.el
                                     [ Element.paddingEach
@@ -572,7 +572,7 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                         , bottom = 0
                                         }
                                     ]
-                                    (icon (Element.rgb255 0 108 163) 22)
+                                    (interactionDetails.icon (Element.rgb255 0 108 163) 22)
                             , onPress = maybeButtonOnPress
                             }
                         , Element.el

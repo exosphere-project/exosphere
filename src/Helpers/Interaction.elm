@@ -1,4 +1,4 @@
-module Helpers.Interaction exposing (interactionNameDescriptionIcon, interactionStatus, interactionStatusWordColor)
+module Helpers.Interaction exposing (interactionDetails, interactionStatus, interactionStatusWordColor)
 
 import Element
 import FeatherIcons
@@ -207,44 +207,50 @@ interactionStatusWordColor status =
             ( "Hidden", Element.rgb255 200 200 200 )
 
 
-interactionNameDescriptionIcon : ITypes.Interaction -> ( String, String, Element.Color -> Int -> Element.Element msg )
-interactionNameDescriptionIcon interaction =
+interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails
+interactionDetails interaction =
     case interaction of
         ITypes.GuacTerminal ->
-            ( "Web Terminal"
-            , "Get a command-line session to your server"
-            , \_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html
-            )
+            ITypes.InteractionDetails
+                "Web Terminal"
+                "Get a command-line session to your server"
+                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
+                ITypes.UrlInteraction
 
         ITypes.GuacDesktop ->
-            ( "Streaming Desktop"
-            , "Interact with your server's desktop environment"
-            , \_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html
-            )
+            ITypes.InteractionDetails
+                "Streaming Desktop"
+                "Interact with your server's desktop environment"
+                (\_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html)
+                ITypes.UrlInteraction
 
         ITypes.CockpitDashboard ->
-            ( "Server Dashboard"
-            , "Deprecated feature"
-            , Icon.gauge
-            )
+            ITypes.InteractionDetails
+                "Server Dashboard"
+                "Deprecated feature"
+                Icon.gauge
+                ITypes.UrlInteraction
 
         ITypes.CockpitTerminal ->
-            ( "Old Web Terminal"
-            , "Deprecated feature"
-            , \_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html
-            )
+            ITypes.InteractionDetails
+                "Old Web Terminal"
+                "Deprecated feature"
+                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
+                ITypes.UrlInteraction
 
         ITypes.NativeSSH ->
-            ( "Native SSH"
-            , "Advanced feature: use your computer's native SSH client to get a command-line session with extra capabilities"
-            , \_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html
-            )
+            ITypes.InteractionDetails
+                "Native SSH"
+                "Advanced feature: use your computer's native SSH client to get a command-line session with extra capabilities"
+                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
+                ITypes.TextInteraction
 
         ITypes.Console ->
-            ( "Console"
-            , "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your server (useful for troubleshooting if the Web Terminal isn't working)"
-            , Icon.console
-            )
+            ITypes.InteractionDetails
+                "Console"
+                "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your server (useful for troubleshooting if the Web Terminal isn't working)"
+                Icon.console
+                ITypes.UrlInteraction
 
 
 type CockpitDashboardOrTerminal
