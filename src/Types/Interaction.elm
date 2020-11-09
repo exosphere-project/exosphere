@@ -6,7 +6,6 @@ module Types.Interaction exposing
     )
 
 import Element
-import Types.HelperTypes as HelperTypes
 
 
 type Interaction
