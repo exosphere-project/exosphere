@@ -685,7 +685,7 @@ serverPassword projectId serverDetailViewParams server =
 
         passwordHint =
             Helpers.getServerExouserPassword server.osProps.details
-                |> Maybe.withDefault Element.none
+                |> Maybe.withDefault (Element.text "Not available yet, check back in a few minutes.")
                 << Maybe.map
                     (\password ->
                         Element.column
