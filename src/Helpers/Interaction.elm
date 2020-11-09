@@ -10,7 +10,7 @@ import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
-import Types.Types exposing (CockpitLoginStatus(..), Server, ServerFromExoProps, ServerOrigin(..), UserAppProxyHostname)
+import Types.Types exposing (CockpitLoginStatus(..), Server, ServerOrigin(..), UserAppProxyHostname)
 
 
 interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
