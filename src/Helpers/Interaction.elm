@@ -10,7 +10,7 @@ import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
-import Types.Types exposing (CockpitLoginStatus(..), Server, ServerOrigin(..), UserAppProxyHostname)
+import Types.Types exposing (CockpitLoginStatus(..), Server, ServerFromExoProps, ServerOrigin(..), UserAppProxyHostname)
 
 
 interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
@@ -110,30 +110,30 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                         ITypes.Unavailable "Server not launched from Exosphere"
 
                     ServerFromExo serverFromExoProps ->
-                        case ( serverFromExoProps.cockpitStatus, maybeFloatingIp ) of
-                            ( NotChecked, _ ) ->
-                                ITypes.Unavailable "Status of server dashboard and terminal not available yet"
+                        case ( dashboardOrTerminal, serverFromExoProps.guacamoleStatus ) of
+                            ( Terminal, GuacTypes.LaunchedWithGuacamole _ ) ->
+                                ITypes.Hidden
 
-                            ( CheckedNotReady, _ ) ->
-                                ITypes.Unavailable "Not ready"
+                            _ ->
+                                case ( serverFromExoProps.cockpitStatus, maybeFloatingIp ) of
+                                    ( NotChecked, _ ) ->
+                                        ITypes.Unavailable "Status of server dashboard and terminal not available yet"
 
-                            ( _, Nothing ) ->
-                                ITypes.Unavailable "Server does not have a floating IP address"
+                                    ( CheckedNotReady, _ ) ->
+                                        ITypes.Unavailable "Not ready"
 
-                            ( _, Just floatingIp ) ->
-                                case dashboardOrTerminal of
-                                    Dashboard ->
-                                        ITypes.Ready <|
-                                            "https://"
-                                                ++ floatingIp
-                                                ++ ":9090"
+                                    ( _, Nothing ) ->
+                                        ITypes.Unavailable "Server does not have a floating IP address"
 
-                                    Terminal ->
-                                        case guacTerminal of
-                                            ITypes.Ready _ ->
-                                                ITypes.Hidden
+                                    ( _, Just floatingIp ) ->
+                                        case dashboardOrTerminal of
+                                            Dashboard ->
+                                                ITypes.Ready <|
+                                                    "https://"
+                                                        ++ floatingIp
+                                                        ++ ":9090"
 
-                                            _ ->
+                                            Terminal ->
                                                 ITypes.Ready <|
                                                     "https://"
                                                         ++ floatingIp

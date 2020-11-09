@@ -553,82 +553,87 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                             ServerDetail server.osProps.uuid
                                 { serverDetailViewParams | activeTooltip = newValue }
             in
-            Element.row
-                VH.exoRowAttributes
-                [ Element.el
-                    [ Element.below statusTooltip
-                    , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
-                    ]
-                    (Icon.roundRect statusColor 14)
-                , case interactionDetails.type_ of
-                    ITypes.UrlInteraction ->
-                        Widget.button
-                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                            { text = interactionDetails.name
-                            , icon =
-                                Element.el
-                                    [ Element.paddingEach
-                                        { top = 0
-                                        , right = 5
-                                        , left = 0
-                                        , bottom = 0
-                                        }
-                                    ]
-                                    (interactionDetails.icon (Element.rgb255 0 108 163) 22)
-                            , onPress =
-                                case interactionStatus of
-                                    ITypes.Ready url ->
-                                        Just <| OpenNewWindow url
+            case interactionStatus of
+                ITypes.Hidden ->
+                    Element.none
 
-                                    _ ->
-                                        Nothing
-                            }
-
-                    ITypes.TextInteraction ->
-                        let
-                            ( iconColor, fontColor ) =
-                                case interactionStatus of
-                                    ITypes.Ready _ ->
-                                        ( Element.rgb255 0 108 163
-                                        , Element.rgb255 0 0 0
-                                        )
-
-                                    _ ->
-                                        ( Element.rgb255 122 122 122
-                                        , Element.rgb255 122 122 122
-                                        )
-                        in
-                        Element.row
-                            [ Font.color fontColor
+                _ ->
+                    Element.row
+                        VH.exoRowAttributes
+                        [ Element.el
+                            [ Element.below statusTooltip
+                            , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
                             ]
-                            [ Element.el
-                                [ Font.color iconColor
-                                , Element.paddingEach
-                                    { top = 0
-                                    , right = 5
-                                    , left = 0
-                                    , bottom = 0
+                            (Icon.roundRect statusColor 14)
+                        , case interactionDetails.type_ of
+                            ITypes.UrlInteraction ->
+                                Widget.button
+                                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                                    { text = interactionDetails.name
+                                    , icon =
+                                        Element.el
+                                            [ Element.paddingEach
+                                                { top = 0
+                                                , right = 5
+                                                , left = 0
+                                                , bottom = 0
+                                                }
+                                            ]
+                                            (interactionDetails.icon (Element.rgb255 0 108 163) 22)
+                                    , onPress =
+                                        case interactionStatus of
+                                            ITypes.Ready url ->
+                                                Just <| OpenNewWindow url
+
+                                            _ ->
+                                                Nothing
                                     }
-                                ]
-                                (interactionDetails.icon iconColor 22)
-                            , Element.text interactionDetails.name
-                            , case interactionStatus of
-                                ITypes.Ready text ->
-                                    Element.row
-                                        []
-                                        [ Element.text ": "
-                                        , copyableText text
-                                        ]
 
-                                _ ->
-                                    Element.none
+                            ITypes.TextInteraction ->
+                                let
+                                    ( iconColor, fontColor ) =
+                                        case interactionStatus of
+                                            ITypes.Ready _ ->
+                                                ( Element.rgb255 0 108 163
+                                                , Element.rgb255 0 0 0
+                                                )
+
+                                            _ ->
+                                                ( Element.rgb255 122 122 122
+                                                , Element.rgb255 122 122 122
+                                                )
+                                in
+                                Element.row
+                                    [ Font.color fontColor
+                                    ]
+                                    [ Element.el
+                                        [ Font.color iconColor
+                                        , Element.paddingEach
+                                            { top = 0
+                                            , right = 5
+                                            , left = 0
+                                            , bottom = 0
+                                            }
+                                        ]
+                                        (interactionDetails.icon iconColor 22)
+                                    , Element.text interactionDetails.name
+                                    , case interactionStatus of
+                                        ITypes.Ready text ->
+                                            Element.row
+                                                []
+                                                [ Element.text ": "
+                                                , copyableText text
+                                                ]
+
+                                        _ ->
+                                            Element.none
+                                    ]
+                        , Element.el
+                            [ Element.onRight interactionTooltip
+                            , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
                             ]
-                , Element.el
-                    [ Element.onRight interactionTooltip
-                    , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
-                    ]
-                    (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
-                ]
+                            (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
+                        ]
     in
     [ ITypes.GuacTerminal
     , ITypes.CockpitDashboard
