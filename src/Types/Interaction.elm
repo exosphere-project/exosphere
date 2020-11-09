@@ -35,9 +35,9 @@ type InteractionType
     | UrlInteraction
 
 
-type alias InteractionDetails =
+type alias InteractionDetails msg =
     { name : String
     , description : String
-    , icon : Element.Color -> Int -> Element.Element Never
+    , icon : Element.Color -> Int -> Element.Element msg
     , type_ : InteractionType
     }

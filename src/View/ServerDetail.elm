@@ -466,6 +466,9 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
     let
         renderInteraction interaction =
             let
+                interactionDetails =
+                    IHelpers.interactionDetails interaction
+
                 interactionStatus =
                     IHelpers.interactionStatus
                         server
@@ -474,93 +477,92 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                         currentTime
                         tlsReverseProxyHostname
 
-                interactionDetails =
-                    IHelpers.interactionDetails interaction
-
                 ( statusWord, statusColor ) =
                     IHelpers.interactionStatusWordColor interactionStatus
 
-                renderElements : Maybe String -> Maybe Msg -> Element.Element Msg
-                renderElements maybeStatusDescription maybeButtonOnPress =
+                statusTooltip =
+                    -- TODO deduplicate with below function?
+                    case serverDetailViewParams.activeTooltip of
+                        Just (InteractionStatusTooltip interaction_) ->
+                            if interaction == interaction_ then
+                                Element.el
+                                    [ Element.paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
+                                <|
+                                    Element.column
+                                        [ Element.padding 5
+                                        , Background.color <| Element.rgb255 0 0 0
+                                        , Font.color <| Element.rgb255 255 255 255
+                                        ]
+                                        [ Element.text statusWord
+                                        , case interactionStatus of
+                                            ITypes.Unavailable reason ->
+                                                Element.text reason
+
+                                            ITypes.Error reason ->
+                                                Element.text reason
+
+                                            _ ->
+                                                Element.none
+                                        ]
+
+                            else
+                                Element.none
+
+                        _ ->
+                            Element.none
+
+                interactionTooltip =
+                    -- TODO deduplicate with above function?
+                    case serverDetailViewParams.activeTooltip of
+                        Just (InteractionTooltip interaction_) ->
+                            if interaction == interaction_ then
+                                Element.el
+                                    [ Element.paddingEach { top = 0, right = 0, left = 10, bottom = 0 } ]
+                                <|
+                                    Element.column
+                                        [ Element.padding 5
+                                        , Background.color <| Element.rgb255 0 0 0
+                                        , Font.color <| Element.rgb255 255 255 255
+                                        , Element.width (Element.maximum 300 Element.shrink)
+                                        ]
+                                        [ Element.paragraph
+                                            -- Ugh? https://github.com/mdgriffith/elm-ui/issues/157
+                                            [ Element.width (Element.minimum 200 Element.fill) ]
+                                            [ Element.text interactionDetails.description ]
+                                        ]
+
+                            else
+                                Element.none
+
+                        _ ->
+                            Element.none
+
+                showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
+                showHideTooltipMsg tooltip =
                     let
-                        statusTooltip =
-                            -- TODO deduplicate with below function?
+                        newValue =
                             case serverDetailViewParams.activeTooltip of
-                                Just (InteractionStatusTooltip interaction_) ->
-                                    if interaction == interaction_ then
-                                        Element.el
-                                            [ Element.paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
-                                        <|
-                                            Element.column
-                                                [ Element.padding 5
-                                                , Background.color <| Element.rgb255 0 0 0
-                                                , Font.color <| Element.rgb255 255 255 255
-                                                ]
-                                                [ Element.text statusWord
-                                                , case maybeStatusDescription of
-                                                    Just statusDescription ->
-                                                        Element.text statusDescription
+                                Just _ ->
+                                    Nothing
 
-                                                    Nothing ->
-                                                        Element.none
-                                                ]
-
-                                    else
-                                        Element.none
-
-                                _ ->
-                                    Element.none
-
-                        interactionTooltip =
-                            -- TODO deduplicate with above function?
-                            case serverDetailViewParams.activeTooltip of
-                                Just (InteractionTooltip interaction_) ->
-                                    if interaction == interaction_ then
-                                        Element.el
-                                            [ Element.paddingEach { top = 0, right = 0, left = 10, bottom = 0 } ]
-                                        <|
-                                            Element.column
-                                                [ Element.padding 5
-                                                , Background.color <| Element.rgb255 0 0 0
-                                                , Font.color <| Element.rgb255 255 255 255
-                                                , Element.width (Element.maximum 300 Element.shrink)
-                                                ]
-                                                [ Element.paragraph
-                                                    -- Ugh? https://github.com/mdgriffith/elm-ui/issues/157
-                                                    [ Element.width (Element.minimum 200 Element.fill) ]
-                                                    [ Element.text interactionDetails.description ]
-                                                ]
-
-                                    else
-                                        Element.none
-
-                                _ ->
-                                    Element.none
-
-                        showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
-                        showHideTooltipMsg tooltip =
-                            let
-                                newValue =
-                                    case serverDetailViewParams.activeTooltip of
-                                        Just _ ->
-                                            Nothing
-
-                                        Nothing ->
-                                            Just <| tooltip
-                            in
-                            ProjectMsg projectId <|
-                                SetProjectView <|
-                                    ServerDetail server.osProps.uuid
-                                        { serverDetailViewParams | activeTooltip = newValue }
+                                Nothing ->
+                                    Just <| tooltip
                     in
-                    Element.row
-                        VH.exoRowAttributes
-                        [ Element.el
-                            [ Element.below statusTooltip
-                            , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
-                            ]
-                            (Icon.roundRect statusColor 14)
-                        , Widget.button
+                    ProjectMsg projectId <|
+                        SetProjectView <|
+                            ServerDetail server.osProps.uuid
+                                { serverDetailViewParams | activeTooltip = newValue }
+            in
+            Element.row
+                VH.exoRowAttributes
+                [ Element.el
+                    [ Element.below statusTooltip
+                    , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
+                    ]
+                    (Icon.roundRect statusColor 14)
+                , case interactionDetails.type_ of
+                    ITypes.UrlInteraction ->
+                        Widget.button
                             (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
                             { text = interactionDetails.name
                             , icon =
@@ -573,40 +575,60 @@ interactions server projectId appIsElectron currentTime tlsReverseProxyHostname 
                                         }
                                     ]
                                     (interactionDetails.icon (Element.rgb255 0 108 163) 22)
-                            , onPress = maybeButtonOnPress
+                            , onPress =
+                                case interactionStatus of
+                                    ITypes.Ready url ->
+                                        Just <| OpenNewWindow url
+
+                                    _ ->
+                                        Nothing
                             }
-                        , Element.el
-                            [ Element.onRight interactionTooltip
-                            , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
+
+                    ITypes.TextInteraction ->
+                        let
+                            ( iconColor, fontColor ) =
+                                case interactionStatus of
+                                    ITypes.Ready _ ->
+                                        ( Element.rgb255 0 108 163
+                                        , Element.rgb255 0 0 0
+                                        )
+
+                                    _ ->
+                                        ( Element.rgb255 122 122 122
+                                        , Element.rgb255 122 122 122
+                                        )
+                        in
+                        Element.row
+                            [ Font.color fontColor
                             ]
-                            (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
-                        ]
-            in
-            case interactionStatus of
-                ITypes.Unavailable reason ->
-                    renderElements
-                        (Just reason)
-                        Nothing
+                            [ Element.el
+                                [ Font.color iconColor
+                                , Element.paddingEach
+                                    { top = 0
+                                    , right = 5
+                                    , left = 0
+                                    , bottom = 0
+                                    }
+                                ]
+                                (interactionDetails.icon iconColor 22)
+                            , Element.text interactionDetails.name
+                            , case interactionStatus of
+                                ITypes.Ready text ->
+                                    Element.row
+                                        []
+                                        [ Element.text ": "
+                                        , copyableText text
+                                        ]
 
-                ITypes.Loading ->
-                    renderElements
-                        Nothing
-                        Nothing
-
-                ITypes.Ready url ->
-                    renderElements
-                        Nothing
-                        (Just <|
-                            OpenNewWindow url
-                        )
-
-                ITypes.Error reason ->
-                    renderElements
-                        (Just reason)
-                        Nothing
-
-                ITypes.Hidden ->
-                    Element.none
+                                _ ->
+                                    Element.none
+                            ]
+                , Element.el
+                    [ Element.onRight interactionTooltip
+                    , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
+                    ]
+                    (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
+                ]
     in
     [ ITypes.GuacTerminal
     , ITypes.CockpitDashboard

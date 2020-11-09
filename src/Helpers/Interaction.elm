@@ -167,8 +167,7 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                             ITypes.Unavailable "Server does not have a floating IP address"
 
                         Just floatingIp ->
-                            -- TODO fix, display copyable text instead of a link
-                            ITypes.Ready <| "ssh://exouser@" ++ floatingIp
+                            ITypes.Ready <| "exouser@" ++ floatingIp
 
                 ITypes.Console ->
                     case server.osProps.consoleUrl of
@@ -207,7 +206,7 @@ interactionStatusWordColor status =
             ( "Hidden", Element.rgb255 200 200 200 )
 
 
-interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails
+interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails msg
 interactionDetails interaction =
     case interaction of
         ITypes.GuacTerminal ->
