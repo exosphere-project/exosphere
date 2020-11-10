@@ -140,7 +140,7 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                                         ++ ":9090/cockpit/@localhost/system/terminal.html"
 
             else
-                ITypes.Unavailable "Cockpit-based interactions only available in native desktop client"
+                ITypes.Hidden
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuilding ->
