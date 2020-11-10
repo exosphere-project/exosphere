@@ -26,7 +26,7 @@ var app = Elm.Exosphere.init({
     {
         // Flags intended to be configured by cloud operators who offer Exosphere
         showDebugMsgs : false,
-        cloudCorsProxyUrl: null,
+        cloudCorsProxyUrl: "https://try-dev.exosphere.app/proxy",
         cloudsWithUserAppProxy:
         [ ["iu.jetstream-cloud.org", "proxy-j7m-iu.exosphere.app"],
           ["tacc.jetstream-cloud.org", "proxy-j7m-tacc.exosphere.app"],
