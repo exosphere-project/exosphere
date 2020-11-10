@@ -32,6 +32,7 @@ module Types.Types exposing
     , ProjectViewParams
     , ResourceUsageRDPP
     , Server
+    , ServerDetailActiveTooltip(..)
     , ServerDetailViewParams
     , ServerFromExoProps
     , ServerListViewParams
@@ -63,6 +64,7 @@ import Time
 import Toasty
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
 import UUID
 
@@ -329,7 +331,13 @@ type alias ServerDetailViewParams =
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
+    , activeTooltip : Maybe ServerDetailActiveTooltip
     }
+
+
+type ServerDetailActiveTooltip
+    = InteractionTooltip Interaction
+    | InteractionStatusTooltip Interaction
 
 
 type alias CreateServerViewParams =
