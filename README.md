@@ -96,7 +96,7 @@ Based on the instructions found here:
 
 ### Build Exosphere and Run in a Browser
 
-If you are building Exosphere for consumption in a web browser, please also see docs/cors-proxy.md.
+If you are building Exosphere for consumption in a web browser, please also see docs/cloud-cors-proxy.md.
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
@@ -202,7 +202,7 @@ Most users should not need to change these; they are primarily intended for clou
 | *Option*                  | *Possible Values* | *Description*                                                       |
 |---------------------------|-------------------|---------------------------------------------------------------------|
 | showDebugMsgs             | false, true       |                                                                     |
-| openstackApiProxyUrl      | null, string      | See `docs/cors-proxy.md`; required for using Exosphere in a browser |
+| cloudCorsProxyUrl      | null, string      | See `docs/cloud-cors-proxy.md`; required for using Exosphere in a browser |
 | cloudsWithUserAppProxy    | (see docs)        | See `docs/user-app-proxy.md`; required for Guacamole support        |
 
 ## Collaborate
