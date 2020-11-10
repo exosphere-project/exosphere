@@ -106,13 +106,24 @@ Then install the project's dependencies (including Elm). Convenience command to 
 npm install
 ```
 
+To compile the app and serve it using a local development server run this command:
 
-To compile the app:
 ```
-elm make src/Exosphere.elm --output elm.js
+npm run live
 ```
 
-Then browse to index.html.
+Then browse to <http://app.exosphere.localhost:8000/>
+
+To enable the Elm Debugger in the local development server run the following command instead:  
+
+```
+npm run live-debug
+```
+
+Note: The local development server uses elm-live. It detects changes to the Exosphere source code, recompiles it, and 
+refreshes the browser with the latest version of the app. See [elm-live.com](https://www.elm-live.com/) for more 
+information.
+
 
 ### Build and Run Exosphere with Docker
 

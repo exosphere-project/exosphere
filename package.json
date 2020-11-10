@@ -6,6 +6,8 @@
   "main": "electron-index.js",
   "scripts": {
     "elm": "elm make src/Exosphere.elm || true",
+    "live": "elm-live src/Exosphere.elm --pushstate true --verbose --start-page index.html --hot true -- --output=elm.js",
+    "live-debug": "elm-live src/Exosphere.elm --pushstate true --verbose --start-page index.html --hot true -- --output=elm.js --debug",
     "elm:watch": "chokidar 'src/**/*.elm' -c 'npm run electron-build'",
     "electron-build": "elm make src/Exosphere.elm --output elm.js || true",
     "electron-start": "electron electron-index.js",
