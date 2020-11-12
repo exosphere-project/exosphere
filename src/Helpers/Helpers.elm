@@ -844,7 +844,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         authorizedKeysYaml =
             case maybeKeypairName |> Maybe.andThen getPublicKeyFromKeypairName of
                 Just key ->
-                    "ssh-authorized-keys:\n      - " ++ key ++ "\n"
+                    "\n    ssh-authorized-keys:\n      - " ++ key ++ "\n"
 
                 Nothing ->
                     "\n"
