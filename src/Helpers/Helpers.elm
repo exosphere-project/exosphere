@@ -1245,15 +1245,33 @@ serverNeedsFrequentPoll server =
         )
     of
         ( False, Nothing, ServerNotFromExo ) ->
-            False
-
-        ( False, Nothing, ServerFromExo exoOriginProps ) ->
-            case exoOriginProps.cockpitStatus of
-                Ready ->
-                    False
+            case server.osProps.details.openstackStatus of
+                OSTypes.ServerBuilding ->
+                    True
 
                 _ ->
+                    False
+
+        ( False, Nothing, ServerFromExo exoOriginProps ) ->
+            case server.osProps.details.openstackStatus of
+                OSTypes.ServerBuilding ->
                     True
+
+                _ ->
+                    case exoOriginProps.exoSetupStatus.data of
+                        RDPP.DoHave exoSetupStatus _ ->
+                            case exoSetupStatus of
+                                ExoSetupWaiting ->
+                                    True
+
+                                ExoSetupRunning ->
+                                    True
+
+                                _ ->
+                                    False
+
+                        RDPP.DontHave ->
+                            True
 
         _ ->
             True
