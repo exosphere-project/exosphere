@@ -831,7 +831,7 @@ sortedFlavors flavors =
 
 renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> String
 renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole =
-    {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
+    -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
         getPublicKeyFromKeypairName keypairName =
