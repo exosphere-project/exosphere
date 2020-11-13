@@ -212,7 +212,7 @@ interactionDetails interaction =
         ITypes.GuacTerminal ->
             ITypes.InteractionDetails
                 "Web Terminal"
-                "Get a command-line session to your server"
+                "Get a terminal session to your server. Pro tip, press Ctrl+Alt+Shift inside the terminal window to show a graphical file upload/download tool!"
                 (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
