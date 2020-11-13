@@ -9,8 +9,7 @@ users:
   - name: exouser
     shell: /bin/bash
     groups: sudo, admin
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    {ssh-authorized-keys}
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']{ssh-authorized-keys}
 ssh_pwauth: true
 package_update: true
 packages:

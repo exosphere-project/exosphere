@@ -831,7 +831,7 @@ sortedFlavors flavors =
 
 renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> String
 renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole =
-    {- If user has selected an SSH public key, add it to authorized_keys for exouser -}
+    -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
         getPublicKeyFromKeypairName keypairName =
@@ -840,30 +840,27 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 |> List.head
                 |> Maybe.map .publicKey
 
-        generateYamlFromPublicKey : String -> String
-        generateYamlFromPublicKey selectedPublicKey =
-            "ssh-authorized-keys:\n      - " ++ selectedPublicKey ++ "\n"
+        authorizedKeysYaml : String
+        authorizedKeysYaml =
+            case maybeKeypairName |> Maybe.andThen getPublicKeyFromKeypairName of
+                Just key ->
+                    "\n    ssh-authorized-keys:\n      - " ++ key ++ "\n"
 
-        guacamoleSetupCmds : String
-        guacamoleSetupCmds =
+                Nothing ->
+                    "\n"
+
+        guacamoleSetupCmdsYaml : String
+        guacamoleSetupCmdsYaml =
             if deployGuacamole then
                 ServerDeploy.guacamoleUserData
 
             else
                 "echo \"Not deploying Guacamole\""
-
-        renderUserData : String -> String
-        renderUserData authorizedKeyYaml =
-            [ ( "{ssh-authorized-keys}\n", authorizedKeyYaml )
-            , ( "{guacamole-setup}\n", guacamoleSetupCmds )
-            ]
-                |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
     in
-    maybeKeypairName
-        |> Maybe.andThen getPublicKeyFromKeypairName
-        |> Maybe.map generateYamlFromPublicKey
-        |> Maybe.withDefault ""
-        |> renderUserData
+    [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
+    , ( "{guacamole-setup}\n", guacamoleSetupCmdsYaml )
+    ]
+        |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
 newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> String -> List ( String, Json.Encode.Value )
