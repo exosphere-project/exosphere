@@ -69,7 +69,7 @@ import Url
 
 
 init : Flags -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init flags _ _ =
+init flags _ key =
     let
         currentTime =
             Time.millisToPosix flags.epoch
@@ -88,6 +88,7 @@ init flags _ _ =
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , viewState = NonProjectView LoginPicker
+            , navigationKey = key
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []

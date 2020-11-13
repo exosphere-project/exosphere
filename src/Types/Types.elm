@@ -51,6 +51,7 @@ module Types.Types exposing
     , currentExoServerVersion
     )
 
+import Browser.Navigation
 import Dict
 import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -101,6 +102,7 @@ type alias WindowSize =
 
 type alias Model =
     { logMessages : List LogMessage
+    , navigationKey : Browser.Navigation.Key
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider
