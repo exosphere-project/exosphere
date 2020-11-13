@@ -17,6 +17,7 @@ import View.HelpAbout
 import View.Login
 import View.Messages
 import View.Nav
+import View.PageTitle
 import View.Project
 import View.SelectProjects
 import View.Toast
@@ -24,7 +25,8 @@ import View.Toast
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Exosphere"
+    { title =
+        View.PageTitle.pageTitle model
     , body =
         [ Element.layout
             [ Font.size 17
