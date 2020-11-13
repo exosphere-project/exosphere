@@ -1,6 +1,7 @@
 module State exposing (init, subscriptions, update)
 
 import Browser.Events
+import Browser.Navigation
 import Dict
 import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.ExoSetupStatus
@@ -64,10 +65,11 @@ import Types.Types
         , currentExoServerVersion
         )
 import UUID
+import Url
 
 
-init : Flags -> ( Model, Cmd Msg )
-init flags =
+init : Flags -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init flags _ _ =
     let
         currentTime =
             Time.millisToPosix flags.epoch

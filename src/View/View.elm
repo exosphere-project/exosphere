@@ -1,9 +1,9 @@
 module View.View exposing (view)
 
+import Browser
 import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
-import Html exposing (Html)
 import Toasty
 import Types.Types
     exposing
@@ -22,16 +22,20 @@ import View.SelectProjects
 import View.Toast
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    Element.layout
-        [ Font.size 17
-        , Font.family
-            [ Font.typeface "Open Sans"
-            , Font.sansSerif
+    { title = "Exosphere"
+    , body =
+        [ Element.layout
+            [ Font.size 17
+            , Font.family
+                [ Font.typeface "Open Sans"
+                , Font.sansSerif
+                ]
             ]
+            (elementView model.maybeWindowSize model)
         ]
-        (elementView model.maybeWindowSize model)
+    }
 
 
 elementView : Maybe WindowSize -> Model -> Element.Element Msg

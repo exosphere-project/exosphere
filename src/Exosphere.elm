@@ -1,8 +1,8 @@
 module Exosphere exposing (main)
 
-import Browser exposing (element)
+import Browser exposing (application)
 import State
-import Types.Types exposing (Flags, Model, Msg)
+import Types.Types exposing (Flags, Model, Msg(..))
 import View.View exposing (view)
 
 
@@ -12,9 +12,11 @@ import View.View exposing (view)
 
 main : Program Flags Model Msg
 main =
-    element
+    application
         { init = State.init
         , view = view
         , update = State.update
         , subscriptions = State.subscriptions
+        , onUrlRequest = \_ -> NoOp
+        , onUrlChange = \_ -> NoOp
         }
