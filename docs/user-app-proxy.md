@@ -54,6 +54,9 @@ server {
                 proxy_set_header Host $host;
                 proxy_set_header X-Forwarded-Proto $scheme;
         }
+
+        # Nginx has a default file upload size of 1 megabit, consider increasing this to allow users to upload larger files
+        client_max_body_size 10G;
 }
 
 ```
