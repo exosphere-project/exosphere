@@ -1,6 +1,8 @@
 module View.QuotaUsage exposing (dashboard)
 
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
@@ -42,16 +44,25 @@ infoItem detail ( label, units ) =
 
         labelUse i_ =
             String.fromInt i_
+
+        bg =
+            Background.color <| Element.rgb255 242 242 242
+
+        border =
+            Border.rounded 5
+
+        pad =
+            Element.paddingXY 4 2
     in
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ Element.el [ Font.bold ] <|
             Element.text label
-        , Element.el [] <|
+        , Element.el [ bg, border, pad ] <|
             Element.text (labelUse detail.inUse)
         , Element.el [] <|
-            Element.text " of "
-        , Element.el [] <|
+            Element.text "of"
+        , Element.el [ bg, border, pad ] <|
             Element.text (labelLimit detail.limit)
         , Element.el [ Font.italic ] <|
             Element.text units
@@ -71,9 +82,9 @@ computeInfoItems : OSTypes.ComputeQuota -> Element.Element Msg
 computeInfoItems quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem quota.cores ( "Cores:", " total" )
-        , infoItem quota.instances ( "Instances:", " total" )
-        , infoItem quota.ram ( "RAM:", " MB" )
+        [ infoItem quota.cores ( "Cores:", "total" )
+        , infoItem quota.instances ( "Instances:", "total" )
+        , infoItem quota.ram ( "RAM:", "MB" )
         ]
 
 
@@ -113,8 +124,8 @@ volumeInfoItems : OSTypes.VolumeQuota -> Element.Element Msg
 volumeInfoItems quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem quota.gigabytes ( "Storage:", " GB" )
-        , infoItem quota.volumes ( "Volumes:", " total" )
+        [ infoItem quota.gigabytes ( "Storage:", "GB" )
+        , infoItem quota.volumes ( "Volumes:", "total" )
         ]
 
 
