@@ -811,6 +811,22 @@ processProjectSpecificMsg model project msg =
                     in
                     ( modelUpdatedView model, cmd )
 
+                ListQuotaUsage ->
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just ListQuotaUsage ->
+                                    Cmd.none
+
+                                _ ->
+                                    Cmd.batch
+                                        [ OpenStack.Quotas.requestComputeQuota project
+                                        , OpenStack.Quotas.requestVolumeQuota project
+                                        ]
+                    in
+                    ( modelUpdatedView model, cmd )
+
                 VolumeDetail _ _ ->
                     ( modelUpdatedView model, Cmd.none )
 
