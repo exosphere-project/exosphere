@@ -1,6 +1,6 @@
 module Helpers.StateHelpers exposing (updateViewState)
 
-import AppUrl
+import AppUrl.Builder
 import Browser.Navigation
 import Types.Types
     exposing
@@ -18,7 +18,7 @@ updateViewState model cmd viewState =
             { model | viewState = viewState }
 
         newUrl =
-            AppUrl.viewStateToUrl newModel
+            AppUrl.Builder.viewStateToUrl newModel
 
         urlCmd =
             Browser.Navigation.replaceUrl model.navigationKey newUrl

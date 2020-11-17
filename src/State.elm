@@ -1,5 +1,6 @@
 module State exposing (init, subscriptions, update)
 
+import AppUrl.Parser
 import Browser.Events
 import Browser.Navigation
 import Dict
@@ -70,7 +71,7 @@ import Url
 
 
 init : Flags -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init flags _ key =
+init flags url key =
     let
         currentTime =
             Time.millisToPosix flags.epoch
@@ -138,6 +139,24 @@ init flags _ key =
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
+        viewState =
+            let
+                defaultViewState =
+                    case hydratedModel.projects of
+                        [] ->
+                            NonProjectView LoginPicker
+
+                        firstProject :: _ ->
+                            ProjectView
+                                (Helpers.getProjectId firstProject)
+                                { createPopup = False }
+                                (ListProjectServers
+                                    Defaults.serverListViewParams
+                                )
+            in
+            AppUrl.Parser.urlToViewState url
+                |> Maybe.withDefault defaultViewState
+
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
         projectsNeedingAppCredentials =
@@ -166,7 +185,7 @@ init flags _ key =
                         (Helpers.projectSetServersLoading currentTime)
                         hydratedModel.projects
             in
-            { hydratedModel | projects = projectsServersLoading }
+            { hydratedModel | projects = projectsServersLoading, viewState = viewState }
     in
     ( newModel
     , otherCmds
@@ -472,6 +491,16 @@ updateUnderlying msg model =
 
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
+
+        UrlChange url ->
+            let
+                newViewState =
+                    AppUrl.Parser.urlToViewState url
+                        |> Maybe.withDefault model.viewState
+            in
+            ( { model | viewState = newViewState }
+            , Cmd.none
+            )
 
         NoOp ->
             ( model, Cmd.none )

@@ -1,5 +1,6 @@
 module Types.Defaults exposing
     ( createServerViewParams
+    , jetstreamCreds
     , serverDetailViewParams
     , serverListViewParams
     )
@@ -8,6 +9,15 @@ import OpenStack.Types as OSTypes
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Types.Types as Types
+
+
+jetstreamCreds : Types.JetstreamCreds
+jetstreamCreds =
+    { jetstreamProviderChoice = Types.BothJetstreamClouds
+    , jetstreamProjectName = ""
+    , taccUsername = ""
+    , taccPassword = ""
+    }
 
 
 serverListViewParams : Types.ServerListViewParams

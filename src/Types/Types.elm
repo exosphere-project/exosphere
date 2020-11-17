@@ -68,6 +68,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
 import UUID
+import Url
 
 
 
@@ -217,6 +218,7 @@ type Msg
     | ToastyMsg (Toasty.Msg Toast)
     | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
+    | UrlChange Url.Url
     | NoOp
 
 

@@ -1,4 +1,4 @@
-module AppUrl exposing (viewStateToUrl)
+module AppUrl.Builder exposing (viewStateToUrl)
 
 import Helpers.Helpers as Helpers
 import Types.Types
@@ -194,10 +194,6 @@ projectSpecificUrlPart viewConstructor =
                 , UB.string "attachmentuuid" attachment.attachmentUuid
                 , UB.string "device" attachment.device
                 ]
-
-
-
--- urlToViewState : Url -> ViewState
 
 
 projectUrlIdentifier : Model -> ProjectIdentifier -> String

@@ -18,5 +18,5 @@ main =
         , update = State.update
         , subscriptions = State.subscriptions
         , onUrlRequest = \_ -> NoOp
-        , onUrlChange = \_ -> NoOp
+        , onUrlChange = UrlChange
         }
