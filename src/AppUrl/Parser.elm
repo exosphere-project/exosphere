@@ -83,6 +83,12 @@ urlToViewState url =
                 (s "login")
 
             -- Not bothering to decode the SelectProjects view, because you can't currently navigate there on a fresh page load and see anything useful
+            , map
+                (NonProjectView MessageLog)
+                (s "msglog")
+            , map
+                (NonProjectView HelpAbout)
+                (s "helpabout")
             ]
     in
     parse (oneOf pathParsers) url
