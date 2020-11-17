@@ -309,6 +309,7 @@ type ProjectViewConstructor
     = ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
+    | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)

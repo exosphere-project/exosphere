@@ -24,6 +24,7 @@ import View.CreateServer
 import View.CreateServerImage
 import View.Helpers as VH
 import View.Images
+import View.QuotaUsage
 import View.ServerDetail
 import View.ServerList
 import View.Volumes
@@ -65,6 +66,9 @@ project model p viewParams viewConstructor =
 
                 CreateServerImage serverUuid imageName ->
                     View.CreateServerImage.createServerImage p serverUuid imageName
+
+                ListQuotaUsage ->
+                    View.QuotaUsage.dashboard p
     in
     Element.column
         (Element.width Element.fill
@@ -106,6 +110,15 @@ projectNav p viewParams =
                     { text = "My Volumes"
                     , onPress =
                         Just <| ProjectMsg (Helpers.getProjectId p) <| SetProjectView <| ListProjectVolumes []
+                    }
+            , Element.el [] <|
+                Widget.textButton
+                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    { text = "Quota/Usage"
+                    , onPress =
+                        SetProjectView ListQuotaUsage
+                            |> ProjectMsg (Helpers.getProjectId p)
+                            |> Just
                     }
             , Element.el
                 -- TODO replace these
