@@ -89,8 +89,8 @@ init flags url key =
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
-            , viewState = NonProjectView LoginPicker
             , navigationKey = key
+            , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -492,16 +492,25 @@ updateUnderlying msg model =
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 
-        UrlChange url ->
-            let
-                newViewState =
-                    AppUrl.Parser.urlToViewState url
-                        |> Maybe.withDefault model.viewState
-            in
-            ( { model | viewState = newViewState }
-            , Cmd.none
-            )
+        {-
+           UrlChange url ->
+               let
+                   exoSetThisUrl =
+                       -- If this is a URL that Exosphere just set, then ignore it
+                       Helpers.urlPathQueryMatches url model.lastSetUrl
 
+                   newViewState =
+                       if exoSetThisUrl then
+                           model.viewState
+
+                       else
+                           AppUrl.Parser.urlToViewState url
+                               |> Maybe.withDefault model.viewState
+               in
+               ( { model | viewState = newViewState }
+               , Cmd.none
+               )
+        -}
         NoOp ->
             ( model, Cmd.none )
 

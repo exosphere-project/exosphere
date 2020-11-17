@@ -18,5 +18,7 @@ main =
         , update = State.update
         , subscriptions = State.subscriptions
         , onUrlRequest = \_ -> NoOp
-        , onUrlChange = UrlChange
+
+        -- Ignoring this for the moment, will need to handle it for browser back/foward button clicks
+        , onUrlChange = \_ -> NoOp
         }
