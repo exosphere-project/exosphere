@@ -166,6 +166,47 @@ urlToViewState url =
                  in
                  s "projects" </> string </> s "createserver" <?> queryParser
                 )
+            , map
+                (\projUuid ->
+                    ProjectView projUuid { createPopup = False } <|
+                        Defaults.createVolumeView
+                )
+                (s "projects" </> string </> s "createvolume")
+            , map
+                (\projUuid ( maybeServerUuid, maybeVolUuid ) ->
+                    ProjectView projUuid { createPopup = False } <|
+                        AttachVolumeModal maybeServerUuid maybeVolUuid
+                )
+                (let
+                    queryParser =
+                        Query.map2
+                            Tuple.pair
+                            (Query.string "serveruuid")
+                            (Query.string "voluuid")
+                 in
+                 s "projects" </> string </> s "attachvol" <?> queryParser
+                )
+            , map
+                (\projUuid attachment ->
+                    ProjectView projUuid { createPopup = False } <|
+                        MountVolInstructions attachment
+                )
+                (let
+                    queryParser =
+                        Query.map3
+                            OSTypes.VolumeAttachment
+                            (Query.string "serveruuid"
+                                |> Query.map (Maybe.withDefault "")
+                            )
+                            (Query.string "attachmentuuid"
+                                |> Query.map (Maybe.withDefault "")
+                            )
+                            (Query.string "device"
+                                |> Query.map (Maybe.withDefault "")
+                            )
+                 in
+                 s "projects" </> string </> s "attachvolinstructions" <?> queryParser
+                )
             ]
     in
     parse (oneOf pathParsers) url

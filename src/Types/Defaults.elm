@@ -1,5 +1,6 @@
 module Types.Defaults exposing
     ( createServerViewParams
+    , createVolumeView
     , imageListViewParams
     , jetstreamCreds
     , serverDetailViewParams
@@ -10,6 +11,7 @@ module Types.Defaults exposing
 import OpenStack.Types as OSTypes
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types as Types
 
 
@@ -71,3 +73,8 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
     }
+
+
+createVolumeView : Types.ProjectViewConstructor
+createVolumeView =
+    Types.CreateVolume "" (ValidNumericTextInput 10)
