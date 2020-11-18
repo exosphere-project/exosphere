@@ -96,6 +96,76 @@ urlToViewState url =
             , map
                 (\uuid -> ProjectView uuid { createPopup = False } <| ListImages Defaults.imageListViewParams Defaults.sortTableParams)
                 (s "projects" </> string </> s "images")
+            , map
+                (\uuid ->
+                    ProjectView uuid { createPopup = False } <|
+                        ListProjectServers Defaults.serverListViewParams
+                )
+                (s "projects" </> string </> s "servers")
+            , map
+                (\uuid ->
+                    ProjectView uuid { createPopup = False } <|
+                        ListProjectVolumes []
+                )
+                (s "projects" </> string </> s "volumes")
+            , map
+                (\uuid ->
+                    ProjectView uuid { createPopup = False } <|
+                        ListQuotaUsage
+                )
+                (s "projects" </> string </> s "quotausage")
+            , map
+                (\projUuid svrUuid ->
+                    ProjectView projUuid { createPopup = False } <|
+                        ServerDetail svrUuid Defaults.serverDetailViewParams
+                )
+                (s "projects" </> string </> s "servers" </> string)
+            , map
+                (\projUuid svrUuid imageName ->
+                    ProjectView projUuid { createPopup = False } <|
+                        CreateServerImage svrUuid imageName
+                )
+                (let
+                    queryParser =
+                        Query.string "name"
+                            |> Query.map (Maybe.withDefault "")
+                 in
+                 s "projects" </> string </> s "servers" </> string </> s "image" <?> queryParser
+                )
+            , map
+                (\projUuid volUuid ->
+                    ProjectView projUuid { createPopup = False } <|
+                        VolumeDetail volUuid []
+                )
+                (s "projects" </> string </> s "volumes" </> string)
+            , map
+                (\projUuid params ->
+                    ProjectView projUuid { createPopup = False } <|
+                        CreateServer params
+                )
+                (let
+                    maybeBoolEnumDict =
+                        Dict.fromList
+                            [ ( "justtrue", Just True )
+                            , ( "justfalse", Just False )
+                            , ( "nothing", Nothing )
+                            ]
+
+                    queryParser =
+                        Query.map3
+                            Defaults.createServerViewParams
+                            (Query.string "imageuuid"
+                                |> Query.map (Maybe.withDefault "")
+                            )
+                            (Query.string "imagename"
+                                |> Query.map (Maybe.withDefault "")
+                            )
+                            (Query.enum "deployguac" maybeBoolEnumDict
+                                |> Query.map (Maybe.withDefault Nothing)
+                            )
+                 in
+                 s "projects" </> string </> s "createserver" <?> queryParser
+                )
             ]
     in
     parse (oneOf pathParsers) url

@@ -1826,7 +1826,7 @@ setProjectView model project projectViewConstructor =
                                 , OpenStack.Quotas.requestVolumeQuota project
                                 ]
             in
-            ( modelUpdatedView model, cmd )
+            updatedViewModelAndCmd model cmd
 
         VolumeDetail _ _ ->
             updatedViewModelAndCmd model Cmd.none
