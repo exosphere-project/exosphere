@@ -185,11 +185,27 @@ init flags url key =
                         (Helpers.projectSetServersLoading currentTime)
                         hydratedModel.projects
             in
-            { hydratedModel | projects = projectsServersLoading, viewState = viewState }
+            { hydratedModel | projects = projectsServersLoading }
     in
-    ( newModel
-    , otherCmds
-    )
+    case viewState of
+        NonProjectView _ ->
+            ( { newModel | viewState = viewState }
+            , otherCmds
+            )
+
+        ProjectView projectId _ projectViewConstructor ->
+            -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
+            let
+                ( setProjectViewModel, setProjectViewCmd ) =
+                    update
+                        (ProjectMsg projectId <|
+                            SetProjectView projectViewConstructor
+                        )
+                        newModel
+            in
+            ( setProjectViewModel
+            , Cmd.batch [ otherCmds, setProjectViewCmd ]
+            )
 
 
 subscriptions : Model -> Sub Msg
