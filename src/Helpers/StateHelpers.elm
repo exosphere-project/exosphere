@@ -21,6 +21,11 @@ updateViewState model cmd viewState =
             AppUrl.Builder.viewStateToUrl newModel
 
         urlCmd =
-            Browser.Navigation.replaceUrl model.navigationKey newUrl
+            case model.navigationKey of
+                Just key ->
+                    Browser.Navigation.replaceUrl key newUrl
+
+                Nothing ->
+                    Cmd.none
     in
     ( newModel, Cmd.batch [ cmd, urlCmd ] )

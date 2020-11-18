@@ -1,9 +1,10 @@
-module View.View exposing (view)
+module View.View exposing (view, viewElectron)
 
 import Browser
 import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
+import Html
 import Toasty
 import Types.Types
     exposing
@@ -38,6 +39,18 @@ view model =
             (elementView model.maybeWindowSize model)
         ]
     }
+
+
+viewElectron : Model -> Html.Html Msg
+viewElectron model =
+    Element.layout
+        [ Font.size 17
+        , Font.family
+            [ Font.typeface "Open Sans"
+            , Font.sansSerif
+            ]
+        ]
+        (elementView model.maybeWindowSize model)
 
 
 elementView : Maybe WindowSize -> Model -> Element.Element Msg

@@ -18,9 +18,15 @@ var randomSeeds = crypto.getRandomValues(typedArray);
 // We need this to get the UTC offset?
 var d = new Date();
 
+if (isElectron) {
+    var moduleToInit = Elm.ExosphereElectron.init;
+} else {
+    var moduleToInit = Elm.Exosphere.init;
+}
+
 // start the elm app in the container
 // and keep a reference for communicating with the app
-var app = Elm.Exosphere.init({
+var app = moduleToInit({
     node: container,
     flags:
     {

@@ -102,7 +102,7 @@ type alias WindowSize =
 
 type alias Model =
     { logMessages : List LogMessage
-    , navigationKey : Browser.Navigation.Key
+    , navigationKey : Maybe Browser.Navigation.Key
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider

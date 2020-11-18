@@ -3,6 +3,7 @@ elm-stuff
 # elm-repl generated files
 repl-temp-*
 elm.js
+elm-electron.js
 node_modules/
 /dist/
 styleguide.html

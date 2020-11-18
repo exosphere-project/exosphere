@@ -69,8 +69,8 @@ import UUID
 import Url
 
 
-init : Flags -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init flags url key =
+init : Flags -> Maybe ( Url.Url, Browser.Navigation.Key ) -> ( Model, Cmd Msg )
+init flags maybeUrlKey =
     let
         currentTime =
             Time.millisToPosix flags.epoch
@@ -88,7 +88,7 @@ init flags url key =
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
-            , navigationKey = key
+            , navigationKey = maybeUrlKey |> Maybe.map Tuple.second
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
@@ -153,8 +153,13 @@ init flags url key =
                                     Defaults.serverListViewParams
                                 )
             in
-            AppUrl.Parser.urlToViewState url
-                |> Maybe.withDefault defaultViewState
+            case maybeUrlKey of
+                Just ( url, _ ) ->
+                    AppUrl.Parser.urlToViewState url
+                        |> Maybe.withDefault defaultViewState
+
+                Nothing ->
+                    defaultViewState
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
