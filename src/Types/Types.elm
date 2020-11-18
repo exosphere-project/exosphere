@@ -179,9 +179,7 @@ type alias Project =
 
 type alias ProjectIdentifier =
     -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
-    { name : ProjectName
-    , authUrl : HelperTypes.Url
-    }
+    HelperTypes.Uuid
 
 
 type ProjectSecret

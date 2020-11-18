@@ -447,14 +447,13 @@ serverLookup project serverUuid =
 projectLookup : Model -> ProjectIdentifier -> Maybe Project
 projectLookup model projectIdentifier =
     model.projects
-        |> List.filter (\p -> p.auth.project.name == projectIdentifier.name)
-        |> List.filter (\p -> p.endpoints.keystone == projectIdentifier.authUrl)
+        |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
         |> List.head
 
 
 getProjectId : Project -> ProjectIdentifier
 getProjectId project =
-    ProjectIdentifier project.auth.project.name project.endpoints.keystone
+    project.auth.project.uuid
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor

@@ -313,9 +313,7 @@ updateUnderlying msg model =
                         Ok endpoints ->
                             let
                                 projectId =
-                                    ProjectIdentifier
-                                        authToken.project.name
-                                        endpoints.keystone
+                                    authToken.project.uuid
                             in
                             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                             -- This code ensures we don't end up with duplicate projects on the same provider in our model.

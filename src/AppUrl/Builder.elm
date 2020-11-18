@@ -1,6 +1,5 @@
 module AppUrl.Builder exposing (viewStateToUrl)
 
-import Helpers.Helpers as Helpers
 import Types.Types
     exposing
         ( JetstreamProvider(..)
@@ -83,7 +82,7 @@ viewStateToUrl model =
                 projectIdentifierUrl =
                     UB.absolute
                         [ "projects"
-                        , projectUrlIdentifier model projectIdentifier
+                        , projectIdentifier
                         ]
                         []
 
@@ -194,10 +193,3 @@ projectSpecificUrlPart viewConstructor =
                 , UB.string "attachmentuuid" attachment.attachmentUuid
                 , UB.string "device" attachment.device
                 ]
-
-
-projectUrlIdentifier : Model -> ProjectIdentifier -> String
-projectUrlIdentifier model projectId =
-    Helpers.projectLookup model projectId
-        |> Maybe.map (\proj -> proj.auth.project.uuid)
-        |> Maybe.withDefault projectId.name

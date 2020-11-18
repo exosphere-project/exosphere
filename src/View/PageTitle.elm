@@ -47,7 +47,9 @@ pageTitle model =
                     Helpers.projectLookup model projectIdentifier
 
                 projectName =
-                    projectIdentifier.name
+                    maybeProject
+                        |> Maybe.map (\p -> p.auth.project.name)
+                        |> Maybe.withDefault "could not find project name"
             in
             case projectViewConstructor of
                 ListImages _ _ ->
