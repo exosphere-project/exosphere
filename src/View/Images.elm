@@ -291,7 +291,8 @@ renderImage project imageListViewParams sortTableParams image =
                 SetProjectView <|
                     CreateServer <|
                         Defaults.createServerViewParams
-                            image
+                            image.uuid
+                            image.name
                             (project.userAppProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =

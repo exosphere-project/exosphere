@@ -57,11 +57,11 @@ serverDetailViewParams =
     }
 
 
-createServerViewParams : OSTypes.Image -> Maybe Bool -> Types.CreateServerViewParams
-createServerViewParams image deployGuacamole =
-    { serverName = image.name
-    , imageUuid = image.uuid
-    , imageName = image.name
+createServerViewParams : String -> String -> Maybe Bool -> Types.CreateServerViewParams
+createServerViewParams imageUuid imageName deployGuacamole =
+    { serverName = imageName
+    , imageUuid = imageUuid
+    , imageName = imageName
     , count = 1
     , flavorUuid = ""
     , volSizeTextInput = Nothing
