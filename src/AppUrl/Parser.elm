@@ -7,14 +7,22 @@ import Types.Types
     exposing
         ( JetstreamCreds
         , JetstreamProvider(..)
-        , Model
         , NonProjectViewConstructor(..)
-        , ProjectIdentifier
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
 import Url
-import Url.Parser exposing (..)
+import Url.Parser
+    exposing
+        ( (</>)
+        , (<?>)
+        , Parser
+        , map
+        , oneOf
+        , parse
+        , s
+        , string
+        )
 import Url.Parser.Query as Query
 
 

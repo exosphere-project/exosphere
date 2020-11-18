@@ -8,7 +8,6 @@ module Types.Defaults exposing
     , sortTableParams
     )
 
-import OpenStack.Types as OSTypes
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))

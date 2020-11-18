@@ -5,7 +5,6 @@ import Types.Types
         ( JetstreamProvider(..)
         , Model
         , NonProjectViewConstructor(..)
-        , ProjectIdentifier
         , ProjectViewConstructor(..)
         , ViewState(..)
         )

@@ -53,7 +53,6 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
         , Project
-        , ProjectIdentifier
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
