@@ -1,8 +1,10 @@
 module Types.Defaults exposing
     ( createServerViewParams
+    , imageListViewParams
     , jetstreamCreds
     , serverDetailViewParams
     , serverListViewParams
+    , sortTableParams
     )
 
 import OpenStack.Types as OSTypes
@@ -17,6 +19,22 @@ jetstreamCreds =
     , jetstreamProjectName = ""
     , taccUsername = ""
     , taccPassword = ""
+    }
+
+
+imageListViewParams : Types.ImageListViewParams
+imageListViewParams =
+    { searchText = ""
+    , tags = Set.empty
+    , onlyOwnImages = False
+    , expandImageDetails = Set.empty
+    }
+
+
+sortTableParams : Types.SortTableParams
+sortTableParams =
+    { title = ""
+    , asc = True
     }
 
 

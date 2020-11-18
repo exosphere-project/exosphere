@@ -2,6 +2,7 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( JetstreamCreds
@@ -21,7 +22,8 @@ urlToViewState : Url.Url -> Maybe ViewState
 urlToViewState url =
     let
         pathParsers =
-            [ map
+            [ -- Non-project-specific views
+              map
                 (\creds -> NonProjectView <| LoginOpenstack creds)
                 (let
                     queryParser =
@@ -89,6 +91,11 @@ urlToViewState url =
             , map
                 (NonProjectView HelpAbout)
                 (s "helpabout")
+
+            -- Project-specific views
+            , map
+                (\uuid -> ProjectView uuid { createPopup = False } <| ListImages Defaults.imageListViewParams Defaults.sortTableParams)
+                (s "projects" </> string </> s "images")
             ]
     in
     parse (oneOf pathParsers) url
