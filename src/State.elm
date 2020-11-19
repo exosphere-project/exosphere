@@ -1,5 +1,6 @@
 module State exposing (init, subscriptions, update)
 
+import AppUrl.Builder
 import AppUrl.Parser
 import Browser.Events
 import Browser.Navigation
@@ -525,7 +526,7 @@ updateUnderlying msg model =
                     Just newViewState ->
                         ( { model
                             | viewState = newViewState
-                            , prevUrl = Url.toString url
+                            , prevUrl = AppUrl.Builder.viewStateToUrl newViewState
                           }
                         , Cmd.none
                         )

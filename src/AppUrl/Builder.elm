@@ -11,9 +11,9 @@ import Types.Types
 import Url.Builder as UB
 
 
-viewStateToUrl : Model -> String
-viewStateToUrl model =
-    case model.viewState of
+viewStateToUrl : ViewState -> String
+viewStateToUrl viewState =
+    case viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
                 LoginPicker ->
