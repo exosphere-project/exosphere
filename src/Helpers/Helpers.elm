@@ -44,6 +44,7 @@ module Helpers.Helpers exposing
     , stringIsUuidOrDefault
     , titleFromHostname
     , toastConfig
+    , urlPathQueryMatches
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
     , volumeLookup
@@ -1304,3 +1305,17 @@ buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
     , path
     ]
         |> String.concat
+
+
+urlPathQueryMatches : Url.Url -> String -> Bool
+urlPathQueryMatches urlType urlStr =
+    let
+        urlTypeQueryStr =
+            case urlType.query of
+                Just q ->
+                    "?" ++ q
+
+                Nothing ->
+                    ""
+    in
+    (urlType.path ++ urlTypeQueryStr) == urlStr

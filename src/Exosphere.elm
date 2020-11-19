@@ -20,5 +20,5 @@ main =
         , onUrlRequest = \_ -> NoOp
 
         -- Ignoring this for the moment, will need to handle it for browser back/foward button clicks
-        , onUrlChange = \_ -> NoOp
+        , onUrlChange = UrlChange
         }

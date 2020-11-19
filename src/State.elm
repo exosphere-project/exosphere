@@ -511,25 +511,29 @@ updateUnderlying msg model =
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 
-        {-
-           UrlChange url ->
-               let
-                   exoSetThisUrl =
-                       -- If this is a URL that Exosphere just set, then ignore it
-                       Helpers.urlPathQueryMatches url model.lastSetUrl
+        UrlChange url ->
+            let
+                exoSetThisUrl =
+                    -- If this is a URL that Exosphere just set, then ignore it
+                    Helpers.urlPathQueryMatches url model.prevUrl
+            in
+            if exoSetThisUrl then
+                ( model, Cmd.none )
 
-                   newViewState =
-                       if exoSetThisUrl then
-                           model.viewState
+            else
+                case AppUrl.Parser.urlToViewState url of
+                    Just newViewState ->
+                        case newViewState of
+                            NonProjectView constructor ->
+                                update (SetNonProjectView constructor) model
 
-                       else
-                           AppUrl.Parser.urlToViewState url
-                               |> Maybe.withDefault model.viewState
-               in
-               ( { model | viewState = newViewState }
-               , Cmd.none
-               )
-        -}
+                            ProjectView projectId _ constructor ->
+                                update (ProjectMsg projectId (SetProjectView constructor)) model
+
+                    Nothing ->
+                        -- URL parsing error
+                        ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
