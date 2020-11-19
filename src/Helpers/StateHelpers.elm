@@ -14,16 +14,35 @@ updateViewState : Model -> Cmd Msg -> ViewState -> ( Model, Cmd Msg )
 updateViewState model cmd viewState =
     -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
     let
-        newModel =
-            { model | viewState = viewState }
+        urlWithoutQuery url =
+            String.split "?" url
+                |> List.head
+                |> Maybe.withDefault ""
+
+        prevUrl =
+            model.prevUrl
 
         newUrl =
-            AppUrl.Builder.viewStateToUrl newModel
+            AppUrl.Builder.viewStateToUrl { model | viewState = viewState }
+
+        newModel =
+            { model
+                | viewState = viewState
+                , prevUrl = newUrl
+            }
+
+        -- We should `pushUrl` when modifying the path (moving between views), `replaceUrl` when just modifying the query string (setting parameters of views)
+        updateUrlFunc =
+            if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then
+                Browser.Navigation.replaceUrl
+
+            else
+                Browser.Navigation.pushUrl
 
         urlCmd =
             case model.navigationKey of
                 Just key ->
-                    Browser.Navigation.replaceUrl key newUrl
+                    updateUrlFunc key newUrl
 
                 Nothing ->
                     Cmd.none

@@ -89,6 +89,7 @@ init flags maybeUrlKey =
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , navigationKey = maybeUrlKey |> Maybe.map Tuple.second
+            , prevUrl = ""
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
