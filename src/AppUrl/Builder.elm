@@ -3,7 +3,6 @@ module AppUrl.Builder exposing (viewStateToUrl)
 import Types.Types
     exposing
         ( JetstreamProvider(..)
-        , Model
         , NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ViewState(..)
