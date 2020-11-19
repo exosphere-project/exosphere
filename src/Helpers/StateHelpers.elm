@@ -23,7 +23,7 @@ updateViewState model cmd viewState =
             model.prevUrl
 
         newUrl =
-            AppUrl.Builder.viewStateToUrl viewState
+            AppUrl.Builder.viewStateToUrl model.urlPathPrefix viewState
 
         newModel =
             { model

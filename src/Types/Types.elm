@@ -79,6 +79,7 @@ type alias Flags =
     -- Flags intended to be configured by cloud operators
     { showDebugMsgs : Bool
     , cloudCorsProxyUrl : Maybe HelperTypes.Url
+    , urlPathPrefix : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -103,6 +104,7 @@ type alias WindowSize =
 
 type alias Model =
     { logMessages : List LogMessage
+    , urlPathPrefix : Maybe String
     , navigationKey : Maybe Browser.Navigation.Key
 
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)

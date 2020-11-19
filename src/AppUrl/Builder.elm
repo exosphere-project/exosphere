@@ -10,101 +10,121 @@ import Types.Types
 import Url.Builder as UB
 
 
-viewStateToUrl : ViewState -> String
-viewStateToUrl viewState =
+viewStateToUrl : Maybe String -> ViewState -> String
+viewStateToUrl maybePathPrefix viewState =
     case viewState of
         NonProjectView nonProjectViewConstructor ->
-            case nonProjectViewConstructor of
-                LoginPicker ->
-                    UB.absolute
-                        [ "login" ]
-                        []
-
-                LoginOpenstack openstackLogin ->
-                    UB.absolute
-                        [ "login"
-                        , "openstack"
-                        ]
-                        [ UB.string "authurl" openstackLogin.authUrl
-                        , UB.string "pdomain" openstackLogin.projectDomain
-                        , UB.string "pname" openstackLogin.projectName
-                        , UB.string "udomain" openstackLogin.userDomain
-                        , UB.string "uname" openstackLogin.username
-
-                        -- Not encoding password!
-                        ]
-
-                LoginJetstream jsLogin ->
-                    let
-                        jsProvider =
-                            case jsLogin.jetstreamProviderChoice of
-                                IUCloud ->
-                                    "iu"
-
-                                TACCCloud ->
-                                    "tacc"
-
-                                BothJetstreamClouds ->
-                                    "both"
-                    in
-                    UB.absolute
-                        [ "login"
-                        , "jetstream"
-                        ]
-                        [ UB.string "provider" jsProvider
-                        , UB.string "pname" jsLogin.jetstreamProjectName
-                        , UB.string "taccuname" jsLogin.taccUsername
-
-                        -- Not encoding password!
-                        ]
-
-                SelectProjects keystoneUrl _ ->
-                    UB.absolute
-                        [ "selectprojs"
-                        ]
-                        [ UB.string "keystoneurl" keystoneUrl
-                        ]
-
-                MessageLog ->
-                    UB.absolute
-                        [ "msglog" ]
-                        []
-
-                HelpAbout ->
-                    UB.absolute
-                        [ "helpabout" ]
-                        []
+            projectNonspecificUrlPart (buildPrefixedUrl maybePathPrefix) nonProjectViewConstructor
 
         ProjectView projectIdentifier _ projectViewConstructor ->
             let
                 projectIdentifierUrl =
-                    UB.absolute
+                    buildPrefixedUrl
+                        maybePathPrefix
                         [ "projects"
                         , projectIdentifier
                         ]
                         []
 
                 projectSpecificUrlPart_ =
-                    projectSpecificUrlPart projectViewConstructor
+                    projectSpecificUrlPart UB.absolute projectViewConstructor
             in
             projectIdentifierUrl ++ projectSpecificUrlPart_
 
 
-projectSpecificUrlPart : ProjectViewConstructor -> String
-projectSpecificUrlPart viewConstructor =
+buildPrefixedUrl : Maybe String -> List String -> List UB.QueryParameter -> String
+buildPrefixedUrl maybePathPrefix pathParts queryParams =
+    let
+        prefixedPathParts =
+            case maybePathPrefix of
+                Just pathPrefix ->
+                    pathPrefix :: pathParts
+
+                Nothing ->
+                    pathParts
+    in
+    UB.absolute prefixedPathParts queryParams
+
+
+projectNonspecificUrlPart : (List String -> List UB.QueryParameter -> String) -> NonProjectViewConstructor -> String
+projectNonspecificUrlPart buildUrlFunc viewConstructor =
+    case viewConstructor of
+        LoginPicker ->
+            buildUrlFunc
+                [ "login" ]
+                []
+
+        LoginOpenstack openstackLogin ->
+            buildUrlFunc
+                [ "login"
+                , "openstack"
+                ]
+                [ UB.string "authurl" openstackLogin.authUrl
+                , UB.string "pdomain" openstackLogin.projectDomain
+                , UB.string "pname" openstackLogin.projectName
+                , UB.string "udomain" openstackLogin.userDomain
+                , UB.string "uname" openstackLogin.username
+
+                -- Not encoding password!
+                ]
+
+        LoginJetstream jsLogin ->
+            let
+                jsProvider =
+                    case jsLogin.jetstreamProviderChoice of
+                        IUCloud ->
+                            "iu"
+
+                        TACCCloud ->
+                            "tacc"
+
+                        BothJetstreamClouds ->
+                            "both"
+            in
+            buildUrlFunc
+                [ "login"
+                , "jetstream"
+                ]
+                [ UB.string "provider" jsProvider
+                , UB.string "pname" jsLogin.jetstreamProjectName
+                , UB.string "taccuname" jsLogin.taccUsername
+
+                -- Not encoding password!
+                ]
+
+        SelectProjects keystoneUrl _ ->
+            buildUrlFunc
+                [ "selectprojs"
+                ]
+                [ UB.string "keystoneurl" keystoneUrl
+                ]
+
+        MessageLog ->
+            buildUrlFunc
+                [ "msglog" ]
+                []
+
+        HelpAbout ->
+            buildUrlFunc
+                [ "helpabout" ]
+                []
+
+
+projectSpecificUrlPart : (List String -> List UB.QueryParameter -> String) -> ProjectViewConstructor -> String
+projectSpecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
         ListImages _ _ ->
-            UB.absolute
+            buildUrlFunc
                 [ "images" ]
                 []
 
         ListProjectServers _ ->
-            UB.absolute
+            buildUrlFunc
                 [ "servers" ]
                 []
 
         ListProjectVolumes _ ->
-            UB.absolute
+            buildUrlFunc
                 [ "volumes" ]
                 []
 
@@ -114,14 +134,14 @@ projectSpecificUrlPart viewConstructor =
                 []
 
         ServerDetail serverUuid _ ->
-            UB.absolute
+            buildUrlFunc
                 [ "servers"
                 , serverUuid
                 ]
                 []
 
         CreateServerImage serverUuid imageName ->
-            UB.absolute
+            buildUrlFunc
                 [ "servers"
                 , serverUuid
                 , "image"
@@ -130,14 +150,14 @@ projectSpecificUrlPart viewConstructor =
                 ]
 
         VolumeDetail volumeUuid _ ->
-            UB.absolute
+            buildUrlFunc
                 [ "volumes"
                 , volumeUuid
                 ]
                 []
 
         CreateServer viewParams_ ->
-            UB.absolute
+            buildUrlFunc
                 [ "createserver"
                 ]
                 [ UB.string "imageuuid" viewParams_.imageUuid
@@ -160,7 +180,7 @@ projectSpecificUrlPart viewConstructor =
                 ]
 
         CreateVolume _ _ ->
-            UB.absolute
+            buildUrlFunc
                 [ "createvolume"
                 ]
                 []
@@ -183,13 +203,13 @@ projectSpecificUrlPart viewConstructor =
                         Nothing ->
                             []
             in
-            UB.absolute
+            buildUrlFunc
                 [ "attachvol"
                 ]
                 (List.concat [ volUuidQP, serverUuidQP ])
 
         MountVolInstructions attachment ->
-            UB.absolute
+            buildUrlFunc
                 [ "attachvolinstructions" ]
                 [ UB.string "serveruuid" attachment.serverUuid
                 , UB.string "attachmentuuid" attachment.attachmentUuid

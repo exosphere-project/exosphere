@@ -89,6 +89,7 @@ init flags maybeUrlKey =
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
+            , urlPathPrefix = flags.urlPathPrefix
             , navigationKey = maybeUrlKey |> Maybe.map Tuple.second
             , prevUrl = ""
             , viewState = NonProjectView LoginPicker
@@ -526,7 +527,7 @@ updateUnderlying msg model =
                     Just newViewState ->
                         ( { model
                             | viewState = newViewState
-                            , prevUrl = AppUrl.Builder.viewStateToUrl newViewState
+                            , prevUrl = AppUrl.Builder.viewStateToUrl model.urlPathPrefix newViewState
                           }
                         , Cmd.none
                         )
