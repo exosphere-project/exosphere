@@ -523,12 +523,12 @@ updateUnderlying msg model =
             else
                 case AppUrl.Parser.urlToViewState url of
                     Just newViewState ->
-                        case newViewState of
-                            NonProjectView constructor ->
-                                update (SetNonProjectView constructor) model
-
-                            ProjectView projectId _ constructor ->
-                                update (ProjectMsg projectId (SetProjectView constructor)) model
+                        ( { model
+                            | viewState = newViewState
+                            , prevUrl = Url.toString url
+                          }
+                        , Cmd.none
+                        )
 
                     Nothing ->
                         -- URL parsing error
