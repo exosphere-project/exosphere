@@ -160,13 +160,13 @@ And then either run the above command with `-d` (for detached)
 $ docker run -d --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 80:8080 exosphere
 ```
 
-or in another window execute a command to the container to rebuild the elm.js file:
+or in another window execute a command to the container to rebuild the elm-web.js file:
 
 ```bash
-$ docker exec exosphere elm make src/Exosphere.elm --output elm.js
+$ docker exec exosphere elm make src/Exosphere.elm --output elm-web.js
 Success! Compiled 47 modules.
 
-    Exosphere ───> elm.js
+    Exosphere ───> elm-web.js
 ```
 
 If you need changes done to other files in the root, you can either bind them
@@ -174,10 +174,10 @@ or make changes and rebuild the base. You generally shouldn't make changes to fi
 from inside the container that are bound to the host, as the permissions will be
 modified.
 
-If you want to copy the elm.js from inside the container (or any other file) you can do:
+If you want to copy the elm-web.js from inside the container (or any other file) you can do:
 
 ```bash
-docker cp exosphere:/usr/src/app/elm.js my-elm.js
+docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
 ```
 
 When it's time to cleanup, you can do `docker stop exosphere` and `docker rm exosphere`.
