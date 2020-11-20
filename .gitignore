@@ -4,6 +4,7 @@ elm-stuff
 repl-temp-*
 elm.js
 elm-electron.js
+elm-web.js
 node_modules/
 /dist/
 styleguide.html
