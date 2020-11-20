@@ -42,7 +42,7 @@ updateViewState model cmd viewState =
         urlCmd =
             -- This case statement prevents us from trying to update the URL in the electron app (where we don't have
             -- a navigation key)
-            case model.navigationKey of
+            case model.maybeNavigationKey of
                 Just key ->
                     updateUrlFunc key newUrl
 

@@ -1318,7 +1318,7 @@ urlPathQueryMatches urlType urlStr =
 
 appIsElectron : Model -> Bool
 appIsElectron model =
-    case model.navigationKey of
+    case model.maybeNavigationKey of
         Nothing ->
             True
 
