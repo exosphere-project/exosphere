@@ -17,8 +17,8 @@ main =
         , view = view
         , update = State.update
         , subscriptions = State.subscriptions
-        , onUrlRequest = \_ -> NoOp
 
-        -- Ignoring this for the moment, will need to handle it for browser back/foward button clicks
+        -- Not needed because all of our <a hrefs load another domain in a new window
+        , onUrlRequest = \_ -> NoOp
         , onUrlChange = UrlChange
         }

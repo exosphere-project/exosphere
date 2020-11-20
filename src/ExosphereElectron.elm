@@ -7,6 +7,8 @@ import View.View exposing (viewElectron)
 
 
 
+-- Elm's Browser.application cannot handle file:// URLs (https://github.com/elm/url/issues/10), so we must use
+-- Browser.element for the Electron app, which requires another entry point and module separate from Exosphere.elm
 {- App Setup -}
 
 
