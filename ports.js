@@ -18,9 +18,15 @@ var randomSeeds = crypto.getRandomValues(typedArray);
 // We need this to get the UTC offset?
 var d = new Date();
 
+if (isElectron) {
+    var moduleToInit = Elm.ExosphereElectron.init;
+} else {
+    var moduleToInit = Elm.Exosphere.init;
+}
+
 // start the elm app in the container
 // and keep a reference for communicating with the app
-var app = Elm.Exosphere.init({
+var app = moduleToInit({
     node: container,
     flags:
     {
@@ -31,11 +37,12 @@ var app = Elm.Exosphere.init({
         [ ["iu.jetstream-cloud.org", "proxy-j7m-iu.exosphere.app"],
           ["tacc.jetstream-cloud.org", "proxy-j7m-tacc.exosphere.app"],
         ],
+        urlPathPrefix: null,
+
         // Flags that Exosphere sets dynamically
         width: window.innerWidth,
         height: window.innerHeight,
         storedState: startingState,
-        isElectron: isElectron,
         randomSeed0: randomSeeds[0],
         randomSeed1: randomSeeds[1],
         randomSeed2: randomSeeds[2],

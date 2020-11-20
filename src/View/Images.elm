@@ -5,7 +5,6 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Filesize
-import Helpers.Helpers as Helpers
 import List.Extra
 import OpenStack.Types as OSTypes
 import Set
@@ -109,9 +108,6 @@ images project imageListViewParams sortTableParams =
         noMatchWarning =
             (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
-        projectId =
-            Helpers.getProjectId project
-
         tagView : ImageTag -> Element.Element Msg
         tagView tag =
             let
@@ -136,7 +132,7 @@ images project imageListViewParams sortTableParams =
                     { checked = tagChecked
                     , onChange =
                         \_ ->
-                            ProjectMsg projectId <|
+                            ProjectMsg project.auth.project.uuid <|
                                 SetProjectView <|
                                     ListImages { imageListViewParams | tags = Set.Extra.toggle tag.label imageListViewParams.tags } sortTableParams
                     , icon = iconFunction
@@ -153,7 +149,13 @@ images project imageListViewParams sortTableParams =
                     Element.text tag.label
 
                 unselectTag =
-                    ProjectMsg projectId <| SetProjectView <| ListImages { imageListViewParams | tags = Set.remove tag.label imageListViewParams.tags } sortTableParams
+                    ProjectMsg project.auth.project.uuid <|
+                        SetProjectView <|
+                            ListImages
+                                { imageListViewParams
+                                    | tags = Set.remove tag.label imageListViewParams.tags
+                                }
+                                sortTableParams
             in
             if tagChecked then
                 chip (Just unselectTag) chipLabel
@@ -182,13 +184,24 @@ images project imageListViewParams sortTableParams =
         , Input.text []
             { text = imageListViewParams.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange = \t -> ProjectMsg projectId <| SetProjectView <| ListImages { imageListViewParams | searchText = t } sortTableParams
+            , onChange =
+                \t ->
+                    ProjectMsg project.auth.project.uuid <|
+                        SetProjectView <|
+                            ListImages
+                                { imageListViewParams | searchText = t }
+                                sortTableParams
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
             }
         , tagsView
         , Input.checkbox []
             { checked = imageListViewParams.onlyOwnImages
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListImages { imageListViewParams | onlyOwnImages = new } sortTableParams
+            , onChange =
+                \new ->
+                    ProjectMsg project.auth.project.uuid <|
+                        SetProjectView <|
+                            ListImages { imageListViewParams | onlyOwnImages = new }
+                                sortTableParams
             , icon = Input.defaultCheckbox
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
@@ -197,7 +210,7 @@ images project imageListViewParams sortTableParams =
             { text = "Clear filters (show all)"
             , onPress =
                 Just <|
-                    ProjectMsg projectId <|
+                    ProjectMsg project.auth.project.uuid <|
                         SetProjectView <|
                             ListImages
                                 { searchText = ""
@@ -235,9 +248,6 @@ images project imageListViewParams sortTableParams =
 renderImage : Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
 renderImage project imageListViewParams sortTableParams image =
     let
-        projectId =
-            Helpers.getProjectId project
-
         imageDetailsExpanded =
             Set.member image.uuid imageListViewParams.expandImageDetails
 
@@ -267,9 +277,14 @@ renderImage project imageListViewParams sortTableParams image =
                     { checked = imageDetailsExpanded
                     , onChange =
                         \_ ->
-                            ProjectMsg projectId <|
+                            ProjectMsg project.auth.project.uuid <|
                                 SetProjectView <|
-                                    ListImages { imageListViewParams | expandImageDetails = Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails } sortTableParams
+                                    ListImages
+                                        { imageListViewParams
+                                            | expandImageDetails =
+                                                Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails
+                                        }
+                                        sortTableParams
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
@@ -287,11 +302,12 @@ renderImage project imageListViewParams sortTableParams image =
                 ++ ")"
 
         chooseMsg =
-            ProjectMsg (Helpers.getProjectId project) <|
+            ProjectMsg project.auth.project.uuid <|
                 SetProjectView <|
                     CreateServer <|
                         Defaults.createServerViewParams
-                            image
+                            image.uuid
+                            image.name
                             (project.userAppProxyHostname |> Maybe.map (\_ -> True))
 
         tagChip tag =

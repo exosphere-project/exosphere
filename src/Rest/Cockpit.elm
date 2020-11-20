@@ -68,7 +68,7 @@ requestCockpitLogin project serverUuid password ipAddress =
             "Basic " ++ Base64.encode ("exouser:" ++ password)
 
         resultMsg project2 serverUuid2 result =
-            ProjectMsg (Helpers.getProjectId project2) (ReceiveCockpitLoginStatus serverUuid2 result)
+            ProjectMsg project2.auth.project.uuid (ReceiveCockpitLoginStatus serverUuid2 result)
     in
     -- Future todo handle errors with this API call, e.g. a timeout should not generate error to user but other errors should be handled differently
     Http.request

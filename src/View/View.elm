@@ -1,9 +1,10 @@
-module View.View exposing (view)
+module View.View exposing (view, viewElectron)
 
+import Browser
 import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
-import Html exposing (Html)
+import Html
 import Toasty
 import Types.Types
     exposing
@@ -17,13 +18,28 @@ import View.HelpAbout
 import View.Login
 import View.Messages
 import View.Nav
+import View.PageTitle
 import View.Project
 import View.SelectProjects
 import View.Toast
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
+    { title =
+        View.PageTitle.pageTitle model
+    , body =
+        [ view_ model ]
+    }
+
+
+viewElectron : Model -> Html.Html Msg
+viewElectron =
+    view_
+
+
+view_ : Model -> Html.Html Msg
+view_ model =
     Element.layout
         [ Font.size 17
         , Font.family

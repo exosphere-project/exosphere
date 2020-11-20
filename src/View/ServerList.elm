@@ -54,7 +54,7 @@ serverList project serverListViewParams =
 
             else
                 serverList_
-                    (Helpers.getProjectId project)
+                    project.auth.project.uuid
                     project.auth.user.uuid
                     serverListViewParams
                     servers

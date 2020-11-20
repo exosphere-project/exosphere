@@ -82,7 +82,7 @@ openstackCredentialedRequest project method maybeMicroversion origUrl requestBod
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg (Helpers.getProjectId project) (TT.PrepareCredentialedRequest requestProto posixTime))
+        (\posixTime -> TT.ProjectMsg project.auth.project.uuid (TT.PrepareCredentialedRequest requestProto posixTime))
         Time.now
 
 

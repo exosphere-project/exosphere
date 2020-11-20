@@ -1,12 +1,12 @@
 module Helpers.Helpers exposing
-    ( authUrlWithPortAndVersion
+    ( appIsElectron
+    , authUrlWithPortAndVersion
     , buildProxyUrl
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
     , flavorLookup
     , getBootVol
     , getExternalNetwork
-    , getProjectId
     , getServerExouserPassword
     , getServerFloatingIp
     , getServerUiStatus
@@ -44,6 +44,7 @@ module Helpers.Helpers exposing
     , stringIsUuidOrDefault
     , titleFromHostname
     , toastConfig
+    , urlPathQueryMatches
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
     , volumeLookup
@@ -447,14 +448,8 @@ serverLookup project serverUuid =
 projectLookup : Model -> ProjectIdentifier -> Maybe Project
 projectLookup model projectIdentifier =
     model.projects
-        |> List.filter (\p -> p.auth.project.name == projectIdentifier.name)
-        |> List.filter (\p -> p.endpoints.keystone == projectIdentifier.authUrl)
+        |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
         |> List.head
-
-
-getProjectId : Project -> ProjectIdentifier
-getProjectId project =
-    ProjectIdentifier project.auth.project.name project.endpoints.keystone
 
 
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
@@ -493,7 +488,7 @@ modelUpdateProject : Model -> Project -> Model
 modelUpdateProject model newProject =
     let
         otherProjects =
-            List.filter (\p -> getProjectId p /= getProjectId newProject) model.projects
+            List.filter (\p -> p.auth.project.uuid /= newProject.auth.project.uuid) model.projects
 
         newProjects =
             newProject :: otherProjects
@@ -1305,3 +1300,27 @@ buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
     , path
     ]
         |> String.concat
+
+
+urlPathQueryMatches : Url.Url -> String -> Bool
+urlPathQueryMatches urlType urlStr =
+    let
+        urlTypeQueryStr =
+            case urlType.query of
+                Just q ->
+                    "?" ++ q
+
+                Nothing ->
+                    ""
+    in
+    (urlType.path ++ urlTypeQueryStr) == urlStr
+
+
+appIsElectron : Model -> Bool
+appIsElectron model =
+    case model.maybeNavigationKey of
+        Nothing ->
+            True
+
+        Just _ ->
+            False

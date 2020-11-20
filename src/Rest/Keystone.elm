@@ -18,7 +18,6 @@ module Rest.Keystone exposing
 
 import Dict
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
-import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -299,7 +298,7 @@ requestAppCredential project clientUuid posixTime =
                 errorContext
                 (\appCred ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveAppCredential appCred)
                 )
     in

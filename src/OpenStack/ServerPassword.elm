@@ -1,7 +1,6 @@
 module OpenStack.ServerPassword exposing (requestClearServerPassword, requestServerPassword)
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
-import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -30,7 +29,7 @@ requestServerPassword project serverUuid =
             <|
                 \serverPassword ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveServerPassword serverUuid serverPassword)
     in
     openstackCredentialedRequest

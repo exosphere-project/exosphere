@@ -1,6 +1,9 @@
 module State exposing (init, subscriptions, update)
 
+import AppUrl.Builder
+import AppUrl.Parser
 import Browser.Events
+import Browser.Navigation
 import Dict
 import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.ExoSetupStatus
@@ -8,6 +11,7 @@ import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
+import Helpers.StateHelpers as StateHelpers
 import Helpers.Time as TimeHelpers
 import Http
 import Json.Decode as Decode
@@ -50,7 +54,6 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
         , Project
-        , ProjectIdentifier
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
@@ -64,10 +67,11 @@ import Types.Types
         , currentExoServerVersion
         )
 import UUID
+import Url
 
 
-init : Flags -> ( Model, Cmd Msg )
-init flags =
+init : Flags -> Maybe ( Url.Url, Browser.Navigation.Key ) -> ( Model, Cmd Msg )
+init flags maybeUrlKey =
     let
         currentTime =
             Time.millisToPosix flags.epoch
@@ -85,6 +89,9 @@ init flags =
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
+            , urlPathPrefix = flags.urlPathPrefix
+            , maybeNavigationKey = maybeUrlKey |> Maybe.map Tuple.second
+            , prevUrl = ""
             , viewState = NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
@@ -92,7 +99,6 @@ init flags =
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
             , cloudsWithUserAppProxy = Dict.fromList flags.cloudsWithUserAppProxy
-            , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
             , timeZone = timeZone
@@ -134,6 +140,29 @@ init flags =
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
+        viewState =
+            let
+                defaultViewState =
+                    case hydratedModel.projects of
+                        [] ->
+                            NonProjectView LoginPicker
+
+                        firstProject :: _ ->
+                            ProjectView
+                                firstProject.auth.project.uuid
+                                { createPopup = False }
+                                (ListProjectServers
+                                    Defaults.serverListViewParams
+                                )
+            in
+            case maybeUrlKey of
+                Just ( url, _ ) ->
+                    AppUrl.Parser.urlToViewState flags.urlPathPrefix url
+                        |> Maybe.withDefault defaultViewState
+
+                Nothing ->
+                    defaultViewState
+
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
         projectsNeedingAppCredentials =
@@ -164,9 +193,25 @@ init flags =
             in
             { hydratedModel | projects = projectsServersLoading }
     in
-    ( newModel
-    , otherCmds
-    )
+    case viewState of
+        NonProjectView _ ->
+            ( { newModel | viewState = viewState }
+            , otherCmds
+            )
+
+        ProjectView projectId _ projectViewConstructor ->
+            -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
+            let
+                ( setProjectViewModel, setProjectViewCmd ) =
+                    update
+                        (ProjectMsg projectId <|
+                            SetProjectView projectViewConstructor
+                        )
+                        newModel
+            in
+            ( setProjectViewModel
+            , Cmd.batch [ otherCmds, setProjectViewCmd ]
+            )
 
 
 subscriptions : Model -> Sub Msg
@@ -235,13 +280,7 @@ updateUnderlying msg model =
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
-            let
-                newModel =
-                    { model | viewState = NonProjectView nonProjectViewConstructor }
-            in
-            case nonProjectViewConstructor of
-                _ ->
-                    ( newModel, Cmd.none )
+            StateHelpers.updateViewState model Cmd.none (NonProjectView nonProjectViewConstructor)
 
         HandleApiErrorWithBody errorContext error ->
             Helpers.processSynchronousApiError model errorContext error
@@ -296,9 +335,7 @@ updateUnderlying msg model =
                         Ok endpoints ->
                             let
                                 projectId =
-                                    ProjectIdentifier
-                                        authToken.project.name
-                                        endpoints.keystone
+                                    authToken.project.uuid
                             in
                             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
@@ -369,21 +406,18 @@ updateUnderlying msg model =
 
                         newModel =
                             Helpers.modelUpdateUnscopedProvider model newProvider
-
-                        newModelWithView =
-                            -- If we are not already on a SelectProjects view, then go there
-                            case newModel.viewState of
-                                NonProjectView (SelectProjects _ _) ->
-                                    newModel
-
-                                _ ->
-                                    { newModel
-                                        | viewState =
-                                            NonProjectView <|
-                                                SelectProjects newProvider.authUrl []
-                                    }
                     in
-                    ( newModelWithView, Cmd.none )
+                    -- If we are not already on a SelectProjects view, then go there
+                    case newModel.viewState of
+                        NonProjectView (SelectProjects _ _) ->
+                            ( newModel, Cmd.none )
+
+                        _ ->
+                            StateHelpers.updateViewState newModel
+                                Cmd.none
+                                (NonProjectView <|
+                                    SelectProjects newProvider.authUrl []
+                                )
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
@@ -409,6 +443,7 @@ updateUnderlying msg model =
 
                         loginRequests =
                             List.map buildLoginRequest desiredProjects
+                                |> Cmd.batch
 
                         -- Remove unscoped provider from model now that we have selected projects from it
                         newUnscopedProviders =
@@ -428,7 +463,7 @@ updateUnderlying msg model =
                                     case List.head model.projects of
                                         Just project ->
                                             ProjectView
-                                                (Helpers.getProjectId project)
+                                                project.auth.project.uuid
                                                 { createPopup = False }
                                             <|
                                                 ListProjectServers Defaults.serverListViewParams
@@ -436,10 +471,10 @@ updateUnderlying msg model =
                                         Nothing ->
                                             NonProjectView LoginPicker
 
-                        newModel =
-                            { model | unscopedProviders = newUnscopedProviders, viewState = newViewState }
+                        modelUpdatedUnscopedProviders =
+                            { model | unscopedProviders = newUnscopedProviders }
                     in
-                    ( newModel, Cmd.batch loginRequests )
+                    StateHelpers.updateViewState modelUpdatedUnscopedProviders loginRequests newViewState
 
                 Nothing ->
                     Helpers.processStringError
@@ -469,13 +504,37 @@ updateUnderlying msg model =
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
             in
-            ( { model | viewState = newViewState }, Cmd.none )
+            StateHelpers.updateViewState model Cmd.none newViewState
 
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
 
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
+
+        UrlChange url ->
+            -- This handles presses of the browser back/forward button
+            let
+                exoJustSetThisUrl =
+                    -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
+                    Helpers.urlPathQueryMatches url model.prevUrl
+            in
+            if exoJustSetThisUrl then
+                ( model, Cmd.none )
+
+            else
+                case AppUrl.Parser.urlToViewState model.urlPathPrefix url of
+                    Just newViewState ->
+                        ( { model
+                            | viewState = newViewState
+                            , prevUrl = AppUrl.Builder.viewStateToUrl model.urlPathPrefix newViewState
+                          }
+                        , Cmd.none
+                        )
+
+                    Nothing ->
+                        -- URL parsing error
+                        ( model, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -604,263 +663,7 @@ processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor ->
 processProjectSpecificMsg model project msg =
     case msg of
         SetProjectView projectViewConstructor ->
-            let
-                prevProjectViewConstructor =
-                    case model.viewState of
-                        ProjectView projectId _ projectViewConstructor_ ->
-                            if projectId == Helpers.getProjectId project then
-                                Just projectViewConstructor_
-
-                            else
-                                Nothing
-
-                        _ ->
-                            Nothing
-
-                modelUpdatedView model_ =
-                    { model_ | viewState = ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor }
-
-                projectResetCockpitStatuses project_ =
-                    -- We need to re-poll Cockpit to determine its availability and get a session cookie
-                    -- See merge request 289
-                    let
-                        serverResetCockpitStatus s =
-                            case s.exoProps.serverOrigin of
-                                ServerNotFromExo ->
-                                    s
-
-                                ServerFromExo serverFromExoProps ->
-                                    let
-                                        newCockpitStatus =
-                                            case serverFromExoProps.cockpitStatus of
-                                                Ready ->
-                                                    ReadyButRecheck
-
-                                                _ ->
-                                                    serverFromExoProps.cockpitStatus
-
-                                        newOriginProps =
-                                            ServerFromExo { serverFromExoProps | cockpitStatus = newCockpitStatus }
-
-                                        newExoProps =
-                                            let
-                                                oldExoProps =
-                                                    s.exoProps
-                                            in
-                                            { oldExoProps | serverOrigin = newOriginProps }
-                                    in
-                                    { s | exoProps = newExoProps }
-                    in
-                    RDPP.withDefault [] project_.servers
-                        |> List.map serverResetCockpitStatus
-                        |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project_
-            in
-            case projectViewConstructor of
-                ListImages _ _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ListImages _ _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    Rest.Glance.requestImages project
-                    in
-                    ( modelUpdatedView model, cmd )
-
-                ListProjectServers _ ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (ListProjectServers _) ->
-                            ( modelUpdatedView model, Cmd.none )
-
-                        _ ->
-                            ( project
-                                |> Helpers.projectSetServersLoading model.clientCurrentTime
-                                |> projectResetCockpitStatuses
-                                |> Helpers.modelUpdateProject model
-                                |> modelUpdatedView
-                            , [ Rest.Nova.requestServers
-                              , Rest.Neutron.requestFloatingIps
-                              ]
-                                |> List.map (\x -> x project)
-                                |> Cmd.batch
-                            )
-
-                ServerDetail serverUuid _ ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (ServerDetail _ _) ->
-                            ( modelUpdatedView model, Cmd.none )
-
-                        _ ->
-                            ( project
-                                |> (\p -> Helpers.projectSetServerLoading p serverUuid)
-                                |> projectResetCockpitStatuses
-                                |> Helpers.modelUpdateProject model
-                                |> modelUpdatedView
-                            , Cmd.batch
-                                [ Rest.Nova.requestServer project serverUuid
-                                , Rest.Nova.requestFlavors project
-                                , Rest.Glance.requestImages project
-                                , OSVolumes.requestVolumes project
-                                , Ports.instantiateClipboardJs ()
-                                ]
-                            )
-
-                CreateServerImage _ _ ->
-                    ( modelUpdatedView model, Cmd.none )
-
-                CreateServer viewParams ->
-                    case model.viewState of
-                        -- If we are already in this view state then ensure user isn't trying to choose a server count
-                        -- that would exceed quota; if so, reduce server count to comply with quota.
-                        ProjectView _ _ (CreateServer _) ->
-                            let
-                                newViewParams =
-                                    case
-                                        ( Helpers.flavorLookup project viewParams.flavorUuid
-                                        , project.computeQuota
-                                        , project.volumeQuota
-                                        )
-                                    of
-                                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
-                                            let
-                                                availServers =
-                                                    Helpers.overallQuotaAvailServers
-                                                        (viewParams.volSizeTextInput
-                                                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
-                                                        )
-                                                        flavor
-                                                        computeQuota
-                                                        volumeQuota
-                                            in
-                                            { viewParams
-                                                | count =
-                                                    case availServers of
-                                                        Just availServers_ ->
-                                                            if viewParams.count > availServers_ then
-                                                                availServers_
-
-                                                            else
-                                                                viewParams.count
-
-                                                        Nothing ->
-                                                            viewParams.count
-                                            }
-
-                                        ( _, _, _ ) ->
-                                            viewParams
-
-                                newModel =
-                                    { model
-                                        | viewState =
-                                            ProjectView
-                                                (Helpers.getProjectId project)
-                                                { createPopup = False }
-                                            <|
-                                                CreateServer newViewParams
-                                    }
-                            in
-                            ( newModel
-                            , Cmd.none
-                            )
-
-                        -- If we are just entering this view then gather everything we need
-                        _ ->
-                            let
-                                newViewParamsMsg serverName_ =
-                                    ProjectMsg (Helpers.getProjectId project) <|
-                                        SetProjectView <|
-                                            CreateServer { viewParams | serverName = serverName_ }
-
-                                newProject =
-                                    { project
-                                        | computeQuota = RemoteData.Loading
-                                        , volumeQuota = RemoteData.Loading
-                                        , networks = RDPP.setLoading project.networks model.clientCurrentTime
-                                    }
-                            in
-                            ( newProject
-                                |> Helpers.modelUpdateProject model
-                                |> modelUpdatedView
-                            , Cmd.batch
-                                [ Rest.Nova.requestFlavors project
-                                , Rest.Nova.requestKeypairs project
-                                , Rest.Neutron.requestNetworks project
-                                , RandomHelpers.generateServerName newViewParamsMsg
-                                , OpenStack.Quotas.requestComputeQuota project
-                                , OpenStack.Quotas.requestVolumeQuota project
-                                ]
-                            )
-
-                ListProjectVolumes _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ListProjectVolumes _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-                    in
-                    ( modelUpdatedView model, cmd )
-
-                ListQuotaUsage ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just ListQuotaUsage ->
-                                    Cmd.none
-
-                                _ ->
-                                    Cmd.batch
-                                        [ OpenStack.Quotas.requestComputeQuota project
-                                        , OpenStack.Quotas.requestVolumeQuota project
-                                        ]
-                    in
-                    ( modelUpdatedView model, cmd )
-
-                VolumeDetail _ _ ->
-                    ( modelUpdatedView model, Cmd.none )
-
-                AttachVolumeModal _ _ ->
-                    case prevProjectViewConstructor of
-                        Just (AttachVolumeModal _ _) ->
-                            ( modelUpdatedView model, Cmd.none )
-
-                        _ ->
-                            ( project
-                                |> Helpers.projectSetServersLoading model.clientCurrentTime
-                                |> Helpers.modelUpdateProject model
-                                |> modelUpdatedView
-                            , Cmd.batch
-                                [ Rest.Nova.requestServers project
-                                , OSVolumes.requestVolumes project
-                                ]
-                            )
-
-                MountVolInstructions _ ->
-                    ( modelUpdatedView model, Cmd.none )
-
-                CreateVolume _ _ ->
-                    let
-                        cmd =
-                            -- If just entering this view, get volume quota
-                            case model.viewState of
-                                ProjectView _ _ (CreateVolume _ _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    OpenStack.Quotas.requestVolumeQuota project
-                    in
-                    ( modelUpdatedView model, cmd )
+            setProjectView model project projectViewConstructor
 
         PrepareCredentialedRequest requestProto posixTime ->
             let
@@ -899,17 +702,16 @@ processProjectSpecificMsg model project msg =
         ToggleCreatePopup ->
             case model.viewState of
                 ProjectView projectId viewParams viewConstructor ->
-                    ( { model
-                        | viewState =
+                    let
+                        newViewState =
                             ProjectView
                                 projectId
                                 { viewParams
                                     | createPopup = not viewParams.createPopup
                                 }
                                 viewConstructor
-                      }
-                    , Cmd.none
-                    )
+                    in
+                    StateHelpers.updateViewState model Cmd.none newViewState
 
                 _ ->
                     ( model, Cmd.none )
@@ -917,7 +719,7 @@ processProjectSpecificMsg model project msg =
         RemoveProject ->
             let
                 newProjects =
-                    List.filter (\p -> Helpers.getProjectId p /= Helpers.getProjectId project) model.projects
+                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) model.projects
 
                 newViewState =
                     case model.viewState of
@@ -930,7 +732,7 @@ processProjectSpecificMsg model project msg =
                             case List.head newProjects of
                                 Just p ->
                                     ProjectView
-                                        (Helpers.getProjectId p)
+                                        p.auth.project.uuid
                                         { createPopup = False }
                                     <|
                                         ListProjectServers
@@ -939,10 +741,10 @@ processProjectSpecificMsg model project msg =
                                 Nothing ->
                                     NonProjectView <| LoginPicker
 
-                newModel =
-                    { model | projects = newProjects, viewState = newViewState }
+                modelUpdatedProjects =
+                    { model | projects = newProjects }
             in
-            ( newModel, Cmd.none )
+            StateHelpers.updateViewState modelUpdatedProjects Cmd.none newViewState
 
         RequestServers ->
             let
@@ -1054,18 +856,18 @@ processProjectSpecificMsg model project msg =
 
         RequestCreateServerImage serverUuid imageName ->
             let
-                newModel =
-                    { model
-                        | viewState =
-                            ProjectView
-                                (Helpers.getProjectId project)
-                                { createPopup = False }
-                            <|
-                                ListProjectServers
-                                    Defaults.serverListViewParams
-                    }
+                newViewState =
+                    ProjectView
+                        project.auth.project.uuid
+                        { createPopup = False }
+                    <|
+                        ListProjectServers
+                            Defaults.serverListViewParams
+
+                createImageCmd =
+                    Rest.Nova.requestCreateServerImage project serverUuid imageName
             in
-            ( newModel, Rest.Nova.requestCreateServerImage project serverUuid imageName )
+            StateHelpers.updateViewState model createImageCmd newViewState
 
         RequestSetServerName serverUuid newServerName ->
             ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
@@ -1195,7 +997,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
-                serverDeletedModel =
+                ( serverDeletedModel, urlCmd ) =
                     let
                         newViewState =
                             case model.viewState of
@@ -1232,16 +1034,14 @@ processProjectSpecificMsg model project msg =
                                 Nothing ->
                                     project
 
-                        newModelProto =
+                        modelUpdatedProject =
                             Helpers.modelUpdateProject model newProject
                     in
-                    { newModelProto
-                        | viewState = newViewState
-                    }
+                    StateHelpers.updateViewState modelUpdatedProject Cmd.none newViewState
             in
             case maybeIpAddress of
                 Nothing ->
-                    ( serverDeletedModel, Cmd.none )
+                    ( serverDeletedModel, urlCmd )
 
                 Just ipAddress ->
                     let
@@ -1266,7 +1066,9 @@ processProjectSpecificMsg model project msg =
                                 ("Could not find a UUID for floating IP address from deleted server with UUID " ++ serverUuid)
 
                         Just uuid ->
-                            ( serverDeletedModel, Rest.Neutron.requestDeleteFloatingIp project uuid )
+                            ( serverDeletedModel
+                            , Cmd.batch [ urlCmd, Rest.Neutron.requestDeleteFloatingIp project uuid ]
+                            )
 
         ReceiveNetworks errorContext result ->
             case result of
@@ -1343,7 +1145,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectVolumes []) model
+            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| ListProjectVolumes []) model
 
         ReceiveVolumes volumes ->
             let
@@ -1432,11 +1234,11 @@ processProjectSpecificMsg model project msg =
 
         ReceiveAttachVolume attachment ->
             {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| MountVolInstructions attachment) model
+            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| MountVolInstructions attachment) model
 
         ReceiveDetachVolume ->
             {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectVolumes []) model
+            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| ListProjectVolumes []) model
 
         ReceiveAppCredential appCredential ->
             let
@@ -1657,10 +1459,8 @@ processProjectSpecificMsg model project msg =
                                     model.viewState
 
                         -- Later, maybe: Check that newServerName == actualNewServerName
-                        newModel =
-                            { modelWithUpdatedProject | viewState = updatedView }
                     in
-                    ( newModel, Cmd.none )
+                    StateHelpers.updateViewState modelWithUpdatedProject Cmd.none updatedView
 
         ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
             case ( Helpers.serverLookup project serverUuid, result ) of
@@ -1817,6 +1617,284 @@ processProjectSpecificMsg model project msg =
                         "Could not find server in the model, maybe it has been deleted."
 
 
+setProjectView : Model -> Project -> ProjectViewConstructor -> ( Model, Cmd Msg )
+setProjectView model project projectViewConstructor =
+    let
+        prevProjectViewConstructor =
+            case model.viewState of
+                ProjectView projectId _ projectViewConstructor_ ->
+                    if projectId == project.auth.project.uuid then
+                        Just projectViewConstructor_
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+
+        newViewState =
+            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
+
+        updatedViewModelAndCmd model_ cmd_ =
+            StateHelpers.updateViewState model_ cmd_ newViewState
+
+        projectResetCockpitStatuses project_ =
+            -- We need to re-poll Cockpit to determine its availability and get a session cookie
+            -- See merge request 289
+            let
+                serverResetCockpitStatus s =
+                    case s.exoProps.serverOrigin of
+                        ServerNotFromExo ->
+                            s
+
+                        ServerFromExo serverFromExoProps ->
+                            let
+                                newCockpitStatus =
+                                    case serverFromExoProps.cockpitStatus of
+                                        Ready ->
+                                            ReadyButRecheck
+
+                                        _ ->
+                                            serverFromExoProps.cockpitStatus
+
+                                newOriginProps =
+                                    ServerFromExo { serverFromExoProps | cockpitStatus = newCockpitStatus }
+
+                                newExoProps =
+                                    let
+                                        oldExoProps =
+                                            s.exoProps
+                                    in
+                                    { oldExoProps | serverOrigin = newOriginProps }
+                            in
+                            { s | exoProps = newExoProps }
+            in
+            RDPP.withDefault [] project_.servers
+                |> List.map serverResetCockpitStatus
+                |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project_
+    in
+    case projectViewConstructor of
+        ListImages _ _ ->
+            let
+                cmd =
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (ListImages _ _) ->
+                            Cmd.none
+
+                        _ ->
+                            Rest.Glance.requestImages project
+            in
+            updatedViewModelAndCmd model cmd
+
+        ListProjectServers _ ->
+            -- Don't fire cmds if we're already in this view
+            case prevProjectViewConstructor of
+                Just (ListProjectServers _) ->
+                    updatedViewModelAndCmd model Cmd.none
+
+                _ ->
+                    let
+                        newModel =
+                            project
+                                |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                |> projectResetCockpitStatuses
+                                |> Helpers.modelUpdateProject model
+
+                        cmd =
+                            [ Rest.Nova.requestServers
+                            , Rest.Neutron.requestFloatingIps
+                            ]
+                                |> List.map (\x -> x project)
+                                |> Cmd.batch
+                    in
+                    updatedViewModelAndCmd newModel cmd
+
+        ServerDetail serverUuid _ ->
+            -- Don't fire cmds if we're already in this view
+            case prevProjectViewConstructor of
+                Just (ServerDetail _ _) ->
+                    updatedViewModelAndCmd model Cmd.none
+
+                _ ->
+                    let
+                        newModel =
+                            project
+                                |> (\p -> Helpers.projectSetServerLoading p serverUuid)
+                                |> projectResetCockpitStatuses
+                                |> Helpers.modelUpdateProject model
+
+                        cmd =
+                            Cmd.batch
+                                [ Rest.Nova.requestServer project serverUuid
+                                , Rest.Nova.requestFlavors project
+                                , Rest.Glance.requestImages project
+                                , OSVolumes.requestVolumes project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                    in
+                    updatedViewModelAndCmd newModel cmd
+
+        CreateServerImage _ _ ->
+            updatedViewModelAndCmd model Cmd.none
+
+        CreateServer viewParams ->
+            case model.viewState of
+                -- If we are already in this view state then ensure user isn't trying to choose a server count
+                -- that would exceed quota; if so, reduce server count to comply with quota.
+                ProjectView _ _ (CreateServer _) ->
+                    let
+                        newViewParams =
+                            case
+                                ( Helpers.flavorLookup project viewParams.flavorUuid
+                                , project.computeQuota
+                                , project.volumeQuota
+                                )
+                            of
+                                ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                                    let
+                                        availServers =
+                                            Helpers.overallQuotaAvailServers
+                                                (viewParams.volSizeTextInput
+                                                    |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                                                )
+                                                flavor
+                                                computeQuota
+                                                volumeQuota
+                                    in
+                                    { viewParams
+                                        | count =
+                                            case availServers of
+                                                Just availServers_ ->
+                                                    if viewParams.count > availServers_ then
+                                                        availServers_
+
+                                                    else
+                                                        viewParams.count
+
+                                                Nothing ->
+                                                    viewParams.count
+                                    }
+
+                                ( _, _, _ ) ->
+                                    viewParams
+
+                        newModel =
+                            { model
+                                | viewState =
+                                    ProjectView
+                                        project.auth.project.uuid
+                                        { createPopup = False }
+                                    <|
+                                        CreateServer newViewParams
+                            }
+                    in
+                    ( newModel
+                    , Cmd.none
+                    )
+
+                -- If we are just entering this view then gather everything we need
+                _ ->
+                    let
+                        newViewParamsMsg serverName_ =
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    CreateServer { viewParams | serverName = serverName_ }
+
+                        newProject =
+                            { project
+                                | computeQuota = RemoteData.Loading
+                                , volumeQuota = RemoteData.Loading
+                                , networks = RDPP.setLoading project.networks model.clientCurrentTime
+                            }
+
+                        newModel =
+                            Helpers.modelUpdateProject model newProject
+
+                        cmd =
+                            Cmd.batch
+                                [ Rest.Nova.requestFlavors project
+                                , Rest.Nova.requestKeypairs project
+                                , Rest.Neutron.requestNetworks project
+                                , RandomHelpers.generateServerName newViewParamsMsg
+                                , OpenStack.Quotas.requestComputeQuota project
+                                , OpenStack.Quotas.requestVolumeQuota project
+                                ]
+                    in
+                    updatedViewModelAndCmd newModel cmd
+
+        ListProjectVolumes _ ->
+            let
+                cmd =
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (ListProjectVolumes _) ->
+                            Cmd.none
+
+                        _ ->
+                            Cmd.batch
+                                [ OSVolumes.requestVolumes project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+            in
+            updatedViewModelAndCmd model cmd
+
+        ListQuotaUsage ->
+            let
+                cmd =
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just ListQuotaUsage ->
+                            Cmd.none
+
+                        _ ->
+                            Cmd.batch
+                                [ OpenStack.Quotas.requestComputeQuota project
+                                , OpenStack.Quotas.requestVolumeQuota project
+                                ]
+            in
+            updatedViewModelAndCmd model cmd
+
+        VolumeDetail _ _ ->
+            updatedViewModelAndCmd model Cmd.none
+
+        AttachVolumeModal _ _ ->
+            case prevProjectViewConstructor of
+                Just (AttachVolumeModal _ _) ->
+                    updatedViewModelAndCmd model Cmd.none
+
+                _ ->
+                    let
+                        newModel =
+                            project
+                                |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                |> Helpers.modelUpdateProject model
+
+                        cmd =
+                            Cmd.batch
+                                [ Rest.Nova.requestServers project
+                                , OSVolumes.requestVolumes project
+                                ]
+                    in
+                    updatedViewModelAndCmd newModel cmd
+
+        MountVolInstructions _ ->
+            updatedViewModelAndCmd model Cmd.none
+
+        CreateVolume _ _ ->
+            let
+                cmd =
+                    -- If just entering this view, get volume quota
+                    case model.viewState of
+                        ProjectView _ _ (CreateVolume _ _) ->
+                            Cmd.none
+
+                        _ ->
+                            OpenStack.Quotas.requestVolumeQuota project
+            in
+            updatedViewModelAndCmd model cmd
+
+
 createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
 createProject model password authToken endpoints =
     let
@@ -1855,14 +1933,14 @@ createProject model password authToken endpoints =
 
                 NonProjectView _ ->
                     ProjectView
-                        (Helpers.getProjectId newProject)
+                        newProject.auth.project.uuid
                         { createPopup = False }
                     <|
                         ListProjectServers Defaults.serverListViewParams
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
-                        (Helpers.getProjectId newProject)
+                        newProject.auth.project.uuid
                         projectViewParams
                     <|
                         ListProjectServers Defaults.serverListViewParams
@@ -1948,7 +2026,7 @@ sendPendingRequests model project =
 
 getTimeForAppCredential : Project -> Cmd Msg
 getTimeForAppCredential project =
-    Task.perform (\posixTime -> ProjectMsg (Helpers.getProjectId project) (RequestAppCredential posixTime)) Time.now
+    Task.perform (\posixTime -> ProjectMsg project.auth.project.uuid (RequestAppCredential posixTime)) Time.now
 
 
 requestAuthToken : Model -> Project -> Cmd Msg

@@ -1,8 +1,8 @@
 module Exosphere exposing (main)
 
-import Browser exposing (element)
+import Browser exposing (application)
 import State
-import Types.Types exposing (Flags, Model, Msg)
+import Types.Types exposing (Flags, Model, Msg(..))
 import View.View exposing (view)
 
 
@@ -12,9 +12,13 @@ import View.View exposing (view)
 
 main : Program Flags Model Msg
 main =
-    element
-        { init = State.init
+    application
+        { init = \flags url key -> State.init flags (Just ( url, key ))
         , view = view
         , update = State.update
         , subscriptions = State.subscriptions
+
+        -- Not needed because all of our <a hrefs load another domain in a new window
+        , onUrlRequest = \_ -> NoOp
+        , onUrlChange = UrlChange
         }

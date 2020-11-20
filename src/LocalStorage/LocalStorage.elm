@@ -13,7 +13,6 @@ import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
-import Types.Defaults as Defaults
 import Types.Types as Types
 import UUID
 
@@ -44,19 +43,6 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
         projects =
             List.map (hydrateProjectFromStoredProject model.cloudsWithUserAppProxy) storedState.projects
 
-        viewState =
-            case projects of
-                [] ->
-                    Types.NonProjectView Types.LoginPicker
-
-                firstProject :: _ ->
-                    Types.ProjectView
-                        (Helpers.getProjectId firstProject)
-                        { createPopup = False }
-                        (Types.ListProjectServers
-                            Defaults.serverListViewParams
-                        )
-
         clientUuid =
             -- If client UUID exists in stored state then use that, else set a new one
             case storedState.clientUuid of
@@ -66,7 +52,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
                 Nothing ->
                     newClientUuid
     in
-    { model | projects = projects, viewState = viewState }
+    { model | projects = projects }
 
 
 hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> StoredProject -> Types.Project

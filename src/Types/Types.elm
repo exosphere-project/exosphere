@@ -51,6 +51,7 @@ module Types.Types exposing
     , currentExoServerVersion
     )
 
+import Browser.Navigation
 import Dict
 import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -67,6 +68,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
 import UUID
+import Url
 
 
 
@@ -77,12 +79,12 @@ type alias Flags =
     -- Flags intended to be configured by cloud operators
     { showDebugMsgs : Bool
     , cloudCorsProxyUrl : Maybe HelperTypes.Url
+    , urlPathPrefix : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
     , height : Int
     , storedState : Maybe Decode.Value
-    , isElectron : Bool
     , randomSeed0 : Int
     , randomSeed1 : Int
     , randomSeed2 : Int
@@ -101,6 +103,11 @@ type alias WindowSize =
 
 type alias Model =
     { logMessages : List LogMessage
+    , urlPathPrefix : Maybe String
+    , maybeNavigationKey : Maybe Browser.Navigation.Key
+
+    -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
+    , prevUrl : String
     , viewState : ViewState
     , maybeWindowSize : Maybe WindowSize
     , unscopedProviders : List UnscopedProvider
@@ -108,7 +115,6 @@ type alias Model =
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , cloudsWithUserAppProxy : CloudsWithUserAppProxy
-    , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
@@ -177,9 +183,7 @@ type alias Project =
 
 type alias ProjectIdentifier =
     -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
-    { name : ProjectName
-    , authUrl : HelperTypes.Url
-    }
+    HelperTypes.Uuid
 
 
 type ProjectSecret
@@ -215,6 +219,7 @@ type Msg
     | ToastyMsg (Toasty.Msg Toast)
     | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
+    | UrlChange Url.Url
     | NoOp
 
 
