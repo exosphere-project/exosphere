@@ -513,12 +513,13 @@ updateUnderlying msg model =
             ( model, Ports.openNewWindow url )
 
         UrlChange url ->
+            -- This handles presses of the browser back/forward button
             let
-                exoSetThisUrl =
-                    -- If this is a URL that Exosphere just set, then ignore it
+                exoJustSetThisUrl =
+                    -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
                     Helpers.urlPathQueryMatches url model.prevUrl
             in
-            if exoSetThisUrl then
+            if exoJustSetThisUrl then
                 ( model, Cmd.none )
 
             else
