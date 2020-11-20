@@ -26,9 +26,14 @@ import Url.Parser
 import Url.Parser.Query as Query
 
 
-urlToViewState : Url.Url -> Maybe ViewState
-urlToViewState url =
-    parse (oneOf pathParsers) url
+urlToViewState : Maybe String -> Url.Url -> Maybe ViewState
+urlToViewState maybePathPrefix url =
+    case maybePathPrefix of
+        Nothing ->
+            parse (oneOf pathParsers) url
+
+        Just pathPrefix ->
+            parse (s pathPrefix </> oneOf pathParsers) url
 
 
 pathParsers : List (Parser (ViewState -> b) b)

@@ -158,7 +158,7 @@ init flags maybeUrlKey =
             in
             case maybeUrlKey of
                 Just ( url, _ ) ->
-                    AppUrl.Parser.urlToViewState url
+                    AppUrl.Parser.urlToViewState flags.urlPathPrefix url
                         |> Maybe.withDefault defaultViewState
 
                 Nothing ->
@@ -523,7 +523,7 @@ updateUnderlying msg model =
                 ( model, Cmd.none )
 
             else
-                case AppUrl.Parser.urlToViewState url of
+                case AppUrl.Parser.urlToViewState model.urlPathPrefix url of
                     Just newViewState ->
                         ( { model
                             | viewState = newViewState
