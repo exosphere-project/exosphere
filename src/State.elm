@@ -150,7 +150,7 @@ init flags maybeUrlKey =
 
                         firstProject :: _ ->
                             ProjectView
-                                (Helpers.getProjectId firstProject)
+                                firstProject.auth.project.uuid
                                 { createPopup = False }
                                 (ListProjectServers
                                     Defaults.serverListViewParams
@@ -464,7 +464,7 @@ updateUnderlying msg model =
                                     case List.head model.projects of
                                         Just project ->
                                             ProjectView
-                                                (Helpers.getProjectId project)
+                                                project.auth.project.uuid
                                                 { createPopup = False }
                                             <|
                                                 ListProjectServers Defaults.serverListViewParams
@@ -719,7 +719,7 @@ processProjectSpecificMsg model project msg =
         RemoveProject ->
             let
                 newProjects =
-                    List.filter (\p -> Helpers.getProjectId p /= Helpers.getProjectId project) model.projects
+                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) model.projects
 
                 newViewState =
                     case model.viewState of
@@ -732,7 +732,7 @@ processProjectSpecificMsg model project msg =
                             case List.head newProjects of
                                 Just p ->
                                     ProjectView
-                                        (Helpers.getProjectId p)
+                                        p.auth.project.uuid
                                         { createPopup = False }
                                     <|
                                         ListProjectServers
@@ -858,7 +858,7 @@ processProjectSpecificMsg model project msg =
             let
                 newViewState =
                     ProjectView
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         { createPopup = False }
                     <|
                         ListProjectServers
@@ -1145,7 +1145,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectVolumes []) model
+            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| ListProjectVolumes []) model
 
         ReceiveVolumes volumes ->
             let
@@ -1234,11 +1234,11 @@ processProjectSpecificMsg model project msg =
 
         ReceiveAttachVolume attachment ->
             {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| MountVolInstructions attachment) model
+            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| MountVolInstructions attachment) model
 
         ReceiveDetachVolume ->
             {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| ListProjectVolumes []) model
+            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| ListProjectVolumes []) model
 
         ReceiveAppCredential appCredential ->
             let
@@ -1623,7 +1623,7 @@ setProjectView model project projectViewConstructor =
         prevProjectViewConstructor =
             case model.viewState of
                 ProjectView projectId _ projectViewConstructor_ ->
-                    if projectId == Helpers.getProjectId project then
+                    if projectId == project.auth.project.uuid then
                         Just projectViewConstructor_
 
                     else
@@ -1633,7 +1633,7 @@ setProjectView model project projectViewConstructor =
                     Nothing
 
         newViewState =
-            ProjectView (Helpers.getProjectId project) { createPopup = False } projectViewConstructor
+            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
 
         updatedViewModelAndCmd model_ cmd_ =
             StateHelpers.updateViewState model_ cmd_ newViewState
@@ -1783,7 +1783,7 @@ setProjectView model project projectViewConstructor =
                             { model
                                 | viewState =
                                     ProjectView
-                                        (Helpers.getProjectId project)
+                                        project.auth.project.uuid
                                         { createPopup = False }
                                     <|
                                         CreateServer newViewParams
@@ -1797,7 +1797,7 @@ setProjectView model project projectViewConstructor =
                 _ ->
                     let
                         newViewParamsMsg serverName_ =
-                            ProjectMsg (Helpers.getProjectId project) <|
+                            ProjectMsg project.auth.project.uuid <|
                                 SetProjectView <|
                                     CreateServer { viewParams | serverName = serverName_ }
 
@@ -1933,14 +1933,14 @@ createProject model password authToken endpoints =
 
                 NonProjectView _ ->
                     ProjectView
-                        (Helpers.getProjectId newProject)
+                        newProject.auth.project.uuid
                         { createPopup = False }
                     <|
                         ListProjectServers Defaults.serverListViewParams
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
-                        (Helpers.getProjectId newProject)
+                        newProject.auth.project.uuid
                         projectViewParams
                     <|
                         ListProjectServers Defaults.serverListViewParams
@@ -2026,7 +2026,7 @@ sendPendingRequests model project =
 
 getTimeForAppCredential : Project -> Cmd Msg
 getTimeForAppCredential project =
-    Task.perform (\posixTime -> ProjectMsg (Helpers.getProjectId project) (RequestAppCredential posixTime)) Time.now
+    Task.perform (\posixTime -> ProjectMsg project.auth.project.uuid (RequestAppCredential posixTime)) Time.now
 
 
 requestAuthToken : Model -> Project -> Cmd Msg

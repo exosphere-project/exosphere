@@ -44,7 +44,7 @@ navMenu model =
                 status =
                     case model.viewState of
                         ProjectView p _ _ ->
-                            if p == Helpers.getProjectId project then
+                            if p == project.auth.project.uuid then
                                 MenuItem.Active
 
                             else
@@ -56,7 +56,7 @@ navMenu model =
             MenuItem.menuItem status
                 projectTitle
                 (Just
-                    (ProjectMsg (Helpers.getProjectId project)
+                    (ProjectMsg project.auth.project.uuid
                         (SetProjectView <|
                             ListProjectServers
                                 Defaults.serverListViewParams

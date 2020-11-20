@@ -6,7 +6,6 @@ module OpenStack.ServerActions exposing
     )
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
-import Helpers.Helpers as Helpers
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -267,5 +266,8 @@ doAction body project server =
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
         (Http.jsonBody body)
         (expectStringWithErrorBody
-            (resultToMsgErrorBody errorContext (\_ -> ProjectMsg (Helpers.getProjectId project) <| RequestServer server.osProps.uuid))
+            (resultToMsgErrorBody
+                errorContext
+                (\_ -> ProjectMsg project.auth.project.uuid <| RequestServer server.osProps.uuid)
+            )
         )

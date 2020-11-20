@@ -49,7 +49,7 @@ import Widget.Style.Material
 
 updateServerDetail : Project -> ServerDetailViewParams -> Server -> Msg
 updateServerDetail project serverDetailViewParams server =
-    ProjectMsg (Helpers.getProjectId project) <|
+    ProjectMsg project.auth.project.uuid <|
         SetProjectView <|
             ServerDetail server.osProps.uuid serverDetailViewParams
 
@@ -118,9 +118,6 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
 
                         Nothing ->
                             "N/A"
-
-        projectId =
-            Helpers.getProjectId project
 
         serverNameViewPlain =
             Element.row
@@ -195,7 +192,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
                         ( Nothing, Just validName ) ->
                             Just
-                                (ProjectMsg (Helpers.getProjectId project)
+                                (ProjectMsg project.auth.project.uuid
                                     (RequestSetServerName server.osProps.uuid validName)
                                 )
 
@@ -272,7 +269,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 (Element.text "Server Details")
             , passwordVulnWarning appIsElectron server
             , VH.compactKVRow "Name" serverNameView
-            , VH.compactKVRow "Status" (serverStatus projectId serverDetailViewParams server)
+            , VH.compactKVRow "Status" (serverStatus project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
             , creatorNameView
@@ -281,7 +278,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
             , VH.compactKVRow "IP addresses"
                 (renderIpAddresses
-                    projectId
+                    project.auth.project.uuid
                     server.osProps.uuid
                     serverDetailViewParams
                     details.ipAddresses
@@ -311,7 +308,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     { text = "Attach volume"
                     , onPress =
                         Just <|
-                            ProjectMsg projectId <|
+                            ProjectMsg project.auth.project.uuid <|
                                 SetProjectView <|
                                     AttachVolumeModal
                                         (Just server.osProps.uuid)
@@ -323,17 +320,17 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
             , Element.el VH.heading2 (Element.text "Interactions")
             , interactions
                 server
-                projectId
+                project.auth.project.uuid
                 appIsElectron
                 (Tuple.first currentTimeAndZone)
                 project.userAppProxyHostname
                 serverDetailViewParams
             , Element.el VH.heading3 (Element.text "Password")
-            , serverPassword projectId serverDetailViewParams server
+            , serverPassword project.auth.project.uuid serverDetailViewParams server
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
             [ Element.el VH.heading3 (Element.text "Actions")
-            , viewServerActions projectId serverDetailViewParams server
+            , viewServerActions project.auth.project.uuid serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
             , resourceUsageCharts currentTimeAndZone server
             ]
@@ -1008,7 +1005,7 @@ serverVolumes project server =
                         { onPress =
                             Just
                                 (ProjectMsg
-                                    (Helpers.getProjectId project)
+                                    project.auth.project.uuid
                                     (SetProjectView <| VolumeDetail v.uuid [])
                                 )
                         , label = Icon.rightArrow (Element.rgb255 122 122 122) 16

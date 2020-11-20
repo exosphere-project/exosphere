@@ -66,14 +66,18 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
         [ Element.el VH.heading2 <| Element.text "Attach a Volume"
         , Input.radio []
             { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a server")
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SetProjectView (AttachVolumeModal (Just new) maybeVolumeUuid))
+            , onChange =
+                \new ->
+                    ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal (Just new) maybeVolumeUuid))
             , options = serverChoices
             , selected = maybeServerUuid
             }
         , Input.radio []
             -- TODO if no volumes in list, suggest user create a volume and provide link to that view
             { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a volume")
-            , onChange = \new -> ProjectMsg (Helpers.getProjectId project) (SetProjectView (AttachVolumeModal maybeServerUuid (Just new)))
+            , onChange =
+                \new ->
+                    ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal maybeServerUuid (Just new)))
             , options = volumeChoices
             , selected = maybeVolumeUuid
             }
@@ -93,7 +97,9 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
                             }
 
                         else
-                            { onPress = Just <| ProjectMsg (Helpers.getProjectId project) (RequestAttachVolume serverUuid volumeUuid)
+                            { onPress =
+                                Just <|
+                                    ProjectMsg project.auth.project.uuid (RequestAttachVolume serverUuid volumeUuid)
                             , warnText = Nothing
                             }
 
@@ -156,7 +162,7 @@ mountVolInstructions project attachment =
             , onPress =
                 Just <|
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                     <|
                         SetProjectView
                             (ServerDetail

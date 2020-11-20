@@ -82,7 +82,7 @@ requestServers project =
 
         resultToMsg result =
             ProjectMsg
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 (ReceiveServers errorContext result)
     in
     openstackCredentialedRequest
@@ -108,7 +108,7 @@ requestServer project serverUuid =
 
         resultToMsg result =
             ProjectMsg
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 (ReceiveServer serverUuid errorContext result)
     in
     openstackCredentialedRequest
@@ -155,7 +155,7 @@ requestConsoleUrls project serverUuid =
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (expectJsonWithErrorBody
-                    (\result -> ProjectMsg (Helpers.getProjectId project) (ReceiveConsoleUrl serverUuid result))
+                    (\result -> ProjectMsg project.auth.project.uuid (ReceiveConsoleUrl serverUuid result))
                     decodeConsoleUrl
                 )
     in
@@ -175,7 +175,7 @@ requestFlavors project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\flavors -> ProjectMsg (Helpers.getProjectId project) <| ReceiveFlavors flavors)
+                (\flavors -> ProjectMsg project.auth.project.uuid <| ReceiveFlavors flavors)
     in
     openstackCredentialedRequest
         project
@@ -201,7 +201,7 @@ requestKeypairs project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\keypairs -> ProjectMsg (Helpers.getProjectId project) <| ReceiveKeypairs keypairs)
+                (\keypairs -> ProjectMsg project.auth.project.uuid <| ReceiveKeypairs keypairs)
     in
     openstackCredentialedRequest
         project
@@ -315,7 +315,7 @@ requestCreateServer project createServerRequest =
                 errorContext
                 (\serverUuid ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveCreateServer serverUuid)
                 )
     in
@@ -355,7 +355,7 @@ requestDeleteServer project server =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveDeleteServer server.osProps.uuid getFloatingIp)
                 )
     in
@@ -434,7 +434,7 @@ requestSetServerName project serverUuid newServerName =
 
         resultToMsg result =
             ProjectMsg
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 (ReceiveSetServerName serverUuid newServerName errorContext result)
     in
     openstackCredentialedRequest
@@ -475,7 +475,7 @@ requestSetServerMetadata project serverUuid metadataItem =
 
         resultToMsg result =
             ProjectMsg
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 (ReceiveSetServerMetadata serverUuid metadataItem errorContext result)
     in
     openstackCredentialedRequest
@@ -744,7 +744,7 @@ receiveFlavors model project flavors =
                                 case maybeSmallestFlavor of
                                     Just smallestFlavor ->
                                         ProjectView
-                                            (Helpers.getProjectId project)
+                                            project.auth.project.uuid
                                             { createPopup = False }
                                             (CreateServer
                                                 { viewParams
@@ -787,7 +787,7 @@ receiveCreateServer model project _ =
     let
         newViewState =
             ProjectView
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 { createPopup = False }
             <|
                 ListProjectServers

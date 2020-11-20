@@ -6,7 +6,6 @@ module OpenStack.Quotas exposing
     )
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
-import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -38,7 +37,7 @@ requestComputeQuota project =
                 errorContext
                 (\quota ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveComputeQuota quota)
                 )
     in
@@ -89,7 +88,7 @@ requestVolumeQuota project =
                 errorContext
                 (\quota ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveVolumeQuota quota)
                 )
     in

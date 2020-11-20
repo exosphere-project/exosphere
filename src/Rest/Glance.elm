@@ -45,7 +45,7 @@ requestImages project =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\images -> ProjectMsg (Helpers.getProjectId project) <| ReceiveImages images)
+                (\images -> ProjectMsg project.auth.project.uuid <| ReceiveImages images)
     in
     openstackCredentialedRequest
         project

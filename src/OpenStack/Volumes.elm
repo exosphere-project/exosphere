@@ -7,7 +7,6 @@ module OpenStack.Volumes exposing
     )
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
-import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -53,7 +52,7 @@ requestCreateVolume project createVolumeRequest =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         ReceiveCreateVolume
                 )
     in
@@ -83,7 +82,7 @@ requestVolumes project =
                 errorContext
                 (\vols ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveVolumes vols)
                 )
     in
@@ -111,7 +110,7 @@ requestDeleteVolume project volumeUuid =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveDeleteVolume)
+                (\_ -> ProjectMsg project.auth.project.uuid ReceiveDeleteVolume)
     in
     openstackCredentialedRequest
         project
@@ -143,7 +142,7 @@ requestUpdateVolumeName project volumeUuid name =
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
-                (\_ -> ProjectMsg (Helpers.getProjectId project) ReceiveUpdateVolumeName)
+                (\_ -> ProjectMsg project.auth.project.uuid ReceiveUpdateVolumeName)
     in
     openstackCredentialedRequest
         project

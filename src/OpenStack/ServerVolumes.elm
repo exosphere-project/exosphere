@@ -1,7 +1,6 @@
 module OpenStack.ServerVolumes exposing (requestAttachVolume, requestDetachVolume)
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
-import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -45,7 +44,7 @@ requestAttachVolume project serverUuid volumeUuid =
                 errorContext
                 (\attachment ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveAttachVolume attachment)
                 )
     in
@@ -75,7 +74,7 @@ requestDetachVolume project serverUuid volumeUuid =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         ReceiveDetachVolume
                 )
     in

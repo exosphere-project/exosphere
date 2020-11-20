@@ -67,7 +67,7 @@ requestNetworks project =
 
         resultToMsg result =
             ProjectMsg
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 (ReceiveNetworks errorContext result)
     in
     openstackCredentialedRequest
@@ -96,7 +96,7 @@ requestFloatingIps project =
                 errorContext
                 (\ips ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveFloatingIps ips)
                 )
     in
@@ -123,7 +123,7 @@ requestPorts project =
 
         resultToMsg result =
             ProjectMsg
-                (Helpers.getProjectId project)
+                project.auth.project.uuid
                 (ReceivePorts errorContext result)
     in
     openstackCredentialedRequest
@@ -162,7 +162,7 @@ requestCreateFloatingIp project network port_ server =
                 errorContext
                 (\ip ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveCreateFloatingIp server.osProps.uuid ip)
                 )
 
@@ -195,7 +195,7 @@ requestDeleteFloatingIp project uuid =
                 errorContext
                 (\_ ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveDeleteFloatingIp uuid)
                 )
     in
@@ -224,7 +224,7 @@ requestSecurityGroups project =
                 errorContext
                 (\groups ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveSecurityGroups groups)
                 )
     in
@@ -267,7 +267,7 @@ requestCreateExoSecurityGroup project =
                 errorContext
                 (\group ->
                     ProjectMsg
-                        (Helpers.getProjectId project)
+                        project.auth.project.uuid
                         (ReceiveCreateExoSecurityGroup group)
                 )
     in
@@ -372,7 +372,7 @@ receiveNetworks model project networks =
                                                 guessNet.uuid
                                 in
                                 ProjectView
-                                    (Helpers.getProjectId project)
+                                    project.auth.project.uuid
                                     viewParams
                                     (CreateServer
                                         { createServerViewParams

@@ -1,7 +1,6 @@
 module OpenStack.ConsoleLog exposing (requestConsoleLog)
 
 import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
-import Helpers.Helpers as Helpers
 import Http
 import Json.Decode
 import Json.Encode
@@ -46,7 +45,7 @@ requestConsoleLog project server maybeLength =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg (Helpers.getProjectId project) <|
+            ProjectMsg project.auth.project.uuid <|
                 ReceiveConsoleLog errorContext server.osProps.uuid result
     in
     openstackCredentialedRequest

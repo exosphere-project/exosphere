@@ -513,7 +513,7 @@ stepServerGuacamoleAuth time project server =
                 "exouser"
                 password
                 (\result ->
-                    ProjectMsg (Helpers.getProjectId project) <|
+                    ProjectMsg project.auth.project.uuid <|
                         ReceiveGuacamoleAuthToken server.osProps.uuid result
                 )
             )

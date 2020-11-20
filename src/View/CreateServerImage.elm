@@ -2,7 +2,6 @@ module View.CreateServerImage exposing (createServerImage)
 
 import Element
 import Element.Input as Input
-import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Theme
 import Types.Types
@@ -25,7 +24,7 @@ createServerImage project serverUuid imageName =
             [ Element.spacing 12 ]
             { text = imageName
             , placeholder = Nothing
-            , onChange = \n -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateServerImage serverUuid n
+            , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateServerImage serverUuid n
             , label = Input.labelAbove [] (Element.text "Image name")
             }
         , Widget.textButton
@@ -33,7 +32,7 @@ createServerImage project serverUuid imageName =
             { text = "Create"
             , onPress =
                 Just <|
-                    ProjectMsg (Helpers.getProjectId project) <|
+                    ProjectMsg project.auth.project.uuid <|
                         RequestCreateServerImage serverUuid imageName
             }
         ]

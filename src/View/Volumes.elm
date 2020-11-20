@@ -84,7 +84,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                         , onPress =
                             Just
                                 (ProjectMsg
-                                    (Helpers.getProjectId project)
+                                    project.auth.project.uuid
                                     (SetProjectView <| AttachVolumeModal Nothing (Just volume.uuid))
                                 )
                         }
@@ -104,7 +104,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                             , onPress =
                                 Just
                                     (ProjectMsg
-                                        (Helpers.getProjectId project)
+                                        project.auth.project.uuid
                                         (RequestDetachVolume volume.uuid)
                                     )
                             }
@@ -129,7 +129,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                             , onPress =
                                 Just <|
                                     ProjectMsg
-                                        (Helpers.getProjectId project)
+                                        project.auth.project.uuid
                                         (RequestDeleteVolume volume.uuid)
                             }
                         , Widget.textButton
@@ -138,7 +138,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                             , onPress =
                                 Just <|
                                     ProjectMsg
-                                        (Helpers.getProjectId project)
+                                        project.auth.project.uuid
                                         (SetProjectView <|
                                             toProjectViewConstructor (deleteVolumeConfirmations |> List.filter ((/=) volume.uuid))
                                         )
@@ -160,7 +160,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                             , onPress =
                                 Just <|
                                     ProjectMsg
-                                        (Helpers.getProjectId project)
+                                        project.auth.project.uuid
                                         (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
                             }
     in
@@ -231,7 +231,7 @@ renderAttachment project attachment =
                 { onPress =
                     Just
                         (ProjectMsg
-                            (Helpers.getProjectId project)
+                            project.auth.project.uuid
                             (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
                         )
                 , label = Icon.rightArrow (Element.rgb255 122 122 122) 16
@@ -284,7 +284,7 @@ createVolume project volName volSizeInput =
             [ Element.spacing 12 ]
             { text = volName
             , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
-            , onChange = \n -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateVolume n volSizeInput
+            , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume n volSizeInput
             , label = Input.labelAbove [] (Element.text "Name")
             }
         , Element.text "(Suggestion: choose a good name that describes what the volume will store.)"
@@ -295,13 +295,13 @@ createVolume project volName volSizeInput =
             , maxVal = volGbAvail
             , defaultVal = Just 2
             }
-            (\newInput -> ProjectMsg (Helpers.getProjectId project) <| SetProjectView <| CreateVolume volName newInput)
+            (\newInput -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume volName newInput)
         , let
             ( onPress, quotaWarnText ) =
                 if canAttemptCreateVol then
                     case volSizeInput of
                         ValidNumericTextInput volSizeGb ->
-                            ( Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateVolume volName volSizeGb))
+                            ( Just (ProjectMsg project.auth.project.uuid (RequestCreateVolume volName volSizeGb))
                             , Nothing
                             )
 

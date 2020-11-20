@@ -30,7 +30,7 @@ import Widget.Style.Material
 
 updateCreateServerRequest : Project -> CreateServerViewParams -> Msg
 updateCreateServerRequest project viewParams =
-    ProjectMsg (Helpers.getProjectId project) <|
+    ProjectMsg project.auth.project.uuid <|
         SetProjectView <|
             CreateServer viewParams
 
@@ -73,7 +73,7 @@ createServer project viewParams =
             in
             case ( invalidNameReasons, invalidVolSizeTextInput ) of
                 ( Nothing, False ) ->
-                    Just (ProjectMsg (Helpers.getProjectId project) (RequestCreateServer viewParams))
+                    Just (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams))
 
                 ( _, _ ) ->
                     Nothing

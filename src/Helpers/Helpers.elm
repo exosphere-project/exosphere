@@ -6,7 +6,6 @@ module Helpers.Helpers exposing
     , flavorLookup
     , getBootVol
     , getExternalNetwork
-    , getProjectId
     , getServerExouserPassword
     , getServerFloatingIp
     , getServerUiStatus
@@ -452,11 +451,6 @@ projectLookup model projectIdentifier =
         |> List.head
 
 
-getProjectId : Project -> ProjectIdentifier
-getProjectId project =
-    project.auth.project.uuid
-
-
 flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
 flavorLookup project flavorUuid =
     List.filter
@@ -493,7 +487,7 @@ modelUpdateProject : Model -> Project -> Model
 modelUpdateProject model newProject =
     let
         otherProjects =
-            List.filter (\p -> getProjectId p /= getProjectId newProject) model.projects
+            List.filter (\p -> p.auth.project.uuid /= newProject.auth.project.uuid) model.projects
 
         newProjects =
             newProject :: otherProjects
