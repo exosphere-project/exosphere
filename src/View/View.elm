@@ -29,20 +29,17 @@ view model =
     { title =
         View.PageTitle.pageTitle model
     , body =
-        [ Element.layout
-            [ Font.size 17
-            , Font.family
-                [ Font.typeface "Open Sans"
-                , Font.sansSerif
-                ]
-            ]
-            (elementView model.maybeWindowSize model)
-        ]
+        [ view_ model ]
     }
 
 
 viewElectron : Model -> Html.Html Msg
-viewElectron model =
+viewElectron =
+    view_
+
+
+view_ : Model -> Html.Html Msg
+view_ model =
     Element.layout
         [ Font.size 17
         , Font.family
