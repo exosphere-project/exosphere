@@ -499,7 +499,7 @@ receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
             osServers
-                |> List.map (receiveServer_ model.isElectron project)
+                |> List.map (receiveServer_ (Helpers.appIsElectron model) project)
                 |> List.unzip
 
         newExoServersClearSomeExoProps =
@@ -550,7 +550,7 @@ receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
 receiveServer model project osServer =
     let
         ( newServer, cmd ) =
-            receiveServer_ model.isElectron project osServer
+            receiveServer_ (Helpers.appIsElectron model) project osServer
 
         newServerUpdatedSomeExoProps =
             let

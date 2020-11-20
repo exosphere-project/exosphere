@@ -3,6 +3,7 @@ module View.Login exposing (viewLoginJetstream, viewLoginOpenstack, viewLoginPic
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Theme
 import Types.Types exposing (JetstreamCreds, JetstreamProvider(..), Model, Msg(..), NonProjectViewConstructor(..))
@@ -131,7 +132,7 @@ loginOpenstackOpenRcEntry model openstackCreds =
         )
         [ Element.paragraph []
             [ Element.text "...or paste an "
-            , VH.browserLink model.isElectron "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" <| View.Types.BrowserLinkTextLabel "OpenRC"
+            , VH.browserLink (Helpers.appIsElectron model) "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html" <| View.Types.BrowserLinkTextLabel "OpenRC"
             , Element.text " file"
             ]
         , Input.multiline
@@ -205,27 +206,27 @@ jetstreamLoginText model =
         [ Element.paragraph
             []
             [ Element.text "To use Exosphere with "
-            , VH.browserLink model.isElectron "https://jetstream-cloud.org" <| View.Types.BrowserLinkTextLabel "Jetstream Cloud"
+            , VH.browserLink (Helpers.appIsElectron model) "https://jetstream-cloud.org" <| View.Types.BrowserLinkTextLabel "Jetstream Cloud"
             , Element.text ", you need access to a Jetstream allocation. Possible ways to get this:"
             ]
         , Element.paragraph
             []
             [ Element.text "- Request access to the Exosphere Trial Allocation; please create an account on "
-            , VH.browserLink model.isElectron "https://portal.xsede.org" <| View.Types.BrowserLinkTextLabel "XSEDE User Portal"
+            , VH.browserLink (Helpers.appIsElectron model) "https://portal.xsede.org" <| View.Types.BrowserLinkTextLabel "XSEDE User Portal"
             , Element.text ", then "
-            , VH.browserLink model.isElectron "https://gitlab.com/exosphere/exosphere/issues/new" <| View.Types.BrowserLinkTextLabel "create an issue"
+            , VH.browserLink (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/issues/new" <| View.Types.BrowserLinkTextLabel "create an issue"
             , Element.text " asking for access and providing your XSEDE username."
             ]
         , Element.paragraph
             []
             [ Element.text "- If you know someone else who already has an allocation, they can add you to it. (See \"How do I let other XSEDE accounts use my allocation?\" on "
-            , VH.browserLink model.isElectron "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/537460937/Jetstream+Allocations+FAQ" <| View.Types.BrowserLinkTextLabel "this FAQ"
+            , VH.browserLink (Helpers.appIsElectron model) "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/537460937/Jetstream+Allocations+FAQ" <| View.Types.BrowserLinkTextLabel "this FAQ"
             , Element.text ")"
             ]
         , Element.paragraph
             []
             [ Element.text "- "
-            , VH.browserLink model.isElectron "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/49184781/Jetstream+Allocations" <| View.Types.BrowserLinkTextLabel "Apply for your own Startup Allocation"
+            , VH.browserLink (Helpers.appIsElectron model) "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/49184781/Jetstream+Allocations" <| View.Types.BrowserLinkTextLabel "Apply for your own Startup Allocation"
             ]
         , Element.paragraph [] []
         , Element.paragraph
@@ -235,11 +236,11 @@ jetstreamLoginText model =
         , Element.paragraph
             []
             [ Element.text "1. TACC username (usually looks like 'tg******'); "
-            , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username" <| View.Types.BrowserLinkTextLabel "look up your TACC username"
+            , VH.browserLink (Helpers.appIsElectron model) "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username" <| View.Types.BrowserLinkTextLabel "look up your TACC username"
             ]
         , Element.paragraph
             []
             [ Element.text "2. TACC password; "
-            , VH.browserLink model.isElectron "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset" <| View.Types.BrowserLinkTextLabel "set your TACC password"
+            , VH.browserLink (Helpers.appIsElectron model) "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset" <| View.Types.BrowserLinkTextLabel "set your TACC password"
             ]
         ]

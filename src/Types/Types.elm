@@ -85,7 +85,6 @@ type alias Flags =
     , width : Int
     , height : Int
     , storedState : Maybe Decode.Value
-    , isElectron : Bool
     , randomSeed0 : Int
     , randomSeed1 : Int
     , randomSeed2 : Int
@@ -116,7 +115,6 @@ type alias Model =
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
     , cloudsWithUserAppProxy : CloudsWithUserAppProxy
-    , isElectron : Bool
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone

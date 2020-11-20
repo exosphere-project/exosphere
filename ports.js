@@ -43,7 +43,6 @@ var app = moduleToInit({
         width: window.innerWidth,
         height: window.innerHeight,
         storedState: startingState,
-        isElectron: isElectron,
         randomSeed0: randomSeeds[0],
         randomSeed1: randomSeeds[1],
         randomSeed2: randomSeeds[2],

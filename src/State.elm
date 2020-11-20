@@ -99,7 +99,6 @@ init flags maybeUrlKey =
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
             , cloudsWithUserAppProxy = Dict.fromList flags.cloudsWithUserAppProxy
-            , isElectron = flags.isElectron
             , clientUuid = uuid
             , clientCurrentTime = currentTime
             , timeZone = timeZone

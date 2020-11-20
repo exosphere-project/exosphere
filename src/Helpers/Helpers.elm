@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
-    ( authUrlWithPortAndVersion
+    ( appIsElectron
+    , authUrlWithPortAndVersion
     , buildProxyUrl
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
@@ -1313,3 +1314,13 @@ urlPathQueryMatches urlType urlStr =
                     ""
     in
     (urlType.path ++ urlTypeQueryStr) == urlStr
+
+
+appIsElectron : Model -> Bool
+appIsElectron model =
+    case model.navigationKey of
+        Nothing ->
+            True
+
+        Just _ ->
+            False

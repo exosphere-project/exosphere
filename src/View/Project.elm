@@ -44,7 +44,7 @@ project model p viewParams viewConstructor =
                     View.ServerList.serverList p serverListViewParams
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.ServerDetail.serverDetail p model.isElectron ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
+                    View.ServerDetail.serverDetail p (Helpers.appIsElectron model) ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
                 CreateServer createServerViewParams ->
                     View.CreateServer.createServer p createServerViewParams

@@ -1,6 +1,7 @@
 module View.HelpAbout exposing (helpAbout)
 
 import Element
+import Helpers.Helpers as Helpers
 import Types.Types exposing (Model, Msg(..))
 import UUID
 import View.Helpers as VH
@@ -13,7 +14,7 @@ helpAbout model =
         [ Element.el VH.heading2 <| Element.text "About Exosphere"
         , Element.paragraph []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-            , VH.browserLink model.isElectron "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
+            , VH.browserLink (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
                 View.Types.BrowserLinkTextLabel "README on GitLab"
             , Element.text "."
             ]
@@ -30,13 +31,13 @@ helpAbout model =
         , Element.paragraph []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
             , VH.browserLink
-                model.isElectron
+                (Helpers.appIsElectron model)
                 "https://gitlab.com/exosphere/exosphere/issues"
               <|
                 View.Types.BrowserLinkTextLabel "create an issue"
             , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, see if anyone is on "
             , VH.browserLink
-                model.isElectron
+                (Helpers.appIsElectron model)
                 "https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5"
               <|
                 View.Types.BrowserLinkTextLabel "Exosphere Chat"
