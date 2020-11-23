@@ -35,12 +35,18 @@ helpAbout model =
                 "https://gitlab.com/exosphere/exosphere/issues"
               <|
                 View.Types.BrowserLinkTextLabel "create an issue"
-            , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, see if anyone is on "
+            , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on "
             , VH.browserLink
                 (Helpers.appIsElectron model)
-                "https://c-mart.sandcats.io/shared/ak1ymBWynN1MZe0ot1yEBOh6RF6fZ9G2ZOo2xhnmVC5"
+                "https://gitter.im/exosphere-app/community"
               <|
-                View.Types.BrowserLinkTextLabel "Exosphere Chat"
-            , Element.text ". Sign in there with your email or GitHub account."
+                View.Types.BrowserLinkTextLabel "gitter"
+            , Element.text " and "
+            , VH.browserLink
+                (Helpers.appIsElectron model)
+                "https://riot.im/app/#/room/#exosphere:matrix.org"
+              <|
+                View.Types.BrowserLinkTextLabel "Matrix via Element"
+            , Element.text ". The chat is bridged across both platforms, so join whichever you prefer."
             ]
         ]
