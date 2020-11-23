@@ -8,7 +8,6 @@ module Rest.Nova exposing
     , ipAddressOpenstackTypeDecoder
     , keypairDecoder
     , receiveConsoleUrl
-    , receiveCreateServer
     , receiveFlavors
     , receiveKeypairs
     , receiveServer
@@ -47,8 +46,6 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
-import Rest.Neutron exposing (requestNetworks)
-import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -780,32 +777,6 @@ receiveKeypairs model project keypairs =
             Helpers.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
-
-
-receiveCreateServer : Model -> Project -> OSTypes.ServerUuid -> ( Model, Cmd Msg )
-receiveCreateServer model project _ =
-    let
-        newViewState =
-            ProjectView
-                project.auth.project.uuid
-                { createPopup = False }
-            <|
-                ListProjectServers
-                    Defaults.serverListViewParams
-
-        newProject =
-            Helpers.projectSetServersLoading model.clientCurrentTime project
-
-        newModel =
-            Helpers.modelUpdateProject { model | viewState = newViewState } newProject
-    in
-    ( newModel
-    , [ requestServers
-      , requestNetworks
-      ]
-        |> List.map (\x -> x project)
-        |> Cmd.batch
-    )
 
 
 
