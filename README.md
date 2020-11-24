@@ -207,7 +207,7 @@ Most users should not need to change these; they are primarily intended for clou
 
 ## Collaborate
 
-Talk to Exosphere developers and other users in real-time via [gitter](https://gitter.im/exosphere-app/community), or `#exosphere:matrix.org` on [Matrix / Riot](https://riot.im/app/#/room/#exosphere:matrix.org). The chat is bridged across both platforms, so join whichever you prefer. You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
+Talk to Exosphere developers and other users in real-time via [gitter](https://gitter.im/exosphere-app/community), or `#exosphere:matrix.org` on [Matrix via Element](https://riot.im/app/#/room/#exosphere:matrix.org). The chat is bridged across both platforms, so join whichever you prefer. You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
 
 See also contributing.md for contributor guidelines.
 
