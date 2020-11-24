@@ -992,8 +992,31 @@ processProjectSpecificMsg model project msg =
         ReceiveKeypairs keypairs ->
             Rest.Nova.receiveKeypairs model project keypairs
 
-        ReceiveCreateServer serverUuid ->
-            Rest.Nova.receiveCreateServer model project serverUuid
+        ReceiveCreateServer _ ->
+            let
+                newViewState =
+                    ProjectView
+                        project.auth.project.uuid
+                        { createPopup = False }
+                    <|
+                        ListProjectServers
+                            Defaults.serverListViewParams
+
+                newProject =
+                    Helpers.projectSetServersLoading model.clientCurrentTime project
+
+                modelUpdatedProject =
+                    Helpers.modelUpdateProject model newProject
+            in
+            StateHelpers.updateViewState
+                modelUpdatedProject
+                ([ Rest.Nova.requestServers
+                 , Rest.Neutron.requestNetworks
+                 ]
+                    |> List.map (\x -> x project)
+                    |> Cmd.batch
+                )
+                newViewState
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
