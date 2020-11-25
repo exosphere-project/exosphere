@@ -87,7 +87,31 @@ serverList_ projectId userUuid serverListViewParams servers =
 
             else
                 selectableServers == selectedServers
+    in
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.el VH.heading2 (Element.text "My Servers")
+        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
+            List.concat
+                [ [ renderTableHead
+                        projectId
+                        allServersSelected
+                        ( selectableServers, selectedServers )
+                        serverListViewParams
+                  ]
+                , List.map (renderServer projectId serverListViewParams True) ownServers
+                , [ onlyOwnExpander projectId serverListViewParams otherUsersServers ]
+                , if serverListViewParams.onlyOwnServers then
+                    []
 
+                  else
+                    List.map (renderServer projectId serverListViewParams False) otherUsersServers
+                ]
+        ]
+
+
+renderTableHead : ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
+renderTableHead projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
+    let
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
                 Nothing
@@ -98,50 +122,53 @@ serverList_ projectId userUuid serverListViewParams servers =
                         List.map (\s -> s.osProps.uuid) selectedServers
                 in
                 Just (ProjectMsg projectId (RequestDeleteServers uuidsToDelete))
-    in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 (Element.text "My Servers")
-        , Element.column (VH.exoColumnAttributes ++ [ Element.padding 5, Border.width 1 ])
-            [ Element.text "Bulk Actions"
-            , Input.checkbox []
-                { checked = allServersSelected
-                , onChange =
-                    \new ->
-                        let
-                            newSelection =
-                                if new {- == true -} then
-                                    selectableServers
-                                        |> List.map (\s -> s.osProps.uuid)
-                                        |> Set.fromList
 
-                                else
-                                    Set.empty
+        onChecked new =
+            let
+                newSelection =
+                    if new {- == true -} then
+                        selectableServers
+                            |> List.map (\s -> s.osProps.uuid)
+                            |> Set.fromList
 
-                            newParams =
-                                { serverListViewParams | selectedServers = newSelection }
-                        in
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                ListProjectServers newParams
-                , icon = Input.defaultCheckbox
-                , label = Input.labelRight [] (Element.text "Select All")
-                }
-            , Widget.textButton
-                (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
-                { text = "Delete"
-                , onPress = deleteButtonOnPress
-                }
+                    else
+                        Set.empty
+
+                newParams =
+                    { serverListViewParams | selectedServers = newSelection }
+            in
+            ListProjectServers newParams
+                |> SetProjectView
+                |> ProjectMsg projectId
+
+        extraColAttrs =
+            [ Element.width Element.fill
+            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+            , Border.color (Element.rgb255 10 10 10)
+            , Element.paddingXY 5 0
             ]
-        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
-            List.concat
-                [ List.map (renderServer projectId serverListViewParams True) ownServers
-                , [ onlyOwnExpander projectId serverListViewParams otherUsersServers ]
-                , if serverListViewParams.onlyOwnServers then
-                    []
 
-                  else
-                    List.map (renderServer projectId serverListViewParams False) otherUsersServers
-                ]
+        extraRowAttrs =
+            [ Element.padding 5
+            , Element.width Element.fill
+            ]
+    in
+    Element.column (VH.exoColumnAttributes ++ extraColAttrs)
+        [ Element.row (VH.exoRowAttributes ++ extraRowAttrs) <|
+            [ Element.el [] <|
+                Input.checkbox []
+                    { checked = allServersSelected
+                    , onChange = onChecked
+                    , icon = Input.defaultCheckbox
+                    , label = Input.labelRight [] (Element.text "Select All")
+                    }
+            , Element.el [ Element.alignRight ] <|
+                Widget.textButton
+                    (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                    { text = "Delete"
+                    , onPress = deleteButtonOnPress
+                    }
+            ]
         ]
 
 
