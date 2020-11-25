@@ -1,4 +1,4 @@
-module State exposing (init, subscriptions, update)
+module State.State exposing (init, subscriptions, update)
 
 import AppUrl.Builder
 import AppUrl.Parser
@@ -11,7 +11,6 @@ import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
-import Helpers.StateHelpers as StateHelpers
 import Helpers.Time as TimeHelpers
 import Http
 import Json.Decode as Decode
@@ -33,6 +32,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import State.Helpers as StateHelpers
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time

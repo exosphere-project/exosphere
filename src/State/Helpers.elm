@@ -1,4 +1,4 @@
-module Helpers.StateHelpers exposing (updateViewState)
+module State.Helpers exposing (updateViewState)
 
 import AppUrl.Builder
 import Browser.Navigation

@@ -1,7 +1,7 @@
 module Exosphere exposing (main)
 
 import Browser exposing (application)
-import State
+import State.State as State
 import Types.Types exposing (Flags, Model, Msg(..))
 import View.View exposing (view)
 
