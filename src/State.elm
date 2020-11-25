@@ -203,11 +203,12 @@ init flags maybeUrlKey =
             -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
             let
                 ( setProjectViewModel, setProjectViewCmd ) =
-                    update
-                        (ProjectMsg projectId <|
-                            SetProjectView projectViewConstructor
-                        )
-                        newModel
+                    case Helpers.projectLookup newModel projectId of
+                        Just project ->
+                            setProjectView newModel project projectViewConstructor
+
+                        Nothing ->
+                            ( newModel, Cmd.none )
             in
             ( setProjectViewModel
             , Cmd.batch [ otherCmds, setProjectViewCmd ]
@@ -1168,7 +1169,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| ListProjectVolumes []) model
+            setProjectView model project (ListProjectVolumes [])
 
         ReceiveVolumes volumes ->
             let
@@ -1256,12 +1257,10 @@ processProjectSpecificMsg model project msg =
             ( model, OSVolumes.requestVolumes project )
 
         ReceiveAttachVolume attachment ->
-            {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| MountVolInstructions attachment) model
+            setProjectView model project (MountVolInstructions attachment)
 
         ReceiveDetachVolume ->
-            {- TODO opportunity for future optimization, just update the model instead of doing another API roundtrip -}
-            update (ProjectMsg project.auth.project.uuid <| SetProjectView <| ListProjectVolumes []) model
+            setProjectView model project (ListProjectVolumes [])
 
         ReceiveAppCredential appCredential ->
             let
