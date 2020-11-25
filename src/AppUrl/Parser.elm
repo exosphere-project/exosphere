@@ -119,20 +119,6 @@ projectViewConstructorParsers =
         (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
         (s "images")
     , map
-        (ListProjectServers Defaults.serverListViewParams)
-        (s "servers")
-    , map
-        (ListProjectVolumes [])
-        (s "volumes")
-    , map
-        ListQuotaUsage
-        (s "quotausage")
-    , map
-        (\svrUuid ->
-            ServerDetail svrUuid Defaults.serverDetailViewParams
-        )
-        string
-    , map
         (\svrUuid imageName ->
             CreateServerImage svrUuid imageName
         )
@@ -144,10 +130,24 @@ projectViewConstructorParsers =
          s "servers" </> string </> s "image" <?> queryParser
         )
     , map
+        (\svrUuid ->
+            ServerDetail svrUuid Defaults.serverDetailViewParams
+        )
+        (s "servers" </> string)
+    , map
+        (ListProjectServers Defaults.serverListViewParams)
+        (s "servers")
+    , map
         (\volUuid ->
             VolumeDetail volUuid []
         )
         (s "volumes" </> string)
+    , map
+        (ListProjectVolumes [])
+        (s "volumes")
+    , map
+        ListQuotaUsage
+        (s "quotausage")
     , map
         (\params ->
             CreateServer params
