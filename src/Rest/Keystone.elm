@@ -262,8 +262,8 @@ requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
         }
 
 
-requestAppCredential : Project -> UUID.UUID -> Time.Posix -> Cmd Msg
-requestAppCredential project clientUuid posixTime =
+requestAppCredential : UUID.UUID -> Time.Posix -> Project -> Cmd Msg
+requestAppCredential clientUuid posixTime project =
     let
         appCredentialName =
             String.concat

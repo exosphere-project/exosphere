@@ -231,7 +231,6 @@ type ProjectSpecificMsgConstructor
     = SetProjectView ProjectViewConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
-    | RequestAppCredential Time.Posix
     | ToggleCreatePopup
     | RemoveProject
     | RequestServers

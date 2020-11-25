@@ -178,7 +178,13 @@ init flags maybeUrlKey =
             List.filter projectNeedsAppCredential hydratedModel.projects
 
         otherCmds =
-            [ List.map getTimeForAppCredential projectsNeedingAppCredentials |> Cmd.batch
+            [ List.map
+                (Rest.Keystone.requestAppCredential
+                    hydratedModel.clientUuid
+                    hydratedModel.clientCurrentTime
+                )
+                projectsNeedingAppCredentials
+                |> Cmd.batch
             , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
             , List.map Rest.Nova.requestServers hydratedModel.projects |> Cmd.batch
             ]
@@ -365,7 +371,10 @@ updateUnderlying msg model =
                                                     Cmd.none
 
                                                 _ ->
-                                                    getTimeForAppCredential project
+                                                    Rest.Keystone.requestAppCredential
+                                                        model.clientUuid
+                                                        model.clientCurrentTime
+                                                        project
 
                                         ( newModel, updateTokenCmd ) =
                                             projectUpdateAuthToken model project authToken
@@ -1269,9 +1278,6 @@ processProjectSpecificMsg model project msg =
             in
             ( Helpers.modelUpdateProject model newProject, Cmd.none )
 
-        RequestAppCredential posix ->
-            ( model, Rest.Keystone.requestAppCredential project model.clientUuid posix )
-
         ReceiveComputeQuota quota ->
             let
                 newProject =
@@ -1977,9 +1983,9 @@ createProject model password authToken endpoints =
     , [ Rest.Nova.requestServers
       , Rest.Neutron.requestSecurityGroups
       , Rest.Neutron.requestFloatingIps
+      , Rest.Keystone.requestAppCredential model.clientUuid model.clientCurrentTime
       ]
         |> List.map (\x -> x newProject)
-        |> (\l -> getTimeForAppCredential newProject :: l)
         |> Cmd.batch
     )
 
@@ -2044,11 +2050,6 @@ sendPendingRequests model project =
             Helpers.modelUpdateProject model newProject
     in
     ( newModel, Cmd.batch cmds )
-
-
-getTimeForAppCredential : Project -> Cmd Msg
-getTimeForAppCredential project =
-    Task.perform (\posixTime -> ProjectMsg project.auth.project.uuid (RequestAppCredential posixTime)) Time.now
 
 
 requestAuthToken : Model -> Project -> Cmd Msg
