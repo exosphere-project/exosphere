@@ -217,7 +217,6 @@ type Msg
     | OpenInBrowser String
     | OpenNewWindow String
     | ToastyMsg (Toasty.Msg Toast)
-    | NewLogMessage LogMessage
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
     | NoOp

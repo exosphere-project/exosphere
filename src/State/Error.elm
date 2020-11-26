@@ -4,8 +4,6 @@ import Http
 import Json.Decode as Decode
 import OpenStack.Error as OSError
 import Style.Toast exposing (toastConfig)
-import Task
-import Time
 import Toasty
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Types
@@ -20,22 +18,24 @@ import Types.Types
 processStringError : Model -> ErrorContext -> String -> ( Model, Cmd Msg )
 processStringError model errorContext error =
     let
-        logMessageProto =
+        logMessage =
             LogMessage
                 error
                 errorContext
+                model.clientCurrentTime
 
         toast =
             Toast
                 errorContext
                 error
 
-        cmd =
-            Task.perform
-                (\posix -> NewLogMessage (logMessageProto posix))
-                Time.now
+        newLogMessages =
+            logMessage :: model.logMessages
+
+        newModel =
+            { model | logMessages = newLogMessages }
     in
-    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( model, cmd )
+    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
 
 processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )

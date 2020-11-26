@@ -98,14 +98,6 @@ updateUnderlying msg model =
         ToastyMsg subMsg ->
             Toasty.update Style.Toast.toastConfig ToastyMsg subMsg model
 
-        NewLogMessage logMessage ->
-            -- TODO This no longer requires a trip through the runtime now that we're storing current time in model?
-            let
-                newLogMessages =
-                    logMessage :: model.logMessages
-            in
-            ( { model | logMessages = newLogMessages }, Cmd.none )
-
         MsgChangeWindowSize x y ->
             ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
 
