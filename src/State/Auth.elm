@@ -1,5 +1,7 @@
 module State.Auth exposing
-    ( jetstreamToOpenstackCreds
+    ( authUrlWithPortAndVersion
+    , jetstreamToOpenstackCreds
+    , processOpenRc
     , projectUpdateAuthToken
     , requestAuthToken
     , sendPendingRequests
@@ -7,8 +9,11 @@ module State.Auth exposing
     )
 
 import Helpers.Helpers as Helpers
+import Maybe.Extra
 import OpenStack.Types as OSTypes
+import Regex
 import Rest.Keystone
+import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -29,6 +34,7 @@ import Types.Types
         , UnscopedProvider
         , ViewState(..)
         )
+import Url
 
 
 projectUpdateAuthToken : Model -> Project -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
@@ -140,3 +146,87 @@ jetstreamToOpenstackCreds jetstreamCreds =
                 jetstreamCreds.taccPassword
         )
         authUrls
+
+
+processOpenRc : OSTypes.OpenstackLogin -> String -> OSTypes.OpenstackLogin
+processOpenRc existingCreds openRc =
+    let
+        regexes =
+            { authUrl = Helpers.alwaysRegex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
+            , projectDomain = Helpers.alwaysRegex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
+            , projectName = Helpers.alwaysRegex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
+            , userDomain = Helpers.alwaysRegex "export OS_USER_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
+            , username = Helpers.alwaysRegex "export OS_USERNAME=\"?([^\"\n]*)\"?"
+            , password = Helpers.alwaysRegex "export OS_PASSWORD=\"(.*)\""
+            }
+
+        getMatch text regex =
+            Regex.findAtMost 1 regex text
+                |> List.head
+                |> Maybe.map (\x -> x.submatches)
+                |> Maybe.andThen List.head
+                |> Maybe.Extra.join
+
+        newField regex oldField =
+            getMatch openRc regex
+                |> Maybe.withDefault oldField
+    in
+    OSTypes.OpenstackLogin
+        (newField regexes.authUrl existingCreds.authUrl)
+        (newField regexes.projectDomain existingCreds.projectDomain)
+        (newField regexes.projectName existingCreds.projectName)
+        (newField regexes.userDomain existingCreds.userDomain)
+        (newField regexes.username existingCreds.username)
+        (newField regexes.password existingCreds.password)
+
+
+authUrlWithPortAndVersion : HelperTypes.Url -> HelperTypes.Url
+authUrlWithPortAndVersion authUrlStr =
+    -- If user does not provide a port and path in OpenStack auth URL then we guess port 5000 and path "/v3"
+    let
+        authUrlStrWithProto =
+            -- If user doesn't provide a protocol then we add one so that the URL will actually parse
+            if String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr then
+                authUrlStr
+
+            else
+                "https://" ++ authUrlStr
+
+        maybeAuthUrl =
+            Url.fromString authUrlStrWithProto
+    in
+    case maybeAuthUrl of
+        Nothing ->
+            -- We can't parse this URL so we just return it unmodified
+            authUrlStr
+
+        Just authUrl ->
+            let
+                port_ =
+                    case authUrl.port_ of
+                        Just _ ->
+                            authUrl.port_
+
+                        Nothing ->
+                            Just 5000
+
+                path =
+                    case authUrl.path of
+                        "" ->
+                            "/v3"
+
+                        "/" ->
+                            "/v3"
+
+                        _ ->
+                            authUrl.path
+            in
+            Url.toString <|
+                Url.Url
+                    authUrl.protocol
+                    authUrl.host
+                    port_
+                    path
+                    -- Query and fragment may not be needed / accepted by OpenStack
+                    authUrl.query
+                    authUrl.fragment

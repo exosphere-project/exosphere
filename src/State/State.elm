@@ -126,7 +126,7 @@ updateUnderlying msg model =
             let
                 -- If user does not provide a port number and path (API version) then we guess it
                 newOpenstackCreds =
-                    { openstackCreds | authUrl = Helpers.authUrlWithPortAndVersion openstackCreds.authUrl }
+                    { openstackCreds | authUrl = State.Auth.authUrlWithPortAndVersion openstackCreds.authUrl }
             in
             ( model, Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <| OSTypes.PasswordCreds newOpenstackCreds )
 
@@ -339,7 +339,7 @@ updateUnderlying msg model =
         InputOpenRc openstackCreds openRc ->
             let
                 newCreds =
-                    Helpers.processOpenRc openstackCreds openRc
+                    State.Auth.processOpenRc openstackCreds openRc
 
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
