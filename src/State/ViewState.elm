@@ -1,4 +1,4 @@
-module State.Helpers exposing (setProjectView, updateViewState)
+module State.ViewState exposing (setProjectView, updateViewState)
 
 import AppUrl.Builder
 import Browser.Navigation

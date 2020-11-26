@@ -25,7 +25,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
-import State.Helpers as StateHelpers
+import State.ViewState as StateHelpers
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time
