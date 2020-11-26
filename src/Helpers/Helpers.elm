@@ -17,7 +17,6 @@ module Helpers.Helpers exposing
     , hostnameFromUrl
     , imageLookup
     , isBootVol
-    , jetstreamToOpenstackCreds
     , modelUpdateProject
     , modelUpdateUnscopedProvider
     , newGuacMetadata
@@ -81,7 +80,6 @@ import Types.Types
         , ExoServerVersion
         , ExoSetupStatus(..)
         , FloatingIpState(..)
-        , JetstreamCreds
         , JetstreamProvider(..)
         , LogMessage
         , Model
@@ -1018,41 +1016,6 @@ volDeviceToMountpoint device =
         |> List.reverse
         |> List.head
         |> Maybe.map (String.append "/media/volume/")
-
-
-jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin
-jetstreamToOpenstackCreds jetstreamCreds =
-    let
-        authUrlBases =
-            case jetstreamCreds.jetstreamProviderChoice of
-                {- TODO should we hard-code these elsewhere? -}
-                IUCloud ->
-                    [ "iu.jetstream-cloud.org" ]
-
-                TACCCloud ->
-                    [ "tacc.jetstream-cloud.org" ]
-
-                BothJetstreamClouds ->
-                    [ "iu.jetstream-cloud.org"
-                    , "tacc.jetstream-cloud.org"
-                    ]
-
-        authUrls =
-            List.map
-                (\baseUrl -> "https://" ++ baseUrl ++ ":5000/v3/auth/tokens")
-                authUrlBases
-    in
-    List.map
-        (\authUrl ->
-            OSTypes.OpenstackLogin
-                authUrl
-                "tacc"
-                jetstreamCreds.jetstreamProjectName
-                "tacc"
-                jetstreamCreds.taccUsername
-                jetstreamCreds.taccPassword
-        )
-        authUrls
 
 
 computeQuotaFlavorAvailServers : OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe Int

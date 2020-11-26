@@ -1,5 +1,6 @@
 module State.Auth exposing
-    ( projectUpdateAuthToken
+    ( jetstreamToOpenstackCreds
+    , projectUpdateAuthToken
     , requestAuthToken
     , sendPendingRequests
     , unscopedProviderUpdateAuthToken
@@ -14,6 +15,8 @@ import Types.Types
         , ExoSetupStatus(..)
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , JetstreamCreds
+        , JetstreamProvider(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -102,3 +105,38 @@ requestAuthToken model project =
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
     in
     Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl creds
+
+
+jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin
+jetstreamToOpenstackCreds jetstreamCreds =
+    let
+        authUrlBases =
+            case jetstreamCreds.jetstreamProviderChoice of
+                {- TODO should we hard-code these elsewhere? -}
+                IUCloud ->
+                    [ "iu.jetstream-cloud.org" ]
+
+                TACCCloud ->
+                    [ "tacc.jetstream-cloud.org" ]
+
+                BothJetstreamClouds ->
+                    [ "iu.jetstream-cloud.org"
+                    , "tacc.jetstream-cloud.org"
+                    ]
+
+        authUrls =
+            List.map
+                (\baseUrl -> "https://" ++ baseUrl ++ ":5000/v3/auth/tokens")
+                authUrlBases
+    in
+    List.map
+        (\authUrl ->
+            OSTypes.OpenstackLogin
+                authUrl
+                "tacc"
+                jetstreamCreds.jetstreamProjectName
+                "tacc"
+                jetstreamCreds.taccUsername
+                jetstreamCreds.taccPassword
+        )
+        authUrls

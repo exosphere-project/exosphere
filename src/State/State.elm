@@ -133,7 +133,7 @@ updateUnderlying msg model =
         JetstreamLogin jetstreamCreds ->
             let
                 openstackCredsList =
-                    Helpers.jetstreamToOpenstackCreds jetstreamCreds
+                    State.Auth.jetstreamToOpenstackCreds jetstreamCreds
 
                 cmds =
                     List.map
