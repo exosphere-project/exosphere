@@ -12,7 +12,7 @@ import Random
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
-import State.State exposing (setProjectView)
+import State.Helpers exposing (setProjectView)
 import Time
 import Toasty
 import Types.Defaults as Defaults
