@@ -1,8 +1,7 @@
-module State.State exposing (subscriptions, update)
+module State.State exposing (update)
 
 import AppUrl.Builder
 import AppUrl.Parser
-import Browser.Events
 import Dict
 import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.ExoSetupStatus
@@ -59,18 +58,6 @@ import Types.Types
         , ViewState(..)
         , currentExoServerVersion
         )
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch
-        [ Time.every (1 * 1000) (Tick 1)
-        , Time.every (5 * 1000) (Tick 5)
-        , Time.every (10 * 1000) (Tick 10)
-        , Time.every (60 * 1000) (Tick 60)
-        , Time.every (300 * 1000) (Tick 300)
-        , Browser.Events.onResize MsgChangeWindowSize
-        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

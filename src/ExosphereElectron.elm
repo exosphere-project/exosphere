@@ -3,6 +3,7 @@ module ExosphereElectron exposing (main)
 import Browser exposing (element)
 import State.Init
 import State.State as State
+import State.Subscriptions
 import Types.Types exposing (Flags, Model, Msg(..))
 import View.View exposing (viewElectron)
 
@@ -19,5 +20,5 @@ main =
         { init = \flags -> State.Init.init flags Nothing
         , view = viewElectron
         , update = State.update
-        , subscriptions = State.subscriptions
+        , subscriptions = State.Subscriptions.subscriptions
         }
