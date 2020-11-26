@@ -6,13 +6,13 @@ module Rest.Glance exposing
     , requestImages
     )
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)

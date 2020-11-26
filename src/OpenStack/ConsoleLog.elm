@@ -1,10 +1,10 @@
 module OpenStack.ConsoleLog exposing (requestConsoleLog)
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import Json.Decode
 import Json.Encode
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)

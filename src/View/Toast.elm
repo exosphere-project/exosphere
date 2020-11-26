@@ -3,9 +3,9 @@ module View.Toast exposing (toast)
 import Element
 import Element.Font as Font
 import Element.Region as Region
-import Helpers.Error exposing (ErrorLevel(..))
 import Html exposing (Html)
 import Html.Attributes
+import Types.Error exposing (ErrorLevel(..))
 import Types.Types exposing (Msg, Toast)
 
 

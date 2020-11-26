@@ -52,11 +52,11 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
-import Helpers.Error exposing (HttpErrorWithBody)
 import Json.Encode
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (RemoteData)
 import Time
+import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 
 

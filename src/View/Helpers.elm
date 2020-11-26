@@ -19,8 +19,8 @@ import Element
 import Element.Events
 import Element.Font as Font
 import Element.Region as Region
-import Helpers.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Helpers.Time exposing (humanReadableTime)
+import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Types exposing (LogMessage, Msg(..))
 import View.Types

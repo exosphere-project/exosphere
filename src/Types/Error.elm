@@ -1,4 +1,4 @@
-module Helpers.Error exposing
+module Types.Error exposing
     ( ErrorContext
     , ErrorLevel(..)
     , HttpErrorWithBody

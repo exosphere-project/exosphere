@@ -53,7 +53,6 @@ module Types.Types exposing
 
 import Browser.Navigation
 import Dict
-import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -63,6 +62,7 @@ import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
+import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)

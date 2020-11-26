@@ -3,7 +3,6 @@ module State.State exposing (update)
 import AppUrl.Builder
 import AppUrl.Parser
 import Dict
-import Helpers.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.ExoSetupStatus
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -26,12 +25,15 @@ import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
 import State.Auth
+import State.Error
 import State.ViewState as StateHelpers
+import Style.Toast
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time
 import Toasty
 import Types.Defaults as Defaults
+import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
@@ -94,7 +96,7 @@ updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
 updateUnderlying msg model =
     case msg of
         ToastyMsg subMsg ->
-            Toasty.update Helpers.toastConfig ToastyMsg subMsg model
+            Toasty.update Style.Toast.toastConfig ToastyMsg subMsg model
 
         NewLogMessage logMessage ->
             -- TODO This no longer requires a trip through the runtime now that we're storing current time in model?
@@ -117,7 +119,7 @@ updateUnderlying msg model =
             StateHelpers.updateViewState model Cmd.none (NonProjectView nonProjectViewConstructor)
 
         HandleApiErrorWithBody errorContext error ->
-            Helpers.processSynchronousApiError model errorContext error
+            State.Error.processSynchronousApiError model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
             ( model, Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl openstackLoginUnscoped )
@@ -145,7 +147,7 @@ updateUnderlying msg model =
         ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processStringError
+                    State.Error.processStringError
                         model
                         (ErrorContext
                             "decode scoped auth token"
@@ -157,7 +159,7 @@ updateUnderlying msg model =
                 Ok authToken ->
                     case Helpers.serviceCatalogToEndpoints authToken.catalog of
                         Err e ->
-                            Helpers.processStringError
+                            State.Error.processStringError
                                 model
                                 (ErrorContext
                                     "Decode project endpoints"
@@ -177,7 +179,7 @@ updateUnderlying msg model =
                                 ( Helpers.projectLookup model <| projectId, maybePassword )
                             of
                                 ( Nothing, Nothing ) ->
-                                    Helpers.processStringError
+                                    State.Error.processStringError
                                         model
                                         (ErrorContext
                                             "this is an impossible state"
@@ -211,7 +213,7 @@ updateUnderlying msg model =
         ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
-                    Helpers.processStringError
+                    State.Error.processStringError
                         model
                         (ErrorContext
                             "decode scoped auth token"
@@ -317,7 +319,7 @@ updateUnderlying msg model =
                     StateHelpers.updateViewState modelUpdatedUnscopedProviders loginRequests newViewState
 
                 Nothing ->
-                    Helpers.processStringError
+                    State.Error.processStringError
                         model
                         (ErrorContext
                             ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
@@ -685,7 +687,7 @@ processProjectSpecificMsg model project msg =
                     ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
 
                 Nothing ->
-                    Helpers.processStringError
+                    State.Error.processStringError
                         model
                         (ErrorContext
                             ("look for server UUID with attached volume " ++ volumeUuid)
@@ -756,7 +758,7 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processSynchronousApiError newModel errorContext e
+                    State.Error.processSynchronousApiError newModel errorContext e
 
         ReceiveServer serverUuid errorContext result ->
             case result of
@@ -795,7 +797,7 @@ processProjectSpecificMsg model project msg =
                                         newModel =
                                             Helpers.modelUpdateProject model newProject
                                     in
-                                    Helpers.processSynchronousApiError newModel errorContext httpErrorWithBody
+                                    State.Error.processSynchronousApiError newModel errorContext httpErrorWithBody
                     in
                     case httpError of
                         Http.BadStatus code ->
@@ -815,7 +817,7 @@ processProjectSpecificMsg model project msg =
                                     newModel =
                                         Helpers.modelUpdateProject model newProject
                                 in
-                                Helpers.processSynchronousApiError newModel newErrorContext httpErrorWithBody
+                                State.Error.processSynchronousApiError newModel newErrorContext httpErrorWithBody
 
                             else
                                 non404
@@ -923,7 +925,7 @@ processProjectSpecificMsg model project msg =
                                         ErrorInfo
                                         Nothing
                             in
-                            Helpers.processStringError
+                            State.Error.processStringError
                                 serverDeletedModel
                                 errorContext
                                 ("Could not find a UUID for floating IP address from deleted server with UUID " ++ serverUuid)
@@ -954,7 +956,7 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processSynchronousApiError newModel errorContext httpError
+                    State.Error.processSynchronousApiError newModel errorContext httpError
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
@@ -989,7 +991,7 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             Helpers.modelUpdateProject model newProject
                     in
-                    Helpers.processSynchronousApiError newModel errorContext httpError
+                    State.Error.processSynchronousApiError newModel errorContext httpError
 
         ReceiveCreateFloatingIp serverUuid ip ->
             Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
@@ -1264,7 +1266,7 @@ processProjectSpecificMsg model project msg =
                             in
                             case result of
                                 Err httpError ->
-                                    Helpers.processSynchronousApiError newModel errorContext httpError
+                                    State.Error.processSynchronousApiError newModel errorContext httpError
 
                                 Ok _ ->
                                     ( newModel, exoSetupStatusMetadataCmd )
@@ -1276,7 +1278,7 @@ processProjectSpecificMsg model project msg =
                     ( model, Cmd.none )
 
                 ( _, Err e ) ->
-                    Helpers.processSynchronousApiError model errorContext e
+                    State.Error.processSynchronousApiError model errorContext e
 
                 ( Just server, Ok actualNewServerName ) ->
                     let
@@ -1328,7 +1330,7 @@ processProjectSpecificMsg model project msg =
 
                 ( _, Err e ) ->
                     -- Error from API
-                    Helpers.processSynchronousApiError model errorContext e
+                    State.Error.processSynchronousApiError model errorContext e
 
                 ( Just server, Ok newServerMetadata ) ->
                     -- Update the model after ensuring the intended metadata item was actually added
@@ -1359,7 +1361,7 @@ processProjectSpecificMsg model project msg =
 
                     else
                         -- This is bonkers, throw an error
-                        Helpers.processStringError
+                        State.Error.processStringError
                             model
                             errorContext
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
@@ -1457,19 +1459,19 @@ processProjectSpecificMsg model project msg =
                                     )
 
                                 GuacTypes.NotLaunchedWithGuacamole ->
-                                    Helpers.processStringError
+                                    State.Error.processStringError
                                         model
                                         errorContext
                                         "Server does not appear to have been launched with Guacamole support"
 
                         ServerNotFromExo ->
-                            Helpers.processStringError
+                            State.Error.processStringError
                                 model
                                 errorContext
                                 "Server does not appear to have been launched from Exosphere"
 
                 Nothing ->
-                    Helpers.processStringError
+                    State.Error.processStringError
                         model
                         errorContext
                         "Could not find server in the model, maybe it has been deleted."

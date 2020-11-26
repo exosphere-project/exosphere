@@ -1,6 +1,5 @@
 module OpenStack.ServerPassword exposing (requestClearServerPassword, requestServerPassword)
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
@@ -11,6 +10,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project, ProjectSpecificMsgConstructor(..))
 
 

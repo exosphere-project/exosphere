@@ -23,8 +23,6 @@ module Helpers.Helpers exposing
     , newServerMetadata
     , newServerNetworkOptions
     , overallQuotaAvailServers
-    , processStringError
-    , processSynchronousApiError
     , projectDeleteServer
     , projectLookup
     , projectSetServerLoading
@@ -41,7 +39,6 @@ module Helpers.Helpers exposing
     , sortedFlavors
     , stringIsUuidOrDefault
     , titleFromHostname
-    , toastConfig
     , urlPathQueryMatches
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
@@ -52,23 +49,15 @@ module Helpers.Helpers exposing
 import Debug
 import Dict
 import Element
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
-import Html
-import Html.Attributes
-import Http
 import Json.Decode as Decode
 import Json.Encode
-import OpenStack.Error as OSError
 import OpenStack.Types as OSTypes
 import Regex
 import RemoteData
 import ServerDeploy
-import Task
 import Time
-import Toasty
-import Toasty.Defaults
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -79,7 +68,6 @@ import Types.Types
         , ExoSetupStatus(..)
         , FloatingIpState(..)
         , JetstreamProvider(..)
-        , LogMessage
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -89,7 +77,6 @@ import Types.Types
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
-        , Toast
         , UnscopedProvider
         , UserAppProxyHostname
         )
@@ -100,77 +87,6 @@ import Url
 alwaysRegex : String -> Regex.Regex
 alwaysRegex regexStr =
     Regex.fromString regexStr |> Maybe.withDefault Regex.never
-
-
-toastConfig : Toasty.Config Msg
-toastConfig =
-    let
-        containerAttrs : List (Html.Attribute msg)
-        containerAttrs =
-            [ Html.Attributes.style "position" "fixed"
-            , Html.Attributes.style "top" "60"
-            , Html.Attributes.style "right" "0"
-            , Html.Attributes.style "width" "100%"
-            , Html.Attributes.style "max-width" "300px"
-            , Html.Attributes.style "list-style-type" "none"
-            , Html.Attributes.style "padding" "0"
-            , Html.Attributes.style "margin" "0"
-            ]
-    in
-    Toasty.Defaults.config
-        |> Toasty.delay 60000
-        |> Toasty.containerAttrs containerAttrs
-
-
-processStringError : Model -> ErrorContext -> String -> ( Model, Cmd Msg )
-processStringError model errorContext error =
-    let
-        logMessageProto =
-            LogMessage
-                error
-                errorContext
-
-        toast =
-            Toast
-                errorContext
-                error
-
-        cmd =
-            Task.perform
-                (\posix -> NewLogMessage (logMessageProto posix))
-                Time.now
-    in
-    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( model, cmd )
-
-
-processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
-processSynchronousApiError model errorContext httpError =
-    let
-        apiErrorDecodeResult =
-            Decode.decodeString
-                OSError.decodeSynchronousErrorJson
-                httpError.body
-
-        formattedError =
-            case httpError.error of
-                Http.BadStatus code ->
-                    case apiErrorDecodeResult of
-                        Ok syncApiError ->
-                            syncApiError.message
-                                ++ " (response code: "
-                                ++ String.fromInt syncApiError.code
-                                ++ ")"
-
-                        Err _ ->
-                            httpError.body
-                                ++ " (response code: "
-                                ++ String.fromInt code
-                                ++ ")"
-
-                _ ->
-                    Debug.toString httpError
-    in
-    processStringError model errorContext formattedError
 
 
 stringIsUuidOrDefault : String -> Bool

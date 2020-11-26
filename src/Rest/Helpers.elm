@@ -9,7 +9,6 @@ module Rest.Helpers exposing
     , resultToMsgErrorBody
     )
 
-import Helpers.Error exposing (ErrorContext, HttpErrorWithBody)
 import Helpers.Helpers as Helpers
 import Helpers.Time exposing (iso8601StringToPosix)
 import Http
@@ -17,6 +16,7 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Task
 import Time
+import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Types as TT
 import Url

@@ -20,7 +20,6 @@ module Rest.Neutron exposing
     , requestSecurityGroups
     )
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -35,6 +34,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)

@@ -5,6 +5,7 @@ import Element
 import Element.Font as Font
 import Helpers.Helpers as Helpers
 import Html
+import Style.Toast
 import Toasty
 import Types.Types
     exposing
@@ -99,7 +100,7 @@ elementView maybeWindowSize model =
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Helpers.toastConfig (View.Toast.toast model.showDebugMsgs) ToastyMsg model.toasties)
+                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast model.showDebugMsgs) ToastyMsg model.toasties)
                 ]
     in
     Element.row

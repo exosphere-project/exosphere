@@ -5,12 +5,12 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)

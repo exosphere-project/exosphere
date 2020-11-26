@@ -6,7 +6,6 @@ module OpenStack.Volumes exposing
     , volumeLookup
     )
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -19,6 +18,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)

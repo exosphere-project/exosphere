@@ -5,11 +5,11 @@ module OpenStack.Quotas exposing
     , volumeQuotaDecoder
     )
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)

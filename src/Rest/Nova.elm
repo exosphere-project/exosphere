@@ -28,7 +28,6 @@ module Rest.Nova exposing
 
 import Array
 import Base64
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -46,6 +45,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
