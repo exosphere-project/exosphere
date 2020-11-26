@@ -25,6 +25,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import State.Auth
 import State.ViewState as StateHelpers
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
@@ -53,7 +54,6 @@ import Types.Types
         , ServerFromExoProps
         , ServerOrigin(..)
         , TickInterval
-        , UnscopedProvider
         , UnscopedProviderProject
         , ViewState(..)
         , currentExoServerVersion
@@ -204,7 +204,7 @@ updateUnderlying msg model =
                                                         project
 
                                         ( newModel, updateTokenCmd ) =
-                                            projectUpdateAuthToken model project authToken
+                                            State.Auth.projectUpdateAuthToken model project authToken
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
@@ -226,7 +226,10 @@ updateUnderlying msg model =
                     of
                         Just unscopedProvider ->
                             -- We already have an unscoped provider in the model with the same auth URL, update its token
-                            unscopedProviderUpdateAuthToken model unscopedProvider authToken
+                            State.Auth.unscopedProviderUpdateAuthToken
+                                model
+                                unscopedProvider
+                                authToken
 
                         Nothing ->
                             -- We don't have an unscoped provider with the same auth URL, create it
@@ -534,7 +537,7 @@ processProjectSpecificMsg model project msg =
                     newModel =
                         Helpers.modelUpdateProject model newProject
                 in
-                ( newModel, requestAuthToken newModel newProject )
+                ( newModel, State.Auth.requestAuthToken newModel newProject )
 
         ToggleCreatePopup ->
             case model.viewState of
@@ -1539,19 +1542,6 @@ createProject model password authToken endpoints =
     )
 
 
-projectUpdateAuthToken : Model -> Project -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
-projectUpdateAuthToken model project authToken =
-    -- Update auth token for existing project
-    let
-        newProject =
-            { project | auth = authToken }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-    in
-    sendPendingRequests newModel newProject
-
-
 createUnscopedProvider : Model -> HelperTypes.Password -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
 createUnscopedProvider model password authToken authUrl =
     let
@@ -1568,69 +1558,6 @@ createUnscopedProvider model password authToken authUrl =
     ( { model | unscopedProviders = newProviders }
     , Rest.Keystone.requestUnscopedProjects newProvider model.cloudCorsProxyUrl
     )
-
-
-unscopedProviderUpdateAuthToken : Model -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( Model, Cmd Msg )
-unscopedProviderUpdateAuthToken model provider authToken =
-    let
-        newProvider =
-            { provider | token = authToken }
-
-        newModel =
-            Helpers.modelUpdateUnscopedProvider model newProvider
-    in
-    ( newModel, Cmd.none )
-
-
-sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
-sendPendingRequests model project =
-    -- Fires any pending commands which were waiting for auth token renewal
-    -- This function assumes our token is valid (does not check for expiry).
-    let
-        -- Hydrate cmds with auth token
-        cmds =
-            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
-
-        -- Clear out pendingCredentialedRequests
-        newProject =
-            { project | pendingCredentialedRequests = [] }
-
-        newModel =
-            Helpers.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.batch cmds )
-
-
-requestAuthToken : Model -> Project -> Cmd Msg
-requestAuthToken model project =
-    -- Wraps Rest.RequestAuthToken, builds OSTypes.PasswordCreds if needed
-    let
-        creds =
-            case project.secret of
-                OpenstackPassword password ->
-                    OSTypes.PasswordCreds <|
-                        OSTypes.OpenstackLogin
-                            project.endpoints.keystone
-                            (if String.isEmpty project.auth.projectDomain.name then
-                                project.auth.projectDomain.uuid
-
-                             else
-                                project.auth.projectDomain.name
-                            )
-                            project.auth.project.name
-                            (if String.isEmpty project.auth.userDomain.name then
-                                project.auth.userDomain.uuid
-
-                             else
-                                project.auth.userDomain.name
-                            )
-                            project.auth.user.name
-                            password
-
-                ApplicationCredential appCred ->
-                    OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
-    in
-    Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl creds
 
 
 requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
