@@ -7,9 +7,6 @@ module Helpers.Helpers exposing
     , getExternalNetwork
     , getServerExouserPassword
     , getServerFloatingIp
-    , getServerUiStatus
-    , getServerUiStatusColor
-    , getServerUiStatusStr
     , getServersWithVolAttached
     , getVolsAttachedToServer
     , isBootVol
@@ -25,7 +22,6 @@ module Helpers.Helpers exposing
     , serviceCatalogToEndpoints
     , sortedFlavors
     , stringIsUuidOrDefault
-    , titleFromHostname
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
     , volumeQuotaAvail
@@ -33,7 +29,6 @@ module Helpers.Helpers exposing
 
 import Debug
 import Dict
-import Element
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
 import Json.Decode as Decode
@@ -94,29 +89,6 @@ stringIsUuidOrDefault str =
             str == "default"
     in
     stringIsUuid || stringIsDefault
-
-
-titleFromHostname : String -> String
-titleFromHostname hostname =
-    let
-        r =
-            alwaysRegex "^(.*?)\\..*"
-
-        matches =
-            Regex.findAtMost 1 r hostname
-
-        maybeMaybeTitle =
-            matches
-                |> List.head
-                |> Maybe.map (\x -> x.submatches)
-                |> Maybe.andThen List.head
-    in
-    case maybeMaybeTitle of
-        Just (Just title) ->
-            title
-
-        _ ->
-            hostname
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints
@@ -265,187 +237,6 @@ getServerExouserPassword serverDetails =
 
         Nothing ->
             oldLocation
-
-
-getServerUiStatus : Server -> ServerUiStatus
-getServerUiStatus server =
-    -- TODO move this to view helpers
-    case server.osProps.details.openstackStatus of
-        OSTypes.ServerActive ->
-            case server.exoProps.serverOrigin of
-                ServerFromExo serverFromExoProps ->
-                    if serverFromExoProps.exoServerVersion < 4 then
-                        ServerUiStatusReady
-
-                    else
-                        case serverFromExoProps.exoSetupStatus.data of
-                            RDPP.DoHave status _ ->
-                                case status of
-                                    ExoSetupWaiting ->
-                                        ServerUiStatusBuilding
-
-                                    ExoSetupRunning ->
-                                        ServerUiStatusPartiallyActive
-
-                                    ExoSetupComplete ->
-                                        ServerUiStatusReady
-
-                                    ExoSetupError ->
-                                        ServerUiStatusError
-
-                                    ExoSetupTimeout ->
-                                        ServerUiStatusError
-
-                                    ExoSetupUnknown ->
-                                        ServerUiStatusUnknown
-
-                            RDPP.DontHave ->
-                                ServerUiStatusUnknown
-
-                ServerNotFromExo ->
-                    ServerUiStatusReady
-
-        OSTypes.ServerPaused ->
-            ServerUiStatusPaused
-
-        OSTypes.ServerReboot ->
-            ServerUiStatusReboot
-
-        OSTypes.ServerSuspended ->
-            ServerUiStatusSuspended
-
-        OSTypes.ServerShutoff ->
-            ServerUiStatusShutoff
-
-        OSTypes.ServerStopped ->
-            ServerUiStatusStopped
-
-        OSTypes.ServerSoftDeleted ->
-            ServerUiStatusSoftDeleted
-
-        OSTypes.ServerError ->
-            ServerUiStatusError
-
-        OSTypes.ServerBuilding ->
-            ServerUiStatusBuilding
-
-        OSTypes.ServerRescued ->
-            ServerUiStatusRescued
-
-        OSTypes.ServerShelved ->
-            ServerUiStatusShelved
-
-        OSTypes.ServerShelvedOffloaded ->
-            ServerUiStatusShelved
-
-        OSTypes.ServerDeleted ->
-            ServerUiStatusDeleted
-
-
-getServerUiStatusStr : ServerUiStatus -> String
-getServerUiStatusStr status =
-    case status of
-        ServerUiStatusUnknown ->
-            "Unknown"
-
-        ServerUiStatusBuilding ->
-            "Building"
-
-        ServerUiStatusPartiallyActive ->
-            "Partially Active"
-
-        ServerUiStatusReady ->
-            "Ready"
-
-        ServerUiStatusPaused ->
-            "Paused"
-
-        ServerUiStatusReboot ->
-            "Reboot"
-
-        ServerUiStatusSuspended ->
-            "Suspended"
-
-        ServerUiStatusShutoff ->
-            "Shut off"
-
-        ServerUiStatusStopped ->
-            "Stopped"
-
-        ServerUiStatusSoftDeleted ->
-            "Soft-deleted"
-
-        ServerUiStatusError ->
-            "Error"
-
-        ServerUiStatusRescued ->
-            "Rescued"
-
-        ServerUiStatusShelved ->
-            "Shelved"
-
-        ServerUiStatusDeleted ->
-            "Deleted"
-
-
-getServerUiStatusColor : ServerUiStatus -> Element.Color
-getServerUiStatusColor status =
-    case status of
-        ServerUiStatusUnknown ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusBuilding ->
-            -- yellow
-            Element.rgb255 255 221 87
-
-        ServerUiStatusPartiallyActive ->
-            -- yellow
-            Element.rgb255 255 221 87
-
-        ServerUiStatusReady ->
-            -- green
-            Element.rgb255 35 209 96
-
-        ServerUiStatusReboot ->
-            -- yellow
-            Element.rgb255 255 221 87
-
-        ServerUiStatusPaused ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusSuspended ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusShutoff ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusStopped ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusSoftDeleted ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusError ->
-            -- red
-            Element.rgb255 255 56 96
-
-        ServerUiStatusRescued ->
-            -- red
-            Element.rgb255 255 56 96
-
-        ServerUiStatusShelved ->
-            -- gray
-            Element.rgb255 122 122 122
-
-        ServerUiStatusDeleted ->
-            -- gray
-            Element.rgb255 122 122 122
 
 
 sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor

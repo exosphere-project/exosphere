@@ -5,7 +5,6 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Helpers.Helpers as Helpers
 import Helpers.Url as UrlHelpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
@@ -107,7 +106,7 @@ projectTitleForNavMenu model project =
         providerTitle =
             project.endpoints.keystone
                 |> UrlHelpers.hostnameFromUrl
-                |> Helpers.titleFromHostname
+                |> VH.titleFromHostname
 
         multipleProjects =
             let

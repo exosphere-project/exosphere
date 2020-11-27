@@ -1,6 +1,5 @@
 module View.PageTitle exposing (pageTitle)
 
-import Helpers.Helpers as Helpers
 import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
@@ -12,6 +11,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import View.Helpers as VH
 
 
 pageTitle : Model -> String
@@ -33,7 +33,7 @@ pageTitle model =
                         providerTitle =
                             keystoneUrl
                                 |> UrlHelpers.hostnameFromUrl
-                                |> Helpers.titleFromHostname
+                                |> VH.titleFromHostname
                     in
                     "Select Projects for " ++ providerTitle
 

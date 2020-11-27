@@ -393,7 +393,7 @@ serverStatus projectId serverDetailViewParams server =
                             spinner
 
                         ( _, Nothing ) ->
-                            Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 28
+                            Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor) 28
             in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]
@@ -441,8 +441,8 @@ serverStatus projectId serverDetailViewParams server =
         statusString =
             Element.text
                 (server
-                    |> Helpers.getServerUiStatus
-                    |> Helpers.getServerUiStatusStr
+                    |> VH.getServerUiStatus
+                    |> VH.getServerUiStatusStr
                 )
     in
     Element.column
