@@ -25,6 +25,7 @@ import OpenStack.Types as OSTypes
         , OpenstackLogin
         , VolumeQuota
         )
+import State.Auth
 import Test exposing (..)
 import TestData
 
@@ -122,14 +123,14 @@ processOpenRcSuite =
         [ test "ensure an empty file is unmatched" <|
             \() ->
                 ""
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> Expect.equal emptyCreds
         , test "that $OS_PASSWORD_INPUT is *not* processed" <|
             \() ->
                 """
                 export OS_PASSWORD=$OS_PASSWORD_INPUT
                 """
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> .password
                     |> Expect.equal ""
         , test "that double quotes are not included in a processed match" <|
@@ -137,7 +138,7 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3"
                 """
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "that double quotes are optional" <|
@@ -145,7 +146,7 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
                 """
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "that project domain name is still matched" <|
@@ -154,7 +155,7 @@ processOpenRcSuite =
                 # newer OpenStack release seem to use _ID suffix
                 export OS_PROJECT_DOMAIN_NAME="super-specific"
                 """
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> .projectDomain
                     |> Expect.equal "super-specific"
         , test "that project domain ID is still matched" <|
@@ -163,13 +164,13 @@ processOpenRcSuite =
                 # newer OpenStack release seem to use _ID suffix
                 export OS_PROJECT_DOMAIN_ID="DEFAULT"
                 """
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> .projectDomain
                     |> Expect.equal "DEFAULT"
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 TestData.openrcPreV3
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:35357/v3"
@@ -182,7 +183,7 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open with comments works" <|
             \() ->
                 TestData.openrcV3withComments
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
@@ -195,7 +196,7 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open _without_ comments works" <|
             \() ->
                 TestData.openrcV3
-                    |> Helpers.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc emptyCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
