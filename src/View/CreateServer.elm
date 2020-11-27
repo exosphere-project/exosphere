@@ -9,6 +9,7 @@ import Helpers.Helpers as Helpers
 import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
+import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -177,7 +178,7 @@ flavorPicker project viewParams computeQuota =
                         }
             in
             -- Only allow selection if there is enough available quota
-            case Helpers.computeQuotaFlavorAvailServers computeQuota flavor of
+            case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
                 Nothing ->
                     radio_
 
@@ -259,7 +260,7 @@ flavorPicker project viewParams computeQuota =
 
         anyFlavorsTooLarge =
             project.flavors
-                |> List.map (Helpers.computeQuotaFlavorAvailServers computeQuota)
+                |> List.map (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
                 |> List.filterMap (Maybe.map (\x -> x < 1))
                 |> List.isEmpty
                 |> not
@@ -285,7 +286,7 @@ volBackedPrompt : Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OS
 volBackedPrompt project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
-            Helpers.volumeQuotaAvail volumeQuota
+            OSQuotas.volumeQuotaAvail volumeQuota
 
         canLaunchVolBacked =
             let
@@ -391,7 +392,7 @@ countPicker :
 countPicker project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
-            Helpers.overallQuotaAvailServers
+            OSQuotas.overallQuotaAvailServers
                 (viewParams.volSizeTextInput
                     |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                 )

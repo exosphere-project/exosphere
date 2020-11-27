@@ -6,6 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
 import Helpers.ModelGetterSetters as ModelGetterSetters
+import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
@@ -267,7 +268,7 @@ createVolume project volName volSizeInput =
         maybeVolumeQuotaAvail =
             project.volumeQuota
                 |> RemoteData.toMaybe
-                |> Maybe.map Helpers.volumeQuotaAvail
+                |> Maybe.map OSQuotas.volumeQuotaAvail
 
         ( canAttemptCreateVol, volGbAvail ) =
             case maybeVolumeQuotaAvail of

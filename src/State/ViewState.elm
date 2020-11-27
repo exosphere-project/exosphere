@@ -2,11 +2,10 @@ module State.ViewState exposing (setProjectView, updateViewState)
 
 import AppUrl.Builder
 import Browser.Navigation
-import Helpers.Helpers as Helpers
 import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import OpenStack.Quotas
+import OpenStack.Quotas as OSQuotas
 import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
@@ -162,7 +161,7 @@ setProjectView model project projectViewConstructor =
                                         ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
                                             let
                                                 availServers =
-                                                    Helpers.overallQuotaAvailServers
+                                                    OSQuotas.overallQuotaAvailServers
                                                         (viewParams.volSizeTextInput
                                                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                                                         )
@@ -225,8 +224,8 @@ setProjectView model project projectViewConstructor =
                                         , Rest.Nova.requestKeypairs project
                                         , Rest.Neutron.requestNetworks project
                                         , RandomHelpers.generateServerName newViewParamsMsg
-                                        , OpenStack.Quotas.requestComputeQuota project
-                                        , OpenStack.Quotas.requestVolumeQuota project
+                                        , OSQuotas.requestComputeQuota project
+                                        , OSQuotas.requestVolumeQuota project
                                         ]
                             in
                             ( newModel, cmd )
@@ -257,8 +256,8 @@ setProjectView model project projectViewConstructor =
 
                                 _ ->
                                     Cmd.batch
-                                        [ OpenStack.Quotas.requestComputeQuota project
-                                        , OpenStack.Quotas.requestVolumeQuota project
+                                        [ OSQuotas.requestComputeQuota project
+                                        , OSQuotas.requestVolumeQuota project
                                         ]
                     in
                     ( model, cmd )
@@ -298,7 +297,7 @@ setProjectView model project projectViewConstructor =
                                     Cmd.none
 
                                 _ ->
-                                    OpenStack.Quotas.requestVolumeQuota project
+                                    OSQuotas.requestVolumeQuota project
                     in
                     ( model, cmd )
     in
