@@ -3,11 +3,6 @@ module Helpers.Helpers exposing
     , appIsElectron
     , checkFloatingIpState
     , getBootVol
-    , getExternalNetwork
-    , getServerExouserPassword
-    , getServerFloatingIp
-    , getServersWithVolAttached
-    , getVolsAttachedToServer
     , isBootVol
     , newGuacMetadata
     , newServerMetadata
@@ -18,25 +13,25 @@ module Helpers.Helpers exposing
     , serverNeedsFrequentPoll
     , serverOrigin
     , serviceCatalogToEndpoints
-    , sortedFlavors
     , stringIsUuidOrDefault
     , volDeviceToMountpoint
-    , volumeIsAttachedToServer
     )
+
+-- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
+-- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
 import Debug
 import Dict
+import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Regex
-import RemoteData
 import ServerDeploy
 import Time
 import Types.Guacamole as GuacTypes
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -106,11 +101,11 @@ serviceCatalogToEndpoints catalog =
         maybeEndpointsDict : Dict.Dict String (Maybe String)
         maybeEndpointsDict =
             Dict.fromList
-                [ ( "cinder", getServicePublicUrl "volumev3" catalog )
-                , ( "glance", getServicePublicUrl "image" catalog )
-                , ( "keystone", getServicePublicUrl "identity" catalog )
-                , ( "nova", getServicePublicUrl "compute" catalog |> Maybe.map novaUrlWithMicroversionSupport )
-                , ( "neutron", getServicePublicUrl "network" catalog )
+                [ ( "cinder", GetterSetters.getServicePublicUrl "volumev3" catalog )
+                , ( "glance", GetterSetters.getServicePublicUrl "image" catalog )
+                , ( "keystone", GetterSetters.getServicePublicUrl "identity" catalog )
+                , ( "nova", GetterSetters.getServicePublicUrl "compute" catalog |> Maybe.map novaUrlWithMicroversionSupport )
+                , ( "neutron", GetterSetters.getServicePublicUrl "network" catalog )
                 ]
     in
     -- I am not super proud of this factoring
@@ -132,35 +127,6 @@ serviceCatalogToEndpoints catalog =
                 ("Could not locate URL(s) in service catalog for the following service(s):"
                     ++ Debug.toString unfoundServices
                 )
-
-
-getServicePublicUrl : String -> OSTypes.ServiceCatalog -> Maybe HelperTypes.Url
-getServicePublicUrl serviceType catalog =
-    getServiceFromCatalog serviceType catalog
-        |> Maybe.andThen getPublicEndpointFromService
-        |> Maybe.map .url
-
-
-getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service
-getServiceFromCatalog serviceType catalog =
-    List.filter (\s -> s.type_ == serviceType) catalog
-        |> List.head
-
-
-getPublicEndpointFromService : OSTypes.Service -> Maybe OSTypes.Endpoint
-getPublicEndpointFromService service =
-    List.filter (\e -> e.interface == OSTypes.Public) service.endpoints
-        |> List.head
-
-
-getExternalNetwork : Project -> Maybe OSTypes.Network
-getExternalNetwork project =
-    case project.networks.data of
-        RDPP.DoHave networks _ ->
-            List.filter (\n -> n.isExternal) networks |> List.head
-
-        RDPP.DontHave ->
-            Nothing
 
 
 checkFloatingIpState : OSTypes.ServerDetails -> FloatingIpState -> FloatingIpState
@@ -202,47 +168,6 @@ checkFloatingIpState serverDetails floatingIpState =
 
             else
                 NotRequestable
-
-
-getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
-getServerFloatingIp ipAddresses =
-    let
-        isFloating ipAddress =
-            ipAddress.openstackType == OSTypes.IpAddressFloating
-    in
-    List.filter isFloating ipAddresses
-        |> List.head
-        |> Maybe.map .address
-
-
-getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
-getServerExouserPassword serverDetails =
-    let
-        newLocation =
-            List.filter (\t -> String.startsWith "exoPw:" t) serverDetails.tags
-                |> List.head
-                |> Maybe.map (String.dropLeft 6)
-
-        oldLocation =
-            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
-                |> List.head
-                |> Maybe.map .value
-    in
-    case newLocation of
-        Just password ->
-            Just password
-
-        Nothing ->
-            oldLocation
-
-
-sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
-sortedFlavors flavors =
-    flavors
-        |> List.sortBy .disk_ephemeral
-        |> List.sortBy .disk_root
-        |> List.sortBy .ram_mb
-        |> List.sortBy .vcpu
 
 
 renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> String
@@ -375,30 +300,6 @@ newServerNetworkOptions project =
                                         ( firstNet, False )
                 in
                 MultipleNetsWithGuess projectNets guessNet goodGuess
-
-
-
-{- Future todo come up with some rational scheme for whether these functions should accept the full resource types (e.g. Volume) or just an identifier (e.g. VolumeUuid) -}
-
-
-getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
-getVolsAttachedToServer project server =
-    project.volumes
-        |> RemoteData.withDefault []
-        |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
-
-
-volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
-volumeIsAttachedToServer volumeUuid server =
-    server.osProps.details.volumesAttached
-        |> List.filter (\v -> v == volumeUuid)
-        |> List.isEmpty
-        |> not
-
-
-getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
-getServersWithVolAttached _ volume =
-    volume.attachments |> List.map .serverUuid
 
 
 isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool

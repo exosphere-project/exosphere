@@ -1,5 +1,13 @@
-module Helpers.ModelGetterSetters exposing
+module Helpers.GetterSetters exposing
     ( flavorLookup
+    , getExternalNetwork
+    , getPublicEndpointFromService
+    , getServerExouserPassword
+    , getServerFloatingIp
+    , getServersWithVolAttached
+    , getServiceFromCatalog
+    , getServicePublicUrl
+    , getVolsAttachedToServer
     , imageLookup
     , modelUpdateProject
     , modelUpdateUnscopedProvider
@@ -10,6 +18,8 @@ module Helpers.ModelGetterSetters exposing
     , projectUpdateServer
     , providerLookup
     , serverLookup
+    , sortedFlavors
+    , volumeIsAttachedToServer
     , volumeLookup
     )
 
@@ -18,11 +28,13 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
 import Time
+import Types.HelperTypes as HelperTypes
 import Types.Types exposing (Model, Project, ProjectIdentifier, Server, UnscopedProvider)
 
 
 
 -- Getters, i.e. lookup functions
+-- Primitive getters
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
@@ -67,6 +79,100 @@ providerLookup model keystoneUrl =
         (\uP -> uP.authUrl == keystoneUrl)
         model.unscopedProviders
         |> List.head
+
+
+
+-- Slightly smarter getters
+
+
+getServicePublicUrl : String -> OSTypes.ServiceCatalog -> Maybe HelperTypes.Url
+getServicePublicUrl serviceType catalog =
+    getServiceFromCatalog serviceType catalog
+        |> Maybe.andThen getPublicEndpointFromService
+        |> Maybe.map .url
+
+
+getServiceFromCatalog : String -> OSTypes.ServiceCatalog -> Maybe OSTypes.Service
+getServiceFromCatalog serviceType catalog =
+    List.filter (\s -> s.type_ == serviceType) catalog
+        |> List.head
+
+
+getPublicEndpointFromService : OSTypes.Service -> Maybe OSTypes.Endpoint
+getPublicEndpointFromService service =
+    List.filter (\e -> e.interface == OSTypes.Public) service.endpoints
+        |> List.head
+
+
+getExternalNetwork : Project -> Maybe OSTypes.Network
+getExternalNetwork project =
+    case project.networks.data of
+        RDPP.DoHave networks _ ->
+            List.filter (\n -> n.isExternal) networks |> List.head
+
+        RDPP.DontHave ->
+            Nothing
+
+
+getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
+getServerFloatingIp ipAddresses =
+    let
+        isFloating ipAddress =
+            ipAddress.openstackType == OSTypes.IpAddressFloating
+    in
+    List.filter isFloating ipAddresses
+        |> List.head
+        |> Maybe.map .address
+
+
+getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
+getServerExouserPassword serverDetails =
+    let
+        newLocation =
+            List.filter (\t -> String.startsWith "exoPw:" t) serverDetails.tags
+                |> List.head
+                |> Maybe.map (String.dropLeft 6)
+
+        oldLocation =
+            List.filter (\i -> i.key == "exouserPassword") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+    in
+    case newLocation of
+        Just password ->
+            Just password
+
+        Nothing ->
+            oldLocation
+
+
+sortedFlavors : List OSTypes.Flavor -> List OSTypes.Flavor
+sortedFlavors flavors =
+    flavors
+        |> List.sortBy .disk_ephemeral
+        |> List.sortBy .disk_root
+        |> List.sortBy .ram_mb
+        |> List.sortBy .vcpu
+
+
+getVolsAttachedToServer : Project -> Server -> List OSTypes.Volume
+getVolsAttachedToServer project server =
+    project.volumes
+        |> RemoteData.withDefault []
+        |> List.filter (\v -> List.member v.uuid server.osProps.details.volumesAttached)
+
+
+volumeIsAttachedToServer : OSTypes.VolumeUuid -> Server -> Bool
+volumeIsAttachedToServer volumeUuid server =
+    server.osProps.details.volumesAttached
+        |> List.filter (\v -> v == volumeUuid)
+        |> List.isEmpty
+        |> not
+
+
+getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
+getServersWithVolAttached _ volume =
+    volume.attachments |> List.map .serverUuid
 
 
 

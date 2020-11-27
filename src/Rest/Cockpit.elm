@@ -4,8 +4,7 @@ module Rest.Cockpit exposing
     )
 
 import Base64
-import Helpers.Helpers as Helpers
-import Helpers.ModelGetterSetters as ModelGetterSetters
+import Helpers.GetterSetters as GetterSetters
 import Http
 import OpenStack.Types as OSTypes
 import Types.Types
@@ -38,10 +37,10 @@ requestCockpitIfRequestable project server =
     -}
     let
         maybeFloatingIp =
-            Helpers.getServerFloatingIp server.osProps.details.ipAddresses
+            GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
 
         maybeExouserPassword =
-            Helpers.getServerExouserPassword server.osProps.details
+            GetterSetters.getServerExouserPassword server.osProps.details
     in
     case
         ( server.exoProps.serverOrigin
@@ -89,7 +88,7 @@ requestCockpitLogin project serverUuid password ipAddress =
 
 receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
 receiveCockpitLoginStatus model project serverUuid result =
-    case ModelGetterSetters.serverLookup project serverUuid of
+    case GetterSetters.serverLookup project serverUuid of
         Nothing ->
             -- No server found, may have been deleted, nothing to do
             ( model, Cmd.none )
@@ -123,9 +122,9 @@ receiveCockpitLoginStatus model project serverUuid result =
                             Server server.osProps newExoProps
 
                         newProject =
-                            ModelGetterSetters.projectUpdateServer project newServer
+                            GetterSetters.projectUpdateServer project newServer
 
                         newModel =
-                            ModelGetterSetters.modelUpdateProject model newProject
+                            GetterSetters.modelUpdateProject model newProject
                     in
                     ( newModel, Cmd.none )

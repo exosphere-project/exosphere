@@ -8,8 +8,8 @@ module State.Auth exposing
     , unscopedProviderUpdateAuthToken
     )
 
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.ModelGetterSetters as ModelGetterSetters
 import Maybe.Extra
 import OpenStack.Types as OSTypes
 import Regex
@@ -46,7 +46,7 @@ projectUpdateAuthToken model project authToken =
             { project | auth = authToken }
 
         newModel =
-            ModelGetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
     in
     sendPendingRequests newModel newProject
 
@@ -58,7 +58,7 @@ unscopedProviderUpdateAuthToken model provider authToken =
             { provider | token = authToken }
 
         newModel =
-            ModelGetterSetters.modelUpdateUnscopedProvider model newProvider
+            GetterSetters.modelUpdateUnscopedProvider model newProvider
     in
     ( newModel, Cmd.none )
 
@@ -77,7 +77,7 @@ sendPendingRequests model project =
             { project | pendingCredentialedRequests = [] }
 
         newModel =
-            ModelGetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.batch cmds )
 

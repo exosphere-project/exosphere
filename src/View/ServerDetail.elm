@@ -9,9 +9,9 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
-import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -58,7 +58,7 @@ updateServerDetail project serverDetailViewParams server =
 serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
 serverDetail project appIsElectron currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
-    case ModelGetterSetters.serverLookup project serverUuid of
+    case GetterSetters.serverLookup project serverUuid of
         Just server ->
             serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams server
 
@@ -87,14 +87,14 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     Element.none
 
         flavorText =
-            ModelGetterSetters.flavorLookup project details.flavorUuid
+            GetterSetters.flavorLookup project details.flavorUuid
                 |> Maybe.map .name
                 |> Maybe.withDefault "Unknown flavor"
 
         imageText =
             let
                 maybeImageName =
-                    ModelGetterSetters.imageLookup
+                    GetterSetters.imageLookup
                         project
                         details.imageUuid
                         |> Maybe.map .name
@@ -286,7 +286,7 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                 )
             , Element.el VH.heading3 (Element.text "Volumes Attached")
             , serverVolumes project server
-            , case Helpers.getVolsAttachedToServer project server of
+            , case GetterSetters.getVolsAttachedToServer project server of
                 [] ->
                     Element.none
 
@@ -682,7 +682,7 @@ serverPassword projectId serverDetailViewParams server =
                 ]
 
         passwordHint =
-            Helpers.getServerExouserPassword server.osProps.details
+            GetterSetters.getServerExouserPassword server.osProps.details
                 |> Maybe.withDefault (Element.text "Not available yet, check back in a few minutes.")
                 << Maybe.map
                     (\password ->
@@ -977,7 +977,7 @@ serverVolumes : Project -> Server -> Element.Element Msg
 serverVolumes project server =
     let
         vols =
-            Helpers.getVolsAttachedToServer project server
+            GetterSetters.getVolsAttachedToServer project server
 
         deviceRawName vol =
             vol.attachments

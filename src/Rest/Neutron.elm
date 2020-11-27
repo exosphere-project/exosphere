@@ -20,8 +20,8 @@ module Rest.Neutron exposing
     , requestSecurityGroups
     )
 
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -391,7 +391,7 @@ receiveNetworks model project networks =
                     model.viewState
 
         newModel =
-            ModelGetterSetters.modelUpdateProject { model | viewState = viewState } newProject
+            GetterSetters.modelUpdateProject { model | viewState = viewState } newProject
     in
     ( newModel, Cmd.none )
 
@@ -403,14 +403,14 @@ receiveFloatingIps model project floatingIps =
             { project | floatingIps = floatingIps }
 
         newModel =
-            ModelGetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
 
 
 receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> OSTypes.IpAddress -> ( Model, Cmd Msg )
 receiveCreateFloatingIp model project serverUuid ipAddress =
-    case ModelGetterSetters.serverLookup project serverUuid of
+    case GetterSetters.serverLookup project serverUuid of
         Nothing ->
             -- No server found, may have been deleted, nothing to do
             ( model, Cmd.none )
@@ -436,10 +436,10 @@ receiveCreateFloatingIp model project serverUuid ipAddress =
                         { oldExoProps | priorFloatingIpState = Success }
 
                 newProject =
-                    ModelGetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectUpdateServer project newServer
 
                 newModel =
-                    ModelGetterSetters.modelUpdateProject model newProject
+                    GetterSetters.modelUpdateProject model newProject
             in
             ( newModel, Cmd.none )
 
@@ -454,7 +454,7 @@ receiveDeleteFloatingIp model project uuid =
             { project | floatingIps = newFloatingIps }
 
         newModel =
-            ModelGetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
 
@@ -476,7 +476,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
             { project | securityGroups = securityGroups }
 
         newModel =
-            ModelGetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
 
         cmds =
             case List.filter (\a -> a.name == "exosphere") securityGroups |> List.head of
@@ -533,7 +533,7 @@ receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
             { project | securityGroups = newSecGroups }
 
         newModel =
-            ModelGetterSetters.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
     in
     requestCreateExoSecurityGroupRules
         newModel

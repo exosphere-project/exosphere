@@ -1,8 +1,8 @@
 module Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 
 import Dict
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
 import Helpers.Url as UrlHelpers
@@ -128,7 +128,7 @@ stepServerPoll time project server =
                 { server | exoProps = newExoProps }
 
             newProject =
-                ModelGetterSetters.projectUpdateServer project newServer
+                GetterSetters.projectUpdateServer project newServer
         in
         ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
 
@@ -245,7 +245,7 @@ stepServerRequestFloatingIp _ project server =
                 Nothing
 
         maybeExtNet =
-            Helpers.getExternalNetwork project
+            GetterSetters.getExternalNetwork project
     in
     -- TODO if we don't find an external network, how do we indicate that to user? Fire a Cmd that shows an error? Or just wait until we have one?
     case ( serverDoWeRequestFloatingIp, maybeExtNet ) of
@@ -259,7 +259,7 @@ stepServerRequestFloatingIp _ project server =
                     Server server.osProps { oldExoProps | priorFloatingIpState = RequestedWaiting }
 
                 newProject =
-                    ModelGetterSetters.projectUpdateServer project newServer
+                    GetterSetters.projectUpdateServer project newServer
 
                 newCmd =
                     Rest.Neutron.requestCreateFloatingIp project extNet port_ server
@@ -450,7 +450,7 @@ stepServerPollConsoleLog time project server =
                             { server | exoProps = newExoProps }
 
                         newProject =
-                            ModelGetterSetters.projectUpdateServer project newServer
+                            GetterSetters.projectUpdateServer project newServer
                     in
                     ( newProject
                     , OpenStack.ConsoleLog.requestConsoleLog
@@ -509,7 +509,7 @@ stepServerGuacamoleAuth time project server =
                         "/guacamole/api/tokens"
                         False
             in
-            ( ModelGetterSetters.projectUpdateServer project newServer
+            ( GetterSetters.projectUpdateServer project newServer
             , Rest.Guacamole.requestLoginToken
                 url
                 "exouser"
@@ -531,8 +531,8 @@ stepServerGuacamoleAuth time project server =
 
                 GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
-                        ( Helpers.getServerFloatingIp server.osProps.details.ipAddresses
-                        , Helpers.getServerExouserPassword server.osProps.details
+                        ( GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
+                        , GetterSetters.getServerExouserPassword server.osProps.details
                         , project.userAppProxyHostname
                         )
                     of

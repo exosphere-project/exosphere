@@ -5,8 +5,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
 import OpenStack.Quotas as OSQuotas
@@ -134,7 +134,7 @@ createServer project viewParams =
           <|
             [ Element.el VH.heading2 (Element.text "Create Server") ]
                 ++ (case
-                        ( ModelGetterSetters.flavorLookup project viewParams.flavorUuid
+                        ( GetterSetters.flavorLookup project viewParams.flavorUuid
                         , project.computeQuota
                         , project.volumeQuota
                         )
@@ -270,7 +270,7 @@ flavorPicker project viewParams computeQuota =
         [ Element.el [ Font.bold ] (Element.text "Size")
         , Element.table
             flavorEmptyHint
-            { data = Helpers.sortedFlavors project.flavors
+            { data = GetterSetters.sortedFlavors project.flavors
             , columns = columns
             }
         , if anyFlavorsTooLarge then
