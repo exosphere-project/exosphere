@@ -4,7 +4,6 @@ module Helpers.Helpers exposing
     , buildProxyUrl
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
-    , flavorLookup
     , getBootVol
     , getExternalNetwork
     , getServerExouserPassword
@@ -15,7 +14,6 @@ module Helpers.Helpers exposing
     , getServersWithVolAttached
     , getVolsAttachedToServer
     , hostnameFromUrl
-    , imageLookup
     , isBootVol
     , modelUpdateProject
     , modelUpdateUnscopedProvider
@@ -24,15 +22,12 @@ module Helpers.Helpers exposing
     , newServerNetworkOptions
     , overallQuotaAvailServers
     , projectDeleteServer
-    , projectLookup
     , projectSetServerLoading
     , projectSetServersLoading
     , projectUpdateServer
-    , providerLookup
     , renderUserDataTemplate
     , serverFromThisExoClient
     , serverLessThanThisOld
-    , serverLookup
     , serverNeedsFrequentPoll
     , serverOrigin
     , serviceCatalogToEndpoints
@@ -42,13 +37,13 @@ module Helpers.Helpers exposing
     , urlPathQueryMatches
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
-    , volumeLookup
     , volumeQuotaAvail
     )
 
 import Debug
 import Dict
 import Element
+import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
 import Json.Decode as Decode
@@ -72,7 +67,6 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
-        , ProjectIdentifier
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
@@ -268,50 +262,6 @@ checkFloatingIpState serverDetails floatingIpState =
                 NotRequestable
 
 
-serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
-serverLookup project serverUuid =
-    List.filter (\s -> s.osProps.uuid == serverUuid) (RDPP.withDefault [] project.servers) |> List.head
-
-
-projectLookup : Model -> ProjectIdentifier -> Maybe Project
-projectLookup model projectIdentifier =
-    model.projects
-        |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
-        |> List.head
-
-
-flavorLookup : Project -> OSTypes.FlavorUuid -> Maybe OSTypes.Flavor
-flavorLookup project flavorUuid =
-    List.filter
-        (\f -> f.uuid == flavorUuid)
-        project.flavors
-        |> List.head
-
-
-imageLookup : Project -> OSTypes.ImageUuid -> Maybe OSTypes.Image
-imageLookup project imageUuid =
-    List.filter
-        (\i -> i.uuid == imageUuid)
-        project.images
-        |> List.head
-
-
-volumeLookup : Project -> OSTypes.VolumeUuid -> Maybe OSTypes.Volume
-volumeLookup project volumeUuid =
-    List.filter
-        (\v -> v.uuid == volumeUuid)
-        (RemoteData.withDefault [] project.volumes)
-        |> List.head
-
-
-providerLookup : Model -> OSTypes.KeystoneUrl -> Maybe UnscopedProvider
-providerLookup model keystoneUrl =
-    List.filter
-        (\uP -> uP.authUrl == keystoneUrl)
-        model.unscopedProviders
-        |> List.head
-
-
 modelUpdateProject : Model -> Project -> Model
 modelUpdateProject model newProject =
     let
@@ -392,7 +342,7 @@ projectSetServersLoading time project =
 
 projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
 projectSetServerLoading project serverUuid =
-    case serverLookup project serverUuid of
+    case ModelLookups.serverLookup project serverUuid of
         Nothing ->
             -- We can't do anything lol
             project

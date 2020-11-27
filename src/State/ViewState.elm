@@ -3,6 +3,7 @@ module State.ViewState exposing (setProjectView, updateViewState)
 import AppUrl.Builder
 import Browser.Navigation
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas
@@ -153,7 +154,7 @@ setProjectView model project projectViewConstructor =
                             let
                                 newViewParams =
                                     case
-                                        ( Helpers.flavorLookup project viewParams.flavorUuid
+                                        ( ModelLookups.flavorLookup project viewParams.flavorUuid
                                         , project.computeQuota
                                         , project.volumeQuota
                                         )

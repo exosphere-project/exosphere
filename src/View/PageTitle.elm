@@ -1,6 +1,7 @@
 module View.PageTitle exposing (pageTitle)
 
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import OpenStack.Types as OSTypes
 import Types.Types
     exposing
@@ -44,7 +45,7 @@ pageTitle model =
         ProjectView projectIdentifier _ projectViewConstructor ->
             let
                 maybeProject =
-                    Helpers.projectLookup model projectIdentifier
+                    ModelLookups.projectLookup model projectIdentifier
 
                 projectName =
                     maybeProject
@@ -89,7 +90,7 @@ pageTitle model =
 serverName : Maybe Project -> OSTypes.ServerUuid -> String
 serverName maybeProject serverUuid =
     maybeProject
-        |> Maybe.andThen (\proj -> Helpers.serverLookup proj serverUuid)
+        |> Maybe.andThen (\proj -> ModelLookups.serverLookup proj serverUuid)
         |> Maybe.map (\server -> server.osProps.name)
         |> Maybe.withDefault serverUuid
 
@@ -97,6 +98,6 @@ serverName maybeProject serverUuid =
 volumeName : Maybe Project -> OSTypes.VolumeUuid -> String
 volumeName maybeProject volumeUuid =
     maybeProject
-        |> Maybe.andThen (\proj -> Helpers.volumeLookup proj volumeUuid)
+        |> Maybe.andThen (\proj -> ModelLookups.volumeLookup proj volumeUuid)
         |> Maybe.map (\vol -> vol.name)
         |> Maybe.withDefault volumeUuid

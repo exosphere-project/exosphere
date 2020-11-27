@@ -11,6 +11,7 @@ import Element.Input as Input
 import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
+import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -57,7 +58,7 @@ updateServerDetail project serverDetailViewParams server =
 serverDetail : Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
 serverDetail project appIsElectron currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
-    case Helpers.serverLookup project serverUuid of
+    case ModelLookups.serverLookup project serverUuid of
         Just server ->
             serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams server
 
@@ -86,14 +87,14 @@ serverDetail_ project appIsElectron currentTimeAndZone serverDetailViewParams se
                     Element.none
 
         flavorText =
-            Helpers.flavorLookup project details.flavorUuid
+            ModelLookups.flavorLookup project details.flavorUuid
                 |> Maybe.map .name
                 |> Maybe.withDefault "Unknown flavor"
 
         imageText =
             let
                 maybeImageName =
-                    Helpers.imageLookup
+                    ModelLookups.imageLookup
                         project
                         details.imageUuid
                         |> Maybe.map .name

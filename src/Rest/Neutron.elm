@@ -21,6 +21,7 @@ module Rest.Neutron exposing
     )
 
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -409,7 +410,7 @@ receiveFloatingIps model project floatingIps =
 
 receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> OSTypes.IpAddress -> ( Model, Cmd Msg )
 receiveCreateFloatingIp model project serverUuid ipAddress =
-    case Helpers.serverLookup project serverUuid of
+    case ModelLookups.serverLookup project serverUuid of
         Nothing ->
             -- No server found, may have been deleted, nothing to do
             ( model, Cmd.none )

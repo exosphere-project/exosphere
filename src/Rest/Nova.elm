@@ -29,6 +29,7 @@ module Rest.Nova exposing
 import Array
 import Base64
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -585,7 +586,7 @@ receiveServer_ : Bool -> Project -> OSTypes.Server -> ( Server, Cmd Msg )
 receiveServer_ isElectron project osServer =
     let
         newServer =
-            case Helpers.serverLookup project osServer.uuid of
+            case ModelLookups.serverLookup project osServer.uuid of
                 Nothing ->
                     let
                         defaultExoProps =
@@ -675,7 +676,7 @@ receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result HttpErrorWi
 receiveConsoleUrl model project serverUuid result =
     let
         maybeServer =
-            Helpers.serverLookup project serverUuid
+            ModelLookups.serverLookup project serverUuid
     in
     case maybeServer of
         Nothing ->

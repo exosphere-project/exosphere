@@ -3,7 +3,7 @@ module View.View exposing (view, viewElectron)
 import Browser
 import Element
 import Element.Font as Font
-import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Html
 import Style.Toast
 import Toasty
@@ -90,7 +90,7 @@ elementView maybeWindowSize model =
                                 View.HelpAbout.helpAbout model
 
                     ProjectView projectName projectViewParams viewConstructor ->
-                        case Helpers.projectLookup model projectName of
+                        case ModelLookups.projectLookup model projectName of
                             Nothing ->
                                 Element.text "Oops! Project not found"
 

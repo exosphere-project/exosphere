@@ -6,6 +6,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -132,7 +133,7 @@ createServer project viewParams =
           <|
             [ Element.el VH.heading2 (Element.text "Create Server") ]
                 ++ (case
-                        ( Helpers.flavorLookup project viewParams.flavorUuid
+                        ( ModelLookups.flavorLookup project viewParams.flavorUuid
                         , project.computeQuota
                         , project.volumeQuota
                         )

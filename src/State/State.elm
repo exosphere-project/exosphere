@@ -5,6 +5,7 @@ import AppUrl.Parser
 import Dict
 import Helpers.ExoSetupStatus
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
 import Helpers.Time as TimeHelpers
@@ -168,7 +169,7 @@ updateUnderlying msg model =
                             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
                             case
-                                ( Helpers.projectLookup model <| projectId, maybePassword )
+                                ( ModelLookups.projectLookup model <| projectId, maybePassword )
                             of
                                 ( Nothing, Nothing ) ->
                                     State.Error.processStringError
@@ -216,7 +217,7 @@ updateUnderlying msg model =
 
                 Ok authToken ->
                     case
-                        Helpers.providerLookup model keystoneUrl
+                        ModelLookups.providerLookup model keystoneUrl
                     of
                         Just unscopedProvider ->
                             -- We already have an unscoped provider in the model with the same auth URL, update its token
@@ -231,7 +232,7 @@ updateUnderlying msg model =
 
         ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
             case
-                Helpers.providerLookup model keystoneUrl
+                ModelLookups.providerLookup model keystoneUrl
             of
                 Just provider ->
                     let
@@ -258,7 +259,7 @@ updateUnderlying msg model =
                     ( model, Cmd.none )
 
         RequestProjectLoginFromProvider keystoneUrl password desiredProjects ->
-            case Helpers.providerLookup model keystoneUrl of
+            case ModelLookups.providerLookup model keystoneUrl of
                 Just provider ->
                     let
                         buildLoginRequest : UnscopedProviderProject -> Cmd Msg
@@ -321,7 +322,7 @@ updateUnderlying msg model =
                         "Provider could not found in Exosphere's list of Providers."
 
         ProjectMsg projectIdentifier innerMsg ->
-            case Helpers.projectLookup model projectIdentifier of
+            case ModelLookups.projectLookup model projectIdentifier of
                 Nothing ->
                     -- Project not found, may have been removed, nothing to do
                     ( model, Cmd.none )
@@ -410,7 +411,7 @@ processTick model interval time =
                     ( model, Cmd.none )
 
                 ProjectView projectName _ projectViewState ->
-                    case Helpers.projectLookup model projectName of
+                    case ModelLookups.projectLookup model projectName of
                         Nothing ->
                             {- Should this throw an error? -}
                             ( model, Cmd.none )
@@ -424,7 +425,7 @@ processTick model interval time =
                                     in
                                     case interval of
                                         5 ->
-                                            case Helpers.serverLookup project serverUuid of
+                                            case ModelLookups.serverLookup project serverUuid of
                                                 Just server ->
                                                     ( model
                                                     , if serverVolsNeedFrequentPoll project server then
@@ -464,7 +465,7 @@ processTick model interval time =
                                     ( model
                                     , case interval of
                                         5 ->
-                                            case Helpers.volumeLookup project volumeUuid of
+                                            case ModelLookups.volumeLookup project volumeUuid of
                                                 Nothing ->
                                                     Cmd.none
 
@@ -763,7 +764,7 @@ processProjectSpecificMsg model project msg =
                             httpErrorWithBody.error
 
                         non404 =
-                            case Helpers.serverLookup project serverUuid of
+                            case ModelLookups.serverLookup project serverUuid of
                                 Nothing ->
                                     -- Server not in project, may have been deleted, ignoring this error
                                     ( model, Cmd.none )
@@ -874,7 +875,7 @@ processProjectSpecificMsg model project msg =
                                     model.viewState
 
                         newProject =
-                            case Helpers.serverLookup project serverUuid of
+                            case ModelLookups.serverLookup project serverUuid of
                                 Just server ->
                                     let
                                         oldExoProps =
@@ -1126,7 +1127,7 @@ processProjectSpecificMsg model project msg =
                         "exoPw:" ++ password
 
                     cmd =
-                        case Helpers.serverLookup project serverUuid of
+                        case ModelLookups.serverLookup project serverUuid of
                             Just server ->
                                 case server.exoProps.serverOrigin of
                                     ServerNotFromExo ->
@@ -1148,7 +1149,7 @@ processProjectSpecificMsg model project msg =
                 ( model, cmd )
 
         ReceiveConsoleLog errorContext serverUuid result ->
-            case Helpers.serverLookup project serverUuid of
+            case ModelLookups.serverLookup project serverUuid of
                 Nothing ->
                     ( model, Cmd.none )
 
@@ -1264,7 +1265,7 @@ processProjectSpecificMsg model project msg =
                                     ( newModel, exoSetupStatusMetadataCmd )
 
         ReceiveSetServerName serverUuid _ errorContext result ->
-            case ( Helpers.serverLookup project serverUuid, result ) of
+            case ( ModelLookups.serverLookup project serverUuid, result ) of
                 ( Nothing, _ ) ->
                     -- Ensure that the server UUID we get back exists in the model. If not, ignore.
                     ( model, Cmd.none )
@@ -1315,7 +1316,7 @@ processProjectSpecificMsg model project msg =
                     StateHelpers.updateViewState modelWithUpdatedProject Cmd.none updatedView
 
         ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
-            case ( Helpers.serverLookup project serverUuid, result ) of
+            case ( ModelLookups.serverLookup project serverUuid, result ) of
                 ( Nothing, _ ) ->
                     -- Server does not exist in the model, ignore it
                     ( model, Cmd.none )
@@ -1402,7 +1403,7 @@ processProjectSpecificMsg model project msg =
                     in
                     Rest.Nova.requestSetServerMetadata project serverUuid metadataItem
             in
-            case Helpers.serverLookup project serverUuid of
+            case ModelLookups.serverLookup project serverUuid of
                 Just server ->
                     case server.exoProps.serverOrigin of
                         ServerFromExo exoOriginProps ->
@@ -1556,7 +1557,7 @@ createUnscopedProvider model password authToken authUrl =
 
 requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
 requestDeleteServer project serverUuid =
-    case Helpers.serverLookup project serverUuid of
+    case ModelLookups.serverLookup project serverUuid of
         Nothing ->
             -- Server likely deleted already, do nothing
             ( project, Cmd.none )

@@ -3,6 +3,7 @@ module View.SelectProjects exposing (selectProjects)
 import Element
 import Element.Input as Input
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Theme
@@ -20,7 +21,7 @@ import Widget.Style.Material
 
 selectProjects : Model -> OSTypes.KeystoneUrl -> List UnscopedProviderProject -> Element.Element Msg
 selectProjects model keystoneUrl selectedProjects =
-    case Helpers.providerLookup model keystoneUrl of
+    case ModelLookups.providerLookup model keystoneUrl of
         Just provider ->
             let
                 urlLabel =

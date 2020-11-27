@@ -5,6 +5,7 @@ module Rest.Cockpit exposing
 
 import Base64
 import Helpers.Helpers as Helpers
+import Helpers.ModelLookups as ModelLookups
 import Http
 import OpenStack.Types as OSTypes
 import Types.Types
@@ -88,7 +89,7 @@ requestCockpitLogin project serverUuid password ipAddress =
 
 receiveCockpitLoginStatus : Model -> Project -> OSTypes.ServerUuid -> Result Http.Error String -> ( Model, Cmd Msg )
 receiveCockpitLoginStatus model project serverUuid result =
-    case Helpers.serverLookup project serverUuid of
+    case ModelLookups.serverLookup project serverUuid of
         Nothing ->
             -- No server found, may have been deleted, nothing to do
             ( model, Cmd.none )
