@@ -2,6 +2,7 @@ module View.Project exposing (project)
 
 import Element
 import Helpers.Helpers as Helpers
+import Helpers.Url as UrlHelpers
 import Set
 import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
@@ -86,7 +87,7 @@ projectNav p viewParams =
             VH.heading2
           <|
             Element.text <|
-                Helpers.hostnameFromUrl p.endpoints.keystone
+                UrlHelpers.hostnameFromUrl p.endpoints.keystone
                     ++ " - "
                     ++ p.auth.project.name
         , Element.row [ Element.width Element.fill, Element.spacing 10 ]

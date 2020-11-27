@@ -3,8 +3,7 @@ module State.Init exposing (init)
 import AppUrl.Parser
 import Browser.Navigation
 import Dict
-import Helpers.Helpers as Helpers
-import Helpers.ModelLookups as ModelLookups
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
@@ -163,7 +162,7 @@ init flags maybeUrlKey =
             let
                 projectsServersLoading =
                     List.map
-                        (Helpers.projectSetServersLoading currentTime)
+                        (ModelGetterSetters.projectSetServersLoading currentTime)
                         hydratedModel.projects
             in
             { hydratedModel | projects = projectsServersLoading }
@@ -178,7 +177,7 @@ init flags maybeUrlKey =
             -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
             let
                 ( setProjectViewModel, setProjectViewCmd ) =
-                    case ModelLookups.projectLookup newModel projectId of
+                    case ModelGetterSetters.projectLookup newModel projectId of
                         Just project ->
                             setProjectView newModel project projectViewConstructor
 

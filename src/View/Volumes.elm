@@ -5,7 +5,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
-import Helpers.ModelLookups as ModelLookups
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
@@ -211,7 +211,7 @@ renderAttachment : Project -> OSTypes.VolumeAttachment -> Element.Element Msg
 renderAttachment project attachment =
     let
         serverName serverUuid =
-            case ModelLookups.serverLookup project serverUuid of
+            case ModelGetterSetters.serverLookup project serverUuid of
                 Just server ->
                     server.osProps.name
 

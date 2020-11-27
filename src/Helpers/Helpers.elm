@@ -1,7 +1,6 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
     , appIsElectron
-    , buildProxyUrl
     , checkFloatingIpState
     , computeQuotaFlavorAvailServers
     , getBootVol
@@ -13,18 +12,11 @@ module Helpers.Helpers exposing
     , getServerUiStatusStr
     , getServersWithVolAttached
     , getVolsAttachedToServer
-    , hostnameFromUrl
     , isBootVol
-    , modelUpdateProject
-    , modelUpdateUnscopedProvider
     , newGuacMetadata
     , newServerMetadata
     , newServerNetworkOptions
     , overallQuotaAvailServers
-    , projectDeleteServer
-    , projectSetServerLoading
-    , projectSetServersLoading
-    , projectUpdateServer
     , renderUserDataTemplate
     , serverFromThisExoClient
     , serverLessThanThisOld
@@ -34,7 +26,6 @@ module Helpers.Helpers exposing
     , sortedFlavors
     , stringIsUuidOrDefault
     , titleFromHostname
-    , urlPathQueryMatches
     , volDeviceToMountpoint
     , volumeIsAttachedToServer
     , volumeQuotaAvail
@@ -43,7 +34,6 @@ module Helpers.Helpers exposing
 import Debug
 import Dict
 import Element
-import Helpers.ModelLookups as ModelLookups
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
 import Json.Decode as Decode
@@ -71,11 +61,8 @@ import Types.Types
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
-        , UnscopedProvider
-        , UserAppProxyHostname
         )
 import UUID
-import Url
 
 
 alwaysRegex : String -> Regex.Regex
@@ -107,20 +94,6 @@ stringIsUuidOrDefault str =
             str == "default"
     in
     stringIsUuid || stringIsDefault
-
-
-hostnameFromUrl : HelperTypes.Url -> String
-hostnameFromUrl urlStr =
-    let
-        maybeUrl =
-            Url.fromString urlStr
-    in
-    case maybeUrl of
-        Just url ->
-            url.host
-
-        Nothing ->
-            "placeholder-url-unparseable"
 
 
 titleFromHostname : String -> String
@@ -260,124 +233,6 @@ checkFloatingIpState serverDetails floatingIpState =
 
             else
                 NotRequestable
-
-
-modelUpdateProject : Model -> Project -> Model
-modelUpdateProject model newProject =
-    let
-        otherProjects =
-            List.filter (\p -> p.auth.project.uuid /= newProject.auth.project.uuid) model.projects
-
-        newProjects =
-            newProject :: otherProjects
-
-        newProjectsSorted =
-            newProjects
-                |> List.sortBy (\p -> p.auth.project.name)
-                |> List.sortBy (\p -> hostnameFromUrl p.endpoints.keystone)
-    in
-    { model | projects = newProjectsSorted }
-
-
-projectUpdateServer : Project -> Server -> Project
-projectUpdateServer project server =
-    case project.servers.data of
-        RDPP.DontHave ->
-            -- We don't do anything if we don't already have servers. Is this a silent failure that should be
-            -- handled differently?
-            project
-
-        RDPP.DoHave servers recTime ->
-            let
-                otherServers =
-                    List.filter
-                        (\s -> s.osProps.uuid /= server.osProps.uuid)
-                        servers
-
-                newServers =
-                    server :: otherServers
-
-                newServersSorted =
-                    List.sortBy (\s -> s.osProps.name) newServers
-
-                oldServersRDPP =
-                    project.servers
-
-                newServersRDPP =
-                    -- Should we update received time when we update a server? Thinking probably not given how this
-                    -- function is actually used. We're generally updating exoProps, not osProps.
-                    { oldServersRDPP | data = RDPP.DoHave newServersSorted recTime }
-            in
-            { project | servers = newServersRDPP }
-
-
-projectDeleteServer : Project -> OSTypes.ServerUuid -> Project
-projectDeleteServer project serverUuid =
-    case project.servers.data of
-        RDPP.DontHave ->
-            project
-
-        RDPP.DoHave servers recTime ->
-            let
-                otherServers =
-                    List.filter
-                        (\s -> s.osProps.uuid /= serverUuid)
-                        servers
-
-                oldServersRDPP =
-                    project.servers
-
-                newServersRDPP =
-                    -- Should we update received time when we update a server? Thinking probably not given how this
-                    -- function is actually used. We're generally updating exoProps, not osProps.
-                    { oldServersRDPP | data = RDPP.DoHave otherServers recTime }
-            in
-            { project | servers = newServersRDPP }
-
-
-projectSetServersLoading : Time.Posix -> Project -> Project
-projectSetServersLoading time project =
-    { project | servers = RDPP.setLoading project.servers time }
-
-
-projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
-projectSetServerLoading project serverUuid =
-    case ModelLookups.serverLookup project serverUuid of
-        Nothing ->
-            -- We can't do anything lol
-            project
-
-        Just server ->
-            let
-                oldExoProps =
-                    server.exoProps
-
-                newExoProps =
-                    { oldExoProps
-                        | loadingSeparately = True
-                    }
-
-                newServer =
-                    { server | exoProps = newExoProps }
-            in
-            projectUpdateServer project newServer
-
-
-modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model
-modelUpdateUnscopedProvider model newProvider =
-    let
-        otherProviders =
-            List.filter
-                (\p -> p.authUrl /= newProvider.authUrl)
-                model.unscopedProviders
-
-        newProviders =
-            newProvider :: otherProviders
-
-        newProvidersSorted =
-            List.sortBy (\p -> p.authUrl) newProviders
-    in
-    { model | unscopedProviders = newProvidersSorted }
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
@@ -1025,38 +880,6 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
 
         Ok createdTime ->
             (curTimeMillis - Time.posixToMillis createdTime) < maxServerAgeMillis
-
-
-buildProxyUrl : UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
-buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
-    [ "https://"
-    , if https_upstream then
-        ""
-
-      else
-        "http-"
-    , destinationIp |> String.replace "." "-"
-    , "-"
-    , String.fromInt port_
-    , "."
-    , proxyHostname
-    , path
-    ]
-        |> String.concat
-
-
-urlPathQueryMatches : Url.Url -> String -> Bool
-urlPathQueryMatches urlType urlStr =
-    let
-        urlTypeQueryStr =
-            case urlType.query of
-                Just q ->
-                    "?" ++ q
-
-                Nothing ->
-                    ""
-    in
-    (urlType.path ++ urlTypeQueryStr) == urlStr
 
 
 appIsElectron : Model -> Bool

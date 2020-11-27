@@ -6,6 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Helpers.Helpers as Helpers
+import Helpers.Url as UrlHelpers
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
@@ -105,7 +106,7 @@ projectTitleForNavMenu model project =
     let
         providerTitle =
             project.endpoints.keystone
-                |> Helpers.hostnameFromUrl
+                |> UrlHelpers.hostnameFromUrl
                 |> Helpers.titleFromHostname
 
         multipleProjects =
@@ -114,7 +115,7 @@ projectTitleForNavMenu model project =
                     let
                         projectsOnSameProvider : Project -> Project -> Bool
                         projectsOnSameProvider proj1 proj2 =
-                            Helpers.hostnameFromUrl proj1.endpoints.keystone == Helpers.hostnameFromUrl proj2.endpoints.keystone
+                            UrlHelpers.hostnameFromUrl proj1.endpoints.keystone == UrlHelpers.hostnameFromUrl proj2.endpoints.keystone
                     in
                     List.filter (projectsOnSameProvider project) model.projects
                         |> List.length

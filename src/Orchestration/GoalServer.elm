@@ -2,8 +2,10 @@ module Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 
 import Dict
 import Helpers.Helpers as Helpers
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage exposing (getMostRecentDataPoint)
+import Helpers.Url as UrlHelpers
 import OpenStack.ConsoleLog
 import OpenStack.Types as OSTypes
 import Orchestration.Helpers exposing (applyStepToAllServers)
@@ -126,7 +128,7 @@ stepServerPoll time project server =
                 { server | exoProps = newExoProps }
 
             newProject =
-                Helpers.projectUpdateServer project newServer
+                ModelGetterSetters.projectUpdateServer project newServer
         in
         ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
 
@@ -257,7 +259,7 @@ stepServerRequestFloatingIp _ project server =
                     Server server.osProps { oldExoProps | priorFloatingIpState = RequestedWaiting }
 
                 newProject =
-                    Helpers.projectUpdateServer project newServer
+                    ModelGetterSetters.projectUpdateServer project newServer
 
                 newCmd =
                     Rest.Neutron.requestCreateFloatingIp project extNet port_ server
@@ -448,7 +450,7 @@ stepServerPollConsoleLog time project server =
                             { server | exoProps = newExoProps }
 
                         newProject =
-                            Helpers.projectUpdateServer project newServer
+                            ModelGetterSetters.projectUpdateServer project newServer
                     in
                     ( newProject
                     , OpenStack.ConsoleLog.requestConsoleLog
@@ -500,14 +502,14 @@ stepServerGuacamoleAuth time project server =
                     { server | exoProps = newExoProps }
 
                 url =
-                    Helpers.buildProxyUrl
+                    UrlHelpers.buildProxyUrl
                         proxyHostname
                         floatingIp
                         guacUpstreamPort
                         "/guacamole/api/tokens"
                         False
             in
-            ( Helpers.projectUpdateServer project newServer
+            ( ModelGetterSetters.projectUpdateServer project newServer
             , Rest.Guacamole.requestLoginToken
                 url
                 "exouser"

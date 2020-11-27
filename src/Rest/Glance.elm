@@ -6,7 +6,7 @@ module Rest.Glance exposing
     , requestImages
     )
 
-import Helpers.Helpers as Helpers
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -70,7 +70,7 @@ receiveImages model project images =
             { project | images = images }
 
         newModel =
-            Helpers.modelUpdateProject model newProject
+            ModelGetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
 

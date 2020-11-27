@@ -29,7 +29,7 @@ module Rest.Nova exposing
 import Array
 import Base64
 import Helpers.Helpers as Helpers
-import Helpers.ModelLookups as ModelLookups
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -535,11 +535,11 @@ receiveServers model project osServers =
 
         newProject =
             List.foldl
-                (\s p -> Helpers.projectUpdateServer p s)
+                (\s p -> ModelGetterSetters.projectUpdateServer p s)
                 projectNoDeletedSvrs
                 newExoServersClearSomeExoProps
     in
-    ( Helpers.modelUpdateProject model newProject
+    ( ModelGetterSetters.modelUpdateProject model newProject
     , Cmd.batch cmds
     )
 
@@ -566,7 +566,7 @@ receiveServer model project osServer =
         newProject =
             case project.servers.data of
                 RDPP.DoHave _ _ ->
-                    Helpers.projectUpdateServer project newServerUpdatedSomeExoProps
+                    ModelGetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
 
                 RDPP.DontHave ->
                     let
@@ -577,7 +577,7 @@ receiveServer model project osServer =
                     in
                     { project | servers = newServersRDPP }
     in
-    ( Helpers.modelUpdateProject model newProject
+    ( ModelGetterSetters.modelUpdateProject model newProject
     , cmd
     )
 
@@ -586,7 +586,7 @@ receiveServer_ : Bool -> Project -> OSTypes.Server -> ( Server, Cmd Msg )
 receiveServer_ isElectron project osServer =
     let
         newServer =
-            case ModelLookups.serverLookup project osServer.uuid of
+            case ModelGetterSetters.serverLookup project osServer.uuid of
                 Nothing ->
                     let
                         defaultExoProps =
@@ -676,7 +676,7 @@ receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result HttpErrorWi
 receiveConsoleUrl model project serverUuid result =
     let
         maybeServer =
-            ModelLookups.serverLookup project serverUuid
+            ModelGetterSetters.serverLookup project serverUuid
     in
     case maybeServer of
         Nothing ->
@@ -709,10 +709,10 @@ receiveConsoleUrl model project serverUuid result =
                             { server | osProps = newOsProps }
 
                         newProject =
-                            Helpers.projectUpdateServer project newServer
+                            ModelGetterSetters.projectUpdateServer project newServer
 
                         newModel =
-                            Helpers.modelUpdateProject model newProject
+                            ModelGetterSetters.modelUpdateProject model newProject
                     in
                     ( newModel, Cmd.none )
 
@@ -763,7 +763,7 @@ receiveFlavors model project flavors =
                     model.viewState
 
         newModel =
-            Helpers.modelUpdateProject { model | viewState = viewState } newProject
+            ModelGetterSetters.modelUpdateProject { model | viewState = viewState } newProject
     in
     ( newModel, Cmd.none )
 
@@ -775,7 +775,7 @@ receiveKeypairs model project keypairs =
             { project | keypairs = keypairs }
 
         newModel =
-            Helpers.modelUpdateProject model newProject
+            ModelGetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
 

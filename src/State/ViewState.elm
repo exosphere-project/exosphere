@@ -3,7 +3,7 @@ module State.ViewState exposing (setProjectView, updateViewState)
 import AppUrl.Builder
 import Browser.Navigation
 import Helpers.Helpers as Helpers
-import Helpers.ModelLookups as ModelLookups
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas
@@ -78,7 +78,7 @@ setProjectView model project projectViewConstructor =
             in
             RDPP.withDefault [] project_.servers
                 |> List.map serverResetCockpitStatus
-                |> List.foldl (\s p -> Helpers.projectUpdateServer p s) project_
+                |> List.foldl (\s p -> ModelGetterSetters.projectUpdateServer p s) project_
 
         ( viewSpecificModel, viewSpecificCmd ) =
             case projectViewConstructor of
@@ -105,9 +105,9 @@ setProjectView model project projectViewConstructor =
                             let
                                 newModel =
                                     project
-                                        |> Helpers.projectSetServersLoading model.clientCurrentTime
+                                        |> ModelGetterSetters.projectSetServersLoading model.clientCurrentTime
                                         |> projectResetCockpitStatuses
-                                        |> Helpers.modelUpdateProject model
+                                        |> ModelGetterSetters.modelUpdateProject model
 
                                 cmd =
                                     [ Rest.Nova.requestServers
@@ -128,9 +128,9 @@ setProjectView model project projectViewConstructor =
                             let
                                 newModel =
                                     project
-                                        |> (\p -> Helpers.projectSetServerLoading p serverUuid)
+                                        |> (\p -> ModelGetterSetters.projectSetServerLoading p serverUuid)
                                         |> projectResetCockpitStatuses
-                                        |> Helpers.modelUpdateProject model
+                                        |> ModelGetterSetters.modelUpdateProject model
 
                                 cmd =
                                     Cmd.batch
@@ -154,7 +154,7 @@ setProjectView model project projectViewConstructor =
                             let
                                 newViewParams =
                                     case
-                                        ( ModelLookups.flavorLookup project viewParams.flavorUuid
+                                        ( ModelGetterSetters.flavorLookup project viewParams.flavorUuid
                                         , project.computeQuota
                                         , project.volumeQuota
                                         )
@@ -217,7 +217,7 @@ setProjectView model project projectViewConstructor =
                                     }
 
                                 newModel =
-                                    Helpers.modelUpdateProject model newProject
+                                    ModelGetterSetters.modelUpdateProject model newProject
 
                                 cmd =
                                     Cmd.batch
@@ -275,8 +275,8 @@ setProjectView model project projectViewConstructor =
                             let
                                 newModel =
                                     project
-                                        |> Helpers.projectSetServersLoading model.clientCurrentTime
-                                        |> Helpers.modelUpdateProject model
+                                        |> ModelGetterSetters.projectSetServersLoading model.clientCurrentTime
+                                        |> ModelGetterSetters.modelUpdateProject model
 
                                 cmd =
                                     Cmd.batch

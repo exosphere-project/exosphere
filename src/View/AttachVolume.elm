@@ -4,7 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
-import Helpers.ModelLookups as ModelLookups
+import Helpers.ModelGetterSetters as ModelGetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -88,7 +88,7 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
                     ( Just serverUuid, Just volumeUuid ) ->
                         let
                             volAttachedToServer =
-                                ModelLookups.serverLookup project serverUuid
+                                ModelGetterSetters.serverLookup project serverUuid
                                     |> Maybe.map (Helpers.volumeIsAttachedToServer volumeUuid)
                                     |> Maybe.withDefault False
                         in

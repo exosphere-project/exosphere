@@ -4,6 +4,7 @@ import Element
 import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Widgets.Icon as Icon
@@ -50,7 +51,7 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                     case ( tlsReverseProxyHostname, maybeFloatingIp ) of
                                         ( Just proxyHostname, Just floatingIp ) ->
                                             ITypes.Ready <|
-                                                Helpers.buildProxyUrl
+                                                UrlHelpers.buildProxyUrl
                                                     proxyHostname
                                                     floatingIp
                                                     guacUpstreamPort
