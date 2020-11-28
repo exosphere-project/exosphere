@@ -107,57 +107,50 @@ pathParsers =
     , map
         (NonProjectView HelpAbout)
         (s "helpabout")
+    , map
+        (\uuid projectViewConstructor -> ProjectView uuid { createPopup = False } <| projectViewConstructor)
+        (s "projects" </> string </> oneOf projectViewConstructorParsers)
+    ]
 
-    -- Project-specific views
+
+projectViewConstructorParsers : List (Parser (ProjectViewConstructor -> b) b)
+projectViewConstructorParsers =
+    [ map
+        (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
+        (s "images")
     , map
-        (\uuid -> ProjectView uuid { createPopup = False } <| ListImages Defaults.imageListViewParams Defaults.sortTableParams)
-        (s "projects" </> string </> s "images")
-    , map
-        (\uuid ->
-            ProjectView uuid { createPopup = False } <|
-                ListProjectServers Defaults.serverListViewParams
-        )
-        (s "projects" </> string </> s "servers")
-    , map
-        (\uuid ->
-            ProjectView uuid { createPopup = False } <|
-                ListProjectVolumes []
-        )
-        (s "projects" </> string </> s "volumes")
-    , map
-        (\uuid ->
-            ProjectView uuid { createPopup = False } <|
-                ListQuotaUsage
-        )
-        (s "projects" </> string </> s "quotausage")
-    , map
-        (\projUuid svrUuid ->
-            ProjectView projUuid { createPopup = False } <|
-                ServerDetail svrUuid Defaults.serverDetailViewParams
-        )
-        (s "projects" </> string </> s "servers" </> string)
-    , map
-        (\projUuid svrUuid imageName ->
-            ProjectView projUuid { createPopup = False } <|
-                CreateServerImage svrUuid imageName
+        (\svrUuid imageName ->
+            CreateServerImage svrUuid imageName
         )
         (let
             queryParser =
                 Query.string "name"
                     |> Query.map (Maybe.withDefault "")
          in
-         s "projects" </> string </> s "servers" </> string </> s "image" <?> queryParser
+         s "servers" </> string </> s "image" <?> queryParser
         )
     , map
-        (\projUuid volUuid ->
-            ProjectView projUuid { createPopup = False } <|
-                VolumeDetail volUuid []
+        (\svrUuid ->
+            ServerDetail svrUuid Defaults.serverDetailViewParams
         )
-        (s "projects" </> string </> s "volumes" </> string)
+        (s "servers" </> string)
     , map
-        (\projUuid params ->
-            ProjectView projUuid { createPopup = False } <|
-                CreateServer params
+        (ListProjectServers Defaults.serverListViewParams)
+        (s "servers")
+    , map
+        (\volUuid ->
+            VolumeDetail volUuid []
+        )
+        (s "volumes" </> string)
+    , map
+        (ListProjectVolumes [])
+        (s "volumes")
+    , map
+        ListQuotaUsage
+        (s "quotausage")
+    , map
+        (\params ->
+            CreateServer params
         )
         (let
             maybeBoolEnumDict =
@@ -180,18 +173,14 @@ pathParsers =
                         |> Query.map (Maybe.withDefault Nothing)
                     )
          in
-         s "projects" </> string </> s "createserver" <?> queryParser
+         s "createserver" <?> queryParser
         )
     , map
-        (\projUuid ->
-            ProjectView projUuid { createPopup = False } <|
-                Defaults.createVolumeView
-        )
-        (s "projects" </> string </> s "createvolume")
+        Defaults.createVolumeView
+        (s "createvolume")
     , map
-        (\projUuid ( maybeServerUuid, maybeVolUuid ) ->
-            ProjectView projUuid { createPopup = False } <|
-                AttachVolumeModal maybeServerUuid maybeVolUuid
+        (\( maybeServerUuid, maybeVolUuid ) ->
+            AttachVolumeModal maybeServerUuid maybeVolUuid
         )
         (let
             queryParser =
@@ -200,12 +189,11 @@ pathParsers =
                     (Query.string "serveruuid")
                     (Query.string "voluuid")
          in
-         s "projects" </> string </> s "attachvol" <?> queryParser
+         s "attachvol" <?> queryParser
         )
     , map
-        (\projUuid attachment ->
-            ProjectView projUuid { createPopup = False } <|
-                MountVolInstructions attachment
+        (\attachment ->
+            MountVolInstructions attachment
         )
         (let
             queryParser =
@@ -221,6 +209,6 @@ pathParsers =
                         |> Query.map (Maybe.withDefault "")
                     )
          in
-         s "projects" </> string </> s "attachvolinstructions" <?> queryParser
+         s "attachvolinstructions" <?> queryParser
         )
     ]
