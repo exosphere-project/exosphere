@@ -49,8 +49,12 @@ volumes project deleteVolumeConfirmations =
                 Element.text "Error loading volumes :("
 
             RemoteData.Success vols ->
-                Element.wrappedRow
-                    (VH.exoRowAttributes ++ [ Element.spacing 15 ])
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.spacing 15
+                           , Element.width (Element.fill |> Element.minimum 960)
+                           ]
+                    )
                     (List.map (renderVolumeCard project deleteVolumeConfirmations) vols)
         ]
 
