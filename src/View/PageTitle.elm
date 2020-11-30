@@ -1,6 +1,7 @@
 module View.PageTitle exposing (pageTitle)
 
-import Helpers.Helpers as Helpers
+import Helpers.GetterSetters as GetterSetters
+import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Types.Types
     exposing
@@ -10,6 +11,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import View.Helpers as VH
 
 
 pageTitle : Model -> String
@@ -30,8 +32,8 @@ pageTitle model =
                     let
                         providerTitle =
                             keystoneUrl
-                                |> Helpers.hostnameFromUrl
-                                |> Helpers.titleFromHostname
+                                |> UrlHelpers.hostnameFromUrl
+                                |> VH.titleFromHostname
                     in
                     "Select Projects for " ++ providerTitle
 
@@ -44,7 +46,7 @@ pageTitle model =
         ProjectView projectIdentifier _ projectViewConstructor ->
             let
                 maybeProject =
-                    Helpers.projectLookup model projectIdentifier
+                    GetterSetters.projectLookup model projectIdentifier
 
                 projectName =
                     maybeProject
@@ -89,7 +91,7 @@ pageTitle model =
 serverName : Maybe Project -> OSTypes.ServerUuid -> String
 serverName maybeProject serverUuid =
     maybeProject
-        |> Maybe.andThen (\proj -> Helpers.serverLookup proj serverUuid)
+        |> Maybe.andThen (\proj -> GetterSetters.serverLookup proj serverUuid)
         |> Maybe.map (\server -> server.osProps.name)
         |> Maybe.withDefault serverUuid
 
@@ -97,6 +99,6 @@ serverName maybeProject serverUuid =
 volumeName : Maybe Project -> OSTypes.VolumeUuid -> String
 volumeName maybeProject volumeUuid =
     maybeProject
-        |> Maybe.andThen (\proj -> Helpers.volumeLookup proj volumeUuid)
+        |> Maybe.andThen (\proj -> GetterSetters.volumeLookup proj volumeUuid)
         |> Maybe.map (\vol -> vol.name)
         |> Maybe.withDefault volumeUuid

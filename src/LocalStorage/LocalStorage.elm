@@ -7,6 +7,7 @@ module LocalStorage.LocalStorage exposing
 import Dict
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Url as UrlHelpers
 import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject2, StoredState)
@@ -74,7 +75,7 @@ hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
     , pendingCredentialedRequests = []
     , userAppProxyHostname =
         storedProject.endpoints.keystone
-            |> Helpers.hostnameFromUrl
+            |> UrlHelpers.hostnameFromUrl
             |> (\h -> Dict.get h cloudsWithTlsReverseProxy)
     }
 

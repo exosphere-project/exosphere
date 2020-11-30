@@ -17,7 +17,6 @@ module Rest.Keystone exposing
     )
 
 import Dict
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -33,6 +32,7 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Time
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -262,8 +262,8 @@ requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
         }
 
 
-requestAppCredential : Project -> UUID.UUID -> Time.Posix -> Cmd Msg
-requestAppCredential project clientUuid posixTime =
+requestAppCredential : UUID.UUID -> Time.Posix -> Project -> Cmd Msg
+requestAppCredential clientUuid posixTime project =
     let
         appCredentialName =
             String.concat

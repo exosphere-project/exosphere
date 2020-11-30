@@ -1,15 +1,18 @@
 module OpenStack.Quotas exposing
     ( computeQuotaDecoder
+    , computeQuotaFlavorAvailServers
+    , overallQuotaAvailServers
     , requestComputeQuota
     , requestVolumeQuota
+    , volumeQuotaAvail
     , volumeQuotaDecoder
     )
 
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..))
 import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -132,3 +135,78 @@ specialIntToMaybe =
                 else
                     Just i
             )
+
+
+computeQuotaFlavorAvailServers : OSTypes.ComputeQuota -> OSTypes.Flavor -> Maybe Int
+computeQuotaFlavorAvailServers computeQuota flavor =
+    -- Given a compute quota and a flavor, determine how many servers of that flavor can be launched
+    [ computeQuota.cores.limit
+        |> Maybe.map
+            (\coreLimit ->
+                (coreLimit - computeQuota.cores.inUse) // flavor.vcpu
+            )
+    , computeQuota.ram.limit
+        |> Maybe.map
+            (\ramLimit ->
+                (ramLimit - computeQuota.ram.inUse) // flavor.ram_mb
+            )
+    , computeQuota.instances.limit
+        |> Maybe.map
+            (\countLimit ->
+                countLimit - computeQuota.instances.inUse
+            )
+    ]
+        |> List.filterMap identity
+        |> List.minimum
+
+
+{-| Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
+
+Nothing implies no limit.
+
+-}
+volumeQuotaAvail : OSTypes.VolumeQuota -> ( Maybe Int, Maybe Int )
+volumeQuotaAvail volumeQuota =
+    -- Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
+    -- Nothing implies no limit.
+    ( volumeQuota.volumes.limit
+        |> Maybe.map
+            (\volLimit ->
+                volLimit - volumeQuota.volumes.inUse
+            )
+    , volumeQuota.gigabytes.limit
+        |> Maybe.map
+            (\gbLimit ->
+                gbLimit - volumeQuota.gigabytes.inUse
+            )
+    )
+
+
+overallQuotaAvailServers : Maybe OSTypes.VolumeSize -> OSTypes.Flavor -> OSTypes.ComputeQuota -> OSTypes.VolumeQuota -> Maybe Int
+overallQuotaAvailServers maybeVolBackedGb flavor computeQuota volumeQuota =
+    let
+        computeQuotaAvailServers =
+            computeQuotaFlavorAvailServers computeQuota flavor
+    in
+    case maybeVolBackedGb of
+        Nothing ->
+            computeQuotaAvailServers
+
+        Just volBackedGb ->
+            let
+                ( volumeQuotaAvailVolumes, volumeQuotaAvailGb ) =
+                    volumeQuotaAvail volumeQuota
+
+                volumeQuotaAvailGbCount =
+                    volumeQuotaAvailGb
+                        |> Maybe.map
+                            (\availGb ->
+                                availGb // volBackedGb
+                            )
+            in
+            [ computeQuotaAvailServers
+            , volumeQuotaAvailVolumes
+            , volumeQuotaAvailGbCount
+            ]
+                |> List.filterMap identity
+                |> List.minimum

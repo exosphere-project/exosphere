@@ -5,7 +5,6 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Set
@@ -176,7 +175,7 @@ renderServer : ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> El
 renderServer projectId serverListViewParams isMyServer server =
     let
         statusIcon =
-            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusColor) 16)
+            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor) 16)
 
         creatorNameView =
             case ( isMyServer, server.exoProps.serverOrigin ) of
@@ -251,7 +250,7 @@ renderServer projectId serverListViewParams isMyServer server =
                 ]
                 [ serverLabelName aServer
                 , creatorNameView
-                , Element.el [ Font.size 15 ] (Element.text (server |> Helpers.getServerUiStatus |> Helpers.getServerUiStatusStr))
+                , Element.el [ Font.size 15 ] (Element.text (server |> VH.getServerUiStatus |> VH.getServerUiStatusStr))
                 ]
 
         deletionAttempted =

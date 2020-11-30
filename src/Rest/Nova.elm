@@ -28,7 +28,7 @@ module Rest.Nova exposing
 
 import Array
 import Base64
-import Helpers.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -46,6 +46,7 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -339,7 +340,7 @@ requestDeleteServer project server =
     let
         getFloatingIp =
             server.osProps.details.ipAddresses
-                |> Helpers.getServerFloatingIp
+                |> GetterSetters.getServerFloatingIp
 
         errorContext =
             ErrorContext
@@ -534,11 +535,11 @@ receiveServers model project osServers =
 
         newProject =
             List.foldl
-                (\s p -> Helpers.projectUpdateServer p s)
+                (\s p -> GetterSetters.projectUpdateServer p s)
                 projectNoDeletedSvrs
                 newExoServersClearSomeExoProps
     in
-    ( Helpers.modelUpdateProject model newProject
+    ( GetterSetters.modelUpdateProject model newProject
     , Cmd.batch cmds
     )
 
@@ -565,7 +566,7 @@ receiveServer model project osServer =
         newProject =
             case project.servers.data of
                 RDPP.DoHave _ _ ->
-                    Helpers.projectUpdateServer project newServerUpdatedSomeExoProps
+                    GetterSetters.projectUpdateServer project newServerUpdatedSomeExoProps
 
                 RDPP.DontHave ->
                     let
@@ -576,7 +577,7 @@ receiveServer model project osServer =
                     in
                     { project | servers = newServersRDPP }
     in
-    ( Helpers.modelUpdateProject model newProject
+    ( GetterSetters.modelUpdateProject model newProject
     , cmd
     )
 
@@ -585,7 +586,7 @@ receiveServer_ : Bool -> Project -> OSTypes.Server -> ( Server, Cmd Msg )
 receiveServer_ isElectron project osServer =
     let
         newServer =
-            case Helpers.serverLookup project osServer.uuid of
+            case GetterSetters.serverLookup project osServer.uuid of
                 Nothing ->
                     let
                         defaultExoProps =
@@ -647,7 +648,7 @@ receiveServer_ isElectron project osServer =
                 ServerFromExo serverFromExoProps ->
                     case
                         ( serverFromExoProps.exoServerVersion >= 1
-                        , Helpers.getServerExouserPassword newServer.osProps.details
+                        , GetterSetters.getServerExouserPassword newServer.osProps.details
                         , newServer.osProps.details.openstackStatus
                         )
                     of
@@ -675,7 +676,7 @@ receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result HttpErrorWi
 receiveConsoleUrl model project serverUuid result =
     let
         maybeServer =
-            Helpers.serverLookup project serverUuid
+            GetterSetters.serverLookup project serverUuid
     in
     case maybeServer of
         Nothing ->
@@ -708,10 +709,10 @@ receiveConsoleUrl model project serverUuid result =
                             { server | osProps = newOsProps }
 
                         newProject =
-                            Helpers.projectUpdateServer project newServer
+                            GetterSetters.projectUpdateServer project newServer
 
                         newModel =
-                            Helpers.modelUpdateProject model newProject
+                            GetterSetters.modelUpdateProject model newProject
                     in
                     ( newModel, Cmd.none )
 
@@ -736,7 +737,7 @@ receiveFlavors model project flavors =
                             if viewParams.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
-                                        Helpers.sortedFlavors flavors |> List.head
+                                        GetterSetters.sortedFlavors flavors |> List.head
                                 in
                                 case maybeSmallestFlavor of
                                     Just smallestFlavor ->
@@ -762,7 +763,7 @@ receiveFlavors model project flavors =
                     model.viewState
 
         newModel =
-            Helpers.modelUpdateProject { model | viewState = viewState } newProject
+            GetterSetters.modelUpdateProject { model | viewState = viewState } newProject
     in
     ( newModel, Cmd.none )
 
@@ -774,7 +775,7 @@ receiveKeypairs model project keypairs =
             { project | keypairs = keypairs }
 
         newModel =
-            Helpers.modelUpdateProject model newProject
+            GetterSetters.modelUpdateProject model newProject
     in
     ( newModel, Cmd.none )
 

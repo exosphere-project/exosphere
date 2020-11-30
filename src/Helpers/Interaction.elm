@@ -2,8 +2,10 @@ module Helpers.Interaction exposing (interactionDetails, interactionStatus, inte
 
 import Element
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Widgets.Icon as Icon
@@ -17,7 +19,7 @@ interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe 
 interactionStatus server interaction isElectron currentTime tlsReverseProxyHostname =
     let
         maybeFloatingIp =
-            Helpers.getServerFloatingIp server.osProps.details.ipAddresses
+            GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
 
         guacTerminal : ITypes.InteractionStatus
         guacTerminal =
@@ -50,7 +52,7 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                     case ( tlsReverseProxyHostname, maybeFloatingIp ) of
                                         ( Just proxyHostname, Just floatingIp ) ->
                                             ITypes.Ready <|
-                                                Helpers.buildProxyUrl
+                                                UrlHelpers.buildProxyUrl
                                                     proxyHostname
                                                     floatingIp
                                                     guacUpstreamPort
@@ -71,7 +73,7 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                         case
                                             ( tlsReverseProxyHostname
                                             , maybeFloatingIp
-                                            , Helpers.getServerExouserPassword server.osProps.details
+                                            , GetterSetters.getServerExouserPassword server.osProps.details
                                             )
                                         of
                                             ( Nothing, _, _ ) ->

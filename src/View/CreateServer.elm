@@ -5,9 +5,11 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Maybe
+import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -132,7 +134,7 @@ createServer project viewParams =
           <|
             [ Element.el VH.heading2 (Element.text "Create Server") ]
                 ++ (case
-                        ( Helpers.flavorLookup project viewParams.flavorUuid
+                        ( GetterSetters.flavorLookup project viewParams.flavorUuid
                         , project.computeQuota
                         , project.volumeQuota
                         )
@@ -176,7 +178,7 @@ flavorPicker project viewParams computeQuota =
                         }
             in
             -- Only allow selection if there is enough available quota
-            case Helpers.computeQuotaFlavorAvailServers computeQuota flavor of
+            case OSQuotas.computeQuotaFlavorAvailServers computeQuota flavor of
                 Nothing ->
                     radio_
 
@@ -258,7 +260,7 @@ flavorPicker project viewParams computeQuota =
 
         anyFlavorsTooLarge =
             project.flavors
-                |> List.map (Helpers.computeQuotaFlavorAvailServers computeQuota)
+                |> List.map (OSQuotas.computeQuotaFlavorAvailServers computeQuota)
                 |> List.filterMap (Maybe.map (\x -> x < 1))
                 |> List.isEmpty
                 |> not
@@ -268,7 +270,7 @@ flavorPicker project viewParams computeQuota =
         [ Element.el [ Font.bold ] (Element.text "Size")
         , Element.table
             flavorEmptyHint
-            { data = Helpers.sortedFlavors project.flavors
+            { data = GetterSetters.sortedFlavors project.flavors
             , columns = columns
             }
         , if anyFlavorsTooLarge then
@@ -284,7 +286,7 @@ volBackedPrompt : Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OS
 volBackedPrompt project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
-            Helpers.volumeQuotaAvail volumeQuota
+            OSQuotas.volumeQuotaAvail volumeQuota
 
         canLaunchVolBacked =
             let
@@ -390,7 +392,7 @@ countPicker :
 countPicker project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
-            Helpers.overallQuotaAvailServers
+            OSQuotas.overallQuotaAvailServers
                 (viewParams.volSizeTextInput
                     |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                 )

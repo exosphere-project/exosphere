@@ -3,6 +3,7 @@ module View.AttachVolume exposing (attachVolume, mountVolInstructions)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
@@ -87,8 +88,8 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
                     ( Just serverUuid, Just volumeUuid ) ->
                         let
                             volAttachedToServer =
-                                Helpers.serverLookup project serverUuid
-                                    |> Maybe.map (Helpers.volumeIsAttachedToServer volumeUuid)
+                                GetterSetters.serverLookup project serverUuid
+                                    |> Maybe.map (GetterSetters.volumeIsAttachedToServer volumeUuid)
                                     |> Maybe.withDefault False
                         in
                         if volAttachedToServer then
