@@ -91,7 +91,9 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                             Just
                                 (ProjectMsg
                                     project.auth.project.uuid
-                                    (SetProjectView <| AttachVolumeModal Nothing (Just volume.uuid))
+                                    (SetProjectView <|
+                                        AttachVolumeModal Nothing (Just volume.uuid)
+                                    )
                                 )
                         }
 
