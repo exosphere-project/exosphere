@@ -159,9 +159,11 @@ computeQuotaFlavorAvailServers computeQuota flavor =
         |> List.filterMap identity
         |> List.minimum
 
-{|- Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
+
+{-| Returns tuple showing # volumes and # total gigabytes that are available given quota and usage.
 
 Nothing implies no limit.
+
 -}
 volumeQuotaAvail : OSTypes.VolumeQuota -> ( Maybe Int, Maybe Int )
 volumeQuotaAvail volumeQuota =
