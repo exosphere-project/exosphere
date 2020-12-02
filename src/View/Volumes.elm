@@ -40,10 +40,16 @@ volumes project deleteVolumeConfirmations =
         [ Element.el VH.heading2 (Element.text "Volumes")
         , case project.volumes of
             RemoteData.NotAsked ->
-                Element.text "Please wait"
+                Element.row [ Element.spacing 15 ]
+                    [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                    , Element.text "Please wait..."
+                    ]
 
             RemoteData.Loading ->
-                Element.text "Loading volumes..."
+                Element.row [ Element.spacing 15 ]
+                    [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                    , Element.text "Loading volumes..."
+                    ]
 
             RemoteData.Failure _ ->
                 Element.text "Error loading volumes :("

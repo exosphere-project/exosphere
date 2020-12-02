@@ -143,10 +143,18 @@ createServer project viewParams =
                             contents flavor computeQuota volumeQuota
 
                         ( _, _, RemoteData.Loading ) ->
-                            [ Element.text "Loading..." ]
+                            [ Element.row [ Element.spacing 15 ]
+                                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                                , Element.text "Loading..."
+                                ]
+                            ]
 
                         ( _, RemoteData.Loading, _ ) ->
-                            [ Element.text "Loading..." ]
+                            [ Element.row [ Element.spacing 15 ]
+                                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                                , Element.text "Loading..."
+                                ]
+                            ]
 
                         ( _, _, _ ) ->
                             [ Element.text "oops, we shouldn't be here" ]

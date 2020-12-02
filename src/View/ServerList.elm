@@ -39,13 +39,19 @@ serverList project serverListViewParams =
     {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
-            Element.paragraph [] [ Element.text "Please wait..." ]
+            Element.row [ Element.spacing 15 ]
+                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                , Element.text "Please wait..."
+                ]
 
         ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
             Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
 
         ( RDPP.DontHave, RDPP.Loading _ ) ->
-            Element.paragraph [] [ Element.text "Loading..." ]
+            Element.row [ Element.spacing 15 ]
+                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                , Element.text "Loading..."
+                ]
 
         ( RDPP.DoHave servers _, _ ) ->
             if List.isEmpty servers then

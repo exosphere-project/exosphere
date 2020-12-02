@@ -32,7 +32,10 @@ import Widget.Style.Material
 imagesIfLoaded : Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
 imagesIfLoaded project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
-        Element.text "Images loading"
+        Element.row [ Element.spacing 15 ]
+            [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+            , Element.text "Images loading..."
+            ]
 
     else
         images project imageListViewParams sortTableParams
