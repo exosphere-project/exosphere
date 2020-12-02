@@ -49,8 +49,12 @@ volumes project deleteVolumeConfirmations =
                 Element.text "Error loading volumes :("
 
             RemoteData.Success vols ->
-                Element.wrappedRow
-                    (VH.exoRowAttributes ++ [ Element.spacing 15 ])
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.spacing 15
+                           , Element.width (Element.fill |> Element.minimum 960)
+                           ]
+                    )
                     (List.map (renderVolumeCard project deleteVolumeConfirmations) vols)
         ]
 
@@ -87,7 +91,9 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                             Just
                                 (ProjectMsg
                                     project.auth.project.uuid
-                                    (SetProjectView <| AttachVolumeModal Nothing (Just volume.uuid))
+                                    (SetProjectView <|
+                                        AttachVolumeModal Nothing (Just volume.uuid)
+                                    )
                                 )
                         }
 
@@ -195,7 +201,9 @@ volumeDetail project toProjectViewConstructor deleteVolumeConfirmations volumeUu
                     [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name "volume"
                     , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
                     , renderAttachments project volume
-                    , VH.compactKVRow "Description:" <| Element.text <| Maybe.withDefault "" volume.description
+                    , VH.compactKVRow "Description:" <|
+                        Element.paragraph [ Element.width (Element.fill |> Element.maximum 706) ] <|
+                            [ Element.text <| Maybe.withDefault "" volume.description ]
                     , VH.compactKVRow "UUID:" <| copyableText volume.uuid
                     , case volume.imageMetadata of
                         Nothing ->
