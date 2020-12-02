@@ -96,7 +96,7 @@ projectNav p viewParams =
               <|
                 Widget.textButton
                     (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                    { text = "My Servers"
+                    { text = "Servers"
                     , onPress =
                         Just <|
                             ProjectMsg p.auth.project.uuid <|
@@ -108,7 +108,7 @@ projectNav p viewParams =
               <|
                 Widget.textButton
                     (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                    { text = "My Volumes"
+                    { text = "Volumes"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
                     }

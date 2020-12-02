@@ -88,7 +88,7 @@ serverList_ projectId userUuid serverListViewParams servers =
                 selectableServers == selectedServers
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 (Element.text "My Servers")
+        [ Element.el VH.heading2 (Element.text "Servers")
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
                 [ [ renderTableHead
