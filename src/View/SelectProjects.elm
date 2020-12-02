@@ -48,7 +48,10 @@ selectProjects model keystoneUrl selectedProjects =
                                 ]
 
                     RemoteData.Loading ->
-                        Element.text "Loading list of projects"
+                        Element.row [ Element.spacing 15 ]
+                            [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                            , Element.text "Loading list of projects"
+                            ]
 
                     RemoteData.Failure e ->
                         Element.text ("Error loading list of projects: " ++ Debug.toString e)
