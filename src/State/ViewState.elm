@@ -9,6 +9,7 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
+import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Neutron
 import Rest.Nova
@@ -102,20 +103,19 @@ setProjectView model project projectViewConstructor =
 
                         _ ->
                             let
-                                newModel =
+                                newProject =
                                     project
-                                        |> GetterSetters.projectSetServersLoading model.clientCurrentTime
                                         |> projectResetCockpitStatuses
-                                        |> GetterSetters.modelUpdateProject model
 
-                                cmd =
-                                    [ Rest.Nova.requestServers
-                                    , Rest.Neutron.requestFloatingIps
-                                    ]
-                                        |> List.map (\x -> x project)
-                                        |> Cmd.batch
+                                ( newModel, newCmd ) =
+                                    ApiModelHelpers.requestServers project.auth.project.uuid model
                             in
-                            ( newModel, cmd )
+                            ( newModel
+                            , Cmd.batch
+                                [ newCmd
+                                , Rest.Neutron.requestFloatingIps newProject
+                                ]
+                            )
 
                 ServerDetail serverUuid _ ->
                     -- Don't fire cmds if we're already in this view

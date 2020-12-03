@@ -21,6 +21,7 @@ import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
 import Ports
 import RemoteData
+import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Cockpit
 import Rest.Glance
 import Rest.Keystone
@@ -583,22 +584,10 @@ processProjectSpecificMsg model project msg =
             StateHelpers.updateViewState modelUpdatedProjects Cmd.none newViewState
 
         RequestServers ->
-            let
-                newProject =
-                    GetterSetters.projectSetServersLoading model.clientCurrentTime project
-            in
-            ( GetterSetters.modelUpdateProject model newProject
-            , Rest.Nova.requestServers project
-            )
+            ApiModelHelpers.requestServers project.auth.project.uuid model
 
         RequestServer serverUuid ->
-            let
-                newProject =
-                    GetterSetters.projectSetServerLoading project serverUuid
-            in
-            ( GetterSetters.modelUpdateProject model newProject
-            , Rest.Nova.requestServer project serverUuid
-            )
+            ApiModelHelpers.requestServer project.auth.project.uuid serverUuid model
 
         RequestCreateServer viewParams ->
             let
@@ -838,20 +827,14 @@ processProjectSpecificMsg model project msg =
                         ListProjectServers
                             Defaults.serverListViewParams
 
-                newProject =
-                    GetterSetters.projectSetServersLoading model.clientCurrentTime project
-
-                modelUpdatedProject =
-                    GetterSetters.modelUpdateProject model newProject
+                ( newModel, newCmd ) =
+                    ApiModelHelpers.requestServers project.auth.project.uuid model
+                        |> ApiModelHelpers.pipelineCmd
+                            (ApiModelHelpers.requestNetworks project.auth.project.uuid)
             in
             StateHelpers.updateViewState
-                modelUpdatedProject
-                ([ Rest.Nova.requestServers
-                 , Rest.Neutron.requestNetworks
-                 ]
-                    |> List.map (\x -> x project)
-                    |> Cmd.batch
-                )
+                newModel
+                newCmd
                 newViewState
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
