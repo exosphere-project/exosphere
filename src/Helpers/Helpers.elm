@@ -7,6 +7,7 @@ module Helpers.Helpers exposing
     , newGuacMetadata
     , newServerMetadata
     , newServerNetworkOptions
+    , pipelineCmd
     , renderUserDataTemplate
     , serverFromThisExoClient
     , serverLessThanThisOld
@@ -509,3 +510,14 @@ appIsElectron model =
 
         Just _ ->
             False
+
+
+{-| This one helps string functions together in Rest.ApiModelHelpers and other places
+-}
+pipelineCmd : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+pipelineCmd fn ( model, cmd ) =
+    let
+        ( newModel, newCmd ) =
+            fn model
+    in
+    ( newModel, Cmd.batch [ cmd, newCmd ] )

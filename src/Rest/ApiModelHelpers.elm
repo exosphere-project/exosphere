@@ -1,7 +1,15 @@
-module Rest.ApiModelHelpers exposing (pipelineCmd, requestNetworks, requestServer, requestServers)
+module Rest.ApiModelHelpers exposing
+    ( requestComputeQuota
+    , requestNetworks
+    , requestServer
+    , requestServers
+    , requestVolumeQuota
+    )
 
 import Helpers.GetterSetters as GetterSetters
+import OpenStack.Quotas
 import OpenStack.Types as OSTypes
+import RemoteData
 import Rest.Neutron
 import Rest.Nova
 import Types.Types exposing (Model, Msg, ProjectIdentifier)
@@ -53,10 +61,31 @@ requestNetworks projectUuid model =
             ( model, Cmd.none )
 
 
-pipelineCmd : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-pipelineCmd fn ( model, cmd ) =
-    let
-        ( newModel, newCmd ) =
-            fn model
-    in
-    ( newModel, Cmd.batch [ cmd, newCmd ] )
+requestComputeQuota : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+requestComputeQuota projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( { project
+                | computeQuota = RemoteData.Loading
+              }
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.Quotas.requestComputeQuota project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestVolumeQuota : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+requestVolumeQuota projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( { project
+                | volumeQuota = RemoteData.Loading
+              }
+                |> GetterSetters.modelUpdateProject model
+            , OpenStack.Quotas.requestVolumeQuota project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )

@@ -111,7 +111,7 @@ updateUnderlying msg model =
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
-            ViewStateHelpers.updateViewState model Cmd.none (NonProjectView nonProjectViewConstructor)
+            ViewStateHelpers.modelUpdateViewState (NonProjectView nonProjectViewConstructor) model
 
         HandleApiErrorWithBody errorContext error ->
             State.Error.processSynchronousApiError model errorContext error
@@ -250,11 +250,11 @@ updateUnderlying msg model =
                             ( newModel, Cmd.none )
 
                         _ ->
-                            ViewStateHelpers.updateViewState newModel
-                                Cmd.none
+                            ViewStateHelpers.modelUpdateViewState
                                 (NonProjectView <|
                                     SelectProjects newProvider.authUrl []
                                 )
+                                newModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
@@ -311,7 +311,9 @@ updateUnderlying msg model =
                         modelUpdatedUnscopedProviders =
                             { model | unscopedProviders = newUnscopedProviders }
                     in
-                    ViewStateHelpers.updateViewState modelUpdatedUnscopedProviders loginRequests newViewState
+                    ( modelUpdatedUnscopedProviders, loginRequests )
+                        |> Helpers.pipelineCmd
+                            (ViewStateHelpers.modelUpdateViewState newViewState)
 
                 Nothing ->
                     State.Error.processStringError
@@ -341,7 +343,7 @@ updateUnderlying msg model =
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
             in
-            ViewStateHelpers.updateViewState model Cmd.none newViewState
+            ViewStateHelpers.modelUpdateViewState newViewState model
 
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
@@ -548,7 +550,7 @@ processProjectSpecificMsg model project msg =
                                 }
                                 viewConstructor
                     in
-                    ViewStateHelpers.updateViewState model Cmd.none newViewState
+                    ViewStateHelpers.modelUpdateViewState newViewState model
 
                 _ ->
                     ( model, Cmd.none )
@@ -581,7 +583,7 @@ processProjectSpecificMsg model project msg =
                 modelUpdatedProjects =
                     { model | projects = newProjects }
             in
-            ViewStateHelpers.updateViewState modelUpdatedProjects Cmd.none newViewState
+            ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProjects
 
         RequestServers ->
             ApiModelHelpers.requestServers project.auth.project.uuid model
@@ -692,7 +694,9 @@ processProjectSpecificMsg model project msg =
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project serverUuid imageName
             in
-            ViewStateHelpers.updateViewState model createImageCmd newViewState
+            ( model, createImageCmd )
+                |> Helpers.pipelineCmd
+                    (ViewStateHelpers.modelUpdateViewState newViewState)
 
         RequestSetServerName serverUuid newServerName ->
             ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
@@ -826,16 +830,14 @@ processProjectSpecificMsg model project msg =
                     <|
                         ListProjectServers
                             Defaults.serverListViewParams
-
-                ( newModel, newCmd ) =
-                    ApiModelHelpers.requestServers project.auth.project.uuid model
-                        |> ApiModelHelpers.pipelineCmd
-                            (ApiModelHelpers.requestNetworks project.auth.project.uuid)
             in
-            ViewStateHelpers.updateViewState
-                newModel
-                newCmd
-                newViewState
+            ( model, Cmd.none )
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestServers project.auth.project.uuid)
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                |> Helpers.pipelineCmd
+                    (ViewStateHelpers.modelUpdateViewState newViewState)
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
@@ -879,7 +881,7 @@ processProjectSpecificMsg model project msg =
                         modelUpdatedProject =
                             GetterSetters.modelUpdateProject model newProject
                     in
-                    ViewStateHelpers.updateViewState modelUpdatedProject Cmd.none newViewState
+                    ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
             in
             case maybeIpAddress of
                 Nothing ->
@@ -1297,7 +1299,7 @@ processProjectSpecificMsg model project msg =
 
                         -- Later, maybe: Check that newServerName == actualNewServerName
                     in
-                    ViewStateHelpers.updateViewState modelWithUpdatedProject Cmd.none updatedView
+                    ViewStateHelpers.modelUpdateViewState updatedView modelWithUpdatedProject
 
         ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
             case ( GetterSetters.serverLookup project serverUuid, result ) of
