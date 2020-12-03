@@ -29,7 +29,7 @@ import Rest.Neutron
 import Rest.Nova
 import State.Auth
 import State.Error
-import State.ViewState as StateHelpers
+import State.ViewState as ViewStateHelpers
 import Style.Toast
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
@@ -111,7 +111,7 @@ updateUnderlying msg model =
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
-            StateHelpers.updateViewState model Cmd.none (NonProjectView nonProjectViewConstructor)
+            ViewStateHelpers.updateViewState model Cmd.none (NonProjectView nonProjectViewConstructor)
 
         HandleApiErrorWithBody errorContext error ->
             State.Error.processSynchronousApiError model errorContext error
@@ -250,7 +250,7 @@ updateUnderlying msg model =
                             ( newModel, Cmd.none )
 
                         _ ->
-                            StateHelpers.updateViewState newModel
+                            ViewStateHelpers.updateViewState newModel
                                 Cmd.none
                                 (NonProjectView <|
                                     SelectProjects newProvider.authUrl []
@@ -311,7 +311,7 @@ updateUnderlying msg model =
                         modelUpdatedUnscopedProviders =
                             { model | unscopedProviders = newUnscopedProviders }
                     in
-                    StateHelpers.updateViewState modelUpdatedUnscopedProviders loginRequests newViewState
+                    ViewStateHelpers.updateViewState modelUpdatedUnscopedProviders loginRequests newViewState
 
                 Nothing ->
                     State.Error.processStringError
@@ -341,7 +341,7 @@ updateUnderlying msg model =
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
             in
-            StateHelpers.updateViewState model Cmd.none newViewState
+            ViewStateHelpers.updateViewState model Cmd.none newViewState
 
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
@@ -500,7 +500,7 @@ processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor ->
 processProjectSpecificMsg model project msg =
     case msg of
         SetProjectView projectViewConstructor ->
-            StateHelpers.setProjectView model project projectViewConstructor
+            ViewStateHelpers.setProjectView model project projectViewConstructor
 
         PrepareCredentialedRequest requestProto posixTime ->
             let
@@ -548,7 +548,7 @@ processProjectSpecificMsg model project msg =
                                 }
                                 viewConstructor
                     in
-                    StateHelpers.updateViewState model Cmd.none newViewState
+                    ViewStateHelpers.updateViewState model Cmd.none newViewState
 
                 _ ->
                     ( model, Cmd.none )
@@ -581,7 +581,7 @@ processProjectSpecificMsg model project msg =
                 modelUpdatedProjects =
                     { model | projects = newProjects }
             in
-            StateHelpers.updateViewState modelUpdatedProjects Cmd.none newViewState
+            ViewStateHelpers.updateViewState modelUpdatedProjects Cmd.none newViewState
 
         RequestServers ->
             ApiModelHelpers.requestServers project.auth.project.uuid model
@@ -692,7 +692,7 @@ processProjectSpecificMsg model project msg =
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project serverUuid imageName
             in
-            StateHelpers.updateViewState model createImageCmd newViewState
+            ViewStateHelpers.updateViewState model createImageCmd newViewState
 
         RequestSetServerName serverUuid newServerName ->
             ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
@@ -832,7 +832,7 @@ processProjectSpecificMsg model project msg =
                         |> ApiModelHelpers.pipelineCmd
                             (ApiModelHelpers.requestNetworks project.auth.project.uuid)
             in
-            StateHelpers.updateViewState
+            ViewStateHelpers.updateViewState
                 newModel
                 newCmd
                 newViewState
@@ -879,7 +879,7 @@ processProjectSpecificMsg model project msg =
                         modelUpdatedProject =
                             GetterSetters.modelUpdateProject model newProject
                     in
-                    StateHelpers.updateViewState modelUpdatedProject Cmd.none newViewState
+                    ViewStateHelpers.updateViewState modelUpdatedProject Cmd.none newViewState
             in
             case maybeIpAddress of
                 Nothing ->
@@ -987,7 +987,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            StateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
 
         ReceiveVolumes volumes ->
             let
@@ -1075,10 +1075,10 @@ processProjectSpecificMsg model project msg =
             ( model, OSVolumes.requestVolumes project )
 
         ReceiveAttachVolume attachment ->
-            StateHelpers.setProjectView model project (MountVolInstructions attachment)
+            ViewStateHelpers.setProjectView model project (MountVolInstructions attachment)
 
         ReceiveDetachVolume ->
-            StateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
 
         ReceiveAppCredential appCredential ->
             let
@@ -1297,7 +1297,7 @@ processProjectSpecificMsg model project msg =
 
                         -- Later, maybe: Check that newServerName == actualNewServerName
                     in
-                    StateHelpers.updateViewState modelWithUpdatedProject Cmd.none updatedView
+                    ViewStateHelpers.updateViewState modelWithUpdatedProject Cmd.none updatedView
 
         ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
             case ( GetterSetters.serverLookup project serverUuid, result ) of
