@@ -69,6 +69,7 @@ import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
 import UUID
 import Url
+import Widget.Style.Material as Material
 
 
 
@@ -119,6 +120,7 @@ type alias Model =
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
+    , style : Material.Palette
     }
 
 
