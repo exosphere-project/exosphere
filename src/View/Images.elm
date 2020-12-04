@@ -261,10 +261,10 @@ renderImage project imageListViewParams sortTableParams image =
                     let
                         featherIcon =
                             if checked then
-                                FeatherIcons.chevronUp
+                                FeatherIcons.chevronDown
 
                             else
-                                FeatherIcons.chevronDown
+                                FeatherIcons.chevronRight
                     in
                     featherIcon |> FeatherIcons.toHtml [] |> Element.html
 
