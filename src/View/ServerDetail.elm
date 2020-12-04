@@ -914,8 +914,8 @@ renderIpAddresses projectId serverUuid serverDetailViewParams ipAddresses =
         gray =
             Element.rgb255 219 219 219
 
-        ipButton : String -> String -> IPInfoLevel -> Element.Element Msg
-        ipButton displayButtonString displayLabel ipMsg =
+        ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg
+        ipButton label displayLabel ipMsg =
             Element.row
                 [ Element.spacing 3 ]
                 [ Input.button
@@ -932,24 +932,38 @@ renderIpAddresses projectId serverUuid serverDetailViewParams ipAddresses =
                                     ServerDetail
                                         serverUuid
                                         { serverDetailViewParams | ipInfoLevel = ipMsg }
-                    , label = Element.text displayButtonString
+                    , label = label
                     }
                 , Element.el [ Font.size 10 ] (Element.text displayLabel)
                 ]
     in
     case serverDetailViewParams.ipInfoLevel of
         IPDetails ->
+            let
+                icon =
+                    FeatherIcons.chevronDown
+                        |> FeatherIcons.withSize 12
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+            in
             Element.column
                 (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 (floatingIpAddressRows
-                    ++ fixedIpAddressRows
-                    ++ [ ipButton "^" "IP summary" IPSummary ]
+                    ++ ipButton icon "IP Details" IPSummary
+                    :: fixedIpAddressRows
                 )
 
         IPSummary ->
+            let
+                icon =
+                    FeatherIcons.chevronRight
+                        |> FeatherIcons.withSize 12
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+            in
             Element.column
                 (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-                (floatingIpAddressRows ++ [ ipButton ">" "IP details" IPDetails ])
+                (floatingIpAddressRows ++ [ ipButton icon "IP Details" IPDetails ])
 
 
 friendlyCockpitReadiness : ServerOrigin -> String
