@@ -17,8 +17,10 @@ module View.Helpers exposing
     , possiblyUntitledResource
     , renderMessage
     , titleFromHostname
+    , toElementColor
     )
 
+import Color
 import Element
 import Element.Events
 import Element.Font as Font
@@ -425,3 +427,13 @@ getServerUiStatusColor status =
         ServerUiStatusDeleted ->
             -- gray
             Element.rgb255 122 122 122
+
+
+toElementColor : Color.Color -> Element.Color
+toElementColor color =
+    -- https://github.com/mdgriffith/elm-ui/issues/28#issuecomment-566337247
+    let
+        { red, green, blue, alpha } =
+            Color.toRgba color
+    in
+    Element.rgba red green blue alpha
