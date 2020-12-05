@@ -22,6 +22,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , SortTableParams
+        , Style
         )
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
@@ -29,16 +30,16 @@ import Widget
 import Widget.Style.Material
 
 
-imagesIfLoaded : Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
-imagesIfLoaded project imageListViewParams sortTableParams =
+imagesIfLoaded : Style -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+imagesIfLoaded style project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.row [ Element.spacing 15 ]
-            [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+            [ Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
             , Element.text "Images loading..."
             ]
 
     else
-        images project imageListViewParams sortTableParams
+        images style project imageListViewParams sortTableParams
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -89,8 +90,8 @@ filterImages imageListViewParams project someImages =
         |> filterBySearchText imageListViewParams.searchText
 
 
-images : Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
-images project imageListViewParams sortTableParams =
+images : Style -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+images style project imageListViewParams sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -209,7 +210,7 @@ images project imageListViewParams sortTableParams =
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
         , Widget.textButton
-            (Widget.Style.Material.textButton Style.Theme.exoPalette)
+            (Widget.Style.Material.textButton style.palette)
             { text = "Clear filters (show all)"
             , onPress =
                 Just <|
@@ -228,18 +229,18 @@ images project imageListViewParams sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage project imageListViewParams sortTableParams) filteredImages
+        , List.map (renderImage style project imageListViewParams sortTableParams) filteredImages
             |> Widget.column
-                (Style.Theme.materialStyle.column
+                ((Style.Theme.materialStyle style.palette).column
                     |> (\x ->
                             { x
                                 | containerColumn =
-                                    Style.Theme.materialStyle.column.containerColumn
+                                    (Style.Theme.materialStyle style.palette).column.containerColumn
                                         ++ [ Element.width Element.fill
                                            , Element.padding 0
                                            ]
                                 , element =
-                                    Style.Theme.materialStyle.column.element
+                                    (Style.Theme.materialStyle style.palette).column.element
                                         ++ [ Element.width Element.fill
                                            ]
                             }
@@ -248,8 +249,8 @@ images project imageListViewParams sortTableParams =
         ]
 
 
-renderImage : Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
-renderImage project imageListViewParams sortTableParams image =
+renderImage : Style -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage style project imageListViewParams sortTableParams image =
     let
         imageDetailsExpanded =
             Set.member image.uuid imageListViewParams.expandImageDetails
@@ -315,7 +316,7 @@ renderImage project imageListViewParams sortTableParams image =
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
-                (Widget.button Style.Theme.materialStyle.chipButton
+                (Widget.button (Style.Theme.materialStyle style.palette).chipButton
                     { text = tag
                     , icon = Element.none
                     , onPress =
@@ -325,7 +326,7 @@ renderImage project imageListViewParams sortTableParams image =
 
         chooseButton =
             Widget.textButton
-                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                (Widget.Style.Material.containedButton style.palette)
                 { text = "Choose"
                 , onPress =
                     case image.status of
@@ -384,15 +385,15 @@ renderImage project imageListViewParams sortTableParams image =
                 ]
     in
     Widget.column
-        (Style.Theme.materialStyle.cardColumn
+        ((Style.Theme.materialStyle style.palette).cardColumn
             |> (\x ->
                     { x
                         | containerColumn =
-                            Style.Theme.materialStyle.cardColumn.containerColumn
+                            (Style.Theme.materialStyle style.palette).cardColumn.containerColumn
                                 ++ [ Element.padding 0
                                    ]
                         , element =
-                            Style.Theme.materialStyle.cardColumn.element
+                            (Style.Theme.materialStyle style.palette).cardColumn.element
                                 ++ [ Element.padding 3
                                    ]
                     }

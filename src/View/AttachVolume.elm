@@ -8,7 +8,6 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
-import Style.Theme
 import Types.Defaults as Defaults
 import Types.Types
     exposing
@@ -18,14 +17,15 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , Style
         )
 import View.Helpers as VH
 import Widget
 import Widget.Style.Material
 
 
-attachVolume : Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
-attachVolume project maybeServerUuid maybeVolumeUuid =
+attachVolume : Style -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
+attachVolume style project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
             -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
@@ -113,7 +113,7 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
             button =
                 Element.el [ Element.alignRight ] <|
                     Widget.textButton
-                        (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                        (Widget.Style.Material.containedButton style.palette)
                         { text = "Attach"
                         , onPress = params.onPress
                         }
@@ -130,8 +130,8 @@ attachVolume project maybeServerUuid maybeVolumeUuid =
         ]
 
 
-mountVolInstructions : Project -> OSTypes.VolumeAttachment -> Element.Element Msg
-mountVolInstructions project attachment =
+mountVolInstructions : Style -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+mountVolInstructions style project attachment =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 <| Element.text "Volume Attached"
         , Element.text ("Device: " ++ attachment.device)
@@ -158,7 +158,7 @@ mountVolInstructions project attachment =
                             ++ "may need to format and/or mount the volume manually."
             ]
         , Widget.textButton
-            (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+            (Widget.Style.Material.containedButton style.palette)
             { text = "Go to my server"
             , onPress =
                 Just <|

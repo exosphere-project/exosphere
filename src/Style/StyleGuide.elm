@@ -6,7 +6,7 @@ import Element
 import Element.Font as Font
 import Element.Region as Region
 import Set exposing (Set)
-import Style.Theme exposing (Style)
+import Style.Theme exposing (Style, exoPalette)
 import Style.Widgets.Button exposing (dangerButton, warningButton)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
@@ -184,7 +184,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { init = always init
-        , view = view identity Style.Theme.materialStyle >> Element.layout []
+        , view = view identity (Style.Theme.materialStyle exoPalette) >> Element.layout []
         , update = update
         , subscriptions = subscriptions
         }

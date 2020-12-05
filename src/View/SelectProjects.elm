@@ -39,7 +39,7 @@ selectProjects model keystoneUrl selectedProjects =
                                     projectsAvailable
                                 )
                                 [ Widget.textButton
-                                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                                    (Widget.Style.Material.containedButton model.style.palette)
                                     { text = "Choose"
                                     , onPress =
                                         Just <|
@@ -49,7 +49,9 @@ selectProjects model keystoneUrl selectedProjects =
 
                     RemoteData.Loading ->
                         Element.row [ Element.spacing 15 ]
-                            [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                            [ Widget.circularProgressIndicator
+                                (Style.Theme.materialStyle model.style.palette).progressIndicator
+                                Nothing
                             , Element.text "Loading list of projects"
                             ]
 

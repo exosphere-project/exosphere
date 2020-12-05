@@ -27,27 +27,28 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , Style
         )
 import View.Helpers as VH
 import Widget
 import Widget.Style.Material
 
 
-volumes : Project -> List DeleteVolumeConfirmation -> Element.Element Msg
-volumes project deleteVolumeConfirmations =
+volumes : Style -> Project -> List DeleteVolumeConfirmation -> Element.Element Msg
+volumes style project deleteVolumeConfirmations =
     Element.column
         VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Volumes")
         , case project.volumes of
             RemoteData.NotAsked ->
                 Element.row [ Element.spacing 15 ]
-                    [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                    [ Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
                     , Element.text "Please wait..."
                     ]
 
             RemoteData.Loading ->
                 Element.row [ Element.spacing 15 ]
-                    [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                    [ Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
                     , Element.text "Loading volumes..."
                     ]
 
@@ -61,21 +62,28 @@ volumes project deleteVolumeConfirmations =
                            , Element.width (Element.fill |> Element.minimum 960)
                            ]
                     )
-                    (List.map (renderVolumeCard project deleteVolumeConfirmations) vols)
+                    (List.map (renderVolumeCard style project deleteVolumeConfirmations) vols)
         ]
 
 
-renderVolumeCard : Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
-renderVolumeCard project deleteVolumeConfirmations volume =
+renderVolumeCard : Style -> Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
+renderVolumeCard style project deleteVolumeConfirmations volume =
     ExoCard.exoCard
+        style.palette
         (VH.possiblyUntitledResource volume.name "volume")
         (String.fromInt volume.size ++ " GB")
     <|
-        volumeDetail project ListProjectVolumes deleteVolumeConfirmations volume.uuid
+        volumeDetail style project ListProjectVolumes deleteVolumeConfirmations volume.uuid
 
 
-volumeActionButtons : Project -> (List DeleteVolumeConfirmation -> ProjectViewConstructor) -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
-volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations volume =
+volumeActionButtons :
+    Style
+    -> Project
+    -> (List DeleteVolumeConfirmation -> ProjectViewConstructor)
+    -> List DeleteVolumeConfirmation
+    -> OSTypes.Volume
+    -> Element.Element Msg
+volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmations volume =
     let
         volDetachDeleteWarning =
             if Helpers.isBootVol Nothing volume then
@@ -91,7 +99,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
             case volume.status of
                 OSTypes.Available ->
                     Widget.textButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        (Widget.Style.Material.outlinedButton style.palette)
                         { text = "Attach"
                         , onPress =
                             Just
@@ -106,14 +114,14 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                 OSTypes.InUse ->
                     if Helpers.isBootVol Nothing volume then
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            (Widget.Style.Material.outlinedButton style.palette)
                             { text = "Detach"
                             , onPress = Nothing
                             }
 
                     else
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            (Widget.Style.Material.outlinedButton style.palette)
                             { text = "Detach"
                             , onPress =
                                 Just
@@ -132,13 +140,13 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
         deleteButton =
             case ( volume.status, confirmationNeeded ) of
                 ( OSTypes.Deleting, _ ) ->
-                    Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                    Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
 
                 ( _, True ) ->
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
                         , Widget.textButton
-                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                            (Style.Widgets.Button.dangerButton style.palette)
                             { text = "Delete"
                             , onPress =
                                 Just <|
@@ -147,7 +155,7 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                                         (RequestDeleteVolume volume.uuid)
                             }
                         , Widget.textButton
-                            (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                            (Widget.Style.Material.outlinedButton style.palette)
                             { text = "Cancel"
                             , onPress =
                                 Just <|
@@ -162,14 +170,14 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
                         Widget.textButton
-                            (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                            (Widget.Style.Material.textButton style.palette)
                             { text = "Delete"
                             , onPress = Nothing
                             }
 
                     else
                         Widget.textButton
-                            (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                            (Style.Widgets.Button.dangerButton style.palette)
                             { text = "Delete"
                             , onPress =
                                 Just <|
@@ -187,17 +195,17 @@ volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations v
         ]
 
 
-volumeDetailView : Project -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
-volumeDetailView project deleteVolumeConfirmations volumeUuid =
+volumeDetailView : Style -> Project -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
+volumeDetailView style project deleteVolumeConfirmations volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2 <| Element.text "Volume Detail"
-        , volumeDetail project (VolumeDetail volumeUuid) deleteVolumeConfirmations volumeUuid
+        , volumeDetail style project (VolumeDetail volumeUuid) deleteVolumeConfirmations volumeUuid
         ]
 
 
-volumeDetail : Project -> (List DeleteVolumeConfirmation -> ProjectViewConstructor) -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
-volumeDetail project toProjectViewConstructor deleteVolumeConfirmations volumeUuid =
+volumeDetail : Style -> Project -> (List DeleteVolumeConfirmation -> ProjectViewConstructor) -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
+volumeDetail style project toProjectViewConstructor deleteVolumeConfirmations volumeUuid =
     OpenStack.Volumes.volumeLookup project volumeUuid
         |> Maybe.withDefault (Element.text "No volume found")
         << Maybe.map
@@ -217,7 +225,7 @@ volumeDetail project toProjectViewConstructor deleteVolumeConfirmations volumeUu
 
                         Just metadata ->
                             VH.compactKVRow "Created from image:" <| Element.text metadata.name
-                    , volumeActionButtons project toProjectViewConstructor deleteVolumeConfirmations volume
+                    , volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmations volume
                     ]
             )
 
@@ -276,8 +284,8 @@ renderAttachments project volume =
                     List.map (renderAttachment project) volume.attachments
 
 
-createVolume : Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
-createVolume project volName volSizeInput =
+createVolume : Style -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
+createVolume style project volName volSizeInput =
     let
         maybeVolumeQuotaAvail =
             project.volumeQuota
@@ -336,7 +344,7 @@ createVolume project volName volSizeInput =
                     Element.none
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.containedButton style.palette)
                     { text = "Create"
                     , onPress = onPress
                     }

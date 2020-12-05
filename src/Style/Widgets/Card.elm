@@ -6,12 +6,13 @@ import Element.Border as Border
 import Element.Font as Font
 import Style.Theme
 import Widget
+import Widget.Style.Material as Material
 
 
-exoCard : String -> String -> Element msg -> Element msg
-exoCard title subTitle content =
+exoCard : Material.Palette -> String -> String -> Element msg -> Element msg
+exoCard palette title subTitle content =
     Widget.column
-        Style.Theme.materialStyle.cardColumn
+        (Style.Theme.materialStyle palette).cardColumn
         [ Element.row
             [ Element.width Element.fill, Element.spacing 15 ]
             [ Element.el [ Font.bold, Font.size 16 ] (Element.text title)

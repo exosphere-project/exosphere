@@ -3,21 +3,21 @@ module View.CreateServerImage exposing (createServerImage)
 import Element
 import Element.Input as Input
 import OpenStack.Types as OSTypes
-import Style.Theme
 import Types.Types
     exposing
         ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , Style
         )
 import View.Helpers as VH
 import Widget
 import Widget.Style.Material
 
 
-createServerImage : Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
-createServerImage project serverUuid imageName =
+createServerImage : Style -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
+createServerImage style project serverUuid imageName =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Create Image from Server")
         , Input.text
@@ -28,7 +28,7 @@ createServerImage project serverUuid imageName =
             , label = Input.labelAbove [] (Element.text "Image name")
             }
         , Widget.textButton
-            (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+            (Widget.Style.Material.containedButton style.palette)
             { text = "Create"
             , onPress =
                 Just <|

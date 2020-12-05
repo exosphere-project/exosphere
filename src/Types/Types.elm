@@ -40,6 +40,7 @@ module Types.Types exposing
     , ServerSelection
     , ServerUiStatus(..)
     , SortTableParams
+    , Style
     , TickInterval
     , Toast
     , UnscopedProvider
@@ -120,8 +121,12 @@ type alias Model =
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
-    , style : Material.Palette
+    , style : Style
     }
+
+
+type alias Style =
+    { palette : Material.Palette }
 
 
 type alias CloudCorsProxyUrl =

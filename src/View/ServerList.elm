@@ -27,6 +27,7 @@ import Types.Types
         , ServerListViewParams
         , ServerOrigin(..)
         , ServerSelection
+        , Style
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -34,13 +35,15 @@ import Widget
 import Widget.Style.Material
 
 
-serverList : Project -> ServerListViewParams -> Element.Element Msg
-serverList project serverListViewParams =
+serverList : Style -> Project -> ServerListViewParams -> Element.Element Msg
+serverList style project serverListViewParams =
     {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
             Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                [ Widget.circularProgressIndicator
+                    (Style.Theme.materialStyle style.palette).progressIndicator
+                    Nothing
                 , Element.text "Please wait..."
                 ]
 
@@ -49,7 +52,9 @@ serverList project serverListViewParams =
 
         ( RDPP.DontHave, RDPP.Loading _ ) ->
             Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                [ Widget.circularProgressIndicator
+                    (Style.Theme.materialStyle style.palette).progressIndicator
+                    Nothing
                 , Element.text "Loading..."
                 ]
 
@@ -59,14 +64,15 @@ serverList project serverListViewParams =
 
             else
                 serverList_
+                    style
                     project.auth.project.uuid
                     project.auth.user.uuid
                     serverListViewParams
                     servers
 
 
-serverList_ : ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
-serverList_ projectId userUuid serverListViewParams servers =
+serverList_ : Style -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
+serverList_ style projectId userUuid serverListViewParams servers =
     {- Render a list of servers -}
     let
         ( ownServers, otherUsersServers ) =
@@ -98,24 +104,25 @@ serverList_ projectId userUuid serverListViewParams servers =
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
                 [ [ renderTableHead
+                        style
                         projectId
                         allServersSelected
                         ( selectableServers, selectedServers )
                         serverListViewParams
                   ]
-                , List.map (renderServer projectId serverListViewParams True) ownServers
-                , [ onlyOwnExpander projectId serverListViewParams otherUsersServers ]
+                , List.map (renderServer style projectId serverListViewParams True) ownServers
+                , [ onlyOwnExpander style projectId serverListViewParams otherUsersServers ]
                 , if serverListViewParams.onlyOwnServers then
                     []
 
                   else
-                    List.map (renderServer projectId serverListViewParams False) otherUsersServers
+                    List.map (renderServer style projectId serverListViewParams False) otherUsersServers
                 ]
         ]
 
 
-renderTableHead : ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
-renderTableHead projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
+renderTableHead : Style -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
+renderTableHead style projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
     let
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
@@ -169,7 +176,7 @@ renderTableHead projectId allServersSelected ( selectableServers, selectedServer
                     }
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                    (Style.Widgets.Button.dangerButton style.palette)
                     { text = "Delete"
                     , onPress = deleteButtonOnPress
                     }
@@ -177,8 +184,8 @@ renderTableHead projectId allServersSelected ( selectableServers, selectedServer
         ]
 
 
-renderServer : ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
-renderServer projectId serverListViewParams isMyServer server =
+renderServer : Style -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
+renderServer style projectId serverListViewParams isMyServer server =
     let
         statusIcon =
             Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor) 16)
@@ -273,7 +280,7 @@ renderServer projectId serverListViewParams isMyServer server =
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        (Style.Widgets.Button.dangerButton style.palette)
                         { icon = Icon.remove (Element.rgb255 255 255 255) 16
                         , text = "Delete"
                         , onPress =
@@ -281,7 +288,7 @@ renderServer projectId serverListViewParams isMyServer server =
                                 (ProjectMsg projectId (RequestDeleteServer server.osProps.uuid))
                         }
                     , Widget.iconButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        (Widget.Style.Material.outlinedButton style.palette)
                         { icon = Icon.windowClose (Element.rgb255 0 0 0) 16
                         , text = "Cancel"
                         , onPress =
@@ -302,7 +309,7 @@ renderServer projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        (Style.Widgets.Button.dangerButton style.palette)
                         { icon = Icon.remove (Element.rgb255 255 255 255) 16
                         , text = "Delete"
                         , onPress =
@@ -318,7 +325,7 @@ renderServer projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton Style.Theme.exoPalette)
+                        (Style.Widgets.Button.dangerButton style.palette)
                         { icon = Icon.remove (Element.rgb255 255 255 255) 16
                         , text = "Delete"
                         , onPress = Nothing
@@ -333,8 +340,8 @@ renderServer projectId serverListViewParams isMyServer server =
         )
 
 
-onlyOwnExpander : ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
-onlyOwnExpander projectId serverListViewParams otherUsersServers =
+onlyOwnExpander : Style -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
+onlyOwnExpander style projectId serverListViewParams otherUsersServers =
     let
         numOtherUsersServers =
             List.length otherUsersServers
@@ -396,7 +403,7 @@ onlyOwnExpander projectId serverListViewParams otherUsersServers =
 
         changeButton =
             Widget.button
-                (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                (Widget.Style.Material.textButton style.palette)
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
                     changeActionIcon (Element.rgb255 0 108 163) 16

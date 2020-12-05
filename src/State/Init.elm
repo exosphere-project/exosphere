@@ -72,7 +72,7 @@ init flags maybeUrlKey =
             , clientCurrentTime = currentTime
             , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
-            , style = Style.Theme.exoPalette
+            , style = { palette = Style.Theme.exoPalette }
             }
 
         -- This only gets used if we do not find a client UUID in stored state

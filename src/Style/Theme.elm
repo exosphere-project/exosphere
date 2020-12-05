@@ -18,16 +18,16 @@ type alias Style style msg =
     }
 
 
-materialStyle : Style {} msg
-materialStyle =
-    { textInput = Material.textInput exoPalette
+materialStyle : Material.Palette -> Style {} msg
+materialStyle palette =
+    { textInput = Material.textInput palette
     , column = Material.column
-    , cardColumn = Material.cardColumn exoPalette
-    , primaryButton = Material.containedButton exoPalette
-    , button = Material.outlinedButton exoPalette
-    , chipButton = Material.chip exoPalette
+    , cardColumn = Material.cardColumn palette
+    , primaryButton = Material.containedButton palette
+    , button = Material.outlinedButton palette
+    , chipButton = Material.chip palette
     , row = Material.row
-    , progressIndicator = Material.progressIndicator exoPalette
+    , progressIndicator = Material.progressIndicator palette
     }
 
 

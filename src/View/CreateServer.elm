@@ -24,6 +24,7 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , Style
         )
 import View.Helpers as VH exposing (edges)
 import Widget
@@ -37,8 +38,8 @@ updateCreateServerRequest project viewParams =
             CreateServer viewParams
 
 
-createServer : Project -> CreateServerViewParams -> Element.Element Msg
-createServer project viewParams =
+createServer : Style -> Project -> CreateServerViewParams -> Element.Element Msg
+createServer style project viewParams =
     let
         invalidNameReasons =
             serverNameValidator viewParams.serverName
@@ -120,7 +121,7 @@ createServer project viewParams =
                        )
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.containedButton style.palette)
                     { text = "Create"
                     , onPress = createOnPress
                     }
@@ -144,14 +145,18 @@ createServer project viewParams =
 
                         ( _, _, RemoteData.Loading ) ->
                             [ Element.row [ Element.spacing 15 ]
-                                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                                [ Widget.circularProgressIndicator
+                                    (Style.Theme.materialStyle style.palette).progressIndicator
+                                    Nothing
                                 , Element.text "Loading..."
                                 ]
                             ]
 
                         ( _, RemoteData.Loading, _ ) ->
                             [ Element.row [ Element.spacing 15 ]
-                                [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                                [ Widget.circularProgressIndicator
+                                    (Style.Theme.materialStyle style.palette).progressIndicator
+                                    Nothing
                                 , Element.text "Loading..."
                                 ]
                             ]

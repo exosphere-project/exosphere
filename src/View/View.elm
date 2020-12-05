@@ -72,7 +72,7 @@ elementView maybeWindowSize model =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.Login.viewLoginPicker
+                                View.Login.viewLoginPicker model.style
 
                             LoginOpenstack openstackCreds ->
                                 View.Login.viewLoginOpenstack model openstackCreds

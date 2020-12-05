@@ -4,7 +4,6 @@ import Element
 import Helpers.Helpers as Helpers
 import Helpers.Url as UrlHelpers
 import Set
-import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -18,6 +17,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , ProjectViewParams
+        , Style
         , ViewState(..)
         )
 import View.AttachVolume
@@ -39,34 +39,34 @@ project model p viewParams viewConstructor =
         v =
             case viewConstructor of
                 ListImages imageFilter sortTableParams ->
-                    View.Images.imagesIfLoaded p imageFilter sortTableParams
+                    View.Images.imagesIfLoaded model.style p imageFilter sortTableParams
 
                 ListProjectServers serverListViewParams ->
-                    View.ServerList.serverList p serverListViewParams
+                    View.ServerList.serverList model.style p serverListViewParams
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.ServerDetail.serverDetail p (Helpers.appIsElectron model) ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
+                    View.ServerDetail.serverDetail model.style p (Helpers.appIsElectron model) ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
                 CreateServer createServerViewParams ->
-                    View.CreateServer.createServer p createServerViewParams
+                    View.CreateServer.createServer model.style p createServerViewParams
 
                 ListProjectVolumes deleteVolumeConfirmations ->
-                    View.Volumes.volumes p deleteVolumeConfirmations
+                    View.Volumes.volumes model.style p deleteVolumeConfirmations
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
-                    View.Volumes.volumeDetailView p deleteVolumeConfirmations volumeUuid
+                    View.Volumes.volumeDetailView model.style p deleteVolumeConfirmations volumeUuid
 
                 CreateVolume volName volSizeInput ->
-                    View.Volumes.createVolume p volName volSizeInput
+                    View.Volumes.createVolume model.style p volName volSizeInput
 
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
-                    View.AttachVolume.attachVolume p maybeServerUuid maybeVolumeUuid
+                    View.AttachVolume.attachVolume model.style p maybeServerUuid maybeVolumeUuid
 
                 MountVolInstructions attachment ->
-                    View.AttachVolume.mountVolInstructions p attachment
+                    View.AttachVolume.mountVolInstructions model.style p attachment
 
                 CreateServerImage serverUuid imageName ->
-                    View.CreateServerImage.createServerImage p serverUuid imageName
+                    View.CreateServerImage.createServerImage model.style p serverUuid imageName
 
                 ListQuotaUsage ->
                     View.QuotaUsage.dashboard p
@@ -75,13 +75,13 @@ project model p viewParams viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav p viewParams
+        [ projectNav model.style p viewParams
         , v
         ]
 
 
-projectNav : Project -> ProjectViewParams -> Element.Element Msg
-projectNav p viewParams =
+projectNav : Style -> Project -> ProjectViewParams -> Element.Element Msg
+projectNav style p viewParams =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
@@ -95,7 +95,7 @@ projectNav p viewParams =
                 []
               <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.outlinedButton style.palette)
                     { text = "Servers"
                     , onPress =
                         Just <|
@@ -107,14 +107,14 @@ projectNav p viewParams =
                 []
               <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.outlinedButton style.palette)
                     { text = "Volumes"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
                     }
             , Element.el [] <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.outlinedButton style.palette)
                     { text = "Quota/Usage"
                     , onPress =
                         SetProjectView ListQuotaUsage
@@ -126,20 +126,20 @@ projectNav p viewParams =
                 [ Element.alignRight ]
               <|
                 Widget.textButton
-                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.textButton style.palette)
                     { text = "Remove Project"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid RemoveProject
                     }
             , Element.el
                 [ Element.alignRight ]
-                (createButton p.auth.project.uuid viewParams.createPopup)
+                (createButton style p.auth.project.uuid viewParams.createPopup)
             ]
         ]
 
 
-createButton : ProjectIdentifier -> Bool -> Element.Element Msg
-createButton projectId expanded =
+createButton : Style -> ProjectIdentifier -> Bool -> Element.Element Msg
+createButton style projectId expanded =
     if expanded then
         let
             belowStuff =
@@ -153,7 +153,7 @@ createButton projectId expanded =
                         }
                     ]
                     [ Widget.textButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        (Widget.Style.Material.outlinedButton style.palette)
                         { text = "Server"
                         , onPress =
                             Just <|
@@ -172,7 +172,7 @@ createButton projectId expanded =
 
                     {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
                     , Widget.textButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                        (Widget.Style.Material.outlinedButton style.palette)
                         { text = "Volume"
                         , onPress =
                             Just <|
@@ -185,7 +185,7 @@ createButton projectId expanded =
         Element.column
             [ Element.below belowStuff ]
             [ Widget.iconButton
-                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                (Widget.Style.Material.containedButton style.palette)
                 { text = "Create"
                 , icon =
                     Element.row
@@ -204,7 +204,7 @@ createButton projectId expanded =
         Element.column
             []
             [ Widget.iconButton
-                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                (Widget.Style.Material.containedButton style.palette)
                 { text = "Create"
                 , icon =
                     Element.row
