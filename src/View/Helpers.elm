@@ -32,7 +32,16 @@ import OpenStack.Types as OSTypes
 import Regex
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
-import Types.Types exposing (ExoSetupStatus(..), LogMessage, Msg(..), Server, ServerOrigin(..), ServerUiStatus(..))
+import Types.Types
+    exposing
+        ( ExoSetupStatus(..)
+        , LogMessage
+        , Msg(..)
+        , Server
+        , ServerOrigin(..)
+        , ServerUiStatus(..)
+        , Style
+        )
 import View.Types
 
 
@@ -121,11 +130,11 @@ edges =
     }
 
 
-hint : String -> Element.Attribute msg
-hint hintText =
+hint : Style -> String -> Element.Attribute msg
+hint style hintText =
     Element.below
         (Element.el
-            [ Font.color (Element.rgb 1 0 0)
+            [ Font.color (toElementColor style.palette.error)
             , Font.size 14
             , Element.alignRight
             , Element.moveDown 6

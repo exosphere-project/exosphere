@@ -48,7 +48,7 @@ createServer style project viewParams =
             case invalidNameReasons of
                 Just reasons ->
                     Element.column
-                        [ Font.color (Element.rgb 1 0 0)
+                        [ Font.color (VH.toElementColor style.palette.error)
                         , Font.size 14
                         , Element.alignRight
                         , Element.moveDown 6
@@ -91,7 +91,7 @@ createServer style project viewParams =
                 }
             , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
-            , flavorPicker project viewParams computeQuota
+            , flavorPicker style project viewParams computeQuota
             , volBackedPrompt project viewParams volumeQuota flavor
             , countPicker project viewParams computeQuota volumeQuota flavor
             , Element.column
@@ -114,7 +114,7 @@ createServer style project viewParams =
 
                         else
                             [ guacamolePicker project viewParams
-                            , networkPicker project viewParams
+                            , networkPicker style project viewParams
                             , keypairPicker project viewParams
                             , userDataInput project viewParams
                             ]
@@ -167,8 +167,8 @@ createServer style project viewParams =
         ]
 
 
-flavorPicker : Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
-flavorPicker project viewParams computeQuota =
+flavorPicker : Style -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker style project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -266,7 +266,7 @@ flavorPicker project viewParams computeQuota =
 
         flavorEmptyHint =
             if viewParams.flavorUuid == "" then
-                [ VH.hint "Please pick a size" ]
+                [ VH.hint style "Please pick a size" ]
 
             else
                 []
@@ -486,8 +486,8 @@ guacamolePicker project createServerViewParams =
                 ]
 
 
-networkPicker : Project -> CreateServerViewParams -> Element.Element Msg
-networkPicker project viewParams =
+networkPicker : Style -> Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker style project viewParams =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -526,7 +526,7 @@ networkPicker project viewParams =
 
                         networkEmptyHint =
                             if viewParams.networkUuid == "" then
-                                [ VH.hint "Please pick a network" ]
+                                [ VH.hint style "Please pick a network" ]
 
                             else
                                 []

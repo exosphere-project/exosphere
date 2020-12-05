@@ -121,7 +121,7 @@ attachVolume style project maybeServerUuid maybeVolumeUuid =
           Element.row [ Element.width Element.fill ]
             [ case params.warnText of
                 Just warnText ->
-                    Element.el [ Font.color <| Element.rgb255 255 56 96 ] <| Element.text warnText
+                    Element.el [ Font.color <| VH.toElementColor style.palette.error ] <| Element.text warnText
 
                 Nothing ->
                     Element.none
