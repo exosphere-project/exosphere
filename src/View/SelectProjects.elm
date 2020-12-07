@@ -39,7 +39,7 @@ selectProjects model keystoneUrl selectedProjects =
                                     projectsAvailable
                                 )
                                 [ Widget.textButton
-                                    (Widget.Style.Material.containedButton model.style.palette)
+                                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette model.style.palette))
                                     { text = "Choose"
                                     , onPress =
                                         Just <|

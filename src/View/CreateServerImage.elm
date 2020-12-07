@@ -3,6 +3,7 @@ module View.CreateServerImage exposing (createServerImage)
 import Element
 import Element.Input as Input
 import OpenStack.Types as OSTypes
+import Style.Theme
 import Types.Types
     exposing
         ( Msg(..)
@@ -28,7 +29,7 @@ createServerImage style project serverUuid imageName =
             , label = Input.labelAbove [] (Element.text "Image name")
             }
         , Widget.textButton
-            (Widget.Style.Material.containedButton style.palette)
+            (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
             { text = "Create"
             , onPress =
                 Just <|

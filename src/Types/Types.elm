@@ -60,6 +60,7 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Set
+import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
@@ -70,7 +71,6 @@ import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
 import UUID
 import Url
-import Widget.Style.Material as Material
 
 
 
@@ -126,7 +126,7 @@ type alias Model =
 
 
 type alias Style =
-    { palette : Material.Palette }
+    { palette : Style.Types.ExoPalette }
 
 
 type alias CloudCorsProxyUrl =

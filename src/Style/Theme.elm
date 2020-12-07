@@ -1,25 +1,15 @@
-module Style.Theme exposing (Style, exoPalette, materialStyle)
+module Style.Theme exposing (materialStyle, toMaterialPalette)
 
-import Color
-import Widget.Style exposing (ButtonStyle, ColumnStyle, ProgressIndicatorStyle, RowStyle, TextInputStyle)
+import Style.Types exposing (ExoPalette, Style)
 import Widget.Style.Material as Material
 
 
-type alias Style style msg =
-    { style
-        | textInput : TextInputStyle msg
-        , column : ColumnStyle msg
-        , cardColumn : ColumnStyle msg
-        , primaryButton : ButtonStyle msg
-        , button : ButtonStyle msg
-        , chipButton : ButtonStyle msg
-        , row : RowStyle msg
-        , progressIndicator : ProgressIndicatorStyle msg
-    }
-
-
-materialStyle : Material.Palette -> Style {} msg
-materialStyle palette =
+materialStyle : ExoPalette -> Style {} msg
+materialStyle exoPalette =
+    let
+        palette =
+            toMaterialPalette exoPalette
+    in
     { textInput = Material.textInput palette
     , column = Material.column
     , cardColumn = Material.cardColumn palette
@@ -31,20 +21,18 @@ materialStyle palette =
     }
 
 
-exoPalette : Material.Palette
-exoPalette =
-    { primary = Color.rgb255 0 108 163
-
-    -- I (cmart) don't believe secondary gets used right now, but at some point we'll want to pick a secondary color?
-    , secondary = Color.rgb255 96 239 255
-    , background = Color.rgb255 255 255 255
-    , surface = Color.rgb255 255 255 255
-    , error = Color.rgb255 176 0 32
+toMaterialPalette : ExoPalette -> Material.Palette
+toMaterialPalette exoPalette =
+    { primary = exoPalette.primary
+    , secondary = exoPalette.secondary
+    , background = exoPalette.background
+    , surface = exoPalette.surface
+    , error = exoPalette.error
     , on =
-        { primary = Color.rgb255 255 255 255
-        , secondary = Color.rgb255 0 0 0
-        , background = Color.rgb255 0 0 0
-        , surface = Color.rgb255 0 0 0
-        , error = Color.rgb255 255 255 255
+        { primary = exoPalette.on.primary
+        , secondary = exoPalette.on.secondary
+        , background = exoPalette.on.background
+        , surface = exoPalette.on.surface
+        , error = exoPalette.on.error
         }
     }

@@ -13,7 +13,7 @@ import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
 import State.ViewState exposing (setProjectView)
-import Style.Theme
+import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
@@ -72,7 +72,7 @@ init flags maybeUrlKey =
             , clientCurrentTime = currentTime
             , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
-            , style = { palette = Style.Theme.exoPalette }
+            , style = { palette = Style.Types.defaultPalette }
             }
 
         -- This only gets used if we do not find a client UUID in stored state

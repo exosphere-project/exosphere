@@ -8,6 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Theme
 import Types.Defaults as Defaults
 import Types.Types
     exposing
@@ -113,7 +114,7 @@ attachVolume style project maybeServerUuid maybeVolumeUuid =
             button =
                 Element.el [ Element.alignRight ] <|
                     Widget.textButton
-                        (Widget.Style.Material.containedButton style.palette)
+                        (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
                         { text = "Attach"
                         , onPress = params.onPress
                         }
@@ -158,7 +159,7 @@ mountVolInstructions style project attachment =
                             ++ "may need to format and/or mount the volume manually."
             ]
         , Widget.textButton
-            (Widget.Style.Material.containedButton style.palette)
+            (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
             { text = "Go to my server"
             , onPress =
                 Just <|

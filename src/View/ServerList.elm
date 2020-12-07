@@ -176,7 +176,7 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
                     }
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Style.Widgets.Button.dangerButton style.palette)
+                    (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Delete"
                     , onPress = deleteButtonOnPress
                     }
@@ -280,7 +280,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton style.palette)
+                        (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
                         { icon = Icon.remove (Element.rgb255 255 255 255) 16
                         , text = "Delete"
                         , onPress =
@@ -288,7 +288,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                                 (ProjectMsg projectId (RequestDeleteServer server.osProps.uuid))
                         }
                     , Widget.iconButton
-                        (Widget.Style.Material.outlinedButton style.palette)
+                        (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                         { icon = Icon.windowClose (Element.rgb255 0 0 0) 16
                         , text = "Cancel"
                         , onPress =
@@ -309,7 +309,7 @@ renderServer style projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton style.palette)
+                        (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
                         { icon = Icon.remove (Element.rgb255 255 255 255) 16
                         , text = "Delete"
                         , onPress =
@@ -325,7 +325,7 @@ renderServer style projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton style.palette)
+                        (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
                         { icon = Icon.remove (Element.rgb255 255 255 255) 16
                         , text = "Delete"
                         , onPress = Nothing
@@ -403,7 +403,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
 
         changeButton =
             Widget.button
-                (Widget.Style.Material.textButton style.palette)
+                (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
                     changeActionIcon (Element.rgb255 0 108 163) 16

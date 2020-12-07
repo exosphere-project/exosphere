@@ -4,6 +4,7 @@ import Element
 import Helpers.Helpers as Helpers
 import Helpers.Url as UrlHelpers
 import Set
+import Style.Theme
 import Style.Widgets.Icon exposing (downArrow, upArrow)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -95,7 +96,7 @@ projectNav style p viewParams =
                 []
               <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton style.palette)
+                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Servers"
                     , onPress =
                         Just <|
@@ -107,14 +108,14 @@ projectNav style p viewParams =
                 []
               <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton style.palette)
+                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Volumes"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
                     }
             , Element.el [] <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton style.palette)
+                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Quota/Usage"
                     , onPress =
                         SetProjectView ListQuotaUsage
@@ -126,7 +127,7 @@ projectNav style p viewParams =
                 [ Element.alignRight ]
               <|
                 Widget.textButton
-                    (Widget.Style.Material.textButton style.palette)
+                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Remove Project"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid RemoveProject
@@ -153,7 +154,7 @@ createButton style projectId expanded =
                         }
                     ]
                     [ Widget.textButton
-                        (Widget.Style.Material.outlinedButton style.palette)
+                        (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                         { text = "Server"
                         , onPress =
                             Just <|
@@ -172,7 +173,7 @@ createButton style projectId expanded =
 
                     {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
                     , Widget.textButton
-                        (Widget.Style.Material.outlinedButton style.palette)
+                        (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                         { text = "Volume"
                         , onPress =
                             Just <|
@@ -185,7 +186,7 @@ createButton style projectId expanded =
         Element.column
             [ Element.below belowStuff ]
             [ Widget.iconButton
-                (Widget.Style.Material.containedButton style.palette)
+                (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
                 { text = "Create"
                 , icon =
                     Element.row
@@ -204,7 +205,7 @@ createButton style projectId expanded =
         Element.column
             []
             [ Widget.iconButton
-                (Widget.Style.Material.containedButton style.palette)
+                (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
                 { text = "Create"
                 , icon =
                     Element.row

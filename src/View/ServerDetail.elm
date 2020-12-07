@@ -1,6 +1,5 @@
 module View.ServerDetail exposing (serverDetail)
 
-import Color
 import Dict
 import Element
 import Element.Background as Background
@@ -126,7 +125,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                 [ Element.spacing 10 ]
                 [ Element.text server.osProps.name
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton style.palette)
+                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Edit"
                     , icon =
                         FeatherIcons.edit3
@@ -206,7 +205,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                 [ Element.el
                     [ Element.below renderInvalidNameReasons
                     ]
-                    (Widget.textInput (Widget.Style.Material.textInput style.palette)
+                    (Widget.textInput (Widget.Style.Material.textInput (Style.Theme.toMaterialPalette style.palette))
                         { chips = []
                         , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
                         , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
@@ -221,7 +220,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                         }
                     )
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton style.palette)
+                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Save"
                     , icon =
                         FeatherIcons.save
@@ -233,7 +232,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                         saveOnPress
                     }
                 , Widget.iconButton
-                    (Widget.Style.Material.textButton style.palette)
+                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Cancel"
                     , icon =
                         FeatherIcons.xCircle
@@ -306,7 +305,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                         ]
               then
                 Widget.textButton
-                    (Widget.Style.Material.textButton style.palette)
+                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Attach volume"
                     , onPress =
                         Just <|
@@ -430,7 +429,7 @@ serverStatus style projectId serverDetailViewParams server =
 
             else
                 [ Widget.textButton
-                    (Widget.Style.Material.textButton style.palette)
+                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "See detail"
                     , onPress =
                         Just <|
@@ -570,7 +569,7 @@ interactions style server projectId appIsElectron currentTime tlsReverseProxyHos
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
                                 Widget.button
-                                    (Widget.Style.Material.outlinedButton style.palette)
+                                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                                     { text = interactionDetails.name
                                     , icon =
                                         Element.el
@@ -679,7 +678,7 @@ serverPassword style projectId serverDetailViewParams server =
                                 )
                   in
                   Widget.textButton
-                    (Widget.Style.Material.textButton style.palette)
+                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                     { text = buttonText
                     , onPress = Just onPressMsg
                     }
@@ -805,16 +804,16 @@ serverActionSelectModButton : Style -> ServerActions.SelectMod -> (Widget.TextBu
 serverActionSelectModButton style selectMod =
     case selectMod of
         ServerActions.NoMod ->
-            Widget.textButton (Widget.Style.Material.outlinedButton style.palette)
+            Widget.textButton (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
 
         ServerActions.Primary ->
-            Widget.textButton (Widget.Style.Material.containedButton style.palette)
+            Widget.textButton (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
 
         ServerActions.Warning ->
-            Widget.textButton (Style.Widgets.Button.warningButton style.palette (Color.rgb255 255 221 87))
+            Widget.textButton (Style.Widgets.Button.warningButton (Style.Theme.toMaterialPalette style.palette) style.palette.warn)
 
         ServerActions.Danger ->
-            Widget.textButton (Style.Widgets.Button.dangerButton style.palette)
+            Widget.textButton (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
 
 
 renderActionButton : Style -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
@@ -851,7 +850,7 @@ renderConfirmationButton style serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            Widget.textButton (Widget.Style.Material.outlinedButton style.palette)
+            Widget.textButton (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                 { text = "No"
                 , onPress = cancelMsg
                 }

@@ -99,7 +99,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
             case volume.status of
                 OSTypes.Available ->
                     Widget.textButton
-                        (Widget.Style.Material.outlinedButton style.palette)
+                        (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                         { text = "Attach"
                         , onPress =
                             Just
@@ -114,14 +114,14 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                 OSTypes.InUse ->
                     if Helpers.isBootVol Nothing volume then
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton style.palette)
+                            (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                             { text = "Detach"
                             , onPress = Nothing
                             }
 
                     else
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton style.palette)
+                            (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                             { text = "Detach"
                             , onPress =
                                 Just
@@ -146,7 +146,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
                         , Widget.textButton
-                            (Style.Widgets.Button.dangerButton style.palette)
+                            (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
                             { text = "Delete"
                             , onPress =
                                 Just <|
@@ -155,7 +155,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                                         (RequestDeleteVolume volume.uuid)
                             }
                         , Widget.textButton
-                            (Widget.Style.Material.outlinedButton style.palette)
+                            (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
                             { text = "Cancel"
                             , onPress =
                                 Just <|
@@ -170,14 +170,14 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
                         Widget.textButton
-                            (Widget.Style.Material.textButton style.palette)
+                            (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                             { text = "Delete"
                             , onPress = Nothing
                             }
 
                     else
                         Widget.textButton
-                            (Style.Widgets.Button.dangerButton style.palette)
+                            (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
                             { text = "Delete"
                             , onPress =
                                 Just <|
@@ -344,7 +344,7 @@ createVolume style project volName volSizeInput =
                     Element.none
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton style.palette)
+                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Create"
                     , onPress = onPress
                     }

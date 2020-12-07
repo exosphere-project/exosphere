@@ -210,7 +210,7 @@ images style project imageListViewParams sortTableParams =
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
         , Widget.textButton
-            (Widget.Style.Material.textButton style.palette)
+            (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
             { text = "Clear filters (show all)"
             , onPress =
                 Just <|
@@ -326,7 +326,7 @@ renderImage style project imageListViewParams sortTableParams image =
 
         chooseButton =
             Widget.textButton
-                (Widget.Style.Material.containedButton style.palette)
+                (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
                 { text = "Choose"
                 , onPress =
                     case image.status of

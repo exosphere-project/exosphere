@@ -121,7 +121,7 @@ createServer style project viewParams =
                        )
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton style.palette)
+                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
                     { text = "Create"
                     , onPress = createOnPress
                     }

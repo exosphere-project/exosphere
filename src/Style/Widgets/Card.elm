@@ -5,11 +5,11 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Style.Theme
+import Style.Types exposing (ExoPalette)
 import Widget
-import Widget.Style.Material as Material
 
 
-exoCard : Material.Palette -> String -> String -> Element msg -> Element msg
+exoCard : ExoPalette -> String -> String -> Element msg -> Element msg
 exoCard palette title subTitle content =
     Widget.column
         (Style.Theme.materialStyle palette).cardColumn
