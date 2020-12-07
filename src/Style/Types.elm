@@ -38,6 +38,7 @@ type alias ExoPalette =
         , error : Color.Color
         }
     , warn : Color.Color
+    , readyGood : Color.Color
     , disabled : Color.Color
     }
 
@@ -50,7 +51,7 @@ defaultPalette =
     , secondary = Color.rgb255 96 239 255
     , background = Color.rgb255 255 255 255
     , surface = Color.rgb255 255 255 255
-    , error = Color.rgb255 176 0 32
+    , error = Color.rgb255 204 0 0
     , on =
         { primary = Color.rgb255 255 255 255
         , secondary = Color.rgb255 0 0 0
@@ -58,6 +59,7 @@ defaultPalette =
         , surface = Color.rgb255 0 0 0
         , error = Color.rgb255 255 255 255
         }
-    , warn = Color.rgb255 255 221 87
+    , warn = Color.rgb255 252 175 62
+    , readyGood = Color.rgb255 35 209 96
     , disabled = Color.rgb255 122 122 122
     }

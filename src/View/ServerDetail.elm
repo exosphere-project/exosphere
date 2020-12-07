@@ -396,7 +396,9 @@ serverStatus style projectId serverDetailViewParams server =
                             spinner
 
                         ( _, Nothing ) ->
-                            Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor) 28
+                            Icon.roundRect
+                                (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor style.palette)
+                                28
             in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]

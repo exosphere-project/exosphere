@@ -188,7 +188,9 @@ renderServer : Style -> ProjectIdentifier -> ServerListViewParams -> Bool -> Ser
 renderServer style projectId serverListViewParams isMyServer server =
     let
         statusIcon =
-            Element.el [ Element.paddingEach { edges | right = 15 } ] (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor) 16)
+            Element.el
+                [ Element.paddingEach { edges | right = 15 } ]
+                (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor style.palette) 16)
 
         creatorNameView =
             case ( isMyServer, server.exoProps.serverOrigin ) of

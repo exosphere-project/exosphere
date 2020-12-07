@@ -30,6 +30,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
 import OpenStack.Types as OSTypes
 import Regex
+import Style.Types exposing (ExoPalette)
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Types
@@ -378,64 +379,52 @@ getServerUiStatusStr status =
             "Deleted"
 
 
-getServerUiStatusColor : ServerUiStatus -> Element.Color
-getServerUiStatusColor status =
+getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
+getServerUiStatusColor palette status =
     case status of
         ServerUiStatusUnknown ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusBuilding ->
-            -- yellow
-            Element.rgb255 255 221 87
+            toElementColor palette.warn
 
         ServerUiStatusPartiallyActive ->
-            -- yellow
-            Element.rgb255 255 221 87
+            toElementColor palette.warn
 
         ServerUiStatusReady ->
-            -- green
-            Element.rgb255 35 209 96
+            toElementColor palette.readyGood
 
         ServerUiStatusReboot ->
-            -- yellow
-            Element.rgb255 255 221 87
+            toElementColor palette.warn
 
         ServerUiStatusPaused ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusSuspended ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusShutoff ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusStopped ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusSoftDeleted ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusError ->
             -- red
-            Element.rgb255 255 56 96
+            toElementColor palette.error
 
         ServerUiStatusRescued ->
             -- red
-            Element.rgb255 255 56 96
+            toElementColor palette.error
 
         ServerUiStatusShelved ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
         ServerUiStatusDeleted ->
-            -- gray
-            Element.rgb255 122 122 122
+            toElementColor palette.disabled
 
 
 toElementColor : Color.Color -> Element.Color
