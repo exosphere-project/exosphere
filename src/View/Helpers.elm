@@ -261,7 +261,6 @@ titleFromHostname hostname =
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
-    -- TODO move this to view helpers
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
             case server.exoProps.serverOrigin of
