@@ -13,7 +13,7 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
-import Style.Theme
+import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
@@ -48,7 +48,7 @@ createServer style project viewParams =
             case invalidNameReasons of
                 Just reasons ->
                     Element.column
-                        [ Font.color (VH.toElementColor style.palette.error)
+                        [ Font.color (SH.toElementColor style.palette.error)
                         , Font.size 14
                         , Element.alignRight
                         , Element.moveDown 6
@@ -121,7 +121,7 @@ createServer style project viewParams =
                        )
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
                     { text = "Create"
                     , onPress = createOnPress
                     }
@@ -146,7 +146,7 @@ createServer style project viewParams =
                         ( _, _, RemoteData.Loading ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (Style.Theme.materialStyle style.palette).progressIndicator
+                                    (SH.materialStyle style.palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -155,7 +155,7 @@ createServer style project viewParams =
                         ( _, RemoteData.Loading, _ ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (Style.Theme.materialStyle style.palette).progressIndicator
+                                    (SH.materialStyle style.palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -434,7 +434,7 @@ countPicker style project viewParams computeQuota volumeQuota flavor =
                         [ Element.width Element.fill
                         , Element.height (Element.px 2)
                         , Element.centerY
-                        , Background.color (VH.toElementColor style.palette.on.background)
+                        , Background.color (SH.toElementColor style.palette.on.background)
                         , Border.rounded 2
                         ]
                         Element.none

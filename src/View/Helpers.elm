@@ -17,11 +17,8 @@ module View.Helpers exposing
     , possiblyUntitledResource
     , renderMessage
     , titleFromHostname
-    , toElementColor
-    , toElementColorWithOpacity
     )
 
-import Color
 import Element
 import Element.Events
 import Element.Font as Font
@@ -31,6 +28,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
 import OpenStack.Types as OSTypes
 import Regex
+import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
@@ -136,7 +134,7 @@ hint : Style -> String -> Element.Attribute msg
 hint style hintText =
     Element.below
         (Element.el
-            [ Font.color (toElementColor style.palette.error)
+            [ Font.color (SH.toElementColor style.palette.error)
             , Font.size 14
             , Element.alignRight
             , Element.moveDown 6
@@ -152,16 +150,16 @@ renderMessage style message =
         levelColor errLevel =
             case errLevel of
                 ErrorDebug ->
-                    toElementColor style.palette.readyGood
+                    SH.toElementColor style.palette.readyGood
 
                 ErrorInfo ->
-                    toElementColor style.palette.on.background
+                    SH.toElementColor style.palette.on.background
 
                 ErrorWarn ->
-                    toElementColor style.palette.warn
+                    SH.toElementColor style.palette.warn
 
                 ErrorCrit ->
-                    toElementColor style.palette.error
+                    SH.toElementColor style.palette.error
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
@@ -172,7 +170,7 @@ renderMessage style message =
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ Font.color <| toElementColor style.palette.muted ]
+            , Element.el [ Font.color <| SH.toElementColor style.palette.muted ]
                 (Element.text
                     (" at " ++ humanReadableTime message.timestamp)
                 )
@@ -194,7 +192,7 @@ browserLink : Style -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLa
 browserLink style isElectron url label =
     let
         linkAttribs =
-            [ Font.color (toElementColor style.palette.primary)
+            [ Font.color (SH.toElementColor style.palette.primary)
             , Font.underline
             , Element.pointer
             ]
@@ -383,65 +381,45 @@ getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
 getServerUiStatusColor palette status =
     case status of
         ServerUiStatusUnknown ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusBuilding ->
-            toElementColor palette.warn
+            SH.toElementColor palette.warn
 
         ServerUiStatusPartiallyActive ->
-            toElementColor palette.warn
+            SH.toElementColor palette.warn
 
         ServerUiStatusReady ->
-            toElementColor palette.readyGood
+            SH.toElementColor palette.readyGood
 
         ServerUiStatusReboot ->
-            toElementColor palette.warn
+            SH.toElementColor palette.warn
 
         ServerUiStatusPaused ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusSuspended ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusShutoff ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusStopped ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusSoftDeleted ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusError ->
             -- red
-            toElementColor palette.error
+            SH.toElementColor palette.error
 
         ServerUiStatusRescued ->
             -- red
-            toElementColor palette.error
+            SH.toElementColor palette.error
 
         ServerUiStatusShelved ->
-            toElementColor palette.muted
+            SH.toElementColor palette.muted
 
         ServerUiStatusDeleted ->
-            toElementColor palette.muted
-
-
-toElementColor : Color.Color -> Element.Color
-toElementColor color =
-    -- https://github.com/mdgriffith/elm-ui/issues/28#issuecomment-566337247
-    let
-        { red, green, blue, alpha } =
-            Color.toRgba color
-    in
-    Element.rgba red green blue alpha
-
-
-toElementColorWithOpacity : Color.Color -> Float -> Element.Color
-toElementColorWithOpacity color alpha =
-    -- https://github.com/mdgriffith/elm-ui/issues/28#issuecomment-566337247
-    let
-        { red, green, blue } =
-            Color.toRgba color
-    in
-    Element.rgba red green blue alpha
+            SH.toElementColor palette.muted

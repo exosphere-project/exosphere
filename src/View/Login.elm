@@ -5,7 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
-import Style.Theme
+import Style.Helpers as SH
 import Types.Types
     exposing
         ( JetstreamCreds
@@ -29,7 +29,7 @@ viewLoginPicker style =
             [ Element.column VH.exoColumnAttributes
                 [ Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
                 , Widget.textButton
-                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                     { text = "Add OpenStack Account"
                     , onPress =
                         Just
@@ -43,7 +43,7 @@ viewLoginPicker style =
             , Element.column VH.exoColumnAttributes
                 [ Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
                 , Widget.textButton
-                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                     { text = "Add Jetstream Cloud Account"
                     , onPress =
                         Just
@@ -71,7 +71,7 @@ viewLoginOpenstack model openstackCreds =
             ]
         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
             (Widget.textButton
-                (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette model.style.palette))
+                (Widget.Style.Material.containedButton (SH.toMaterialPalette model.style.palette))
                 { text = "Log In"
                 , onPress =
                     Just <| RequestUnscopedToken openstackCreds
@@ -203,7 +203,7 @@ viewLoginJetstream model jetstreamCreds =
                 }
             , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                 (Widget.textButton
-                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette model.style.palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette model.style.palette))
                     { text = "Log In"
                     , onPress =
                         Just (JetstreamLogin jetstreamCreds)

@@ -5,9 +5,9 @@ import Element.Font as Font
 import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
+import Style.Helpers as SH
 import Types.Error exposing (ErrorLevel(..))
 import Types.Types exposing (Msg, Style, Toast)
-import View.Helpers as VH
 
 
 toast : Style -> Bool -> Toast -> Html Msg
@@ -61,7 +61,7 @@ genericToast style variantClass title actionContext error maybeRecoveryHint =
         , Element.htmlAttribute (Html.Attributes.class variantClass)
         , Element.padding 10
         , Element.spacing 10
-        , Font.color (VH.toElementColor style.palette.on.error)
+        , Font.color (SH.toElementColor style.palette.on.error)
         ]
         [ Element.el
             [ Region.heading 1

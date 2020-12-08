@@ -10,7 +10,7 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
-import Style.Theme
+import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -42,13 +42,13 @@ volumes style project deleteVolumeConfirmations =
         , case project.volumes of
             RemoteData.NotAsked ->
                 Element.row [ Element.spacing 15 ]
-                    [ Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
+                    [ Widget.circularProgressIndicator (SH.materialStyle style.palette).progressIndicator Nothing
                     , Element.text "Please wait..."
                     ]
 
             RemoteData.Loading ->
                 Element.row [ Element.spacing 15 ]
-                    [ Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
+                    [ Widget.circularProgressIndicator (SH.materialStyle style.palette).progressIndicator Nothing
                     , Element.text "Loading volumes..."
                     ]
 
@@ -99,7 +99,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
             case volume.status of
                 OSTypes.Available ->
                     Widget.textButton
-                        (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                         { text = "Attach"
                         , onPress =
                             Just
@@ -114,14 +114,14 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                 OSTypes.InUse ->
                     if Helpers.isBootVol Nothing volume then
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                             { text = "Detach"
                             , onPress = Nothing
                             }
 
                     else
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                             { text = "Detach"
                             , onPress =
                                 Just
@@ -140,7 +140,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
         deleteButton =
             case ( volume.status, confirmationNeeded ) of
                 ( OSTypes.Deleting, _ ) ->
-                    Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
+                    Widget.circularProgressIndicator (SH.materialStyle style.palette).progressIndicator Nothing
 
                 ( _, True ) ->
                     Element.row [ Element.spacing 10 ]
@@ -155,7 +155,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                                         (RequestDeleteVolume volume.uuid)
                             }
                         , Widget.textButton
-                            (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                             { text = "Cancel"
                             , onPress =
                                 Just <|
@@ -170,7 +170,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
                         Widget.textButton
-                            (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+                            (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                             { text = "Delete"
                             , onPress = Nothing
                             }
@@ -249,7 +249,7 @@ renderAttachment style project attachment =
             , Input.button
                 [ Border.width 1
                 , Border.rounded 6
-                , Border.color (VH.toElementColor style.palette.muted)
+                , Border.color (SH.toElementColor style.palette.muted)
                 , Element.padding 3
                 ]
                 { onPress =
@@ -258,7 +258,7 @@ renderAttachment style project attachment =
                             project.auth.project.uuid
                             (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
                         )
-                , label = Icon.rightArrow (VH.toElementColor style.palette.muted) 16
+                , label = Icon.rightArrow (SH.toElementColor style.palette.muted) 16
                 }
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
@@ -339,13 +339,13 @@ createVolume style project volName volSizeInput =
           Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
             [ case quotaWarnText of
                 Just text ->
-                    Element.el [ Font.color <| VH.toElementColor style.palette.error ] <| Element.text text
+                    Element.el [ Font.color <| SH.toElementColor style.palette.error ] <| Element.text text
 
                 Nothing ->
                     Element.none
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
                     { text = "Create"
                     , onPress = onPress
                     }

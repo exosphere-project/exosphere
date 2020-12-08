@@ -5,8 +5,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Style.Helpers as SH
 import Style.Types
-import View.Helpers as VH
 
 
 type MenuItemState
@@ -38,12 +38,12 @@ menuItem palette state itemLabel onPress =
 
         menuItemButtonAttrs =
             [ Element.width Element.fill
-            , Border.color (VH.toElementColor palette.on.background)
+            , Border.color (SH.toElementColor palette.on.background)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
             , Element.paddingXY 15 24
-            , Background.color (VH.toElementColor backgroundColor)
-            , Font.color (VH.toElementColor fontColor)
+            , Background.color (SH.toElementColor backgroundColor)
+            , Font.color (SH.toElementColor fontColor)
             ]
 
         menuItemElementAttrs =
@@ -51,7 +51,7 @@ menuItem palette state itemLabel onPress =
                 borderProps =
                     case state of
                         Active ->
-                            [ Border.color (VH.toElementColor palette.primary)
+                            [ Border.color (SH.toElementColor palette.primary)
                             , Border.widthEach { bottom = 0, left = 3, right = 0, top = 0 }
                             ]
 

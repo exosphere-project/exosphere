@@ -3,9 +3,9 @@ module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
-import View.Helpers as VH
 
 
 numericTextInput : Style.Types.ExoPalette -> NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
@@ -82,7 +82,7 @@ numericTextInput palette currentVal params onchangeFunc =
 
                 Just reason ->
                     Element.el
-                        [ Font.color <| VH.toElementColor palette.error ]
+                        [ Font.color <| SH.toElementColor palette.error ]
                         (Element.text reason)
     in
     Element.column

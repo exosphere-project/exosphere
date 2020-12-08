@@ -9,7 +9,7 @@ import List.Extra
 import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
-import Style.Theme
+import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
@@ -34,7 +34,7 @@ imagesIfLoaded : Style -> Project -> ImageListViewParams -> SortTableParams -> E
 imagesIfLoaded style project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.row [ Element.spacing 15 ]
-            [ Widget.circularProgressIndicator (Style.Theme.materialStyle style.palette).progressIndicator Nothing
+            [ Widget.circularProgressIndicator (SH.materialStyle style.palette).progressIndicator Nothing
             , Element.text "Images loading..."
             ]
 
@@ -120,7 +120,7 @@ images style project imageListViewParams sortTableParams =
                         Element.none
 
                     else
-                        Icon.plusCircle (VH.toElementColor style.palette.on.background) 12
+                        Icon.plusCircle (SH.toElementColor style.palette.on.background) 12
 
                 tagChecked =
                     Set.member tag.label imageListViewParams.tags
@@ -210,7 +210,7 @@ images style project imageListViewParams sortTableParams =
             , label = Input.labelRight [] (Element.text "Show only images owned by this project")
             }
         , Widget.textButton
-            (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+            (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
             { text = "Clear filters (show all)"
             , onPress =
                 Just <|
@@ -231,16 +231,16 @@ images style project imageListViewParams sortTableParams =
             Element.none
         , List.map (renderImage style project imageListViewParams sortTableParams) filteredImages
             |> Widget.column
-                ((Style.Theme.materialStyle style.palette).column
+                ((SH.materialStyle style.palette).column
                     |> (\x ->
                             { x
                                 | containerColumn =
-                                    (Style.Theme.materialStyle style.palette).column.containerColumn
+                                    (SH.materialStyle style.palette).column.containerColumn
                                         ++ [ Element.width Element.fill
                                            , Element.padding 0
                                            ]
                                 , element =
-                                    (Style.Theme.materialStyle style.palette).column.element
+                                    (SH.materialStyle style.palette).column.element
                                         ++ [ Element.width Element.fill
                                            ]
                             }
@@ -316,7 +316,7 @@ renderImage style project imageListViewParams sortTableParams image =
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
-                (Widget.button (Style.Theme.materialStyle style.palette).chipButton
+                (Widget.button (SH.materialStyle style.palette).chipButton
                     { text = tag
                     , icon = Element.none
                     , onPress =
@@ -326,7 +326,7 @@ renderImage style project imageListViewParams sortTableParams image =
 
         chooseButton =
             Widget.textButton
-                (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
+                (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
                 { text = "Choose"
                 , onPress =
                     case image.status of
@@ -359,7 +359,7 @@ renderImage style project imageListViewParams sortTableParams image =
                         ]
                         (Element.text image.name)
                     , Element.el
-                        [ Font.color <| VH.toElementColor <| style.palette.muted
+                        [ Font.color <| SH.toElementColor <| style.palette.muted
                         , Element.padding 5
                         ]
                         (Element.text size)
@@ -374,7 +374,7 @@ renderImage style project imageListViewParams sortTableParams image =
                     [ Element.width Element.fill
                     ]
                     (Element.el
-                        [ Font.color <| VH.toElementColor <| style.palette.muted
+                        [ Font.color <| SH.toElementColor <| style.palette.muted
                         , Element.padding 5
                         ]
                         (Element.text "Tags:")
@@ -385,15 +385,15 @@ renderImage style project imageListViewParams sortTableParams image =
                 ]
     in
     Widget.column
-        ((Style.Theme.materialStyle style.palette).cardColumn
+        ((SH.materialStyle style.palette).cardColumn
             |> (\x ->
                     { x
                         | containerColumn =
-                            (Style.Theme.materialStyle style.palette).cardColumn.containerColumn
+                            (SH.materialStyle style.palette).cardColumn.containerColumn
                                 ++ [ Element.padding 0
                                    ]
                         , element =
-                            (Style.Theme.materialStyle style.palette).cardColumn.element
+                            (SH.materialStyle style.palette).cardColumn.element
                                 ++ [ Element.padding 3
                                    ]
                     }

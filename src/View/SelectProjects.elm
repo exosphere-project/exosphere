@@ -6,7 +6,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Style.Theme
+import Style.Helpers as SH
 import Types.Types
     exposing
         ( Model
@@ -39,7 +39,7 @@ selectProjects model keystoneUrl selectedProjects =
                                     projectsAvailable
                                 )
                                 [ Widget.textButton
-                                    (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette model.style.palette))
+                                    (Widget.Style.Material.containedButton (SH.toMaterialPalette model.style.palette))
                                     { text = "Choose"
                                     , onPress =
                                         Just <|
@@ -50,7 +50,7 @@ selectProjects model keystoneUrl selectedProjects =
                     RemoteData.Loading ->
                         Element.row [ Element.spacing 15 ]
                             [ Widget.circularProgressIndicator
-                                (Style.Theme.materialStyle model.style.palette).progressIndicator
+                                (SH.materialStyle model.style.palette).progressIndicator
                                 Nothing
                             , Element.text "Loading list of projects"
                             ]

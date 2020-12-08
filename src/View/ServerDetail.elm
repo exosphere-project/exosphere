@@ -16,7 +16,7 @@ import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
-import Style.Theme
+import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -125,7 +125,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                 [ Element.spacing 10 ]
                 [ Element.text server.osProps.name
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                     { text = "Edit"
                     , icon =
                         FeatherIcons.edit3
@@ -159,17 +159,17 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                                 |> List.map List.singleton
                                 |> List.map (Element.paragraph [])
                                 |> Element.column
-                                    [ Font.color (VH.toElementColor style.palette.error)
+                                    [ Font.color (SH.toElementColor style.palette.error)
                                     , Font.size 14
                                     , Element.alignRight
                                     , Element.moveDown 6
-                                    , Background.color (VH.toElementColorWithOpacity style.palette.surface 0.9)
+                                    , Background.color (SH.toElementColorWithOpacity style.palette.surface 0.9)
                                     , Element.spacing 10
                                     , Element.padding 10
                                     , Border.rounded 4
                                     , Border.shadow
                                         { blur = 10
-                                        , color = VH.toElementColorWithOpacity style.palette.muted 0.2
+                                        , color = SH.toElementColorWithOpacity style.palette.muted 0.2
                                         , offset = ( 0, 2 )
                                         , size = 1
                                         }
@@ -205,7 +205,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                 [ Element.el
                     [ Element.below renderInvalidNameReasons
                     ]
-                    (Widget.textInput (Widget.Style.Material.textInput (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette style.palette))
                         { chips = []
                         , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
                         , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
@@ -220,7 +220,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                         }
                     )
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                     { text = "Save"
                     , icon =
                         FeatherIcons.save
@@ -232,7 +232,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                         saveOnPress
                     }
                 , Widget.iconButton
-                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                     { text = "Cancel"
                     , icon =
                         FeatherIcons.xCircle
@@ -306,7 +306,7 @@ serverDetail_ style project appIsElectron currentTimeAndZone serverDetailViewPar
                         ]
               then
                 Widget.textButton
-                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                     { text = "Attach volume"
                     , onPress =
                         Just <|
@@ -349,7 +349,7 @@ passwordVulnWarning style appIsElectron server =
         ServerFromExo serverFromExoProps ->
             if serverFromExoProps.exoServerVersion < 1 then
                 Element.paragraph
-                    [ Font.color (VH.toElementColor style.palette.error) ]
+                    [ Font.color (SH.toElementColor style.palette.error) ]
                     [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
                     , VH.browserLink
                         style
@@ -387,7 +387,7 @@ serverStatus style projectId serverDetailViewParams server =
             let
                 spinner =
                     Widget.circularProgressIndicator
-                        (Style.Theme.materialStyle style.palette).progressIndicator
+                        (SH.materialStyle style.palette).progressIndicator
                         Nothing
 
                 g =
@@ -416,7 +416,7 @@ serverStatus style projectId serverDetailViewParams server =
                         [ Element.el
                             [ Element.paddingEach { edges | right = 15 } ]
                           <|
-                            Icon.lock (VH.toElementColor style.palette.on.background) 28
+                            Icon.lock (SH.toElementColor style.palette.on.background) 28
                         , Element.text "Locked"
                         ]
 
@@ -428,7 +428,7 @@ serverStatus style projectId serverDetailViewParams server =
                                 { edges | right = 15 }
                             ]
                           <|
-                            Icon.lockOpen (VH.toElementColor style.palette.on.background) 28
+                            Icon.lockOpen (SH.toElementColor style.palette.on.background) 28
                         , Element.text "Unlocked"
                         ]
 
@@ -442,7 +442,7 @@ serverStatus style projectId serverDetailViewParams server =
 
             else
                 [ Widget.textButton
-                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                     { text = "See detail"
                     , onPress =
                         Just <|
@@ -506,8 +506,8 @@ interactions style server projectId appIsElectron currentTime tlsReverseProxyHos
                                         [ Element.padding 5
 
                                         -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| VH.toElementColor <| style.palette.surface
-                                        , Font.color <| VH.toElementColor <| style.palette.on.surface
+                                        , Background.color <| SH.toElementColor <| style.palette.surface
+                                        , Font.color <| SH.toElementColor <| style.palette.on.surface
                                         ]
                                         [ Element.text statusWord
                                         , case interactionStatus of
@@ -539,8 +539,8 @@ interactions style server projectId appIsElectron currentTime tlsReverseProxyHos
                                         [ Element.padding 5
 
                                         -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| VH.toElementColor <| style.palette.surface
-                                        , Font.color <| VH.toElementColor <| style.palette.on.surface
+                                        , Background.color <| SH.toElementColor <| style.palette.surface
+                                        , Font.color <| SH.toElementColor <| style.palette.on.surface
                                         , Element.width (Element.maximum 300 Element.shrink)
                                         ]
                                         [ Element.paragraph
@@ -586,7 +586,7 @@ interactions style server projectId appIsElectron currentTime tlsReverseProxyHos
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
                                 Widget.button
-                                    (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+                                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                                     { text = interactionDetails.name
                                     , icon =
                                         Element.el
@@ -597,7 +597,7 @@ interactions style server projectId appIsElectron currentTime tlsReverseProxyHos
                                                 , bottom = 0
                                                 }
                                             ]
-                                            (interactionDetails.icon (VH.toElementColor style.palette.primary) 22)
+                                            (interactionDetails.icon (SH.toElementColor style.palette.primary) 22)
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
@@ -612,13 +612,13 @@ interactions style server projectId appIsElectron currentTime tlsReverseProxyHos
                                     ( iconColor, fontColor ) =
                                         case interactionStatus of
                                             ITypes.Ready _ ->
-                                                ( VH.toElementColor style.palette.primary
-                                                , VH.toElementColor style.palette.on.surface
+                                                ( SH.toElementColor style.palette.primary
+                                                , SH.toElementColor style.palette.on.surface
                                                 )
 
                                             _ ->
-                                                ( VH.toElementColor style.palette.muted
-                                                , VH.toElementColor style.palette.muted
+                                                ( SH.toElementColor style.palette.muted
+                                                , SH.toElementColor style.palette.muted
                                                 )
                                 in
                                 Element.row
@@ -695,7 +695,7 @@ serverPassword style projectId serverDetailViewParams server =
                                 )
                   in
                   Widget.textButton
-                    (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                     { text = buttonText
                     , onPress = Just onPressMsg
                     }
@@ -821,10 +821,10 @@ serverActionSelectModButton : Style -> ServerActions.SelectMod -> (Widget.TextBu
 serverActionSelectModButton style selectMod =
     case selectMod of
         ServerActions.NoMod ->
-            Widget.textButton (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
 
         ServerActions.Primary ->
-            Widget.textButton (Widget.Style.Material.containedButton (Style.Theme.toMaterialPalette style.palette))
+            Widget.textButton (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
 
         ServerActions.Warning ->
             Widget.textButton (Style.Widgets.Button.warningButton style.palette)
@@ -867,7 +867,7 @@ renderConfirmationButton style serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            Widget.textButton (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
+            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
                 { text = "No"
                 , onPress = cancelMsg
                 }
@@ -940,7 +940,7 @@ renderIpAddresses style projectId serverUuid serverDetailViewParams ipAddresses 
                     [ Font.size 10
                     , Border.width 1
                     , Border.rounded 20
-                    , Border.color (VH.toElementColor style.palette.muted)
+                    , Border.color (SH.toElementColor style.palette.muted)
                     , Element.padding 3
                     ]
                     { onPress =
@@ -1032,7 +1032,7 @@ serverVolumes style project server =
                     Input.button
                         [ Border.width 1
                         , Border.rounded 6
-                        , Border.color <| VH.toElementColor style.palette.muted
+                        , Border.color <| SH.toElementColor style.palette.muted
                         , Element.padding 3
                         ]
                         { onPress =
@@ -1041,7 +1041,7 @@ serverVolumes style project server =
                                     project.auth.project.uuid
                                     (SetProjectView <| VolumeDetail v.uuid [])
                                 )
-                        , label = Icon.rightArrow (VH.toElementColor style.palette.muted) 16
+                        , label = Icon.rightArrow (SH.toElementColor style.palette.muted) 16
                         }
 
                 volumeRow v =

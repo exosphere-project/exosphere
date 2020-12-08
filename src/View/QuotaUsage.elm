@@ -6,6 +6,7 @@ import Element.Border as Border
 import Element.Font as Font
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
+import Style.Helpers as SH
 import Types.Types
     exposing
         ( Msg(..)
@@ -47,7 +48,7 @@ infoItem style detail ( label, units ) =
             String.fromInt i_
 
         bg =
-            Background.color <| VH.toElementColor style.palette.surface
+            Background.color <| SH.toElementColor style.palette.surface
 
         border =
             Border.rounded 5

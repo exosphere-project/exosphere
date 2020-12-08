@@ -8,6 +8,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
@@ -20,7 +21,6 @@ import Types.Types
         , Style
         , UserAppProxyHostname
         )
-import View.Helpers as VH
 
 
 interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
@@ -201,19 +201,19 @@ interactionStatusWordColor : Style -> ITypes.InteractionStatus -> ( String, Elem
 interactionStatusWordColor style status =
     case status of
         ITypes.Unavailable _ ->
-            ( "Unavailable", VH.toElementColor style.palette.muted )
+            ( "Unavailable", SH.toElementColor style.palette.muted )
 
         ITypes.Loading ->
-            ( "Loading", VH.toElementColor style.palette.warn )
+            ( "Loading", SH.toElementColor style.palette.warn )
 
         ITypes.Ready _ ->
-            ( "Ready", VH.toElementColor style.palette.readyGood )
+            ( "Ready", SH.toElementColor style.palette.readyGood )
 
         ITypes.Error _ ->
-            ( "Error", VH.toElementColor style.palette.error )
+            ( "Error", SH.toElementColor style.palette.error )
 
         ITypes.Hidden ->
-            ( "Hidden", VH.toElementColor style.palette.muted )
+            ( "Hidden", SH.toElementColor style.palette.muted )
 
 
 interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails msg

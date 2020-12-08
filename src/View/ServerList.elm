@@ -8,7 +8,7 @@ import Element.Input as Input
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Set
-import Style.Theme
+import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
@@ -42,7 +42,7 @@ serverList style project serverListViewParams =
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
             Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
-                    (Style.Theme.materialStyle style.palette).progressIndicator
+                    (SH.materialStyle style.palette).progressIndicator
                     Nothing
                 , Element.text "Please wait..."
                 ]
@@ -53,7 +53,7 @@ serverList style project serverListViewParams =
         ( RDPP.DontHave, RDPP.Loading _ ) ->
             Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
-                    (Style.Theme.materialStyle style.palette).progressIndicator
+                    (SH.materialStyle style.palette).progressIndicator
                     Nothing
                 , Element.text "Loading..."
                 ]
@@ -156,7 +156,7 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
         extraColAttrs =
             [ Element.width Element.fill
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            , Border.color (VH.toElementColor style.palette.on.background)
+            , Border.color (SH.toElementColor style.palette.on.background)
             , Element.paddingXY 5 0
             ]
 
@@ -236,7 +236,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = False
                         , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock (VH.toElementColor style.palette.on.surface) 14
+                        , icon = \_ -> Icon.lock (SH.toElementColor style.palette.on.surface) 14
                         , label = Input.labelHidden server.osProps.name
                         }
 
@@ -283,15 +283,15 @@ renderServer style projectId serverListViewParams isMyServer server =
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
                         (Style.Widgets.Button.dangerButton style.palette)
-                        { icon = Icon.remove (VH.toElementColor style.palette.on.error) 16
+                        { icon = Icon.remove (SH.toElementColor style.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
                             Just
                                 (ProjectMsg projectId (RequestDeleteServer server.osProps.uuid))
                         }
                     , Widget.iconButton
-                        (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
-                        { icon = Icon.windowClose (VH.toElementColor style.palette.on.surface) 16
+                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
+                        { icon = Icon.windowClose (SH.toElementColor style.palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
                             Just
@@ -312,7 +312,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                 ( False, OSTypes.ServerUnlocked, False ) ->
                     [ Widget.iconButton
                         (Style.Widgets.Button.dangerButton style.palette)
-                        { icon = Icon.remove (VH.toElementColor style.palette.on.error) 16
+                        { icon = Icon.remove (SH.toElementColor style.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
                             Just
@@ -328,7 +328,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ Widget.iconButton
                         (Style.Widgets.Button.dangerButton style.palette)
-                        { icon = Icon.remove (VH.toElementColor style.palette.on.error) 16
+                        { icon = Icon.remove (SH.toElementColor style.palette.on.error) 16
                         , text = "Delete"
                         , onPress = Nothing
                         }
@@ -405,10 +405,10 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
 
         changeButton =
             Widget.button
-                (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
+                (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
-                    changeActionIcon (VH.toElementColor style.palette.primary) 16
+                    changeActionIcon (SH.toElementColor style.palette.primary) 16
                 , text = changeActionVerb
                 }
     in
@@ -420,7 +420,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
             [ Element.el
                 [ Element.width Element.fill
                 , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-                , Border.color (VH.toElementColor style.palette.on.background)
+                , Border.color (SH.toElementColor style.palette.on.background)
                 ]
                 Element.none
             , Element.el

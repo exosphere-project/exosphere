@@ -4,7 +4,7 @@ import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Style.Theme
+import Style.Helpers as SH
 import Style.Types
 import Widget
 
@@ -12,7 +12,7 @@ import Widget
 exoCard : Style.Types.ExoPalette -> String -> String -> Element msg -> Element msg
 exoCard palette title subTitle content =
     Widget.column
-        (Style.Theme.materialStyle palette).cardColumn
+        (SH.materialStyle palette).cardColumn
         [ Element.row
             [ Element.width Element.fill, Element.spacing 15 ]
             [ Element.el [ Font.bold, Font.size 16 ] (Element.text title)
