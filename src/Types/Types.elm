@@ -226,6 +226,7 @@ type Msg
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
+    | SetStyle Style
     | NoOp
 
 
@@ -293,6 +294,7 @@ type NonProjectViewConstructor
     | LoginJetstream JetstreamCreds
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
+    | Settings
     | HelpAbout
 
 

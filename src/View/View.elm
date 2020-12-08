@@ -2,9 +2,11 @@ module View.View exposing (view, viewElectron)
 
 import Browser
 import Element
+import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Html
+import Style.Helpers as SH
 import Style.Toast
 import Toasty
 import Types.Types
@@ -22,6 +24,7 @@ import View.Nav
 import View.PageTitle
 import View.Project
 import View.SelectProjects
+import View.Settings
 import View.Toast
 
 
@@ -47,6 +50,8 @@ view_ model =
             [ Font.typeface "Open Sans"
             , Font.sansSerif
             ]
+        , Font.color <| SH.toElementColor <| model.style.palette.on.background
+        , Background.color <| SH.toElementColor <| model.style.palette.background
         ]
         (elementView model.maybeWindowSize model)
 
@@ -85,6 +90,9 @@ elementView maybeWindowSize model =
 
                             MessageLog ->
                                 View.Messages.messageLog model
+
+                            Settings ->
+                                View.Settings.settings model
 
                             HelpAbout ->
                                 View.HelpAbout.helpAbout model

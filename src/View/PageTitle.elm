@@ -40,6 +40,9 @@ pageTitle model =
                 MessageLog ->
                     "Message Log"
 
+                Settings ->
+                    "Settings"
+
                 HelpAbout ->
                     "About Exosphere"
 

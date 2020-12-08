@@ -5,6 +5,7 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
+import FeatherIcons
 import Helpers.Url as UrlHelpers
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
@@ -178,6 +179,23 @@ navBar model =
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
                                 [ Icon.bell (SH.toElementColor model.style.palette.menu.on.surface) 20
                                 , Element.text "Messages"
+                                ]
+                        }
+                    )
+                , Element.el
+                    [ Font.color (SH.toElementColor model.style.palette.menu.on.surface)
+                    ]
+                    (Input.button
+                        []
+                        { onPress = Just (SetNonProjectView Settings)
+                        , label =
+                            Element.row
+                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
+                                [ FeatherIcons.settings
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                    |> Element.el []
+                                , Element.text "Settings"
                                 ]
                         }
                     )
