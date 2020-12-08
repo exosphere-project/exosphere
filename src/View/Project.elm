@@ -70,7 +70,7 @@ project model p viewParams viewConstructor =
                     View.CreateServerImage.createServerImage model.style p serverUuid imageName
 
                 ListQuotaUsage ->
-                    View.QuotaUsage.dashboard p
+                    View.QuotaUsage.dashboard model.style p
     in
     Element.column
         (Element.width Element.fill
@@ -192,7 +192,7 @@ createButton style projectId expanded =
                     Element.row
                         [ Element.spacing 5 ]
                         [ Element.text "Create"
-                        , upArrow (Element.rgb255 255 255 255) 15
+                        , upArrow (VH.toElementColor style.palette.on.primary) 15
                         ]
                 , onPress =
                     Just <|
@@ -211,7 +211,7 @@ createButton style projectId expanded =
                     Element.row
                         [ Element.spacing 5 ]
                         [ Element.text "Create"
-                        , downArrow (Element.rgb255 255 255 255) 15
+                        , downArrow (VH.toElementColor style.palette.on.primary) 15
                         ]
                 , onPress =
                     Just <|

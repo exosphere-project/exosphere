@@ -12,7 +12,15 @@ import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
-import Types.Types exposing (CockpitLoginStatus(..), Server, ServerOrigin(..), UserAppProxyHostname)
+import Types.Types
+    exposing
+        ( CockpitLoginStatus(..)
+        , Server
+        , ServerOrigin(..)
+        , Style
+        , UserAppProxyHostname
+        )
+import View.Helpers as VH
 
 
 interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
@@ -189,23 +197,23 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
             ITypes.Unavailable "Server is not active"
 
 
-interactionStatusWordColor : ITypes.InteractionStatus -> ( String, Element.Color )
-interactionStatusWordColor status =
+interactionStatusWordColor : Style -> ITypes.InteractionStatus -> ( String, Element.Color )
+interactionStatusWordColor style status =
     case status of
         ITypes.Unavailable _ ->
-            ( "Unavailable", Element.rgb255 122 122 122 )
+            ( "Unavailable", VH.toElementColor style.palette.muted )
 
         ITypes.Loading ->
-            ( "Loading", Element.rgb255 255 221 87 )
+            ( "Loading", VH.toElementColor style.palette.warn )
 
         ITypes.Ready _ ->
-            ( "Ready", Element.rgb255 35 209 96 )
+            ( "Ready", VH.toElementColor style.palette.readyGood )
 
         ITypes.Error _ ->
-            ( "Error", Element.rgb255 255 56 96 )
+            ( "Error", VH.toElementColor style.palette.error )
 
         ITypes.Hidden ->
-            ( "Hidden", Element.rgb255 200 200 200 )
+            ( "Hidden", VH.toElementColor style.palette.muted )
 
 
 interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails msg

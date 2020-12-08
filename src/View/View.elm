@@ -100,7 +100,7 @@ elementView maybeWindowSize model =
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast model.showDebugMsgs) ToastyMsg model.toasties)
+                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast model.style model.showDebugMsgs) ToastyMsg model.toasties)
                 ]
     in
     Element.row

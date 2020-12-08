@@ -53,7 +53,9 @@ navMenu model =
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem status
+            MenuItem.menuItem
+                model.style.palette
+                status
                 projectTitle
                 (Just
                     (ProjectMsg project.auth.project.uuid
@@ -84,11 +86,11 @@ navMenu model =
                         _ ->
                             MenuItem.Inactive
             in
-            MenuItem.menuItem active "Add Project" (Just (SetNonProjectView LoginPicker))
+            MenuItem.menuItem model.style.palette active "Add Project" (Just (SetNonProjectView LoginPicker))
     in
     Element.column
-        [ Background.color (Element.rgb255 36 36 36)
-        , Font.color (Element.rgb255 209 209 209)
+        [ Background.color (VH.toElementColor model.style.palette.menu.background)
+        , Font.color (VH.toElementColor model.style.palette.menu.on.background)
         , Element.width (Element.px navMenuWidth)
         , Element.height Element.shrink
         , Element.scrollbarY
@@ -129,10 +131,10 @@ projectTitleForNavMenu model project =
 
 
 navBar : Model -> Element.Element Msg
-navBar _ =
+navBar model =
     let
         navBarContainerAttributes =
-            [ Background.color (Element.rgb255 29 29 29)
+            [ Background.color (VH.toElementColor model.style.palette.menu.secondary)
             , Element.width Element.fill
             , Element.height (Element.px navBarHeight)
             ]
@@ -151,7 +153,7 @@ navBar _ =
                     [ Region.heading 1
                     , Font.bold
                     , Font.size 26
-                    , Font.color (Element.rgb 1 1 1)
+                    , Font.color (VH.toElementColor model.style.palette.menu.on.surface)
                     ]
                     (Element.text "exosphere")
                 , Element.image [ Element.height (Element.px 40) ] { src = "https://try.exosphere.app/exosphere/assets/img/logo-alt.svg", description = "" }
@@ -161,11 +163,11 @@ navBar _ =
             Element.row
                 [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
                 [ Element.el
-                    [ Font.color (Element.rgb255 209 209 209)
+                    [ Font.color (VH.toElementColor model.style.palette.menu.on.surface)
                     ]
                     (Element.text "")
                 , Element.el
-                    [ Font.color (Element.rgb255 209 209 209)
+                    [ Font.color (VH.toElementColor model.style.palette.menu.on.surface)
                     ]
                     (Input.button
                         []
@@ -173,13 +175,13 @@ navBar _ =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.bell (Element.rgb255 255 255 255) 20
+                                [ Icon.bell (VH.toElementColor model.style.palette.menu.on.surface) 20
                                 , Element.text "Messages"
                                 ]
                         }
                     )
                 , Element.el
-                    [ Font.color (Element.rgb255 209 209 209)
+                    [ Font.color (VH.toElementColor model.style.palette.menu.on.surface)
                     ]
                     (Input.button
                         []
@@ -187,7 +189,7 @@ navBar _ =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.question (Element.rgb255 255 255 255) 20
+                                [ Icon.question (VH.toElementColor model.style.palette.menu.on.surface) 20
                                 , Element.text "Help / About"
                                 ]
                         }

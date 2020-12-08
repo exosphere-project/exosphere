@@ -14,7 +14,7 @@ helpAbout model =
         [ Element.el VH.heading2 <| Element.text "About Exosphere"
         , Element.paragraph []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-            , VH.browserLink (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
+            , VH.browserLink model.style (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
                 View.Types.BrowserLinkTextLabel "README on GitLab"
             , Element.text "."
             ]
@@ -31,18 +31,21 @@ helpAbout model =
         , Element.paragraph []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
             , VH.browserLink
+                model.style
                 (Helpers.appIsElectron model)
                 "https://gitlab.com/exosphere/exosphere/issues"
               <|
                 View.Types.BrowserLinkTextLabel "create an issue"
             , Element.text " on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on "
             , VH.browserLink
+                model.style
                 (Helpers.appIsElectron model)
                 "https://gitter.im/exosphere-app/community"
               <|
                 View.Types.BrowserLinkTextLabel "gitter"
             , Element.text " and "
             , VH.browserLink
+                model.style
                 (Helpers.appIsElectron model)
                 "https://riot.im/app/#/room/#exosphere:matrix.org"
               <|

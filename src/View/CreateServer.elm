@@ -92,8 +92,8 @@ createServer style project viewParams =
             , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
             , flavorPicker style project viewParams computeQuota
-            , volBackedPrompt project viewParams volumeQuota flavor
-            , countPicker project viewParams computeQuota volumeQuota flavor
+            , volBackedPrompt style project viewParams volumeQuota flavor
+            , countPicker style project viewParams computeQuota volumeQuota flavor
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -295,8 +295,8 @@ flavorPicker style project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt project viewParams volumeQuota flavor =
+volBackedPrompt : Style -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt style project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
@@ -378,6 +378,7 @@ volBackedPrompt project viewParams volumeQuota flavor =
             Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
                     [ numericTextInput
+                        style.palette
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
@@ -396,13 +397,14 @@ volBackedPrompt project viewParams volumeQuota flavor =
 
 
 countPicker :
-    Project
+    Style
+    -> Project
     -> CreateServerViewParams
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
     -> Element.Element Msg
-countPicker project viewParams computeQuota volumeQuota flavor =
+countPicker style project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
             OSQuotas.overallQuotaAvailServers
@@ -432,7 +434,7 @@ countPicker project viewParams computeQuota volumeQuota flavor =
                         [ Element.width Element.fill
                         , Element.height (Element.px 2)
                         , Element.centerY
-                        , Background.color (Element.rgb 0.5 0.5 0.5)
+                        , Background.color (VH.toElementColor style.palette.on.background)
                         , Border.rounded 2
                         ]
                         Element.none

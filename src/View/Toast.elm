@@ -6,11 +6,12 @@ import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Types.Error exposing (ErrorLevel(..))
-import Types.Types exposing (Msg, Toast)
+import Types.Types exposing (Msg, Style, Toast)
+import View.Helpers as VH
 
 
-toast : Bool -> Toast -> Html Msg
-toast showDebugMsgs t =
+toast : Style -> Bool -> Toast -> Html Msg
+toast style showDebugMsgs t =
     let
         ( class, title ) =
             case t.context.level of
@@ -28,6 +29,7 @@ toast showDebugMsgs t =
 
         toastElement =
             genericToast
+                style
                 class
                 title
                 t.context.actionContext
@@ -52,14 +54,14 @@ toast showDebugMsgs t =
         layoutWith Element.none
 
 
-genericToast : String -> String -> String -> a -> Maybe String -> Element.Element Msg
-genericToast variantClass title actionContext error maybeRecoveryHint =
+genericToast : Style -> String -> String -> String -> a -> Maybe String -> Element.Element Msg
+genericToast style variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")
         , Element.htmlAttribute (Html.Attributes.class variantClass)
         , Element.padding 10
         , Element.spacing 10
-        , Font.color (Element.rgb 1 1 1)
+        , Font.color (VH.toElementColor style.palette.on.error)
         ]
         [ Element.el
             [ Region.heading 1

@@ -3,11 +3,13 @@ module Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
+import View.Helpers as VH
 
 
-numericTextInput : NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
-numericTextInput currentVal params onchangeFunc =
+numericTextInput : Style.Types.ExoPalette -> NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
+numericTextInput palette currentVal params onchangeFunc =
     let
         currentValStr =
             case currentVal of
@@ -80,7 +82,7 @@ numericTextInput currentVal params onchangeFunc =
 
                 Just reason ->
                     Element.el
-                        [ Font.color <| Element.rgb255 255 56 96 ]
+                        [ Font.color <| VH.toElementColor palette.error ]
                         (Element.text reason)
     in
     Element.column

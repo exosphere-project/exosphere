@@ -146,7 +146,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
                         , Widget.textButton
-                            (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
+                            (Style.Widgets.Button.dangerButton style.palette)
                             { text = "Delete"
                             , onPress =
                                 Just <|
@@ -177,7 +177,7 @@ volumeActionButtons style project toProjectViewConstructor deleteVolumeConfirmat
 
                     else
                         Widget.textButton
-                            (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
+                            (Style.Widgets.Button.dangerButton style.palette)
                             { text = "Delete"
                             , onPress =
                                 Just <|
@@ -214,11 +214,11 @@ volumeDetail style project toProjectViewConstructor deleteVolumeConfirmations vo
                     (VH.exoColumnAttributes ++ [ Element.width Element.fill, Element.spacing 10 ])
                     [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name "volume"
                     , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
-                    , renderAttachments project volume
+                    , renderAttachments style project volume
                     , VH.compactKVRow "Description:" <|
                         Element.paragraph [ Element.width (Element.fill |> Element.maximum 706) ] <|
                             [ Element.text <| Maybe.withDefault "" volume.description ]
-                    , VH.compactKVRow "UUID:" <| copyableText volume.uuid
+                    , VH.compactKVRow "UUID:" <| copyableText style.palette volume.uuid
                     , case volume.imageMetadata of
                         Nothing ->
                             Element.none
@@ -230,8 +230,8 @@ volumeDetail style project toProjectViewConstructor deleteVolumeConfirmations vo
             )
 
 
-renderAttachment : Project -> OSTypes.VolumeAttachment -> Element.Element Msg
-renderAttachment project attachment =
+renderAttachment : Style -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+renderAttachment style project attachment =
     let
         serverName serverUuid =
             case GetterSetters.serverLookup project serverUuid of
@@ -249,7 +249,7 @@ renderAttachment project attachment =
             , Input.button
                 [ Border.width 1
                 , Border.rounded 6
-                , Border.color (Element.rgb255 122 122 122)
+                , Border.color (VH.toElementColor style.palette.muted)
                 , Element.padding 3
                 ]
                 { onPress =
@@ -258,7 +258,7 @@ renderAttachment project attachment =
                             project.auth.project.uuid
                             (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
                         )
-                , label = Icon.rightArrow (Element.rgb255 122 122 122) 16
+                , label = Icon.rightArrow (VH.toElementColor style.palette.muted) 16
                 }
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
@@ -270,8 +270,8 @@ renderAttachment project attachment =
         ]
 
 
-renderAttachments : Project -> OSTypes.Volume -> Element.Element Msg
-renderAttachments project volume =
+renderAttachments : Style -> Project -> OSTypes.Volume -> Element.Element Msg
+renderAttachments style project volume =
     case List.length volume.attachments of
         0 ->
             Element.none
@@ -281,7 +281,7 @@ renderAttachments project volume =
                 Element.column
                     (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 <|
-                    List.map (renderAttachment project) volume.attachments
+                    List.map (renderAttachment style project) volume.attachments
 
 
 createVolume : Style -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
@@ -313,6 +313,7 @@ createVolume style project volName volSizeInput =
             }
         , Element.text "(Suggestion: choose a good name that describes what the volume will store.)"
         , numericTextInput
+            style.palette
             volSizeInput
             { labelText = "Size in GB"
             , minVal = Just 1
@@ -338,7 +339,7 @@ createVolume style project volName volSizeInput =
           Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
             [ case quotaWarnText of
                 Just text ->
-                    Element.el [ Font.color <| Element.rgb255 255 56 96 ] <| Element.text text
+                    Element.el [ Font.color <| VH.toElementColor style.palette.error ] <| Element.text text
 
                 Nothing ->
                     Element.none

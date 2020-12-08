@@ -156,7 +156,7 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
         extraColAttrs =
             [ Element.width Element.fill
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            , Border.color (Element.rgb255 10 10 10)
+            , Border.color (VH.toElementColor style.palette.on.background)
             , Element.paddingXY 5 0
             ]
 
@@ -176,7 +176,7 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
                     }
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
+                    (Style.Widgets.Button.dangerButton style.palette)
                     { text = "Delete"
                     , onPress = deleteButtonOnPress
                     }
@@ -236,7 +236,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = False
                         , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock (Element.rgb255 10 10 10) 14
+                        , icon = \_ -> Icon.lock (VH.toElementColor style.palette.on.surface) 14
                         , label = Input.labelHidden server.osProps.name
                         }
 
@@ -282,8 +282,8 @@ renderServer style projectId serverListViewParams isMyServer server =
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
-                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        (Style.Widgets.Button.dangerButton style.palette)
+                        { icon = Icon.remove (VH.toElementColor style.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
                             Just
@@ -291,7 +291,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                         }
                     , Widget.iconButton
                         (Widget.Style.Material.outlinedButton (Style.Theme.toMaterialPalette style.palette))
-                        { icon = Icon.windowClose (Element.rgb255 0 0 0) 16
+                        { icon = Icon.windowClose (VH.toElementColor style.palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
                             Just
@@ -311,8 +311,8 @@ renderServer style projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
-                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        (Style.Widgets.Button.dangerButton style.palette)
+                        { icon = Icon.remove (VH.toElementColor style.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
                             Just
@@ -327,8 +327,8 @@ renderServer style projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton (Style.Theme.toMaterialPalette style.palette))
-                        { icon = Icon.remove (Element.rgb255 255 255 255) 16
+                        (Style.Widgets.Button.dangerButton style.palette)
+                        { icon = Icon.remove (VH.toElementColor style.palette.on.error) 16
                         , text = "Delete"
                         , onPress = Nothing
                         }
@@ -408,7 +408,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
                 (Widget.Style.Material.textButton (Style.Theme.toMaterialPalette style.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
-                    changeActionIcon (Element.rgb255 0 108 163) 16
+                    changeActionIcon (VH.toElementColor style.palette.primary) 16
                 , text = changeActionVerb
                 }
     in
@@ -420,7 +420,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
             [ Element.el
                 [ Element.width Element.fill
                 , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-                , Border.color (Element.rgb255 10 10 10)
+                , Border.color (VH.toElementColor style.palette.on.background)
                 ]
                 Element.none
             , Element.el

@@ -5,7 +5,9 @@ import Element.Input as Input
 import Html
 import Html.Attributes
 import Murmur3
+import Style.Types exposing (ExoPalette)
 import Style.Widgets.Icon exposing (copyToClipboard)
+import View.Helpers as VH
 
 
 {-| Display text with a button to copy to the clipboard. Requires you to do a Ports.InstantiateClipboardJS
@@ -13,8 +15,8 @@ import Style.Widgets.Icon exposing (copyToClipboard)
     copyableText (Element.text "foobar")
 
 -}
-copyableText : String -> Element msg
-copyableText text =
+copyableText : ExoPalette -> String -> Element msg
+copyableText palette text =
     Element.row
         [ Element.spacing 8 ]
         [ Element.html <|
@@ -31,7 +33,7 @@ copyableText text =
                     , Element.spacing 10
                     ]
                 <|
-                    [ copyToClipboard (Element.rgb255 31 137 199) 18
+                    [ copyToClipboard (VH.toElementColor palette.primary) 18
                     , Element.text "Copy"
                     ]
             ]
@@ -39,7 +41,7 @@ copyableText text =
             , label =
                 Element.el
                     [ Element.mouseOver [ Element.transparent True ] ]
-                    (copyToClipboard (Element.rgb255 10 10 10) 18)
+                    (copyToClipboard (VH.toElementColor palette.on.background) 18)
             }
         ]
 

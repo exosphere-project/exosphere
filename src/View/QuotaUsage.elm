@@ -10,32 +10,33 @@ import Types.Types
     exposing
         ( Msg(..)
         , Project
+        , Style
         )
 import View.Helpers as VH
 
 
-dashboard : Project -> Element.Element Msg
-dashboard project =
+dashboard : Style -> Project -> Element.Element Msg
+dashboard style project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2 <| Element.text "Quota/Usage"
-        , quotaSections project
+        , quotaSections style project
         ]
 
 
-quotaSections : Project -> Element.Element Msg
-quotaSections project =
+quotaSections : Style -> Project -> Element.Element Msg
+quotaSections style project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ computeQuota project
-        , volumeQuota project
+        [ computeQuota style project
+        , volumeQuota style project
 
         -- networkQuota stuff - whenever I find that
         ]
 
 
-infoItem : { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
-infoItem detail ( label, units ) =
+infoItem : Style -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
+infoItem style detail ( label, units ) =
     let
         labelLimit m_ =
             m_
@@ -46,7 +47,7 @@ infoItem detail ( label, units ) =
             String.fromInt i_
 
         bg =
-            Background.color <| Element.rgb255 242 242 242
+            Background.color <| VH.toElementColor style.palette.surface
 
         border =
             Border.rounded 5
@@ -69,22 +70,22 @@ infoItem detail ( label, units ) =
         ]
 
 
-computeQuota : Project -> Element.Element Msg
-computeQuota project =
+computeQuota : Style -> Project -> Element.Element Msg
+computeQuota style project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading3 <| Element.text "Compute"
-        , computeQuotaDetails project.computeQuota
+        , computeQuotaDetails style project.computeQuota
         ]
 
 
-computeInfoItems : OSTypes.ComputeQuota -> Element.Element Msg
-computeInfoItems quota =
+computeInfoItems : Style -> OSTypes.ComputeQuota -> Element.Element Msg
+computeInfoItems style quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem quota.cores ( "Cores:", "total" )
-        , infoItem quota.instances ( "Instances:", "total" )
-        , infoItem quota.ram ( "RAM:", "MB" )
+        [ infoItem style quota.cores ( "Cores:", "total" )
+        , infoItem style quota.instances ( "Instances:", "total" )
+        , infoItem style quota.ram ( "RAM:", "MB" )
         ]
 
 
@@ -104,33 +105,33 @@ quotaDetail quota infoItemsF =
             infoItemsF quota_
 
 
-computeQuotaDetails : WebData OSTypes.ComputeQuota -> Element.Element Msg
-computeQuotaDetails quota =
+computeQuotaDetails : Style -> WebData OSTypes.ComputeQuota -> Element.Element Msg
+computeQuotaDetails style quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail quota computeInfoItems ]
+        [ quotaDetail quota (computeInfoItems style) ]
 
 
-volumeQuota : Project -> Element.Element Msg
-volumeQuota project =
+volumeQuota : Style -> Project -> Element.Element Msg
+volumeQuota style project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading3 <| Element.text "Volumes"
-        , volumeQuoteDetails project.volumeQuota
+        , volumeQuoteDetails style project.volumeQuota
         ]
 
 
-volumeInfoItems : OSTypes.VolumeQuota -> Element.Element Msg
-volumeInfoItems quota =
+volumeInfoItems : Style -> OSTypes.VolumeQuota -> Element.Element Msg
+volumeInfoItems style quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem quota.gigabytes ( "Storage:", "GB" )
-        , infoItem quota.volumes ( "Volumes:", "total" )
+        [ infoItem style quota.gigabytes ( "Storage:", "GB" )
+        , infoItem style quota.volumes ( "Volumes:", "total" )
         ]
 
 
-volumeQuoteDetails : WebData OSTypes.VolumeQuota -> Element.Element Msg
-volumeQuoteDetails quota =
+volumeQuoteDetails : Style -> WebData OSTypes.VolumeQuota -> Element.Element Msg
+volumeQuoteDetails style quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail quota volumeInfoItems ]
+        [ quotaDetail quota (volumeInfoItems style) ]

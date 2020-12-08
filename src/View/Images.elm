@@ -120,7 +120,7 @@ images style project imageListViewParams sortTableParams =
                         Element.none
 
                     else
-                        Icon.plusCircle (Element.rgb255 10 10 10) 12
+                        Icon.plusCircle (VH.toElementColor style.palette.on.background) 12
 
                 tagChecked =
                     Set.member tag.label imageListViewParams.tags
@@ -162,7 +162,7 @@ images style project imageListViewParams sortTableParams =
                                 sortTableParams
             in
             if tagChecked then
-                chip (Just unselectTag) chipLabel
+                chip style.palette (Just unselectTag) chipLabel
 
             else
                 Element.none
@@ -359,7 +359,7 @@ renderImage style project imageListViewParams sortTableParams image =
                         ]
                         (Element.text image.name)
                     , Element.el
-                        [ Font.color <| Element.rgb255 122 122 122
+                        [ Font.color <| VH.toElementColor <| style.palette.muted
                         , Element.padding 5
                         ]
                         (Element.text size)
@@ -374,7 +374,7 @@ renderImage style project imageListViewParams sortTableParams image =
                     [ Element.width Element.fill
                     ]
                     (Element.el
-                        [ Font.color <| Element.rgb255 122 122 122
+                        [ Font.color <| VH.toElementColor <| style.palette.muted
                         , Element.padding 5
                         ]
                         (Element.text "Tags:")

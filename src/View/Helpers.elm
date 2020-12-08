@@ -18,6 +18,7 @@ module View.Helpers exposing
     , renderMessage
     , titleFromHostname
     , toElementColor
+    , toElementColorWithOpacity
     )
 
 import Color
@@ -144,23 +145,23 @@ hint style hintText =
         )
 
 
-renderMessage : LogMessage -> Element.Element Msg
-renderMessage message =
+renderMessage : Style -> LogMessage -> Element.Element Msg
+renderMessage style message =
     let
         levelColor : ErrorLevel -> Element.Color
         levelColor errLevel =
             case errLevel of
                 ErrorDebug ->
-                    Element.rgb 0 0.55 0
+                    toElementColor style.palette.readyGood
 
                 ErrorInfo ->
-                    Element.rgb 0 0 0
+                    toElementColor style.palette.on.background
 
                 ErrorWarn ->
-                    Element.rgb 0.8 0.5 0
+                    toElementColor style.palette.warn
 
                 ErrorCrit ->
-                    Element.rgb 0.7 0 0
+                    toElementColor style.palette.error
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
@@ -171,7 +172,7 @@ renderMessage message =
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ Font.color <| Element.rgb 0.4 0.4 0.4 ]
+            , Element.el [ Font.color <| toElementColor style.palette.muted ]
                 (Element.text
                     (" at " ++ humanReadableTime message.timestamp)
                 )
@@ -189,11 +190,11 @@ renderMessage message =
         ]
 
 
-browserLink : Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
-browserLink isElectron url label =
+browserLink : Style -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink style isElectron url label =
     let
         linkAttribs =
-            [ Font.color (Element.rgb255 50 115 220)
+            [ Font.color (toElementColor style.palette.primary)
             , Font.underline
             , Element.pointer
             ]
@@ -383,7 +384,7 @@ getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
 getServerUiStatusColor palette status =
     case status of
         ServerUiStatusUnknown ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusBuilding ->
             toElementColor palette.warn
@@ -398,19 +399,19 @@ getServerUiStatusColor palette status =
             toElementColor palette.warn
 
         ServerUiStatusPaused ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusSuspended ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusShutoff ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusStopped ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusSoftDeleted ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusError ->
             -- red
@@ -421,10 +422,10 @@ getServerUiStatusColor palette status =
             toElementColor palette.error
 
         ServerUiStatusShelved ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
         ServerUiStatusDeleted ->
-            toElementColor palette.disabled
+            toElementColor palette.muted
 
 
 toElementColor : Color.Color -> Element.Color
@@ -432,6 +433,16 @@ toElementColor color =
     -- https://github.com/mdgriffith/elm-ui/issues/28#issuecomment-566337247
     let
         { red, green, blue, alpha } =
+            Color.toRgba color
+    in
+    Element.rgba red green blue alpha
+
+
+toElementColorWithOpacity : Color.Color -> Float -> Element.Color
+toElementColorWithOpacity color alpha =
+    -- https://github.com/mdgriffith/elm-ui/issues/28#issuecomment-566337247
+    let
+        { red, green, blue } =
             Color.toRgba color
     in
     Element.rgba red green blue alpha
