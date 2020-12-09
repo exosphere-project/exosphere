@@ -1,6 +1,9 @@
 module View.Login exposing (viewLoginJetstream, viewLoginOpenstack, viewLoginPicker)
 
+import Color
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
@@ -23,13 +26,26 @@ import Widget.Style.Material
 
 viewLoginPicker : Style -> Element.Element Msg
 viewLoginPicker style =
+    let
+        loginTypeLogoAttributes =
+            -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
+            [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
+            , Element.centerX
+            , Element.paddingXY 15 0
+            , Border.rounded 10
+            ]
+    in
     Element.column VH.exoColumnAttributes
         [ Element.text "Choose a login method"
-        , Element.row VH.exoRowAttributes
+        , Element.row
+            (VH.exoRowAttributes ++ [ Element.spacing 30 ])
             [ Element.column VH.exoColumnAttributes
-                [ Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
+                [ Element.el
+                    loginTypeLogoAttributes
+                  <|
+                    Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
                 , Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
                     { text = "Add OpenStack Account"
                     , onPress =
                         Just
@@ -41,10 +57,13 @@ viewLoginPicker style =
                     }
                 ]
             , Element.column VH.exoColumnAttributes
-                [ Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
+                [ Element.el
+                    loginTypeLogoAttributes
+                  <|
+                    Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
                 , Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
-                    { text = "Add Jetstream Cloud Account"
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
+                    { text = "Add Jetstream Account"
                     , onPress =
                         Just
                             (SetNonProjectView
