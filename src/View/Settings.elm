@@ -19,7 +19,7 @@ settings model =
         [ Element.el VH.heading2 <| Element.text "Settings"
         , Input.radio
             VH.exoColumnAttributes
-            { onChange = \newStyle -> SetStyle (Style newStyle)
+            { onChange = \newStyle -> SetStyle (Style newStyle model.style.logo)
             , options =
                 [ Input.option Style.Types.defaultPalette (Element.text "Light")
                 , Input.option Style.Types.darkPalette (Element.text "Dark")

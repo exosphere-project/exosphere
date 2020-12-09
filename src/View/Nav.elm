@@ -158,7 +158,7 @@ navBar model =
                     , Font.color (SH.toElementColor model.style.palette.menu.on.surface)
                     ]
                     (Element.text "exosphere")
-                , Element.image [ Element.height (Element.px 40) ] { src = "https://try.exosphere.app/exosphere/assets/img/logo-alt.svg", description = "" }
+                , Element.image [ Element.height (Element.px 40) ] { src = model.style.logo, description = "" }
                 ]
 
         navBarRight =

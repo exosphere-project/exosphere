@@ -126,7 +126,9 @@ type alias Model =
 
 
 type alias Style =
-    { palette : Style.Types.ExoPalette }
+    { palette : Style.Types.ExoPalette
+    , logo : HelperTypes.Url
+    }
 
 
 type alias CloudCorsProxyUrl =
