@@ -141,81 +141,71 @@ projectNav style p viewParams =
 
 createButton : Style -> ProjectIdentifier -> Bool -> Element.Element Msg
 createButton style projectId expanded =
-    if expanded then
-        let
-            belowStuff =
-                Element.column
-                    [ Element.spacing 5
-                    , Element.paddingEach
-                        { top = 5
-                        , bottom = 0
-                        , right = 0
-                        , left = 0
-                        }
-                    ]
-                    [ Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
-                        { text = "Server"
-                        , onPress =
-                            Just <|
-                                ProjectMsg projectId <|
-                                    SetProjectView <|
-                                        ListImages
-                                            { searchText = ""
-                                            , tags = Set.empty
-                                            , onlyOwnImages = False
-                                            , expandImageDetails = Set.empty
-                                            }
-                                            { title = "Name"
-                                            , asc = True
-                                            }
-                        }
+    let
+        ( attribs, icon ) =
+            if expanded then
+                ( [ Element.below <|
+                        Element.column
+                            [ Element.spacing 5
+                            , Element.paddingEach
+                                { top = 5
+                                , bottom = 0
+                                , right = 0
+                                , left = 0
+                                }
+                            ]
+                            [ Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
+                                { text = "Server"
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                ListImages
+                                                    { searchText = ""
+                                                    , tags = Set.empty
+                                                    , onlyOwnImages = False
+                                                    , expandImageDetails = Set.empty
+                                                    }
+                                                    { title = "Name"
+                                                    , asc = True
+                                                    }
+                                }
 
-                    {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
-                    , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
-                        { text = "Volume"
-                        , onPress =
-                            Just <|
-                                ProjectMsg projectId <|
-                                    SetProjectView <|
-                                        CreateVolume "" (ValidNumericTextInput 10)
-                        }
-                    ]
-        in
-        Element.column
-            [ Element.below belowStuff ]
-            [ Widget.iconButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
-                { text = "Create"
-                , icon =
-                    Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Create"
-                        , upArrow (SH.toElementColor style.palette.on.primary) 15
-                        ]
-                , onPress =
-                    Just <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
-                }
-            ]
+                            {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
+                            , Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
+                                { text = "Volume"
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                CreateVolume "" (ValidNumericTextInput 10)
+                                }
+                            ]
+                  ]
+                , upArrow
+                )
 
-    else
-        Element.column
-            []
-            [ Widget.iconButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
-                { text = "Create"
-                , icon =
-                    Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Create"
-                        , downArrow (SH.toElementColor style.palette.on.primary) 15
-                        ]
-                , onPress =
-                    Just <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
-                }
-            ]
+            else
+                ( []
+                , downArrow
+                )
+    in
+    Element.column
+        attribs
+        [ Widget.iconButton
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
+            { text = "Create"
+            , icon =
+                Element.row
+                    [ Element.spacing 5 ]
+                    [ Element.text "Create"
+                    , icon (SH.toElementColor style.palette.on.primary) 15
+                    ]
+            , onPress =
+                Just <|
+                    ProjectMsg projectId <|
+                        ToggleCreatePopup
+            }
+        ]
