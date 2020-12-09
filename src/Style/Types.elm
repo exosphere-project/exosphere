@@ -93,7 +93,7 @@ darkPalette =
     , on =
         { primary = Color.rgb255 255 255 255
         , secondary = Color.rgb255 0 0 0
-        , background = Color.rgb255 181 181 181
+        , background = Color.rgb255 205 205 205
         , surface = Color.rgb255 255 255 255
         , error = Color.rgb255 255 255 255
         }
