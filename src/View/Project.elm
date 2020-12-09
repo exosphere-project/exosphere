@@ -184,12 +184,12 @@ createButton style projectId expanded =
                                 }
                             ]
                   ]
-                , FeatherIcons.arrowUp
+                , FeatherIcons.chevronUp
                 )
 
             else
                 ( []
-                , FeatherIcons.arrowDown
+                , FeatherIcons.chevronDown
                 )
     in
     Element.column

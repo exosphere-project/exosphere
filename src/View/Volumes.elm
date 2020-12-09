@@ -259,7 +259,7 @@ renderAttachment style project attachment =
                             (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
                         )
                 , label =
-                    FeatherIcons.arrowRight
+                    FeatherIcons.chevronRight
                         |> FeatherIcons.withSize 14
                         |> FeatherIcons.toHtml []
                         |> Element.html

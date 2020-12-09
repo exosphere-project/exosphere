@@ -373,7 +373,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
 
         ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
             if serverListViewParams.onlyOwnServers then
-                ( ( "Show", FeatherIcons.arrowDown )
+                ( ( "Show", FeatherIcons.chevronDown )
                 , { serverListViewParams
                     | onlyOwnServers = False
                   }
@@ -390,7 +390,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
                             (\u -> not <| List.member u serverUuidsToDeselect)
                             serverListViewParams.selectedServers
                 in
-                ( ( "Hide", FeatherIcons.arrowUp )
+                ( ( "Hide", FeatherIcons.chevronUp )
                 , { serverListViewParams
                     | onlyOwnServers = True
                     , selectedServers = newSelectedServers
