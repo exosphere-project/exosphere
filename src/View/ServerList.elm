@@ -5,6 +5,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Set
@@ -372,7 +373,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
 
         ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
             if serverListViewParams.onlyOwnServers then
-                ( ( "Show", Icon.downArrow )
+                ( ( "Show", FeatherIcons.arrowDown )
                 , { serverListViewParams
                     | onlyOwnServers = False
                   }
@@ -389,7 +390,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
                             (\u -> not <| List.member u serverUuidsToDeselect)
                             serverListViewParams.selectedServers
                 in
-                ( ( "Hide", Icon.upArrow )
+                ( ( "Hide", FeatherIcons.arrowUp )
                 , { serverListViewParams
                     | onlyOwnServers = True
                     , selectedServers = newSelectedServers
@@ -408,7 +409,10 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
                 (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
-                    changeActionIcon (SH.toElementColor style.palette.primary) 16
+                    changeActionIcon
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
                 , text = changeActionVerb
                 }
     in

@@ -4,6 +4,7 @@ import Element
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import OpenStack.Quotas as OSQuotas
@@ -14,7 +15,6 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon as Icon
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -258,7 +258,12 @@ renderAttachment style project attachment =
                             project.auth.project.uuid
                             (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
                         )
-                , label = Icon.rightArrow (SH.toElementColor style.palette.muted) 16
+                , label =
+                    FeatherIcons.arrowRight
+                        |> FeatherIcons.withSize 14
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                        |> Element.el []
                 }
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"

@@ -1041,7 +1041,12 @@ serverVolumes style project server =
                                     project.auth.project.uuid
                                     (SetProjectView <| VolumeDetail v.uuid [])
                                 )
-                        , label = Icon.rightArrow (SH.toElementColor style.palette.muted) 16
+                        , label =
+                            FeatherIcons.arrowRight
+                                |> FeatherIcons.withSize 14
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                                |> Element.el []
                         }
 
                 volumeRow v =
