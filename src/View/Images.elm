@@ -185,7 +185,7 @@ images style project imageListViewParams sortTableParams =
             ++ [ Element.width Element.fill ]
         )
         [ Element.el VH.heading2 (Element.text "Choose an image")
-        , Input.text []
+        , Input.text (VH.inputItemAttributes style.palette.background)
             { text = imageListViewParams.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
             , onChange =

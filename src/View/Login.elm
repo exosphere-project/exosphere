@@ -100,11 +100,20 @@ viewLoginOpenstack model openstackCreds =
 
 
 loginOpenstackCredsEntry : Model -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackCredsEntry _ openstackCreds =
+loginOpenstackCredsEntry model openstackCreds =
     let
         updateCreds : OSTypes.OpenstackLogin -> Msg
         updateCreds newCreds =
             SetNonProjectView <| LoginOpenstack newCreds
+
+        textField text placeholderText onChange labelText =
+            Input.text
+                (VH.inputItemAttributes model.style.palette.background)
+                { text = text
+                , placeholder = Just (Input.placeholder [] (Element.text placeholderText))
+                , onChange = onChange
+                , label = Input.labelAbove [ Font.size 14 ] (Element.text labelText)
+                }
     in
     Element.column
         (VH.exoColumnAttributes
@@ -113,33 +122,23 @@ loginOpenstackCredsEntry _ openstackCreds =
                ]
         )
         [ Element.el [] (Element.text "Either enter your credentials...")
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.authUrl
-            , placeholder = Just (Input.placeholder [] (Element.text "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"))
-            , onChange = \u -> updateCreds { openstackCreds | authUrl = u }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Keystone auth URL")
-            }
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.userDomain
-            , placeholder = Just (Input.placeholder [] (Element.text "User domain e.g. default"))
-            , onChange = \d -> updateCreds { openstackCreds | userDomain = d }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Domain (name or ID)")
-            }
-        , Input.text
-            [ Element.spacing 12
-            ]
-            { text = openstackCreds.username
-            , placeholder = Just (Input.placeholder [] (Element.text "User name e.g. demo"))
-            , onChange = \u -> updateCreds { openstackCreds | username = u }
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "User Name")
-            }
+        , textField
+            openstackCreds.authUrl
+            "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
+            (\u -> updateCreds { openstackCreds | authUrl = u })
+            "Keystone auth URL"
+        , textField
+            openstackCreds.userDomain
+            "User domain e.g. default"
+            (\d -> updateCreds { openstackCreds | userDomain = d })
+            "User Domain (name or ID)"
+        , textField
+            openstackCreds.username
+            "User name e.g. demo"
+            (\u -> updateCreds { openstackCreds | username = u })
+            "User Name"
         , Input.currentPassword
-            [ Element.spacing 12
-            ]
+            (VH.inputItemAttributes model.style.palette.surface)
             { text = openstackCreds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
@@ -168,10 +167,12 @@ loginOpenstackOpenRcEntry model openstackCreds =
             , Element.text " file"
             ]
         , Input.multiline
-            [ Element.width (Element.px 300)
-            , Element.height Element.fill
-            , Font.size 12
-            ]
+            (VH.inputItemAttributes model.style.palette.background
+                ++ [ Element.width (Element.px 300)
+                   , Element.height Element.fill
+                   , Font.size 12
+                   ]
+            )
             { onChange = \o -> InputOpenRc openstackCreds o
             , text = ""
             , placeholder = Nothing
@@ -194,16 +195,14 @@ viewLoginJetstream model jetstreamCreds =
         , jetstreamLoginText model
         , Element.column VH.exoColumnAttributes
             [ Input.text
-                [ Element.spacing 12
-                ]
+                (VH.inputItemAttributes model.style.palette.background)
                 { text = jetstreamCreds.taccUsername
                 , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                 , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
                 , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
                 }
             , Input.currentPassword
-                [ Element.spacing 12
-                ]
+                (VH.inputItemAttributes model.style.palette.background)
                 { text = jetstreamCreds.taccPassword
                 , placeholder = Nothing
                 , onChange = \pw -> updateCreds { jetstreamCreds | taccPassword = pw }

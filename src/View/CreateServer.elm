@@ -83,7 +83,7 @@ createServer style project viewParams =
 
         contents flavor computeQuota volumeQuota =
             [ Input.text
-                [ Element.spacing 12 ]
+                (VH.inputItemAttributes style.palette.background)
                 { text = viewParams.serverName
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
@@ -116,7 +116,7 @@ createServer style project viewParams =
                             [ guacamolePicker project viewParams
                             , networkPicker style project viewParams
                             , keypairPicker project viewParams
-                            , userDataInput project viewParams
+                            , userDataInput style project viewParams
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
@@ -379,6 +379,7 @@ volBackedPrompt style project viewParams volumeQuota flavor =
                 Element.row VH.exoRowAttributes
                     [ numericTextInput
                         style.palette
+                        (VH.inputItemAttributes style.palette.background)
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
@@ -578,12 +579,15 @@ keypairPicker project viewParams =
         ]
 
 
-userDataInput : Project -> CreateServerViewParams -> Element.Element Msg
-userDataInput project viewParams =
+userDataInput : Style -> Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput style project viewParams =
     Input.multiline
-        [ Element.width (Element.px 600)
-        , Element.height (Element.px 500)
-        ]
+        (VH.inputItemAttributes style.palette.background
+            ++ [ Element.width (Element.px 600)
+               , Element.height (Element.px 500)
+               , Element.spacing 3
+               ]
+        )
         { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
         , text = viewParams.userDataTemplate
         , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))

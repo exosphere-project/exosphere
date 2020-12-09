@@ -8,8 +8,8 @@ import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..), NumericTextInputParams)
 
 
-numericTextInput : Style.Types.ExoPalette -> NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
-numericTextInput palette currentVal params onchangeFunc =
+numericTextInput : Style.Types.ExoPalette -> List (Element.Attribute msg) -> NumericTextInput -> NumericTextInputParams -> (NumericTextInput -> msg) -> Element.Element msg
+numericTextInput palette attribs currentVal params onchangeFunc =
     let
         currentValStr =
             case currentVal of
@@ -65,7 +65,7 @@ numericTextInput palette currentVal params onchangeFunc =
 
         textInput =
             Input.text
-                []
+                attribs
                 { text = currentValStr
                 , placeholder =
                     Maybe.map

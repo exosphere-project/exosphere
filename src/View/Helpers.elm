@@ -14,12 +14,15 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
+    , inputItemAttributes
     , possiblyUntitledResource
     , renderMessage
     , titleFromHostname
     )
 
+import Color
 import Element
+import Element.Background as Background
 import Element.Events
 import Element.Font as Font
 import Element.Region as Region
@@ -68,6 +71,13 @@ exoPaddingSpacingAttributes : List (Element.Attribute Msg)
 exoPaddingSpacingAttributes =
     [ Element.padding 10
     , Element.spacing 10
+    ]
+
+
+inputItemAttributes : Color.Color -> List (Element.Attribute Msg)
+inputItemAttributes backgroundColor =
+    [ Element.spacing 12
+    , Background.color <| SH.toElementColor <| backgroundColor
     ]
 
 

@@ -310,7 +310,7 @@ createVolume style project volName volSizeInput =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20 ])
         [ Element.el VH.heading2 (Element.text "Create Volume")
         , Input.text
-            [ Element.spacing 12 ]
+            (VH.inputItemAttributes style.palette.background)
             { text = volName
             , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
             , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume n volSizeInput
@@ -319,6 +319,7 @@ createVolume style project volName volSizeInput =
         , Element.text "(Suggestion: choose a good name that describes what the volume will store.)"
         , numericTextInput
             style.palette
+            (VH.inputItemAttributes style.palette.background)
             volSizeInput
             { labelText = "Size in GB"
             , minVal = Just 1
