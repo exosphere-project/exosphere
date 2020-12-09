@@ -1,11 +1,11 @@
 module View.Project exposing (project)
 
 import Element
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.Url as UrlHelpers
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Icon exposing (downArrow, upArrow)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.Types
@@ -184,12 +184,12 @@ createButton style projectId expanded =
                                 }
                             ]
                   ]
-                , upArrow
+                , FeatherIcons.arrowUp
                 )
 
             else
                 ( []
-                , downArrow
+                , FeatherIcons.arrowDown
                 )
     in
     Element.column
@@ -201,7 +201,11 @@ createButton style projectId expanded =
                 Element.row
                     [ Element.spacing 5 ]
                     [ Element.text "Create"
-                    , icon (SH.toElementColor style.palette.on.primary) 15
+                    , Element.el []
+                        (icon
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                        )
                     ]
             , onPress =
                 Just <|
