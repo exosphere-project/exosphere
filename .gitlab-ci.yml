@@ -1,6 +1,7 @@
 image: node:current-buster
 
 stages:
+  - confidence-check
   - build
   - test
   - deploy
@@ -146,6 +147,20 @@ deploy_dev:
     url: https://try-dev.exosphere.app/exosphere
   only:
     - dev
+
+
+e2e:
+  stage: confidence-check
+  image: python:3
+  allow_failure: false
+#  retry: 2
+  services:
+    - selenium/standalone-firefox
+  before_script:
+    - pip install -r integration-tests/requirements.txt
+  script:
+    - ping -c 10 -i 10 selenium__standalone-firefox
+    - curl http://selenium__standalone-firefox:4444
 
 
 include:
