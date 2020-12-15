@@ -14,6 +14,7 @@ import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
+import Style.Types
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
@@ -24,7 +25,6 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , Style
         )
 import View.Helpers as VH exposing (edges)
 import Widget
@@ -38,8 +38,8 @@ updateCreateServerRequest project viewParams =
             CreateServer viewParams
 
 
-createServer : Style -> Project -> CreateServerViewParams -> Element.Element Msg
-createServer style project viewParams =
+createServer : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
+createServer palette project viewParams =
     let
         invalidNameReasons =
             serverNameValidator viewParams.serverName
@@ -48,7 +48,7 @@ createServer style project viewParams =
             case invalidNameReasons of
                 Just reasons ->
                     Element.column
-                        [ Font.color (SH.toElementColor style.palette.error)
+                        [ Font.color (SH.toElementColor palette.error)
                         , Font.size 14
                         , Element.alignRight
                         , Element.moveDown 6
@@ -83,7 +83,7 @@ createServer style project viewParams =
 
         contents flavor computeQuota volumeQuota =
             [ Input.text
-                (VH.inputItemAttributes style.palette.background)
+                (VH.inputItemAttributes palette.background)
                 { text = viewParams.serverName
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
@@ -91,9 +91,9 @@ createServer style project viewParams =
                 }
             , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
-            , flavorPicker style project viewParams computeQuota
-            , volBackedPrompt style project viewParams volumeQuota flavor
-            , countPicker style project viewParams computeQuota volumeQuota flavor
+            , flavorPicker palette project viewParams computeQuota
+            , volBackedPrompt palette project viewParams volumeQuota flavor
+            , countPicker palette project viewParams computeQuota volumeQuota flavor
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -114,14 +114,14 @@ createServer style project viewParams =
 
                         else
                             [ guacamolePicker project viewParams
-                            , networkPicker style project viewParams
+                            , networkPicker palette project viewParams
                             , keypairPicker project viewParams
-                            , userDataInput style project viewParams
+                            , userDataInput palette project viewParams
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette style.palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
                     { text = "Create"
                     , onPress = createOnPress
                     }
@@ -146,7 +146,7 @@ createServer style project viewParams =
                         ( _, _, RemoteData.Loading ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (SH.materialStyle style.palette).progressIndicator
+                                    (SH.materialStyle palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -155,7 +155,7 @@ createServer style project viewParams =
                         ( _, RemoteData.Loading, _ ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (SH.materialStyle style.palette).progressIndicator
+                                    (SH.materialStyle palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -167,8 +167,8 @@ createServer style project viewParams =
         ]
 
 
-flavorPicker : Style -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
-flavorPicker style project viewParams computeQuota =
+flavorPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker palette project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -266,7 +266,7 @@ flavorPicker style project viewParams computeQuota =
 
         flavorEmptyHint =
             if viewParams.flavorUuid == "" then
-                [ VH.hint style "Please pick a size" ]
+                [ VH.hint palette "Please pick a size" ]
 
             else
                 []
@@ -295,8 +295,8 @@ flavorPicker style project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : Style -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt style project viewParams volumeQuota flavor =
+volBackedPrompt : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt palette project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
@@ -378,8 +378,8 @@ volBackedPrompt style project viewParams volumeQuota flavor =
             Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
                     [ numericTextInput
-                        style.palette
-                        (VH.inputItemAttributes style.palette.background)
+                        palette
+                        (VH.inputItemAttributes palette.background)
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
@@ -398,14 +398,14 @@ volBackedPrompt style project viewParams volumeQuota flavor =
 
 
 countPicker :
-    Style
+    Style.Types.ExoPalette
     -> Project
     -> CreateServerViewParams
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
     -> Element.Element Msg
-countPicker style project viewParams computeQuota volumeQuota flavor =
+countPicker palette project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
             OSQuotas.overallQuotaAvailServers
@@ -435,7 +435,7 @@ countPicker style project viewParams computeQuota volumeQuota flavor =
                         [ Element.width Element.fill
                         , Element.height (Element.px 2)
                         , Element.centerY
-                        , Background.color (SH.toElementColor style.palette.on.background)
+                        , Background.color (SH.toElementColor palette.on.background)
                         , Border.rounded 2
                         ]
                         Element.none
@@ -489,8 +489,8 @@ guacamolePicker project createServerViewParams =
                 ]
 
 
-networkPicker : Style -> Project -> CreateServerViewParams -> Element.Element Msg
-networkPicker style project viewParams =
+networkPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker palette project viewParams =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -529,7 +529,7 @@ networkPicker style project viewParams =
 
                         networkEmptyHint =
                             if viewParams.networkUuid == "" then
-                                [ VH.hint style "Please pick a network" ]
+                                [ VH.hint palette "Please pick a network" ]
 
                             else
                                 []
@@ -579,10 +579,10 @@ keypairPicker project viewParams =
         ]
 
 
-userDataInput : Style -> Project -> CreateServerViewParams -> Element.Element Msg
-userDataInput style project viewParams =
+userDataInput : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput palette project viewParams =
     Input.multiline
-        (VH.inputItemAttributes style.palette.background
+        (VH.inputItemAttributes palette.background
             ++ [ Element.width (Element.px 600)
                , Element.height (Element.px 500)
                , Element.spacing 3

@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
+import Style.Types
 import Style.Widgets.Button
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
@@ -28,7 +29,6 @@ import Types.Types
         , ServerListViewParams
         , ServerOrigin(..)
         , ServerSelection
-        , Style
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -36,14 +36,14 @@ import Widget
 import Widget.Style.Material
 
 
-serverList : Style -> Project -> ServerListViewParams -> Element.Element Msg
-serverList style project serverListViewParams =
+serverList : Style.Types.ExoPalette -> Project -> ServerListViewParams -> Element.Element Msg
+serverList palette project serverListViewParams =
     {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
             Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
-                    (SH.materialStyle style.palette).progressIndicator
+                    (SH.materialStyle palette).progressIndicator
                     Nothing
                 , Element.text "Please wait..."
                 ]
@@ -54,7 +54,7 @@ serverList style project serverListViewParams =
         ( RDPP.DontHave, RDPP.Loading _ ) ->
             Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
-                    (SH.materialStyle style.palette).progressIndicator
+                    (SH.materialStyle palette).progressIndicator
                     Nothing
                 , Element.text "Loading..."
                 ]
@@ -65,15 +65,15 @@ serverList style project serverListViewParams =
 
             else
                 serverList_
-                    style
+                    palette
                     project.auth.project.uuid
                     project.auth.user.uuid
                     serverListViewParams
                     servers
 
 
-serverList_ : Style -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
-serverList_ style projectId userUuid serverListViewParams servers =
+serverList_ : Style.Types.ExoPalette -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
+serverList_ palette projectId userUuid serverListViewParams servers =
     {- Render a list of servers -}
     let
         ( ownServers, otherUsersServers ) =
@@ -105,25 +105,25 @@ serverList_ style projectId userUuid serverListViewParams servers =
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
                 [ [ renderTableHead
-                        style
+                        palette
                         projectId
                         allServersSelected
                         ( selectableServers, selectedServers )
                         serverListViewParams
                   ]
-                , List.map (renderServer style projectId serverListViewParams True) ownServers
-                , [ onlyOwnExpander style projectId serverListViewParams otherUsersServers ]
+                , List.map (renderServer palette projectId serverListViewParams True) ownServers
+                , [ onlyOwnExpander palette projectId serverListViewParams otherUsersServers ]
                 , if serverListViewParams.onlyOwnServers then
                     []
 
                   else
-                    List.map (renderServer style projectId serverListViewParams False) otherUsersServers
+                    List.map (renderServer palette projectId serverListViewParams False) otherUsersServers
                 ]
         ]
 
 
-renderTableHead : Style -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
-renderTableHead style projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
+renderTableHead : Style.Types.ExoPalette -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
+renderTableHead palette projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
     let
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
@@ -157,7 +157,7 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
         extraColAttrs =
             [ Element.width Element.fill
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            , Border.color (SH.toElementColor style.palette.on.background)
+            , Border.color (SH.toElementColor palette.on.background)
             , Element.paddingXY 5 0
             ]
 
@@ -177,7 +177,7 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
                     }
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Style.Widgets.Button.dangerButton style.palette)
+                    (Style.Widgets.Button.dangerButton palette)
                     { text = "Delete"
                     , onPress = deleteButtonOnPress
                     }
@@ -185,13 +185,13 @@ renderTableHead style projectId allServersSelected ( selectableServers, selected
         ]
 
 
-renderServer : Style -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
-renderServer style projectId serverListViewParams isMyServer server =
+renderServer : Style.Types.ExoPalette -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
+renderServer palette projectId serverListViewParams isMyServer server =
     let
         statusIcon =
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]
-                (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor style.palette) 16)
+                (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor palette) 16)
 
         creatorNameView =
             case ( isMyServer, server.exoProps.serverOrigin ) of
@@ -237,7 +237,7 @@ renderServer style projectId serverListViewParams isMyServer server =
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = False
                         , onChange = \_ -> NoOp
-                        , icon = \_ -> Icon.lock (SH.toElementColor style.palette.on.surface) 14
+                        , icon = \_ -> Icon.lock (SH.toElementColor palette.on.surface) 14
                         , label = Input.labelHidden server.osProps.name
                         }
 
@@ -283,16 +283,16 @@ renderServer style projectId serverListViewParams isMyServer server =
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton style.palette)
-                        { icon = Icon.remove (SH.toElementColor style.palette.on.error) 16
+                        (Style.Widgets.Button.dangerButton palette)
+                        { icon = Icon.remove (SH.toElementColor palette.on.error) 16
                         , text = "Delete"
                         , onPress =
                             Just
                                 (ProjectMsg projectId (RequestDeleteServer server.osProps.uuid))
                         }
                     , Widget.iconButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette style.palette))
-                        { icon = Icon.windowClose (SH.toElementColor style.palette.on.surface) 16
+                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                        { icon = Icon.windowClose (SH.toElementColor palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
                             Just
@@ -312,8 +312,8 @@ renderServer style projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton style.palette)
-                        { icon = Icon.remove (SH.toElementColor style.palette.on.error) 16
+                        (Style.Widgets.Button.dangerButton palette)
+                        { icon = Icon.remove (SH.toElementColor palette.on.error) 16
                         , text = "Delete"
                         , onPress =
                             Just
@@ -328,8 +328,8 @@ renderServer style projectId serverListViewParams isMyServer server =
 
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton style.palette)
-                        { icon = Icon.remove (SH.toElementColor style.palette.on.error) 16
+                        (Style.Widgets.Button.dangerButton palette)
+                        { icon = Icon.remove (SH.toElementColor palette.on.error) 16
                         , text = "Delete"
                         , onPress = Nothing
                         }
@@ -343,8 +343,8 @@ renderServer style projectId serverListViewParams isMyServer server =
         )
 
 
-onlyOwnExpander : Style -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
-onlyOwnExpander style projectId serverListViewParams otherUsersServers =
+onlyOwnExpander : Style.Types.ExoPalette -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
+onlyOwnExpander palette projectId serverListViewParams otherUsersServers =
     let
         numOtherUsersServers =
             List.length otherUsersServers
@@ -406,7 +406,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
 
         changeButton =
             Widget.button
-                (Widget.Style.Material.textButton (SH.toMaterialPalette style.palette))
+                (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
                     changeActionIcon
@@ -424,7 +424,7 @@ onlyOwnExpander style projectId serverListViewParams otherUsersServers =
             [ Element.el
                 [ Element.width Element.fill
                 , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-                , Border.color (SH.toElementColor style.palette.on.background)
+                , Border.color (SH.toElementColor palette.on.background)
                 ]
                 Element.none
             , Element.el

@@ -7,37 +7,37 @@ import Element.Font as Font
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
 import Style.Helpers as SH
+import Style.Types
 import Types.Types
     exposing
         ( Msg(..)
         , Project
-        , Style
         )
 import View.Helpers as VH
 
 
-dashboard : Style -> Project -> Element.Element Msg
-dashboard style project =
+dashboard : Style.Types.ExoPalette -> Project -> Element.Element Msg
+dashboard palette project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2 <| Element.text "Quota/Usage"
-        , quotaSections style project
+        , quotaSections palette project
         ]
 
 
-quotaSections : Style -> Project -> Element.Element Msg
-quotaSections style project =
+quotaSections : Style.Types.ExoPalette -> Project -> Element.Element Msg
+quotaSections palette project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ computeQuota style project
-        , volumeQuota style project
+        [ computeQuota palette project
+        , volumeQuota palette project
 
         -- networkQuota stuff - whenever I find that
         ]
 
 
-infoItem : Style -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
-infoItem style detail ( label, units ) =
+infoItem : Style.Types.ExoPalette -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
+infoItem palette detail ( label, units ) =
     let
         labelLimit m_ =
             m_
@@ -48,7 +48,7 @@ infoItem style detail ( label, units ) =
             String.fromInt i_
 
         bg =
-            Background.color <| SH.toElementColor style.palette.surface
+            Background.color <| SH.toElementColor palette.surface
 
         border =
             Border.rounded 5
@@ -71,22 +71,22 @@ infoItem style detail ( label, units ) =
         ]
 
 
-computeQuota : Style -> Project -> Element.Element Msg
-computeQuota style project =
+computeQuota : Style.Types.ExoPalette -> Project -> Element.Element Msg
+computeQuota palette project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading3 <| Element.text "Compute"
-        , computeQuotaDetails style project.computeQuota
+        , computeQuotaDetails palette project.computeQuota
         ]
 
 
-computeInfoItems : Style -> OSTypes.ComputeQuota -> Element.Element Msg
-computeInfoItems style quota =
+computeInfoItems : Style.Types.ExoPalette -> OSTypes.ComputeQuota -> Element.Element Msg
+computeInfoItems palette quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem style quota.cores ( "Cores:", "total" )
-        , infoItem style quota.instances ( "Instances:", "total" )
-        , infoItem style quota.ram ( "RAM:", "MB" )
+        [ infoItem palette quota.cores ( "Cores:", "total" )
+        , infoItem palette quota.instances ( "Instances:", "total" )
+        , infoItem palette quota.ram ( "RAM:", "MB" )
         ]
 
 
@@ -106,33 +106,33 @@ quotaDetail quota infoItemsF =
             infoItemsF quota_
 
 
-computeQuotaDetails : Style -> WebData OSTypes.ComputeQuota -> Element.Element Msg
-computeQuotaDetails style quota =
+computeQuotaDetails : Style.Types.ExoPalette -> WebData OSTypes.ComputeQuota -> Element.Element Msg
+computeQuotaDetails exoPalette quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail quota (computeInfoItems style) ]
+        [ quotaDetail quota (computeInfoItems exoPalette) ]
 
 
-volumeQuota : Style -> Project -> Element.Element Msg
-volumeQuota style project =
+volumeQuota : Style.Types.ExoPalette -> Project -> Element.Element Msg
+volumeQuota palette project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading3 <| Element.text "Volumes"
-        , volumeQuoteDetails style project.volumeQuota
+        , volumeQuoteDetails palette project.volumeQuota
         ]
 
 
-volumeInfoItems : Style -> OSTypes.VolumeQuota -> Element.Element Msg
-volumeInfoItems style quota =
+volumeInfoItems : Style.Types.ExoPalette -> OSTypes.VolumeQuota -> Element.Element Msg
+volumeInfoItems palette quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem style quota.gigabytes ( "Storage:", "GB" )
-        , infoItem style quota.volumes ( "Volumes:", "total" )
+        [ infoItem palette quota.gigabytes ( "Storage:", "GB" )
+        , infoItem palette quota.volumes ( "Volumes:", "total" )
         ]
 
 
-volumeQuoteDetails : Style -> WebData OSTypes.VolumeQuota -> Element.Element Msg
-volumeQuoteDetails style quota =
+volumeQuoteDetails : Style.Types.ExoPalette -> WebData OSTypes.VolumeQuota -> Element.Element Msg
+volumeQuoteDetails palette quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail quota (volumeInfoItems style) ]
+        [ quotaDetail quota (volumeInfoItems palette) ]

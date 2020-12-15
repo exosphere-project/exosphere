@@ -2,6 +2,7 @@ module State.Init exposing (init)
 
 import AppUrl.Parser
 import Browser.Navigation
+import Color
 import Dict
 import Helpers.GetterSetters as GetterSetters
 import Json.Decode as Decode
@@ -55,6 +56,16 @@ init flags maybeUrlKey =
             , clientUuid = Nothing
             }
 
+        ( primaryColor, secondaryColor ) =
+            case flags.palette of
+                Just palette ->
+                    ( Color.rgb255 palette.primary.r palette.primary.g palette.primary.b
+                    , Color.rgb255 palette.secondary.r palette.secondary.g palette.secondary.b
+                    )
+
+                Nothing ->
+                    ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
+
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
@@ -73,8 +84,18 @@ init flags maybeUrlKey =
             , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
             , style =
-                { palette = Style.Types.defaultPalette
-                , logo = "assets/img/logo-alt.svg"
+                { logo =
+                    case flags.logo of
+                        Just logoUrl ->
+                            logoUrl
+
+                        Nothing ->
+                            "assets/img/logo-alt.svg"
+                , primaryColor = primaryColor
+                , secondaryColor = secondaryColor
+                , styleMode = Style.Types.LightMode
+                , appTitle =
+                    flags.appTitle |> Maybe.withDefault "exosphere"
                 }
             }
 

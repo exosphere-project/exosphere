@@ -38,6 +38,9 @@ var app = moduleToInit({
           ["tacc.jetstream-cloud.org", "proxy-j7m-tacc.exosphere.app"],
         ],
         urlPathPrefix: null,
+        palette: null,
+        logo: null,
+        appTitle: null,
 
         // Flags that Exosphere sets dynamically
         width: window.innerWidth,

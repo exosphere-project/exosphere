@@ -9,6 +9,7 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
+import Style.Types
 import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
@@ -18,7 +19,6 @@ import Types.Types
         ( CockpitLoginStatus(..)
         , Server
         , ServerOrigin(..)
-        , Style
         , UserAppProxyHostname
         )
 
@@ -197,23 +197,23 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
             ITypes.Unavailable "Server is not active"
 
 
-interactionStatusWordColor : Style -> ITypes.InteractionStatus -> ( String, Element.Color )
-interactionStatusWordColor style status =
+interactionStatusWordColor : Style.Types.ExoPalette -> ITypes.InteractionStatus -> ( String, Element.Color )
+interactionStatusWordColor palette status =
     case status of
         ITypes.Unavailable _ ->
-            ( "Unavailable", SH.toElementColor style.palette.muted )
+            ( "Unavailable", SH.toElementColor palette.muted )
 
         ITypes.Loading ->
-            ( "Loading", SH.toElementColor style.palette.warn )
+            ( "Loading", SH.toElementColor palette.warn )
 
         ITypes.Ready _ ->
-            ( "Ready", SH.toElementColor style.palette.readyGood )
+            ( "Ready", SH.toElementColor palette.readyGood )
 
         ITypes.Error _ ->
-            ( "Error", SH.toElementColor style.palette.error )
+            ( "Error", SH.toElementColor palette.error )
 
         ITypes.Hidden ->
-            ( "Hidden", SH.toElementColor style.palette.muted )
+            ( "Hidden", SH.toElementColor palette.muted )
 
 
 interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails msg

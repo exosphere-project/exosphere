@@ -53,6 +53,7 @@ module Types.Types exposing
     )
 
 import Browser.Navigation
+import Color
 import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -82,6 +83,21 @@ type alias Flags =
     { showDebugMsgs : Bool
     , cloudCorsProxyUrl : Maybe HelperTypes.Url
     , urlPathPrefix : Maybe String
+    , appTitle : Maybe String
+    , palette :
+        Maybe
+            { primary :
+                { r : Int
+                , g : Int
+                , b : Int
+                }
+            , secondary :
+                { r : Int
+                , g : Int
+                , b : Int
+                }
+            }
+    , logo : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -126,8 +142,11 @@ type alias Model =
 
 
 type alias Style =
-    { palette : Style.Types.ExoPalette
-    , logo : HelperTypes.Url
+    { logo : HelperTypes.Url
+    , primaryColor : Color.Color
+    , secondaryColor : Color.Color
+    , styleMode : Style.Types.StyleMode
+    , appTitle : String
     }
 
 
@@ -228,7 +247,7 @@ type Msg
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
-    | SetStyle Style
+    | SetStyle Style.Types.StyleMode
     | NoOp
 
 

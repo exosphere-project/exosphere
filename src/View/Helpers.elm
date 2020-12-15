@@ -18,6 +18,7 @@ module View.Helpers exposing
     , possiblyUntitledResource
     , renderMessage
     , titleFromHostname
+    , toExoPalette
     )
 
 import Color
@@ -46,6 +47,11 @@ import Types.Types
         , Style
         )
 import View.Types
+
+
+toExoPalette : Style -> ExoPalette
+toExoPalette style =
+    SH.toExoPalette style.primaryColor style.secondaryColor style.styleMode
 
 
 
@@ -140,11 +146,11 @@ edges =
     }
 
 
-hint : Style -> String -> Element.Attribute msg
-hint style hintText =
+hint : Style.Types.ExoPalette -> String -> Element.Attribute msg
+hint palette hintText =
     Element.below
         (Element.el
-            [ Font.color (SH.toElementColor style.palette.error)
+            [ Font.color (palette.error |> SH.toElementColor)
             , Font.size 14
             , Element.alignRight
             , Element.moveDown 6
@@ -160,16 +166,16 @@ renderMessage style message =
         levelColor errLevel =
             case errLevel of
                 ErrorDebug ->
-                    SH.toElementColor style.palette.readyGood
+                    style |> toExoPalette |> .readyGood |> SH.toElementColor
 
                 ErrorInfo ->
-                    SH.toElementColor style.palette.on.background
+                    style |> toExoPalette |> .on |> .background |> SH.toElementColor
 
                 ErrorWarn ->
-                    SH.toElementColor style.palette.warn
+                    style |> toExoPalette |> .warn |> SH.toElementColor
 
                 ErrorCrit ->
-                    SH.toElementColor style.palette.error
+                    style |> toExoPalette |> .error |> SH.toElementColor
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
@@ -180,7 +186,7 @@ renderMessage style message =
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ Font.color <| SH.toElementColor style.palette.muted ]
+            , Element.el [ style |> toExoPalette |> .muted |> SH.toElementColor |> Font.color ]
                 (Element.text
                     (" at " ++ humanReadableTime message.timestamp)
                 )
@@ -198,11 +204,11 @@ renderMessage style message =
         ]
 
 
-browserLink : Style -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
-browserLink style isElectron url label =
+browserLink : Style.Types.ExoPalette -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink palette isElectron url label =
     let
         linkAttribs =
-            [ Font.color (SH.toElementColor style.palette.primary)
+            [ palette.primary |> SH.toElementColor |> Font.color
             , Font.underline
             , Element.pointer
             ]

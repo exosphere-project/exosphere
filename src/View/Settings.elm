@@ -7,7 +7,6 @@ import Types.Types
     exposing
         ( Model
         , Msg(..)
-        , Style
         )
 import View.Helpers as VH
 
@@ -19,13 +18,15 @@ settings model =
         [ Element.el VH.heading2 <| Element.text "Settings"
         , Input.radio
             VH.exoColumnAttributes
-            { onChange = \newStyle -> SetStyle (Style newStyle model.style.logo)
+            { onChange =
+                \newStyleMode ->
+                    SetStyle newStyleMode
             , options =
-                [ Input.option Style.Types.defaultPalette (Element.text "Light")
-                , Input.option Style.Types.darkPalette (Element.text "Dark")
+                [ Input.option Style.Types.LightMode (Element.text "Light")
+                , Input.option Style.Types.DarkMode (Element.text "Dark")
                 ]
             , selected =
-                Just model.style.palette
+                Just model.style.styleMode
             , label = Input.labelAbove [] (Element.text "Color theme")
             }
         ]
