@@ -1,12 +1,12 @@
 module Style.StyleGuide exposing (main)
 
 import Browser
-import Color
 import Element
 import Element.Font as Font
 import Element.Region as Region
 import Set exposing (Set)
-import Style.Theme exposing (Style, exoPalette)
+import Style.Helpers as SH
+import Style.Types
 import Style.Widgets.Button exposing (dangerButton, warningButton)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
@@ -26,43 +26,44 @@ type Msg
     | NoOp
 
 
-widgets : (Msg -> msg) -> Style style msg -> Model -> List (Element.Element msg)
-widgets msgMapper style model =
+widgets : (Msg -> msg) -> Style.Types.ExoPalette -> Model -> List (Element.Element msg)
+widgets msgMapper palette model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
-    , menuItem Active "Active menu item" Nothing
-    , menuItem Inactive "Inactive menu item" Nothing
+    , menuItem palette Active "Active menu item" Nothing
+    , menuItem palette Inactive "Inactive menu item" Nothing
     , Element.text "Style.Widgets.Icon.roundRect"
-    , roundRect (Element.rgb255 10 10 10) 40
+    , roundRect (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.bell"
-    , bell (Element.rgb255 10 10 10) 40
+    , bell (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.question"
-    , question (Element.rgb255 10 10 10) 40
+    , question (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.remove"
-    , remove (Element.rgb255 10 10 10) 40
-    , Element.text "Style.Widgets.Icon.timesCircle (black)"
-    , timesCircle (Element.rgb255 10 10 10) 40
-    , Element.text "Style.Widgets.Icon.timesCircle (white)"
-    , timesCircle (Element.rgb255 255 255 255) 40
+    , remove (palette.on.background |> SH.toElementColor) 40
+    , Element.text "Style.Widgets.Icon.timesCircle"
+    , timesCircle (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Card.exoCard"
-    , exoCard "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
+    , exoCard palette "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
     , Element.text "Style.Widgets.Button.dangerButton"
     , Widget.textButton
-        (dangerButton Style.Theme.exoPalette)
+        (dangerButton palette)
         { text = "Danger button", onPress = Just (msgMapper NoOp) }
     , Element.text "Style.Widgets.Button.warningButton"
     , Widget.textButton
-        (warningButton Style.Theme.exoPalette (Color.rgb255 255 221 87))
+        (warningButton palette)
         { text = "Warning button", onPress = Just (msgMapper NoOp) }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
-    , copyableText "foobar"
+    , copyableText palette "foobar"
     , Element.text "Style.Widgets.IconButton.chip"
-    , chip Nothing (Element.text "chip label")
+    , chip palette Nothing (Element.text "chip label")
     , Element.text "Style.Widgets.IconButton.chip (with badge)"
-    , chip Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
+    , chip palette Nothing (Element.row [ Element.spacing 5 ] [ Element.text "ubuntu", badge "10" ])
     , Element.text "chipsFilter"
-    , chipsFilter (ChipsFilterMsg >> msgMapper) style model.chipFilterModel
+    , chipsFilter
+        (ChipsFilterMsg >> msgMapper)
+        (SH.materialStyle palette)
+        model.chipFilterModel
     ]
 
 
@@ -170,10 +171,17 @@ subscriptions _ =
     Sub.none
 
 
-view : (Msg -> msg) -> Style style msg -> Model -> Element.Element msg
-view msgMapper style model =
+view : (Msg -> msg) -> Model -> Element.Element msg
+view msgMapper model =
+    let
+        palette =
+            SH.toExoPalette
+                Style.Types.defaultPrimaryColor
+                Style.Types.defaultSecondaryColor
+                Style.Types.LightMode
+    in
     intro
-        ++ widgets msgMapper style model
+        ++ widgets msgMapper palette model
         |> Element.column
             [ Element.padding 10
             , Element.spacing 20
@@ -184,7 +192,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { init = always init
-        , view = view identity (Style.Theme.materialStyle exoPalette) >> Element.layout []
+        , view = view identity >> Element.layout []
         , update = update
         , subscriptions = subscriptions
         }
