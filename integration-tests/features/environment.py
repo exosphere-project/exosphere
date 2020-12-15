@@ -13,6 +13,12 @@ def setup_debug_on_error(userdata):
 
 def before_all(context):
     setup_debug_on_error(context.config.userdata)
+    context.remote_webdriver = context.config.userdata.getbool("REMOTE_WEBDRIVER", False)
+    if not hasattr(context, "browser_args"):
+        context.browser_args = {}
+    command_executor = context.config.userdata.get("COMMAND_EXECUTOR")
+    if command_executor:
+        context.browser_args['command_executor'] = command_executor
     benv.before_all(context)
 
 

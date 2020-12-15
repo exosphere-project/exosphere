@@ -159,8 +159,12 @@ e2e:
   before_script:
     - pip install -r integration-tests/requirements.txt
   script:
-    - ping -c 10 -i 10 selenium__standalone-firefox
-    - curl http://selenium__standalone-firefox:4444
+    - ping -c 2 -i 2 selenium__standalone-firefox
+    - curl --dump-header - selenium__standalone-firefox:4444/wd/hub/static/resource/hub.html
+    - cd integration-tests
+    - export taccusername=TBD
+    - export taccpass=TBD
+    - behave -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://selenium__standalone-firefox:4444/wd/hub features/exosphere.feature
 
 
 include:
