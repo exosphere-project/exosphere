@@ -45,8 +45,8 @@ toExoPalette primaryColor secondaryColor styleMode =
             }
 
         DarkMode ->
-            { primary = Color.rgb255 0 165 255
-            , secondary = Color.rgb255 96 239 255
+            { primary = primaryColor
+            , secondary = secondaryColor
             , background = Color.rgb255 36 36 36
             , surface = Color.rgb255 51 51 51
             , error = Color.rgb255 204 0 0
