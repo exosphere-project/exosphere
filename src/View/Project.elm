@@ -1,11 +1,12 @@
 module View.Project exposing (project)
 
 import Element
+import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.Url as UrlHelpers
 import Set
-import Style.Theme
-import Style.Widgets.Icon exposing (downArrow, upArrow)
+import Style.Helpers as SH
+import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.Types
@@ -33,55 +34,55 @@ import Widget
 import Widget.Style.Material
 
 
-project : Model -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
-project model p viewParams viewConstructor =
+project : Model -> Style.Types.ExoPalette -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
+project model palette p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
                 ListImages imageFilter sortTableParams ->
-                    View.Images.imagesIfLoaded p imageFilter sortTableParams
+                    View.Images.imagesIfLoaded palette p imageFilter sortTableParams
 
                 ListProjectServers serverListViewParams ->
-                    View.ServerList.serverList p serverListViewParams
+                    View.ServerList.serverList palette p serverListViewParams
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.ServerDetail.serverDetail p (Helpers.appIsElectron model) ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
+                    View.ServerDetail.serverDetail palette p (Helpers.appIsElectron model) ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
                 CreateServer createServerViewParams ->
-                    View.CreateServer.createServer p createServerViewParams
+                    View.CreateServer.createServer palette p createServerViewParams
 
                 ListProjectVolumes deleteVolumeConfirmations ->
-                    View.Volumes.volumes p deleteVolumeConfirmations
+                    View.Volumes.volumes palette p deleteVolumeConfirmations
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
-                    View.Volumes.volumeDetailView p deleteVolumeConfirmations volumeUuid
+                    View.Volumes.volumeDetailView palette p deleteVolumeConfirmations volumeUuid
 
                 CreateVolume volName volSizeInput ->
-                    View.Volumes.createVolume p volName volSizeInput
+                    View.Volumes.createVolume palette p volName volSizeInput
 
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
-                    View.AttachVolume.attachVolume p maybeServerUuid maybeVolumeUuid
+                    View.AttachVolume.attachVolume palette p maybeServerUuid maybeVolumeUuid
 
                 MountVolInstructions attachment ->
-                    View.AttachVolume.mountVolInstructions p attachment
+                    View.AttachVolume.mountVolInstructions palette p attachment
 
                 CreateServerImage serverUuid imageName ->
-                    View.CreateServerImage.createServerImage p serverUuid imageName
+                    View.CreateServerImage.createServerImage palette p serverUuid imageName
 
                 ListQuotaUsage ->
-                    View.QuotaUsage.dashboard p
+                    View.QuotaUsage.dashboard palette p
     in
     Element.column
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav p viewParams
+        [ projectNav palette p viewParams
         , v
         ]
 
 
-projectNav : Project -> ProjectViewParams -> Element.Element Msg
-projectNav p viewParams =
+projectNav : Style.Types.ExoPalette -> Project -> ProjectViewParams -> Element.Element Msg
+projectNav palette p viewParams =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
@@ -95,7 +96,7 @@ projectNav p viewParams =
                 []
               <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
                     { text = "Servers"
                     , onPress =
                         Just <|
@@ -107,14 +108,14 @@ projectNav p viewParams =
                 []
               <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
                     { text = "Volumes"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
                     }
             , Element.el [] <|
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
                     { text = "Quota/Usage"
                     , onPress =
                         SetProjectView ListQuotaUsage
@@ -126,95 +127,89 @@ projectNav p viewParams =
                 [ Element.alignRight ]
               <|
                 Widget.textButton
-                    (Widget.Style.Material.textButton Style.Theme.exoPalette)
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
                     { text = "Remove Project"
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid RemoveProject
                     }
             , Element.el
                 [ Element.alignRight ]
-                (createButton p.auth.project.uuid viewParams.createPopup)
+                (createButton palette p.auth.project.uuid viewParams.createPopup)
             ]
         ]
 
 
-createButton : ProjectIdentifier -> Bool -> Element.Element Msg
-createButton projectId expanded =
-    if expanded then
-        let
-            belowStuff =
-                Element.column
-                    [ Element.spacing 5
-                    , Element.paddingEach
-                        { top = 5
-                        , bottom = 0
-                        , right = 0
-                        , left = 0
-                        }
-                    ]
-                    [ Widget.textButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                        { text = "Server"
-                        , onPress =
-                            Just <|
-                                ProjectMsg projectId <|
-                                    SetProjectView <|
-                                        ListImages
-                                            { searchText = ""
-                                            , tags = Set.empty
-                                            , onlyOwnImages = False
-                                            , expandImageDetails = Set.empty
-                                            }
-                                            { title = "Name"
-                                            , asc = True
-                                            }
-                        }
+createButton : Style.Types.ExoPalette -> ProjectIdentifier -> Bool -> Element.Element Msg
+createButton palette projectId expanded =
+    let
+        ( attribs, icon ) =
+            if expanded then
+                ( [ Element.below <|
+                        Element.column
+                            [ Element.spacing 5
+                            , Element.paddingEach
+                                { top = 5
+                                , bottom = 0
+                                , right = 0
+                                , left = 0
+                                }
+                            ]
+                            [ Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                                { text = "Server"
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                ListImages
+                                                    { searchText = ""
+                                                    , tags = Set.empty
+                                                    , onlyOwnImages = False
+                                                    , expandImageDetails = Set.empty
+                                                    }
+                                                    { title = "Name"
+                                                    , asc = True
+                                                    }
+                                }
 
-                    {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
-                    , Widget.textButton
-                        (Widget.Style.Material.outlinedButton Style.Theme.exoPalette)
-                        { text = "Volume"
-                        , onPress =
-                            Just <|
-                                ProjectMsg projectId <|
-                                    SetProjectView <|
-                                        CreateVolume "" (ValidNumericTextInput 10)
-                        }
-                    ]
-        in
-        Element.column
-            [ Element.below belowStuff ]
-            [ Widget.iconButton
-                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
-                { text = "Create"
-                , icon =
-                    Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Create"
-                        , upArrow (Element.rgb255 255 255 255) 15
-                        ]
-                , onPress =
-                    Just <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
-                }
-            ]
+                            {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
+                            , Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                                { text = "Volume"
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                CreateVolume "" (ValidNumericTextInput 10)
+                                }
+                            ]
+                  ]
+                , FeatherIcons.chevronUp
+                )
 
-    else
-        Element.column
-            []
-            [ Widget.iconButton
-                (Widget.Style.Material.containedButton Style.Theme.exoPalette)
-                { text = "Create"
-                , icon =
-                    Element.row
-                        [ Element.spacing 5 ]
-                        [ Element.text "Create"
-                        , downArrow (Element.rgb255 255 255 255) 15
-                        ]
-                , onPress =
-                    Just <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
-                }
-            ]
+            else
+                ( []
+                , FeatherIcons.chevronDown
+                )
+    in
+    Element.column
+        attribs
+        [ Widget.iconButton
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+            { text = "Create"
+            , icon =
+                Element.row
+                    [ Element.spacing 5 ]
+                    [ Element.text "Create"
+                    , Element.el []
+                        (icon
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                        )
+                    ]
+            , onPress =
+                Just <|
+                    ProjectMsg projectId <|
+                        ToggleCreatePopup
+            }
+        ]

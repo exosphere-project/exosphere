@@ -2,6 +2,7 @@ module State.Init exposing (init)
 
 import AppUrl.Parser
 import Browser.Navigation
+import Color
 import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -14,6 +15,7 @@ import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Rest.Neutron
 import State.ViewState exposing (setProjectView)
+import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
@@ -53,7 +55,18 @@ init flags maybeUrlKey =
         emptyStoredState =
             { projects = []
             , clientUuid = Nothing
+            , styleMode = Nothing
             }
+
+        ( primaryColor, secondaryColor ) =
+            case flags.palette of
+                Just palette ->
+                    ( Color.rgb255 palette.primary.r palette.primary.g palette.primary.b
+                    , Color.rgb255 palette.secondary.r palette.secondary.g palette.secondary.b
+                    )
+
+                Nothing ->
+                    ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
 
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
@@ -72,6 +85,20 @@ init flags maybeUrlKey =
             , clientCurrentTime = currentTime
             , timeZone = timeZone
             , showDebugMsgs = showDebugMsgs
+            , style =
+                { logo =
+                    case flags.logo of
+                        Just logoUrl ->
+                            logoUrl
+
+                        Nothing ->
+                            "assets/img/logo-alt.svg"
+                , primaryColor = primaryColor
+                , secondaryColor = secondaryColor
+                , styleMode = Style.Types.LightMode
+                , appTitle =
+                    flags.appTitle |> Maybe.withDefault "exosphere"
+                }
             }
 
         -- This only gets used if we do not find a client UUID in stored state

@@ -1,25 +1,32 @@
 module Style.Widgets.Button exposing (dangerButton, warningButton)
 
-import Color exposing (Color)
+import Style.Helpers as SH
+import Style.Types
 import Widget.Style exposing (ButtonStyle)
-import Widget.Style.Material exposing (Palette, containedButton)
+import Widget.Style.Material exposing (containedButton)
 
 
-warningButton : Palette -> Color -> ButtonStyle msg
-warningButton palette warningColor =
+warningButton : Style.Types.ExoPalette -> ButtonStyle msg
+warningButton palette =
     -- A slight modification of the containedButton from `src/Widget/Style/Material.elm`, swapping in a "warning" color instead of using the primary color.
     let
+        materialPalette =
+            SH.toMaterialPalette palette
+
         warningPalette =
-            { palette | primary = warningColor }
+            { materialPalette | primary = palette.warn }
     in
     containedButton warningPalette
 
 
-dangerButton : Palette -> ButtonStyle msg
+dangerButton : Style.Types.ExoPalette -> ButtonStyle msg
 dangerButton palette =
     -- A slight modification of the containedButton from `src/Widget/Style/Material.elm`, swapping in the palette's danger color instead of using the primary color.
     let
+        materialPalette =
+            SH.toMaterialPalette palette
+
         dangerPalette =
-            { palette | primary = palette.error }
+            { materialPalette | primary = palette.error }
     in
     containedButton dangerPalette

@@ -14,12 +14,16 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
+    , inputItemAttributes
     , possiblyUntitledResource
     , renderMessage
     , titleFromHostname
+    , toExoPalette
     )
 
+import Color
 import Element
+import Element.Background as Background
 import Element.Events
 import Element.Font as Font
 import Element.Region as Region
@@ -28,10 +32,26 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
 import OpenStack.Types as OSTypes
 import Regex
+import Style.Helpers as SH
+import Style.Types exposing (ExoPalette)
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
-import Types.Types exposing (ExoSetupStatus(..), LogMessage, Msg(..), Server, ServerOrigin(..), ServerUiStatus(..))
+import Types.Types
+    exposing
+        ( ExoSetupStatus(..)
+        , LogMessage
+        , Msg(..)
+        , Server
+        , ServerOrigin(..)
+        , ServerUiStatus(..)
+        , Style
+        )
 import View.Types
+
+
+toExoPalette : Style -> ExoPalette
+toExoPalette style =
+    SH.toExoPalette style.primaryColor style.secondaryColor style.styleMode
 
 
 
@@ -57,6 +77,13 @@ exoPaddingSpacingAttributes : List (Element.Attribute Msg)
 exoPaddingSpacingAttributes =
     [ Element.padding 10
     , Element.spacing 10
+    ]
+
+
+inputItemAttributes : Color.Color -> List (Element.Attribute Msg)
+inputItemAttributes backgroundColor =
+    [ Element.spacing 12
+    , Background.color <| SH.toElementColor <| backgroundColor
     ]
 
 
@@ -119,11 +146,11 @@ edges =
     }
 
 
-hint : String -> Element.Attribute msg
-hint hintText =
+hint : Style.Types.ExoPalette -> String -> Element.Attribute msg
+hint palette hintText =
     Element.below
         (Element.el
-            [ Font.color (Element.rgb 1 0 0)
+            [ Font.color (palette.error |> SH.toElementColor)
             , Font.size 14
             , Element.alignRight
             , Element.moveDown 6
@@ -132,23 +159,23 @@ hint hintText =
         )
 
 
-renderMessage : LogMessage -> Element.Element Msg
-renderMessage message =
+renderMessage : Style -> LogMessage -> Element.Element Msg
+renderMessage style message =
     let
         levelColor : ErrorLevel -> Element.Color
         levelColor errLevel =
             case errLevel of
                 ErrorDebug ->
-                    Element.rgb 0 0.55 0
+                    style |> toExoPalette |> .readyGood |> SH.toElementColor
 
                 ErrorInfo ->
-                    Element.rgb 0 0 0
+                    style |> toExoPalette |> .on |> .background |> SH.toElementColor
 
                 ErrorWarn ->
-                    Element.rgb 0.8 0.5 0
+                    style |> toExoPalette |> .warn |> SH.toElementColor
 
                 ErrorCrit ->
-                    Element.rgb 0.7 0 0
+                    style |> toExoPalette |> .error |> SH.toElementColor
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
@@ -159,7 +186,7 @@ renderMessage message =
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ Font.color <| Element.rgb 0.4 0.4 0.4 ]
+            , Element.el [ style |> toExoPalette |> .muted |> SH.toElementColor |> Font.color ]
                 (Element.text
                     (" at " ++ humanReadableTime message.timestamp)
                 )
@@ -177,11 +204,11 @@ renderMessage message =
         ]
 
 
-browserLink : Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
-browserLink isElectron url label =
+browserLink : Style.Types.ExoPalette -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink palette isElectron url label =
     let
         linkAttribs =
-            [ Font.color (Element.rgb255 50 115 220)
+            [ palette.primary |> SH.toElementColor |> Font.color
             , Font.underline
             , Element.pointer
             ]
@@ -248,7 +275,6 @@ titleFromHostname hostname =
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
-    -- TODO move this to view helpers
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
             case server.exoProps.serverOrigin of
@@ -367,61 +393,49 @@ getServerUiStatusStr status =
             "Deleted"
 
 
-getServerUiStatusColor : ServerUiStatus -> Element.Color
-getServerUiStatusColor status =
+getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
+getServerUiStatusColor palette status =
     case status of
         ServerUiStatusUnknown ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusBuilding ->
-            -- yellow
-            Element.rgb255 255 221 87
+            SH.toElementColor palette.warn
 
         ServerUiStatusPartiallyActive ->
-            -- yellow
-            Element.rgb255 255 221 87
+            SH.toElementColor palette.warn
 
         ServerUiStatusReady ->
-            -- green
-            Element.rgb255 35 209 96
+            SH.toElementColor palette.readyGood
 
         ServerUiStatusReboot ->
-            -- yellow
-            Element.rgb255 255 221 87
+            SH.toElementColor palette.warn
 
         ServerUiStatusPaused ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusSuspended ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusShutoff ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusStopped ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusSoftDeleted ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusError ->
             -- red
-            Element.rgb255 255 56 96
+            SH.toElementColor palette.error
 
         ServerUiStatusRescued ->
             -- red
-            Element.rgb255 255 56 96
+            SH.toElementColor palette.error
 
         ServerUiStatusShelved ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted
 
         ServerUiStatusDeleted ->
-            -- gray
-            Element.rgb255 122 122 122
+            SH.toElementColor palette.muted

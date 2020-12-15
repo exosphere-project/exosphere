@@ -3,7 +3,8 @@ module View.CreateServerImage exposing (createServerImage)
 import Element
 import Element.Input as Input
 import OpenStack.Types as OSTypes
-import Style.Theme
+import Style.Helpers as SH
+import Style.Types
 import Types.Types
     exposing
         ( Msg(..)
@@ -16,8 +17,8 @@ import Widget
 import Widget.Style.Material
 
 
-createServerImage : Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
-createServerImage project serverUuid imageName =
+createServerImage : Style.Types.ExoPalette -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
+createServerImage palette project serverUuid imageName =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Create Image from Server")
         , Input.text
@@ -28,7 +29,7 @@ createServerImage project serverUuid imageName =
             , label = Input.labelAbove [] (Element.text "Image name")
             }
         , Widget.textButton
-            (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
             { text = "Create"
             , onPress =
                 Just <|

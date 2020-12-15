@@ -4,14 +4,15 @@ import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Style.Theme
+import Style.Helpers as SH
+import Style.Types
 import Widget
 
 
-exoCard : String -> String -> Element msg -> Element msg
-exoCard title subTitle content =
+exoCard : Style.Types.ExoPalette -> String -> String -> Element msg -> Element msg
+exoCard palette title subTitle content =
     Widget.column
-        Style.Theme.materialStyle.cardColumn
+        (SH.materialStyle palette).cardColumn
         [ Element.row
             [ Element.width Element.fill, Element.spacing 15 ]
             [ Element.el [ Font.bold, Font.size 16 ] (Element.text title)
@@ -23,6 +24,7 @@ exoCard title subTitle content =
 
 badge : String -> Element msg
 badge title =
+    -- TODO a bunch of hard-coded colors here that don't cleanly fit in the palette. Look into functions to lighten/darken palette colors
     Element.el
         [ Border.shadow
             { blur = 10

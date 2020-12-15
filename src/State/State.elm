@@ -375,6 +375,16 @@ updateUnderlying msg model =
                         -- URL parsing error
                         ( model, Cmd.none )
 
+        SetStyle styleMode ->
+            let
+                oldStyle =
+                    model.style
+
+                newStyle =
+                    { oldStyle | styleMode = styleMode }
+            in
+            ( { model | style = newStyle }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 

@@ -16,5 +16,5 @@ messageLog model =
             Element.text "(No Messages)"
 
           else
-            Element.column VH.exoColumnAttributes (List.map VH.renderMessage model.logMessages)
+            Element.column VH.exoColumnAttributes (List.map (VH.renderMessage model.style) model.logMessages)
         ]

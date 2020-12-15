@@ -6,7 +6,8 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Style.Theme
+import Style.Helpers as SH
+import Style.Types
 import Types.Types
     exposing
         ( Model
@@ -19,8 +20,13 @@ import Widget
 import Widget.Style.Material
 
 
-selectProjects : Model -> OSTypes.KeystoneUrl -> List UnscopedProviderProject -> Element.Element Msg
-selectProjects model keystoneUrl selectedProjects =
+selectProjects :
+    Model
+    -> Style.Types.ExoPalette
+    -> OSTypes.KeystoneUrl
+    -> List UnscopedProviderProject
+    -> Element.Element Msg
+selectProjects model palette keystoneUrl selectedProjects =
     case GetterSetters.providerLookup model keystoneUrl of
         Just provider ->
             let
@@ -39,7 +45,7 @@ selectProjects model keystoneUrl selectedProjects =
                                     projectsAvailable
                                 )
                                 [ Widget.textButton
-                                    (Widget.Style.Material.containedButton Style.Theme.exoPalette)
+                                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
                                     { text = "Choose"
                                     , onPress =
                                         Just <|
@@ -49,7 +55,9 @@ selectProjects model keystoneUrl selectedProjects =
 
                     RemoteData.Loading ->
                         Element.row [ Element.spacing 15 ]
-                            [ Widget.circularProgressIndicator Style.Theme.materialStyle.progressIndicator Nothing
+                            [ Widget.circularProgressIndicator
+                                (SH.materialStyle palette).progressIndicator
+                                Nothing
                             , Element.text "Loading list of projects"
                             ]
 

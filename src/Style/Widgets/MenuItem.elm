@@ -5,6 +5,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Style.Helpers as SH
+import Style.Types
 
 
 type MenuItemState
@@ -17,31 +19,31 @@ type MenuItemState
     menuItem Active "Add Provider" Nothing
 
 -}
-menuItem : MenuItemState -> String -> Maybe msg -> Element msg
-menuItem state itemLabel onPress =
+menuItem : Style.Types.ExoPalette -> MenuItemState -> String -> Maybe msg -> Element msg
+menuItem palette state itemLabel onPress =
     let
         ( fontWeight, fontColor, backgroundColor ) =
             case state of
                 Active ->
                     ( Font.bold
-                    , Element.rgb255 255 255 255
-                    , Element.rgb255 51 51 51
+                    , palette.menu.on.surface
+                    , palette.menu.surface
                     )
 
                 Inactive ->
                     ( Font.regular
-                    , Element.rgb255 181 181 181
-                    , Element.rgb255 36 36 36
+                    , palette.menu.on.background
+                    , palette.menu.background
                     )
 
         menuItemButtonAttrs =
             [ Element.width Element.fill
-            , Border.color (Element.rgb255 10 10 10)
+            , Border.color (SH.toElementColor palette.on.background)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
             , Element.paddingXY 15 24
-            , Background.color backgroundColor
-            , Font.color fontColor
+            , Background.color (SH.toElementColor backgroundColor)
+            , Font.color (SH.toElementColor fontColor)
             ]
 
         menuItemElementAttrs =
@@ -49,7 +51,7 @@ menuItem state itemLabel onPress =
                 borderProps =
                     case state of
                         Active ->
-                            [ Border.color (Element.rgb255 0 136 206)
+                            [ Border.color (SH.toElementColor palette.primary)
                             , Border.widthEach { bottom = 0, left = 3, right = 0, top = 0 }
                             ]
 

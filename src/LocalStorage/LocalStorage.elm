@@ -13,6 +13,7 @@ import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject2, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
+import Style.Types
 import Time
 import Types.Types as Types
 import UUID
@@ -24,7 +25,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState strippedProjects model.clientUuid
+    encodeStoredState strippedProjects model.clientUuid model.style.styleMode
 
 
 generateStoredProject : Types.Project -> StoredProject
@@ -52,8 +53,20 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
 
                 Nothing ->
                     newClientUuid
+
+        styleMode =
+            storedState.styleMode |> Maybe.withDefault Style.Types.LightMode
+
+        oldStyle =
+            model.style
+
+        newStyle =
+            { oldStyle | styleMode = styleMode }
     in
-    { model | projects = projects }
+    { model
+        | projects = projects
+        , style = newStyle
+    }
 
 
 hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> StoredProject -> Types.Project
@@ -84,8 +97,8 @@ hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
 -- Encoders
 
 
-encodeStoredState : List StoredProject -> UUID.UUID -> Encode.Value
-encodeStoredState projects clientUuid =
+encodeStoredState : List StoredProject -> UUID.UUID -> Style.Types.StyleMode -> Encode.Value
+encodeStoredState projects clientUuid styleMode =
     let
         secretEncode : Types.ProjectSecret -> Encode.Value
         secretEncode secret =
@@ -112,10 +125,11 @@ encodeStoredState projects clientUuid =
                 ]
     in
     Encode.object
-        [ ( "4"
+        [ ( "5"
           , Encode.object
                 [ ( "projects", Encode.list storedProjectEncode projects )
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
+                , ( "styleMode", encodeStyleMode styleMode )
                 ]
           )
         ]
@@ -204,6 +218,17 @@ encodeExoEndpoints endpoints =
         ]
 
 
+encodeStyleMode : Style.Types.StyleMode -> Encode.Value
+encodeStyleMode styleMode =
+    Encode.string <|
+        case styleMode of
+            Style.Types.DarkMode ->
+                "darkMode"
+
+            Style.Types.LightMode ->
+                "lightMode"
+
+
 
 -- Decoders
 
@@ -224,13 +249,19 @@ decodeStoredState =
 
                 -- Added client UUID
                 , Decode.at [ "4", "projects" ] (Decode.list storedProjectDecode)
+
+                -- Added StyleMode
+                , Decode.at [ "5", "projects" ] (Decode.list storedProjectDecode)
                 ]
 
         clientUuid =
             -- This is tricky; optional field that will either be Just a UUID.UUID, or Nothing (either because we don't
             -- have a clientUuid key in the JSON, or because converting the decoded string to UUID failed).
             Decode.maybe
-                (Decode.at [ "4", "clientUuid" ] Decode.string
+                (Decode.oneOf
+                    [ Decode.at [ "4", "clientUuid" ] Decode.string
+                    , Decode.at [ "5", "clientUuid" ] Decode.string
+                    ]
                     |> Decode.map UUID.fromString
                     |> Decode.andThen
                         (\result ->
@@ -242,8 +273,14 @@ decodeStoredState =
                                     Decode.fail ""
                         )
                 )
+
+        styleMode =
+            Decode.maybe
+                (Decode.at [ "5", "styleMode" ] Decode.string
+                    |> Decode.andThen decodeStyleMode
+                )
     in
-    Decode.map2 StoredState projects clientUuid
+    Decode.map3 StoredState projects clientUuid styleMode
 
 
 strToNameAndUuid : String -> OSTypes.NameAndUuid
@@ -433,3 +470,16 @@ openstackStoredEndpointInterfaceDecoder interface =
 
         _ ->
             Decode.fail "unrecognized interface type"
+
+
+decodeStyleMode : String -> Decode.Decoder Style.Types.StyleMode
+decodeStyleMode styleModeStr =
+    case styleModeStr of
+        "darkMode" ->
+            Decode.succeed Style.Types.DarkMode
+
+        "lightMode" ->
+            Decode.succeed Style.Types.LightMode
+
+        _ ->
+            Decode.fail "unrecognized style mode"

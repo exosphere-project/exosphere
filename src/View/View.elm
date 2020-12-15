@@ -2,10 +2,13 @@ module View.View exposing (view, viewElectron)
 
 import Browser
 import Element
+import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Html
+import Style.Helpers as SH
 import Style.Toast
+import Style.Types
 import Toasty
 import Types.Types
     exposing
@@ -16,12 +19,14 @@ import Types.Types
         , WindowSize
         )
 import View.HelpAbout
+import View.Helpers as VH
 import View.Login
 import View.Messages
 import View.Nav
 import View.PageTitle
 import View.Project
 import View.SelectProjects
+import View.Settings
 import View.Toast
 
 
@@ -41,18 +46,24 @@ viewElectron =
 
 view_ : Model -> Html.Html Msg
 view_ model =
+    let
+        palette =
+            VH.toExoPalette model.style
+    in
     Element.layout
         [ Font.size 17
         , Font.family
             [ Font.typeface "Open Sans"
             , Font.sansSerif
             ]
+        , Font.color <| SH.toElementColor <| palette.on.background
+        , Background.color <| SH.toElementColor <| palette.background
         ]
-        (elementView model.maybeWindowSize model)
+        (elementView model.maybeWindowSize model palette)
 
 
-elementView : Maybe WindowSize -> Model -> Element.Element Msg
-elementView maybeWindowSize model =
+elementView : Maybe WindowSize -> Model -> Style.Types.ExoPalette -> Element.Element Msg
+elementView maybeWindowSize model palette =
     let
         mainContentContainerView =
             Element.column
@@ -72,22 +83,25 @@ elementView maybeWindowSize model =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.Login.viewLoginPicker
+                                View.Login.viewLoginPicker palette
 
                             LoginOpenstack openstackCreds ->
-                                View.Login.viewLoginOpenstack model openstackCreds
+                                View.Login.viewLoginOpenstack model palette openstackCreds
 
                             LoginJetstream jetstreamCreds ->
-                                View.Login.viewLoginJetstream model jetstreamCreds
+                                View.Login.viewLoginJetstream model palette jetstreamCreds
 
                             SelectProjects authUrl selectedProjects ->
-                                View.SelectProjects.selectProjects model authUrl selectedProjects
+                                View.SelectProjects.selectProjects model palette authUrl selectedProjects
 
                             MessageLog ->
                                 View.Messages.messageLog model
 
+                            Settings ->
+                                View.Settings.settings model
+
                             HelpAbout ->
-                                View.HelpAbout.helpAbout model
+                                View.HelpAbout.helpAbout model palette
 
                     ProjectView projectName projectViewParams viewConstructor ->
                         case GetterSetters.projectLookup model projectName of
@@ -97,10 +111,11 @@ elementView maybeWindowSize model =
                             Just project ->
                                 View.Project.project
                                     model
+                                    palette
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast model.showDebugMsgs) ToastyMsg model.toasties)
+                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast palette model.showDebugMsgs) ToastyMsg model.toasties)
                 ]
     in
     Element.row
@@ -127,7 +142,7 @@ elementView maybeWindowSize model =
                     Nothing ->
                         Element.fill
             ]
-            [ View.Nav.navBar model
+            [ View.Nav.navBar model palette
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
@@ -140,7 +155,7 @@ elementView maybeWindowSize model =
                         Nothing ->
                             Element.fill
                 ]
-                [ View.Nav.navMenu model
+                [ View.Nav.navMenu model palette
                 , mainContentContainerView
                 ]
             ]

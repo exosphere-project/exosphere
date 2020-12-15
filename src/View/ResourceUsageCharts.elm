@@ -1,6 +1,5 @@
 module View.ResourceUsageCharts exposing (charts)
 
-import Color
 import Dict
 import Element
 import LineChart
@@ -20,6 +19,7 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
+import Style.Types
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
@@ -27,8 +27,8 @@ import Types.Types exposing (Msg)
 import View.Helpers as VH
 
 
-charts : ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
-charts ( currentTime, timeZone ) timeSeriesDict =
+charts : Style.Types.ExoPalette -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+charts palette ( currentTime, timeZone ) timeSeriesDict =
     let
         timeSeriesList =
             Dict.toList timeSeriesDict
@@ -71,7 +71,7 @@ charts ( currentTime, timeZone ) timeSeriesDict =
                 , variable = Just << getDataFunc
                 , pixels = 220
                 , range = Range.window 0 100
-                , axisLine = AxisLine.full Color.black
+                , axisLine = AxisLine.full palette.on.background
                 , ticks = ticks
                 }
 
@@ -81,7 +81,7 @@ charts ( currentTime, timeZone ) timeSeriesDict =
                 , variable = Just << getDataFunc
                 , pixels = 550
                 , range = Range.default
-                , axisLine = AxisLine.full Color.black
+                , axisLine = AxisLine.full palette.on.background
                 , ticks = Ticks.time timeZone 6
                 }
 
@@ -104,7 +104,7 @@ charts ( currentTime, timeZone ) timeSeriesDict =
         series : List (LineChart.Series ( Int, DataPoint ))
         series =
             [ LineChart.line
-                (Color.rgb255 0 108 163)
+                palette.primary
                 Dots.circle
                 ""
                 timeSeriesListLast30m

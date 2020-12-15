@@ -105,6 +105,9 @@ pathParsers =
         (NonProjectView MessageLog)
         (s "msglog")
     , map
+        (NonProjectView Settings)
+        (s "settings")
+    , map
         (NonProjectView HelpAbout)
         (s "helpabout")
     , map

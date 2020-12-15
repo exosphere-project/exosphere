@@ -40,6 +40,7 @@ module Types.Types exposing
     , ServerSelection
     , ServerUiStatus(..)
     , SortTableParams
+    , Style
     , TickInterval
     , Toast
     , UnscopedProvider
@@ -52,6 +53,7 @@ module Types.Types exposing
     )
 
 import Browser.Navigation
+import Color
 import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -59,6 +61,7 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Set
+import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
@@ -80,6 +83,21 @@ type alias Flags =
     { showDebugMsgs : Bool
     , cloudCorsProxyUrl : Maybe HelperTypes.Url
     , urlPathPrefix : Maybe String
+    , appTitle : Maybe String
+    , palette :
+        Maybe
+            { primary :
+                { r : Int
+                , g : Int
+                , b : Int
+                }
+            , secondary :
+                { r : Int
+                , g : Int
+                , b : Int
+                }
+            }
+    , logo : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -119,6 +137,16 @@ type alias Model =
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
+    , style : Style
+    }
+
+
+type alias Style =
+    { logo : HelperTypes.Url
+    , primaryColor : Color.Color
+    , secondaryColor : Color.Color
+    , styleMode : Style.Types.StyleMode
+    , appTitle : String
     }
 
 
@@ -219,6 +247,7 @@ type Msg
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
+    | SetStyle Style.Types.StyleMode
     | NoOp
 
 
@@ -286,6 +315,7 @@ type NonProjectViewConstructor
     | LoginJetstream JetstreamCreds
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
+    | Settings
     | HelpAbout
 
 

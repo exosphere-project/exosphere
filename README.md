@@ -202,8 +202,19 @@ Most users should not need to change these; they are primarily intended for clou
 | *Option*                  | *Possible Values* | *Description*                                                       |
 |---------------------------|-------------------|---------------------------------------------------------------------|
 | showDebugMsgs             | false, true       |                                                                     |
-| cloudCorsProxyUrl      | null, string      | See `docs/cloud-cors-proxy.md`; required for using Exosphere in a browser |
+| cloudCorsProxyUrl         | null, string      | See `docs/cloud-cors-proxy.md`; required to use app in web browser  |
 | cloudsWithUserAppProxy    | (see docs)        | See `docs/user-app-proxy.md`; required for Guacamole support        |
+| palette                   | null, JSON object | Pass custom colors to style Exosphere, see example below            |
+| logo                      | null, string      | Path to custom logo to show in top-left corner of app               |
+| appTitle                  | null, string      | Title to show in top-left corner of app                             |
+
+### Example Custom Palette
+
+This declares a primary and secondary color in the app.
+
+```
+palette: { primary: {r: 0, g: 108, b: 163 }, secondary : {r: 96, g: 239, b: 255 } } 
+```
 
 ## Collaborate
 

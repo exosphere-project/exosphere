@@ -104,6 +104,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "msglog" ]
                 []
 
+        Settings ->
+            buildUrlFunc
+                [ "settings" ]
+                []
+
         HelpAbout ->
             buildUrlFunc
                 [ "helpabout" ]
