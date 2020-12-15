@@ -1,14 +1,16 @@
-module State.ViewState exposing (setProjectView, updateViewState)
+module State.ViewState exposing (modelUpdateViewState, setProjectView)
 
 import AppUrl.Builder
 import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
+import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Neutron
 import Rest.Nova
@@ -79,7 +81,7 @@ setProjectView model project projectViewConstructor =
                 |> List.map serverResetCockpitStatus
                 |> List.foldl (\s p -> GetterSetters.projectUpdateServer p s) project_
 
-        ( viewSpecificModel, viewSpecificCmd ) =
+        viewSpecificModelAndCmd =
             case projectViewConstructor of
                 ListImages _ _ ->
                     let
@@ -102,20 +104,19 @@ setProjectView model project projectViewConstructor =
 
                         _ ->
                             let
-                                newModel =
+                                newProject =
                                     project
-                                        |> GetterSetters.projectSetServersLoading model.clientCurrentTime
                                         |> projectResetCockpitStatuses
-                                        |> GetterSetters.modelUpdateProject model
 
-                                cmd =
-                                    [ Rest.Nova.requestServers
-                                    , Rest.Neutron.requestFloatingIps
-                                    ]
-                                        |> List.map (\x -> x project)
-                                        |> Cmd.batch
+                                ( newModel, newCmd ) =
+                                    ApiModelHelpers.requestServers project.auth.project.uuid model
                             in
-                            ( newModel, cmd )
+                            ( newModel
+                            , Cmd.batch
+                                [ newCmd
+                                , Rest.Neutron.requestFloatingIps newProject
+                                ]
+                            )
 
                 ServerDetail serverUuid _ ->
                     -- Don't fire cmds if we're already in this view
@@ -127,20 +128,20 @@ setProjectView model project projectViewConstructor =
                             let
                                 newModel =
                                     project
-                                        |> (\p -> GetterSetters.projectSetServerLoading p serverUuid)
                                         |> projectResetCockpitStatuses
                                         |> GetterSetters.modelUpdateProject model
 
                                 cmd =
                                     Cmd.batch
-                                        [ Rest.Nova.requestServer project serverUuid
-                                        , Rest.Nova.requestFlavors project
+                                        [ Rest.Nova.requestFlavors project
                                         , Rest.Glance.requestImages project
                                         , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
                             in
                             ( newModel, cmd )
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestServer project.auth.project.uuid serverUuid)
 
                 CreateServerImage _ _ ->
                     ( model, Cmd.none )
@@ -208,27 +209,17 @@ setProjectView model project projectViewConstructor =
                                         SetProjectView <|
                                             CreateServer { viewParams | serverName = serverName_ }
 
-                                newProject =
-                                    { project
-                                        | computeQuota = RemoteData.Loading
-                                        , volumeQuota = RemoteData.Loading
-                                        , networks = RDPP.setLoading project.networks model.clientCurrentTime
-                                    }
-
-                                newModel =
-                                    GetterSetters.modelUpdateProject model newProject
-
                                 cmd =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
                                         , Rest.Nova.requestKeypairs project
-                                        , Rest.Neutron.requestNetworks project
                                         , RandomHelpers.generateServerName newViewParamsMsg
-                                        , OSQuotas.requestComputeQuota project
-                                        , OSQuotas.requestVolumeQuota project
                                         ]
                             in
-                            ( newModel, cmd )
+                            ( model, cmd )
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
 
                 ListProjectVolumes _ ->
                     let
@@ -272,18 +263,11 @@ setProjectView model project projectViewConstructor =
 
                         _ ->
                             let
-                                newModel =
-                                    project
-                                        |> GetterSetters.projectSetServersLoading model.clientCurrentTime
-                                        |> GetterSetters.modelUpdateProject model
-
                                 cmd =
-                                    Cmd.batch
-                                        [ Rest.Nova.requestServers project
-                                        , OSVolumes.requestVolumes project
-                                        ]
+                                    OSVolumes.requestVolumes project
                             in
-                            ( newModel, cmd )
+                            ( model, cmd )
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestServers project.auth.project.uuid)
 
                 MountVolInstructions _ ->
                     ( model, Cmd.none )
@@ -301,11 +285,12 @@ setProjectView model project projectViewConstructor =
                     in
                     ( model, cmd )
     in
-    updateViewState viewSpecificModel viewSpecificCmd newViewState
+    viewSpecificModelAndCmd
+        |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
 
 
-updateViewState : Model -> Cmd Msg -> ViewState -> ( Model, Cmd Msg )
-updateViewState model cmd viewState =
+modelUpdateViewState : ViewState -> Model -> ( Model, Cmd Msg )
+modelUpdateViewState viewState model =
     -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
     let
         urlWithoutQuery url =
@@ -343,4 +328,4 @@ updateViewState model cmd viewState =
                 Nothing ->
                     Cmd.none
     in
-    ( newModel, Cmd.batch [ cmd, urlCmd ] )
+    ( newModel, urlCmd )

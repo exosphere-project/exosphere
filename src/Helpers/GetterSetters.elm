@@ -13,6 +13,7 @@ module Helpers.GetterSetters exposing
     , modelUpdateUnscopedProvider
     , projectDeleteServer
     , projectLookup
+    , projectSetNetworksLoading
     , projectSetServerLoading
     , projectSetServersLoading
     , projectUpdateServer
@@ -278,6 +279,11 @@ projectSetServerLoading project serverUuid =
                     { server | exoProps = newExoProps }
             in
             projectUpdateServer project newServer
+
+
+projectSetNetworksLoading : Time.Posix -> Project -> Project
+projectSetNetworksLoading time project =
+    { project | networks = RDPP.setLoading project.networks time }
 
 
 modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model

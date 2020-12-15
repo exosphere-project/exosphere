@@ -4,14 +4,15 @@ import AppUrl.Parser
 import Browser.Navigation
 import Dict
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
 import Random
+import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Rest.Neutron
-import Rest.Nova
 import State.ViewState exposing (setProjectView)
 import Time
 import Toasty
@@ -154,23 +155,19 @@ init flags maybeUrlKey =
                 projectsNeedingAppCredentials
                 |> Cmd.batch
             , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
-            , List.map Rest.Nova.requestServers hydratedModel.projects |> Cmd.batch
             ]
                 |> Cmd.batch
 
-        newModel =
-            let
-                projectsServersLoading =
-                    List.map
-                        (GetterSetters.projectSetServersLoading currentTime)
-                        hydratedModel.projects
-            in
-            { hydratedModel | projects = projectsServersLoading }
+        ( newModel, newCmd ) =
+            hydratedModel.projects
+                |> List.map (\p -> p.auth.project.uuid)
+                |> List.map ApiModelHelpers.requestServers
+                |> List.foldl Helpers.pipelineCmd ( hydratedModel, otherCmds )
     in
     case viewState of
         NonProjectView _ ->
             ( { newModel | viewState = viewState }
-            , otherCmds
+            , newCmd
             )
 
         ProjectView projectId _ projectViewConstructor ->
@@ -185,5 +182,5 @@ init flags maybeUrlKey =
                             ( newModel, Cmd.none )
             in
             ( setProjectViewModel
-            , Cmd.batch [ otherCmds, setProjectViewCmd ]
+            , Cmd.batch [ newCmd, setProjectViewCmd ]
             )

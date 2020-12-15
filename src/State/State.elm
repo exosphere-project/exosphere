@@ -21,6 +21,7 @@ import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
 import Ports
 import RemoteData
+import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Cockpit
 import Rest.Glance
 import Rest.Keystone
@@ -28,7 +29,7 @@ import Rest.Neutron
 import Rest.Nova
 import State.Auth
 import State.Error
-import State.ViewState as StateHelpers
+import State.ViewState as ViewStateHelpers
 import Style.Toast
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
@@ -110,7 +111,7 @@ updateUnderlying msg model =
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
-            StateHelpers.updateViewState model Cmd.none (NonProjectView nonProjectViewConstructor)
+            ViewStateHelpers.modelUpdateViewState (NonProjectView nonProjectViewConstructor) model
 
         HandleApiErrorWithBody errorContext error ->
             State.Error.processSynchronousApiError model errorContext error
@@ -249,11 +250,11 @@ updateUnderlying msg model =
                             ( newModel, Cmd.none )
 
                         _ ->
-                            StateHelpers.updateViewState newModel
-                                Cmd.none
+                            ViewStateHelpers.modelUpdateViewState
                                 (NonProjectView <|
                                     SelectProjects newProvider.authUrl []
                                 )
+                                newModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
@@ -310,7 +311,9 @@ updateUnderlying msg model =
                         modelUpdatedUnscopedProviders =
                             { model | unscopedProviders = newUnscopedProviders }
                     in
-                    StateHelpers.updateViewState modelUpdatedUnscopedProviders loginRequests newViewState
+                    ( modelUpdatedUnscopedProviders, loginRequests )
+                        |> Helpers.pipelineCmd
+                            (ViewStateHelpers.modelUpdateViewState newViewState)
 
                 Nothing ->
                     State.Error.processStringError
@@ -340,7 +343,7 @@ updateUnderlying msg model =
                 newViewState =
                     NonProjectView <| LoginOpenstack newCreds
             in
-            StateHelpers.updateViewState model Cmd.none newViewState
+            ViewStateHelpers.modelUpdateViewState newViewState model
 
         OpenInBrowser url ->
             ( model, Ports.openInBrowser url )
@@ -499,7 +502,7 @@ processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor ->
 processProjectSpecificMsg model project msg =
     case msg of
         SetProjectView projectViewConstructor ->
-            StateHelpers.setProjectView model project projectViewConstructor
+            ViewStateHelpers.setProjectView model project projectViewConstructor
 
         PrepareCredentialedRequest requestProto posixTime ->
             let
@@ -547,7 +550,7 @@ processProjectSpecificMsg model project msg =
                                 }
                                 viewConstructor
                     in
-                    StateHelpers.updateViewState model Cmd.none newViewState
+                    ViewStateHelpers.modelUpdateViewState newViewState model
 
                 _ ->
                     ( model, Cmd.none )
@@ -580,25 +583,13 @@ processProjectSpecificMsg model project msg =
                 modelUpdatedProjects =
                     { model | projects = newProjects }
             in
-            StateHelpers.updateViewState modelUpdatedProjects Cmd.none newViewState
+            ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProjects
 
         RequestServers ->
-            let
-                newProject =
-                    GetterSetters.projectSetServersLoading model.clientCurrentTime project
-            in
-            ( GetterSetters.modelUpdateProject model newProject
-            , Rest.Nova.requestServers project
-            )
+            ApiModelHelpers.requestServers project.auth.project.uuid model
 
         RequestServer serverUuid ->
-            let
-                newProject =
-                    GetterSetters.projectSetServerLoading project serverUuid
-            in
-            ( GetterSetters.modelUpdateProject model newProject
-            , Rest.Nova.requestServer project serverUuid
-            )
+            ApiModelHelpers.requestServer project.auth.project.uuid serverUuid model
 
         RequestCreateServer viewParams ->
             let
@@ -703,7 +694,9 @@ processProjectSpecificMsg model project msg =
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project serverUuid imageName
             in
-            StateHelpers.updateViewState model createImageCmd newViewState
+            ( model, createImageCmd )
+                |> Helpers.pipelineCmd
+                    (ViewStateHelpers.modelUpdateViewState newViewState)
 
         RequestSetServerName serverUuid newServerName ->
             ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
@@ -837,22 +830,14 @@ processProjectSpecificMsg model project msg =
                     <|
                         ListProjectServers
                             Defaults.serverListViewParams
-
-                newProject =
-                    GetterSetters.projectSetServersLoading model.clientCurrentTime project
-
-                modelUpdatedProject =
-                    GetterSetters.modelUpdateProject model newProject
             in
-            StateHelpers.updateViewState
-                modelUpdatedProject
-                ([ Rest.Nova.requestServers
-                 , Rest.Neutron.requestNetworks
-                 ]
-                    |> List.map (\x -> x project)
-                    |> Cmd.batch
-                )
-                newViewState
+            ( model, Cmd.none )
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestServers project.auth.project.uuid)
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                |> Helpers.pipelineCmd
+                    (ViewStateHelpers.modelUpdateViewState newViewState)
 
         ReceiveDeleteServer serverUuid maybeIpAddress ->
             let
@@ -896,7 +881,7 @@ processProjectSpecificMsg model project msg =
                         modelUpdatedProject =
                             GetterSetters.modelUpdateProject model newProject
                     in
-                    StateHelpers.updateViewState modelUpdatedProject Cmd.none newViewState
+                    ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
             in
             case maybeIpAddress of
                 Nothing ->
@@ -1004,7 +989,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            StateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
 
         ReceiveVolumes volumes ->
             let
@@ -1092,10 +1077,10 @@ processProjectSpecificMsg model project msg =
             ( model, OSVolumes.requestVolumes project )
 
         ReceiveAttachVolume attachment ->
-            StateHelpers.setProjectView model project (MountVolInstructions attachment)
+            ViewStateHelpers.setProjectView model project (MountVolInstructions attachment)
 
         ReceiveDetachVolume ->
-            StateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
 
         ReceiveAppCredential appCredential ->
             let
@@ -1314,7 +1299,7 @@ processProjectSpecificMsg model project msg =
 
                         -- Later, maybe: Check that newServerName == actualNewServerName
                     in
-                    StateHelpers.updateViewState modelWithUpdatedProject Cmd.none updatedView
+                    ViewStateHelpers.modelUpdateViewState updatedView modelWithUpdatedProject
 
         ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
             case ( GetterSetters.serverLookup project serverUuid, result ) of
