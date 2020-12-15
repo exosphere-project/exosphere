@@ -8,7 +8,7 @@ module Style.Helpers exposing
 
 import Color
 import Element
-import Style.Types exposing (ExoPalette, Style, StyleMode(..))
+import Style.Types exposing (ElmUiWidgetStyle, ExoPalette, StyleMode(..))
 import Widget.Style.Material as Material
 
 
@@ -72,7 +72,7 @@ toExoPalette primaryColor secondaryColor styleMode =
             }
 
 
-materialStyle : ExoPalette -> Style {} msg
+materialStyle : ExoPalette -> ElmUiWidgetStyle {} msg
 materialStyle exoPalette =
     let
         palette =

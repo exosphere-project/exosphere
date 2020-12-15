@@ -1,6 +1,6 @@
 module Style.Types exposing
-    ( ExoPalette
-    , Style
+    ( ElmUiWidgetStyle
+    , ExoPalette
     , StyleMode(..)
     , defaultPrimaryColor
     , defaultSecondaryColor
@@ -17,11 +17,7 @@ import Widget.Style
         )
 
 
-
--- TODO rename this to ElmUiWidgetStyle or something
-
-
-type alias Style style msg =
+type alias ElmUiWidgetStyle style msg =
     { style
         | textInput : TextInputStyle msg
         , column : ColumnStyle msg
