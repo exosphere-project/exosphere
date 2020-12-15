@@ -54,6 +54,7 @@ init flags maybeUrlKey =
         emptyStoredState =
             { projects = []
             , clientUuid = Nothing
+            , styleMode = Nothing
             }
 
         ( primaryColor, secondaryColor ) =
