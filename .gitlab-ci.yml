@@ -124,7 +124,7 @@ deploy_jetstream:
     name: jetstream
     url: https://exosphere.jetstream-cloud.org/exosphere
   only:
-    - dev
+    - master
 
 
 deploy_dev:
