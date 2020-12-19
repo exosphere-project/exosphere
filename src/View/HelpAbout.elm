@@ -13,12 +13,12 @@ helpAbout : Model -> Style.Types.ExoPalette -> Element.Element Msg
 helpAbout model palette =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30 ])
         [ Element.el VH.heading2 <| Element.text <| "About " ++ model.style.appTitle
-        , Element.paragraph []
-            [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-            , VH.browserLink palette (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
-                View.Types.BrowserLinkTextLabel "README on GitLab"
-            , Element.text "."
-            ]
+        , case model.style.aboutAppMarkdown of
+            Just aboutAppMarkdown ->
+                VH.renderMarkdown palette (Helpers.appIsElectron model) aboutAppMarkdown
+
+            Nothing ->
+                defaultHelpAboutText model palette
         , Element.el VH.heading2 <| Element.text "App Config Info"
         , Element.paragraph [] <|
             case model.cloudCorsProxyUrl of
@@ -53,4 +53,14 @@ helpAbout model palette =
                 View.Types.BrowserLinkTextLabel "Matrix via Element"
             , Element.text ". The chat is bridged across both platforms, so join whichever you prefer."
             ]
+        ]
+
+
+defaultHelpAboutText : Model -> Style.Types.ExoPalette -> Element.Element Msg
+defaultHelpAboutText model palette =
+    Element.paragraph []
+        [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
+        , VH.browserLink palette (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
+            View.Types.BrowserLinkTextLabel "README on GitLab"
+        , Element.text "."
         ]

@@ -101,6 +101,7 @@ type alias Flags =
     , logo : Maybe String
     , favicon : Maybe String
     , defaultLoginView : Maybe String
+    , aboutAppMarkdown : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -151,6 +152,7 @@ type alias Style =
     , styleMode : Style.Types.StyleMode
     , appTitle : String
     , defaultLoginView : Maybe LoginView
+    , aboutAppMarkdown : Maybe String
     }
 
 

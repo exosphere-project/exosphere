@@ -209,6 +209,7 @@ Most users should not need to change these; they are primarily intended for clou
 | favicon                | null, string               | Path to custom favicon                                              |
 | appTitle               | null, string               | Title to show in top-left corner of app                             |
 | defaultLoginView       | null, openstack, jetstream | Which login view to display by default                              |
+| aboutAppMarkdown       | null, string (markdown)    | What to show in the "About the app" section of Help/About view      |
 
 ### Example Custom Palette
 

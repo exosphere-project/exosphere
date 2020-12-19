@@ -43,6 +43,7 @@ var app = moduleToInit({
         favicon: null,
         appTitle: null,
         defaultLoginView: null,
+        aboutAppMarkdown: null,
 
         // Flags that Exosphere sets dynamically
         width: window.innerWidth,

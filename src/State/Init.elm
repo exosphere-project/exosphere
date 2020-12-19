@@ -124,6 +124,7 @@ init flags maybeUrlKey =
                 , appTitle =
                     flags.appTitle |> Maybe.withDefault "exosphere"
                 , defaultLoginView = defaultLoginView
+                , aboutAppMarkdown = flags.aboutAppMarkdown
                 }
             }
 
