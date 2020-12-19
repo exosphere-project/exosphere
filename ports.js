@@ -40,6 +40,7 @@ var app = moduleToInit({
         urlPathPrefix: null,
         palette: null,
         logo: null,
+        favicon: null,
         appTitle: null,
         defaultLoginView: null,
 
@@ -97,4 +98,15 @@ app.ports.setStorage.subscribe(function(state) {
 
 app.ports.instantiateClipboardJs.subscribe(function() {
   var clipboard = new ClipboardJS('.copy-button');
+});
+
+app.ports.setFavicon.subscribe(function (url) {
+    // From https://stackoverflow.com/questions/260857/changing-website-favicon-dynamically
+    var link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    }
+    link.href = url;
 });

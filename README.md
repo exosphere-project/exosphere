@@ -206,6 +206,7 @@ Most users should not need to change these; they are primarily intended for clou
 | cloudsWithUserAppProxy | (see docs)                 | See `docs/user-app-proxy.md`; required for Guacamole support        |
 | palette                | null, JSON object          | Pass custom colors to style Exosphere, see example below            |
 | logo                   | null, string               | Path to custom logo to show in top-left corner of app               |
+| favicon                | null, string               | Path to custom favicon                                              |
 | appTitle               | null, string               | Title to show in top-left corner of app                             |
 | defaultLoginView       | null, openstack, jetstream | Which login view to display by default                              |
 

@@ -99,6 +99,7 @@ type alias Flags =
                 }
             }
     , logo : Maybe String
+    , favicon : Maybe String
     , defaultLoginView : Maybe String
 
     -- Flags that Exosphere sets dynamically

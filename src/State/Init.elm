@@ -10,6 +10,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
@@ -199,6 +200,11 @@ init flags maybeUrlKey =
             in
             List.filter projectNeedsAppCredential hydratedModel.projects
 
+        setFaviconCmd =
+            flags.favicon
+                |> Maybe.map Ports.setFavicon
+                |> Maybe.withDefault Cmd.none
+
         otherCmds =
             [ List.map
                 (Rest.Keystone.requestAppCredential
@@ -208,6 +214,7 @@ init flags maybeUrlKey =
                 projectsNeedingAppCredentials
                 |> Cmd.batch
             , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
+            , setFaviconCmd
             ]
                 |> Cmd.batch
 
