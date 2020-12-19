@@ -3,6 +3,7 @@ module AppUrl.Builder exposing (viewStateToUrl)
 import Types.Types
     exposing
         ( JetstreamProvider(..)
+        , LoginView(..)
         , NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ViewState(..)
@@ -54,43 +55,45 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "login" ]
                 []
 
-        LoginOpenstack openstackLogin ->
-            buildUrlFunc
-                [ "login"
-                , "openstack"
-                ]
-                [ UB.string "authurl" openstackLogin.authUrl
-                , UB.string "pdomain" openstackLogin.projectDomain
-                , UB.string "pname" openstackLogin.projectName
-                , UB.string "udomain" openstackLogin.userDomain
-                , UB.string "uname" openstackLogin.username
+        Login loginView ->
+            case loginView of
+                LoginOpenstack openstackLogin ->
+                    buildUrlFunc
+                        [ "login"
+                        , "openstack"
+                        ]
+                        [ UB.string "authurl" openstackLogin.authUrl
+                        , UB.string "pdomain" openstackLogin.projectDomain
+                        , UB.string "pname" openstackLogin.projectName
+                        , UB.string "udomain" openstackLogin.userDomain
+                        , UB.string "uname" openstackLogin.username
 
-                -- Not encoding password!
-                ]
+                        -- Not encoding password!
+                        ]
 
-        LoginJetstream jsLogin ->
-            let
-                jsProvider =
-                    case jsLogin.jetstreamProviderChoice of
-                        IUCloud ->
-                            "iu"
+                LoginJetstream jsLogin ->
+                    let
+                        jsProvider =
+                            case jsLogin.jetstreamProviderChoice of
+                                IUCloud ->
+                                    "iu"
 
-                        TACCCloud ->
-                            "tacc"
+                                TACCCloud ->
+                                    "tacc"
 
-                        BothJetstreamClouds ->
-                            "both"
-            in
-            buildUrlFunc
-                [ "login"
-                , "jetstream"
-                ]
-                [ UB.string "provider" jsProvider
-                , UB.string "pname" jsLogin.jetstreamProjectName
-                , UB.string "taccuname" jsLogin.taccUsername
+                                BothJetstreamClouds ->
+                                    "both"
+                    in
+                    buildUrlFunc
+                        [ "login"
+                        , "jetstream"
+                        ]
+                        [ UB.string "provider" jsProvider
+                        , UB.string "pname" jsLogin.jetstreamProjectName
+                        , UB.string "taccuname" jsLogin.taccUsername
 
-                -- Not encoding password!
-                ]
+                        -- Not encoding password!
+                        ]
 
         SelectProjects keystoneUrl _ ->
             buildUrlFunc

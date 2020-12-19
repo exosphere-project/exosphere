@@ -14,6 +14,7 @@ import Types.Types
     exposing
         ( JetstreamCreds
         , JetstreamProvider(..)
+        , LoginView(..)
         , Model
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -48,12 +49,11 @@ viewLoginPicker palette =
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
                     { text = "Add OpenStack Account"
                     , onPress =
-                        Just
-                            (SetNonProjectView
-                                (LoginOpenstack
-                                    (OSTypes.OpenstackLogin "" "" "" "" "" "")
-                                )
-                            )
+                        Just <|
+                            SetNonProjectView <|
+                                Login <|
+                                    LoginOpenstack <|
+                                        OSTypes.OpenstackLogin "" "" "" "" "" ""
                     }
                 ]
             , Element.column VH.exoColumnAttributes
@@ -65,12 +65,11 @@ viewLoginPicker palette =
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
                     { text = "Add Jetstream Account"
                     , onPress =
-                        Just
-                            (SetNonProjectView
-                                (LoginJetstream
-                                    (JetstreamCreds BothJetstreamClouds "" "" "")
-                                )
-                            )
+                        Just <|
+                            SetNonProjectView <|
+                                Login <|
+                                    LoginJetstream <|
+                                        JetstreamCreds BothJetstreamClouds "" "" ""
                     }
                 ]
             ]
@@ -104,7 +103,7 @@ loginOpenstackCredsEntry palette openstackCreds =
     let
         updateCreds : OSTypes.OpenstackLogin -> Msg
         updateCreds newCreds =
-            SetNonProjectView <| LoginOpenstack newCreds
+            SetNonProjectView <| Login <| LoginOpenstack newCreds
 
         textField text placeholderText onChange labelText =
             Input.text
@@ -187,7 +186,7 @@ viewLoginJetstream model palette jetstreamCreds =
     let
         updateCreds : JetstreamCreds -> Msg
         updateCreds newCreds =
-            SetNonProjectView <| LoginJetstream newCreds
+            SetNonProjectView <| Login <| LoginJetstream newCreds
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2

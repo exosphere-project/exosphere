@@ -12,7 +12,8 @@ import Style.Types
 import Toasty
 import Types.Types
     exposing
-        ( Model
+        ( LoginView(..)
+        , Model
         , Msg(..)
         , NonProjectViewConstructor(..)
         , ViewState(..)
@@ -85,11 +86,13 @@ elementView maybeWindowSize model palette =
                             LoginPicker ->
                                 View.Login.viewLoginPicker palette
 
-                            LoginOpenstack openstackCreds ->
-                                View.Login.viewLoginOpenstack model palette openstackCreds
+                            Login loginView ->
+                                case loginView of
+                                    LoginOpenstack openstackCreds ->
+                                        View.Login.viewLoginOpenstack model palette openstackCreds
 
-                            LoginJetstream jetstreamCreds ->
-                                View.Login.viewLoginJetstream model palette jetstreamCreds
+                                    LoginJetstream jetstreamCreds ->
+                                        View.Login.viewLoginJetstream model palette jetstreamCreds
 
                             SelectProjects authUrl selectedProjects ->
                                 View.SelectProjects.selectProjects model palette authUrl selectedProjects

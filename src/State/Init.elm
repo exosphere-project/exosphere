@@ -98,6 +98,8 @@ init flags maybeUrlKey =
                 , styleMode = Style.Types.LightMode
                 , appTitle =
                     flags.appTitle |> Maybe.withDefault "exosphere"
+                , defaultLoginView =
+                    Nothing
                 }
             }
 

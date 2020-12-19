@@ -80,10 +80,7 @@ navMenu model palette =
                         NonProjectView LoginPicker ->
                             MenuItem.Active
 
-                        NonProjectView (LoginOpenstack _) ->
-                            MenuItem.Active
-
-                        NonProjectView (LoginJetstream _) ->
+                        NonProjectView (Login _) ->
                             MenuItem.Active
 
                         _ ->
