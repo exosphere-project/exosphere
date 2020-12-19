@@ -121,6 +121,7 @@ deploy_jetstream:
     - 'sed -i -e ''s/favicon: .*/favicon: \"assets\/img\/jetstream-favicon.ico",/g'' public/ports.js'
     - 'sed -i -e ''s/appTitle: .*/appTitle: \"Jetstream Cloud",/g'' public/ports.js'
     - 'sed -i -e ''s/defaultLoginView: .*/defaultLoginView: \"jetstream",/g'' public/ports.js'
+    - 'sed -i -e ''s/aboutAppMarkdown: .*/aboutAppMarkdown: \"This is the Exosphere interface for \[Jetstream Cloud\](https:\/\/jetstream-cloud.org), currently in beta. If you require assistance, please email help@jetstream-cloud.org and specify you are using Exosphere.",/g'' public/ports.js'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream-deploy/'
   environment:
     name: jetstream
