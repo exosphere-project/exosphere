@@ -10,6 +10,7 @@ import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Types
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( JetstreamCreds
@@ -53,7 +54,7 @@ viewLoginPicker palette =
                             SetNonProjectView <|
                                 Login <|
                                     LoginOpenstack <|
-                                        OSTypes.OpenstackLogin "" "" "" "" "" ""
+                                        Defaults.openstackCreds
                     }
                 ]
             , Element.column VH.exoColumnAttributes
@@ -76,6 +77,16 @@ viewLoginPicker palette =
         ]
 
 
+loginPickerButton : Style.Types.ExoPalette -> Element.Element Msg
+loginPickerButton palette =
+    Widget.textButton
+        (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+        { text = "See Other Login Methods"
+        , onPress =
+            Just <| SetNonProjectView <| LoginPicker
+        }
+
+
 viewLoginOpenstack : Model -> Style.Types.ExoPalette -> OSTypes.OpenstackLogin -> Element.Element Msg
 viewLoginOpenstack model palette openstackCreds =
     Element.column VH.exoColumnAttributes
@@ -87,14 +98,17 @@ viewLoginOpenstack model palette openstackCreds =
             [ loginOpenstackCredsEntry palette openstackCreds
             , loginOpenstackOpenRcEntry model palette openstackCreds
             ]
-        , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-            (Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
-                { text = "Log In"
-                , onPress =
-                    Just <| RequestUnscopedToken openstackCreds
-                }
-            )
+        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+            [ Element.el [] (loginPickerButton palette)
+            , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                (Widget.textButton
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                    { text = "Log In"
+                    , onPress =
+                        Just <| RequestUnscopedToken openstackCreds
+                    }
+                )
+            ]
         ]
 
 
@@ -218,6 +232,9 @@ viewLoginJetstream model palette jetstreamCreds =
                     ]
                 , selected = Just jetstreamCreds.jetstreamProviderChoice
                 }
+            ]
+        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+            [ Element.el [] (loginPickerButton palette)
             , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                 (Widget.textButton
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))

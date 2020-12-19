@@ -119,6 +119,7 @@ deploy_jetstream:
     - 'sed -i -e ''s/palette: .*/palette: \{ primary: \{r: 155, g: 33, b: 35\}, secondary: \{r: 52, g: 122, b: 140\} \},/g'' public/ports.js'
     - 'sed -i -e ''s/logo: .*/logo: \"assets\/img\/jetstream-logo.svg",/g'' public/ports.js'
     - 'sed -i -e ''s/appTitle: .*/appTitle: \"Jetstream Cloud",/g'' public/ports.js'
+    - 'sed -i -e ''s/defaultLoginView: .*/defaultLoginView: \"jetstream",/g'' public/ports.js'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream-deploy/'
   environment:
     name: jetstream

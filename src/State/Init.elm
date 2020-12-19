@@ -26,6 +26,7 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , LoginView(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -68,13 +69,37 @@ init flags maybeUrlKey =
                 Nothing ->
                     ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
 
+        defaultLoginView : Maybe LoginView
+        defaultLoginView =
+            case flags.defaultLoginView of
+                Just viewStr ->
+                    case viewStr of
+                        "openstack" ->
+                            Just <| LoginOpenstack Defaults.openstackCreds
+
+                        "jetstream" ->
+                            Just <| LoginJetstream Defaults.jetstreamCreds
+
+                        _ ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+        defaultViewState : ViewState
+        defaultViewState =
+            defaultLoginView
+                |> Maybe.map (\loginView -> NonProjectView (Login loginView))
+                |> Maybe.withDefault (NonProjectView LoginPicker)
+
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
             , maybeNavigationKey = maybeUrlKey |> Maybe.map Tuple.second
             , prevUrl = ""
-            , viewState = NonProjectView LoginPicker
+            , viewState =
+                defaultViewState
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -98,8 +123,7 @@ init flags maybeUrlKey =
                 , styleMode = Style.Types.LightMode
                 , appTitle =
                     flags.appTitle |> Maybe.withDefault "exosphere"
-                , defaultLoginView =
-                    Nothing
+                , defaultLoginView = defaultLoginView
                 }
             }
 
@@ -140,10 +164,10 @@ init flags maybeUrlKey =
 
         viewState =
             let
-                defaultViewState =
+                viewStateIfNoUrl =
                     case hydratedModel.projects of
                         [] ->
-                            NonProjectView LoginPicker
+                            defaultViewState
 
                         firstProject :: _ ->
                             ProjectView
@@ -156,10 +180,11 @@ init flags maybeUrlKey =
             case maybeUrlKey of
                 Just ( url, _ ) ->
                     AppUrl.Parser.urlToViewState flags.urlPathPrefix url
-                        |> Maybe.withDefault defaultViewState
+                        -- TODO in the future do we want to show "page not found?" Create an issue for this.
+                        |> Maybe.withDefault viewStateIfNoUrl
 
                 Nothing ->
-                    defaultViewState
+                    viewStateIfNoUrl
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project

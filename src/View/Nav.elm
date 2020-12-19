@@ -85,8 +85,13 @@ navMenu model palette =
 
                         _ ->
                             MenuItem.Inactive
+
+                destination =
+                    model.style.defaultLoginView
+                        |> Maybe.map (\loginView -> SetNonProjectView (Login loginView))
+                        |> Maybe.withDefault (SetNonProjectView LoginPicker)
             in
-            MenuItem.menuItem palette active "Add Project" (Just (SetNonProjectView LoginPicker))
+            MenuItem.menuItem palette active "Add Project" (Just destination)
     in
     Element.column
         [ Background.color (SH.toElementColor palette.menu.background)

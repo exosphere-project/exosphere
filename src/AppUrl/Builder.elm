@@ -52,7 +52,7 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
         LoginPicker ->
             buildUrlFunc
-                [ "login" ]
+                [ "loginpicker" ]
                 []
 
         Login loginView ->

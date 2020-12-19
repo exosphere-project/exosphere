@@ -99,7 +99,7 @@ pathParsers =
         )
     , map
         (NonProjectView LoginPicker)
-        (s "login")
+        (s "loginpicker")
 
     -- Not bothering to decode the SelectProjects view, because you can't currently navigate there on a fresh page load and see anything useful
     , map
