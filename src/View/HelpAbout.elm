@@ -28,7 +28,18 @@ helpAbout model palette =
                 Just proxyUrl ->
                     [ Element.text ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
         , Element.paragraph [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
-        , Element.el VH.heading2 <| Element.text "Getting Help"
+        ]
+
+
+defaultHelpAboutText : Model -> Style.Types.ExoPalette -> Element.Element Msg
+defaultHelpAboutText model palette =
+    Element.column [ Element.spacing 20 ]
+        [ Element.paragraph []
+            [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
+            , VH.browserLink palette (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
+                View.Types.BrowserLinkTextLabel "README on GitLab"
+            , Element.text "."
+            ]
         , Element.paragraph []
             [ Element.text "To ask for help, report a bug, or request a new feature, "
             , VH.browserLink
@@ -53,14 +64,4 @@ helpAbout model palette =
                 View.Types.BrowserLinkTextLabel "Matrix via Element"
             , Element.text ". The chat is bridged across both platforms, so join whichever you prefer."
             ]
-        ]
-
-
-defaultHelpAboutText : Model -> Style.Types.ExoPalette -> Element.Element Msg
-defaultHelpAboutText model palette =
-    Element.paragraph []
-        [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
-        , VH.browserLink palette (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|
-            View.Types.BrowserLinkTextLabel "README on GitLab"
-        , Element.text "."
         ]
