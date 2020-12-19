@@ -97,6 +97,36 @@ deploy_prod:
   only:
     - master
 
+deploy_jetstream:
+  stage: deploy
+  dependencies:
+    - elm_make
+  before_script:
+    # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$DOGFOOD_SSH_PRIV_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    # https://docs.gitlab.com/ee/ci/ssh_keys/README.html#verifying-the-ssh-host-keys
+    - echo "$DOGFOOD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
+  script:
+    - 'sed -i -e ''s/cloudCorsProxyUrl: .*/cloudCorsProxyUrl: \"https:\/\/exosphere.jetstream-cloud.org\/proxy",/g'' public/ports.js'
+    - 'sed -i -e ''s/urlPathPrefix: .*/urlPathPrefix: \"exosphere",/g'' public/ports.js'
+    - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
+    - 'sed -i -e ''s/palette: .*/palette: \{ primary: \{r: 155, g: 33, b: 35\}, secondary: \{r: 52, g: 122, b: 140\} \},/g'' public/ports.js'
+    - 'sed -i -e ''s/logo: .*/logo: \"assets\/img\/jetstream-logo.svg",/g'' public/ports.js'
+    - 'sed -i -e ''s/appTitle: .*/appTitle: \"Jetstream Cloud",/g'' public/ports.js'
+    - 'rsync -av --delete public exouser@dogfood.exosphere.app:jetstream-deploy/'
+  environment:
+    name: jetstream
+    url: https://exosphere.jetstream-cloud.org/exosphere
+  only:
+    - master
+
+
 deploy_dev:
   stage: deploy
   dependencies:
