@@ -71,20 +71,19 @@ init flags maybeUrlKey =
 
         defaultLoginView : Maybe LoginView
         defaultLoginView =
-            case flags.defaultLoginView of
-                Just viewStr ->
-                    case viewStr of
-                        "openstack" ->
-                            Just <| LoginOpenstack Defaults.openstackCreds
+            flags.defaultLoginView
+                |> Maybe.andThen
+                    (\viewStr ->
+                        case viewStr of
+                            "openstack" ->
+                                Just <| LoginOpenstack Defaults.openstackCreds
 
-                        "jetstream" ->
-                            Just <| LoginJetstream Defaults.jetstreamCreds
+                            "jetstream" ->
+                                Just <| LoginJetstream Defaults.jetstreamCreds
 
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+                            _ ->
+                                Nothing
+                    )
 
         defaultViewState : ViewState
         defaultViewState =
