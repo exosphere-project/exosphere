@@ -12,7 +12,7 @@ import View.Types
 helpAbout : Model -> Style.Types.ExoPalette -> Element.Element Msg
 helpAbout model palette =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30 ])
-        [ Element.el VH.heading2 <| Element.text "About Exosphere"
+        [ Element.el VH.heading2 <| Element.text <| "About " ++ model.style.appTitle
         , Element.paragraph []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
             , VH.browserLink palette (Helpers.appIsElectron model) "https://gitlab.com/exosphere/exosphere/blob/master/README.md" <|

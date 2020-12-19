@@ -47,7 +47,7 @@ pageTitle model =
                     "Settings"
 
                 HelpAbout ->
-                    "About Exosphere"
+                    "About " ++ model.style.appTitle
 
         ProjectView projectIdentifier _ projectViewConstructor ->
             let
