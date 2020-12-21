@@ -10,6 +10,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
@@ -26,6 +27,7 @@ import Types.Types
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , LoginView(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -68,13 +70,36 @@ init flags maybeUrlKey =
                 Nothing ->
                     ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
 
+        defaultLoginView : Maybe LoginView
+        defaultLoginView =
+            flags.defaultLoginView
+                |> Maybe.andThen
+                    (\viewStr ->
+                        case viewStr of
+                            "openstack" ->
+                                Just <| LoginOpenstack Defaults.openstackCreds
+
+                            "jetstream" ->
+                                Just <| LoginJetstream Defaults.jetstreamCreds
+
+                            _ ->
+                                Nothing
+                    )
+
+        defaultViewState : ViewState
+        defaultViewState =
+            defaultLoginView
+                |> Maybe.map (\loginView -> NonProjectView (Login loginView))
+                |> Maybe.withDefault (NonProjectView LoginPicker)
+
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
             , maybeNavigationKey = maybeUrlKey |> Maybe.map Tuple.second
             , prevUrl = ""
-            , viewState = NonProjectView LoginPicker
+            , viewState =
+                defaultViewState
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -97,7 +122,9 @@ init flags maybeUrlKey =
                 , secondaryColor = secondaryColor
                 , styleMode = Style.Types.LightMode
                 , appTitle =
-                    flags.appTitle |> Maybe.withDefault "exosphere"
+                    flags.appTitle |> Maybe.withDefault "Exosphere"
+                , defaultLoginView = defaultLoginView
+                , aboutAppMarkdown = flags.aboutAppMarkdown
                 }
             }
 
@@ -138,10 +165,10 @@ init flags maybeUrlKey =
 
         viewState =
             let
-                defaultViewState =
+                viewStateIfNoUrl =
                     case hydratedModel.projects of
                         [] ->
-                            NonProjectView LoginPicker
+                            defaultViewState
 
                         firstProject :: _ ->
                             ProjectView
@@ -154,10 +181,10 @@ init flags maybeUrlKey =
             case maybeUrlKey of
                 Just ( url, _ ) ->
                     AppUrl.Parser.urlToViewState flags.urlPathPrefix url
-                        |> Maybe.withDefault defaultViewState
+                        |> Maybe.withDefault viewStateIfNoUrl
 
                 Nothing ->
-                    defaultViewState
+                    viewStateIfNoUrl
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
@@ -173,6 +200,11 @@ init flags maybeUrlKey =
             in
             List.filter projectNeedsAppCredential hydratedModel.projects
 
+        setFaviconCmd =
+            flags.favicon
+                |> Maybe.map Ports.setFavicon
+                |> Maybe.withDefault Cmd.none
+
         otherCmds =
             [ List.map
                 (Rest.Keystone.requestAppCredential
@@ -182,6 +214,7 @@ init flags maybeUrlKey =
                 projectsNeedingAppCredentials
                 |> Cmd.batch
             , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
+            , setFaviconCmd
             ]
                 |> Cmd.batch
 

@@ -3,15 +3,28 @@ module Types.Defaults exposing
     , createVolumeView
     , imageListViewParams
     , jetstreamCreds
+    , openstackCreds
     , serverDetailViewParams
     , serverListViewParams
     , sortTableParams
     )
 
+import OpenStack.Types as OSTypes
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types as Types
+
+
+openstackCreds : OSTypes.OpenstackLogin
+openstackCreds =
+    { authUrl = ""
+    , projectDomain = ""
+    , projectName = ""
+    , userDomain = ""
+    , username = ""
+    , password = ""
+    }
 
 
 jetstreamCreds : Types.JetstreamCreds

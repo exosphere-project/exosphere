@@ -47,6 +47,7 @@ import Types.Types
         , ExoSetupStatus(..)
         , FloatingIpState(..)
         , HttpRequestMethod(..)
+        , LoginView(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -341,7 +342,7 @@ updateUnderlying msg model =
                     State.Auth.processOpenRc openstackCreds openRc
 
                 newViewState =
-                    NonProjectView <| LoginOpenstack newCreds
+                    NonProjectView <| Login <| LoginOpenstack newCreds
             in
             ViewStateHelpers.modelUpdateViewState newViewState model
 

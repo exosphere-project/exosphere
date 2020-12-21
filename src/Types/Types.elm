@@ -17,6 +17,7 @@ module Types.Types exposing
     , JetstreamProvider(..)
     , KeystoneHostname
     , LogMessage
+    , LoginView(..)
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
@@ -98,6 +99,9 @@ type alias Flags =
                 }
             }
     , logo : Maybe String
+    , favicon : Maybe String
+    , defaultLoginView : Maybe String
+    , aboutAppMarkdown : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -147,6 +151,8 @@ type alias Style =
     , secondaryColor : Color.Color
     , styleMode : Style.Types.StyleMode
     , appTitle : String
+    , defaultLoginView : Maybe LoginView
+    , aboutAppMarkdown : Maybe String
     }
 
 
@@ -311,12 +317,16 @@ type ViewState
 
 type NonProjectViewConstructor
     = LoginPicker
-    | LoginOpenstack OSTypes.OpenstackLogin
-    | LoginJetstream JetstreamCreds
+    | Login LoginView
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings
     | HelpAbout
+
+
+type LoginView
+    = LoginOpenstack OSTypes.OpenstackLogin
+    | LoginJetstream JetstreamCreds
 
 
 type alias ImageListViewParams =

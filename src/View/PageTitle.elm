@@ -5,7 +5,8 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Types.Types
     exposing
-        ( Model
+        ( LoginView(..)
+        , Model
         , NonProjectViewConstructor(..)
         , Project
         , ProjectViewConstructor(..)
@@ -22,11 +23,13 @@ pageTitle model =
                 LoginPicker ->
                     "Log in"
 
-                LoginOpenstack _ ->
-                    "OpenStack Login"
+                Login loginView ->
+                    case loginView of
+                        LoginOpenstack _ ->
+                            "OpenStack Login"
 
-                LoginJetstream _ ->
-                    "Jetstream Cloud Login"
+                        LoginJetstream _ ->
+                            "Jetstream Cloud Login"
 
                 SelectProjects keystoneUrl _ ->
                     let
@@ -44,7 +47,7 @@ pageTitle model =
                     "Settings"
 
                 HelpAbout ->
-                    "About Exosphere"
+                    "About " ++ model.style.appTitle
 
         ProjectView projectIdentifier _ projectViewConstructor ->
             let

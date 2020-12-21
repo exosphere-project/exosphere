@@ -10,10 +10,12 @@ import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Types
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( JetstreamCreds
         , JetstreamProvider(..)
+        , LoginView(..)
         , Model
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -48,12 +50,11 @@ viewLoginPicker palette =
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
                     { text = "Add OpenStack Account"
                     , onPress =
-                        Just
-                            (SetNonProjectView
-                                (LoginOpenstack
-                                    (OSTypes.OpenstackLogin "" "" "" "" "" "")
-                                )
-                            )
+                        Just <|
+                            SetNonProjectView <|
+                                Login <|
+                                    LoginOpenstack <|
+                                        Defaults.openstackCreds
                     }
                 ]
             , Element.column VH.exoColumnAttributes
@@ -65,16 +66,25 @@ viewLoginPicker palette =
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
                     { text = "Add Jetstream Account"
                     , onPress =
-                        Just
-                            (SetNonProjectView
-                                (LoginJetstream
-                                    (JetstreamCreds BothJetstreamClouds "" "" "")
-                                )
-                            )
+                        Just <|
+                            SetNonProjectView <|
+                                Login <|
+                                    LoginJetstream <|
+                                        JetstreamCreds BothJetstreamClouds "" "" ""
                     }
                 ]
             ]
         ]
+
+
+loginPickerButton : Style.Types.ExoPalette -> Element.Element Msg
+loginPickerButton palette =
+    Widget.textButton
+        (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+        { text = "See Other Login Methods"
+        , onPress =
+            Just <| SetNonProjectView <| LoginPicker
+        }
 
 
 viewLoginOpenstack : Model -> Style.Types.ExoPalette -> OSTypes.OpenstackLogin -> Element.Element Msg
@@ -88,14 +98,17 @@ viewLoginOpenstack model palette openstackCreds =
             [ loginOpenstackCredsEntry palette openstackCreds
             , loginOpenstackOpenRcEntry model palette openstackCreds
             ]
-        , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-            (Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
-                { text = "Log In"
-                , onPress =
-                    Just <| RequestUnscopedToken openstackCreds
-                }
-            )
+        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+            [ Element.el [] (loginPickerButton palette)
+            , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                (Widget.textButton
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                    { text = "Log In"
+                    , onPress =
+                        Just <| RequestUnscopedToken openstackCreds
+                    }
+                )
+            ]
         ]
 
 
@@ -104,7 +117,7 @@ loginOpenstackCredsEntry palette openstackCreds =
     let
         updateCreds : OSTypes.OpenstackLogin -> Msg
         updateCreds newCreds =
-            SetNonProjectView <| LoginOpenstack newCreds
+            SetNonProjectView <| Login <| LoginOpenstack newCreds
 
         textField text placeholderText onChange labelText =
             Input.text
@@ -187,7 +200,7 @@ viewLoginJetstream model palette jetstreamCreds =
     let
         updateCreds : JetstreamCreds -> Msg
         updateCreds newCreds =
-            SetNonProjectView <| LoginJetstream newCreds
+            SetNonProjectView <| Login <| LoginJetstream newCreds
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2
@@ -219,6 +232,9 @@ viewLoginJetstream model palette jetstreamCreds =
                     ]
                 , selected = Just jetstreamCreds.jetstreamProviderChoice
                 }
+            ]
+        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+            [ Element.el [] (loginPickerButton palette)
             , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                 (Widget.textButton
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))

@@ -7,6 +7,7 @@ import Types.Types
     exposing
         ( JetstreamCreds
         , JetstreamProvider(..)
+        , LoginView(..)
         , NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ViewState(..)
@@ -40,7 +41,7 @@ pathParsers : List (Parser (ViewState -> b) b)
 pathParsers =
     [ -- Non-project-specific views
       map
-        (\creds -> NonProjectView <| LoginOpenstack creds)
+        (\creds -> NonProjectView <| Login <| LoginOpenstack creds)
         (let
             queryParser =
                 Query.map6
@@ -68,7 +69,7 @@ pathParsers =
          s "login" </> s "openstack" <?> queryParser
         )
     , map
-        (\creds -> NonProjectView <| LoginJetstream creds)
+        (\creds -> NonProjectView <| Login <| LoginJetstream creds)
         (let
             providerEnumDict =
                 Dict.fromList
@@ -98,7 +99,7 @@ pathParsers =
         )
     , map
         (NonProjectView LoginPicker)
-        (s "login")
+        (s "loginpicker")
 
     -- Not bothering to decode the SelectProjects view, because you can't currently navigate there on a fresh page load and see anything useful
     , map

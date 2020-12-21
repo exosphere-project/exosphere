@@ -1,7 +1,6 @@
 module Tests exposing
     ( computeQuotasAndLimitsSuite
     , decodeSynchronousOpenStackAPIErrorSuite
-    , emptyCreds
     , processOpenRcSuite
     , stringIsUuidOrDefaultSuite
     , volumeQuotasAndLimitsSuite
@@ -28,11 +27,7 @@ import OpenStack.Types as OSTypes
 import State.Auth
 import Test exposing (..)
 import TestData
-
-
-emptyCreds : OpenstackLogin
-emptyCreds =
-    OpenstackLogin "" "" "" "" "" ""
+import Types.Defaults as Defaults
 
 
 computeQuotasAndLimitsSuite : Test
@@ -123,14 +118,14 @@ processOpenRcSuite =
         [ test "ensure an empty file is unmatched" <|
             \() ->
                 ""
-                    |> State.Auth.processOpenRc emptyCreds
-                    |> Expect.equal emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> Expect.equal Defaults.openstackCreds
         , test "that $OS_PASSWORD_INPUT is *not* processed" <|
             \() ->
                 """
                 export OS_PASSWORD=$OS_PASSWORD_INPUT
                 """
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> .password
                     |> Expect.equal ""
         , test "that double quotes are not included in a processed match" <|
@@ -138,7 +133,7 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3"
                 """
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "that double quotes are optional" <|
@@ -146,7 +141,7 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
                 """
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "that project domain name is still matched" <|
@@ -155,7 +150,7 @@ processOpenRcSuite =
                 # newer OpenStack release seem to use _ID suffix
                 export OS_PROJECT_DOMAIN_NAME="super-specific"
                 """
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> .projectDomain
                     |> Expect.equal "super-specific"
         , test "that project domain ID is still matched" <|
@@ -164,13 +159,13 @@ processOpenRcSuite =
                 # newer OpenStack release seem to use _ID suffix
                 export OS_PROJECT_DOMAIN_ID="DEFAULT"
                 """
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> .projectDomain
                     |> Expect.equal "DEFAULT"
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 TestData.openrcPreV3
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:35357/v3"
@@ -183,7 +178,7 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open with comments works" <|
             \() ->
                 TestData.openrcV3withComments
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
@@ -196,7 +191,7 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open _without_ comments works" <|
             \() ->
                 TestData.openrcV3
-                    |> State.Auth.processOpenRc emptyCreds
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"

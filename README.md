@@ -199,14 +199,17 @@ Please do not use the terminal or server dashboard functionality over untrusted 
 
 Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in the `flags` JSON object in `ports.js`.
 
-| *Option*                  | *Possible Values* | *Description*                                                       |
-|---------------------------|-------------------|---------------------------------------------------------------------|
-| showDebugMsgs             | false, true       |                                                                     |
-| cloudCorsProxyUrl         | null, string      | See `docs/cloud-cors-proxy.md`; required to use app in web browser  |
-| cloudsWithUserAppProxy    | (see docs)        | See `docs/user-app-proxy.md`; required for Guacamole support        |
-| palette                   | null, JSON object | Pass custom colors to style Exosphere, see example below            |
-| logo                      | null, string      | Path to custom logo to show in top-left corner of app               |
-| appTitle                  | null, string      | Title to show in top-left corner of app                             |
+| *Option*               | *Possible Values*          | *Description*                                                       |
+|------------------------|----------------------------|---------------------------------------------------------------------|
+| showDebugMsgs          | false, true                |                                                                     |
+| cloudCorsProxyUrl      | null, string               | See `docs/cloud-cors-proxy.md`; required to use app in web browser  |
+| cloudsWithUserAppProxy | (see docs)                 | See `docs/user-app-proxy.md`; required for Guacamole support        |
+| palette                | null, JSON object          | Pass custom colors to style Exosphere, see example below            |
+| logo                   | null, string               | Path to custom logo to show in top-left corner of app               |
+| favicon                | null, string               | Path to custom favicon                                              |
+| appTitle               | null, string               | Title to show in top-left corner of app                             |
+| defaultLoginView       | null, openstack, jetstream | Which login view to display by default                              |
+| aboutAppMarkdown       | null, string (markdown)    | What to show in the "About the app" section of Help/About view      |
 
 ### Example Custom Palette
 

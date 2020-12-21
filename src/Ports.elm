@@ -1,4 +1,10 @@
-port module Ports exposing (instantiateClipboardJs, openInBrowser, openNewWindow, setStorage)
+port module Ports exposing
+    ( instantiateClipboardJs
+    , openInBrowser
+    , openNewWindow
+    , setFavicon
+    , setStorage
+    )
 
 import Json.Encode as Encode
 
@@ -13,3 +19,6 @@ port setStorage : Encode.Value -> Cmd msg
 
 
 port instantiateClipboardJs : () -> Cmd msg
+
+
+port setFavicon : String -> Cmd msg

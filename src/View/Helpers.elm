@@ -16,6 +16,7 @@ module View.Helpers exposing
     , hint
     , inputItemAttributes
     , possiblyUntitledResource
+    , renderMarkdown
     , renderMessage
     , titleFromHostname
     , toExoPalette
@@ -24,12 +25,19 @@ module View.Helpers exposing
 import Color
 import Element
 import Element.Background as Background
+import Element.Border
 import Element.Events
 import Element.Font as Font
+import Element.Input
 import Element.Region as Region
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
+import Html
+import Markdown.Block
+import Markdown.Html
+import Markdown.Parser
+import Markdown.Renderer
 import OpenStack.Types as OSTypes
 import Regex
 import Style.Helpers as SH
@@ -439,3 +447,154 @@ getServerUiStatusColor palette status =
 
         ServerUiStatusDeleted ->
             SH.toElementColor palette.muted
+
+
+renderMarkdown : Style.Types.ExoPalette -> Bool -> String -> Element.Element Msg
+renderMarkdown palette isElectron markdown =
+    let
+        deadEndsToString deadEnds =
+            deadEnds
+                |> List.map Markdown.Parser.deadEndToString
+                |> String.join "\n"
+
+        result =
+            markdown
+                |> Markdown.Parser.parse
+                |> Result.mapError deadEndsToString
+                |> Result.andThen
+                    (\ast -> Markdown.Renderer.render (elmUiRenderer palette isElectron) ast)
+    in
+    case result of
+        Ok elements ->
+            Element.paragraph []
+                elements
+
+        Err errors ->
+            Element.text
+                ("Error parsing markdown: \n" ++ errors)
+
+
+elmUiRenderer : Style.Types.ExoPalette -> Bool -> Markdown.Renderer.Renderer (Element.Element Msg)
+elmUiRenderer palette isElectron =
+    -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
+    { heading = heading
+    , paragraph =
+        Element.paragraph
+            []
+    , thematicBreak = Element.none
+    , text = Element.text
+    , strong = \content -> Element.row [ Font.bold ] content
+    , emphasis = \content -> Element.row [ Font.italic ] content
+    , codeSpan =
+        -- TODO implement this (show fixed-width font) once we need it
+        Element.text
+    , link =
+        \{ destination } body ->
+            browserLink
+                palette
+                isElectron
+                destination
+                (View.Types.BrowserLinkFancyLabel
+                    (Element.paragraph
+                        [ palette.primary |> SH.toElementColor |> Font.color
+                        , Font.underline
+                        , Element.pointer
+                        ]
+                        body
+                    )
+                )
+    , hardLineBreak = Html.br [] [] |> Element.html
+    , image =
+        \image ->
+            case image.title of
+                Just _ ->
+                    Element.image [ Element.width Element.fill ] { src = image.src, description = image.alt }
+
+                Nothing ->
+                    Element.image [ Element.width Element.fill ] { src = image.src, description = image.alt }
+    , blockQuote =
+        \children ->
+            Element.column
+                [ Element.Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
+                , Element.padding 10
+                , Element.Border.color (SH.toElementColor palette.on.background)
+                , Background.color (SH.toElementColor palette.surface)
+                ]
+                children
+    , unorderedList =
+        \items ->
+            Element.column [ Element.spacing 15 ]
+                (items
+                    |> List.map
+                        (\(Markdown.Block.ListItem task children) ->
+                            Element.row [ Element.spacing 5 ]
+                                [ Element.row
+                                    [ Element.alignTop ]
+                                    ((case task of
+                                        Markdown.Block.IncompleteTask ->
+                                            Element.Input.defaultCheckbox False
+
+                                        Markdown.Block.CompletedTask ->
+                                            Element.Input.defaultCheckbox True
+
+                                        Markdown.Block.NoTask ->
+                                            Element.text "•"
+                                     )
+                                        :: Element.text " "
+                                        :: children
+                                    )
+                                ]
+                        )
+                )
+    , orderedList =
+        \startingIndex items ->
+            Element.column [ Element.spacing 15 ]
+                (items
+                    |> List.indexedMap
+                        (\index itemBlocks ->
+                            Element.row [ Element.spacing 5 ]
+                                [ Element.row [ Element.alignTop ]
+                                    (Element.text (String.fromInt (index + startingIndex) ++ " ") :: itemBlocks)
+                                ]
+                        )
+                )
+    , codeBlock =
+        -- TODO implement this (show fixed-width font) once we need it
+        \{ body } ->
+            Element.text body
+    , html = Markdown.Html.oneOf []
+    , table = Element.column []
+    , tableHeader = Element.column []
+    , tableBody = Element.column []
+    , tableRow = Element.row []
+    , tableHeaderCell =
+        \_ children ->
+            Element.paragraph [] children
+    , tableCell =
+        \_ children ->
+            Element.paragraph [] children
+    }
+
+
+heading :
+    { level : Markdown.Block.HeadingLevel
+    , rawText : String
+    , children : List (Element.Element Msg)
+    }
+    -> Element.Element Msg
+heading { level, children } =
+    Element.paragraph
+        (case level of
+            Markdown.Block.H2 ->
+                heading2
+
+            Markdown.Block.H3 ->
+                heading3
+
+            Markdown.Block.H4 ->
+                heading4
+
+            _ ->
+                heading2
+        )
+        children
