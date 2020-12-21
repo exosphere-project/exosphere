@@ -486,7 +486,7 @@ elmUiRenderer palette isElectron =
     , strong = \content -> Element.row [ Font.bold ] content
     , emphasis = \content -> Element.row [ Font.italic ] content
     , codeSpan =
-        -- TODO
+        -- TODO implement this (show fixed-width font) once we need it
         Element.text
     , link =
         \{ destination } body ->
@@ -559,7 +559,7 @@ elmUiRenderer palette isElectron =
                         )
                 )
     , codeBlock =
-        -- TODO
+        -- TODO implement this (show fixed-width font) once we need it
         \{ body } ->
             Element.text body
     , html = Markdown.Html.oneOf []
