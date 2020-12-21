@@ -122,7 +122,7 @@ init flags maybeUrlKey =
                 , secondaryColor = secondaryColor
                 , styleMode = Style.Types.LightMode
                 , appTitle =
-                    flags.appTitle |> Maybe.withDefault "exosphere"
+                    flags.appTitle |> Maybe.withDefault "Exosphere"
                 , defaultLoginView = defaultLoginView
                 , aboutAppMarkdown = flags.aboutAppMarkdown
                 }
