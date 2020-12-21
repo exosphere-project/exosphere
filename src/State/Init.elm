@@ -181,7 +181,6 @@ init flags maybeUrlKey =
             case maybeUrlKey of
                 Just ( url, _ ) ->
                     AppUrl.Parser.urlToViewState flags.urlPathPrefix url
-                        -- TODO in the future do we want to show "page not found?" Create an issue for this.
                         |> Maybe.withDefault viewStateIfNoUrl
 
                 Nothing ->
