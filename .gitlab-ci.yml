@@ -138,7 +138,7 @@ deploy_dev:
     - chmod 644 ~/.ssh/known_hosts
     - 'which rsync || ( apt-get update -y && apt-get install rsync -y )'
   script:
-    - 'cp environment-configs/try.exosphere.app-config.js public/config.js'
+    - 'cp environment-configs/try-dev.exosphere.app-config.js public/config.js'
     - 'sed -i -e ''s/<base href="\/">/<base href="\/exosphere\/">/g'' public/index.html'
     - 'rsync -av --delete public exouser@dogfood.exosphere.app:dev-deploy/'
   environment:
