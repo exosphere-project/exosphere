@@ -24,38 +24,25 @@ if (isElectron) {
     var moduleToInit = Elm.Exosphere.init;
 }
 
+var flags = {
+    // Flags that Exosphere sets dynamically, not intended to be modified by deployer
+    width: window.innerWidth,
+    height: window.innerHeight,
+    storedState: startingState,
+    randomSeed0: randomSeeds[0],
+    randomSeed1: randomSeeds[1],
+    randomSeed2: randomSeeds[2],
+    randomSeed3: randomSeeds[3],
+    epoch : Date.now(),
+    timeZone : d.getTimezoneOffset()
+}
+
+
 // start the elm app in the container
 // and keep a reference for communicating with the app
 var app = moduleToInit({
     node: container,
-    flags:
-    {
-        // Flags intended to be configured by cloud operators who offer Exosphere
-        showDebugMsgs : false,
-        cloudCorsProxyUrl: "https://try-dev.exosphere.app/proxy",
-        cloudsWithUserAppProxy:
-        [ ["iu.jetstream-cloud.org", "proxy-j7m-iu.exosphere.app"],
-          ["tacc.jetstream-cloud.org", "proxy-j7m-tacc.exosphere.app"],
-        ],
-        urlPathPrefix: null,
-        palette: null,
-        logo: null,
-        favicon: null,
-        appTitle: null,
-        defaultLoginView: null,
-        aboutAppMarkdown: null,
-
-        // Flags that Exosphere sets dynamically
-        width: window.innerWidth,
-        height: window.innerHeight,
-        storedState: startingState,
-        randomSeed0: randomSeeds[0],
-        randomSeed1: randomSeeds[1],
-        randomSeed2: randomSeeds[2],
-        randomSeed3: randomSeeds[3],
-        epoch : Date.now(),
-        timeZone : d.getTimezoneOffset()
-    }
+    flags: Object.assign(flags, config)
 });
 
 app.ports.openInBrowser.subscribe(function (url) {

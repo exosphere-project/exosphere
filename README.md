@@ -197,7 +197,7 @@ Please do not use the terminal or server dashboard functionality over untrusted 
 
 ## Runtime configuration options
 
-Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in the `flags` JSON object in `ports.js`.
+Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in `config.js`.
 
 | *Option*               | *Possible Values*          | *Description*                                                       |
 |------------------------|----------------------------|---------------------------------------------------------------------|
