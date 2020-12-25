@@ -323,17 +323,17 @@ type NonProjectViewConstructor
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings
-    | GetSupport (Maybe SupportableItemType)
+    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout
 
 
 type
     SupportableItemType
     -- Ideally this would be in View.Types, eh
-    = SupportableProject (Maybe HelperTypes.Uuid)
-    | SupportableImage { searchBoxState : SearchBox.State, searchBoxText : String } (Maybe HelperTypes.Uuid)
-    | SupportableServer { searchBoxState : SearchBox.State, searchBoxText : String } (Maybe HelperTypes.Uuid)
-    | SupportableVolume { searchBoxState : SearchBox.State, searchBoxText : String } (Maybe HelperTypes.Uuid)
+    = SupportableProject
+    | SupportableImage
+    | SupportableServer
+    | SupportableVolume
 
 
 type LoginView

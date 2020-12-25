@@ -2,12 +2,17 @@ module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 
 import Element
 import Element.Background as Background
+import Element.Border as Border
 import Element.Input as Input
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
+import Html exposing (Html)
+import Html.Attributes as HtmlA
+import Html.Events as HtmlE
+import Json.Decode
 import OpenStack.Types as OSTypes
 import RemoteData
-import SearchBox
 import Style.Types
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -15,6 +20,7 @@ import Types.Types
         ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
+        , Project
         , ProjectIdentifier
         , ProjectViewConstructor(..)
         , SupportableItemType(..)
@@ -26,7 +32,7 @@ import View.Helpers as VH
 getSupport :
     Model
     -> Style.Types.ExoPalette
-    -> Maybe SupportableItemType
+    -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> Element.Element Msg
 getSupport model palette maybeSupportableResource =
     Element.column VH.exoColumnAttributes
@@ -35,34 +41,19 @@ getSupport model palette maybeSupportableResource =
             { onChange =
                 \option ->
                     option
+                        |> Maybe.map (\option_ -> ( option_, Nothing ))
                         |> GetSupport
                         |> SetNonProjectView
             , selected =
-                case maybeSupportableResource of
-                    Just supportableItemType ->
-                        Just <|
-                            case supportableItemType of
-                                -- Ugh.
-                                SupportableServer _ _ ->
-                                    Just <| SupportableServer newSearchBoxStateAndText Nothing
-
-                                SupportableVolume _ _ ->
-                                    Just <| SupportableVolume newSearchBoxStateAndText Nothing
-
-                                SupportableImage _ _ ->
-                                    Just <| SupportableImage newSearchBoxStateAndText Nothing
-
-                                SupportableProject _ ->
-                                    Just <| SupportableProject Nothing
-
-                    Nothing ->
-                        Just Nothing
+                maybeSupportableResource
+                    |> Maybe.map Tuple.first
+                    |> Just
             , label = Input.labelAbove [] (Element.text "What do you need help with?")
             , options =
-                [ Input.option (Just <| SupportableServer newSearchBoxStateAndText Nothing) (Element.text "A server")
-                , Input.option (Just <| SupportableVolume newSearchBoxStateAndText Nothing) (Element.text "A volume")
-                , Input.option (Just <| SupportableImage newSearchBoxStateAndText Nothing) (Element.text "An image")
-                , Input.option (Just <| SupportableProject Nothing) (Element.text "A project")
+                [ Input.option (Just SupportableServer) (Element.text "A server")
+                , Input.option (Just SupportableVolume) (Element.text "A volume")
+                , Input.option (Just SupportableImage) (Element.text "An image")
+                , Input.option (Just SupportableProject) (Element.text "A project")
                 , Input.option Nothing (Element.text "None of these things")
                 ]
             }
@@ -70,10 +61,57 @@ getSupport model palette maybeSupportableResource =
             Nothing ->
                 Element.none
 
-            Just supportableItemType ->
+            Just ( supportableItemType, maybeSupportableItemUuid ) ->
                 case supportableItemType of
-                    SupportableProject maybeSupportableItemUuid ->
-                        Element.none
+                    SupportableProject ->
+                        let
+                            selectProj : Maybe HelperTypes.Uuid -> List Project -> Html Msg
+                            selectProj maybeProj projs =
+                                Html.select
+                                    [ HtmlE.on
+                                        "change"
+                                        (Json.Decode.map
+                                            (\uuid ->
+                                                SetNonProjectView <|
+                                                    GetSupport <|
+                                                        Just ( supportableItemType, Just uuid )
+                                            )
+                                            Json.Decode.string
+                                        )
+                                    , HtmlA.style "appearance" "none"
+                                    , HtmlA.style "-webkit-appearance" "none"
+                                    , HtmlA.style "-moz-appearance" "none"
+                                    , HtmlA.style "padding" "5px"
+                                    , HtmlA.style "border-width" "0"
+                                    , HtmlA.style "height" "48px"
+                                    , HtmlA.style "font-size" "18px"
+                                    , HtmlA.style "background-color" "transparent"
+                                    ]
+                                    (Html.option [ HtmlA.value "" ] [ Html.text "Select project" ]
+                                        :: List.map (optionProj maybeProj) projs
+                                    )
+
+                            optionProj : Maybe HelperTypes.Uuid -> Project -> Html Msg
+                            optionProj maybeSelectedProjUuid proj =
+                                Html.option
+                                    ([ HtmlA.value proj.auth.project.uuid ]
+                                        ++ (case maybeSelectedProjUuid of
+                                                Nothing ->
+                                                    []
+
+                                                Just selectedProjUuid ->
+                                                    [ HtmlA.selected (selectedProjUuid == proj.auth.project.uuid) ]
+                                           )
+                                    )
+                                    [ Html.text proj.auth.project.name ]
+                        in
+                        Element.row
+                            [ Border.width 1
+                            , Border.rounded 3
+                            ]
+                            [ Element.el [] <| Element.html (selectProj maybeSupportableItemUuid model.projects)
+                            , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                            ]
 
                     {-
                        Input.radio
@@ -93,7 +131,7 @@ getSupport model palette maybeSupportableResource =
                                        )
                            }
                     -}
-                    SupportableImage searchBoxStateAndText maybeSupportableItemUuid ->
+                    SupportableImage ->
                         let
                             imageNameFromUuid : OSTypes.ImageUuid -> String
                             imageNameFromUuid uuid =
@@ -104,68 +142,7 @@ getSupport model palette maybeSupportableResource =
                                     |> Maybe.map .name
                                     |> Maybe.withDefault uuid
                         in
-                        Element.el [] <|
-                            SearchBox.input
-                                VH.searchBoxAttributes
-                                { onChange =
-                                    \changeEvent ->
-                                        case Debug.log "Change event" changeEvent of
-                                            SearchBox.SelectionChanged imageUuid ->
-                                                SetNonProjectView <|
-                                                    GetSupport <|
-                                                        Just
-                                                            (SupportableImage
-                                                                searchBoxStateAndText
-                                                                (Just imageUuid)
-                                                            )
-
-                                            SearchBox.TextChanged newText ->
-                                                SetNonProjectView <|
-                                                    GetSupport <|
-                                                        Just
-                                                            (SupportableImage
-                                                                { searchBoxStateAndText
-                                                                    | searchBoxText = newText
-                                                                    , searchBoxState = SearchBox.reset searchBoxStateAndText.searchBoxState
-                                                                }
-                                                                Nothing
-                                                            )
-
-                                            SearchBox.SearchBoxChanged searchBoxMsg ->
-                                                let
-                                                    newSearchBoxState =
-                                                        SearchBox.update
-                                                            searchBoxMsg
-                                                            searchBoxStateAndText.searchBoxState
-                                                in
-                                                SetNonProjectView <|
-                                                    GetSupport <|
-                                                        Just
-                                                            (SupportableImage
-                                                                { searchBoxStateAndText
-                                                                    | searchBoxState = newSearchBoxState
-                                                                }
-                                                                maybeSupportableItemUuid
-                                                            )
-                                , text = searchBoxStateAndText.searchBoxText
-                                , selected = maybeSupportableItemUuid
-                                , options =
-                                    model.projects
-                                        |> List.map .images
-                                        |> List.concat
-                                        |> List.map (\image -> image.uuid)
-                                        |> Just
-                                , label =
-                                    Input.labelAbove [] (Element.text "Which image do you need help with?")
-                                , placeholder = Nothing
-                                , toLabel = imageNameFromUuid
-                                , filter =
-                                    \filterString imageUuid ->
-                                        String.contains
-                                            (String.toLower filterString)
-                                            (String.toLower <| imageNameFromUuid imageUuid)
-                                , state = searchBoxStateAndText.searchBoxState
-                                }
+                        Element.none
 
                     {-
                        Input.radio
@@ -188,7 +165,7 @@ getSupport model palette maybeSupportableResource =
                                        )
                            }
                     -}
-                    SupportableServer searchBoxStateAndText maybeSupportableItemUuid ->
+                    SupportableServer ->
                         Element.none
 
                     {-
@@ -213,7 +190,7 @@ getSupport model palette maybeSupportableResource =
                                        )
                            }
                     -}
-                    SupportableVolume searchBoxStateAndText maybeSupportableItemUuid ->
+                    SupportableVolume ->
                         Element.none
 
         {-
@@ -244,55 +221,50 @@ getSupport model palette maybeSupportableResource =
 supportableItemTypeStr : SupportableItemType -> String
 supportableItemTypeStr supportableItemType =
     case supportableItemType of
-        SupportableProject _ ->
+        SupportableProject ->
             "project"
 
-        SupportableImage _ _ ->
+        SupportableImage ->
             "image"
 
-        SupportableServer _ _ ->
+        SupportableServer ->
             "server"
 
-        SupportableVolume _ _ ->
+        SupportableVolume ->
             "volume"
 
 
-newSearchBoxStateAndText : { searchBoxState : SearchBox.State, searchBoxText : String }
-newSearchBoxStateAndText =
-    { searchBoxState = SearchBox.init, searchBoxText = "" }
-
-
-viewStateToSupportableItem : ViewState -> Maybe SupportableItemType
+viewStateToSupportableItem : ViewState -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
 viewStateToSupportableItem viewState =
     let
         supportableProjectItem :
             ProjectIdentifier
             -> ProjectViewConstructor
-            -> SupportableItemType
+            -> ( SupportableItemType, Maybe HelperTypes.Uuid )
         supportableProjectItem projectUuid projectViewConstructor =
             case projectViewConstructor of
                 CreateServer createServerViewParams ->
-                    SupportableImage newSearchBoxStateAndText (Just createServerViewParams.imageUuid)
+                    ( SupportableImage, Just createServerViewParams.imageUuid )
 
                 ServerDetail serverUuid _ ->
-                    SupportableServer newSearchBoxStateAndText (Just serverUuid)
+                    ( SupportableServer, Just serverUuid )
 
                 CreateServerImage serverUuid _ ->
-                    SupportableServer newSearchBoxStateAndText (Just serverUuid)
+                    ( SupportableServer, Just serverUuid )
 
                 VolumeDetail volumeUuid _ ->
-                    SupportableVolume newSearchBoxStateAndText (Just volumeUuid)
+                    ( SupportableVolume, Just volumeUuid )
 
                 AttachVolumeModal _ maybeVolumeUuid ->
                     maybeVolumeUuid
-                        |> Maybe.map (\uuid -> SupportableVolume newSearchBoxStateAndText (Just uuid))
-                        |> Maybe.withDefault (SupportableProject (Just projectUuid))
+                        |> Maybe.map (\uuid -> ( SupportableVolume, Just uuid ))
+                        |> Maybe.withDefault ( SupportableProject, Just projectUuid )
 
                 MountVolInstructions attachment ->
-                    SupportableServer newSearchBoxStateAndText (Just attachment.serverUuid)
+                    ( SupportableServer, Just attachment.serverUuid )
 
                 _ ->
-                    SupportableProject (Just projectUuid)
+                    ( SupportableProject, Just projectUuid )
     in
     case viewState of
         NonProjectView _ ->
