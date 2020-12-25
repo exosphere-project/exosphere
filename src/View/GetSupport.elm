@@ -85,7 +85,7 @@ getSupport model palette maybeSupportableResource =
                                     |> List.map
                                         (\proj ->
                                             ( proj.auth.project.uuid
-                                            , proj.auth.project.name
+                                            , VH.friendlyProjectTitle model proj
                                             )
                                         )
                             , selected = maybeSupportableItemUuid
