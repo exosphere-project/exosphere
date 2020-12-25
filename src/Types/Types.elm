@@ -62,6 +62,7 @@ import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
+import SearchBox
 import Set
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -322,17 +323,17 @@ type NonProjectViewConstructor
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings
-    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ))
+    | GetSupport (Maybe SupportableItemType)
     | HelpAbout
 
 
 type
     SupportableItemType
     -- Ideally this would be in View.Types, eh
-    = SupportableProject
-    | SupportableImage
-    | SupportableServer
-    | SupportableVolume
+    = SupportableProject (Maybe HelperTypes.Uuid)
+    | SupportableImage { searchBoxState : SearchBox.State, searchBoxText : String } (Maybe HelperTypes.Uuid)
+    | SupportableServer { searchBoxState : SearchBox.State, searchBoxText : String } (Maybe HelperTypes.Uuid)
+    | SupportableVolume { searchBoxState : SearchBox.State, searchBoxText : String } (Maybe HelperTypes.Uuid)
 
 
 type LoginView

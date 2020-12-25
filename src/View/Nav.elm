@@ -6,6 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
+import SearchBox
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
