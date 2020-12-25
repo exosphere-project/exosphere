@@ -46,6 +46,9 @@ pageTitle model =
                 Settings ->
                     "Settings"
 
+                GetSupport _ ->
+                    "Get Support"
+
                 HelpAbout ->
                     "About " ++ model.style.appTitle
 

@@ -7,6 +7,7 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
+    , friendlyProjectTitle
     , getServerUiStatus
     , getServerUiStatusColor
     , getServerUiStatusStr
@@ -33,6 +34,7 @@ import Element.Region as Region
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
+import Helpers.Url as UrlHelpers
 import Html
 import Markdown.Block
 import Markdown.Html
@@ -48,7 +50,9 @@ import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , LogMessage
+        , Model
         , Msg(..)
+        , Project
         , Server
         , ServerOrigin(..)
         , ServerUiStatus(..)
@@ -598,3 +602,32 @@ heading { level, children } =
                 heading2
         )
         children
+
+
+friendlyProjectTitle : Model -> Project -> String
+friendlyProjectTitle model project =
+    -- If we have multiple projects on the same provider then append the project name to the provider name
+    let
+        providerTitle =
+            project.endpoints.keystone
+                |> UrlHelpers.hostnameFromUrl
+                |> titleFromHostname
+
+        multipleProjects =
+            let
+                projectCountOnSameProvider =
+                    let
+                        projectsOnSameProvider : Project -> Project -> Bool
+                        projectsOnSameProvider proj1 proj2 =
+                            UrlHelpers.hostnameFromUrl proj1.endpoints.keystone == UrlHelpers.hostnameFromUrl proj2.endpoints.keystone
+                    in
+                    List.filter (projectsOnSameProvider project) model.projects
+                        |> List.length
+            in
+            projectCountOnSameProvider > 1
+    in
+    if multipleProjects then
+        providerTitle ++ " (" ++ project.auth.project.name ++ ")"
+
+    else
+        providerTitle

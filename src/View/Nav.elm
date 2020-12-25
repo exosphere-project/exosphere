@@ -6,7 +6,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
-import Helpers.Url as UrlHelpers
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Icon as Icon
@@ -22,6 +21,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import View.GetSupport
 import View.Helpers as VH
 
 
@@ -42,7 +42,7 @@ navMenu model palette =
         projectMenuItem project =
             let
                 projectTitle =
-                    projectTitleForNavMenu model project
+                    VH.friendlyProjectTitle model project
 
                 status =
                     case model.viewState of
@@ -104,35 +104,6 @@ navMenu model palette =
         (projectMenuItems model.projects
             ++ [ addProjectMenuItem ]
         )
-
-
-projectTitleForNavMenu : Model -> Project -> String
-projectTitleForNavMenu model project =
-    -- If we have multiple projects on the same provider then append the project name to the provider name
-    let
-        providerTitle =
-            project.endpoints.keystone
-                |> UrlHelpers.hostnameFromUrl
-                |> VH.titleFromHostname
-
-        multipleProjects =
-            let
-                projectCountOnSameProvider =
-                    let
-                        projectsOnSameProvider : Project -> Project -> Bool
-                        projectsOnSameProvider proj1 proj2 =
-                            UrlHelpers.hostnameFromUrl proj1.endpoints.keystone == UrlHelpers.hostnameFromUrl proj2.endpoints.keystone
-                    in
-                    List.filter (projectsOnSameProvider project) model.projects
-                        |> List.length
-            in
-            projectCountOnSameProvider > 1
-    in
-    if multipleProjects then
-        providerTitle ++ String.fromChar '\n' ++ "(" ++ project.auth.project.name ++ ")"
-
-    else
-        providerTitle
 
 
 navBar : Model -> Style.Types.ExoPalette -> Element.Element Msg
@@ -207,12 +178,37 @@ navBar model palette =
                     ]
                     (Input.button
                         []
+                        { onPress =
+                            Just
+                                (SetNonProjectView <|
+                                    GetSupport
+                                        (View.GetSupport.viewStateToSupportableItem model.viewState)
+                                )
+                        , label =
+                            Element.row
+                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
+                                [ FeatherIcons.helpCircle
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                    |> Element.el []
+                                , Element.text "Get Support"
+                                ]
+                        }
+                    )
+                , Element.el
+                    [ Font.color (SH.toElementColor palette.menu.on.surface)
+                    ]
+                    (Input.button
+                        []
                         { onPress = Just (SetNonProjectView HelpAbout)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.question (SH.toElementColor palette.menu.on.surface) 20
-                                , Element.text "Help / About"
+                                [ FeatherIcons.info
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                    |> Element.el []
+                                , Element.text "About"
                                 ]
                         }
                     )

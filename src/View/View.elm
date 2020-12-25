@@ -19,6 +19,7 @@ import Types.Types
         , ViewState(..)
         , WindowSize
         )
+import View.GetSupport
 import View.HelpAbout
 import View.Helpers as VH
 import View.Login
@@ -102,6 +103,9 @@ elementView maybeWindowSize model palette =
 
                             Settings ->
                                 View.Settings.settings model
+
+                            GetSupport maybeSupportableItem ->
+                                View.GetSupport.getSupport model palette maybeSupportableItem
 
                             HelpAbout ->
                                 View.HelpAbout.helpAbout model palette
