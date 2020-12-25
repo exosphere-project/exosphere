@@ -19,7 +19,6 @@ module View.Helpers exposing
     , possiblyUntitledResource
     , renderMarkdown
     , renderMessage
-    , searchBoxAttributes
     , titleFromHostname
     , toExoPalette
     )
@@ -97,16 +96,6 @@ inputItemAttributes : Color.Color -> List (Element.Attribute Msg)
 inputItemAttributes backgroundColor =
     [ Element.spacing 12
     , Background.color <| SH.toElementColor <| backgroundColor
-    ]
-
-
-searchBoxAttributes : List (Element.Attribute Msg)
-searchBoxAttributes =
-    -- russelldavies/elm-ui-searchbox doesn't support setting background color on drop-down list
-    -- So we're forcing it to "light mode"
-    [ Element.spacing 12
-    , Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
-    , Font.color <| SH.toElementColor <| Color.rgb255 0 0 0
     ]
 
 

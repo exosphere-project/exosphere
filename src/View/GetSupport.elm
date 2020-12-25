@@ -14,6 +14,7 @@ import Json.Decode
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Types
+import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -64,73 +65,33 @@ getSupport model palette maybeSupportableResource =
             Just ( supportableItemType, maybeSupportableItemUuid ) ->
                 case supportableItemType of
                     SupportableProject ->
-                        let
-                            selectProj : Maybe HelperTypes.Uuid -> List Project -> Html Msg
-                            selectProj maybeProj projs =
-                                Html.select
-                                    [ HtmlE.on
-                                        "change"
-                                        (Json.Decode.map
-                                            (\uuid ->
-                                                SetNonProjectView <|
-                                                    GetSupport <|
-                                                        Just ( supportableItemType, Just uuid )
+                        Style.Widgets.Select.select
+                            []
+                            { onChange =
+                                \value ->
+                                    let
+                                        newMaybeSupportableItemUuid =
+                                            if value == "" then
+                                                Nothing
+
+                                            else
+                                                Just value
+                                    in
+                                    SetNonProjectView <|
+                                        GetSupport <|
+                                            Just ( supportableItemType, newMaybeSupportableItemUuid )
+                            , options =
+                                model.projects
+                                    |> List.map
+                                        (\proj ->
+                                            ( proj.auth.project.uuid
+                                            , proj.auth.project.name
                                             )
-                                            Json.Decode.string
                                         )
-                                    , HtmlA.style "appearance" "none"
-                                    , HtmlA.style "-webkit-appearance" "none"
-                                    , HtmlA.style "-moz-appearance" "none"
-                                    , HtmlA.style "padding" "5px"
-                                    , HtmlA.style "border-width" "0"
-                                    , HtmlA.style "height" "48px"
-                                    , HtmlA.style "font-size" "18px"
-                                    , HtmlA.style "background-color" "transparent"
-                                    ]
-                                    (Html.option [ HtmlA.value "" ] [ Html.text "Select project" ]
-                                        :: List.map (optionProj maybeProj) projs
-                                    )
+                            , selected = maybeSupportableItemUuid
+                            , label = "Select a project"
+                            }
 
-                            optionProj : Maybe HelperTypes.Uuid -> Project -> Html Msg
-                            optionProj maybeSelectedProjUuid proj =
-                                Html.option
-                                    ([ HtmlA.value proj.auth.project.uuid ]
-                                        ++ (case maybeSelectedProjUuid of
-                                                Nothing ->
-                                                    []
-
-                                                Just selectedProjUuid ->
-                                                    [ HtmlA.selected (selectedProjUuid == proj.auth.project.uuid) ]
-                                           )
-                                    )
-                                    [ Html.text proj.auth.project.name ]
-                        in
-                        Element.row
-                            [ Border.width 1
-                            , Border.rounded 3
-                            ]
-                            [ Element.el [] <| Element.html (selectProj maybeSupportableItemUuid model.projects)
-                            , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                            ]
-
-                    {-
-                       Input.radio
-                           VH.exoColumnAttributes
-                           { onChange =
-                               \projectUuid ->
-                                   SetNonProjectView <| GetSupport (Just ( SupportableProject, searchBoxState, Just projectUuid ))
-                           , selected = maybeSupportableItemUuid
-                           , label = Input.labelAbove [] (Element.text "Which project do you need help with?")
-                           , options =
-                               model.projects
-                                   |> List.map
-                                       (\project ->
-                                           Input.option
-                                               project.auth.project.uuid
-                                               (Element.text <| VH.friendlyProjectTitle model project)
-                                       )
-                           }
-                    -}
                     SupportableImage ->
                         let
                             imageNameFromUuid : OSTypes.ImageUuid -> String
