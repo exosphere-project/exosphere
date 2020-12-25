@@ -13,6 +13,7 @@ import Html.Events as HtmlE
 import Json.Decode
 import OpenStack.Types as OSTypes
 import RemoteData
+import Set
 import Style.Types
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
@@ -34,17 +35,15 @@ getSupport :
     Model
     -> Style.Types.ExoPalette
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
+    -> String
     -> Element.Element Msg
-getSupport model palette maybeSupportableResource =
+getSupport model palette maybeSupportableResource requestDescription =
     Element.column VH.exoColumnAttributes
         [ Input.radio
             VH.exoColumnAttributes
             { onChange =
                 \option ->
-                    option
-                        |> Maybe.map (\option_ -> ( option_, Nothing ))
-                        |> GetSupport
-                        |> SetNonProjectView
+                    SetNonProjectView <| GetSupport (Maybe.map (\option_ -> ( option_, Nothing )) option) requestDescription
             , selected =
                 maybeSupportableResource
                     |> Maybe.map Tuple.first
@@ -62,25 +61,31 @@ getSupport model palette maybeSupportableResource =
             Nothing ->
                 Element.none
 
-            Just ( supportableItemType, maybeSupportableItemUuid ) ->
-                case supportableItemType of
-                    SupportableProject ->
-                        Style.Widgets.Select.select
-                            []
-                            { onChange =
-                                \value ->
-                                    let
-                                        newMaybeSupportableItemUuid =
-                                            if value == "" then
-                                                Nothing
+            Just ( supportableItemType, _ ) ->
+                Element.text ("Which " ++ supportableItemTypeStr supportableItemType ++ " do you need help with?")
+        , case maybeSupportableResource of
+            Nothing ->
+                Element.none
 
-                                            else
-                                                Just value
-                                    in
-                                    SetNonProjectView <|
-                                        GetSupport <|
-                                            Just ( supportableItemType, newMaybeSupportableItemUuid )
-                            , options =
+            Just ( supportableItemType, maybeSupportableItemUuid ) ->
+                let
+                    onChange value =
+                        let
+                            newMaybeSupportableItemUuid =
+                                if value == "" then
+                                    Nothing
+
+                                else
+                                    Just value
+                        in
+                        SetNonProjectView <|
+                            GetSupport
+                                (Just ( supportableItemType, newMaybeSupportableItemUuid ))
+                                requestDescription
+
+                    options =
+                        case supportableItemType of
+                            SupportableProject ->
                                 model.projects
                                     |> List.map
                                         (\proj ->
@@ -88,94 +93,68 @@ getSupport model palette maybeSupportableResource =
                                             , VH.friendlyProjectTitle model proj
                                             )
                                         )
-                            , selected = maybeSupportableItemUuid
-                            , label = "Select a project"
-                            }
 
-                    SupportableImage ->
-                        let
-                            imageNameFromUuid : OSTypes.ImageUuid -> String
-                            imageNameFromUuid uuid =
+                            SupportableImage ->
                                 model.projects
-                                    |> List.map (\p -> GetterSetters.imageLookup p uuid)
-                                    |> List.filterMap identity
-                                    |> List.head
-                                    |> Maybe.map .name
-                                    |> Maybe.withDefault uuid
-                        in
-                        Element.none
+                                    |> List.map .images
+                                    |> List.concat
+                                    |> List.map
+                                        (\image ->
+                                            ( image.uuid
+                                            , image.name
+                                            )
+                                        )
+                                    -- This removes duplicate values, heh
+                                    |> Set.fromList
+                                    |> Set.toList
+                                    |> List.sortBy Tuple.second
 
-                    {-
-                       Input.radio
-                           VH.exoColumnAttributes
-                           { onChange =
-                               \imageUuid ->
-                                   SetNonProjectView <| GetSupport (Just ( SupportableImage, searchBoxState, Just imageUuid ))
-                           , selected = maybeSupportableItemUuid
-                           , label = Input.labelAbove [] (Element.text "Which image do you need help with?")
-                           , options =
-                               model.projects
-                                   |> List.map .images
-                                   |> List.concat
-                                   |> List.map (\image -> ( image.uuid, image.name ))
-                                   |> List.map
-                                       (\uuidNameTuple ->
-                                           Input.option
-                                               (Tuple.first uuidNameTuple)
-                                               (Element.text <| Tuple.second uuidNameTuple)
-                                       )
-                           }
-                    -}
-                    SupportableServer ->
-                        Element.none
+                            SupportableServer ->
+                                model.projects
+                                    |> List.map .servers
+                                    |> List.map (RDPP.withDefault [])
+                                    |> List.concat
+                                    |> List.map
+                                        (\server ->
+                                            ( server.osProps.uuid
+                                            , server.osProps.name
+                                            )
+                                        )
+                                    |> List.sortBy Tuple.second
 
-                    {-
-                       Input.radio
-                           VH.exoColumnAttributes
-                           { onChange =
-                               \serverUuid ->
-                                   SetNonProjectView <| GetSupport (Just ( SupportableServer, searchBoxState, Just serverUuid ))
-                           , selected = maybeSupportableItemUuid
-                           , label = Input.labelAbove [] (Element.text "Which server do you need help with?")
-                           , options =
-                               model.projects
-                                   |> List.map .servers
-                                   |> List.map (RDPP.withDefault [])
-                                   |> List.concat
-                                   |> List.map (\server -> ( server.osProps.uuid, server.osProps.name ))
-                                   |> List.map
-                                       (\uuidNameTuple ->
-                                           Input.option
-                                               (Tuple.first uuidNameTuple)
-                                               (Element.text <| Tuple.second uuidNameTuple)
-                                       )
-                           }
-                    -}
-                    SupportableVolume ->
-                        Element.none
+                            SupportableVolume ->
+                                model.projects
+                                    |> List.map .volumes
+                                    |> List.map (RemoteData.withDefault [])
+                                    |> List.concat
+                                    |> List.map
+                                        (\volume ->
+                                            ( volume.uuid
+                                            , volume.name
+                                            )
+                                        )
+                                    |> List.sortBy Tuple.second
 
-        {-
-           Input.radio
-               VH.exoColumnAttributes
-               { onChange =
-                   \volumeUuid ->
-                       SetNonProjectView <| GetSupport (Just ( SupportableVolume, searchBoxState, Just volumeUuid ))
-               , selected = maybeSupportableItemUuid
-               , label = Input.labelAbove [] (Element.text "Which volume do you need help with?")
-               , options =
-                   model.projects
-                       |> List.map .volumes
-                       |> List.map (RemoteData.withDefault [])
-                       |> List.concat
-                       |> List.map (\volume -> ( volume.uuid, volume.name ))
-                       |> List.map
-                           (\uuidNameTuple ->
-                               Input.option
-                                   (Tuple.first uuidNameTuple)
-                                   (Element.text <| Tuple.second uuidNameTuple)
-                           )
-               }
-        -}
+                    label =
+                        "Select a " ++ supportableItemTypeStr supportableItemType
+                in
+                Style.Widgets.Select.select
+                    []
+                    { onChange =
+                        onChange
+                    , options = options
+                    , selected = maybeSupportableItemUuid
+                    , label = label
+                    }
+        , Input.multiline
+            []
+            { onChange =
+                \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal
+            , text = requestDescription
+            , placeholder = Nothing
+            , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
+            , spellcheck = True
+            }
         ]
 
 

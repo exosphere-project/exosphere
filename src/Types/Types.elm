@@ -323,7 +323,7 @@ type NonProjectViewConstructor
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings
-    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ))
+    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String
     | HelpAbout
 
 

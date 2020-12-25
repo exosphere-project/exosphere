@@ -104,8 +104,8 @@ elementView maybeWindowSize model palette =
                             Settings ->
                                 View.Settings.settings model
 
-                            GetSupport maybeSupportableItem ->
-                                View.GetSupport.getSupport model palette maybeSupportableItem
+                            GetSupport maybeSupportableItem requestDescription ->
+                                View.GetSupport.getSupport model palette maybeSupportableItem requestDescription
 
                             HelpAbout ->
                                 View.HelpAbout.helpAbout model palette

@@ -46,7 +46,7 @@ pageTitle model =
                 Settings ->
                     "Settings"
 
-                GetSupport _ ->
+                GetSupport _ _ ->
                     "Get Support"
 
                 HelpAbout ->
