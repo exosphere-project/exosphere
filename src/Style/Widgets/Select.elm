@@ -40,8 +40,8 @@ select attributes { onChange, options, selected, label } =
         option : Maybe Value -> ( Value, Label ) -> Html msg
         option maybeSelectedVal item =
             Html.option
-                ([ HtmlA.value (Tuple.first item) ]
-                    ++ (case maybeSelectedVal of
+                (HtmlA.value (Tuple.first item)
+                    :: (case maybeSelectedVal of
                             Nothing ->
                                 []
 

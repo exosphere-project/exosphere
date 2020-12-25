@@ -1,17 +1,8 @@
 module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 
 import Element
-import Element.Background as Background
-import Element.Border as Border
 import Element.Input as Input
-import FeatherIcons
-import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
-import Html exposing (Html)
-import Html.Attributes as HtmlA
-import Html.Events as HtmlE
-import Json.Decode
-import OpenStack.Types as OSTypes
 import RemoteData
 import Set
 import Style.Types
@@ -22,7 +13,6 @@ import Types.Types
         ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
-        , Project
         , ProjectIdentifier
         , ProjectViewConstructor(..)
         , SupportableItemType(..)
@@ -37,7 +27,7 @@ getSupport :
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Element.Element Msg
-getSupport model palette maybeSupportableResource requestDescription =
+getSupport model _ maybeSupportableResource requestDescription =
     Element.column VH.exoColumnAttributes
         [ Input.radio
             VH.exoColumnAttributes

@@ -62,7 +62,6 @@ import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
-import SearchBox
 import Set
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
