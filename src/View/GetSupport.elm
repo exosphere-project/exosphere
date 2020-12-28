@@ -2,6 +2,7 @@ module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 
 import Element
 import Element.Input as Input
+import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import RemoteData
 import Set
@@ -27,9 +28,15 @@ getSupport :
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Element.Element Msg
-getSupport model _ maybeSupportableResource requestDescription =
+getSupport model palette maybeSupportableResource requestDescription =
     Element.column (VH.exoColumnAttributes ++ [ Element.spacing 30 ])
         [ Element.el VH.heading2 <| Element.text ("Get Support for " ++ model.style.appTitle)
+        , case model.style.supportInfoMarkdown of
+            Just markdown ->
+                VH.renderMarkdown palette (Helpers.appIsElectron model) markdown
+
+            Nothing ->
+                Element.none
         , Input.radio
             VH.exoColumnAttributes
             { onChange =

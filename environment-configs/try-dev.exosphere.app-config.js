@@ -14,4 +14,6 @@ favicon: null,
 appTitle: null,
 defaultLoginView: null,
 aboutAppMarkdown: null,
+supportInfoMarkdown: null,
+userSupportEmail: null
 }
