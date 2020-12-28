@@ -184,6 +184,7 @@ navBar model palette =
                                     GetSupport
                                         (View.GetSupport.viewStateToSupportableItem model.viewState)
                                         ""
+                                        False
                                 )
                         , label =
                             Element.row

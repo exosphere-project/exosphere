@@ -6,6 +6,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import RemoteData
 import Set
+import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
@@ -20,6 +21,8 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH
+import Widget
+import Widget.Style.Material
 
 
 getSupport :
@@ -27,8 +30,9 @@ getSupport :
     -> Style.Types.ExoPalette
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
+    -> Bool
     -> Element.Element Msg
-getSupport model palette maybeSupportableResource requestDescription =
+getSupport model palette maybeSupportableResource requestDescription isSubmitted =
     Element.column (VH.exoColumnAttributes ++ [ Element.spacing 30 ])
         [ Element.el VH.heading2 <| Element.text ("Get Support for " ++ model.style.appTitle)
         , case model.style.supportInfoMarkdown of
@@ -41,7 +45,7 @@ getSupport model palette maybeSupportableResource requestDescription =
             VH.exoColumnAttributes
             { onChange =
                 \option ->
-                    SetNonProjectView <| GetSupport (Maybe.map (\option_ -> ( option_, Nothing )) option) requestDescription
+                    SetNonProjectView <| GetSupport (Maybe.map (\option_ -> ( option_, Nothing )) option) requestDescription isSubmitted
             , selected =
                 maybeSupportableResource
                     |> Maybe.map Tuple.first
@@ -80,6 +84,7 @@ getSupport model palette maybeSupportableResource requestDescription =
                             GetSupport
                                 (Just ( supportableItemType, newMaybeSupportableItemUuid ))
                                 requestDescription
+                                isSubmitted
 
                     options =
                         case supportableItemType of
@@ -147,12 +152,28 @@ getSupport model palette maybeSupportableResource requestDescription =
         , Input.multiline
             (VH.exoElementAttributes ++ [ Element.height <| Element.px 200 ])
             { onChange =
-                \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal
+                \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal isSubmitted
             , text = requestDescription
             , placeholder = Nothing
             , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
             , spellcheck = True
             }
+        , Widget.textButton
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+            { text = "Build Support Request"
+            , onPress =
+                if String.isEmpty requestDescription then
+                    Nothing
+
+                else
+                    Just <| SetNonProjectView <| GetSupport maybeSupportableResource requestDescription True
+            }
+        , if isSubmitted then
+            -- TODO build support request body, show it to user with a "copy to clipboard" button, ask them to paste it into an email message to the email address passed in via flags.
+            Element.none
+
+          else
+            Element.none
         ]
 
 
