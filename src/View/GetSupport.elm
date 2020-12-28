@@ -28,8 +28,9 @@ getSupport :
     -> String
     -> Element.Element Msg
 getSupport model _ maybeSupportableResource requestDescription =
-    Element.column VH.exoColumnAttributes
-        [ Input.radio
+    Element.column (VH.exoColumnAttributes ++ [ Element.spacing 30 ])
+        [ Element.el VH.heading2 <| Element.text ("Get Support for " ++ model.style.appTitle)
+        , Input.radio
             VH.exoColumnAttributes
             { onChange =
                 \option ->
@@ -137,7 +138,7 @@ getSupport model _ maybeSupportableResource requestDescription =
                     , label = label
                     }
         , Input.multiline
-            []
+            (VH.exoElementAttributes ++ [ Element.height <| Element.px 200 ])
             { onChange =
                 \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal
             , text = requestDescription
