@@ -1,6 +1,7 @@
 module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 
 import Element
+import Element.Font as Font
 import Element.Input as Input
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -170,7 +171,34 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
             }
         , if isSubmitted then
             -- TODO build support request body, show it to user with a "copy to clipboard" button, ask them to paste it into an email message to the email address passed in via flags.
-            Element.none
+            Element.column
+                [ Element.spacing 10 ]
+                [ Element.paragraph
+                    []
+                    [ Element.text "Please copy all of the following text and paste it into an email message to "
+                    , case model.style.userSupportEmail of
+                        Just emailAddress ->
+                            Element.el [ Font.extraBold ] <| Element.text emailAddress
+
+                        Nothing ->
+                            Element.none
+                    , Element.text ". Someone will respond and assist you."
+                    ]
+                , Input.multiline
+                    (VH.exoElementAttributes
+                        ++ [ Element.height <| Element.px 200
+                           , Element.spacing 5
+                           , Font.family [ Font.monospace ]
+                           , Font.size 10
+                           ]
+                    )
+                    { onChange = \_ -> NoOp
+                    , text = buildSupportRequest model maybeSupportableResource requestDescription
+                    , placeholder = Nothing
+                    , label = Input.labelHidden "Support request"
+                    , spellcheck = False
+                    }
+                ]
 
           else
             Element.none
@@ -231,3 +259,54 @@ viewStateToSupportableItem viewState =
 
         ProjectView projectUuid _ projectViewConstructor ->
             Just <| supportableProjectItem projectUuid projectViewConstructor
+
+
+buildSupportRequest : Model -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
+buildSupportRequest model maybeSupportableResource requestDescription =
+    String.concat
+        [ "# Support Request From "
+        , model.style.appTitle
+        , "\n\n"
+        , "## Applicable Resource"
+        , "\n"
+        , case maybeSupportableResource of
+            Nothing ->
+                "Community member did not specify a resource with this support request."
+
+            Just ( itemType, maybeUuid ) ->
+                String.concat
+                    [ supportableItemTypeStr itemType
+                    , case maybeUuid of
+                        Just uuid ->
+                            " with UUID " ++ uuid
+
+                        Nothing ->
+                            ""
+                    ]
+        , "\n\n"
+        , "## Request Description"
+        , "\n"
+        , requestDescription
+        , "\n\n"
+        , "## Logged-in Projects"
+        , "\n"
+        , model.projects
+            |> List.map
+                (\p ->
+                    String.concat
+                        [ "- "
+                        , p.auth.project.name
+                        , " (UUID: "
+                        , p.auth.project.uuid
+                        , ") as user "
+                        , p.auth.user.name
+                        , "\n"
+                        ]
+                )
+            |> String.concat
+
+        -- TODO recent (15 mins?) log messages in the app
+        -- TODO app URL?
+        -- TODO Exosphere client UUID
+        -- TODO timestamp
+        ]
