@@ -18,7 +18,8 @@ module View.Helpers exposing
     , inputItemAttributes
     , possiblyUntitledResource
     , renderMarkdown
-    , renderMessage
+    , renderMessageAsElement
+    , renderMessageAsString
     , titleFromHostname
     , toExoPalette
     )
@@ -171,8 +172,8 @@ hint palette hintText =
         )
 
 
-renderMessage : Style -> LogMessage -> Element.Element Msg
-renderMessage style message =
+renderMessageAsElement : Style -> LogMessage -> Element.Element Msg
+renderMessageAsElement style message =
     let
         levelColor : ErrorLevel -> Element.Color
         levelColor errLevel =
@@ -214,6 +215,35 @@ renderMessage style message =
             Nothing ->
                 Element.none
         ]
+
+
+renderMessageAsString : LogMessage -> String
+renderMessageAsString message =
+    let
+        levelStr : ErrorLevel -> String
+        levelStr errLevel =
+            case errLevel of
+                ErrorDebug ->
+                    "DEBUG"
+
+                ErrorInfo ->
+                    "INFO"
+
+                ErrorWarn ->
+                    "WARN"
+
+                ErrorCrit ->
+                    "CRITICAL"
+    in
+    [ levelStr message.context.level
+    , " at "
+    , humanReadableTime message.timestamp
+    , " -- while trying to "
+    , message.context.actionContext
+    , " -- "
+    , message.message
+    ]
+        |> String.concat
 
 
 browserLink : Style.Types.ExoPalette -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg

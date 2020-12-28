@@ -9,6 +9,7 @@ import RemoteData
 import Set
 import Style.Helpers as SH
 import Style.Types
+import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -21,6 +22,7 @@ import Types.Types
         , SupportableItemType(..)
         , ViewState(..)
         )
+import UUID
 import View.Helpers as VH
 import Widget
 import Widget.Style.Material
@@ -34,7 +36,12 @@ getSupport :
     -> Bool
     -> Element.Element Msg
 getSupport model palette maybeSupportableResource requestDescription isSubmitted =
-    Element.column (VH.exoColumnAttributes ++ [ Element.spacing 30 ])
+    Element.column
+        (VH.exoColumnAttributes
+            ++ [ Element.spacing 30
+               , Element.width <| Element.maximum 680 Element.fill
+               ]
+        )
         [ Element.el VH.heading2 <| Element.text ("Get Support for " ++ model.style.appTitle)
         , case model.style.supportInfoMarkdown of
             Just markdown ->
@@ -46,7 +53,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
             VH.exoColumnAttributes
             { onChange =
                 \option ->
-                    SetNonProjectView <| GetSupport (Maybe.map (\option_ -> ( option_, Nothing )) option) requestDescription isSubmitted
+                    SetNonProjectView <| GetSupport (Maybe.map (\option_ -> ( option_, Nothing )) option) requestDescription False
             , selected =
                 maybeSupportableResource
                     |> Maybe.map Tuple.first
@@ -85,7 +92,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                             GetSupport
                                 (Just ( supportableItemType, newMaybeSupportableItemUuid ))
                                 requestDescription
-                                isSubmitted
+                                False
 
                     options =
                         case supportableItemType of
@@ -151,9 +158,13 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                     , label = label
                     }
         , Input.multiline
-            (VH.exoElementAttributes ++ [ Element.height <| Element.px 200 ])
+            (VH.exoElementAttributes
+                ++ [ Element.height <| Element.px 200
+                   , Element.width <| Element.maximum 500 Element.fill
+                   ]
+            )
             { onChange =
-                \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal isSubmitted
+                \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal False
             , text = requestDescription
             , placeholder = Nothing
             , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
@@ -174,19 +185,16 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
             Element.column
                 [ Element.spacing 10 ]
                 [ Element.paragraph
-                    []
-                    [ Element.text "Please copy all of the following text and paste it into an email message to "
-                    , case model.style.userSupportEmail of
-                        Just emailAddress ->
-                            Element.el [ Font.extraBold ] <| Element.text emailAddress
-
-                        Nothing ->
-                            Element.none
-                    , Element.text ". Someone will respond and assist you."
+                    [ Element.spacing 10 ]
+                    [ Element.text "Please copy all of the text below and paste it into an email message to: "
+                    , Element.el [ Font.extraBold ] <|
+                        Style.Widgets.CopyableText.copyableText palette model.style.userSupportEmail
+                    , Element.text "Someone will respond and assist you."
                     ]
                 , Input.multiline
                     (VH.exoElementAttributes
                         ++ [ Element.height <| Element.px 200
+                           , Element.width <| Element.maximum 500 Element.fill
                            , Element.spacing 5
                            , Font.family [ Font.monospace ]
                            , Font.size 10
@@ -267,8 +275,7 @@ buildSupportRequest model maybeSupportableResource requestDescription =
         [ "# Support Request From "
         , model.style.appTitle
         , "\n\n"
-        , "## Applicable Resource"
-        , "\n"
+        , "## Applicable Resource\n"
         , case maybeSupportableResource of
             Nothing ->
                 "Community member did not specify a resource with this support request."
@@ -284,12 +291,13 @@ buildSupportRequest model maybeSupportableResource requestDescription =
                             ""
                     ]
         , "\n\n"
-        , "## Request Description"
-        , "\n"
+        , "## Request Description\n"
         , requestDescription
         , "\n\n"
-        , "## Logged-in Projects"
-        , "\n"
+        , "## Exosphere Client UUID\n"
+        , UUID.toString model.clientUuid
+        , "\n\n"
+        , "## Logged-in Projects\n"
         , model.projects
             |> List.map
                 (\p ->
@@ -304,9 +312,18 @@ buildSupportRequest model maybeSupportableResource requestDescription =
                         ]
                 )
             |> String.concat
+        , "\n"
+        , "## Recent Log Messages\n"
+        , let
+            logMsgStr =
+                model.logMessages
+                    |> List.map VH.renderMessageAsString
+                    |> List.map (\s -> String.append s "\n")
+                    |> String.concat
+          in
+          if logMsgStr == "" then
+            "(none)"
 
-        -- TODO recent (15 mins?) log messages in the app
-        -- TODO app URL?
-        -- TODO Exosphere client UUID
-        -- TODO timestamp
+          else
+            logMsgStr
         ]
