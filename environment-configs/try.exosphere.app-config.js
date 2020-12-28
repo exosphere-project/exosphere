@@ -15,5 +15,5 @@ appTitle: null,
 defaultLoginView: null,
 aboutAppMarkdown: null,
 supportInfoMarkdown: null,
-userSupportEmail: null
+userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
 }
