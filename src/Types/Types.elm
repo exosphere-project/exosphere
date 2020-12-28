@@ -157,7 +157,7 @@ type alias Style =
     , defaultLoginView : Maybe LoginView
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
-    , userSupportEmail : Maybe String
+    , userSupportEmail : String
     }
 
 
