@@ -14,4 +14,6 @@ favicon: "assets/img/jetstream-favicon.ico",
 appTitle: "Jetstream Cloud",
 defaultLoginView: "jetstream",
 aboutAppMarkdown: "This is the Exosphere interface for [Jetstream Cloud](https://jetstream-cloud.org), currently in beta. If you require assistance, please email help@jetstream-cloud.org and specify you are using Exosphere.",
+supportInfoMarkdown: "Please read about [using instances](https://iujetstream.atlassian.net/wiki/display/JWT/Jetstream+Public+Wiki) or [troubleshooting instances](https://wiki.jetstream-cloud.org/Troubleshooting+and+FAQ) for answers to common problems before submitting a request to support staff.",
+userSupportEmail: "help@jetstream-cloud.org"
 }

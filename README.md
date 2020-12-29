@@ -210,6 +210,8 @@ Most users should not need to change these; they are primarily intended for clou
 | appTitle               | null, string               | Title to show in top-left corner of app                             |
 | defaultLoginView       | null, openstack, jetstream | Which login view to display by default                              |
 | aboutAppMarkdown       | null, string (markdown)    | What to show in the "About the app" section of Help/About view      |
+| supportInfoMarkdown    | null, string (markdown)    | What to show when user clicks "Get support" button                  |
+| userSupportEmail       | null, string (markdown)    | Email address to ask users to send problem report                   |
 
 ### Example Custom Palette
 

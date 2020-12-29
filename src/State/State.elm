@@ -112,7 +112,7 @@ updateUnderlying msg model =
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
-            ViewStateHelpers.modelUpdateViewState (NonProjectView nonProjectViewConstructor) model
+            ViewStateHelpers.setNonProjectView model nonProjectViewConstructor
 
         HandleApiErrorWithBody errorContext error ->
             State.Error.processSynchronousApiError model errorContext error

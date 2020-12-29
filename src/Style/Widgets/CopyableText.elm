@@ -46,6 +46,10 @@ copyableText palette text =
         ]
 
 
+
+-- TODO copyableTextarea
+
+
 hash : String -> String
 hash str =
     Murmur3.hashString 1234 str

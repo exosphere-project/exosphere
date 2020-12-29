@@ -1,4 +1,4 @@
-module State.ViewState exposing (modelUpdateViewState, setProjectView)
+module State.ViewState exposing (modelUpdateViewState, setNonProjectView, setProjectView)
 
 import AppUrl.Builder
 import Browser.Navigation
@@ -20,12 +20,56 @@ import Types.Types
         ( CockpitLoginStatus(..)
         , Model
         , Msg(..)
+        , NonProjectViewConstructor(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , ServerOrigin(..)
         , ViewState(..)
         )
+
+
+setNonProjectView : Model -> NonProjectViewConstructor -> ( Model, Cmd Msg )
+setNonProjectView model nonProjectViewConstructor =
+    let
+        prevNonProjectViewConstructor =
+            case model.viewState of
+                NonProjectView nonProjectViewConstructor_ ->
+                    if nonProjectViewConstructor == nonProjectViewConstructor_ then
+                        Nothing
+
+                    else
+                        Just nonProjectViewConstructor_
+
+                _ ->
+                    Nothing
+
+        viewSpecificCmd =
+            case nonProjectViewConstructor of
+                GetSupport _ _ _ ->
+                    case prevNonProjectViewConstructor of
+                        Just (GetSupport _ _ _) ->
+                            Cmd.none
+
+                        _ ->
+                            Ports.instantiateClipboardJs ()
+
+                HelpAbout ->
+                    case prevNonProjectViewConstructor of
+                        Just HelpAbout ->
+                            Cmd.none
+
+                        _ ->
+                            Ports.instantiateClipboardJs ()
+
+                _ ->
+                    Cmd.none
+
+        newViewState =
+            NonProjectView nonProjectViewConstructor
+    in
+    ( model, viewSpecificCmd )
+        |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
 
 
 setProjectView : Model -> Project -> ProjectViewConstructor -> ( Model, Cmd Msg )

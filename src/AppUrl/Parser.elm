@@ -109,6 +109,9 @@ pathParsers =
         (NonProjectView Settings)
         (s "settings")
     , map
+        (NonProjectView <| GetSupport Nothing "" False)
+        (s "getsupport")
+    , map
         (NonProjectView HelpAbout)
         (s "helpabout")
     , map

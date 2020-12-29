@@ -125,6 +125,10 @@ init flags maybeUrlKey =
                     flags.appTitle |> Maybe.withDefault "Exosphere"
                 , defaultLoginView = defaultLoginView
                 , aboutAppMarkdown = flags.aboutAppMarkdown
+                , supportInfoMarkdown = flags.supportInfoMarkdown
+                , userSupportEmail =
+                    flags.userSupportEmail
+                        |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
                 }
             }
 

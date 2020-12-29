@@ -7,6 +7,7 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
+    , friendlyProjectTitle
     , getServerUiStatus
     , getServerUiStatusColor
     , getServerUiStatusStr
@@ -17,7 +18,8 @@ module View.Helpers exposing
     , inputItemAttributes
     , possiblyUntitledResource
     , renderMarkdown
-    , renderMessage
+    , renderMessageAsElement
+    , renderMessageAsString
     , titleFromHostname
     , toExoPalette
     )
@@ -33,6 +35,7 @@ import Element.Region as Region
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
+import Helpers.Url as UrlHelpers
 import Html
 import Markdown.Block
 import Markdown.Html
@@ -48,7 +51,9 @@ import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , LogMessage
+        , Model
         , Msg(..)
+        , Project
         , Server
         , ServerOrigin(..)
         , ServerUiStatus(..)
@@ -167,8 +172,8 @@ hint palette hintText =
         )
 
 
-renderMessage : Style -> LogMessage -> Element.Element Msg
-renderMessage style message =
+renderMessageAsElement : Style -> LogMessage -> Element.Element Msg
+renderMessageAsElement style message =
     let
         levelColor : ErrorLevel -> Element.Color
         levelColor errLevel =
@@ -210,6 +215,35 @@ renderMessage style message =
             Nothing ->
                 Element.none
         ]
+
+
+renderMessageAsString : LogMessage -> String
+renderMessageAsString message =
+    let
+        levelStr : ErrorLevel -> String
+        levelStr errLevel =
+            case errLevel of
+                ErrorDebug ->
+                    "DEBUG"
+
+                ErrorInfo ->
+                    "INFO"
+
+                ErrorWarn ->
+                    "WARN"
+
+                ErrorCrit ->
+                    "CRITICAL"
+    in
+    [ levelStr message.context.level
+    , " at "
+    , humanReadableTime message.timestamp
+    , " -- while trying to "
+    , message.context.actionContext
+    , " -- "
+    , message.message
+    ]
+        |> String.concat
 
 
 browserLink : Style.Types.ExoPalette -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
@@ -598,3 +632,32 @@ heading { level, children } =
                 heading2
         )
         children
+
+
+friendlyProjectTitle : Model -> Project -> String
+friendlyProjectTitle model project =
+    -- If we have multiple projects on the same provider then append the project name to the provider name
+    let
+        providerTitle =
+            project.endpoints.keystone
+                |> UrlHelpers.hostnameFromUrl
+                |> titleFromHostname
+
+        multipleProjects =
+            let
+                projectCountOnSameProvider =
+                    let
+                        projectsOnSameProvider : Project -> Project -> Bool
+                        projectsOnSameProvider proj1 proj2 =
+                            UrlHelpers.hostnameFromUrl proj1.endpoints.keystone == UrlHelpers.hostnameFromUrl proj2.endpoints.keystone
+                    in
+                    List.filter (projectsOnSameProvider project) model.projects
+                        |> List.length
+            in
+            projectCountOnSameProvider > 1
+    in
+    if multipleProjects then
+        providerTitle ++ " (" ++ project.auth.project.name ++ ")"
+
+    else
+        providerTitle

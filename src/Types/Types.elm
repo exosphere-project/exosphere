@@ -42,6 +42,7 @@ module Types.Types exposing
     , ServerUiStatus(..)
     , SortTableParams
     , Style
+    , SupportableItemType(..)
     , TickInterval
     , Toast
     , UnscopedProvider
@@ -102,6 +103,8 @@ type alias Flags =
     , favicon : Maybe String
     , defaultLoginView : Maybe String
     , aboutAppMarkdown : Maybe String
+    , supportInfoMarkdown : Maybe String
+    , userSupportEmail : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -153,6 +156,8 @@ type alias Style =
     , appTitle : String
     , defaultLoginView : Maybe LoginView
     , aboutAppMarkdown : Maybe String
+    , supportInfoMarkdown : Maybe String
+    , userSupportEmail : String
     }
 
 
@@ -321,7 +326,17 @@ type NonProjectViewConstructor
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings
+    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout
+
+
+type
+    SupportableItemType
+    -- Ideally this would be in View.Types, eh
+    = SupportableProject
+    | SupportableImage
+    | SupportableServer
+    | SupportableVolume
 
 
 type LoginView
