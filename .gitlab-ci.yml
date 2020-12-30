@@ -1,7 +1,7 @@
 image: node:current-buster
 
 stages:
-#  - dockerize
+  - dockerize
   - confidence-check
   - build
   - test
@@ -15,16 +15,16 @@ cache:
     - home/.npm
     - elm-stuff/
 
-#build_with_kaniko:
-#  stage: dockerize
-#  image:
-#    name: gcr.io/kaniko-project/executor:debug
-#    entrypoint: [ "" ]
-#  script:
-#    - mkdir -p /kaniko/.docker
-#    - env
-#    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-#    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
+build_with_kaniko:
+  stage: dockerize
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "" ]
+  script:
+    - mkdir -p /kaniko/.docker
+    - env
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/SeleniumFirefoxAndExosphere/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
 
 
 elm_make:
@@ -170,11 +170,6 @@ e2e:firefox:
   services:
     - name: "$CI_REGISTRY_IMAGE:latest"
       alias: confidence-check.exosphere.localhost
-      entrypoint: ["/bin/sh", "-c"]
-      command: ["env && cd /usr/src/app && ls -al && npx elm-live src/Exosphere.elm --host 0.0.0.0 --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js"]
-    - name: selenium/standalone-firefox
-      entrypoint: ["/bin/sh", "-c"]
-      command: ["env && cat /etc/hosts && echo '172.17.0.3 confidence-check.exosphere.localhost' >> /etc/hosts && cat /etc/hosts && /opt/bin/entry_point.sh"]
   before_script:
     - pip install -r integration-tests/requirements.txt
   script:
@@ -183,7 +178,7 @@ e2e:firefox:
     - cat /etc/hosts
     - ping -c 1 confidence-check.exosphere.localhost
     - curl --dump-header - http://confidence-check.exosphere.localhost:8000
-    - behave -D EXOSPHERE_BASE_URL=http://confidence-check.exosphere.localhost:8000 -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://selenium__standalone-firefox:4444/wd/hub features/exosphere.feature
+    - behave -D EXOSPHERE_BASE_URL=http://localhost:8000 -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://selenium__standalone-firefox:4444/wd/hub features/exosphere.feature
 
 
 include:
