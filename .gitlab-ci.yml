@@ -173,12 +173,7 @@ e2e:firefox:
   before_script:
     - pip install -r integration-tests/requirements.txt
   script:
-    - ls -alt
     - cd integration-tests
-    - cat /etc/hosts
-    - ping -c 1 confidence-check.exosphere.service
-    - curl --dump-header - http://confidence-check.exosphere.service:8000
-    - curl --dump-header - http://confidence-check.exosphere.service:4444/wd/hub
     - behave -D EXOSPHERE_BASE_URL=http://localhost:8000 -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://confidence-check.exosphere.service:4444/wd/hub features/exosphere.feature
 
 
