@@ -8,7 +8,7 @@ Feature: Text presence
         Given a browser
         When I go to Exosphere
         Then I should see "Choose a login method" within 5 seconds
-        When I click the "Add Jetstream Cloud Account" button
+        When I click the "Add Jetstream Account" button
         Then I should see "Add a Jetstream Cloud Account" within 5 seconds
         When I enter TACC credentials
         And I click the "IU Cloud" radio button
