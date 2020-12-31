@@ -10,18 +10,10 @@ RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - \
 # Create app directory
 WORKDIR /usr/src/app
 
-# Install and cache dependencies
-COPY package*.json ./
-RUN chown -R seluser . \
-    && su - seluser -c "cd /usr/src/app; npm install" \
-    && chown -R seluser .
-
-# Add remainder of files
 COPY . .
-RUN chown seluser .
+RUN chown seluser elm-web.js
 
 USER seluser
-RUN npx elm make src/Exosphere.elm --output public/elm-web.js
 
 COPY integration-tests/docker/supervisor/exosphere.conf /etc/supervisor/conf.d/
 COPY integration-tests/docker/supervisor/start-exosphere.sh /opt/bin/
