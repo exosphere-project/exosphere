@@ -11,9 +11,15 @@ RUN curl -sL https://deb.nodesource.com/setup_15.x | bash - \
 WORKDIR /usr/src/app
 
 COPY . .
-RUN chown seluser elm-web.js
+RUN chown -R seluser .
 
 USER seluser
+
+RUN if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
+RUN if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
+
+RUN npm install elm@0.19.1-3 elm-live@4.0.2
+RUN npx elm make src/Exosphere.elm --output elm-web.js
 
 COPY integration-tests/docker/supervisor/exosphere.conf /etc/supervisor/conf.d/
 COPY integration-tests/docker/supervisor/start-exosphere.sh /opt/bin/

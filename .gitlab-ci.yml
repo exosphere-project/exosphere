@@ -27,19 +27,12 @@ build_with_kaniko:
     - ls -al $CI_PROJECT_DIR
     - ls -al $CI_PROJECT_DIR/public
     - env
-    - if [ -d home/.elm ]; then echo "Restoring ~/.elm"; mv home/.elm ~/; fi
-    - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
-    - npm install elm@0.19.1-3 elm-live@4.0.2
     - cp public/elm-web.js .
-    - npx elm make src/Exosphere.elm --output elm-web.js
-    - ls -al $CI_PROJECT_DIR/public
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/integration-tests/docker/SeleniumFirefoxAndExosphere/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
-  after_script:
-    - mkdir -p home && mv ~/.elm home
-    - mkdir -p home && mv ~/.npm home
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/integration-tests/docker/SeleniumFirefoxAndExosphere/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_PIPELINE_ID
+
 
 elm_make:
   stage: build
@@ -184,7 +177,7 @@ e2e:firefox:
   allow_failure: true
   retry: 2
   services:
-    - name: "$CI_REGISTRY_IMAGE:latest"
+    - name: "$CI_REGISTRY_IMAGE:$CI_PIPELINE_ID"
       alias: confidence-check.exosphere.service
   before_script:
     - pip install -r integration-tests/requirements.txt
