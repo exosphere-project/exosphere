@@ -33,7 +33,7 @@ build_with_kaniko_e2e_firefox:
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
       if [[ -n "$TAGLIST" ]]; then
         for TAG in $TAGLIST; do
-          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE-e2e-firefox:$TAG ";
+          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:e2e-firefox-$TAG ";
         done;
       fi
       /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/integration-tests/docker/SeleniumFirefoxAndExosphere/Dockerfile $FORMATTEDTAGLIST
@@ -59,7 +59,7 @@ build_with_kaniko_e2e_chrome:
       if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then TAGLIST="$TAGLIST latest"; fi
       if [[ -n "$TAGLIST" ]]; then
         for TAG in $TAGLIST; do
-          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE-e2e-chrome:$TAG ";
+          FORMATTEDTAGLIST="${FORMATTEDTAGLIST} --destination $CI_REGISTRY_IMAGE:e2e-chrome-$TAG ";
         done;
       fi
       /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/integration-tests/docker/SeleniumChromeAndExosphere/Dockerfile $FORMATTEDTAGLIST
@@ -209,7 +209,7 @@ e2e:firefox:
   allow_failure: true
   retry: 2
   services:
-    - name: "$CI_REGISTRY_IMAGE-e2e-firefox:$CI_COMMIT_SHORT_SHA"
+    - name: "$CI_REGISTRY_IMAGE:e2e-firefox-$CI_COMMIT_SHORT_SHA"
       alias: e2e-firefox.exosphere.service
   before_script:
     - pip install -r integration-tests/requirements.txt
@@ -225,7 +225,7 @@ e2e:chrome:
   allow_failure: true
   retry: 2
   services:
-    - name: "$CI_REGISTRY_IMAGE-e2e-chrome:$CI_COMMIT_SHORT_SHA"
+    - name: "$CI_REGISTRY_IMAGE:e2e-chrome-$CI_COMMIT_SHORT_SHA"
       alias: e2e-chrome.exosphere.service
   before_script:
     - pip install -r integration-tests/requirements.txt
