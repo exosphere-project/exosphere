@@ -19,6 +19,8 @@ def before_all(context):
     command_executor = context.config.userdata.get("COMMAND_EXECUTOR")
     if command_executor:
         context.browser_args['command_executor'] = command_executor
+    browser_brand = context.config.userdata.get("BROWSER", "Firefox")
+    context.default_browser = browser_brand.lower()
     benv.before_all(context)
 
 

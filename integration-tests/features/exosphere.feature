@@ -1,8 +1,5 @@
 Feature: Text presence
 
-    Background:
-        Given Firefox as the default browser
-
     @setup
     Scenario: Adding a Jetstream cloud account
         Given a browser
