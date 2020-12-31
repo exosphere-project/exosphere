@@ -24,7 +24,7 @@ build_with_kaniko:
     - mkdir -p /kaniko/.docker
     - env
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD | base64)\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/SeleniumFirefoxAndExosphere/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/integration-tests/docker/SeleniumFirefoxAndExosphere/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
 
 
 elm_make:
