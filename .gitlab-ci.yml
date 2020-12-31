@@ -22,6 +22,11 @@ build_with_kaniko:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
+  before_script:
+    - ls -al .
+    - ls -al $CI_PROJECT_DIR
+    - ls -al $CI_PROJECT_DIR/public
+    - env
   script:
     - mkdir -p /kaniko/.docker
     - env
