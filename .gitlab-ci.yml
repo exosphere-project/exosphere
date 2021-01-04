@@ -23,7 +23,6 @@ build_with_kaniko_e2e_firefox:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
   before_script:
-    - env
     - cp public/elm-web.js .
   script:
     - mkdir -p /kaniko/.docker
@@ -49,7 +48,6 @@ build_with_kaniko_e2e_chrome:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
   before_script:
-    - env
     - cp public/elm-web.js .
   script:
     - mkdir -p /kaniko/.docker
