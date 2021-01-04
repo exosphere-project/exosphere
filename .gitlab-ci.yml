@@ -214,26 +214,31 @@ e2e:
       alias: e2e-chrome.exosphere.service
   before_script:
     - pip install -r integration-tests/requirements.txt
+    - mkdir -p integration-tests/screenshots
   script:
     - cd integration-tests
     - echo $EXOSPHERE_SAVE
     - echo Run scenarios tagged @setup, using Chrome browser
-    - echo behave --tags @setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature
+    - echo behave --tags @setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature
     - ls -alt /tmp/
     - echo  Use the EXOSPHERE_SAVE file if it exists
     - cp $EXOSPHERE_SAVE /tmp/exosphere-save || true
     - ls -alt /tmp/
     - echo Run scenarios NOT tagged @setup, using Chrome browser
-    - behave --tags ~@setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature
+    - behave --tags ~@setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature || true
+    - ls -al screenshots
     - rm -f /tmp/exosphere-save
     - echo Run scenarios tagged @setup, using Firefox browser
-    - behave --tags @setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature
+    - echo behave --tags @setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature
     - ls -alt /tmp/
     - echo Use the EXOSPHERE_SAVE file if it exists
     - cp $EXOSPHERE_SAVE /tmp/exosphere-save || true
     - echo Run scenarios NOT tagged @setup, using Firefox browser
-    - behave --tags ~@setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature
-
+    - behave --tags ~@setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature || true
+    - ls -al screenshots
+  artifacts:
+    paths:
+      - integration-tests/screenshots
 
 include:
   - template: Dependency-Scanning.gitlab-ci.yml

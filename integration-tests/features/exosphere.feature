@@ -16,7 +16,7 @@ Feature: Text presence
         And I click the "Choose" button
         Then I wait for 2 seconds
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]"
+        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
         Then I save the "exosphere-save" item in browser local storage
 
     @launch
@@ -26,7 +26,7 @@ Feature: Text presence
         Then I should see "Choose a login method" within 5 seconds
         When I load the "exosphere-save" item in browser local storage
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]"
+        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
         And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]"
         When I click the "Create" button
         And I click the "Server" button
@@ -61,7 +61,7 @@ Feature: Text presence
         Then I should see "Choose a login method" within 5 seconds
         When I load the "exosphere-save" item in browser local storage
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]"
+        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
         And I should see an element with xpath "//div[contains(string(),'bdd_test_server')]"
         Then I should see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
         When I press the last element with xpath "//div[contains(string(),'bdd_test_server')]"

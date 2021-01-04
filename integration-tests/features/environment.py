@@ -1,3 +1,5 @@
+import os
+
 from behaving import environment as benv
 
 PERSONAS = {
@@ -21,6 +23,9 @@ def before_all(context):
         context.browser_args['command_executor'] = command_executor
     browser_brand = context.config.userdata.get("BROWSER", "Firefox")
     context.default_browser = browser_brand.lower()
+    default_screenshots_dir = os.path.join(os.getcwd(), 'screenshots')
+    print(default_screenshots_dir)
+    context.screenshots_dir = context.config.userdata.get("SCREENSHOTS_DIR", default_screenshots_dir)
     benv.before_all(context)
 
 
