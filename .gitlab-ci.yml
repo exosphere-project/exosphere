@@ -216,8 +216,14 @@ e2e:
     - pip install -r integration-tests/requirements.txt
   script:
     - cd integration-tests
-    - behave -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature
-    - behave -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature
+    - echo Run scenarios tagged @setup (Firefox browser)
+    - behave --tags @setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature
+    - echo Run scenarios NOT tagged @setup (Firefox browser)
+    - behave --tags ~@setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature
+    - echo Run scenarios tagged @setup (Chrome browser)
+    - behave --tags @setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature
+    - echo Run scenarios NOT tagged @setup (Chrome browser)
+    - behave --tags ~@setup -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature
 
 
 include:
