@@ -374,6 +374,7 @@ updateUnderlying msg model =
 
                     Nothing ->
                         -- URL parsing error
+                        -- TODO show page not found
                         ( model, Cmd.none )
 
         SetStyle styleMode ->

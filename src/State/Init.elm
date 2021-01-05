@@ -188,6 +188,7 @@ init flags maybeUrlKey =
                         |> Maybe.withDefault viewStateIfNoUrl
 
                 Nothing ->
+                    -- TODO show page not found
                     viewStateIfNoUrl
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
