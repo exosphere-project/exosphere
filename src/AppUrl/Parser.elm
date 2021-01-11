@@ -23,24 +23,36 @@ import Url.Parser
         , parse
         , s
         , string
+        , top
         )
 import Url.Parser.Query as Query
 
 
-urlToViewState : Maybe String -> Url.Url -> Maybe ViewState
-urlToViewState maybePathPrefix url =
+urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ViewState
+urlToViewState maybePathPrefix defaultViewState url =
     case maybePathPrefix of
         Nothing ->
-            parse (oneOf pathParsers) url
+            parse
+                (oneOf
+                    (pathParsers defaultViewState)
+                )
+                url
 
         Just pathPrefix ->
-            parse (s pathPrefix </> oneOf pathParsers) url
+            parse
+                (s
+                    pathPrefix
+                    </> oneOf
+                            (pathParsers defaultViewState)
+                )
+                url
 
 
-pathParsers : List (Parser (ViewState -> b) b)
-pathParsers =
+pathParsers : ViewState -> List (Parser (ViewState -> b) b)
+pathParsers defaultViewState =
     [ -- Non-project-specific views
-      map
+      map defaultViewState top
+    , map
         (\creds -> NonProjectView <| Login <| LoginOpenstack creds)
         (let
             queryParser =
@@ -114,6 +126,9 @@ pathParsers =
     , map
         (NonProjectView HelpAbout)
         (s "helpabout")
+    , map
+        (NonProjectView PageNotFound)
+        (s "pagenotfound")
     , map
         (\uuid projectViewConstructor -> ProjectView uuid { createPopup = False } <| projectViewConstructor)
         (s "projects" </> string </> oneOf projectViewConstructorParsers)

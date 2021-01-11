@@ -1,4 +1,9 @@
-module State.ViewState exposing (modelUpdateViewState, setNonProjectView, setProjectView)
+module State.ViewState exposing
+    ( defaultViewState
+    , modelUpdateViewState
+    , setNonProjectView
+    , setProjectView
+    )
 
 import AppUrl.Builder
 import Browser.Navigation
@@ -15,6 +20,7 @@ import Rest.Glance
 import Rest.Neutron
 import Rest.Nova
 import Style.Widgets.NumericTextInput.NumericTextInput
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -373,3 +379,24 @@ modelUpdateViewState viewState model =
                     Cmd.none
     in
     ( newModel, urlCmd )
+
+
+defaultViewState : Model -> ViewState
+defaultViewState model =
+    let
+        defaultLoginViewState =
+            model.style.defaultLoginView
+                |> Maybe.map (\loginView -> NonProjectView (Login loginView))
+                |> Maybe.withDefault (NonProjectView LoginPicker)
+    in
+    case model.projects of
+        [] ->
+            defaultLoginViewState
+
+        firstProject :: _ ->
+            ProjectView
+                firstProject.auth.project.uuid
+                { createPopup = False }
+                (ListProjectServers
+                    Defaults.serverListViewParams
+                )
