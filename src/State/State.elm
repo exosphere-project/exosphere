@@ -378,9 +378,11 @@ updateUnderlying msg model =
                         )
 
                     Nothing ->
-                        -- URL parsing error
-                        -- TODO show page not found
-                        ( model, Cmd.none )
+                        ( { model
+                            | viewState = NonProjectView PageNotFound
+                          }
+                        , Cmd.none
+                        )
 
         SetStyle styleMode ->
             let
