@@ -86,12 +86,6 @@ init flags maybeUrlKey =
                                 Nothing
                     )
 
-        defaultViewState : ViewState
-        defaultViewState =
-            defaultLoginView
-                |> Maybe.map (\loginView -> NonProjectView (Login loginView))
-                |> Maybe.withDefault (NonProjectView LoginPicker)
-
         emptyModel : Bool -> UUID.UUID -> Model
         emptyModel showDebugMsgs uuid =
             { logMessages = []
@@ -99,7 +93,8 @@ init flags maybeUrlKey =
             , maybeNavigationKey = maybeUrlKey |> Maybe.map Tuple.second
             , prevUrl = ""
             , viewState =
-                defaultViewState
+                -- This is will get replaced with the appropriate login view
+                NonProjectView LoginPicker
             , maybeWindowSize = Just { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -169,26 +164,16 @@ init flags maybeUrlKey =
 
         viewState =
             let
-                viewStateIfNoUrl =
-                    case hydratedModel.projects of
-                        [] ->
-                            defaultViewState
-
-                        firstProject :: _ ->
-                            ProjectView
-                                firstProject.auth.project.uuid
-                                { createPopup = False }
-                                (ListProjectServers
-                                    Defaults.serverListViewParams
-                                )
+                defaultViewState =
+                    State.ViewState.defaultViewState hydratedModel
             in
             case maybeUrlKey of
                 Just ( url, _ ) ->
-                    AppUrl.Parser.urlToViewState flags.urlPathPrefix url
-                        |> Maybe.withDefault viewStateIfNoUrl
+                    AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState url
+                        |> Maybe.withDefault (NonProjectView PageNotFound)
 
                 Nothing ->
-                    viewStateIfNoUrl
+                    defaultViewState
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project

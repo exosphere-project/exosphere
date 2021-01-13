@@ -328,6 +328,7 @@ type NonProjectViewConstructor
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout
+    | PageNotFound
 
 
 type

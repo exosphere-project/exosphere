@@ -122,6 +122,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "helpabout" ]
                 []
 
+        PageNotFound ->
+            buildUrlFunc
+                [ "pagenotfound" ]
+                []
+
 
 projectSpecificUrlPart : (List String -> List UB.QueryParameter -> String) -> ProjectViewConstructor -> String
 projectSpecificUrlPart buildUrlFunc viewConstructor =

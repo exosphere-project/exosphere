@@ -115,6 +115,9 @@ elementView maybeWindowSize model palette =
                             HelpAbout ->
                                 View.HelpAbout.helpAbout model palette
 
+                            PageNotFound ->
+                                Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
+
                     ProjectView projectName projectViewParams viewConstructor ->
                         case GetterSetters.projectLookup model projectName of
                             Nothing ->

@@ -52,6 +52,9 @@ pageTitle model =
                 HelpAbout ->
                     "About " ++ model.style.appTitle
 
+                PageNotFound ->
+                    "Error: page not found"
+
         ProjectView projectIdentifier _ projectViewConstructor ->
             let
                 maybeProject =
