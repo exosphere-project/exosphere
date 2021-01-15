@@ -371,7 +371,7 @@ modelUpdateViewState viewState model =
 
             else
                 -- We should `pushUrl` and update Matomo when modifying the path (moving between views)
-                ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo newPageTitle )
+                ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
 
         urlCmd =
             -- This case statement prevents us from trying to update the URL/Matomo in the electron app (where we don't have

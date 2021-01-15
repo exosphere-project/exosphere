@@ -25,4 +25,4 @@ port instantiateClipboardJs : () -> Cmd msg
 port setFavicon : String -> Cmd msg
 
 
-port pushUrlAndTitleToMatomo : String -> Cmd msg
+port pushUrlAndTitleToMatomo : { newUrl : String, pageTitle : String } -> Cmd msg

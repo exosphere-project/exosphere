@@ -100,14 +100,14 @@ app.ports.setFavicon.subscribe(function (url) {
 });
 
 // Note that this only does anything if an Exosphere environment is deployed with Matomo analytics. By default, it has no effect.
-app.ports.pushUrlAndTitleToMatomo.subscribe(function(newPageTitle) {
+app.ports.pushUrlAndTitleToMatomo.subscribe(function(args) {
     if (typeof _paq !== 'undefined') {
         // From https://developer.matomo.org/guides/spa-tracking
-        var currentUrl = location.href;
+        var currentUrl = args.newUrl;
         _paq.push(['setReferrerUrl', currentUrl]);
          currentUrl = '/' + window.location.hash.substr(1);
         _paq.push(['setCustomUrl', currentUrl]);
-        _paq.push(['setDocumentTitle', newPageTitle]);
+        _paq.push(['setDocumentTitle', args.pageTitle]);
 
         // remove all previously assigned custom variables, requires Matomo (formerly Piwik) 3.0.2
         _paq.push(['deleteCustomVariables', 'page']);
