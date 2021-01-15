@@ -118,6 +118,5 @@ app.ports.pushUrlAndTitleToMatomo.subscribe(function(newPageTitle) {
         _paq.push(['MediaAnalytics::scanForMedia', content]);
         _paq.push(['FormAnalytics::scanForForms', content]);
         _paq.push(['trackContentImpressionsWithinNode', content]);
-        _paq.push(['enableLinkTracking']);
     }
 });
