@@ -2,6 +2,7 @@ port module Ports exposing
     ( instantiateClipboardJs
     , openInBrowser
     , openNewWindow
+    , pushUrlAndTitleToMatomo
     , setFavicon
     , setStorage
     )
@@ -22,3 +23,6 @@ port instantiateClipboardJs : () -> Cmd msg
 
 
 port setFavicon : String -> Cmd msg
+
+
+port pushUrlAndTitleToMatomo : String -> Cmd msg
