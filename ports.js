@@ -105,7 +105,6 @@ app.ports.pushUrlAndTitleToMatomo.subscribe(function(args) {
         // From https://developer.matomo.org/guides/spa-tracking
         var currentUrl = args.newUrl;
         _paq.push(['setReferrerUrl', currentUrl]);
-         currentUrl = '/' + window.location.hash.substr(1);
         _paq.push(['setCustomUrl', currentUrl]);
         _paq.push(['setDocumentTitle', args.pageTitle]);
 
