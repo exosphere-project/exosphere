@@ -33,6 +33,7 @@ import Types.Types
         , ServerOrigin(..)
         , ViewState(..)
         )
+import View.PageTitle
 
 
 setNonProjectView : Model -> NonProjectViewConstructor -> ( Model, Cmd Msg )
@@ -360,20 +361,27 @@ modelUpdateViewState viewState model =
                 , prevUrl = newUrl
             }
 
-        -- We should `pushUrl` when modifying the path (moving between views), `replaceUrl` when just modifying the query string (setting parameters of views)
-        updateUrlFunc =
+        newPageTitle =
+            View.PageTitle.pageTitle newModel
+
+        ( updateUrlFunc, updateMatomoCmd ) =
             if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then
-                Browser.Navigation.replaceUrl
+                -- We should `replaceUrl` and not update Matomo when just modifying the query string (setting parameters of views)
+                ( Browser.Navigation.replaceUrl, Cmd.none )
 
             else
-                Browser.Navigation.pushUrl
+                -- We should `pushUrl` and update Matomo when modifying the path (moving between views)
+                ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
 
         urlCmd =
-            -- This case statement prevents us from trying to update the URL in the electron app (where we don't have
+            -- This case statement prevents us from trying to update the URL/Matomo in the electron app (where we don't have
             -- a navigation key)
             case model.maybeNavigationKey of
                 Just key ->
-                    updateUrlFunc key newUrl
+                    Cmd.batch
+                        [ updateUrlFunc key newUrl
+                        , updateMatomoCmd
+                        ]
 
                 Nothing ->
                     Cmd.none

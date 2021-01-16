@@ -537,7 +537,7 @@ elmUiRenderer palette isElectron =
                         body
                     )
                 )
-    , hardLineBreak = Html.br [] [] |> Element.html
+    , hardLineBreak = Html.br [] [] |> Element.html |> Element.el []
     , image =
         \image ->
             case image.title of
