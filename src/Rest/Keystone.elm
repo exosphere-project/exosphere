@@ -125,6 +125,40 @@ requestScopedAuthToken maybeProxyUrl input =
                           )
                         ]
 
+                OSTypes.TokenCreds _ token projectName projectDomain ->
+                    Encode.object
+                        [ ( "auth"
+                          , Encode.object
+                                [ ( "identity"
+                                  , Encode.object
+                                        [ ( "methods", Encode.list Encode.string [ "token" ] )
+                                        , ( "token"
+                                          , Encode.object
+                                                [ ( "id"
+                                                  , Encode.string token.tokenValue
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                , ( "scope"
+                                  , Encode.object
+                                        [ ( "project"
+                                          , Encode.object
+                                                [ ( "name", Encode.string projectName )
+                                                , ( "domain"
+                                                  , Encode.object
+                                                        [ ( idOrName projectDomain, Encode.string projectDomain )
+                                                        ]
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+
                 OSTypes.PasswordCreds creds ->
                     Encode.object
                         [ ( "auth"
@@ -172,6 +206,9 @@ requestScopedAuthToken maybeProxyUrl input =
                 OSTypes.PasswordCreds creds ->
                     creds.authUrl
 
+                OSTypes.TokenCreds url _ _ _ ->
+                    url
+
                 OSTypes.AppCreds url _ _ ->
                     url
 
@@ -188,6 +225,9 @@ requestScopedAuthToken maybeProxyUrl input =
                 projectLabel =
                     case input of
                         OSTypes.AppCreds _ projectName _ ->
+                            projectName
+
+                        OSTypes.TokenCreds _ _ projectName _ ->
                             projectName
 
                         OSTypes.PasswordCreds creds ->

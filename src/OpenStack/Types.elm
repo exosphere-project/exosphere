@@ -177,6 +177,8 @@ type alias OpenstackLogin =
 
 type CredentialsForAuthToken
     = PasswordCreds OpenstackLogin
+      -- First String is a project name, second String is a project domain.. will refactor into project ID
+    | TokenCreds KeystoneUrl UnscopedAuthToken String String
       -- String is a project name
     | AppCreds KeystoneUrl String ApplicationCredential
 
