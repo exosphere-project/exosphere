@@ -107,11 +107,10 @@ encodeStoredState projects clientUuid styleMode =
                     Encode.object
                         [ ( "secretType", Encode.string "noProjectSecret" ) ]
 
-                Types.OpenstackPassword p ->
+                Types.OpenstackPassword _ ->
+                    -- No longer storing user passwords persistently
                     Encode.object
-                        [ ( "secretType", Encode.string "password" )
-                        , ( "password", Encode.string p )
-                        ]
+                        [ ( "secretType", Encode.string "noProjectSecret" ) ]
 
                 Types.ApplicationCredential appCred ->
                     Encode.object
