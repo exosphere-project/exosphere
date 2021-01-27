@@ -103,6 +103,10 @@ encodeStoredState projects clientUuid styleMode =
         secretEncode : Types.ProjectSecret -> Encode.Value
         secretEncode secret =
             case secret of
+                Types.NoProjectSecret ->
+                    Encode.object
+                        [ ( "secretType", Encode.string "noProjectSecret" ) ]
+
                 Types.OpenstackPassword p ->
                     Encode.object
                         [ ( "secretType", Encode.string "password" )
@@ -360,6 +364,9 @@ decodeProjectSecret =
         projectSecretFromType : String -> Decode.Decoder Types.ProjectSecret
         projectSecretFromType typeStr =
             case typeStr of
+                "noProjectSecret" ->
+                    Decode.succeed Types.NoProjectSecret
+
                 "password" ->
                     Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword
 

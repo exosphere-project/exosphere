@@ -181,11 +181,11 @@ init flags maybeUrlKey =
             let
                 projectNeedsAppCredential p =
                     case p.secret of
-                        OpenstackPassword _ ->
-                            True
-
                         ApplicationCredential _ ->
                             False
+
+                        _ ->
+                            True
             in
             List.filter projectNeedsAppCredential hydratedModel.projects
 

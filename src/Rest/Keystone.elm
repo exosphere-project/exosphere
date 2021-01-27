@@ -212,14 +212,6 @@ requestScopedAuthToken maybeProxyUrl input =
                 OSTypes.AppCreds url _ _ ->
                     url
 
-        maybePassword =
-            case input of
-                OSTypes.PasswordCreds c ->
-                    Just c.password
-
-                _ ->
-                    Nothing
-
         errorContext =
             let
                 projectLabel =
@@ -242,7 +234,7 @@ requestScopedAuthToken maybeProxyUrl input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveScopedAuthToken maybePassword))
+        (resultToMsgErrorBody errorContext ReceiveScopedAuthToken)
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> Msg) -> Cmd Msg

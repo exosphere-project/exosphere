@@ -140,7 +140,7 @@ updateUnderlying msg model =
             in
             ( model, Cmd.batch cmds )
 
-        ReceiveScopedAuthToken maybePassword ( metadata, response ) ->
+        ReceiveScopedAuthToken ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -172,22 +172,12 @@ updateUnderlying msg model =
                             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
                             case
-                                ( GetterSetters.projectLookup model <| projectId, maybePassword )
+                                GetterSetters.projectLookup model <| projectId
                             of
-                                ( Nothing, Nothing ) ->
-                                    State.Error.processStringError
-                                        model
-                                        (ErrorContext
-                                            "this is an impossible state"
-                                            ErrorCrit
-                                            (Just "The laws of physics and logic have been violated, check with your universe administrator")
-                                        )
-                                        "This is an impossible state"
+                                Nothing ->
+                                    createProject model authToken endpoints
 
-                                ( Nothing, Just password ) ->
-                                    createProject model password authToken endpoints
-
-                                ( Just project, _ ) ->
+                                Just project ->
                                     -- If we don't have an application credential for this project yet, then get one
                                     let
                                         appCredCmd =
@@ -551,8 +541,23 @@ processProjectSpecificMsg model project msg =
 
                     newModel =
                         GetterSetters.modelUpdateProject model newProject
+
+                    cmdResult =
+                        State.Auth.requestAuthToken newModel newProject
                 in
-                ( newModel, State.Auth.requestAuthToken newModel newProject )
+                case cmdResult of
+                    Err e ->
+                        let
+                            errorContext =
+                                ErrorContext
+                                    ("Refresh authentication token for project " ++ project.auth.project.name)
+                                    ErrorCrit
+                                    (Just "Please remove this project from Exosphere and add it again.")
+                        in
+                        State.Error.processStringError newModel errorContext e
+
+                    Ok cmd ->
+                        ( newModel, cmd )
 
         ToggleCreatePopup ->
             case model.viewState of
@@ -1472,11 +1477,11 @@ processProjectSpecificMsg model project msg =
                         "Could not find server in the model, maybe it has been deleted."
 
 
-createProject : Model -> HelperTypes.Password -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
-createProject model password authToken endpoints =
+createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
+createProject model authToken endpoints =
     let
         newProject =
-            { secret = OpenstackPassword password
+            { secret = NoProjectSecret
             , auth = authToken
 
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?

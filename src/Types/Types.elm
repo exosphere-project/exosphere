@@ -228,6 +228,7 @@ type alias ProjectIdentifier =
 type ProjectSecret
     = OpenstackPassword HelperTypes.Password
     | ApplicationCredential OSTypes.ApplicationCredential
+    | NoProjectSecret
 
 
 type alias Endpoints =
@@ -247,7 +248,7 @@ type Msg
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveScopedAuthToken (Maybe HelperTypes.Password) ( Http.Metadata, String )
+    | ReceiveScopedAuthToken ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
