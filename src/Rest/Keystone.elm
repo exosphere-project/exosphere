@@ -549,7 +549,10 @@ decodeUnscopedProjects =
 unscopedProjectDecoder : Decode.Decoder UnscopedProviderProject
 unscopedProjectDecoder =
     Decode.map4 UnscopedProviderProject
-        (Decode.field "name" Decode.string)
+        (Decode.map2 OSTypes.NameAndUuid
+            (Decode.field "name" Decode.string)
+            (Decode.field "id" Decode.string)
+        )
         (Decode.field "description" Decode.string)
         (Decode.field "domain_id" Decode.string)
         (Decode.field "enabled" Decode.bool)

@@ -92,7 +92,7 @@ renderProject keystoneUrl selectedProjects project =
                             keystoneUrl
                         <|
                             List.filter
-                                (\p -> p.name /= project.name)
+                                (\p -> p.project.name /= project.project.name)
                                 selectedProjects
 
             else
@@ -111,15 +111,15 @@ renderProject keystoneUrl selectedProjects project =
                 labelStr =
                     case p.description of
                         "" ->
-                            p.name ++ disabledMsg
+                            p.project.name ++ disabledMsg
 
                         _ ->
-                            p.name ++ " -- " ++ p.description ++ disabledMsg
+                            p.project.name ++ " -- " ++ p.description ++ disabledMsg
             in
             Element.text labelStr
     in
     Input.checkbox []
-        { checked = List.member project.name (List.map .name selectedProjects)
+        { checked = List.member project.project.name (List.map (\p -> p.project.name) selectedProjects)
         , onChange = onChange project.enabled
         , icon =
             if project.enabled then

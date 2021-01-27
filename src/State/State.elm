@@ -274,7 +274,7 @@ updateUnderlying msg model =
                                     OSTypes.OpenstackLogin
                                         keystoneUrl
                                         project.domainId
-                                        project.name
+                                        project.project.name
                                         provider.token.userDomain.uuid
                                         provider.token.user.name
                                         password
