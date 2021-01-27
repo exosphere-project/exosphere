@@ -250,7 +250,7 @@ type Msg
     | ReceiveScopedAuthToken (Maybe HelperTypes.Password) ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String

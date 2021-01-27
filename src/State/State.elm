@@ -261,7 +261,7 @@ updateUnderlying msg model =
                     -- Provider not found, may have been removed, nothing to do
                     ( model, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl password desiredProjects ->
+        RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
             case GetterSetters.providerLookup model keystoneUrl of
                 Just provider ->
                     let
@@ -270,14 +270,11 @@ updateUnderlying msg model =
                             Rest.Keystone.requestScopedAuthToken
                                 model.cloudCorsProxyUrl
                             <|
-                                OSTypes.PasswordCreds <|
-                                    OSTypes.OpenstackLogin
-                                        keystoneUrl
-                                        project.domainId
-                                        project.project.name
-                                        provider.token.userDomain.uuid
-                                        provider.token.user.name
-                                        password
+                                OSTypes.TokenCreds
+                                    keystoneUrl
+                                    provider.token
+                                    project.project.name
+                                    project.domainId
 
                         loginRequests =
                             List.map buildLoginRequest desiredProjects

@@ -49,7 +49,7 @@ selectProjects model palette keystoneUrl selectedProjects =
                                     { text = "Choose"
                                     , onPress =
                                         Just <|
-                                            RequestProjectLoginFromProvider keystoneUrl provider.keystonePassword selectedProjects
+                                            RequestProjectLoginFromProvider keystoneUrl selectedProjects
                                     }
                                 ]
 

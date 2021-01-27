@@ -84,7 +84,7 @@ sendPendingRequests model project =
 
 requestAuthToken : Model -> Project -> Cmd Msg
 requestAuthToken model project =
-    -- Wraps Rest.RequestAuthToken, builds OSTypes.PasswordCreds if needed
+    -- Wraps Rest.Keystone.RequestAuthToken, builds OSTypes.PasswordCreds if needed
     let
         creds =
             case project.secret of
