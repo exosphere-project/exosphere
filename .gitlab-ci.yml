@@ -219,17 +219,17 @@ e2e:
     - cd integration-tests
     - ls -alt /tmp/
     - echo Run scenarios tagged @setup, using Chrome browser
-    - behave --tags @setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature || true
+    - behave --tags @setup --no-skipped -D EXOSPHERE_BASE_URL=http://app.exosphere.localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature || true
     - ls -alt /tmp/
     - echo Run scenarios NOT tagged @setup, using Chrome browser
-    - behave --tags ~@setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature || true
+    - behave --tags ~@setup --no-skipped -D EXOSPHERE_BASE_URL=http://app.exosphere.localhost:8000 -D BROWSER=Chrome -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-chrome.exosphere.service:4444/wd/hub features/exosphere.feature || true
     - ls -al screenshots
     - rm -f /tmp/exosphere-save
     - echo Run scenarios tagged @setup, using Firefox browser
-    - behave --tags @setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature || true
+    - behave --tags @setup --no-skipped -D EXOSPHERE_BASE_URL=http://app.exosphere.localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature || true
     - ls -alt /tmp/
     - echo Run scenarios NOT tagged @setup, using Firefox browser
-    - behave --tags ~@setup --no-skipped -D EXOSPHERE_BASE_URL=http://localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature || true
+    - behave --tags ~@setup --no-skipped -D EXOSPHERE_BASE_URL=http://app.exosphere.localhost:8000 -D BROWSER=Firefox -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e-firefox.exosphere.service:4444/wd/hub features/exosphere.feature || true
     - ls -al screenshots
   artifacts:
     paths:
