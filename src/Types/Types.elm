@@ -22,6 +22,7 @@ module Types.Types exposing
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
+    , OpenIdConnectLoginConfig
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -105,6 +106,8 @@ type alias Flags =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : Maybe String
+    , openIdConnectLoginConfig :
+        Maybe OpenIdConnectLoginConfig
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -145,6 +148,8 @@ type alias Model =
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
     , style : Style
+    , openIdConnectLoginConfig :
+        Maybe OpenIdConnectLoginConfig
     }
 
 
@@ -158,6 +163,14 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
+    }
+
+
+type alias OpenIdConnectLoginConfig =
+    { webssoKeystoneEndpoint : String
+    , oidcLoginIcon : String
+    , oidcLoginButtonLabel : String
+    , oidcLoginButtonDescription : String
     }
 
 
@@ -255,6 +268,7 @@ type Msg
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
     | OpenNewWindow String
+    | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url

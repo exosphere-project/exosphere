@@ -2,6 +2,7 @@ module State.State exposing (update)
 
 import AppUrl.Builder
 import AppUrl.Parser
+import Browser.Navigation
 import Dict
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -338,6 +339,9 @@ updateUnderlying msg model =
 
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
+
+        NavigateToUrl url ->
+            ( model, Browser.Navigation.load url )
 
         UrlChange url ->
             -- This handles presses of the browser back/forward button

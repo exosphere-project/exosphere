@@ -19,6 +19,7 @@ import Types.Types
         , Model
         , Msg(..)
         , NonProjectViewConstructor(..)
+        , OpenIdConnectLoginConfig
         )
 import View.Helpers as VH
 import View.Types
@@ -26,8 +27,8 @@ import Widget
 import Widget.Style.Material
 
 
-viewLoginPicker : Style.Types.ExoPalette -> Element.Element Msg
-viewLoginPicker palette =
+viewLoginPicker : Style.Types.ExoPalette -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
+viewLoginPicker palette maybeOpenIdConnectLoginConfig =
     let
         loginTypeLogoAttributes =
             -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
@@ -73,6 +74,30 @@ viewLoginPicker palette =
                                         JetstreamCreds BothJetstreamClouds "" "" ""
                     }
                 ]
+            , case maybeOpenIdConnectLoginConfig of
+                Nothing ->
+                    Element.none
+
+                Just oidcLoginConfig ->
+                    Element.column VH.exoColumnAttributes
+                        [ Element.el
+                            loginTypeLogoAttributes
+                          <|
+                            Element.image
+                                [ Element.centerX
+                                , Element.width (Element.px 150)
+                                , Element.height (Element.px 100)
+                                ]
+                                { src = oidcLoginConfig.oidcLoginIcon
+                                , description = oidcLoginConfig.oidcLoginButtonDescription
+                                }
+                        , Widget.textButton
+                            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                            { text = oidcLoginConfig.oidcLoginButtonLabel
+                            , onPress = Just <| NavigateToUrl oidcLoginConfig.webssoKeystoneEndpoint
+                            }
+                        , Element.paragraph [] [ Element.text oidcLoginConfig.oidcLoginButtonDescription ]
+                        ]
             ]
         ]
 

@@ -85,7 +85,7 @@ elementView maybeWindowSize model palette =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.Login.viewLoginPicker palette
+                                View.Login.viewLoginPicker palette model.openIdConnectLoginConfig
 
                             Login loginView ->
                                 case loginView of

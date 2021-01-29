@@ -125,6 +125,7 @@ init flags maybeUrlKey =
                     flags.userSupportEmail
                         |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
                 }
+            , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
             }
 
         -- This only gets used if we do not find a client UUID in stored state

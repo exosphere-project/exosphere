@@ -15,7 +15,13 @@ appTitle: null,
 defaultLoginView: null,
 aboutAppMarkdown: "Exosphere is a user-friendly, extensible client for cloud computing. Check out our [README on GitLab](https://gitlab.com/exosphere/exosphere/blob/master/README.md). To ask for help, report a bug, or request a new feature, [create an issue](https://gitlab.com/exosphere/exosphere/issues) on Exosphere's GitLab project. Someone will respond within a day or so. For real-time assistance, try Exosphere chat. Our chat is on [Gitter](https://gitter.im/exosphere-app/community) and [Matrix via Element](https://riot.im/app/#/room/#exosphere:matrix.org). The chat is bridged across both platforms, so join whichever you prefer.\\\n\\\nUse of this site is subject to the Exosphere hosted sites [Privacy Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/privacy-policy.md) and [Acceptable Use Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/acceptable-use-policy.md).",
 supportInfoMarkdown: null,
-userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
+userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
+openIdConnectLogin:
+{ webssoKeystoneEndpoint: "https://iu.jetstream-cloud.org:5000/v3/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/auth/websso",
+  oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
+  oidcLoginButtonLabel : "Add XSEDE Account",
+  oidcLoginButtonDescription : "Under construction, may not work"
+}
 }
 
 /* Matomo tracking code */
