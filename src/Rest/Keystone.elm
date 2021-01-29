@@ -17,6 +17,7 @@ module Rest.Keystone exposing
     )
 
 import Dict
+import Helpers.Url
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -357,7 +358,7 @@ requestUnscopedProjects provider maybeProxyUrl =
                     provider.authUrl
 
                 Just url_ ->
-                    { url_ | path = "/v3/users/" ++ provider.token.user.uuid ++ "/projects" } |> Url.toString
+                    { url_ | path = "/v3/auth/projects" } |> Url.toString
 
         ( url, headers ) =
             case maybeProxyUrl of
@@ -369,7 +370,10 @@ requestUnscopedProjects provider maybeProxyUrl =
 
         errorContext =
             ErrorContext
-                ("get a list of projects accessible by user \"" ++ provider.token.user.name ++ "\"")
+                ("get a list of projects for provider \""
+                    ++ Helpers.Url.hostnameFromUrl provider.authUrl
+                    ++ "\""
+                )
                 ErrorCrit
                 Nothing
 
