@@ -196,7 +196,7 @@ updateUnderlying msg model =
                                     in
                                     ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
-        ReceiveUnscopedAuthToken keystoneUrl password ( metadata, response ) ->
+        ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -221,7 +221,7 @@ updateUnderlying msg model =
 
                         Nothing ->
                             -- We don't have an unscoped provider with the same auth URL, create it
-                            createUnscopedProvider model password authToken keystoneUrl
+                            createUnscopedProvider model authToken keystoneUrl
 
         ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
             case
@@ -1544,12 +1544,11 @@ createProject model authToken endpoints =
     )
 
 
-createUnscopedProvider : Model -> HelperTypes.Password -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
-createUnscopedProvider model password authToken authUrl =
+createUnscopedProvider : Model -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
+createUnscopedProvider model authToken authUrl =
     let
         newProvider =
             { authUrl = authUrl
-            , keystonePassword = password
             , token = authToken
             , projectsAvailable = RemoteData.Loading
             }

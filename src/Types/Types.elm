@@ -186,7 +186,6 @@ type alias LogMessage =
 
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
-    , keystonePassword : HelperTypes.Password
     , token : OSTypes.UnscopedAuthToken
     , projectsAvailable : WebData (List UnscopedProviderProject)
     }
@@ -249,7 +248,7 @@ type Msg
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken ( Http.Metadata, String )
-    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password ( Http.Metadata, String )
+    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor

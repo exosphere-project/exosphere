@@ -99,7 +99,7 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         requestBody
         creds.authUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl creds.password))
+        (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl))
 
 
 requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
