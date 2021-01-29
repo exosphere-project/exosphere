@@ -407,17 +407,7 @@ decodeUnscopedAuthToken response =
 
 decodeUnscopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
 decodeUnscopedAuthTokenDetails =
-    Decode.map3 OSTypes.UnscopedAuthToken
-        (Decode.map2
-            OSTypes.NameAndUuid
-            (Decode.at [ "token", "user", "name" ] Decode.string)
-            (Decode.at [ "token", "user", "id" ] Decode.string)
-        )
-        (Decode.map2
-            OSTypes.NameAndUuid
-            (Decode.at [ "token", "user", "domain", "name" ] Decode.string)
-            (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
-        )
+    Decode.map OSTypes.UnscopedAuthToken
         (Decode.at [ "token", "expires_at" ] Decode.string
             |> Decode.andThen iso8601StringToPosixDecodeError
         )

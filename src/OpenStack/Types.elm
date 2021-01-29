@@ -107,9 +107,7 @@ type alias ScopedAuthToken =
 
 
 type alias UnscopedAuthToken =
-    { user : NameAndUuid
-    , userDomain : NameAndUuid
-    , expiresAt : Time.Posix
+    { expiresAt : Time.Posix
     , tokenValue : AuthTokenString
     }
 
