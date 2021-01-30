@@ -27,83 +27,107 @@ import Widget
 import Widget.Style.Material
 
 
+type alias LoginMethod =
+    { logo : Element.Element Msg
+    , button : Element.Element Msg
+    , description : String
+    }
+
+
 viewLoginPicker : Style.Types.ExoPalette -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
 viewLoginPicker palette maybeOpenIdConnectLoginConfig =
     let
-        loginTypeLogoAttributes =
-            -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
-            [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
-            , Element.centerX
-            , Element.paddingXY 15 0
-            , Border.rounded 10
+        defaultLoginMethods =
+            [ { logo =
+                    Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
+              , button =
+                    Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                        { text = "Add OpenStack Account"
+                        , onPress =
+                            Just <|
+                                SetNonProjectView <|
+                                    Login <|
+                                        LoginOpenstack <|
+                                            Defaults.openstackCreds
+                        }
+              , description =
+                    ""
+              }
+            , { logo =
+                    Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
+              , button =
+                    Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                        { text = "Add Jetstream Account"
+                        , onPress =
+                            Just <|
+                                SetNonProjectView <|
+                                    Login <|
+                                        LoginJetstream <|
+                                            JetstreamCreds BothJetstreamClouds "" "" ""
+                        }
+              , description =
+                    "Recommended login method for Jetstream Cloud"
+              }
             ]
+
+        oidcLoginMethod oidcLoginConfig =
+            { logo =
+                Element.image
+                    [ Element.centerX
+                    , Element.centerY
+                    ]
+                    { src = oidcLoginConfig.oidcLoginIcon
+                    , description = oidcLoginConfig.oidcLoginButtonDescription
+                    }
+            , button =
+                Widget.textButton
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                    { text = oidcLoginConfig.oidcLoginButtonLabel
+                    , onPress =
+                        let
+                            url =
+                                oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
+                        in
+                        Just <| NavigateToUrl url
+                    }
+            , description =
+                oidcLoginConfig.oidcLoginButtonDescription
+            }
+
+        loginMethods =
+            List.append
+                defaultLoginMethods
+                (case maybeOpenIdConnectLoginConfig of
+                    Just oidcLoginConfig ->
+                        [ oidcLoginMethod oidcLoginConfig ]
+
+                    Nothing ->
+                        []
+                )
+
+        renderLoginMethod : LoginMethod -> Element.Element Msg
+        renderLoginMethod loginMethod =
+            Element.column VH.exoColumnAttributes
+                [ Element.el
+                    -- Yes, a hard-coded color when we've otherwise removed them from the app. These logos need a light background to look right.
+                    [ Background.color <| SH.toElementColor <| Color.rgb255 255 255 255
+                    , Element.centerX
+                    , Element.paddingXY 15 0
+                    , Border.rounded 10
+                    , Element.height <| Element.px 100
+                    ]
+                    loginMethod.logo
+                , loginMethod.button
+                , Element.paragraph [ Element.height <| Element.minimum 60 Element.shrink ] [ Element.text loginMethod.description ]
+                ]
     in
     Element.column VH.exoColumnAttributes
         [ Element.text "Choose a login method"
         , Element.row
             (VH.exoRowAttributes ++ [ Element.spacing 30 ])
-            [ Element.column VH.exoColumnAttributes
-                [ Element.el
-                    loginTypeLogoAttributes
-                  <|
-                    Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
-                , Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
-                    { text = "Add OpenStack Account"
-                    , onPress =
-                        Just <|
-                            SetNonProjectView <|
-                                Login <|
-                                    LoginOpenstack <|
-                                        Defaults.openstackCreds
-                    }
-                ]
-            , Element.column VH.exoColumnAttributes
-                [ Element.el
-                    loginTypeLogoAttributes
-                  <|
-                    Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
-                , Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
-                    { text = "Add Jetstream Account"
-                    , onPress =
-                        Just <|
-                            SetNonProjectView <|
-                                Login <|
-                                    LoginJetstream <|
-                                        JetstreamCreds BothJetstreamClouds "" "" ""
-                    }
-                ]
-            , case maybeOpenIdConnectLoginConfig of
-                Nothing ->
-                    Element.none
-
-                Just oidcLoginConfig ->
-                    Element.column VH.exoColumnAttributes
-                        [ Element.el
-                            loginTypeLogoAttributes
-                          <|
-                            Element.image
-                                [ Element.centerX
-                                , Element.width (Element.px 150)
-                                , Element.height (Element.px 100)
-                                ]
-                                { src = oidcLoginConfig.oidcLoginIcon
-                                , description = oidcLoginConfig.oidcLoginButtonDescription
-                                }
-                        , Widget.textButton
-                            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
-                            { text = oidcLoginConfig.oidcLoginButtonLabel
-                            , onPress =
-                                let
-                                    url =
-                                        oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
-                                in
-                                Just <| NavigateToUrl url
-                            }
-                        , Element.paragraph [] [ Element.text oidcLoginConfig.oidcLoginButtonDescription ]
-                        ]
-            ]
+            (List.map renderLoginMethod loginMethods)
         ]
 
 
