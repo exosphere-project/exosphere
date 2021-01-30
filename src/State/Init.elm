@@ -15,7 +15,7 @@ import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import Rest.Neutron
-import State.ViewState exposing (setProjectView)
+import State.ViewState exposing (setNonProjectView, setProjectView)
 import Style.Types
 import Time
 import Toasty
@@ -213,24 +213,19 @@ init flags maybeUrlKey =
                 |> List.map (\p -> p.auth.project.uuid)
                 |> List.map ApiModelHelpers.requestServers
                 |> List.foldl Helpers.pipelineCmd ( hydratedModel, otherCmds )
-    in
-    case viewState of
-        NonProjectView _ ->
-            ( { newModel | viewState = viewState }
-            , newCmd
-            )
 
-        ProjectView projectId _ projectViewConstructor ->
-            -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-            let
-                ( setProjectViewModel, setProjectViewCmd ) =
+        ( setViewModel, setViewCmd ) =
+            case viewState of
+                NonProjectView nonProjectViewConstructor ->
+                    setNonProjectView newModel nonProjectViewConstructor
+
+                ProjectView projectId _ projectViewConstructor ->
+                    -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
                     case GetterSetters.projectLookup newModel projectId of
                         Just project ->
                             setProjectView newModel project projectViewConstructor
 
                         Nothing ->
                             ( newModel, Cmd.none )
-            in
-            ( setProjectViewModel
-            , Cmd.batch [ newCmd, setProjectViewCmd ]
-            )
+    in
+    ( setViewModel, Cmd.batch [ newCmd, setViewCmd ] )
