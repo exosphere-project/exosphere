@@ -17,7 +17,8 @@ aboutAppMarkdown: "This is the Exosphere interface for [Jetstream Cloud](https:/
 supportInfoMarkdown: "Please read about [using instances](https://iujetstream.atlassian.net/wiki/display/JWT/Jetstream+Public+Wiki) or [troubleshooting instances](https://wiki.jetstream-cloud.org/Troubleshooting+and+FAQ) for answers to common problems before submitting a request to support staff.",
 userSupportEmail: "help@jetstream-cloud.org",
 openIdConnectLogin:
-{ webssoKeystoneEndpoint: "https://iu.jetstream-cloud.org:5000/v3/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/auth/websso",
+{ keystoneAuthUrl: "https://iu.jetstream-cloud.org:5000/v3",
+  webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/auth/websso",
   oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
   oidcLoginButtonLabel : "Add XSEDE Account",
   oidcLoginButtonDescription : "Under construction, may not work"

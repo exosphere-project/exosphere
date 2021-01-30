@@ -31,6 +31,9 @@ pageTitle model =
                         LoginJetstream _ ->
                             "Jetstream Cloud Login"
 
+                LoadingUnscopedProjects _ ->
+                    "Loading projects"
+
                 SelectProjects keystoneUrl _ ->
                     let
                         providerTitle =

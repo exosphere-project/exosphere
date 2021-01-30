@@ -95,6 +95,10 @@ elementView maybeWindowSize model palette =
                                     LoginJetstream jetstreamCreds ->
                                         View.Login.viewLoginJetstream model palette jetstreamCreds
 
+                            LoadingUnscopedProjects _ ->
+                                -- TODO put a fidget spinner here
+                                Element.text "Loading Projects"
+
                             SelectProjects authUrl selectedProjects ->
                                 View.SelectProjects.selectProjects model palette authUrl selectedProjects
 

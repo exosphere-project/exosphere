@@ -12,15 +12,20 @@ import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
+import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
+import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import State.Error
 import Style.Widgets.NumericTextInput.NumericTextInput
+import Time
 import Types.Defaults as Defaults
+import Types.Error as Error
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -31,6 +36,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , ServerOrigin(..)
+        , UnscopedProvider
         , ViewState(..)
         )
 import View.PageTitle
@@ -51,31 +57,77 @@ setNonProjectView model nonProjectViewConstructor =
                 _ ->
                     Nothing
 
-        viewSpecificCmd =
+        ( viewSpecificModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
                 GetSupport _ _ _ ->
                     case prevNonProjectViewConstructor of
                         Just (GetSupport _ _ _) ->
-                            Cmd.none
+                            ( model, Cmd.none )
 
                         _ ->
-                            Ports.instantiateClipboardJs ()
+                            ( model, Ports.instantiateClipboardJs () )
 
                 HelpAbout ->
                     case prevNonProjectViewConstructor of
                         Just HelpAbout ->
-                            Cmd.none
+                            ( model, Cmd.none )
 
                         _ ->
-                            Ports.instantiateClipboardJs ()
+                            ( model, Ports.instantiateClipboardJs () )
+
+                LoadingUnscopedProjects authTokenStr ->
+                    -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
+                    case model.openIdConnectLoginConfig of
+                        Nothing ->
+                            let
+                                errorContext =
+                                    Error.ErrorContext
+                                        "Load projects for provider authenticated via OpenID Connect"
+                                        Error.ErrorCrit
+                                        Nothing
+                            in
+                            State.Error.processStringError
+                                model
+                                errorContext
+                                "This deployment of Exosphere is not configured to use OpenID Connect."
+
+                        Just openIdConnectLoginConfig ->
+                            let
+                                oneHourMillis =
+                                    1000 * 60 * 60
+
+                                tokenExpiry =
+                                    -- One hour later? This should never matter
+                                    Time.posixToMillis model.clientCurrentTime
+                                        + oneHourMillis
+                                        |> Time.millisToPosix
+
+                                unscopedProvider =
+                                    UnscopedProvider
+                                        openIdConnectLoginConfig.keystoneAuthUrl
+                                        (OSTypes.UnscopedAuthToken
+                                            tokenExpiry
+                                            authTokenStr
+                                        )
+                                        RemoteData.NotAsked
+
+                                newUnscopedProviders =
+                                    unscopedProvider :: model.unscopedProviders
+
+                                newModel =
+                                    { model | unscopedProviders = newUnscopedProviders }
+                            in
+                            ( newModel
+                            , Rest.Keystone.requestUnscopedProjects unscopedProvider model.cloudCorsProxyUrl
+                            )
 
                 _ ->
-                    Cmd.none
+                    ( model, Cmd.none )
 
         newViewState =
             NonProjectView nonProjectViewConstructor
     in
-    ( model, viewSpecificCmd )
+    ( viewSpecificModel, viewSpecificCmd )
         |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
 
 

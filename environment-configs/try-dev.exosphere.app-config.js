@@ -17,7 +17,8 @@ aboutAppMarkdown: "Exosphere is a user-friendly, extensible client for cloud com
 supportInfoMarkdown: null,
 userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
 openIdConnectLogin:
-{ webssoKeystoneEndpoint: "https://iu.jetstream-cloud.org:5000/v3/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/auth/websso",
+{ keystoneAuthUrl: "https://iu.jetstream-cloud.org:5000/v3",
+  webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://try-dev.exosphere.app/exosphere/auth/websso",
   oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
   oidcLoginButtonLabel : "Add XSEDE Account",
   oidcLoginButtonDescription : "Under construction, may not work"

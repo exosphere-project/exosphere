@@ -167,7 +167,8 @@ type alias Style =
 
 
 type alias OpenIdConnectLoginConfig =
-    { webssoKeystoneEndpoint : String
+    { keystoneAuthUrl : String
+    , webssoKeystoneEndpoint : String
     , oidcLoginIcon : String
     , oidcLoginButtonLabel : String
     , oidcLoginButtonDescription : String
@@ -337,6 +338,7 @@ type ViewState
 type NonProjectViewConstructor
     = LoginPicker
     | Login LoginView
+    | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings
