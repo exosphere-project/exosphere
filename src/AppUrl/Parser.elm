@@ -121,7 +121,7 @@ pathParsers defaultViewState =
                 Nothing ->
                     NonProjectView PageNotFound
         )
-        (s "auth" </> s "websso" <?> Query.string "token")
+        (s "auth" </> s "oidc-login" <?> Query.string "token")
 
     -- Not bothering to decode the SelectProjects view, because you can't currently navigate there on a fresh page load and see anything useful
     , map
