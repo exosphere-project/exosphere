@@ -126,7 +126,7 @@ requestScopedAuthToken maybeProxyUrl input =
                           )
                         ]
 
-                OSTypes.TokenCreds _ token projectName projectDomain ->
+                OSTypes.TokenCreds _ token projectId ->
                     Encode.object
                         [ ( "auth"
                           , Encode.object
@@ -146,12 +146,7 @@ requestScopedAuthToken maybeProxyUrl input =
                                   , Encode.object
                                         [ ( "project"
                                           , Encode.object
-                                                [ ( "name", Encode.string projectName )
-                                                , ( "domain"
-                                                  , Encode.object
-                                                        [ ( idOrName projectDomain, Encode.string projectDomain )
-                                                        ]
-                                                  )
+                                                [ ( "id", Encode.string projectId )
                                                 ]
                                           )
                                         ]
@@ -207,7 +202,7 @@ requestScopedAuthToken maybeProxyUrl input =
                 OSTypes.PasswordCreds creds ->
                     creds.authUrl
 
-                OSTypes.TokenCreds url _ _ _ ->
+                OSTypes.TokenCreds url _ _ ->
                     url
 
                 OSTypes.AppCreds url _ _ ->
@@ -220,14 +215,14 @@ requestScopedAuthToken maybeProxyUrl input =
                         OSTypes.AppCreds _ projectName _ ->
                             projectName
 
-                        OSTypes.TokenCreds _ _ projectName _ ->
-                            projectName
+                        OSTypes.TokenCreds _ _ projectId ->
+                            projectId
 
                         OSTypes.PasswordCreds creds ->
                             creds.projectName
             in
             ErrorContext
-                ("log into OpenStack project named \"" ++ projectLabel ++ "\"")
+                ("log into OpenStack project \"" ++ projectLabel ++ "\"")
                 ErrorCrit
                 (Just "Check with your cloud administrator to ensure you have access to this project.")
     in

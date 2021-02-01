@@ -264,8 +264,7 @@ updateUnderlying msg model =
                                 OSTypes.TokenCreds
                                     keystoneUrl
                                     provider.token
-                                    project.project.name
-                                    project.domainId
+                                    project.project.uuid
 
                         loginRequests =
                             List.map buildLoginRequest desiredProjects

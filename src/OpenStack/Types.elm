@@ -140,6 +140,10 @@ type alias UserUuid =
     HelperTypes.Uuid
 
 
+type alias ProjectUuid =
+    HelperTypes.Uuid
+
+
 type alias ServiceCatalog =
     List Service
 
@@ -175,9 +179,7 @@ type alias OpenstackLogin =
 
 type CredentialsForAuthToken
     = PasswordCreds OpenstackLogin
-      -- First String is a project name, second String is a project domain.. will refactor into project ID
-    | TokenCreds KeystoneUrl UnscopedAuthToken String String
-      -- String is a project name
+    | TokenCreds KeystoneUrl UnscopedAuthToken ProjectUuid
     | AppCreds KeystoneUrl String ApplicationCredential
 
 
