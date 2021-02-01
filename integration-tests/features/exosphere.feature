@@ -4,7 +4,7 @@ Feature: Text presence
     Scenario: Adding a Jetstream cloud account
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a login method" within 15 seconds
+        Then I should see "Choose a login method" within 60 seconds
         When I click the "Add Jetstream Account" button
         Then I should see "Add a Jetstream Cloud Account" within 15 seconds
         When I enter TACC credentials
@@ -23,7 +23,7 @@ Feature: Text presence
     Scenario: Launch a server
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a login method" within 15 seconds
+        Then I should see "Choose a login method" within 60 seconds
         When I load the "exosphere-save" item in browser local storage
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 15 seconds
         And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
@@ -51,14 +51,15 @@ Feature: Text presence
         And I should see "Power state"
         And I should see "Server Dashboard and Terminal readiness"
         # Now we wait for the server to become ready...
-        And I should see an element with xpath "//div[contains(string(),'Ready')]" within 400 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Partially Active')]" within 300 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 200 seconds
 
 
     @delete
     Scenario: Delete server
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a login method" within 15 seconds
+        Then I should see "Choose a login method" within 60 seconds
         When I load the "exosphere-save" item in browser local storage
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 15 seconds
         And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
