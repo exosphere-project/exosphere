@@ -18,7 +18,7 @@ supportInfoMarkdown: "Please read about [using instances](https://iujetstream.at
 userSupportEmail: "help@jetstream-cloud.org",
 openIdConnectLoginConfig:
 { keystoneAuthUrl: "https://iu.jetstream-cloud.org:5000/v3",
-  webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/auth/websso",
+  webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/oidc-redirector",
   oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
   oidcLoginButtonLabel : "Add XSEDE Account",
   oidcLoginButtonDescription : "Under construction, may not work"
