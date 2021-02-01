@@ -156,6 +156,8 @@ requestScopedAuthToken maybeProxyUrl input =
                         ]
 
                 OSTypes.PasswordCreds creds ->
+                    -- This should be very seldom used, now only for first launch of Exosphere since mid-November 2019
+                    -- with projects created prior to then
                     Encode.object
                         [ ( "auth"
                           , Encode.object

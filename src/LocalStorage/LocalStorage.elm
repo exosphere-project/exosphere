@@ -367,6 +367,8 @@ decodeProjectSecret =
                     Decode.succeed Types.NoProjectSecret
 
                 "password" ->
+                    -- This should be very seldom used, now only for first launch of Exosphere since mid-November 2019
+                    -- with projects created prior to then
                     Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword
 
                 "applicationCredential" ->
