@@ -124,7 +124,7 @@ deploy_jetstream:
 
 deploy_dev:
   stage: deploy
-  dependencies:
+  needs:
     - elm_make
   before_script:
     # See https://docs.gitlab.com/ee/ci/ssh_keys/README.html
