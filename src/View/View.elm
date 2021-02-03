@@ -5,6 +5,7 @@ import Element
 import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Helpers as Helpers
 import Html
 import Style.Helpers as SH
 import Style.Toast
@@ -85,7 +86,7 @@ elementView maybeWindowSize model palette =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.Login.viewLoginPicker palette model.openIdConnectLoginConfig
+                                View.Login.viewLoginPicker (Helpers.appIsElectron model) palette model.openIdConnectLoginConfig
 
                             Login loginView ->
                                 case loginView of

@@ -34,8 +34,8 @@ type alias LoginMethod =
     }
 
 
-viewLoginPicker : Style.Types.ExoPalette -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
-viewLoginPicker palette maybeOpenIdConnectLoginConfig =
+viewLoginPicker : Bool -> Style.Types.ExoPalette -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
+viewLoginPicker appIsElectron palette maybeOpenIdConnectLoginConfig =
     let
         defaultLoginMethods =
             [ { logo =
@@ -99,11 +99,11 @@ viewLoginPicker palette maybeOpenIdConnectLoginConfig =
         loginMethods =
             List.append
                 defaultLoginMethods
-                (case maybeOpenIdConnectLoginConfig of
-                    Just oidcLoginConfig ->
+                (case ( maybeOpenIdConnectLoginConfig, appIsElectron ) of
+                    ( Just oidcLoginConfig, False ) ->
                         [ oidcLoginMethod oidcLoginConfig ]
 
-                    Nothing ->
+                    ( _, _ ) ->
                         []
                 )
 
