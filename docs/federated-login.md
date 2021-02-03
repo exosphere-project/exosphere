@@ -51,7 +51,7 @@ you only need to [add another `trusted_dashboard`](https://docs.openstack.org/ke
 
 Near the end of the OpenStack federated login flow, Keystone serves some JavaScript to the user's browser which causes the browser to POST some form data to a URL that we define in Exosphere and Keystone configuration. This POST data contains an unscoped Keystone token which will let the user access OpenStack! Exosphere needs this token so that it can help the user log into OpenStack projects, but herein lies a difficulty. Exosphere is a client-side JavaScript application which has no way to receive a POST request, so we need the help of a server-side application.
 
-This server-side app is **OIDC Redirector**. It is a very small application written in Python using the [Flask](https://flask.palletsprojects.com/) web framework. OIDC Redirector does exactly the following:
+This server-side app is [**OIDC Redirector**](https://gitlab.com/exosphere/oidc-redirector/). It is a very small application written in Python using the [Flask](https://flask.palletsprojects.com/) web framework. OIDC Redirector does exactly the following:
 
 - Receives the POST request from the user's browser
 - Plucks the Keystone auth token out of the POST form data
@@ -61,11 +61,9 @@ Then Exosphere loads in the browser, parses the Keystone auth token out of the q
 
 ### How to Set Up OIDC Redirector
 
-OIDC Redirector is a [Flask](https://flask.palletsprojects.com) application. You can run OIDC Redirector with any web server you please, but we provide a Dockerfile that makes it easy to run inside an Nginx + Flask container.
+[OIDC Redirector](https://gitlab.com/exosphere/oidc-redirector/) is a [Flask](https://flask.palletsprojects.com) application. You can run OIDC Redirector with any web server you please, but we provide a Dockerfile that makes it easy to run inside an Nginx + Flask container.
 
-TODO link to OIDC repo
-
-If your server environment is set up using docker-compose, just put something like this in your `docker-compose.yml`:
+If your server environment is set up using docker-compose, just put something like this in your `docker-compose.yml`, alongside a clone of the oidc-redirector repo:
 
 ```
   oidc-redirector:
@@ -73,13 +71,15 @@ If your server environment is set up using docker-compose, just put something li
     volumes:
       - './oidc-redirector:/app:ro'
     restart: 'always'
+    environment:
+        EXOSPHERE_URL: 'https://your.exosphere.domain'
 ```
 
-These instructions assume that you are setting up OIDC Redirector behind a reverse proxy server, perhaps the same Nginx server that serves Exosphere and runs your [Cloud CORS Proxy](cloud-cors-proxy.md). (This is what the Exosphere project does for Jetstream Cloud.) Here is an example Nginx configuration:
+These instructions assume that you are setting up OIDC Redirector behind a reverse proxy server, perhaps the same Nginx server that serves Exosphere and runs your [Cloud CORS Proxy](cloud-cors-proxy.md). (This is what the Exosphere project does for the Exosphere hosted apps, e.g. at <https://try.exosphere.app>.) Here is an example Nginx configuration:
 
 ```
 upstream oidc-redirector {
-    # This assumes that your oidc-redirector app is exposing port 80 and resolveable by Nginx as hostname "oidc-redirector", tweak as needed
+    # This assumes that your oidc-redirector app is exposing port 80 and resolvable by Nginx as hostname "oidc-redirector", tweak as needed
     server oidc-redirector:80;
 }
 
@@ -97,14 +97,14 @@ server {
 
 ## How to Configure Exosphere
 
-Exosphere needs to know where to send users to complete the login process, and how to display the federated login button. You define these in the `config` JSON object in your `config.js`, as follows:
+Finally, Exosphere needs to know where to send users to complete the login process, and how to display the federated login button. You define these in the `config` JSON object in your `config.js`, as follows:
 
 ```
 openIdConnectLoginConfig:
 { keystoneAuthUrl: "https://your.openstack.cloud:5000/v3",
   webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://your.exosphere.domain/oidc-redirector",
   oidcLoginIcon: "path/to/your/desired/icon.png",
-  oidcLoginButtonLabel : "Log in with your NetID",
+  oidcLoginButtonLabel : "Log in with your Medfield College NetID",
   oidcLoginButtonDescription : "Optional description to display below login button; this string can be left empty"
 }
 ```
@@ -113,7 +113,4 @@ The `webssoKeystoneEndpoint` points to [this](https://docs.openstack.org/api-ref
 
 ---
 
-Now, if 
-
-## TODO
-- [ ] Parameterize Flask app and make a separate repo for it somewhere
+If everything is set up correctly, you should be able to browse to your Exosphere deployment and use the federated login method. Again, if you have difficulty getting this to work, the Exosphere developers may be able to help.
