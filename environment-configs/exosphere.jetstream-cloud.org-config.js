@@ -21,7 +21,7 @@ openIdConnectLoginConfig:
   webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/oidc-redirector",
   oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
   oidcLoginButtonLabel : "Add XSEDE Account",
-  oidcLoginButtonDescription : "Under construction, may not work"
+  oidcLoginButtonDescription : "Under construction, may not work, Jetstream IU Cloud only"
 }
 }
 
