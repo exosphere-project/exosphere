@@ -107,9 +107,7 @@ type alias ScopedAuthToken =
 
 
 type alias UnscopedAuthToken =
-    { user : NameAndUuid
-    , userDomain : NameAndUuid
-    , expiresAt : Time.Posix
+    { expiresAt : Time.Posix
     , tokenValue : AuthTokenString
     }
 
@@ -139,6 +137,10 @@ type alias NameAndUuid =
 
 
 type alias UserUuid =
+    HelperTypes.Uuid
+
+
+type alias ProjectUuid =
     HelperTypes.Uuid
 
 
@@ -177,7 +179,7 @@ type alias OpenstackLogin =
 
 type CredentialsForAuthToken
     = PasswordCreds OpenstackLogin
-      -- String is a project name
+    | TokenCreds KeystoneUrl UnscopedAuthToken ProjectUuid
     | AppCreds KeystoneUrl String ApplicationCredential
 
 

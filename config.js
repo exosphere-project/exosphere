@@ -17,5 +17,6 @@ appTitle: null,
 defaultLoginView: null,
 aboutAppMarkdown: null,
 supportInfoMarkdown: null,
-userSupportEmail: null
+userSupportEmail: null,
+openIdConnectLoginConfig: null
 }

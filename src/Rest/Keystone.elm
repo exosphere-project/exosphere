@@ -17,6 +17,7 @@ module Rest.Keystone exposing
     )
 
 import Dict
+import Helpers.Url
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -98,7 +99,7 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         requestBody
         creds.authUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl creds.password))
+        (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl))
 
 
 requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
@@ -125,7 +126,38 @@ requestScopedAuthToken maybeProxyUrl input =
                           )
                         ]
 
+                OSTypes.TokenCreds _ token projectId ->
+                    Encode.object
+                        [ ( "auth"
+                          , Encode.object
+                                [ ( "identity"
+                                  , Encode.object
+                                        [ ( "methods", Encode.list Encode.string [ "token" ] )
+                                        , ( "token"
+                                          , Encode.object
+                                                [ ( "id"
+                                                  , Encode.string token.tokenValue
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                , ( "scope"
+                                  , Encode.object
+                                        [ ( "project"
+                                          , Encode.object
+                                                [ ( "id", Encode.string projectId )
+                                                ]
+                                          )
+                                        ]
+                                  )
+                                ]
+                          )
+                        ]
+
                 OSTypes.PasswordCreds creds ->
+                    -- This should be very seldom used, now only for first launch of Exosphere since mid-November 2019
+                    -- with projects created prior to then
                     Encode.object
                         [ ( "auth"
                           , Encode.object
@@ -172,16 +204,11 @@ requestScopedAuthToken maybeProxyUrl input =
                 OSTypes.PasswordCreds creds ->
                     creds.authUrl
 
-                OSTypes.AppCreds url _ _ ->
+                OSTypes.TokenCreds url _ _ ->
                     url
 
-        maybePassword =
-            case input of
-                OSTypes.PasswordCreds c ->
-                    Just c.password
-
-                _ ->
-                    Nothing
+                OSTypes.AppCreds url _ _ ->
+                    url
 
         errorContext =
             let
@@ -190,11 +217,14 @@ requestScopedAuthToken maybeProxyUrl input =
                         OSTypes.AppCreds _ projectName _ ->
                             projectName
 
+                        OSTypes.TokenCreds _ _ projectId ->
+                            projectId
+
                         OSTypes.PasswordCreds creds ->
                             creds.projectName
             in
             ErrorContext
-                ("log into OpenStack project named \"" ++ projectLabel ++ "\"")
+                ("log into OpenStack project \"" ++ projectLabel ++ "\"")
                 ErrorCrit
                 (Just "Check with your cloud administrator to ensure you have access to this project.")
     in
@@ -202,7 +232,7 @@ requestScopedAuthToken maybeProxyUrl input =
         requestBody
         inputUrl
         maybeProxyUrl
-        (resultToMsgErrorBody errorContext (ReceiveScopedAuthToken maybePassword))
+        (resultToMsgErrorBody errorContext ReceiveScopedAuthToken)
 
 
 requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> Msg) -> Cmd Msg
@@ -325,7 +355,7 @@ requestUnscopedProjects provider maybeProxyUrl =
                     provider.authUrl
 
                 Just url_ ->
-                    { url_ | path = "/v3/users/" ++ provider.token.user.uuid ++ "/projects" } |> Url.toString
+                    { url_ | path = "/v3/auth/projects" } |> Url.toString
 
         ( url, headers ) =
             case maybeProxyUrl of
@@ -337,7 +367,10 @@ requestUnscopedProjects provider maybeProxyUrl =
 
         errorContext =
             ErrorContext
-                ("get a list of projects accessible by user \"" ++ provider.token.user.name ++ "\"")
+                ("get a list of projects for provider \""
+                    ++ Helpers.Url.hostnameFromUrl provider.authUrl
+                    ++ "\""
+                )
                 ErrorCrit
                 Nothing
 
@@ -371,17 +404,7 @@ decodeUnscopedAuthToken response =
 
 decodeUnscopedAuthTokenDetails : Decode.Decoder (OSTypes.AuthTokenString -> OSTypes.UnscopedAuthToken)
 decodeUnscopedAuthTokenDetails =
-    Decode.map3 OSTypes.UnscopedAuthToken
-        (Decode.map2
-            OSTypes.NameAndUuid
-            (Decode.at [ "token", "user", "name" ] Decode.string)
-            (Decode.at [ "token", "user", "id" ] Decode.string)
-        )
-        (Decode.map2
-            OSTypes.NameAndUuid
-            (Decode.at [ "token", "user", "domain", "name" ] Decode.string)
-            (Decode.at [ "token", "user", "domain", "id" ] Decode.string)
-        )
+    Decode.map OSTypes.UnscopedAuthToken
         (Decode.at [ "token", "expires_at" ] Decode.string
             |> Decode.andThen iso8601StringToPosixDecodeError
         )
@@ -509,7 +532,10 @@ decodeUnscopedProjects =
 unscopedProjectDecoder : Decode.Decoder UnscopedProviderProject
 unscopedProjectDecoder =
     Decode.map4 UnscopedProviderProject
-        (Decode.field "name" Decode.string)
+        (Decode.map2 OSTypes.NameAndUuid
+            (Decode.field "name" Decode.string)
+            (Decode.field "id" Decode.string)
+        )
         (Decode.field "description" Decode.string)
         (Decode.field "domain_id" Decode.string)
         (Decode.field "enabled" Decode.bool)

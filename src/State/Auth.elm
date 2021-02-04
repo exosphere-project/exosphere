@@ -82,13 +82,24 @@ sendPendingRequests model project =
     ( newModel, Cmd.batch cmds )
 
 
-requestAuthToken : Model -> Project -> Cmd Msg
+requestAuthToken : Model -> Project -> Result String (Cmd Msg)
 requestAuthToken model project =
-    -- Wraps Rest.RequestAuthToken, builds OSTypes.PasswordCreds if needed
-    let
-        creds =
-            case project.secret of
-                OpenstackPassword password ->
+    -- Wraps Rest.Keystone.RequestAuthToken
+    case project.secret of
+        NoProjectSecret ->
+            Err <|
+                "Exosphere could not find a usable authentication method for project "
+                    ++ project.auth.project.name
+                    ++ "."
+
+        ApplicationCredential appCred ->
+            Ok <|
+                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <|
+                    OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
+
+        OpenstackPassword password ->
+            let
+                creds =
                     OSTypes.PasswordCreds <|
                         OSTypes.OpenstackLogin
                             project.endpoints.keystone
@@ -107,11 +118,9 @@ requestAuthToken model project =
                             )
                             project.auth.user.name
                             password
-
-                ApplicationCredential appCred ->
-                    OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
-    in
-    Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl creds
+            in
+            Ok <|
+                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl creds
 
 
 jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin

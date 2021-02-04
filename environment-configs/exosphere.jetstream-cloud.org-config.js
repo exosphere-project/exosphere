@@ -15,7 +15,14 @@ appTitle: "Jetstream Cloud",
 defaultLoginView: "jetstream",
 aboutAppMarkdown: "This is the Exosphere interface for [Jetstream Cloud](https://jetstream-cloud.org), currently in beta. If you require assistance, please email help@jetstream-cloud.org and specify you are using Exosphere.\\\n\\\nUse of this site is subject to the Exosphere hosted sites [Privacy Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/privacy-policy.md) and [Acceptable Use Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/acceptable-use-policy.md).",
 supportInfoMarkdown: "Please read about [using instances](https://iujetstream.atlassian.net/wiki/display/JWT/Jetstream+Public+Wiki) or [troubleshooting instances](https://wiki.jetstream-cloud.org/Troubleshooting+and+FAQ) for answers to common problems before submitting a request to support staff.",
-userSupportEmail: "help@jetstream-cloud.org"
+userSupportEmail: "help@jetstream-cloud.org",
+openIdConnectLoginConfig:
+{ keystoneAuthUrl: "https://iu.jetstream-cloud.org:5000/v3",
+  webssoKeystoneEndpoint: "/auth/OS-FEDERATION/websso/openid?origin=https://exosphere.jetstream-cloud.org/exosphere/oidc-redirector",
+  oidcLoginIcon: "assets/img/XSEDE_Logo_Black_INF.png",
+  oidcLoginButtonLabel : "Add XSEDE Account",
+  oidcLoginButtonDescription : "Under construction, may not work, Jetstream IU Cloud only"
+}
 }
 
 /* Matomo tracking code */

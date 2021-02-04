@@ -95,6 +95,12 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         -- Not encoding password!
                         ]
 
+        LoadingUnscopedProjects _ ->
+            buildUrlFunc
+                [ "loadingprojs"
+                ]
+                []
+
         SelectProjects keystoneUrl _ ->
             buildUrlFunc
                 [ "selectprojs"

@@ -22,6 +22,7 @@ module Types.Types exposing
     , Msg(..)
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
+    , OpenIdConnectLoginConfig
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -105,6 +106,8 @@ type alias Flags =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : Maybe String
+    , openIdConnectLoginConfig :
+        Maybe OpenIdConnectLoginConfig
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -145,6 +148,8 @@ type alias Model =
     , timeZone : Time.Zone
     , showDebugMsgs : Bool
     , style : Style
+    , openIdConnectLoginConfig :
+        Maybe OpenIdConnectLoginConfig
     }
 
 
@@ -158,6 +163,15 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
+    }
+
+
+type alias OpenIdConnectLoginConfig =
+    { keystoneAuthUrl : String
+    , webssoKeystoneEndpoint : String
+    , oidcLoginIcon : String
+    , oidcLoginButtonLabel : String
+    , oidcLoginButtonDescription : String
     }
 
 
@@ -186,14 +200,13 @@ type alias LogMessage =
 
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
-    , keystonePassword : HelperTypes.Password
     , token : OSTypes.UnscopedAuthToken
     , projectsAvailable : WebData (List UnscopedProviderProject)
     }
 
 
 type alias UnscopedProviderProject =
-    { name : ProjectName
+    { project : OSTypes.NameAndUuid
     , description : String
     , domainId : HelperTypes.Uuid
     , enabled : Bool
@@ -228,6 +241,7 @@ type alias ProjectIdentifier =
 type ProjectSecret
     = OpenstackPassword HelperTypes.Password
     | ApplicationCredential OSTypes.ApplicationCredential
+    | NoProjectSecret
 
 
 type alias Endpoints =
@@ -247,14 +261,15 @@ type Msg
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
-    | ReceiveScopedAuthToken (Maybe HelperTypes.Password) ( Http.Metadata, String )
-    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl HelperTypes.Password ( Http.Metadata, String )
+    | ReceiveScopedAuthToken ( Http.Metadata, String )
+    | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl HelperTypes.Password (List UnscopedProviderProject)
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
     | OpenInBrowser String
     | OpenNewWindow String
+    | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
@@ -323,6 +338,7 @@ type ViewState
 type NonProjectViewConstructor
     = LoginPicker
     | Login LoginView
+    | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | MessageLog
     | Settings

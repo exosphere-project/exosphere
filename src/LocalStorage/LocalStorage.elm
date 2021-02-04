@@ -103,11 +103,14 @@ encodeStoredState projects clientUuid styleMode =
         secretEncode : Types.ProjectSecret -> Encode.Value
         secretEncode secret =
             case secret of
-                Types.OpenstackPassword p ->
+                Types.NoProjectSecret ->
                     Encode.object
-                        [ ( "secretType", Encode.string "password" )
-                        , ( "password", Encode.string p )
-                        ]
+                        [ ( "secretType", Encode.string "noProjectSecret" ) ]
+
+                Types.OpenstackPassword _ ->
+                    -- No longer storing user passwords persistently
+                    Encode.object
+                        [ ( "secretType", Encode.string "noProjectSecret" ) ]
 
                 Types.ApplicationCredential appCred ->
                     Encode.object
@@ -360,7 +363,12 @@ decodeProjectSecret =
         projectSecretFromType : String -> Decode.Decoder Types.ProjectSecret
         projectSecretFromType typeStr =
             case typeStr of
+                "noProjectSecret" ->
+                    Decode.succeed Types.NoProjectSecret
+
                 "password" ->
+                    -- This should be very seldom used, now only for first launch of Exosphere since mid-November 2019
+                    -- with projects created prior to then
                     Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword
 
                 "applicationCredential" ->
