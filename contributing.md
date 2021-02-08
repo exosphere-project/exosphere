@@ -4,6 +4,7 @@
 - Be constructive
 - Be kind
 
+
 ## Submitting Code
 
 Our CI pipeline runs:
@@ -20,6 +21,7 @@ Our CI pipeline runs:
  npm run elm:analyse
  ```
 
+
 ## End-to-end browser tests
 
 Our CI pipeline also runs integration tests with real browsers. For these tests to work you need:
@@ -34,3 +36,9 @@ How to add TACC credentials as environment variables to your GitLab repository s
 
 ![Environment variables for end-to-end browser tests](docs/environment-variables-e2e-browser-tests.png)
 
+
+## Architecture Decisions
+
+We use lightweight architecture decision records. See: <https://adr.github.io/>
+
+Our architecture decisions are documented in: [docs/adr/README.md](docs/adr/README.md)
