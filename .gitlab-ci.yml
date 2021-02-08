@@ -219,20 +219,6 @@ deploy_dev:
     - pip install -r integration-tests/requirements.txt
     - echo -e "section_end:`date +%s`:pip_install\r\e[0K"
     - mkdir -p integration-tests/screenshots
-    - echo -e "section_start:`date +%s`:check_services[collapsed=true]\r\e[0KCheck that services are up"
-    - mkdir -p /tmp/exo-files/
-    - cd /tmp/exo-files
-    - wget http://e2e.exosphere.service:8000/index.html
-    - wget http://e2e.exosphere.service:8000/elm-web.js
-    - wget http://e2e.exosphere.service:8000/config.js
-    - wget http://e2e.exosphere.service:8000/ports.js
-    - md5sum index.html elm-web.js ports.js config.js
-    - cat index.html
-    - cat config.js
-    - cat ports.js
-    - cd -
-    - curl --dump-header - 'http://e2e.exosphere.service:4444/graphql'  --data-raw '{"operationName":null,"variables":{},"query":"{\n  grid {\n    uri\n    nodes {\n      id\n      uri\n      status\n      maxSession\n      capabilities\n      __typename\n    }\n    totalSlots\n    usedSlots\n    __typename\n  }\n}\n"}'
-    - echo -e "section_end:`date +%s`:check_services\r\e[0K"
     # For visual debugging of browser via VNC, uncomment lines below to enable cloudflared tunnel:
 #    - echo -e "section_start:`date +%s`:install_cloudflared[collapsed=true]\r\e[0KInstall cloudflared"
 #    - wget -O ~/cloudflared.deb https://bin.equinox.io/c/VdrWdbjqyF/cloudflared-stable-linux-amd64.deb
