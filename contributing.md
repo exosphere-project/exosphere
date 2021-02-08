@@ -20,3 +20,17 @@ Our CI pipeline runs:
  npm run elm:analyse
  ```
 
+## End-to-end browser tests
+
+Our CI pipeline also runs integration tests with real browsers. For these tests to work you need:
+
+1. Access to a Jetstream allocation
+2. Valid TACC (Texas Advanced Computing Center) credentials
+3. Set `taccusername` and `taccpass` environment variables in the GitLab CI/CD settings of your own fork of Exosphere
+
+Ask the maintainers for testing credentials if you don't have a Jetstream allocation.
+
+How to add TACC credentials as environment variables to your GitLab repository settings:
+
+![Environment variables for end-to-end browser tests](docs/environment-variables-e2e-browser-tests.png)
+
