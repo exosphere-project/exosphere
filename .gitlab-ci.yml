@@ -215,6 +215,7 @@ deploy_dev:
     - name: "$CI_REGISTRY_IMAGE:e2e-${BROWSER_LOWER}-$CI_COMMIT_BRANCH"
       alias: e2e.exosphere.service
   before_script:
+    - if [[ -z "$taccusername" || -z "$taccpass" ]]; then echo "Must provide taccusername and taccpass in environment" 1>&2; exit 1; fi
     - echo -e "section_start:`date +%s`:pip_install[collapsed=true]\r\e[0KInstall Python dependencies"
     - pip install -r integration-tests/requirements.txt
     - echo -e "section_end:`date +%s`:pip_install\r\e[0K"
