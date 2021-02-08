@@ -225,7 +225,9 @@ palette: { primary: {r: 0, g: 108, b: 163 }, secondary : {r: 96, g: 239, b: 255 
 
 Talk to Exosphere developers and other users in real-time via [gitter](https://gitter.im/exosphere-app/community), or `#exosphere:matrix.org` on [Matrix via Element](https://riot.im/app/#/room/#exosphere:matrix.org). The chat is bridged across both platforms, so join whichever you prefer. You can also [browse an archive](https://view.matrix.org/room/!qALrQaRCgWgkQcBoKG:matrix.org/) of the chat history.
 
-See also contributing.md for contributor guidelines.
+See also [contributing.md](contributing.md) for contributor guidelines.
+
+Architecture decisions are documented in: [docs/adr/README.md](docs/adr/README.md)
 
 ## Package Exosphere as a distributable Electron app
 
