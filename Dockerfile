@@ -1,4 +1,4 @@
-FROM node:10
+FROM node:current-buster
 
 # Note: this docker build is intended for local development only
 # docker build -t exosphere .
@@ -8,24 +8,19 @@ WORKDIR /usr/src/app
 
 RUN apt-get update && \
     apt-get install -y \
-       --no-install-recommends \ 
+       --no-install-recommends \
            curl \
            gzip && \
-           rm -rf /var/lib/apt/lists/* 
+           rm -rf /var/lib/apt/lists/*
 
 # Install and cache dependencies
 COPY package*.json ./
-RUN npm install && \
-    npm install -g http-server && \
-    curl -L -o elm.gz https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz && \
-    gunzip elm.gz && \
-    chmod +x elm && \
-    mv elm /usr/local/bin/
+RUN npm install
 
 # Add remainder of files
 COPY . .
+RUN npx elm make src/Exosphere.elm --output public/elm-web.js
 
-RUN elm make src/Exosphere.elm --output elm.js
-EXPOSE 8080
+EXPOSE 8000
 
-ENTRYPOINT ["http-server"]
+#ENTRYPOINT ["npm", "run live"]

@@ -1,3 +1,5 @@
+import os
+
 from behaving import environment as benv
 
 PERSONAS = {
@@ -13,6 +15,17 @@ def setup_debug_on_error(userdata):
 
 def before_all(context):
     setup_debug_on_error(context.config.userdata)
+    context.remote_webdriver = context.config.userdata.getbool("REMOTE_WEBDRIVER", False)
+    if not hasattr(context, "browser_args"):
+        context.browser_args = {}
+    command_executor = context.config.userdata.get("COMMAND_EXECUTOR")
+    if command_executor:
+        context.browser_args['command_executor'] = command_executor
+    browser_brand = context.config.userdata.get("BROWSER", "Firefox")
+    context.default_browser = browser_brand.lower()
+    default_screenshots_dir = os.path.join(os.getcwd(), 'screenshots')
+    print(default_screenshots_dir)
+    context.screenshots_dir = context.config.userdata.get("SCREENSHOTS_DIR", default_screenshots_dir)
     benv.before_all(context)
 
 

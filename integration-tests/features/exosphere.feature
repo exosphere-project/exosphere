@@ -1,15 +1,12 @@
 Feature: Text presence
 
-    Background:
-        Given Firefox as the default browser
-
     @setup
     Scenario: Adding a Jetstream cloud account
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a login method" within 5 seconds
-        When I click the "Add Jetstream Cloud Account" button
-        Then I should see "Add a Jetstream Cloud Account" within 5 seconds
+        Then I should see "Choose a login method" within 60 seconds
+        When I click the "Add Jetstream Account" button
+        Then I should see "Add a Jetstream Cloud Account" within 15 seconds
         When I enter TACC credentials
         And I click the "IU Cloud" radio button
         And I click the "Log In" button
@@ -19,17 +16,17 @@ Feature: Text presence
         And I click the "Choose" button
         Then I wait for 2 seconds
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]"
+        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
         Then I save the "exosphere-save" item in browser local storage
 
     @launch
     Scenario: Launch a server
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a login method" within 5 seconds
+        Then I should see "Choose a login method" within 60 seconds
         When I load the "exosphere-save" item in browser local storage
-        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]"
+        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 15 seconds
+        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
         And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]"
         When I click the "Create" button
         And I click the "Server" button
@@ -54,17 +51,18 @@ Feature: Text presence
         And I should see "Power state"
         And I should see "Server Dashboard and Terminal readiness"
         # Now we wait for the server to become ready...
-        And I should see an element with xpath "//div[contains(string(),'Ready')]" within 400 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Partially Active')]" within 300 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 200 seconds
 
 
     @delete
     Scenario: Delete server
         Given a browser
         When I go to Exosphere
-        Then I should see "Choose a login method" within 5 seconds
+        Then I should see "Choose a login method" within 60 seconds
         When I load the "exosphere-save" item in browser local storage
-        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]"
+        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 15 seconds
+        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
         And I should see an element with xpath "//div[contains(string(),'bdd_test_server')]"
         Then I should see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
         When I press the last element with xpath "//div[contains(string(),'bdd_test_server')]"
