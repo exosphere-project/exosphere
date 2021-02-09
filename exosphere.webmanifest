@@ -4,13 +4,13 @@
   "description": "User-friendly client for cloud computing",
   "icons": [
     {
-      "src": "img/logo-alt.svg",
+      "src": "assets/img/logo-alt.svg",
       "sizes": "32x32",
       "type": "image/svg"
     },
     // ...
     {
-      "src": "img/logo-alt.svg",
+      "src": "assets/img/logo-alt.svg",
       "sizes": "512x512",
       "type": "image/svg"
     }
