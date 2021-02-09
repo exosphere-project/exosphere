@@ -8,7 +8,6 @@
       "sizes": "32x32",
       "type": "image/svg"
     },
-    // ...
     {
       "src": "assets/img/logo-alt.svg",
       "sizes": "512x512",
