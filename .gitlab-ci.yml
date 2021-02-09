@@ -69,6 +69,7 @@ elm_make:
     - cp index.html public/index.html
     - cp ports.js public/ports.js
     - cp config.js public/config.js
+    - cp exosphere.webmanifest public
     - cp -R assets public
     - cp -R fonts public
     - md5sum public/index.html public/elm-web.js public/ports.js public/config.js
