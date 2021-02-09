@@ -5,14 +5,20 @@
   "icons": [
     {
       "src": "assets/img/logo-alt.svg",
-      "sizes": "32x32",
+      "sizes": "512x512",
       "type": "image/svg"
     },
     {
-      "src": "assets/img/logo-alt.svg",
+      "src": "assets/img/logo-512px.png",
       "sizes": "512x512",
-      "type": "image/svg"
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-32px.png",
+      "sizes": "32x32",
+      "type": "image/png"
     }
+
   ],
   "start_url": "index.html",
   "display": "standalone",
