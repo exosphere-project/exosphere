@@ -12,6 +12,11 @@
     <link rel="manifest" href="exosphere.webmanifest">
     <!-- config.js contains deployer-specified configuration -->
     <script type="text/javascript" src="config.js"></script>
+    <script>
+    if('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    };
+    </script>
   </head>
 
   <body>
