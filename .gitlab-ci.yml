@@ -72,6 +72,7 @@ elm_make:
     - cp exosphere.webmanifest public
     - cp -R assets public
     - cp -R fonts public
+    - cp service-worker.js public
     - md5sum public/index.html public/elm-web.js public/ports.js public/config.js
   after_script:
     - mkdir -p home && mv ~/.elm home
