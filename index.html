@@ -9,6 +9,7 @@
     <script src="assets/js/clipboard.min.js"></script>
     <script type="text/javascript" src="./elm-web.js"></script>
     <link rel="icon" type="image/svg+xml" href="assets/img/logo-alt.svg">
+    <meta rel="apple-touch-icon" type="image/png" sizes="256x256" href="assets/img/logo-256px.png">
     <link rel="manifest" href="exosphere.webmanifest">
     <!-- config.js contains deployer-specified configuration -->
     <script type="text/javascript" src="config.js"></script>
@@ -20,6 +21,9 @@
   </head>
 
   <body>
+    <noscript>
+    Exosphere cannot load because JavaScript is disabled in your web browser. Please enable JavaScript for this site.
+    </noscript>
     <!-- This div is where we will insert our UI -->
     <div id="container"></div>
     <!-- finally we run ports.js to start the elm app -->
