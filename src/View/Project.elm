@@ -76,13 +76,13 @@ project model palette p viewParams viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav palette p viewParams
+        [ projectNav palette p viewParams model.style.defaultImageSearchText
         , v
         ]
 
 
-projectNav : Style.Types.ExoPalette -> Project -> ProjectViewParams -> Element.Element Msg
-projectNav palette p viewParams =
+projectNav : Style.Types.ExoPalette -> Project -> ProjectViewParams -> Maybe String -> Element.Element Msg
+projectNav palette p viewParams maybeImageSearchText =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
@@ -134,13 +134,13 @@ projectNav palette p viewParams =
                     }
             , Element.el
                 [ Element.alignRight ]
-                (createButton palette p.auth.project.uuid viewParams.createPopup)
+                (createButton palette p.auth.project.uuid viewParams.createPopup maybeImageSearchText)
             ]
         ]
 
 
-createButton : Style.Types.ExoPalette -> ProjectIdentifier -> Bool -> Element.Element Msg
-createButton palette projectId expanded =
+createButton : Style.Types.ExoPalette -> ProjectIdentifier -> Bool -> Maybe String -> Element.Element Msg
+createButton palette projectId expanded maybeImageSearchText =
     let
         ( attribs, icon ) =
             if expanded then
@@ -162,7 +162,7 @@ createButton palette projectId expanded =
                                         ProjectMsg projectId <|
                                             SetProjectView <|
                                                 ListImages
-                                                    { searchText = ""
+                                                    { searchText = Maybe.withDefault "" maybeImageSearchText
                                                     , tags = Set.empty
                                                     , onlyOwnImages = False
                                                     , expandImageDetails = Set.empty

@@ -108,6 +108,7 @@ type alias Flags =
     , userSupportEmail : Maybe String
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
+    , defaultImageSearchText : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -163,6 +164,7 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
+    , defaultImageSearchText : Maybe String
     }
 
 
