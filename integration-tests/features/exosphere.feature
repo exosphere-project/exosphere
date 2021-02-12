@@ -51,8 +51,8 @@ Feature: Text presence
         And I should see "Power state"
         And I should see "Server Dashboard and Terminal readiness"
         # Now we wait for the server to become ready...
-        Then I should see an element with xpath "//div[contains(string(),'Partially Active')]" within 300 seconds
-        Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 200 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Partially Active')]" within 500 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 300 seconds
 
 
     @delete
@@ -78,9 +78,3 @@ Feature: Text presence
         Then I should see "Deleting..." within 5 seconds
         And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
         And I should not see "Deleting..."
-
-
-    @cleanup
-    Scenario: Clean up temporary files
-        Given I delete "exosphere-save" browser local storage item file
-
