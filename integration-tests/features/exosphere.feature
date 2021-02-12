@@ -77,3 +77,9 @@ Feature: Text presence
         Then I should see "Deleting..." within 5 seconds
         And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
         And I should not see "Deleting..."
+
+
+    @cleanup
+    Scenario: Clean up temporary files
+        Given I delete "exosphere-save" browser local storage item file
+
