@@ -5,6 +5,7 @@ stages:
   - dockerize
   - test
   - deploy
+  - postdeploy
 
 cache:
   key: ${CI_JOB_NAME}
@@ -267,6 +268,73 @@ mr_e2e_chrome:
     SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-chrome-$CI_COMMIT_BRANCH"
   dependencies:
     - build_with_kaniko_e2e_chrome
+
+.e2e_chrome:
+  extends: .e2e
+  variables:
+    BROWSER_LOWER: "chrome"
+    SELENIUM_CONTAINER_IMAGE: "selenium/standalone-chrome:4"
+
+.e2e_firefox:
+  extends: .e2e
+  variables:
+    BROWSER_LOWER: "firefox"
+    SELENIUM_CONTAINER_IMAGE: "selenium/standalone-firefox:4"
+
+.dev_post_deploy:
+  stage: postdeploy
+  environment:
+    name: dev
+    url: https://try-dev.exosphere.app/exosphere
+  dependencies:
+    - deploy_dev
+
+.prod_post_deploy:
+  stage: postdeploy
+  environment:
+    name: prod
+    url: https://try.exosphere.app/exosphere
+  dependencies:
+    - deploy_prod
+
+.jetstream_post_deploy:
+  stage: postdeploy
+  environment:
+    name: jetstream
+    url: https://exosphere.jetstream-cloud.org/exosphere
+  dependencies:
+    - deploy_jetstream
+
+dev_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .dev_post_deploy
+
+dev_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .dev_post_deploy
+
+prod_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .prod_post_deploy
+
+prod_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .prod_post_deploy
+
+jetstream_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .jetstream_post_deploy
+
+jetstream_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .jetstream_post_deploy
+
 
 include:
   - template: Dependency-Scanning.gitlab-ci.yml
