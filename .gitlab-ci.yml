@@ -286,24 +286,30 @@ mr_e2e_chrome:
   environment:
     name: dev
     url: https://try-dev.exosphere.app/exosphere
-  dependencies:
+  needs:
     - deploy_dev
+  only:
+    - dev
 
 .prod_post_deploy:
   stage: postdeploy
   environment:
     name: prod
     url: https://try.exosphere.app/exosphere
-  dependencies:
+  needs:
     - deploy_prod
+  only:
+    - master
 
 .jetstream_post_deploy:
   stage: postdeploy
   environment:
     name: jetstream
     url: https://exosphere.jetstream-cloud.org/exosphere
-  dependencies:
+  needs:
     - deploy_jetstream
+  only:
+    - master
 
 dev_post_deploy_e2e_chrome:
   extends:
