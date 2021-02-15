@@ -219,7 +219,7 @@ deploy_dev:
     - echo -e "section_start:`date +%s`:pip_install[collapsed=true]\r\e[0KInstall Python dependencies"
     - pip install -r integration-tests/requirements.txt
     - echo -e "section_end:`date +%s`:pip_install\r\e[0K"
-    - mkdir -p integration-tests/screenshots
+    - mkdir -p integration-tests/screenshots integration-tests/logs
     # For visual debugging of browser via VNC, uncomment lines below to enable cloudflared tunnel:
 #    - echo -e "section_start:`date +%s`:install_cloudflared[collapsed=true]\r\e[0KInstall cloudflared"
 #    - wget -O ~/cloudflared.deb https://bin.equinox.io/c/VdrWdbjqyF/cloudflared-stable-linux-amd64.deb
@@ -241,6 +241,7 @@ deploy_dev:
       junit: integration-tests/reports/TESTS-exosphere.xml
     paths:
       - integration-tests/screenshots
+      - integration-tests/logs
 
 e2e_firefox:
   extends: .e2e

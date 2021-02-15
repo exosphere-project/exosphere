@@ -145,26 +145,40 @@ def i_login_to_exosphere(context):
 @step('I save the "{local_storage_item}" item in browser local storage')
 @persona_vars
 def i_save_local_storage(context, local_storage_item):
+    local_storage_file_path = path_for_local_storage_item(local_storage_item)
     local_storage_item_content = context.browser.evaluate_script(
         f"localStorage.getItem('{local_storage_item}')")
-    with open(f'/tmp/{local_storage_item}', 'w') as temporary_file:
+    with open(local_storage_file_path, 'w') as temporary_file:
         temporary_file.write(local_storage_item_content)
 
 
 @step('I load the "{local_storage_item}" item in browser local storage')
 @persona_vars
 def i_load_local_storage(context, local_storage_item):
-    with open(f'/tmp/{local_storage_item}', 'r') as temporary_file:
+    local_storage_file_path = path_for_local_storage_item(local_storage_item)
+    with open(local_storage_file_path, 'r') as temporary_file:
         local_storage_item_content = temporary_file.read()
-        context.browser.evaluate_script(
-            f"localStorage.setItem('{local_storage_item}', '{local_storage_item_content}')")
-        context.browser.reload()
+
+    context.browser.evaluate_script(
+        f"localStorage.setItem('{local_storage_item}', '{local_storage_item_content}')")
+    context.execute_steps("""When I go to Exosphere""")
+
+
+def path_for_local_storage_item(local_storage_item):
+    # Try to turn local storage item name into an environment variable
+    # E.g. if local_storage_item == 'exosphere-save', then 'EXOSPHERE_SAVE_FILE'
+    # If the variable is not set then default to: '/tmp/{local_storage_item}'
+    file_path_variable_name = f'{local_storage_item}_FILE'.replace('-', '_').upper()
+    local_storage_file_path = os.environ.get(file_path_variable_name,
+                                             f'/tmp/{local_storage_item}')
+    return local_storage_file_path
 
 
 @step('I delete "{local_storage_item}" browser local storage item file')
 @persona_vars
 def i_delete_local_storage_file(context, local_storage_item):
-    file_path = pathlib.Path(f'/tmp/{local_storage_item}')
+    local_storage_file_path = path_for_local_storage_item(local_storage_item)
+    file_path = pathlib.Path(local_storage_file_path)
     try:
         file_path.unlink()
     except FileNotFoundError:
