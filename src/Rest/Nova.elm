@@ -47,6 +47,7 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( CockpitLoginStatus(..)
@@ -624,12 +625,45 @@ receiveServer_ isElectron project osServer =
 
                                     else
                                         Just statuses
+
+                        -- If server is not active, then forget Guacamole token
+                        newServerOrigin =
+                            let
+                                guacPropsForgetToken : GuacTypes.LaunchedWithGuacProps -> GuacTypes.LaunchedWithGuacProps
+                                guacPropsForgetToken oldGuacProps =
+                                    { oldGuacProps | authToken = RDPP.empty }
+                            in
+                            case oldExoProps.serverOrigin of
+                                ServerNotFromExo ->
+                                    ServerNotFromExo
+
+                                ServerFromExo exoOriginProps ->
+                                    case exoOriginProps.guacamoleStatus of
+                                        GuacTypes.NotLaunchedWithGuacamole ->
+                                            oldExoProps.serverOrigin
+
+                                        GuacTypes.LaunchedWithGuacamole guacProps ->
+                                            case osServer.details.openstackStatus of
+                                                OSTypes.ServerActive ->
+                                                    oldExoProps.serverOrigin
+
+                                                _ ->
+                                                    let
+                                                        newOriginProps =
+                                                            { exoOriginProps
+                                                                | guacamoleStatus =
+                                                                    GuacTypes.LaunchedWithGuacamole
+                                                                        (guacPropsForgetToken guacProps)
+                                                            }
+                                                    in
+                                                    ServerFromExo newOriginProps
                     in
                     Server
                         { oldOSProps | details = osServer.details }
                         { oldExoProps
                             | priorFloatingIpState = floatingIpState_
                             , targetOpenstackStatus = newTargetOpenstackStatus
+                            , serverOrigin = newServerOrigin
                         }
 
         consoleUrlCmd =
