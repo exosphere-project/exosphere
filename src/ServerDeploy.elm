@@ -48,7 +48,7 @@ runcmd:
 
       [Install]
       WantedBy=media-volume-$x.mount
-      EOF
+    EOF
 
       systemctl enable exouser-owns-media-volume-$x.service
     done
