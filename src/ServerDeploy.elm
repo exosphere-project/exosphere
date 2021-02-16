@@ -49,6 +49,7 @@ runcmd:
   - |
     {guacamole-setup}
   - unset PASSPHRASE
+  - "command -v apt && apt install -y haveged  # This is for stubborn Ubuntu 18"
   - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
 mounts:
