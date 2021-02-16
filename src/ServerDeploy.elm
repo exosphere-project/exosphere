@@ -33,6 +33,7 @@ runcmd:
   - "mkdir -p /media/volume"
   - "cd /media/volume; for x in b c d e f g h i j k; do mkdir -p sd$x; mkdir -p vd$x; done"
   - "systemctl daemon-reload"
+  - ""
   - |
     for x in sdb sdc sdd sde sdf sdg sdh sdi sdj sdk vdb vdc vdd vde vdf vdg vdh vdi vdj vdk; do
       systemctl start media-volume-$x.automount;
@@ -44,7 +45,7 @@ runcmd:
       After=media-volume-$x.mount
 
       [Service]
-      ExecStart=/usr/bin/chown exouser:exouser /media/volume/$x
+      ExecStart=/bin/chown exouser:exouser /media/volume/$x
 
       [Install]
       WantedBy=media-volume-$x.mount
