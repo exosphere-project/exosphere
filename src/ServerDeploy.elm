@@ -14,6 +14,7 @@ ssh_pwauth: true
 package_update: true
 packages:
   - cockpit
+  - haveged
 runcmd:
   - echo '{"exoSetup":"running"}' > /dev/console
   - |
