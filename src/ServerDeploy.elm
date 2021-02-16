@@ -33,7 +33,25 @@ runcmd:
   - "mkdir -p /media/volume"
   - "cd /media/volume; for x in b c d e f g h i j k; do mkdir -p sd$x; mkdir -p vd$x; done"
   - "systemctl daemon-reload"
-  - "for x in b c d e f g h i j k; do systemctl start media-volume-sd$x.automount; systemctl start media-volume-vd$x.automount; done"
+  - |
+    for x in sdb sdc sdd sde sdf sdg sdh sdi sdj sdk vdb vdc vdd vde vdf vdg vdh vdi vdj vdk; do
+      systemctl start media-volume-$x.automount;
+
+      cat << EOF > /etc/systemd/system/exouser-owns-media-volume-$x.service
+      [Unit]
+      Description=ExouserOwnsVolume$x
+      Requires=media-volume-$x.mount
+      After=media-volume-$x.mount
+
+      [Service]
+      ExecStart=/usr/bin/chown exouser:exouser /media/volume/$x
+
+      [Install]
+      WantedBy=media-volume-$x.mount
+      EOF
+
+      systemctl enable exouser-owns-media-volume-$x.service
+    done
   - "chown exouser:exouser /media/volume/*"
   - |
     SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
