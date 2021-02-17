@@ -1017,12 +1017,12 @@ decodeServerEvent =
     Decode.map5 OSTypes.ServerEvent
         (Decode.field "action" Decode.string)
         (Decode.field "message" (Decode.nullable Decode.string))
-        (Decode.field "requestId" Decode.string)
-        (Decode.field "startTime" Decode.string
+        (Decode.field "request_id" Decode.string)
+        (Decode.field "start_time" Decode.string
             |> Decode.andThen
                 iso8601StringToPosixDecodeError
         )
-        (Decode.field "userId" Decode.string)
+        (Decode.field "user_id" Decode.string)
 
 
 decodeConsoleUrl : Decode.Decoder OSTypes.ConsoleUrl
