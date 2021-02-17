@@ -304,6 +304,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
+    | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl OSTypes.ServerUuid (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
@@ -480,6 +481,7 @@ type JetstreamProvider
 type alias Server =
     { osProps : OSTypes.Server
     , exoProps : ExoServerProps
+    , events : WebData (List OSTypes.ServerEvent)
     }
 
 

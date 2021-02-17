@@ -43,6 +43,7 @@ import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
         , expectStringWithErrorBody
+        , iso8601StringToPosixDecodeError
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
@@ -109,16 +110,49 @@ requestServer project serverUuid =
             ProjectMsg
                 project.auth.project.uuid
                 (ReceiveServer serverUuid errorContext result)
+
+        requestServerCmd =
+            openstackCredentialedRequest
+                project
+                Get
+                (Just "compute 2.27")
+                (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+                Http.emptyBody
+                (expectJsonWithErrorBody
+                    resultToMsg
+                    (Decode.at [ "server" ] decodeServer)
+                )
+    in
+    -- Get server events whenever we get a server. We may not want to do this forever, but let's try it out
+    Cmd.batch
+        [ requestServerCmd
+        , requestServerEvents project serverUuid
+        ]
+
+
+requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServerEvents project serverUuid =
+    let
+        errorContext =
+            ErrorContext
+                ("get events for server with UUID \"" ++ serverUuid ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                project.auth.project.uuid
+                (ReceiveServerEvents serverUuid errorContext result)
     in
     openstackCredentialedRequest
         project
         Get
         (Just "compute 2.27")
-        (project.endpoints.nova ++ "/servers/" ++ serverUuid)
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-instance-actions")
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg
-            (Decode.at [ "server" ] decodeServer)
+            (Decode.at [ "instanceActions" ] <| Decode.list decodeServerEvent)
         )
 
 
@@ -586,6 +620,7 @@ receiveServer model project osServer =
 receiveServer_ : Bool -> Project -> OSTypes.Server -> ( Server, Cmd Msg )
 receiveServer_ isElectron project osServer =
     let
+        newServer : Server
         newServer =
             case GetterSetters.serverLookup project osServer.uuid of
                 Nothing ->
@@ -599,7 +634,7 @@ receiveServer_ isElectron project osServer =
                                 Nothing
                                 False
                     in
-                    Server osServer defaultExoProps
+                    Server osServer defaultExoProps RemoteData.NotAsked
 
                 Just exoServer ->
                     let
@@ -658,13 +693,15 @@ receiveServer_ isElectron project osServer =
                                                     in
                                                     ServerFromExo newOriginProps
                     in
-                    Server
-                        { oldOSProps | details = osServer.details }
-                        { oldExoProps
-                            | priorFloatingIpState = floatingIpState_
-                            , targetOpenstackStatus = newTargetOpenstackStatus
-                            , serverOrigin = newServerOrigin
-                        }
+                    { exoServer
+                        | osProps = { oldOSProps | details = osServer.details }
+                        , exoProps =
+                            { oldExoProps
+                                | priorFloatingIpState = floatingIpState_
+                                , targetOpenstackStatus = newTargetOpenstackStatus
+                                , serverOrigin = newServerOrigin
+                            }
+                    }
 
         consoleUrlCmd =
             case newServer.osProps.consoleUrl of
@@ -973,6 +1010,19 @@ serverLockStatusDecoder =
                 Decode.succeed OSTypes.ServerUnlocked
     in
     Decode.bool |> Decode.andThen boolToLockStatus
+
+
+decodeServerEvent : Decode.Decoder OSTypes.ServerEvent
+decodeServerEvent =
+    Decode.map5 OSTypes.ServerEvent
+        (Decode.field "action" Decode.string)
+        (Decode.field "message" (Decode.nullable Decode.string))
+        (Decode.field "requestId" Decode.string)
+        (Decode.field "startTime" Decode.string
+            |> Decode.andThen
+                iso8601StringToPosixDecodeError
+        )
+        (Decode.field "userId" Decode.string)
 
 
 decodeConsoleUrl : Decode.Decoder OSTypes.ConsoleUrl

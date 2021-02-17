@@ -32,6 +32,7 @@ module OpenStack.Types exposing
     , SecurityGroup
     , Server
     , ServerDetails
+    , ServerEvent
     , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
@@ -336,6 +337,15 @@ type alias CreateServerRequest =
     , keypairName : Maybe String
     , userData : String
     , metadata : List ( String, Json.Encode.Value )
+    }
+
+
+type alias ServerEvent =
+    { action : String -- This sucks, should use an enumerated type for Server Action
+    , errorMessage : Maybe String
+    , requestId : String
+    , startTime : Time.Posix
+    , userId : String
     }
 
 

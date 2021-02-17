@@ -431,9 +431,10 @@ receiveCreateFloatingIp model project serverUuid ipAddress =
                                 server.osProps.details
                                 ipAddress
                     in
-                    Server
-                        { oldOSProps | details = details }
-                        { oldExoProps | priorFloatingIpState = Success }
+                    { server
+                        | osProps = { oldOSProps | details = details }
+                        , exoProps = { oldExoProps | priorFloatingIpState = Success }
+                    }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

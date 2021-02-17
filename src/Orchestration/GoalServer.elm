@@ -256,7 +256,7 @@ stepServerRequestFloatingIp _ project server =
                         oldExoProps =
                             server.exoProps
                     in
-                    Server server.osProps { oldExoProps | priorFloatingIpState = RequestedWaiting }
+                    { server | exoProps = { oldExoProps | priorFloatingIpState = RequestedWaiting } }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

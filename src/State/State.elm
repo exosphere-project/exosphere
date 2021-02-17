@@ -656,7 +656,7 @@ processProjectSpecificMsg model project msg =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus }
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus } server.events
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
@@ -835,6 +835,30 @@ processProjectSpecificMsg model project msg =
 
                         _ ->
                             non404
+
+        ReceiveServerEvents serverUuid _ result ->
+            case result of
+                Ok serverEvents ->
+                    case GetterSetters.serverLookup project serverUuid of
+                        Just server ->
+                            let
+                                newServer =
+                                    { server | events = RemoteData.Success serverEvents }
+
+                                newProject =
+                                    GetterSetters.projectUpdateServer project newServer
+                            in
+                            ( GetterSetters.modelUpdateProject model newProject
+                            , Cmd.none
+                            )
+
+                        Nothing ->
+                            -- Couldn't find a server, mighta been deleted
+                            ( model, Cmd.none )
+
+                Err _ ->
+                    -- Dropping this on the floor for now, someday we may want to do something different
+                    ( model, Cmd.none )
 
         ReceiveConsoleUrl serverUuid url ->
             Rest.Nova.receiveConsoleUrl model project serverUuid url
@@ -1577,7 +1601,7 @@ requestDeleteServer project serverUuid =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | deletionAttempted = True }
+                    { server | exoProps = { oldExoProps | deletionAttempted = True } }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
