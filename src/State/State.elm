@@ -1447,15 +1447,23 @@ processProjectSpecificMsg model project msg =
                                         newGuacProps =
                                             case result of
                                                 Ok tokenValue ->
-                                                    { oldGuacProps
-                                                        | authToken =
-                                                            RDPP.RemoteDataPlusPlus
-                                                                (RDPP.DoHave
-                                                                    tokenValue
-                                                                    model.clientCurrentTime
-                                                                )
-                                                                (RDPP.NotLoading Nothing)
-                                                    }
+                                                    if server.osProps.details.openstackStatus == OSTypes.ServerActive then
+                                                        { oldGuacProps
+                                                            | authToken =
+                                                                RDPP.RemoteDataPlusPlus
+                                                                    (RDPP.DoHave
+                                                                        tokenValue
+                                                                        model.clientCurrentTime
+                                                                    )
+                                                                    (RDPP.NotLoading Nothing)
+                                                        }
+
+                                                    else
+                                                        -- Server is not active, this token won't work, so we don't store it
+                                                        { oldGuacProps
+                                                            | authToken =
+                                                                RDPP.empty
+                                                        }
 
                                                 Err e ->
                                                     { oldGuacProps
