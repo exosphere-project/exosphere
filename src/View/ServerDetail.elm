@@ -517,6 +517,9 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                             ITypes.Error reason ->
                                                 Element.text reason
 
+                                            ITypes.Warn _ reason ->
+                                                Element.text reason
+
                                             _ ->
                                                 Element.none
                                         ]
@@ -601,6 +604,9 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
+                                                Just <| OpenNewWindow url
+
+                                            ITypes.Warn url _ ->
                                                 Just <| OpenNewWindow url
 
                                             _ ->
