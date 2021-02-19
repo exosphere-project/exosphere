@@ -79,7 +79,6 @@ buildRuleExposeAllIncomingPorts =
 defaultExosphereRules : List SecurityGroupRule
 defaultExosphereRules =
     [ buildRuleTCP 22 "SSH"
-    , buildRuleTCP 9090 "Cockpit"
     , buildRuleIcmp
     , buildRuleExposeAllIncomingPorts
     ]
