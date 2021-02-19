@@ -47,6 +47,7 @@ type alias ExoPalette =
         , background : Color.Color
         , surface : Color.Color
         , error : Color.Color
+        , warn : Color.Color
         }
     , warn : Color.Color
     , readyGood : Color.Color

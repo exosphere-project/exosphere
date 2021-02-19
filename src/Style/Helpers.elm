@@ -29,6 +29,7 @@ toExoPalette primaryColor secondaryColor styleMode =
                 , background = Color.rgb255 0 0 0
                 , surface = Color.rgb255 0 0 0
                 , error = Color.rgb255 255 255 255
+                , warn = Color.rgb255 0 0 0
                 }
             , warn = Color.rgb255 252 175 62
             , readyGood = Color.rgb255 35 209 96
@@ -56,6 +57,7 @@ toExoPalette primaryColor secondaryColor styleMode =
                 , background = Color.rgb255 205 205 205
                 , surface = Color.rgb255 255 255 255
                 , error = Color.rgb255 255 255 255
+                , warn = Color.rgb255 0 0 0
                 }
             , warn = Color.rgb255 252 175 62
             , readyGood = Color.rgb255 35 209 96

@@ -483,7 +483,7 @@ getServerUiStatusColor palette status =
             SH.toElementColor palette.muted
 
 
-renderMarkdown : Style.Types.ExoPalette -> Bool -> String -> Element.Element Msg
+renderMarkdown : Style.Types.ExoPalette -> Bool -> String -> List (Element.Element Msg)
 renderMarkdown palette isElectron markdown =
     let
         deadEndsToString deadEnds =
@@ -500,12 +500,12 @@ renderMarkdown palette isElectron markdown =
     in
     case result of
         Ok elements ->
-            Element.paragraph []
-                elements
+            elements
 
         Err errors ->
-            Element.text
+            [ Element.text
                 ("Error parsing markdown: \n" ++ errors)
+            ]
 
 
 elmUiRenderer : Style.Types.ExoPalette -> Bool -> Markdown.Renderer.Renderer (Element.Element Msg)

@@ -163,6 +163,11 @@ elementView maybeWindowSize model palette =
                         Element.fill
             ]
             [ View.Nav.navBar model palette
+            , if Helpers.appIsElectron model then
+                electronDeprecationWarning palette
+
+              else
+                Element.none
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
@@ -180,3 +185,29 @@ elementView maybeWindowSize model palette =
                 ]
             ]
         ]
+
+
+electronDeprecationWarning : Style.Types.ExoPalette -> Element.Element Msg
+electronDeprecationWarning palette =
+    -- Electron deprecation warning per Phase 1 of https://gitlab.com/exosphere/exosphere/-/merge_requests/381
+    let
+        warningMD =
+            """**Deprecation Notice:** this Electron-based desktop application will stop working after March 31, 2021.
+
+Please start using Exosphere in your browser at [try.exosphere.app](https://try.exosphere.app). If you are a Jetstream user, please use [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org).
+
+Both of these sites support installation to your desktop or home screen ([more info](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/pwa-install.md))."""
+    in
+    Element.column
+        (VH.exoElementAttributes
+            ++ [ Element.width Element.fill
+               , Font.center
+               , Background.color <| SH.toElementColor <| palette.warn
+               , Font.color <| SH.toElementColor <| palette.on.warn
+               ]
+        )
+    <|
+        VH.renderMarkdown
+            palette
+            True
+            warningMD
