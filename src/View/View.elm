@@ -192,7 +192,7 @@ electronDeprecationWarning palette =
     -- Electron deprecation warning per Phase 1 of https://gitlab.com/exosphere/exosphere/-/merge_requests/381
     let
         warningMD =
-            """**Deprecation Notice:** this Electron-based desktop application will stop working after March 31, 2021.
+            """**Deprecation Notice:** this Electron-based desktop application will stop working starting March 31, 2021.
 
 Please start using Exosphere in your browser at [try.exosphere.app](https://try.exosphere.app). If you are a Jetstream user, please use [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org).
 

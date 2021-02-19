@@ -2,7 +2,7 @@
 
 With [this](https://gitlab.com/exosphere/exosphere/-/merge_requests/381) change, the Electron-based Exosphere desktop application is deprecated in favor of the new [Progressive Web Application](https://en.wikipedia.org/wiki/Progressive_web_application) (PWA).
 
-After March 31, 2021, the old Exosphere desktop app (that you installed from a package download) will stop working. Going forward, please use Exosphere in your browser at [try.exosphere.app](https://try.exosphere.app), or if you are a Jetstream user, please use [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org).
+Starting March 31, 2021, the old Exosphere desktop app (that you installed from a package download) will stop working. Going forward, please use Exosphere in your browser at [try.exosphere.app](https://try.exosphere.app), or if you are a Jetstream user, please use [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org).
 
 Both of these sites are Progressive Web Applications, so if you wish, you can install them to your desktop or device home screen. This will provide an experience similar to the old desktop app, but with better security and smoother delivery of updates.
 
