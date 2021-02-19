@@ -22,8 +22,7 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , ExoSetupStatus(..)
+        ( ExoSetupStatus(..)
         , Flags
         , FloatingIpState(..)
         , HttpRequestMethod(..)

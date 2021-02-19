@@ -38,8 +38,7 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , FloatingIpState(..)
+        ( FloatingIpState(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)

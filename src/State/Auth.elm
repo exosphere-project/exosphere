@@ -17,8 +17,7 @@ import Rest.Keystone
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , ExoSetupStatus(..)
+        ( ExoSetupStatus(..)
         , FloatingIpState(..)
         , HttpRequestMethod(..)
         , JetstreamCreds

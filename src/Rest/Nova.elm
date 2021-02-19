@@ -51,8 +51,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , ExoServerProps
+        ( ExoServerProps
         , FloatingIpState(..)
         , HttpRequestMethod(..)
         , Model

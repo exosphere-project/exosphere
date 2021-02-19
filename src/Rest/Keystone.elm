@@ -37,8 +37,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , FloatingIpState(..)
+        ( FloatingIpState(..)
         , HttpRequestMethod(..)
         , Msg(..)
         , NewServerNetworkOptions(..)
