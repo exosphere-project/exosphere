@@ -119,7 +119,9 @@ receiveCockpitLoginStatus model project serverUuid result =
                             { oldExoProps | serverOrigin = ServerFromExo newServerFromExoProps }
 
                         newServer =
-                            Server server.osProps newExoProps
+                            { server
+                                | exoProps = newExoProps
+                            }
 
                         newProject =
                             GetterSetters.projectUpdateServer project newServer

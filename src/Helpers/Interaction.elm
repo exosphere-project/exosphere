@@ -35,11 +35,35 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                 guacUpstreamPort =
                     49528
 
-                fifteenMinMillis =
-                    1000 * 60 * 15
+                twentyMinMillis =
+                    1000 * 60 * 20
 
                 newServer =
-                    Helpers.serverLessThanThisOld server currentTime
+                    Helpers.serverLessThanThisOld server currentTime twentyMinMillis
+
+                recentServerEvent =
+                    server.events
+                        |> RemoteData.withDefault []
+                        -- Ignore server events which don't cause a power cycle
+                        |> List.filter
+                            (\event ->
+                                [ "lock", "unlock", "image" ]
+                                    |> List.map (\action -> action == event.action)
+                                    |> List.any identity
+                                    |> not
+                            )
+                        -- Look for the most recent server event
+                        |> List.map .startTime
+                        |> List.map Time.posixToMillis
+                        |> List.sort
+                        |> List.reverse
+                        |> List.head
+                        -- See if most recent event is recent enough
+                        |> Maybe.map
+                            (\eventTime ->
+                                eventTime > (Time.posixToMillis currentTime - twentyMinMillis)
+                            )
+                        |> Maybe.withDefault newServer
             in
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
@@ -74,8 +98,8 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                             ITypes.Unavailable "Server does not have a floating IP address"
 
                                 RDPP.DontHave ->
-                                    if newServer fifteenMinMillis then
-                                        ITypes.Unavailable "Guacamole is still deploying to this new server, check back in a few minutes"
+                                    if recentServerEvent then
+                                        ITypes.Unavailable "Server is still booting or Guacamole is still deploying, check back in a few minutes"
 
                                     else
                                         case
