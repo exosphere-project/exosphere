@@ -162,16 +162,20 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                     ( _, Just floatingIp ) ->
                                         case dashboardOrTerminal of
                                             Dashboard ->
-                                                ITypes.Ready <|
-                                                    "https://"
+                                                ITypes.Warn
+                                                    ("https://"
                                                         ++ floatingIp
                                                         ++ ":9090"
+                                                    )
+                                                    "Server Dashboard is a deprecated feature and will not work after March 31, 2021."
 
                                             Terminal ->
-                                                ITypes.Ready <|
-                                                    "https://"
+                                                ITypes.Warn
+                                                    ("https://"
                                                         ++ floatingIp
                                                         ++ ":9090/cockpit/@localhost/system/terminal.html"
+                                                    )
+                                                    "Old Web Terminal is a deprecated feature and will not work after March 31, 2021."
 
             else
                 ITypes.Hidden
@@ -232,6 +236,9 @@ interactionStatusWordColor palette status =
 
         ITypes.Ready _ ->
             ( "Ready", SH.toElementColor palette.readyGood )
+
+        ITypes.Warn _ _ ->
+            ( "Warning", SH.toElementColor palette.warn )
 
         ITypes.Error _ ->
             ( "Error", SH.toElementColor palette.error )

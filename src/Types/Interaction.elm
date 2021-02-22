@@ -21,6 +21,7 @@ type InteractionStatus
     = Unavailable InteractionStatusReason
     | Loading
     | Ready String
+    | Warn String InteractionStatusReason
     | Error InteractionStatusReason
     | Hidden
 

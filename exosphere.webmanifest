@@ -1,0 +1,27 @@
+{
+  "name": "Exosphere",
+  "short_name": "Exosphere",
+  "description": "User-friendly client for cloud computing",
+  "icons": [
+    {
+      "src": "assets/img/logo-512px-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-192px-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo-32px.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+
+  ],
+  "start_url": "/exosphere/",
+  "display": "minimal-ui",
+  "theme_color": "#FFFFFF",
+  "background_color": "#FFFFFF"
+}

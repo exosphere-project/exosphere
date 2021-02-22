@@ -185,7 +185,7 @@ When it's time to cleanup, you can do `docker stop exosphere` and `docker rm exo
 
 ### Note Cockpit-based terminal and server dashboard
 
-Cockpit-based terminal is being deprecated and replaced with a shell and a graphical desktop environment served by [Apache Guacamole](http://guacamole.apache.org/). Soon, Exosphere will stop deploying instances with Cockpit support, and at some point in the future, Exosphere will stop exposing Cockpit-based interactions for older instances that were deployed with an older version of Exosphere. 
+Cockpit-based terminal is deprecated and replaced with a shell served by [Apache Guacamole](http://guacamole.apache.org/). Exosphere no longer deploys instances with Cockpit support, and after March 31, 2021, Exosphere will stop exposing Cockpit-based interactions for older instances that were deployed with an older version of Exosphere. 
 
 Currently the Cockpit dashboard and terminal for a provisioned server is served using a self-signed TLS certificate. In order for this to work in the client (it works only in the Electron app), one must enable the `ignore-certificate-errors` switch for Electron, which is insecure and a bad idea.   
 

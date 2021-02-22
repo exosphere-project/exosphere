@@ -15,7 +15,8 @@ helpAbout model palette =
         [ Element.el VH.heading2 <| Element.text <| "About " ++ model.style.appTitle
         , case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
-                VH.renderMarkdown palette (Helpers.appIsElectron model) aboutAppMarkdown
+                Element.column [] <|
+                    VH.renderMarkdown palette (Helpers.appIsElectron model) aboutAppMarkdown
 
             Nothing ->
                 defaultHelpAboutText model palette

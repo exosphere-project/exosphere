@@ -45,7 +45,8 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
         [ Element.el VH.heading2 <| Element.text ("Get Support for " ++ model.style.appTitle)
         , case model.style.supportInfoMarkdown of
             Just markdown ->
-                VH.renderMarkdown palette (Helpers.appIsElectron model) markdown
+                Element.column [] <|
+                    VH.renderMarkdown palette (Helpers.appIsElectron model) markdown
 
             Nothing ->
                 Element.none

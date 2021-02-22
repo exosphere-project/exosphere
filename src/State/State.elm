@@ -43,8 +43,7 @@ import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , Endpoints
+        ( Endpoints
         , ExoSetupStatus(..)
         , FloatingIpState(..)
         , HttpRequestMethod(..)
