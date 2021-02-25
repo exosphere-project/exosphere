@@ -94,7 +94,7 @@ createServer palette project viewParams =
             , flavorPicker palette project viewParams computeQuota
             , volBackedPrompt palette project viewParams volumeQuota flavor
             , countPicker palette project viewParams computeQuota volumeQuota flavor
-            , desktopEnvironmentPicker palette project viewParams
+            , desktopEnvironmentPicker project viewParams
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -468,8 +468,8 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-desktopEnvironmentPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-desktopEnvironmentPicker palette project createServerViewParams =
+desktopEnvironmentPicker : Project -> CreateServerViewParams -> Element.Element Msg
+desktopEnvironmentPicker project createServerViewParams =
     Input.radioRow VH.exoElementAttributes
         { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy graphical desktop environment?")
         , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployDesktopEnvironment = new }
