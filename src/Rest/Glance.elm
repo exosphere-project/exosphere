@@ -7,7 +7,7 @@ module Rest.Glance exposing
     , requestImages
     )
 
-import Dict exposing (Dict)
+import Dict
 import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
