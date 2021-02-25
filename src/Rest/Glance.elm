@@ -2,6 +2,7 @@ module Rest.Glance exposing
     ( decodeImages
     , imageDecoder
     , imageStatusDecoder
+    , imageVisibilityDecoder
     , receiveImages
     , requestImages
     )
@@ -114,6 +115,26 @@ imageDecoder maybeExcludeFilter =
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "owner" Decode.string
         |> Pipeline.custom (setFilteredOutBasedOnAttribute maybeExcludeFilter)
+        |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
+
+
+imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility
+imageVisibilityDecoder visibility =
+    case visibility of
+        "public" ->
+            Decode.succeed OSTypes.ImagePublic
+
+        "community" ->
+            Decode.succeed OSTypes.ImageCommunity
+
+        "shared" ->
+            Decode.succeed OSTypes.ImageShared
+
+        "private" ->
+            Decode.succeed OSTypes.ImagePrivate
+
+        _ ->
+            Decode.fail "Unrecognized image visibility value"
 
 
 imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus

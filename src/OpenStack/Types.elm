@@ -15,6 +15,7 @@ module OpenStack.Types exposing
     , Image
     , ImageStatus(..)
     , ImageUuid
+    , ImageVisibility(..)
     , IpAddress
     , IpAddressType(..)
     , IpAddressUuid
@@ -199,6 +200,7 @@ type alias Image =
     , tags : List String
     , projectUuid : HelperTypes.Uuid
     , excludedByDeployer : Bool
+    , visibility : ImageVisibility
     }
 
 
@@ -214,6 +216,13 @@ type ImageStatus
     | ImageDeleted
     | ImagePendingDelete
     | ImageDeactivated
+
+
+type ImageVisibility
+    = ImagePublic
+    | ImageCommunity
+    | ImageShared
+    | ImagePrivate
 
 
 
