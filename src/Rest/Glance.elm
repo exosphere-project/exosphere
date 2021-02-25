@@ -6,6 +6,7 @@ module Rest.Glance exposing
     , requestImages
     )
 
+import Dict exposing (Dict)
 import Helpers.GetterSetters as GetterSetters
 import Http
 import Json.Decode as Decode
@@ -32,8 +33,8 @@ import Types.Types
 {- HTTP Requests -}
 
 
-requestImages : Project -> Cmd Msg
-requestImages project =
+requestImages : Project -> String -> String -> Cmd Msg
+requestImages project filterKey filterValue =
     let
         errorContext =
             ErrorContext
@@ -54,7 +55,7 @@ requestImages project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            decodeImages
+            (decodeImages filterKey filterValue)
         )
 
 
@@ -78,13 +79,24 @@ receiveImages model project images =
 {- JSON Decoders -}
 
 
-decodeImages : Decode.Decoder (List OSTypes.Image)
-decodeImages =
-    Decode.field "images" (Decode.list imageDecoder)
+decodeImages : String -> String -> Decode.Decoder (List OSTypes.Image)
+decodeImages filterKey filterValue =
+    Decode.field "images" (Decode.list (imageDecoder filterKey filterValue))
 
 
-imageDecoder : Decode.Decoder OSTypes.Image
-imageDecoder =
+setFilteredOutBasedOnAttribute : String -> String -> Decode.Decoder Bool
+setFilteredOutBasedOnAttribute filterKey filterValue =
+    Decode.dict (Decode.oneOf [ Decode.string, Decode.succeed "not a string" ])
+        |> Decode.map
+            (\someDict ->
+                Dict.get filterKey someDict
+                    |> Maybe.map (\x -> x == filterValue)
+                    |> Maybe.withDefault False
+            )
+
+
+imageDecoder : String -> String -> Decode.Decoder OSTypes.Image
+imageDecoder filterKey filterValue =
     Decode.succeed OSTypes.Image
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "status" (Decode.string |> Decode.andThen imageStatusDecoder)
@@ -95,6 +107,7 @@ imageDecoder =
         |> Pipeline.optional "container_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "owner" Decode.string
+        |> Pipeline.custom (setFilteredOutBasedOnAttribute filterKey filterValue)
 
 
 imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus

@@ -198,6 +198,7 @@ type alias Image =
     , containerFormat : Maybe String
     , tags : List String
     , projectUuid : HelperTypes.Uuid
+    , excludedByDeployer : Bool
     }
 
 

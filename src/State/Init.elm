@@ -126,6 +126,8 @@ init flags maybeUrlKey =
                 , defaultImageSearchText = flags.defaultImageSearchText
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
+            , filterKey = ""
+            , filterValue = ""
             }
 
         -- This only gets used if we do not find a client UUID in stored state

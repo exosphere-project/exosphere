@@ -151,6 +151,8 @@ type alias Model =
     , style : Style
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
+    , filterKey : String
+    , filterValue : String
     }
 
 
