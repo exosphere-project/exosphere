@@ -82,9 +82,15 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
+filterByExcludedByDeployer : List OSTypes.Image -> List OSTypes.Image
+filterByExcludedByDeployer someImages =
+    List.filter (\i -> not i.excludedByDeployer) someImages
+
+
 filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
 filterImages imageListViewParams project someImages =
     someImages
+        |> filterByExcludedByDeployer
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
