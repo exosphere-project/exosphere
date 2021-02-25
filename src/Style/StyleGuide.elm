@@ -11,7 +11,7 @@ import Style.Widgets.Button exposing (dangerButton, warningButton)
 import Style.Widgets.Card exposing (badge, exoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon exposing (bell, question, remove, roundRect, timesCircle)
+import Style.Widgets.Icon exposing (bell, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Widget
@@ -26,6 +26,10 @@ type Msg
     | NoOp
 
 
+
+--noinspection ElmUnresolvedReference
+
+
 widgets : (Msg -> msg) -> Style.Types.ExoPalette -> Model -> List (Element.Element msg)
 widgets msgMapper palette model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
@@ -35,8 +39,6 @@ widgets msgMapper palette model =
     , roundRect (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.bell"
     , bell (palette.on.background |> SH.toElementColor) 40
-    , Element.text "Style.Widgets.Icon.question"
-    , question (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.remove"
     , remove (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.timesCircle"
