@@ -23,7 +23,8 @@ openIdConnectLoginConfig:
   oidcLoginButtonLabel : "Add XSEDE Account",
   oidcLoginButtonDescription : "Under construction, may not work, Jetstream IU Cloud only"
 },
-defaultImageSearchText: "JS-API-Featured"
+defaultImageSearchText: "JS-API-Featured",
+defaultImageExcludeFilter: "atmo_image_include=true"
 }
 
 /* Matomo tracking code */

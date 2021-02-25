@@ -17,7 +17,8 @@ aboutAppMarkdown: "Exosphere is a user-friendly, extensible client for cloud com
 supportInfoMarkdown: null,
 userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
 openIdConnectLoginConfig: null,
-defaultImageSearchText: null
+defaultImageSearchText: null,
+defaultImageExcludeFilter: "atmo_image_include=true"
 }
 
 /* Matomo tracking code */

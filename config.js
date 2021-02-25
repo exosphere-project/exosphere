@@ -19,5 +19,6 @@ aboutAppMarkdown: null,
 supportInfoMarkdown: null,
 userSupportEmail: null,
 openIdConnectLoginConfig: null,
-defaultImageSearchText: null
+defaultImageSearchText: null,
+defaultImageExcludeFilter: "atmo_image_include=true"
 }
