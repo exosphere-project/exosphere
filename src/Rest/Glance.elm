@@ -87,10 +87,6 @@ decodeImages maybeExcludeFilter =
 
 setFilteredOutBasedOnAttribute : Maybe ExcludeFilter -> Decode.Decoder Bool
 setFilteredOutBasedOnAttribute maybeExcludeFilter =
-    let
-        _ =
-            Debug.log "maybeExcludeFilter" maybeExcludeFilter
-    in
     case maybeExcludeFilter of
         Just excludeFilter ->
             Decode.dict (Decode.oneOf [ Decode.string, Decode.succeed "not a string" ])
