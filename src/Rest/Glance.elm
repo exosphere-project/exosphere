@@ -16,7 +16,8 @@ import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequ
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
-        ( FloatingIpState(..)
+        ( ExcludeFilter
+        , FloatingIpState(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -33,8 +34,8 @@ import Types.Types
 {- HTTP Requests -}
 
 
-requestImages : Project -> String -> String -> Cmd Msg
-requestImages project filterKey filterValue =
+requestImages : Project -> Maybe ExcludeFilter -> Cmd Msg
+requestImages project maybeExcludeFilter =
     let
         errorContext =
             ErrorContext
@@ -55,7 +56,7 @@ requestImages project filterKey filterValue =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            (decodeImages filterKey filterValue)
+            (decodeImages maybeExcludeFilter)
         )
 
 
@@ -79,24 +80,33 @@ receiveImages model project images =
 {- JSON Decoders -}
 
 
-decodeImages : String -> String -> Decode.Decoder (List OSTypes.Image)
-decodeImages filterKey filterValue =
-    Decode.field "images" (Decode.list (imageDecoder filterKey filterValue))
+decodeImages : Maybe ExcludeFilter -> Decode.Decoder (List OSTypes.Image)
+decodeImages maybeExcludeFilter =
+    Decode.field "images" (Decode.list (imageDecoder maybeExcludeFilter))
 
 
-setFilteredOutBasedOnAttribute : String -> String -> Decode.Decoder Bool
-setFilteredOutBasedOnAttribute filterKey filterValue =
-    Decode.dict (Decode.oneOf [ Decode.string, Decode.succeed "not a string" ])
-        |> Decode.map
-            (\someDict ->
-                Dict.get filterKey someDict
-                    |> Maybe.map (\x -> x == filterValue)
-                    |> Maybe.withDefault False
-            )
+setFilteredOutBasedOnAttribute : Maybe ExcludeFilter -> Decode.Decoder Bool
+setFilteredOutBasedOnAttribute maybeExcludeFilter =
+    let
+        _ =
+            Debug.log "maybeExcludeFilter" maybeExcludeFilter
+    in
+    case maybeExcludeFilter of
+        Just excludeFilter ->
+            Decode.dict (Decode.oneOf [ Decode.string, Decode.succeed "not a string" ])
+                |> Decode.map
+                    (\someDict ->
+                        Dict.get excludeFilter.filterKey someDict
+                            |> Maybe.map (\x -> x == excludeFilter.filterValue)
+                            |> Maybe.withDefault False
+                    )
+
+        Nothing ->
+            Decode.succeed False
 
 
-imageDecoder : String -> String -> Decode.Decoder OSTypes.Image
-imageDecoder filterKey filterValue =
+imageDecoder : Maybe ExcludeFilter -> Decode.Decoder OSTypes.Image
+imageDecoder maybeExcludeFilter =
     Decode.succeed OSTypes.Image
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "status" (Decode.string |> Decode.andThen imageStatusDecoder)
@@ -107,7 +117,7 @@ imageDecoder filterKey filterValue =
         |> Pipeline.optional "container_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "owner" Decode.string
-        |> Pipeline.custom (setFilteredOutBasedOnAttribute filterKey filterValue)
+        |> Pipeline.custom (setFilteredOutBasedOnAttribute maybeExcludeFilter)
 
 
 imageStatusDecoder : String -> Decode.Decoder OSTypes.ImageStatus

@@ -5,6 +5,7 @@ module Types.Types exposing
     , DeleteConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
+    , ExcludeFilter
     , ExoServerProps
     , ExoServerVersion
     , ExoSetupStatus(..)
@@ -109,6 +110,7 @@ type alias Flags =
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
     , defaultImageSearchText : Maybe String
+    , defaultImageExcludeFilter : Maybe { filterKey : String, filterValue : String }
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -151,7 +153,11 @@ type alias Model =
     , style : Style
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , filterKey : String
+    }
+
+
+type alias ExcludeFilter =
+    { filterKey : String
     , filterValue : String
     }
 
@@ -167,6 +173,7 @@ type alias Style =
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
     , defaultImageSearchText : Maybe String
+    , defaultImageExcludeFilter : Maybe ExcludeFilter
     }
 
 

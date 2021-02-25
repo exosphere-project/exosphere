@@ -124,10 +124,9 @@ init flags maybeUrlKey =
                     flags.userSupportEmail
                         |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
                 , defaultImageSearchText = flags.defaultImageSearchText
+                , defaultImageExcludeFilter = flags.defaultImageExcludeFilter
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
-            , filterKey = ""
-            , filterValue = ""
             }
 
         -- This only gets used if we do not find a client UUID in stored state

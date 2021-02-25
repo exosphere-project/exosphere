@@ -18,7 +18,7 @@ supportInfoMarkdown: null,
 userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
 openIdConnectLoginConfig: null,
 defaultImageSearchText: null,
-defaultImageExcludeFilter: "atmo_image_include=true"
+defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" }
 }
 
 /* Matomo tracking code */

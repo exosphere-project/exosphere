@@ -24,7 +24,7 @@ openIdConnectLoginConfig:
   oidcLoginButtonDescription : "Under construction, may not work, Jetstream IU Cloud only"
 },
 defaultImageSearchText: null,
-defaultImageExcludeFilter: "atmo_image_include=true"
+defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" }
 }
 
 /* Matomo tracking code */
