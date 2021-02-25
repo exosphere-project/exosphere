@@ -20,5 +20,5 @@ supportInfoMarkdown: null,
 userSupportEmail: null,
 openIdConnectLoginConfig: null,
 defaultImageSearchText: null,
-defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" }
+defaultImageExcludeFilter: null
 }
