@@ -111,5 +111,12 @@ guacamoleUserData =
 
 desktopEnvironmentUserData : String
 desktopEnvironmentUserData =
-    """echo "TODO implement me"
-    """
+    """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
+      apt install -y ubuntu-desktop-minimal
+    elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
+      yum -y groupinstall workstation
+    fi
+    systemctl enable graphical.target
+    systemctl set-default graphical.target
+    systemctl isolate graphical.target
+"""
