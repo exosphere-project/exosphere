@@ -201,7 +201,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
         desktopEnvironmentSetupCmdsYaml : String
         desktopEnvironmentSetupCmdsYaml =
-            if deployGuacamole then
+            if deployDesktopEnvironment then
                 ServerDeploy.desktopEnvironmentUserData
 
             else
