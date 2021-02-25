@@ -201,6 +201,7 @@ type alias Image =
     , projectUuid : HelperTypes.Uuid
     , excludedByDeployer : Bool
     , visibility : ImageVisibility
+    , featured : Bool
     }
 
 
