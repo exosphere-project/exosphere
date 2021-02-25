@@ -343,6 +343,13 @@ renderImage palette project imageListViewParams sortTableParams image =
                             Nothing
                 }
 
+        featuredBadge =
+            if image.featured then
+                ExoCard.badge "featured"
+
+            else
+                Element.none
+
         ownerBadge =
             if projectOwnsImage project image then
                 ExoCard.badge "belongs to this project"
@@ -369,6 +376,7 @@ renderImage palette project imageListViewParams sortTableParams image =
                         , Element.padding 5
                         ]
                         (Element.text size)
+                    , featuredBadge
                     , ownerBadge
                     ]
                 , chooseButton
