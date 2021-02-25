@@ -118,6 +118,12 @@ images palette project imageListViewParams sortTableParams =
         noMatchWarning =
             (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
+        ( featuredImages, nonFeaturedImages_ ) =
+            List.partition (\i -> i.featured) filteredImages
+
+        ( ownImages, otherImages ) =
+            List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
+
         tagView : ImageTag -> Element.Element Msg
         tagView tag =
             let
@@ -185,6 +191,24 @@ images palette project imageListViewParams sortTableParams =
                 , Element.wrappedRow []
                     (List.map tagView tagsAfterFilteringImages)
                 ]
+
+        imagesColumnView =
+            Widget.column
+                ((SH.materialStyle palette).column
+                    |> (\x ->
+                            { x
+                                | containerColumn =
+                                    (SH.materialStyle palette).column.containerColumn
+                                        ++ [ Element.width Element.fill
+                                           , Element.padding 0
+                                           ]
+                                , element =
+                                    (SH.materialStyle palette).column.element
+                                        ++ [ Element.width Element.fill
+                                           ]
+                            }
+                       )
+                )
     in
     Element.column
         (VH.exoColumnAttributes
@@ -235,23 +259,12 @@ images palette project imageListViewParams sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage palette project imageListViewParams sortTableParams) filteredImages
-            |> Widget.column
-                ((SH.materialStyle palette).column
-                    |> (\x ->
-                            { x
-                                | containerColumn =
-                                    (SH.materialStyle palette).column.containerColumn
-                                        ++ [ Element.width Element.fill
-                                           , Element.padding 0
-                                           ]
-                                , element =
-                                    (SH.materialStyle palette).column.element
-                                        ++ [ Element.width Element.fill
-                                           ]
-                            }
-                       )
-                )
+        , List.map (renderImage palette project imageListViewParams sortTableParams) featuredImages
+            |> imagesColumnView
+        , List.map (renderImage palette project imageListViewParams sortTableParams) ownImages
+            |> imagesColumnView
+        , List.map (renderImage palette project imageListViewParams sortTableParams) otherImages
+            |> imagesColumnView
         ]
 
 
