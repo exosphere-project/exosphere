@@ -1,4 +1,4 @@
-module ServerDeploy exposing (cloudInitUserDataTemplate, guacamoleUserData)
+module ServerDeploy exposing (cloudInitUserDataTemplate, desktopEnvironmentUserData, guacamoleUserData)
 
 
 cloudInitUserDataTemplate : String
@@ -62,6 +62,8 @@ runcmd:
       echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
     fi
   - |
+    {desktop-environment-setup}
+  - |
     {guacamole-setup}
   - unset PASSPHRASE
   - "command -v apt && apt install -y haveged  # This is for stubborn Ubuntu 18"
@@ -105,3 +107,9 @@ guacamoleUserData =
       /bin/bash deploy-guac.sh "$PASSPHRASE"
     fi
 """
+
+
+desktopEnvironmentUserData : String
+desktopEnvironmentUserData =
+    """echo "TODO implement me"
+    """
