@@ -84,6 +84,7 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , showAdvancedOptions = False
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
+    , deployDesktopEnvironment = False
     }
 
 
