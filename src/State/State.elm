@@ -632,6 +632,7 @@ processProjectSpecificMsg model project msg =
                             viewParams.userDataTemplate
                             viewParams.keypairName
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
+                            viewParams.deployDesktopEnvironment
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion

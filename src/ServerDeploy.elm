@@ -1,4 +1,4 @@
-module ServerDeploy exposing (cloudInitUserDataTemplate, guacamoleUserData)
+module ServerDeploy exposing (cloudInitUserDataTemplate, desktopEnvironmentUserData, guacamoleUserData)
 
 
 cloudInitUserDataTemplate : String
@@ -62,6 +62,8 @@ runcmd:
       echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
     fi
   - |
+    {desktop-environment-setup}
+  - |
     {guacamole-setup}
   - unset PASSPHRASE
   - "command -v apt && apt install -y haveged  # This is for stubborn Ubuntu 18"
@@ -104,4 +106,17 @@ guacamoleUserData =
       cd guacamole-config
       /bin/bash deploy-guac.sh "$PASSPHRASE"
     fi
+"""
+
+
+desktopEnvironmentUserData : String
+desktopEnvironmentUserData =
+    """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
+      apt install -y ubuntu-desktop-minimal
+    elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
+      yum -y groupinstall workstation
+    fi
+    systemctl enable graphical.target
+    systemctl set-default graphical.target
+    systemctl isolate graphical.target
 """

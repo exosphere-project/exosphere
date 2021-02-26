@@ -94,6 +94,7 @@ createServer palette project viewParams =
             , flavorPicker palette project viewParams computeQuota
             , volBackedPrompt palette project viewParams volumeQuota flavor
             , countPicker palette project viewParams computeQuota volumeQuota flavor
+            , desktopEnvironmentPicker palette project viewParams
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -464,6 +465,30 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
                 Nothing ->
                     Element.none
             ]
+        ]
+
+
+desktopEnvironmentPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
+desktopEnvironmentPicker palette project createServerViewParams =
+    Element.column VH.exoColumnAttributes
+        [ Input.radioRow VH.exoElementAttributes
+            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy a graphical desktop environment?")
+            , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployDesktopEnvironment = new }
+            , options =
+                [ Input.option False (Element.text "No")
+                , Input.option True (Element.text "Yes")
+                ]
+            , selected = Just createServerViewParams.deployDesktopEnvironment
+            }
+        , if createServerViewParams.deployDesktopEnvironment then
+            Element.paragraph
+                ([ Background.color (SH.toElementColor palette.warn), Font.color (SH.toElementColor palette.on.warn) ]
+                    ++ VH.exoElementAttributes
+                )
+                [ Element.text "Warning: if selected image does not already include a desktop environment, server can take 30 minutes or longer to deploy." ]
+
+          else
+            Element.none
         ]
 
 
