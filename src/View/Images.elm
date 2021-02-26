@@ -124,6 +124,9 @@ images palette project imageListViewParams sortTableParams =
         ( ownImages, otherImages ) =
             List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
 
+        combinedImages =
+            List.concat [ featuredImages, ownImages, otherImages ]
+
         tagView : ImageTag -> Element.Element Msg
         tagView tag =
             let
@@ -259,11 +262,7 @@ images palette project imageListViewParams sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage palette project imageListViewParams sortTableParams) featuredImages
-            |> imagesColumnView
-        , List.map (renderImage palette project imageListViewParams sortTableParams) ownImages
-            |> imagesColumnView
-        , List.map (renderImage palette project imageListViewParams sortTableParams) otherImages
+        , List.map (renderImage palette project imageListViewParams sortTableParams) combinedImages
             |> imagesColumnView
         ]
 
