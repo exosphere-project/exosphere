@@ -123,8 +123,71 @@ setFilteredOutBasedOnAttribute maybeExcludeFilter =
             Decode.succeed False
 
 
+decodeAdditionalProperties : List String -> Decode.Decoder (Dict.Dict String String)
+decodeAdditionalProperties basePropertyNames =
+    let
+        fromBool val =
+            if val then
+                "True"
+
+            else
+                "False"
+
+        asString =
+            Decode.oneOf
+                [ Decode.string
+                , Decode.map String.fromInt Decode.int
+                , Decode.map String.fromFloat Decode.float
+                , Decode.map fromBool Decode.bool
+                , Decode.null ""
+                , Decode.map (\_ -> "IGNORE") (Decode.succeed "IGNORE")
+                ]
+    in
+    Decode.dict asString
+        |> Decode.map
+            (\someDict ->
+                Dict.filter (\k _ -> not (List.member k basePropertyNames)) someDict
+            )
+
+
 imageDecoder : Maybe ExcludeFilter -> Decode.Decoder OSTypes.Image
 imageDecoder maybeExcludeFilter =
+    let
+        -- Currently hard-coded. TODO: Load these from Glance image schema endpoint
+        basePropertyNames =
+            [ "architecture"
+            , "backend"
+            , "checksum"
+            , "container_format"
+            , "created_at"
+            , "direct_url"
+            , "disk_format"
+            , "file"
+            , "id"
+            , "instance_uuid"
+            , "kernel_id"
+            , "locations"
+            , "min_disk"
+            , "min_ram"
+            , "name"
+            , "os_distro"
+            , "os_hash_algo"
+            , "os_hash_value"
+            , "os_hidden"
+            , "os_version"
+            , "owner"
+            , "protected"
+            , "ramdisk_id"
+            , "schema"
+            , "self"
+            , "size"
+            , "status"
+            , "tags"
+            , "updated_at"
+            , "virtual_size"
+            , "visibility"
+            ]
+    in
     Decode.succeed OSTypes.Image
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "status" (Decode.string |> Decode.andThen imageStatusDecoder)
@@ -138,6 +201,7 @@ imageDecoder maybeExcludeFilter =
         |> Pipeline.custom (setFilteredOutBasedOnAttribute maybeExcludeFilter)
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
         |> Pipeline.custom (Decode.succeed False)
+        |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
 
 
 imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility

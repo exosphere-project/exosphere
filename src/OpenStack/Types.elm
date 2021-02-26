@@ -54,6 +54,7 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
+import Dict
 import Json.Encode
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (RemoteData)
@@ -202,6 +203,7 @@ type alias Image =
     , excludedByDeployer : Bool
     , visibility : ImageVisibility
     , featured : Bool
+    , additionalProperties : Dict.Dict String String
     }
 
 
