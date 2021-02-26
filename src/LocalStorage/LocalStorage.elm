@@ -44,7 +44,11 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
 
         projects =
             List.map
-                (hydrateProjectFromStoredProject model.cloudsWithUserAppProxy model.style.defaultImageExcludeFilter)
+                (hydrateProjectFromStoredProject
+                    model.cloudsWithUserAppProxy
+                    model.style.defaultImageExcludeFilter
+                    model.style.featuredImageNamePrefix
+                )
                 storedState.projects
 
         clientUuid =
@@ -71,8 +75,8 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
     }
 
 
-hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> Maybe Types.ExcludeFilter -> StoredProject -> Types.Project
-hydrateProjectFromStoredProject cloudsWithTlsReverseProxy excludeFilter storedProject =
+hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> Maybe Types.ExcludeFilter -> Maybe String -> StoredProject -> Types.Project
+hydrateProjectFromStoredProject cloudsWithTlsReverseProxy excludeFilter featuredImageNamePrefix storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
     , endpoints = storedProject.endpoints
@@ -93,6 +97,7 @@ hydrateProjectFromStoredProject cloudsWithTlsReverseProxy excludeFilter storedPr
             |> UrlHelpers.hostnameFromUrl
             |> (\h -> Dict.get h cloudsWithTlsReverseProxy)
     , excludeFilter = excludeFilter
+    , featuredImageNamePrefix = featuredImageNamePrefix
     }
 
 

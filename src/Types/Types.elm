@@ -242,6 +242,7 @@ type alias Project =
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     , userAppProxyHostname : Maybe UserAppProxyHostname
     , excludeFilter : Maybe ExcludeFilter
+    , featuredImageNamePrefix : Maybe String
     }
 
 

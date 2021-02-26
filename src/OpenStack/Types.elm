@@ -201,7 +201,6 @@ type alias Image =
     , tags : List String
     , projectUuid : HelperTypes.Uuid
     , visibility : ImageVisibility
-    , featured : Bool
     , additionalProperties : Dict.Dict String String
     }
 

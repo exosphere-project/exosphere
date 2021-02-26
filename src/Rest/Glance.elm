@@ -67,29 +67,8 @@ requestImages project =
 receiveImages : Model -> Project -> List OSTypes.Image -> ( Model, Cmd Msg )
 receiveImages model project images =
     let
-        set_image_featured_flag : OSTypes.Image -> OSTypes.Image
-        set_image_featured_flag image =
-            let
-                new_featured_flag =
-                    case model.style.featuredImageNamePrefix of
-                        Nothing ->
-                            False
-
-                        Just featuredImageNamePrefix ->
-                            case ( String.startsWith featuredImageNamePrefix image.name, image.visibility ) of
-                                ( True, OSTypes.ImagePublic ) ->
-                                    True
-
-                                ( _, _ ) ->
-                                    False
-            in
-            { image | featured = new_featured_flag }
-
-        images_with_featured_flags =
-            List.map set_image_featured_flag images
-
         newProject =
-            { project | images = images_with_featured_flags }
+            { project | images = images }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -182,7 +161,6 @@ imageDecoder =
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "owner" Decode.string
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
-        |> Pipeline.custom (Decode.succeed False)
         |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
 
 

@@ -100,6 +100,16 @@ isImageNotExcludedByDeployer maybeExcludeFilter image =
             not excluded
 
 
+isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
+isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
+    case maybeFeaturedImageNamePrefix of
+        Nothing ->
+            False
+
+        Just featuredImageNamePrefix ->
+            String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
+
+
 filterByExcludedByDeployer : Maybe ExcludeFilter -> List OSTypes.Image -> List OSTypes.Image
 filterByExcludedByDeployer maybeExcludeFilter someImages =
     List.filter (isImageNotExcludedByDeployer maybeExcludeFilter) someImages
@@ -137,7 +147,7 @@ images palette project imageListViewParams sortTableParams =
             (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
         ( featuredImages, nonFeaturedImages_ ) =
-            List.partition (\i -> i.featured) filteredImages
+            List.partition (isImageFeaturedByDeployer project.featuredImageNamePrefix) filteredImages
 
         ( ownImages, otherImages ) =
             List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
@@ -374,7 +384,7 @@ renderImage palette project imageListViewParams sortTableParams image =
                 }
 
         featuredBadge =
-            if image.featured then
+            if isImageFeaturedByDeployer project.featuredImageNamePrefix image then
                 ExoCard.badge "featured"
 
             else

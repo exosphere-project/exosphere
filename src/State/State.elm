@@ -1537,6 +1537,7 @@ createProject model authToken endpoints =
                     |> UrlHelpers.hostnameFromUrl
                     |> (\h -> Dict.get h model.cloudsWithUserAppProxy)
             , excludeFilter = model.style.defaultImageExcludeFilter
+            , featuredImageNamePrefix = model.style.featuredImageNamePrefix
             }
 
         newProjects =
