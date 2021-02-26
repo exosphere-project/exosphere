@@ -23,7 +23,7 @@ openIdConnectLoginConfig:
   oidcLoginButtonLabel : "Add XSEDE Account",
   oidcLoginButtonDescription : "Under construction, may not work, Jetstream IU Cloud only"
 },
-defaultImageSearchText: "JS-API-Featured",
+featuredImageNamePrefix: "JS-API-Featured",
 defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" }
 }
 

@@ -123,7 +123,7 @@ init flags maybeUrlKey =
                 , userSupportEmail =
                     flags.userSupportEmail
                         |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
-                , defaultImageSearchText = flags.defaultImageSearchText
+                , featuredImageNamePrefix = flags.featuredImageNamePrefix
                 , defaultImageExcludeFilter = flags.defaultImageExcludeFilter
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig

@@ -214,7 +214,7 @@ Most users should not need to change these; they are primarily intended for clou
 | supportInfoMarkdown      | null, string (markdown)    | What to show when user clicks "Get support" button                  |
 | userSupportEmail         | null, string (markdown)    | Email address to ask users to send problem report                   |
 | openIdConnectLoginConfig | null, JSON object          | See `docs/federated-login.md` for more info and example JSON        |
-| defaultImageSearchText   | null, string               | Text to pre-populate in the image search box                        |
+| featuredImageNamePrefix  | null, string               | A (public) image is 'featured' if the name starts with this string  |
 | defaultImageExcludeFilter| null, JSON object          | A key:value property to exclude images from UI, see example below   |
 
 ### Example Custom Palette

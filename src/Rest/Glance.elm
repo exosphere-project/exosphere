@@ -72,12 +72,12 @@ receiveImages model project images =
         set_image_featured_flag image =
             let
                 new_featured_flag =
-                    case model.style.defaultImageSearchText of
+                    case model.style.featuredImageNamePrefix of
                         Nothing ->
                             False
 
-                        Just defaultImageSearchText ->
-                            case ( String.startsWith defaultImageSearchText image.name, image.visibility ) of
+                        Just featuredImageNamePrefix ->
+                            case ( String.startsWith featuredImageNamePrefix image.name, image.visibility ) of
                                 ( True, OSTypes.ImagePublic ) ->
                                     True
 

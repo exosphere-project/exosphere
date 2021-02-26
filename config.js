@@ -19,6 +19,6 @@ aboutAppMarkdown: null,
 supportInfoMarkdown: null,
 userSupportEmail: null,
 openIdConnectLoginConfig: null,
-defaultImageSearchText: null,
+featuredImageNamePrefix: null,
 defaultImageExcludeFilter: null
 }

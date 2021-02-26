@@ -109,7 +109,7 @@ type alias Flags =
     , userSupportEmail : Maybe String
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , defaultImageSearchText : Maybe String
+    , featuredImageNamePrefix : Maybe String
     , defaultImageExcludeFilter :
         Maybe
             { filterKey : String
@@ -176,7 +176,7 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
-    , defaultImageSearchText : Maybe String
+    , featuredImageNamePrefix : Maybe String
     , defaultImageExcludeFilter : Maybe ExcludeFilter
     }
 
