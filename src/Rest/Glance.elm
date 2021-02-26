@@ -140,7 +140,7 @@ decodeAdditionalProperties basePropertyNames =
                 , Decode.map String.fromFloat Decode.float
                 , Decode.map fromBool Decode.bool
                 , Decode.null ""
-                , Decode.map (\_ -> "IGNORE") (Decode.succeed "IGNORE")
+                , Decode.succeed "IGNORE"
                 ]
     in
     Decode.dict asString
