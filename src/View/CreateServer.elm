@@ -481,8 +481,11 @@ desktopEnvironmentPicker palette project createServerViewParams =
             , selected = Just createServerViewParams.deployDesktopEnvironment
             }
         , if createServerViewParams.deployDesktopEnvironment then
-            Element.paragraph (Font.color (SH.toElementColor palette.warn) :: VH.exoElementAttributes)
-                [ Element.text "Warning: if selected image does not include a desktop environment, server can take 30 minutes or longer to deploy." ]
+            Element.paragraph
+                ([ Background.color (SH.toElementColor palette.warn), Font.color (SH.toElementColor palette.on.warn) ]
+                    ++ VH.exoElementAttributes
+                )
+                [ Element.text "Warning: if selected image does not already include a desktop environment, server can take 30 minutes or longer to deploy." ]
 
           else
             Element.none
