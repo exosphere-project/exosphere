@@ -110,11 +110,7 @@ type alias Flags =
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
     , featuredImageNamePrefix : Maybe String
-    , defaultImageExcludeFilter :
-        Maybe
-            { filterKey : String
-            , filterValue : String
-            }
+    , defaultImageExcludeFilter : Maybe ExcludeFilter
 
     -- Flags that Exosphere sets dynamically
     , width : Int
