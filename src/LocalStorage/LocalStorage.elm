@@ -43,7 +43,9 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
             emptyModel clientUuid
 
         projects =
-            List.map (hydrateProjectFromStoredProject model.cloudsWithUserAppProxy) storedState.projects
+            List.map
+                (hydrateProjectFromStoredProject model.cloudsWithUserAppProxy model.style.defaultImageExcludeFilter)
+                storedState.projects
 
         clientUuid =
             -- If client UUID exists in stored state then use that, else set a new one
@@ -69,8 +71,8 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
     }
 
 
-hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> StoredProject -> Types.Project
-hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
+hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> Maybe Types.ExcludeFilter -> StoredProject -> Types.Project
+hydrateProjectFromStoredProject cloudsWithTlsReverseProxy excludeFilter storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
     , endpoints = storedProject.endpoints
@@ -90,6 +92,7 @@ hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
         storedProject.endpoints.keystone
             |> UrlHelpers.hostnameFromUrl
             |> (\h -> Dict.get h cloudsWithTlsReverseProxy)
+    , excludeFilter = excludeFilter
     }
 
 

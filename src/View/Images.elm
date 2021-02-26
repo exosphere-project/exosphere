@@ -1,5 +1,6 @@
 module View.Images exposing (imagesIfLoaded)
 
+import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -17,7 +18,8 @@ import Style.Widgets.IconButton exposing (chip)
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( ImageListViewParams
+        ( ExcludeFilter
+        , ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -82,15 +84,31 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
-filterByExcludedByDeployer : List OSTypes.Image -> List OSTypes.Image
-filterByExcludedByDeployer someImages =
-    List.filter (\i -> not i.excludedByDeployer) someImages
+isImageNotExcludedByDeployer : Maybe ExcludeFilter -> OSTypes.Image -> Bool
+isImageNotExcludedByDeployer maybeExcludeFilter image =
+    case maybeExcludeFilter of
+        Nothing ->
+            False
+
+        Just excludeFilter ->
+            let
+                excluded =
+                    Dict.get excludeFilter.filterKey image.additionalProperties
+                        |> Maybe.map (\actualValue -> excludeFilter.filterValue /= actualValue)
+                        |> Maybe.withDefault False
+            in
+            not excluded
+
+
+filterByExcludedByDeployer : Maybe ExcludeFilter -> List OSTypes.Image -> List OSTypes.Image
+filterByExcludedByDeployer maybeExcludeFilter someImages =
+    List.filter (isImageNotExcludedByDeployer maybeExcludeFilter) someImages
 
 
 filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
 filterImages imageListViewParams project someImages =
     someImages
-        |> filterByExcludedByDeployer
+        |> filterByExcludedByDeployer project.excludeFilter
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText

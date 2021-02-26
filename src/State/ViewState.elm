@@ -188,6 +188,7 @@ setProjectView model project projectViewConstructor =
             case projectViewConstructor of
                 ListImages _ _ ->
                     let
+                        -- TODO: Insert image exclude filter into view parameters here?
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of

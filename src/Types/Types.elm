@@ -241,6 +241,7 @@ type alias Project =
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     , userAppProxyHostname : Maybe UserAppProxyHostname
+    , excludeFilter : Maybe ExcludeFilter
     }
 
 

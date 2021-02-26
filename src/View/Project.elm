@@ -9,18 +9,7 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ProjectViewParams
-        , ViewState(..)
-        )
+import Types.Types exposing (Model, Msg(..), NonProjectViewConstructor(..), Project, ProjectIdentifier, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.AttachVolume
 import View.CreateServer
 import View.CreateServerImage
