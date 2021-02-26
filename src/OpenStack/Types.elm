@@ -200,7 +200,6 @@ type alias Image =
     , containerFormat : Maybe String
     , tags : List String
     , projectUuid : HelperTypes.Uuid
-    , excludedByDeployer : Bool
     , visibility : ImageVisibility
     , featured : Bool
     , additionalProperties : Dict.Dict String String

@@ -17,8 +17,7 @@ import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequ
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
-        ( ExcludeFilter
-        , FloatingIpState(..)
+        ( FloatingIpState(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -35,8 +34,8 @@ import Types.Types
 {- HTTP Requests -}
 
 
-requestImages : Project -> Maybe ExcludeFilter -> Cmd Msg
-requestImages project maybeExcludeFilter =
+requestImages : Project -> Cmd Msg
+requestImages project =
     let
         errorContext =
             ErrorContext
@@ -57,7 +56,7 @@ requestImages project maybeExcludeFilter =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            (decodeImages maybeExcludeFilter)
+            decodeImages
         )
 
 
@@ -102,25 +101,9 @@ receiveImages model project images =
 {- JSON Decoders -}
 
 
-decodeImages : Maybe ExcludeFilter -> Decode.Decoder (List OSTypes.Image)
-decodeImages maybeExcludeFilter =
-    Decode.field "images" (Decode.list (imageDecoder maybeExcludeFilter))
-
-
-setFilteredOutBasedOnAttribute : Maybe ExcludeFilter -> Decode.Decoder Bool
-setFilteredOutBasedOnAttribute maybeExcludeFilter =
-    case maybeExcludeFilter of
-        Just excludeFilter ->
-            Decode.dict (Decode.oneOf [ Decode.string, Decode.succeed "not a string" ])
-                |> Decode.map
-                    (\someDict ->
-                        Dict.get excludeFilter.filterKey someDict
-                            |> Maybe.map (\x -> x == excludeFilter.filterValue)
-                            |> Maybe.withDefault False
-                    )
-
-        Nothing ->
-            Decode.succeed False
+decodeImages : Decode.Decoder (List OSTypes.Image)
+decodeImages =
+    Decode.field "images" (Decode.list imageDecoder)
 
 
 decodeAdditionalProperties : List String -> Decode.Decoder (Dict.Dict String String)
@@ -150,8 +133,8 @@ decodeAdditionalProperties basePropertyNames =
             )
 
 
-imageDecoder : Maybe ExcludeFilter -> Decode.Decoder OSTypes.Image
-imageDecoder maybeExcludeFilter =
+imageDecoder : Decode.Decoder OSTypes.Image
+imageDecoder =
     let
         -- Currently hard-coded. TODO: Load these from Glance image schema endpoint
         basePropertyNames =
@@ -198,7 +181,6 @@ imageDecoder maybeExcludeFilter =
         |> Pipeline.optional "container_format" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.required "tags" (Decode.list Decode.string)
         |> Pipeline.required "owner" Decode.string
-        |> Pipeline.custom (setFilteredOutBasedOnAttribute maybeExcludeFilter)
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
         |> Pipeline.custom (Decode.succeed False)
         |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)

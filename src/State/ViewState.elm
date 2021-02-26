@@ -196,7 +196,7 @@ setProjectView model project projectViewConstructor =
                                     Cmd.none
 
                                 _ ->
-                                    Rest.Glance.requestImages project model.style.defaultImageExcludeFilter
+                                    Rest.Glance.requestImages project
                     in
                     ( model, cmd )
 
@@ -238,7 +238,7 @@ setProjectView model project projectViewConstructor =
                                 cmd =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages project model.style.defaultImageExcludeFilter
+                                        , Rest.Glance.requestImages project
                                         , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
