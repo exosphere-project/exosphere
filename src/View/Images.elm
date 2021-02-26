@@ -88,7 +88,7 @@ isImageNotExcludedByDeployer : Maybe ExcludeFilter -> OSTypes.Image -> Bool
 isImageNotExcludedByDeployer maybeExcludeFilter image =
     case maybeExcludeFilter of
         Nothing ->
-            False
+            True
 
         Just excludeFilter ->
             let
