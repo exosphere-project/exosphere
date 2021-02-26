@@ -1,8 +1,6 @@
 module TestData exposing
     ( cinderLimits
     , cinderQuotaSetDetail
-    , glanceImageAtmoInclude
-    , glanceImageAtmoIncludeBare
     , novaLimits
     , novaQuotaSetDetail
     , openrcPreV3
@@ -299,106 +297,4 @@ novaLimits =
         }
     }
 }
-    """
-
-
-glanceImageAtmoIncludeBare : String
-glanceImageAtmoIncludeBare =
-    """
-        {
-            "atmo_image_exclude": "false",
-            "atmo_image_include": "true"
-        }
-    """
-
-
-glanceImageAtmoInclude : String
-glanceImageAtmoInclude =
-    """
-        {
-            "application_description": "Updated version of: maker 2.31.9 with CC tools v3.1. This image also contains BUSCO and hhmer to train Augustus",
-            "application_name": "WQmaker 2.31.9 with BUSCO",
-            "application_owner": "scijake",
-            "application_tags": ["genomics", "annotation", "NGS"],
-            "application_uuid": "0eb33584-ab5c-5d58-8e59-f7bea25dff04",
-            "atmo_image_exclude": "false",
-            "atmo_image_include": "true",
-            "checksum": "99a988b319a3c391b79435e754d637bd",
-            "container_format": "bare",
-            "created_at": "2019-09-20T16:40:50Z",
-            "direct_url": "rbd://63ec33d7-f6cd-4276-bff9-61769ac13960/glance-images/1354da3d-aece-4c1a-a70b-5b262c766475/snap",
-            "disk_format": "raw",
-            "file": "/v2/images/1354da3d-aece-4c1a-a70b-5b262c766475/file",
-            "hw_disk_bus": "scsi",
-            "hw_qemu_guest_agent": "yes",
-            "hw_scsi_model": "virtio-scsi",
-            "id": "1354da3d-aece-4c1a-a70b-5b262c766475",
-            "locations": [
-                {
-                    "metadata": {},
-                    "url": "rbd://63ec33d7-f6cd-4276-bff9-61769ac13960/glance-images/1354da3d-aece-4c1a-a70b-5b262c766475/snap"
-                }
-            ],
-            "min_disk": 0,
-            "min_ram": 0,
-            "name": "WQmaker 2.31.9 with BUSCO v.1.0",
-            "os_hash_algo": "sha512",
-            "os_hash_value": "6f4213d02fcc35c4c424a1b236da4f5004216ef9f363b34524ae2717fc20f0a2e3c89a7cd6061f6b15c0c328a423166aad91b4655c2a0f2d68b12959cdebb7e3",
-            "os_hidden": false,
-            "os_require_quiesce": "yes",
-            "owner": "e0c43302e9a740a480d05381d20aa66e",
-            "protected": false,
-            "schema": "/v2/schemas/image",
-            "self": "/v2/images/1354da3d-aece-4c1a-a70b-5b262c766475",
-            "size": 64424509440,
-            "status": "active",
-            "tags": [],
-            "updated_at": "2019-09-20T17:35:52Z",
-            "version_changelog": "v.1.0 - updated Upendra Devisetty's image and installed BUSO and hhmer",
-            "version_name": "1.0",
-            "virtual_size": null,
-            "visibility": "public"
-        }
-    """
-
-
-glanceImageSkipAtmosphere : String
-glanceImageSkipAtmosphere =
-    """
-        {
-            "checksum": "28e2e88aeac653d4a8f91b6ab1bd0f75",
-            "container_format": "bare",
-            "created_at": "2021-02-24T15:28:32Z",
-            "direct_url": "rbd://63ec33d7-f6cd-4276-bff9-61769ac13960/glance-images/fc60c79b-5dfa-4928-a561-76df79ef5f6e/snap",
-            "disk_format": "raw",
-            "file": "/v2/images/fc60c79b-5dfa-4928-a561-76df79ef5f6e/file",
-            "hw_disk_bus": "scsi",
-            "hw_qemu_guest_agent": "yes",
-            "hw_scsi_model": "virtio-scsi",
-            "id": "fc60c79b-5dfa-4928-a561-76df79ef5f6e",
-            "locations": [
-                {
-                    "metadata": {},
-                    "url": "rbd://63ec33d7-f6cd-4276-bff9-61769ac13960/glance-images/fc60c79b-5dfa-4928-a561-76df79ef5f6e/snap"
-                }
-            ],
-            "min_disk": 0,
-            "min_ram": 0,
-            "name": "JS-API-Featured-Ubuntu18-Latest",
-            "os_hash_algo": "sha512",
-            "os_hash_value": "34fd8f0c4a713bfabb46facfbf27c31aa2ef09b54e5acf00bbf6c6e8857344190226293167aa701e54916358121656f919537f10f6c23139c6c68b1911b372cf",
-            "os_hidden": false,
-            "os_require_quiesce": "yes",
-            "owner": "cc910278de874519816f7e8b9a1c086b",
-            "protected": false,
-            "schema": "/v2/schemas/image",
-            "self": "/v2/images/fc60c79b-5dfa-4928-a561-76df79ef5f6e",
-            "size": 8589934592,
-            "skip_atmosphere": "yes",
-            "status": "active",
-            "tags": [],
-            "updated_at": "2021-02-24T15:54:08Z",
-            "virtual_size": null,
-            "visibility": "public"
-        }
     """

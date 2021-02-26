@@ -1,7 +1,6 @@
 module Tests exposing
     ( computeQuotasAndLimitsSuite
     , decodeSynchronousOpenStackAPIErrorSuite
-    , glanceImageAtmoIncludeSuite
     , processOpenRcSuite
     , stringIsUuidOrDefaultSuite
     , volumeQuotasAndLimitsSuite
@@ -10,7 +9,6 @@ module Tests exposing
 -- Test related Modules
 -- Exosphere Modules Under Test
 
-import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
@@ -242,158 +240,5 @@ decodeSynchronousOpenStackAPIErrorSuite =
                                           "code": 404
                                         }
                                       }"""
-                    )
-        ]
-
-
-glanceImageAtmoIncludeSuite : Test
-glanceImageAtmoIncludeSuite =
-    describe "Decoding Atmosphere image records"
-        [ test "atmosphere image, key-value pairs" <|
-            \_ ->
-                Expect.equal
-                    (Decode.decodeString
-                        (Decode.keyValuePairs Decode.string)
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        [ ( "atmo_image_exclude", "false" )
-                        , ( "atmo_image_include", "true" )
-                        ]
-                    )
-        , test "atmosphere image, dict" <|
-            \_ ->
-                Expect.equal
-                    (Decode.decodeString
-                        (Decode.dict Decode.string)
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        (Dict.fromList
-                            [ ( "atmo_image_exclude", "false" )
-                            , ( "atmo_image_include", "true" )
-                            ]
-                        )
-                    )
-        , test "atmosphere image, dict, maybe" <|
-            \_ ->
-                Expect.equal
-                    (Decode.decodeString
-                        (Decode.dict Decode.string)
-                        TestData.glanceImageAtmoIncludeBare
-                        |> Result.map (Dict.get "atmo_image_exclude")
-                    )
-                    (Ok
-                        (Just "false")
-                    )
-        , test "atmosphere image, dict, decode bool, first iteration" <|
-            \_ ->
-                let
-                    justTrue : Dict String String -> Bool
-                    justTrue someDict =
-                        True
-
-                    excludeDec : Decode.Decoder Bool
-                    excludeDec =
-                        Decode.map justTrue (Decode.dict Decode.string)
-                in
-                Expect.equal
-                    (Decode.decodeString
-                        excludeDec
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        True
-                    )
-        , test "atmosphere image, dict, decode bool, second iteration" <|
-            \_ ->
-                let
-                    maybeTrue : Dict String String -> Bool
-                    maybeTrue someDict =
-                        Dict.get "atmo_image_exclude" someDict
-                            |> Maybe.map (\x -> x == "false")
-                            |> Maybe.withDefault False
-
-                    excludeDec : Decode.Decoder Bool
-                    excludeDec =
-                        Decode.map maybeTrue (Decode.dict Decode.string)
-                in
-                Expect.equal
-                    (Decode.decodeString
-                        excludeDec
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        True
-                    )
-        , test "atmosphere image, dict, decode bool, third iteration" <|
-            \_ ->
-                let
-                    maybeTrue : String -> String -> Dict String String -> Bool
-                    maybeTrue expectedKey expectedValue someDict =
-                        Dict.get expectedKey someDict
-                            |> Maybe.map (\x -> x == expectedValue)
-                            |> Maybe.withDefault False
-
-                    excludeDec : Decode.Decoder Bool
-                    excludeDec =
-                        Decode.map (maybeTrue "atmo_image_exclude" "false") (Decode.dict Decode.string)
-                in
-                Expect.equal
-                    (Decode.decodeString
-                        excludeDec
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        True
-                    )
-        , test "atmosphere image, dict, decode bool, forth iteration" <|
-            \_ ->
-                let
-                    trueIfKeyExistsAndValueAsExpected : String -> String -> Dict String String -> Bool
-                    trueIfKeyExistsAndValueAsExpected expectedKey expectedValue someDict =
-                        Dict.get expectedKey someDict
-                            |> Maybe.map (\x -> x == expectedValue)
-                            |> Maybe.withDefault False
-
-                    filterOutImageBasedOnAttribute : Decode.Decoder Bool
-                    filterOutImageBasedOnAttribute =
-                        Decode.dict Decode.string
-                            |> Decode.map (trueIfKeyExistsAndValueAsExpected "atmo_image_exclude" "false")
-                in
-                Expect.equal
-                    (Decode.decodeString
-                        filterOutImageBasedOnAttribute
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        True
-                    )
-        , test "atmosphere image, dict, decode bool, fifth iteration" <|
-            \_ ->
-                let
-                    trueIfKeyExistsAndValueAsExpected : String -> String -> Dict String String -> Bool
-                    trueIfKeyExistsAndValueAsExpected expectedKey expectedValue someDict =
-                        Dict.get expectedKey someDict
-                            |> Maybe.map (\x -> x == expectedValue)
-                            |> Maybe.withDefault False
-
-                    dropItemBasedOnAttribute : String -> String -> Decode.Decoder Bool
-                    dropItemBasedOnAttribute expectedKey expectedValue =
-                        Decode.dict Decode.string
-                            |> Decode.map
-                                (\someDict ->
-                                    Dict.get expectedKey someDict
-                                        |> Maybe.map (\x -> x == expectedValue)
-                                        |> Maybe.withDefault False
-                                )
-                in
-                Expect.equal
-                    (Decode.decodeString
-                        (dropItemBasedOnAttribute "atmo_image_exclude" "false")
-                        TestData.glanceImageAtmoIncludeBare
-                    )
-                    (Ok
-                        True
                     )
         ]
