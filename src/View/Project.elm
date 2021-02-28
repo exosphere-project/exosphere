@@ -9,18 +9,7 @@ import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ProjectViewParams
-        , ViewState(..)
-        )
+import Types.Types exposing (Model, Msg(..), NonProjectViewConstructor(..), Project, ProjectIdentifier, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.AttachVolume
 import View.CreateServer
 import View.CreateServerImage
@@ -76,13 +65,13 @@ project model palette p viewParams viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav palette p viewParams model.style.defaultImageSearchText
+        [ projectNav palette p viewParams
         , v
         ]
 
 
-projectNav : Style.Types.ExoPalette -> Project -> ProjectViewParams -> Maybe String -> Element.Element Msg
-projectNav palette p viewParams maybeImageSearchText =
+projectNav : Style.Types.ExoPalette -> Project -> ProjectViewParams -> Element.Element Msg
+projectNav palette p viewParams =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
@@ -134,13 +123,13 @@ projectNav palette p viewParams maybeImageSearchText =
                     }
             , Element.el
                 [ Element.alignRight ]
-                (createButton palette p.auth.project.uuid viewParams.createPopup maybeImageSearchText)
+                (createButton palette p.auth.project.uuid viewParams.createPopup)
             ]
         ]
 
 
-createButton : Style.Types.ExoPalette -> ProjectIdentifier -> Bool -> Maybe String -> Element.Element Msg
-createButton palette projectId expanded maybeImageSearchText =
+createButton : Style.Types.ExoPalette -> ProjectIdentifier -> Bool -> Element.Element Msg
+createButton palette projectId expanded =
     let
         ( attribs, icon ) =
             if expanded then
@@ -162,7 +151,7 @@ createButton palette projectId expanded maybeImageSearchText =
                                         ProjectMsg projectId <|
                                             SetProjectView <|
                                                 ListImages
-                                                    { searchText = Maybe.withDefault "" maybeImageSearchText
+                                                    { searchText = ""
                                                     , tags = Set.empty
                                                     , onlyOwnImages = False
                                                     , expandImageDetails = Set.empty

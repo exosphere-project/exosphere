@@ -214,7 +214,8 @@ Most users should not need to change these; they are primarily intended for clou
 | supportInfoMarkdown      | null, string (markdown)    | What to show when user clicks "Get support" button                  |
 | userSupportEmail         | null, string (markdown)    | Email address to ask users to send problem report                   |
 | openIdConnectLoginConfig | null, JSON object          | See `docs/federated-login.md` for more info and example JSON        |
-| defaultImageSearchText   | null, string               | Text to pre-populate in the image search box                        |
+| featuredImageNamePrefix  | null, string               | A (public) image is 'featured' if the name starts with this string  |
+| defaultImageExcludeFilter| null, JSON object          | A key:value property to exclude images from UI, see example below   |
 
 ### Example Custom Palette
 
@@ -222,6 +223,14 @@ This declares a primary and secondary color in the app.
 
 ```
 palette: { primary: {r: 0, g: 108, b: 163 }, secondary : {r: 96, g: 239, b: 255 } } 
+```
+
+### Example Image Exclude Filter
+
+This excludes images built by, and intended for the Atmosphere platform. 
+
+```
+defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" } 
 ```
 
 ## Collaborate

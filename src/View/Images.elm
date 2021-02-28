@@ -1,5 +1,6 @@
 module View.Images exposing (imagesIfLoaded)
 
+import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -17,7 +18,8 @@ import Style.Widgets.IconButton exposing (chip)
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( ImageListViewParams
+        ( ExcludeFilter
+        , ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -82,9 +84,41 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
+isImageNotExcludedByDeployer : Maybe ExcludeFilter -> OSTypes.Image -> Bool
+isImageNotExcludedByDeployer maybeExcludeFilter image =
+    case maybeExcludeFilter of
+        Nothing ->
+            True
+
+        Just excludeFilter ->
+            let
+                excluded =
+                    Dict.get excludeFilter.filterKey image.additionalProperties
+                        |> Maybe.map (\actualValue -> excludeFilter.filterValue /= actualValue)
+                        |> Maybe.withDefault False
+            in
+            not excluded
+
+
+isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
+isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
+    case maybeFeaturedImageNamePrefix of
+        Nothing ->
+            False
+
+        Just featuredImageNamePrefix ->
+            String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
+
+
+filterByExcludedByDeployer : Maybe ExcludeFilter -> List OSTypes.Image -> List OSTypes.Image
+filterByExcludedByDeployer maybeExcludeFilter someImages =
+    List.filter (isImageNotExcludedByDeployer maybeExcludeFilter) someImages
+
+
 filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
 filterImages imageListViewParams project someImages =
     someImages
+        |> filterByExcludedByDeployer project.excludeFilter
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
@@ -111,6 +145,15 @@ images palette project imageListViewParams sortTableParams =
 
         noMatchWarning =
             (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
+
+        ( featuredImages, nonFeaturedImages_ ) =
+            List.partition (isImageFeaturedByDeployer project.featuredImageNamePrefix) filteredImages
+
+        ( ownImages, otherImages ) =
+            List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
+
+        combinedImages =
+            List.concat [ featuredImages, ownImages, otherImages ]
 
         tagView : ImageTag -> Element.Element Msg
         tagView tag =
@@ -179,6 +222,24 @@ images palette project imageListViewParams sortTableParams =
                 , Element.wrappedRow []
                     (List.map tagView tagsAfterFilteringImages)
                 ]
+
+        imagesColumnView =
+            Widget.column
+                ((SH.materialStyle palette).column
+                    |> (\x ->
+                            { x
+                                | containerColumn =
+                                    (SH.materialStyle palette).column.containerColumn
+                                        ++ [ Element.width Element.fill
+                                           , Element.padding 0
+                                           ]
+                                , element =
+                                    (SH.materialStyle palette).column.element
+                                        ++ [ Element.width Element.fill
+                                           ]
+                            }
+                       )
+                )
     in
     Element.column
         (VH.exoColumnAttributes
@@ -229,23 +290,8 @@ images palette project imageListViewParams sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage palette project imageListViewParams sortTableParams) filteredImages
-            |> Widget.column
-                ((SH.materialStyle palette).column
-                    |> (\x ->
-                            { x
-                                | containerColumn =
-                                    (SH.materialStyle palette).column.containerColumn
-                                        ++ [ Element.width Element.fill
-                                           , Element.padding 0
-                                           ]
-                                , element =
-                                    (SH.materialStyle palette).column.element
-                                        ++ [ Element.width Element.fill
-                                           ]
-                            }
-                       )
-                )
+        , List.map (renderImage palette project imageListViewParams sortTableParams) combinedImages
+            |> imagesColumnView
         ]
 
 
@@ -337,6 +383,13 @@ renderImage palette project imageListViewParams sortTableParams image =
                             Nothing
                 }
 
+        featuredBadge =
+            if isImageFeaturedByDeployer project.featuredImageNamePrefix image then
+                ExoCard.badge "featured"
+
+            else
+                Element.none
+
         ownerBadge =
             if projectOwnsImage project image then
                 ExoCard.badge "belongs to this project"
@@ -363,6 +416,7 @@ renderImage palette project imageListViewParams sortTableParams image =
                         , Element.padding 5
                         ]
                         (Element.text size)
+                    , featuredBadge
                     , ownerBadge
                     ]
                 , chooseButton

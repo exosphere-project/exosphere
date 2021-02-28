@@ -5,6 +5,7 @@ module Types.Types exposing
     , DeleteConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
+    , ExcludeFilter
     , ExoServerProps
     , ExoServerVersion
     , ExoSetupStatus(..)
@@ -108,7 +109,8 @@ type alias Flags =
     , userSupportEmail : Maybe String
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , defaultImageSearchText : Maybe String
+    , featuredImageNamePrefix : Maybe String
+    , defaultImageExcludeFilter : Maybe ExcludeFilter
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -154,6 +156,12 @@ type alias Model =
     }
 
 
+type alias ExcludeFilter =
+    { filterKey : String
+    , filterValue : String
+    }
+
+
 type alias Style =
     { logo : HelperTypes.Url
     , primaryColor : Color.Color
@@ -164,7 +172,8 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
-    , defaultImageSearchText : Maybe String
+    , featuredImageNamePrefix : Maybe String
+    , defaultImageExcludeFilter : Maybe ExcludeFilter
     }
 
 
@@ -232,6 +241,8 @@ type alias Project =
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     , userAppProxyHostname : Maybe UserAppProxyHostname
+    , excludeFilter : Maybe ExcludeFilter
+    , featuredImageNamePrefix : Maybe String
     }
 
 

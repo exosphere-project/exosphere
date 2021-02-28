@@ -15,6 +15,7 @@ module OpenStack.Types exposing
     , Image
     , ImageStatus(..)
     , ImageUuid
+    , ImageVisibility(..)
     , IpAddress
     , IpAddressType(..)
     , IpAddressUuid
@@ -53,6 +54,7 @@ module OpenStack.Types exposing
     , VolumeUuid
     )
 
+import Dict
 import Json.Encode
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (RemoteData)
@@ -198,6 +200,8 @@ type alias Image =
     , containerFormat : Maybe String
     , tags : List String
     , projectUuid : HelperTypes.Uuid
+    , visibility : ImageVisibility
+    , additionalProperties : Dict.Dict String String
     }
 
 
@@ -213,6 +217,13 @@ type ImageStatus
     | ImageDeleted
     | ImagePendingDelete
     | ImageDeactivated
+
+
+type ImageVisibility
+    = ImagePublic
+    | ImageCommunity
+    | ImageShared
+    | ImagePrivate
 
 
 
