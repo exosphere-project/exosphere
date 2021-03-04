@@ -42,7 +42,7 @@ buildRuleTCP portNumber description =
     { uuid = ""
     , ethertype = Ipv4
     , direction = Ingress
-    , protocol = Just Tcp
+    , protocol = Just ProtocolTcp
     , port_range_min = Just portNumber
     , port_range_max = Just portNumber
     , remoteGroupUuid = Nothing
@@ -55,7 +55,7 @@ buildRuleIcmp =
     { uuid = ""
     , ethertype = Ipv4
     , direction = Ingress
-    , protocol = Just Icmp
+    , protocol = Just ProtocolIcmp
     , port_range_min = Nothing
     , port_range_max = Nothing
     , remoteGroupUuid = Nothing
@@ -68,7 +68,7 @@ buildRuleExposeAllIncomingPorts =
     { uuid = ""
     , ethertype = Ipv4
     , direction = Ingress
-    , protocol = Just Tcp
+    , protocol = Just ProtocolTcp
     , port_range_min = Nothing
     , port_range_max = Nothing
     , remoteGroupUuid = Nothing
@@ -104,10 +104,27 @@ type SecurityGroupRuleEthertype
 
 type SecurityGroupRuleProtocol
     = AnyProtocol
-    | Icmp
-    | Icmpv6
-    | Tcp
-    | Udp
+    | ProtocolIcmp
+    | ProtcolIcmpv6
+    | ProtocolTcp
+    | ProtocolUdp
+    | ProtocolAh
+    | ProtocolDccp
+    | ProtocolEgp
+    | ProtocolEsp
+    | ProtocolGre
+    | ProtocolIgmp
+    | ProtocolIpv6Encap
+    | ProtocolIpv6Frag
+    | ProtocolIpv6Nonxt
+    | ProtocolIpv6Opts
+    | ProtocolIpv6Route
+    | ProtocolOspf
+    | ProtocolPgm
+    | ProtocolRsvp
+    | ProtocolSctp
+    | ProtocolUdpLite
+    | ProtocolVrrp
 
 
 type PortRangeType
@@ -166,17 +183,68 @@ encodeProtocol maybeProtocol object =
                         AnyProtocol ->
                             "any"
 
-                        Icmp ->
+                        ProtocolIcmp ->
                             "icmp"
 
-                        Icmpv6 ->
+                        ProtcolIcmpv6 ->
                             "icmpv6"
 
-                        Tcp ->
+                        ProtocolTcp ->
                             "tcp"
 
-                        Udp ->
+                        ProtocolUdp ->
                             "udp"
+
+                        ProtocolAh ->
+                            "ah"
+
+                        ProtocolDccp ->
+                            "dccp"
+
+                        ProtocolEgp ->
+                            "egp"
+
+                        ProtocolEsp ->
+                            "esp"
+
+                        ProtocolGre ->
+                            "gre"
+
+                        ProtocolIgmp ->
+                            "igmp"
+
+                        ProtocolIpv6Encap ->
+                            "ipv6-encap"
+
+                        ProtocolIpv6Frag ->
+                            "ipv6-frag"
+
+                        ProtocolIpv6Nonxt ->
+                            "ipv6-nonxt"
+
+                        ProtocolIpv6Opts ->
+                            "ipv6-opts"
+
+                        ProtocolIpv6Route ->
+                            "ipv6-route"
+
+                        ProtocolOspf ->
+                            "ospf"
+
+                        ProtocolPgm ->
+                            "pgm"
+
+                        ProtocolRsvp ->
+                            "rsvp"
+
+                        ProtocolSctp ->
+                            "sctp"
+
+                        ProtocolUdpLite ->
+                            "udplite"
+
+                        ProtocolVrrp ->
+                            "vrrp"
             in
             ( "protocol", Encode.string protocolString ) :: object
 
@@ -258,16 +326,70 @@ securityGroupRuleProtocolDecoder prot =
             Decode.succeed AnyProtocol
 
         "icmp" ->
-            Decode.succeed Icmp
+            Decode.succeed ProtocolIcmp
 
         "icmpv6" ->
-            Decode.succeed Icmpv6
+            Decode.succeed ProtcolIcmpv6
+
+        "ipv6-icmp" ->
+            Decode.succeed ProtcolIcmpv6
 
         "tcp" ->
-            Decode.succeed Tcp
+            Decode.succeed ProtocolTcp
 
         "udp" ->
-            Decode.succeed Udp
+            Decode.succeed ProtocolUdp
+
+        "ah" ->
+            Decode.succeed ProtocolAh
+
+        "dccp" ->
+            Decode.succeed ProtocolDccp
+
+        "egp" ->
+            Decode.succeed ProtocolEgp
+
+        "esp" ->
+            Decode.succeed ProtocolEsp
+
+        "gre" ->
+            Decode.succeed ProtocolGre
+
+        "igmp" ->
+            Decode.succeed ProtocolIgmp
+
+        "ipv6-encap" ->
+            Decode.succeed ProtocolIpv6Encap
+
+        "ipv6-frag" ->
+            Decode.succeed ProtocolIpv6Frag
+
+        "ipv6-nonxt" ->
+            Decode.succeed ProtocolIpv6Nonxt
+
+        "ipv6-opts" ->
+            Decode.succeed ProtocolIpv6Opts
+
+        "ipv6-route" ->
+            Decode.succeed ProtocolIpv6Route
+
+        "ospf" ->
+            Decode.succeed ProtocolOspf
+
+        "pgm" ->
+            Decode.succeed ProtocolPgm
+
+        "rsvp" ->
+            Decode.succeed ProtocolRsvp
+
+        "sctp" ->
+            Decode.succeed ProtocolSctp
+
+        "udplite" ->
+            Decode.succeed ProtocolUdpLite
+
+        "vrrp" ->
+            Decode.succeed ProtocolVrrp
 
         _ ->
             Decode.fail "Ooooooops, unrecognised security group rule protocol"
