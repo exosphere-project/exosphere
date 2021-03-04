@@ -127,10 +127,6 @@ type SecurityGroupRuleProtocol
     | ProtocolVrrp
 
 
-
--- ah, dccp, egp, esp, gre, icmp, igmp, ipv6-encap, ipv6-frag, ipv6-icmp, ipv6-nonxt, ipv6-opts, ipv6-route, ospf, pgm, rsvp, sctp, tcp, udp, udplite, vrrp and integer representations [0-255]
-
-
 type PortRangeType
     = PortRangeMin
     | PortRangeMax
