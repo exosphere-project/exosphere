@@ -42,7 +42,7 @@ buildRuleTCP portNumber description =
     { uuid = ""
     , ethertype = Ipv4
     , direction = Ingress
-    , protocol = Just Tcp
+    , protocol = Just ProtocolTcp
     , port_range_min = Just portNumber
     , port_range_max = Just portNumber
     , remoteGroupUuid = Nothing
@@ -55,7 +55,7 @@ buildRuleIcmp =
     { uuid = ""
     , ethertype = Ipv4
     , direction = Ingress
-    , protocol = Just Icmp
+    , protocol = Just ProtocolIcmp
     , port_range_min = Nothing
     , port_range_max = Nothing
     , remoteGroupUuid = Nothing
@@ -68,7 +68,7 @@ buildRuleExposeAllIncomingPorts =
     { uuid = ""
     , ethertype = Ipv4
     , direction = Ingress
-    , protocol = Just Tcp
+    , protocol = Just ProtocolTcp
     , port_range_min = Nothing
     , port_range_max = Nothing
     , remoteGroupUuid = Nothing
@@ -104,10 +104,10 @@ type SecurityGroupRuleEthertype
 
 type SecurityGroupRuleProtocol
     = AnyProtocol
-    | Icmp
-    | Icmpv6
-    | Tcp
-    | Udp
+    | ProtocolIcmp
+    | ProtcolIcmpv6
+    | ProtocolTcp
+    | ProtocolUdp
     | ProtocolAh
     | ProtocolDccp
     | ProtocolEgp
@@ -187,16 +187,16 @@ encodeProtocol maybeProtocol object =
                         AnyProtocol ->
                             "any"
 
-                        Icmp ->
+                        ProtocolIcmp ->
                             "icmp"
 
-                        Icmpv6 ->
+                        ProtcolIcmpv6 ->
                             "icmpv6"
 
-                        Tcp ->
+                        ProtocolTcp ->
                             "tcp"
 
-                        Udp ->
+                        ProtocolUdp ->
                             "udp"
 
                         ProtocolAh ->
@@ -330,19 +330,19 @@ securityGroupRuleProtocolDecoder prot =
             Decode.succeed AnyProtocol
 
         "icmp" ->
-            Decode.succeed Icmp
+            Decode.succeed ProtocolIcmp
 
         "icmpv6" ->
-            Decode.succeed Icmpv6
+            Decode.succeed ProtcolIcmpv6
 
         "ipv6-icmp" ->
-            Decode.succeed Icmpv6
+            Decode.succeed ProtcolIcmpv6
 
         "tcp" ->
-            Decode.succeed Tcp
+            Decode.succeed ProtocolTcp
 
         "udp" ->
-            Decode.succeed Udp
+            Decode.succeed ProtocolUdp
 
         "ah" ->
             Decode.succeed ProtocolAh
