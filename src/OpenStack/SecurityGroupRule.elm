@@ -263,6 +263,9 @@ securityGroupRuleProtocolDecoder prot =
         "icmpv6" ->
             Decode.succeed Icmpv6
 
+        "ipv6-icmp" ->
+            Decode.succeed Icmpv6
+
         "tcp" ->
             Decode.succeed Tcp
 
