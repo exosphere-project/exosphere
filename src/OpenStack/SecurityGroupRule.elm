@@ -108,6 +108,27 @@ type SecurityGroupRuleProtocol
     | Icmpv6
     | Tcp
     | Udp
+    | ProtocolAh
+    | ProtocolDccp
+    | ProtocolEgp
+    | ProtocolEsp
+    | ProtocolGre
+    | ProtocolIgmp
+    | ProtocolIpv6Encap
+    | ProtocolIpv6Frag
+    | ProtocolIpv6Nonxt
+    | ProtocolIpv6Opts
+    | ProtocolIpv6Route
+    | ProtocolOspf
+    | ProtocolPgm
+    | ProtocolRsvp
+    | ProtocolSctp
+    | ProtocolUdpLite
+    | ProtocolVrrp
+
+
+
+-- ah, dccp, egp, esp, gre, icmp, igmp, ipv6-encap, ipv6-frag, ipv6-icmp, ipv6-nonxt, ipv6-opts, ipv6-route, ospf, pgm, rsvp, sctp, tcp, udp, udplite, vrrp and integer representations [0-255]
 
 
 type PortRangeType
@@ -177,6 +198,57 @@ encodeProtocol maybeProtocol object =
 
                         Udp ->
                             "udp"
+
+                        ProtocolAh ->
+                            "ah"
+
+                        ProtocolDccp ->
+                            "dccp"
+
+                        ProtocolEgp ->
+                            "egp"
+
+                        ProtocolEsp ->
+                            "esp"
+
+                        ProtocolGre ->
+                            "gre"
+
+                        ProtocolIgmp ->
+                            "igmp"
+
+                        ProtocolIpv6Encap ->
+                            "ipv6-encap"
+
+                        ProtocolIpv6Frag ->
+                            "ipv6-frag"
+
+                        ProtocolIpv6Nonxt ->
+                            "ipv6-nonxt"
+
+                        ProtocolIpv6Opts ->
+                            "ipv6-opts"
+
+                        ProtocolIpv6Route ->
+                            "ipv6-route"
+
+                        ProtocolOspf ->
+                            "ospf"
+
+                        ProtocolPgm ->
+                            "pgm"
+
+                        ProtocolRsvp ->
+                            "rsvp"
+
+                        ProtocolSctp ->
+                            "sctp"
+
+                        ProtocolUdpLite ->
+                            "udplite"
+
+                        ProtocolVrrp ->
+                            "vrrp"
             in
             ( "protocol", Encode.string protocolString ) :: object
 
@@ -271,6 +343,57 @@ securityGroupRuleProtocolDecoder prot =
 
         "udp" ->
             Decode.succeed Udp
+
+        "ah" ->
+            Decode.succeed ProtocolAh
+
+        "dccp" ->
+            Decode.succeed ProtocolDccp
+
+        "egp" ->
+            Decode.succeed ProtocolEgp
+
+        "esp" ->
+            Decode.succeed ProtocolEsp
+
+        "gre" ->
+            Decode.succeed ProtocolGre
+
+        "igmp" ->
+            Decode.succeed ProtocolIgmp
+
+        "ipv6-encap" ->
+            Decode.succeed ProtocolIpv6Encap
+
+        "ipv6-frag" ->
+            Decode.succeed ProtocolIpv6Frag
+
+        "ipv6-nonxt" ->
+            Decode.succeed ProtocolIpv6Nonxt
+
+        "ipv6-opts" ->
+            Decode.succeed ProtocolIpv6Opts
+
+        "ipv6-route" ->
+            Decode.succeed ProtocolIpv6Route
+
+        "ospf" ->
+            Decode.succeed ProtocolOspf
+
+        "pgm" ->
+            Decode.succeed ProtocolPgm
+
+        "rsvp" ->
+            Decode.succeed ProtocolRsvp
+
+        "sctp" ->
+            Decode.succeed ProtocolSctp
+
+        "udplite" ->
+            Decode.succeed ProtocolUdpLite
+
+        "vrrp" ->
+            Decode.succeed ProtocolVrrp
 
         _ ->
             Decode.fail "Ooooooops, unrecognised security group rule protocol"
