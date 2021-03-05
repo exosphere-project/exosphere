@@ -96,9 +96,9 @@ mounts:
 guacamoleUserData : String
 guacamoleUserData =
     """cd /opt
-    GUAC_CONFIG_GIT_TAG=3
+    GUAC_CONFIG_GIT_TAG=4
     GUAC_CONFIG_URL=https://gitlab.com/exosphere/guacamole-config/-/archive/$GUAC_CONFIG_GIT_TAG/guacamole-config-$GUAC_CONFIG_GIT_TAG.tar.gz
-    GUAC_CONFIG_SHA512=ccc3cae8576f5db576476422dd3ce93af154d27bc964dc0eb59ac02ca1564101ff2d7ad28b37246bf11e104650df1f02883875c557f36095a3cb6cff835b07cf
+    GUAC_CONFIG_SHA512=443b38de27591db4d621c27d10eaf55666f1c5b981354f9f10e3ec9e97388b422180a65ac72e8bad16c8cdfb18c07515756e9b259d37778bf9d0614c20f9ce57
     wget --quiet --output-document=guacamole-config.tar.gz $GUAC_CONFIG_URL
     if echo $GUAC_CONFIG_SHA512 guacamole-config.tar.gz | sha512sum --check --quiet; then
       tar -zxvf guacamole-config.tar.gz
