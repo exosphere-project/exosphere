@@ -17,6 +17,23 @@ parseConsoleLogExoSetupStatus oldExoSetupStatus consoleLog serverCreatedTime cur
 
         decodedData =
             logLines
+                -- Throw out anything before the start of a JSON object on a given line
+                |> List.map
+                    (\line ->
+                        String.indexes "{" line
+                            |> List.head
+                            |> Maybe.map (\index -> String.dropLeft index line)
+                            |> Maybe.withDefault line
+                    )
+                -- Throw out anything after the end of a JSON object on a given line
+                |> List.map
+                    (\line ->
+                        String.indexes "}" line
+                            |> List.reverse
+                            |> List.head
+                            |> Maybe.map (\index -> String.left (index + 1) line)
+                            |> Maybe.withDefault line
+                    )
                 |> List.map (Json.Decode.decodeString decodeLogLine)
                 |> List.map Result.toMaybe
                 |> List.filterMap identity
