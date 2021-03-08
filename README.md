@@ -50,7 +50,7 @@ User-friendly, extensible client for cloud computing. Currently targeting OpenSt
 
 ## Compatibility
 
-Exosphere requires Queens release of OpenStack (released February 2018).
+Exosphere requires Queens release of OpenStack (released February 2018) or later.
 
 ## Try Exosphere
 
