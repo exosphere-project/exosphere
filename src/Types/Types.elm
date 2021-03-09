@@ -112,7 +112,7 @@ type alias Flags =
         Maybe OpenIdConnectLoginConfig
     , featuredImageNamePrefix : Maybe String
     , defaultImageExcludeFilter : Maybe ExcludeFilter
-    , localization : Localization
+    , localization : Maybe Localization
 
     -- Flags that Exosphere sets dynamically
     , width : Int
