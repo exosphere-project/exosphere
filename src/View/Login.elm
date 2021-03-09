@@ -6,17 +6,14 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Helpers as Helpers
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Style.Types
 import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( JetstreamCreds
         , JetstreamProvider(..)
         , LoginView(..)
-        , Model
         , Msg(..)
         , NonProjectViewConstructor(..)
         , OpenIdConnectLoginConfig
@@ -34,15 +31,15 @@ type alias LoginMethod =
     }
 
 
-viewLoginPicker : Bool -> Style.Types.ExoPalette -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
-viewLoginPicker appIsElectron palette maybeOpenIdConnectLoginConfig =
+viewLoginPicker : View.Types.ViewContext -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
+viewLoginPicker context maybeOpenIdConnectLoginConfig =
     let
         defaultLoginMethods =
             [ { logo =
                     Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
               , button =
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                         { text = "Add OpenStack Account"
                         , onPress =
                             Just <|
@@ -58,7 +55,7 @@ viewLoginPicker appIsElectron palette maybeOpenIdConnectLoginConfig =
                     Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
               , button =
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                         { text = "Add Jetstream Account"
                         , onPress =
                             Just <|
@@ -83,7 +80,7 @@ viewLoginPicker appIsElectron palette maybeOpenIdConnectLoginConfig =
                     }
             , button =
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                     { text = oidcLoginConfig.oidcLoginButtonLabel
                     , onPress =
                         let
@@ -99,7 +96,7 @@ viewLoginPicker appIsElectron palette maybeOpenIdConnectLoginConfig =
         loginMethods =
             List.append
                 defaultLoginMethods
-                (case ( maybeOpenIdConnectLoginConfig, appIsElectron ) of
+                (case ( maybeOpenIdConnectLoginConfig, context.isElectron ) of
                     ( Just oidcLoginConfig, False ) ->
                         [ oidcLoginMethod oidcLoginConfig ]
 
@@ -131,32 +128,32 @@ viewLoginPicker appIsElectron palette maybeOpenIdConnectLoginConfig =
         ]
 
 
-loginPickerButton : Style.Types.ExoPalette -> Element.Element Msg
-loginPickerButton palette =
+loginPickerButton : View.Types.ViewContext -> Element.Element Msg
+loginPickerButton context =
     Widget.textButton
-        (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
         { text = "See Other Login Methods"
         , onPress =
             Just <| SetNonProjectView <| LoginPicker
         }
 
 
-viewLoginOpenstack : Model -> Style.Types.ExoPalette -> OSTypes.OpenstackLogin -> Element.Element Msg
-viewLoginOpenstack model palette openstackCreds =
+viewLoginOpenstack : View.Types.ViewContext -> OSTypes.OpenstackLogin -> Element.Element Msg
+viewLoginOpenstack context openstackCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el
             VH.heading2
             (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
             VH.exoRowAttributes
-            [ loginOpenstackCredsEntry palette openstackCreds
-            , loginOpenstackOpenRcEntry model palette openstackCreds
+            [ loginOpenstackCredsEntry context openstackCreds
+            , loginOpenstackOpenRcEntry context openstackCreds
             ]
         , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-            [ Element.el [] (loginPickerButton palette)
+            [ Element.el [] (loginPickerButton context)
             , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                 (Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                     { text = "Log In"
                     , onPress =
                         Just <| RequestUnscopedToken openstackCreds
@@ -166,8 +163,8 @@ viewLoginOpenstack model palette openstackCreds =
         ]
 
 
-loginOpenstackCredsEntry : Style.Types.ExoPalette -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackCredsEntry palette openstackCreds =
+loginOpenstackCredsEntry : View.Types.ViewContext -> OSTypes.OpenstackLogin -> Element.Element Msg
+loginOpenstackCredsEntry context openstackCreds =
     let
         updateCreds : OSTypes.OpenstackLogin -> Msg
         updateCreds newCreds =
@@ -175,7 +172,7 @@ loginOpenstackCredsEntry palette openstackCreds =
 
         textField text placeholderText onChange labelText =
             Input.text
-                (VH.inputItemAttributes palette.background)
+                (VH.inputItemAttributes context.palette.background)
                 { text = text
                 , placeholder = Just (Input.placeholder [] (Element.text placeholderText))
                 , onChange = onChange
@@ -205,7 +202,7 @@ loginOpenstackCredsEntry palette openstackCreds =
             (\u -> updateCreds { openstackCreds | username = u })
             "User Name"
         , Input.currentPassword
-            (VH.inputItemAttributes palette.surface)
+            (VH.inputItemAttributes context.palette.surface)
             { text = openstackCreds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
@@ -215,8 +212,8 @@ loginOpenstackCredsEntry palette openstackCreds =
         ]
 
 
-loginOpenstackOpenRcEntry : Model -> Style.Types.ExoPalette -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackOpenRcEntry model palette openstackCreds =
+loginOpenstackOpenRcEntry : View.Types.ViewContext -> OSTypes.OpenstackLogin -> Element.Element Msg
+loginOpenstackOpenRcEntry context openstackCreds =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15
@@ -226,15 +223,14 @@ loginOpenstackOpenRcEntry model palette openstackCreds =
         [ Element.paragraph []
             [ Element.text "...or paste an "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
               <|
                 View.Types.BrowserLinkTextLabel "OpenRC"
             , Element.text " file"
             ]
         , Input.multiline
-            (VH.inputItemAttributes palette.background
+            (VH.inputItemAttributes context.palette.background
                 ++ [ Element.width (Element.px 300)
                    , Element.height Element.fill
                    , Font.size 12
@@ -249,8 +245,8 @@ loginOpenstackOpenRcEntry model palette openstackCreds =
         ]
 
 
-viewLoginJetstream : Model -> Style.Types.ExoPalette -> JetstreamCreds -> Element.Element Msg
-viewLoginJetstream model palette jetstreamCreds =
+viewLoginJetstream : View.Types.ViewContext -> JetstreamCreds -> Element.Element Msg
+viewLoginJetstream context jetstreamCreds =
     let
         updateCreds : JetstreamCreds -> Msg
         updateCreds newCreds =
@@ -259,17 +255,17 @@ viewLoginJetstream model palette jetstreamCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2
             (Element.text "Add a Jetstream Cloud Account")
-        , jetstreamLoginText model palette
+        , jetstreamLoginText context
         , Element.column VH.exoColumnAttributes
             [ Input.text
-                (VH.inputItemAttributes palette.background)
+                (VH.inputItemAttributes context.palette.background)
                 { text = jetstreamCreds.taccUsername
                 , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
                 , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
                 , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
                 }
             , Input.currentPassword
-                (VH.inputItemAttributes palette.background)
+                (VH.inputItemAttributes context.palette.background)
                 { text = jetstreamCreds.taccPassword
                 , placeholder = Nothing
                 , onChange = \pw -> updateCreds { jetstreamCreds | taccPassword = pw }
@@ -288,10 +284,10 @@ viewLoginJetstream model palette jetstreamCreds =
                 }
             ]
         , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-            [ Element.el [] (loginPickerButton palette)
+            [ Element.el [] (loginPickerButton context)
             , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                 (Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                     { text = "Log In"
                     , onPress =
                         Just (JetstreamLogin jetstreamCreds)
@@ -301,15 +297,14 @@ viewLoginJetstream model palette jetstreamCreds =
         ]
 
 
-jetstreamLoginText : Model -> Style.Types.ExoPalette -> Element.Element Msg
-jetstreamLoginText model palette =
+jetstreamLoginText : View.Types.ViewContext -> Element.Element Msg
+jetstreamLoginText context =
     Element.column VH.exoColumnAttributes
         [ Element.paragraph
             []
             [ Element.text "To use Exosphere with "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://jetstream-cloud.org"
               <|
                 View.Types.BrowserLinkTextLabel "Jetstream Cloud"
@@ -319,15 +314,13 @@ jetstreamLoginText model palette =
             []
             [ Element.text "- Request access to the Exosphere Trial Allocation; please create an account on "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://portal.xsede.org"
               <|
                 View.Types.BrowserLinkTextLabel "XSEDE User Portal"
             , Element.text ", then "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://gitlab.com/exosphere/exosphere/issues/new"
               <|
                 View.Types.BrowserLinkTextLabel "create an issue"
@@ -337,8 +330,7 @@ jetstreamLoginText model palette =
             []
             [ Element.text "- If you know someone else who already has an allocation, they can add you to it. (See \"How do I let other XSEDE accounts use my allocation?\" on "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/537460937/Jetstream+Allocations+FAQ"
               <|
                 View.Types.BrowserLinkTextLabel "this FAQ"
@@ -348,8 +340,7 @@ jetstreamLoginText model palette =
             []
             [ Element.text "- "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/49184781/Jetstream+Allocations"
               <|
                 View.Types.BrowserLinkTextLabel "Apply for your own Startup Allocation"
@@ -363,8 +354,7 @@ jetstreamLoginText model palette =
             []
             [ Element.text "1. TACC username (usually looks like 'tg******'); "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://portal.tacc.utexas.edu/password-reset/-/password/forgot-username"
               <|
                 View.Types.BrowserLinkTextLabel "look up your TACC username"
@@ -373,8 +363,7 @@ jetstreamLoginText model palette =
             []
             [ Element.text "2. TACC password; "
             , VH.browserLink
-                palette
-                (Helpers.appIsElectron model)
+                context
                 "https://portal.tacc.utexas.edu/password-reset/-/password/request-reset"
               <|
                 View.Types.BrowserLinkTextLabel "set your TACC password"

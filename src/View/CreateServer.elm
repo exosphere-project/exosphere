@@ -14,7 +14,6 @@ import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
@@ -27,6 +26,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH exposing (edges)
+import View.Types
 import Widget
 import Widget.Style.Material
 
@@ -38,8 +38,8 @@ updateCreateServerRequest project viewParams =
             CreateServer viewParams
 
 
-createServer : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-createServer palette project viewParams =
+createServer : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+createServer context project viewParams =
     let
         invalidNameReasons =
             serverNameValidator viewParams.serverName
@@ -48,7 +48,7 @@ createServer palette project viewParams =
             case invalidNameReasons of
                 Just reasons ->
                     Element.column
-                        [ Font.color (SH.toElementColor palette.error)
+                        [ Font.color (SH.toElementColor context.palette.error)
                         , Font.size 14
                         , Element.alignRight
                         , Element.moveDown 6
@@ -83,7 +83,7 @@ createServer palette project viewParams =
 
         contents flavor computeQuota volumeQuota =
             [ Input.text
-                (VH.inputItemAttributes palette.background)
+                (VH.inputItemAttributes context.palette.background)
                 { text = viewParams.serverName
                 , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
                 , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
@@ -91,10 +91,10 @@ createServer palette project viewParams =
                 }
             , renderInvalidNameReasons
             , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
-            , flavorPicker palette project viewParams computeQuota
-            , volBackedPrompt palette project viewParams volumeQuota flavor
-            , countPicker palette project viewParams computeQuota volumeQuota flavor
-            , desktopEnvironmentPicker palette project viewParams
+            , flavorPicker context project viewParams computeQuota
+            , volBackedPrompt context project viewParams volumeQuota flavor
+            , countPicker context project viewParams computeQuota volumeQuota flavor
+            , desktopEnvironmentPicker context project viewParams
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -115,14 +115,14 @@ createServer palette project viewParams =
 
                         else
                             [ guacamolePicker project viewParams
-                            , networkPicker palette project viewParams
+                            , networkPicker context project viewParams
                             , keypairPicker project viewParams
-                            , userDataInput palette project viewParams
+                            , userDataInput context project viewParams
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                     { text = "Create"
                     , onPress = createOnPress
                     }
@@ -147,7 +147,7 @@ createServer palette project viewParams =
                         ( _, _, RemoteData.Loading ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (SH.materialStyle palette).progressIndicator
+                                    (SH.materialStyle context.palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -156,7 +156,7 @@ createServer palette project viewParams =
                         ( _, RemoteData.Loading, _ ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (SH.materialStyle palette).progressIndicator
+                                    (SH.materialStyle context.palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -168,8 +168,8 @@ createServer palette project viewParams =
         ]
 
 
-flavorPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
-flavorPicker palette project viewParams computeQuota =
+flavorPicker : View.Types.ViewContext -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker context project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -267,7 +267,7 @@ flavorPicker palette project viewParams computeQuota =
 
         flavorEmptyHint =
             if viewParams.flavorUuid == "" then
-                [ VH.hint palette "Please pick a size" ]
+                [ VH.hint context "Please pick a size" ]
 
             else
                 []
@@ -296,8 +296,8 @@ flavorPicker palette project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt palette project viewParams volumeQuota flavor =
+volBackedPrompt : View.Types.ViewContext -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt context project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
@@ -379,8 +379,8 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
             Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
                     [ numericTextInput
-                        palette
-                        (VH.inputItemAttributes palette.background)
+                        context.palette
+                        (VH.inputItemAttributes context.palette.background)
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
@@ -399,14 +399,14 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
 
 
 countPicker :
-    Style.Types.ExoPalette
+    View.Types.ViewContext
     -> Project
     -> CreateServerViewParams
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
     -> Element.Element Msg
-countPicker palette project viewParams computeQuota volumeQuota flavor =
+countPicker context project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
             OSQuotas.overallQuotaAvailServers
@@ -436,7 +436,7 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
                         [ Element.width Element.fill
                         , Element.height (Element.px 2)
                         , Element.centerY
-                        , Background.color (SH.toElementColor palette.on.background)
+                        , Background.color (SH.toElementColor context.palette.on.background)
                         , Border.rounded 2
                         ]
                         Element.none
@@ -468,8 +468,8 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-desktopEnvironmentPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-desktopEnvironmentPicker palette project createServerViewParams =
+desktopEnvironmentPicker : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+desktopEnvironmentPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow VH.exoElementAttributes
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy a graphical desktop environment?")
@@ -482,7 +482,7 @@ desktopEnvironmentPicker palette project createServerViewParams =
             }
         , if createServerViewParams.deployDesktopEnvironment then
             Element.paragraph
-                ([ Background.color (SH.toElementColor palette.warn), Font.color (SH.toElementColor palette.on.warn) ]
+                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes
                 )
                 [ Element.text "Warning: if selected image does not already include a desktop environment, server can take 30 minutes or longer to deploy." ]
@@ -514,8 +514,8 @@ guacamolePicker project createServerViewParams =
                 ]
 
 
-networkPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-networkPicker palette project viewParams =
+networkPicker : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker context project viewParams =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -554,7 +554,7 @@ networkPicker palette project viewParams =
 
                         networkEmptyHint =
                             if viewParams.networkUuid == "" then
-                                [ VH.hint palette "Please pick a network" ]
+                                [ VH.hint context "Please pick a network" ]
 
                             else
                                 []
@@ -604,10 +604,10 @@ keypairPicker project viewParams =
         ]
 
 
-userDataInput : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-userDataInput palette project viewParams =
+userDataInput : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput context project viewParams =
     Input.multiline
-        (VH.inputItemAttributes palette.background
+        (VH.inputItemAttributes context.palette.background
             ++ [ Element.width (Element.px 600)
                , Element.height (Element.px 500)
                , Element.spacing 3

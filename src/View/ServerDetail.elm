@@ -17,7 +17,6 @@ import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -55,19 +54,19 @@ updateServerDetail project serverDetailViewParams server =
             ServerDetail server.osProps.uuid serverDetailViewParams
 
 
-serverDetail : Style.Types.ExoPalette -> Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
-serverDetail palette project appIsElectron currentTimeAndZone serverDetailViewParams serverUuid =
+serverDetail : View.Types.ViewContext -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case GetterSetters.serverLookup project serverUuid of
         Just server ->
-            serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewParams server
+            serverDetail_ context project currentTimeAndZone serverDetailViewParams server
 
         Nothing ->
             Element.text "No server found"
 
 
-serverDetail_ : Style.Types.ExoPalette -> Project -> Bool -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewParams server =
+serverDetail_ : View.Types.ViewContext -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
@@ -125,7 +124,7 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                 [ Element.spacing 10 ]
                 [ Element.text server.osProps.name
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                     { text = "Edit"
                     , icon =
                         FeatherIcons.edit3
@@ -159,17 +158,17 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                                 |> List.map List.singleton
                                 |> List.map (Element.paragraph [])
                                 |> Element.column
-                                    [ Font.color (SH.toElementColor palette.error)
+                                    [ Font.color (SH.toElementColor context.palette.error)
                                     , Font.size 14
                                     , Element.alignRight
                                     , Element.moveDown 6
-                                    , Background.color (SH.toElementColorWithOpacity palette.surface 0.9)
+                                    , Background.color (SH.toElementColorWithOpacity context.palette.surface 0.9)
                                     , Element.spacing 10
                                     , Element.padding 10
                                     , Border.rounded 4
                                     , Border.shadow
                                         { blur = 10
-                                        , color = SH.toElementColorWithOpacity palette.muted 0.2
+                                        , color = SH.toElementColorWithOpacity context.palette.muted 0.2
                                         , offset = ( 0, 2 )
                                         , size = 1
                                         }
@@ -205,7 +204,7 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                 [ Element.el
                     [ Element.below renderInvalidNameReasons
                     ]
-                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette palette))
+                    (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
                         { chips = []
                         , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
                         , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
@@ -220,7 +219,7 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                         }
                     )
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                     { text = "Save"
                     , icon =
                         FeatherIcons.save
@@ -232,7 +231,7 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                         saveOnPress
                     }
                 , Widget.iconButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                     { text = "Cancel"
                     , icon =
                         FeatherIcons.xCircle
@@ -268,10 +267,10 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
             [ Element.el
                 VH.heading2
                 (Element.text "Server Details")
-            , passwordVulnWarning palette appIsElectron server
+            , passwordVulnWarning context server
             , VH.compactKVRow "Name" serverNameView
-            , VH.compactKVRow "Status" (serverStatus palette project.auth.project.uuid serverDetailViewParams server)
-            , VH.compactKVRow "UUID" <| copyableText palette server.osProps.uuid
+            , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
+            , VH.compactKVRow "UUID" <| copyableText context.palette server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
             , creatorNameView
             , VH.compactKVRow "Image" (Element.text imageText)
@@ -279,14 +278,14 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
             , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
             , VH.compactKVRow "IP addresses"
                 (renderIpAddresses
-                    palette
+                    context
                     project.auth.project.uuid
                     server.osProps.uuid
                     serverDetailViewParams
                     details.ipAddresses
                 )
             , Element.el VH.heading3 (Element.text "Volumes Attached")
-            , serverVolumes palette project server
+            , serverVolumes context project server
             , case GetterSetters.getVolsAttachedToServer project server of
                 [] ->
                     Element.none
@@ -306,7 +305,7 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                         ]
               then
                 Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                     { text = "Attach volume"
                     , onPress =
                         Just <|
@@ -321,27 +320,26 @@ serverDetail_ palette project appIsElectron currentTimeAndZone serverDetailViewP
                 Element.none
             , Element.el VH.heading2 (Element.text "Interactions")
             , interactions
-                palette
+                context
                 server
                 project.auth.project.uuid
-                appIsElectron
                 (Tuple.first currentTimeAndZone)
                 project.userAppProxyHostname
                 serverDetailViewParams
             , Element.el VH.heading3 (Element.text "Password")
-            , serverPassword palette project.auth.project.uuid serverDetailViewParams server
+            , serverPassword context project.auth.project.uuid serverDetailViewParams server
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
             [ Element.el VH.heading3 (Element.text "Actions")
-            , viewServerActions palette project.auth.project.uuid serverDetailViewParams server
+            , viewServerActions context project.auth.project.uuid serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageCharts palette currentTimeAndZone server
+            , resourceUsageCharts context currentTimeAndZone server
             ]
         ]
 
 
-passwordVulnWarning : Style.Types.ExoPalette -> Bool -> Server -> Element.Element Msg
-passwordVulnWarning palette appIsElectron server =
+passwordVulnWarning : View.Types.ViewContext -> Server -> Element.Element Msg
+passwordVulnWarning context server =
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
             Element.none
@@ -349,17 +347,15 @@ passwordVulnWarning palette appIsElectron server =
         ServerFromExo serverFromExoProps ->
             if serverFromExoProps.exoServerVersion < 1 then
                 Element.paragraph
-                    [ Font.color (SH.toElementColor palette.error) ]
+                    [ Font.color (SH.toElementColor context.palette.error) ]
                     [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
                     , VH.browserLink
-                        palette
-                        appIsElectron
+                        context
                         "https://en.wikipedia.org/wiki/Privilege_escalation"
                         (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
                     , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
                     , VH.browserLink
-                        palette
-                        appIsElectron
+                        context
                         "https://gitlab.com/exosphere/exosphere/issues/284"
                         (View.Types.BrowserLinkTextLabel "issue #284")
                     , Element.text " on the Exosphere GitLab project."
@@ -369,8 +365,8 @@ passwordVulnWarning palette appIsElectron server =
                 Element.none
 
 
-serverStatus : Style.Types.ExoPalette -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverStatus palette projectId serverDetailViewParams server =
+serverStatus : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverStatus context projectId serverDetailViewParams server =
     let
         details =
             server.osProps.details
@@ -387,7 +383,7 @@ serverStatus palette projectId serverDetailViewParams server =
             let
                 spinner =
                     Widget.circularProgressIndicator
-                        (SH.materialStyle palette).progressIndicator
+                        (SH.materialStyle context.palette).progressIndicator
                         Nothing
 
                 g =
@@ -400,7 +396,7 @@ serverStatus palette projectId serverDetailViewParams server =
 
                         ( _, Nothing ) ->
                             Icon.roundRect
-                                (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor palette)
+                                (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor context.palette)
                                 28
             in
             Element.el
@@ -416,7 +412,7 @@ serverStatus palette projectId serverDetailViewParams server =
                         [ Element.el
                             [ Element.paddingEach { edges | right = 15 } ]
                           <|
-                            Icon.lock (SH.toElementColor palette.on.background) 28
+                            Icon.lock (SH.toElementColor context.palette.on.background) 28
                         , Element.text "Locked"
                         ]
 
@@ -428,7 +424,7 @@ serverStatus palette projectId serverDetailViewParams server =
                                 { edges | right = 15 }
                             ]
                           <|
-                            Icon.lockOpen (SH.toElementColor palette.on.background) 28
+                            Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
                         , Element.text "Unlocked"
                         ]
 
@@ -442,7 +438,7 @@ serverStatus palette projectId serverDetailViewParams server =
 
             else
                 [ Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                     { text = "See detail"
                     , onPress =
                         Just <|
@@ -475,8 +471,8 @@ serverStatus palette projectId serverDetailViewParams server =
             ]
 
 
-interactions : Style.Types.ExoPalette -> Server -> ProjectIdentifier -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
-interactions palette server projectId appIsElectron currentTime tlsReverseProxyHostname serverDetailViewParams =
+interactions : View.Types.ViewContext -> Server -> ProjectIdentifier -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
+interactions context server projectId currentTime tlsReverseProxyHostname serverDetailViewParams =
     let
         renderInteraction interaction =
             let
@@ -487,12 +483,12 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                     IHelpers.interactionStatus
                         server
                         interaction
-                        appIsElectron
+                        context.isElectron
                         currentTime
                         tlsReverseProxyHostname
 
                 ( statusWord, statusColor ) =
-                    IHelpers.interactionStatusWordColor palette interactionStatus
+                    IHelpers.interactionStatusWordColor context.palette interactionStatus
 
                 statusTooltip =
                     -- TODO deduplicate with below function?
@@ -506,8 +502,8 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                         [ Element.padding 5
 
                                         -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| SH.toElementColor <| palette.surface
-                                        , Font.color <| SH.toElementColor <| palette.on.surface
+                                        , Background.color <| SH.toElementColor <| context.palette.surface
+                                        , Font.color <| SH.toElementColor <| context.palette.on.surface
                                         ]
                                         [ Element.text statusWord
                                         , case interactionStatus of
@@ -542,8 +538,8 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                         [ Element.padding 5
 
                                         -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| SH.toElementColor <| palette.surface
-                                        , Font.color <| SH.toElementColor <| palette.on.surface
+                                        , Background.color <| SH.toElementColor <| context.palette.surface
+                                        , Font.color <| SH.toElementColor <| context.palette.on.surface
                                         , Element.width (Element.maximum 300 Element.shrink)
                                         ]
                                         [ Element.paragraph
@@ -589,7 +585,7 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
                                 Widget.button
-                                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+                                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                                     { text = interactionDetails.name
                                     , icon =
                                         Element.el
@@ -600,7 +596,7 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                                 , bottom = 0
                                                 }
                                             ]
-                                            (interactionDetails.icon (SH.toElementColor palette.primary) 22)
+                                            (interactionDetails.icon (SH.toElementColor context.palette.primary) 22)
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
@@ -618,13 +614,13 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                     ( iconColor, fontColor ) =
                                         case interactionStatus of
                                             ITypes.Ready _ ->
-                                                ( SH.toElementColor palette.primary
-                                                , SH.toElementColor palette.on.surface
+                                                ( SH.toElementColor context.palette.primary
+                                                , SH.toElementColor context.palette.on.surface
                                                 )
 
                                             _ ->
-                                                ( SH.toElementColor palette.muted
-                                                , SH.toElementColor palette.muted
+                                                ( SH.toElementColor context.palette.muted
+                                                , SH.toElementColor context.palette.muted
                                                 )
                                 in
                                 Element.row
@@ -646,7 +642,7 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
                                             Element.row
                                                 []
                                                 [ Element.text ": "
-                                                , copyableText palette text
+                                                , copyableText context.palette text
                                                 ]
 
                                         _ ->
@@ -669,15 +665,15 @@ interactions palette server projectId appIsElectron currentTime tlsReverseProxyH
         |> Element.column []
 
 
-serverPassword : Style.Types.ExoPalette -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
-serverPassword palette projectId serverDetailViewParams server =
+serverPassword : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverPassword context projectId serverDetailViewParams server =
     let
         passwordShower password =
             Element.column
                 [ Element.spacing 10 ]
                 [ case serverDetailViewParams.passwordVisibility of
                     PasswordShown ->
-                        copyableText palette password
+                        copyableText context.palette password
 
                     PasswordHidden ->
                         Element.none
@@ -701,7 +697,7 @@ serverPassword palette projectId serverDetailViewParams server =
                                 )
                   in
                   Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                     { text = buttonText
                     , onPress = Just onPressMsg
                     }
@@ -725,23 +721,23 @@ serverPassword palette projectId serverDetailViewParams server =
         ]
 
 
-viewServerActions : Style.Types.ExoPalette -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
-viewServerActions palette projectId serverDetailViewParams server =
+viewServerActions : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+viewServerActions context projectId serverDetailViewParams server =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
                 List.map
-                    (renderServerActionButton palette projectId serverDetailViewParams server)
+                    (renderServerActionButton context projectId serverDetailViewParams server)
                     (ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus)
 
             Just _ ->
                 []
 
 
-renderServerActionButton : Style.Types.ExoPalette -> ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
-renderServerActionButton palette projectId serverDetailViewParams server serverAction =
+renderServerActionButton : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton context projectId serverDetailViewParams server serverAction =
     let
         displayConfirmation =
             case serverDetailViewParams.serverActionNamePendingConfirmation of
@@ -764,7 +760,7 @@ renderServerActionButton palette projectId serverDetailViewParams server serverA
                             )
                         )
             in
-            renderActionButton palette serverAction (Just updateAction) serverAction.name
+            renderActionButton context serverAction (Just updateAction) serverAction.name
 
         ( ServerActions.CmdAction cmdAction, True, True ) ->
             let
@@ -790,7 +786,7 @@ renderServerActionButton palette projectId serverDetailViewParams server serverA
                 title =
                     confirmationMessage serverAction
             in
-            renderConfirmationButton palette serverAction actionMsg cancelMsg title
+            renderConfirmationButton context serverAction actionMsg cancelMsg title
 
         ( ServerActions.CmdAction cmdAction, False, _ ) ->
             let
@@ -805,7 +801,7 @@ renderServerActionButton palette projectId serverDetailViewParams server serverA
                 title =
                     serverAction.name
             in
-            renderActionButton palette serverAction actionMsg title
+            renderActionButton context serverAction actionMsg title
 
         ( ServerActions.UpdateAction updateAction, _, _ ) ->
             let
@@ -815,7 +811,7 @@ renderServerActionButton palette projectId serverDetailViewParams server serverA
                 title =
                     serverAction.name
             in
-            renderActionButton palette serverAction actionMsg title
+            renderActionButton context serverAction actionMsg title
 
 
 confirmationMessage : ServerActions.ServerAction -> String
@@ -823,30 +819,30 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
-serverActionSelectModButton : Style.Types.ExoPalette -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
-serverActionSelectModButton palette selectMod =
+serverActionSelectModButton : View.Types.ViewContext -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
+serverActionSelectModButton context selectMod =
     case selectMod of
         ServerActions.NoMod ->
-            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
 
         ServerActions.Primary ->
-            Widget.textButton (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+            Widget.textButton (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
 
         ServerActions.Warning ->
-            Widget.textButton (Style.Widgets.Button.warningButton palette)
+            Widget.textButton (Style.Widgets.Button.warningButton context.palette)
 
         ServerActions.Danger ->
-            Widget.textButton (Style.Widgets.Button.dangerButton palette)
+            Widget.textButton (Style.Widgets.Button.dangerButton context.palette)
 
 
-renderActionButton : Style.Types.ExoPalette -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
-renderActionButton palette serverAction actionMsg title =
+renderActionButton : View.Types.ViewContext -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
+renderActionButton context serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
         [ Element.el
             [ Element.width <| Element.px 120 ]
           <|
-            serverActionSelectModButton palette
+            serverActionSelectModButton context
                 serverAction.selectMod
                 { text = title
                 , onPress = actionMsg
@@ -857,15 +853,15 @@ renderActionButton palette serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : Style.Types.ExoPalette -> ServerActions.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
-renderConfirmationButton palette serverAction actionMsg cancelMsg title =
+renderConfirmationButton : View.Types.ViewContext -> ServerActions.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
+renderConfirmationButton context serverAction actionMsg cancelMsg title =
     Element.row
         [ Element.spacing 10 ]
         [ Element.text title
         , Element.el
             []
           <|
-            serverActionSelectModButton palette
+            serverActionSelectModButton context
                 serverAction.selectMod
                 { text = "Yes"
                 , onPress = actionMsg
@@ -873,7 +869,7 @@ renderConfirmationButton palette serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette palette))
+            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                 { text = "No"
                 , onPress = cancelMsg
                 }
@@ -882,8 +878,8 @@ renderConfirmationButton palette serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : Style.Types.ExoPalette -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts palette currentTimeAndZone server =
+resourceUsageCharts : View.Types.ViewContext -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts context currentTimeAndZone server =
     let
         thirtyMinMillis =
             1000 * 60 * 30
@@ -903,7 +899,7 @@ resourceUsageCharts palette currentTimeAndZone server =
                             Element.text "No chart data to show."
 
                     else
-                        View.ResourceUsageCharts.charts palette currentTimeAndZone history.timeSeries
+                        View.ResourceUsageCharts.charts context currentTimeAndZone history.timeSeries
 
                 _ ->
                     if exoOriginProps.exoServerVersion < 2 then
@@ -913,8 +909,8 @@ resourceUsageCharts palette currentTimeAndZone server =
                         Element.text "Could not access the server console log, charts not available."
 
 
-renderIpAddresses : Style.Types.ExoPalette -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
-renderIpAddresses palette projectId serverUuid serverDetailViewParams ipAddresses =
+renderIpAddresses : View.Types.ViewContext -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
+renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresses =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
@@ -935,7 +931,7 @@ renderIpAddresses palette projectId serverUuid serverDetailViewParams ipAddresse
             ipAddressesOfType OSTypes.IpAddressFloating
                 |> List.map
                     (\ipAddress ->
-                        VH.compactKVSubRow "Floating IP" <| copyableText palette ipAddress.address
+                        VH.compactKVSubRow "Floating IP" <| copyableText context.palette ipAddress.address
                     )
 
         ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg
@@ -946,7 +942,7 @@ renderIpAddresses palette projectId serverUuid serverDetailViewParams ipAddresse
                     [ Font.size 10
                     , Border.width 1
                     , Border.rounded 20
-                    , Border.color (SH.toElementColor palette.muted)
+                    , Border.color (SH.toElementColor context.palette.muted)
                     , Element.padding 3
                     ]
                     { onPress =
@@ -1011,8 +1007,8 @@ friendlyCockpitReadiness serverOrigin =
                     "Ready"
 
 
-serverVolumes : Style.Types.ExoPalette -> Project -> Server -> Element.Element Msg
-serverVolumes palette project server =
+serverVolumes : View.Types.ViewContext -> Project -> Server -> Element.Element Msg
+serverVolumes context project server =
     let
         vols =
             GetterSetters.getVolsAttachedToServer project server
@@ -1038,7 +1034,7 @@ serverVolumes palette project server =
                     Input.button
                         [ Border.width 1
                         , Border.rounded 6
-                        , Border.color <| SH.toElementColor palette.muted
+                        , Border.color <| SH.toElementColor context.palette.muted
                         , Element.padding 3
                         ]
                         { onPress =

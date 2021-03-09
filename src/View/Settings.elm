@@ -5,14 +5,13 @@ import Element.Input as Input
 import Style.Types
 import Types.Types
     exposing
-        ( Model
-        , Msg(..)
+        ( Msg(..)
         )
 import View.Helpers as VH
 
 
-settings : Model -> Element.Element Msg
-settings model =
+settings : Style.Types.StyleMode -> Element.Element Msg
+settings styleMode =
     Element.column
         VH.exoColumnAttributes
         [ Element.el VH.heading2 <| Element.text "Settings"
@@ -26,7 +25,7 @@ settings model =
                 , Input.option Style.Types.DarkMode (Element.text "Dark")
                 ]
             , selected =
-                Just model.style.styleMode
+                Just styleMode
             , label = Input.labelAbove [] (Element.text "Color theme")
             }
         ]

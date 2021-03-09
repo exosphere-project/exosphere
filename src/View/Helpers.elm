@@ -159,11 +159,11 @@ edges =
     }
 
 
-hint : Style.Types.ExoPalette -> String -> Element.Attribute msg
-hint palette hintText =
+hint : View.Types.ViewContext -> String -> Element.Attribute msg
+hint context hintText =
     Element.below
         (Element.el
-            [ Font.color (palette.error |> SH.toElementColor)
+            [ Font.color (context.palette.error |> SH.toElementColor)
             , Font.size 14
             , Element.alignRight
             , Element.moveDown 6
@@ -172,23 +172,23 @@ hint palette hintText =
         )
 
 
-renderMessageAsElement : Style -> LogMessage -> Element.Element Msg
-renderMessageAsElement style message =
+renderMessageAsElement : View.Types.ViewContext -> LogMessage -> Element.Element Msg
+renderMessageAsElement context message =
     let
         levelColor : ErrorLevel -> Element.Color
         levelColor errLevel =
             case errLevel of
                 ErrorDebug ->
-                    style |> toExoPalette |> .readyGood |> SH.toElementColor
+                    context.palette.readyGood |> SH.toElementColor
 
                 ErrorInfo ->
-                    style |> toExoPalette |> .on |> .background |> SH.toElementColor
+                    context.palette.on.background |> SH.toElementColor
 
                 ErrorWarn ->
-                    style |> toExoPalette |> .warn |> SH.toElementColor
+                    context.palette.warn |> SH.toElementColor
 
                 ErrorCrit ->
-                    style |> toExoPalette |> .error |> SH.toElementColor
+                    context.palette.error |> SH.toElementColor
     in
     Element.column (exoColumnAttributes ++ [ Element.spacing 13 ])
         [ Element.row [ Element.alignRight ]
@@ -199,7 +199,7 @@ renderMessageAsElement style message =
                 (Element.text
                     (toFriendlyErrorLevel message.context.level)
                 )
-            , Element.el [ style |> toExoPalette |> .muted |> SH.toElementColor |> Font.color ]
+            , Element.el [ context.palette.muted |> SH.toElementColor |> Font.color ]
                 (Element.text
                     (" at " ++ humanReadableTime message.timestamp)
                 )
@@ -246,11 +246,11 @@ renderMessageAsString message =
         |> String.concat
 
 
-browserLink : Style.Types.ExoPalette -> Bool -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
-browserLink palette isElectron url label =
+browserLink : View.Types.ViewContext -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink context url label =
     let
         linkAttribs =
-            [ palette.primary |> SH.toElementColor |> Font.color
+            [ context.palette.primary |> SH.toElementColor |> Font.color
             , Font.underline
             , Element.pointer
             ]
@@ -267,7 +267,7 @@ browserLink palette isElectron url label =
                     , contents = el
                     }
     in
-    if isElectron then
+    if context.isElectron then
         Element.el
             (renderedLabel.attribs
                 ++ [ Element.Events.onClick (OpenInBrowser url) ]
@@ -483,8 +483,8 @@ getServerUiStatusColor palette status =
             SH.toElementColor palette.muted
 
 
-renderMarkdown : Style.Types.ExoPalette -> Bool -> String -> List (Element.Element Msg)
-renderMarkdown palette isElectron markdown =
+renderMarkdown : View.Types.ViewContext -> String -> List (Element.Element Msg)
+renderMarkdown context markdown =
     let
         deadEndsToString deadEnds =
             deadEnds
@@ -496,7 +496,7 @@ renderMarkdown palette isElectron markdown =
                 |> Markdown.Parser.parse
                 |> Result.mapError deadEndsToString
                 |> Result.andThen
-                    (\ast -> Markdown.Renderer.render (elmUiRenderer palette isElectron) ast)
+                    (\ast -> Markdown.Renderer.render (elmUiRenderer context) ast)
     in
     case result of
         Ok elements ->
@@ -508,8 +508,8 @@ renderMarkdown palette isElectron markdown =
             ]
 
 
-elmUiRenderer : Style.Types.ExoPalette -> Bool -> Markdown.Renderer.Renderer (Element.Element Msg)
-elmUiRenderer palette isElectron =
+elmUiRenderer : View.Types.ViewContext -> Markdown.Renderer.Renderer (Element.Element Msg)
+elmUiRenderer context =
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading
     , paragraph =
@@ -525,12 +525,11 @@ elmUiRenderer palette isElectron =
     , link =
         \{ destination } body ->
             browserLink
-                palette
-                isElectron
+                context
                 destination
                 (View.Types.BrowserLinkFancyLabel
                     (Element.paragraph
-                        [ palette.primary |> SH.toElementColor |> Font.color
+                        [ context.palette.primary |> SH.toElementColor |> Font.color
                         , Font.underline
                         , Element.pointer
                         ]
@@ -551,8 +550,8 @@ elmUiRenderer palette isElectron =
             Element.column
                 [ Element.Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
                 , Element.padding 10
-                , Element.Border.color (SH.toElementColor palette.on.background)
-                , Background.color (SH.toElementColor palette.surface)
+                , Element.Border.color (SH.toElementColor context.palette.on.background)
+                , Background.color (SH.toElementColor context.palette.surface)
                 ]
                 children
     , unorderedList =

@@ -1,10 +1,19 @@
 module View.Types exposing
     ( BrowserLinkLabel(..)
     , ImageTag
+    , ViewContext
     )
 
 import Element
-import Types.Types exposing (Msg)
+import Style.Types exposing (ExoPalette)
+import Types.Types exposing (Localization, Msg)
+
+
+type alias ViewContext =
+    { palette : ExoPalette
+    , isElectron : Bool
+    , localization : Localization
+    }
 
 
 type BrowserLinkLabel

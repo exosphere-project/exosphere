@@ -7,7 +7,6 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
@@ -23,6 +22,7 @@ import Types.Types
         )
 import View.GetSupport
 import View.Helpers as VH
+import View.Types
 
 
 navMenuWidth : Int
@@ -35,8 +35,8 @@ navBarHeight =
     70
 
 
-navMenu : Model -> Style.Types.ExoPalette -> Element.Element Msg
-navMenu model palette =
+navMenu : Model -> View.Types.ViewContext -> Element.Element Msg
+navMenu model context =
     let
         projectMenuItem : Project -> Element.Element Msg
         projectMenuItem project =
@@ -57,7 +57,7 @@ navMenu model palette =
                             MenuItem.Inactive
             in
             MenuItem.menuItem
-                palette
+                context.palette
                 status
                 projectTitle
                 (Just
@@ -91,11 +91,11 @@ navMenu model palette =
                         |> Maybe.map (\loginView -> SetNonProjectView (Login loginView))
                         |> Maybe.withDefault (SetNonProjectView LoginPicker)
             in
-            MenuItem.menuItem palette active "Add Project" (Just destination)
+            MenuItem.menuItem context.palette active "Add Project" (Just destination)
     in
     Element.column
-        [ Background.color (SH.toElementColor palette.menu.background)
-        , Font.color (SH.toElementColor palette.menu.on.background)
+        [ Background.color (SH.toElementColor context.palette.menu.background)
+        , Font.color (SH.toElementColor context.palette.menu.on.background)
         , Element.width (Element.px navMenuWidth)
         , Element.height Element.shrink
         , Element.scrollbarY
@@ -106,11 +106,11 @@ navMenu model palette =
         )
 
 
-navBar : Model -> Style.Types.ExoPalette -> Element.Element Msg
-navBar model palette =
+navBar : Model -> View.Types.ViewContext -> Element.Element Msg
+navBar model context =
     let
         navBarContainerAttributes =
-            [ Background.color (SH.toElementColor palette.menu.secondary)
+            [ Background.color (SH.toElementColor context.palette.menu.secondary)
             , Element.width Element.fill
             , Element.height (Element.px navBarHeight)
             ]
@@ -129,7 +129,7 @@ navBar model palette =
                     [ Region.heading 1
                     , Font.bold
                     , Font.size 26
-                    , Font.color (SH.toElementColor palette.menu.on.surface)
+                    , Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Element.text model.style.appTitle)
                 , Element.image [ Element.height (Element.px 40) ] { src = model.style.logo, description = "" }
@@ -139,11 +139,11 @@ navBar model palette =
             Element.row
                 [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
                 [ Element.el
-                    [ Font.color (SH.toElementColor palette.menu.on.surface)
+                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Element.text "")
                 , Element.el
-                    [ Font.color (SH.toElementColor palette.menu.on.surface)
+                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Input.button
                         []
@@ -151,13 +151,13 @@ navBar model palette =
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.bell (SH.toElementColor palette.menu.on.surface) 20
+                                [ Icon.bell (SH.toElementColor context.palette.menu.on.surface) 20
                                 , Element.text "Messages"
                                 ]
                         }
                     )
                 , Element.el
-                    [ Font.color (SH.toElementColor palette.menu.on.surface)
+                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Input.button
                         []
@@ -174,7 +174,7 @@ navBar model palette =
                         }
                     )
                 , Element.el
-                    [ Font.color (SH.toElementColor palette.menu.on.surface)
+                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Input.button
                         []
@@ -198,7 +198,7 @@ navBar model palette =
                         }
                     )
                 , Element.el
-                    [ Font.color (SH.toElementColor palette.menu.on.surface)
+                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Input.button
                         []

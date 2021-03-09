@@ -4,7 +4,6 @@ import Element
 import Element.Input as Input
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Style.Types
 import Types.Types
     exposing
         ( Msg(..)
@@ -13,12 +12,13 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
+import View.Types
 import Widget
 import Widget.Style.Material
 
 
-createServerImage : Style.Types.ExoPalette -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
-createServerImage palette project serverUuid imageName =
+createServerImage : View.Types.ViewContext -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
+createServerImage context project serverUuid imageName =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Create Image from Server")
         , Input.text
@@ -29,7 +29,7 @@ createServerImage palette project serverUuid imageName =
             , label = Input.labelAbove [] (Element.text "Image name")
             }
         , Widget.textButton
-            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
             { text = "Create"
             , onPress =
                 Just <|

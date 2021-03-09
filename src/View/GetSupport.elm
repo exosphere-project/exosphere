@@ -3,12 +3,10 @@ module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import RemoteData
 import Set
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
@@ -24,18 +22,19 @@ import Types.Types
         )
 import UUID
 import View.Helpers as VH
+import View.Types
 import Widget
 import Widget.Style.Material
 
 
 getSupport :
     Model
-    -> Style.Types.ExoPalette
+    -> View.Types.ViewContext
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Bool
     -> Element.Element Msg
-getSupport model palette maybeSupportableResource requestDescription isSubmitted =
+getSupport model context maybeSupportableResource requestDescription isSubmitted =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 30
@@ -46,7 +45,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
         , case model.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column [] <|
-                    VH.renderMarkdown palette (Helpers.appIsElectron model) markdown
+                    VH.renderMarkdown context markdown
 
             Nothing ->
                 Element.none
@@ -172,7 +171,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
             , spellcheck = True
             }
         , Widget.textButton
-            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
             { text = "Build Support Request"
             , onPress =
                 if String.isEmpty requestDescription then
@@ -189,7 +188,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                     [ Element.spacing 10 ]
                     [ Element.text "Please copy all of the text below and paste it into an email message to: "
                     , Element.el [ Font.extraBold ] <|
-                        Style.Widgets.CopyableText.copyableText palette model.style.userSupportEmail
+                        Style.Widgets.CopyableText.copyableText context.palette model.style.userSupportEmail
                     , Element.text "Someone will respond and assist you."
                     ]
                 , Input.multiline
