@@ -159,7 +159,7 @@ edges =
     }
 
 
-hint : View.Types.ViewContext -> String -> Element.Attribute msg
+hint : View.Types.Context -> String -> Element.Attribute msg
 hint context hintText =
     Element.below
         (Element.el
@@ -172,7 +172,7 @@ hint context hintText =
         )
 
 
-renderMessageAsElement : View.Types.ViewContext -> LogMessage -> Element.Element Msg
+renderMessageAsElement : View.Types.Context -> LogMessage -> Element.Element Msg
 renderMessageAsElement context message =
     let
         levelColor : ErrorLevel -> Element.Color
@@ -246,7 +246,7 @@ renderMessageAsString message =
         |> String.concat
 
 
-browserLink : View.Types.ViewContext -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink : View.Types.Context -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
 browserLink context url label =
     let
         linkAttribs =
@@ -483,7 +483,7 @@ getServerUiStatusColor palette status =
             SH.toElementColor palette.muted
 
 
-renderMarkdown : View.Types.ViewContext -> String -> List (Element.Element Msg)
+renderMarkdown : View.Types.Context -> String -> List (Element.Element Msg)
 renderMarkdown context markdown =
     let
         deadEndsToString deadEnds =
@@ -508,7 +508,7 @@ renderMarkdown context markdown =
             ]
 
 
-elmUiRenderer : View.Types.ViewContext -> Markdown.Renderer.Renderer (Element.Element Msg)
+elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element Msg)
 elmUiRenderer context =
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading

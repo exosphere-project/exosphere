@@ -22,7 +22,7 @@ import Widget
 import Widget.Style.Material
 
 
-project : Model -> View.Types.ViewContext -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
+project : Model -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
 project model context p viewParams viewConstructor =
     let
         v =
@@ -69,7 +69,7 @@ project model context p viewParams viewConstructor =
         ]
 
 
-projectNav : View.Types.ViewContext -> Project -> ProjectViewParams -> Element.Element Msg
+projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element Msg
 projectNav context p viewParams =
     Element.column [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
@@ -127,7 +127,7 @@ projectNav context p viewParams =
         ]
 
 
-createButton : View.Types.ViewContext -> ProjectIdentifier -> Bool -> Element.Element Msg
+createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element Msg
 createButton context projectId expanded =
     let
         ( attribs, icon ) =

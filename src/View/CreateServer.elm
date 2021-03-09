@@ -38,7 +38,7 @@ updateCreateServerRequest project viewParams =
             CreateServer viewParams
 
 
-createServer : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 createServer context project viewParams =
     let
         invalidNameReasons =
@@ -168,7 +168,7 @@ createServer context project viewParams =
         ]
 
 
-flavorPicker : View.Types.ViewContext -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
 flavorPicker context project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
@@ -296,7 +296,7 @@ flavorPicker context project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : View.Types.ViewContext -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
 volBackedPrompt context project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
@@ -399,7 +399,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
 
 
 countPicker :
-    View.Types.ViewContext
+    View.Types.Context
     -> Project
     -> CreateServerViewParams
     -> OSTypes.ComputeQuota
@@ -468,7 +468,7 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-desktopEnvironmentPicker : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 desktopEnvironmentPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow VH.exoElementAttributes
@@ -514,7 +514,7 @@ guacamolePicker project createServerViewParams =
                 ]
 
 
-networkPicker : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 networkPicker context project viewParams =
     let
         networkOptions =
@@ -604,7 +604,7 @@ keypairPicker project viewParams =
         ]
 
 
-userDataInput : View.Types.ViewContext -> Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 userDataInput context project viewParams =
     Input.multiline
         (VH.inputItemAttributes context.palette.background

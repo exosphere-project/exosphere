@@ -11,7 +11,7 @@ import Types.Types exposing (Msg, Toast)
 import View.Types
 
 
-toast : View.Types.ViewContext -> Bool -> Toast -> Html Msg
+toast : View.Types.Context -> Bool -> Toast -> Html Msg
 toast context showDebugMsgs t =
     let
         ( class, title ) =
@@ -55,7 +55,7 @@ toast context showDebugMsgs t =
         layoutWith Element.none
 
 
-genericToast : View.Types.ViewContext -> String -> String -> String -> a -> Maybe String -> Element.Element Msg
+genericToast : View.Types.Context -> String -> String -> String -> a -> Maybe String -> Element.Element Msg
 genericToast context variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")

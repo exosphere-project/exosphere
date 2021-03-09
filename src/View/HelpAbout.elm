@@ -7,7 +7,7 @@ import View.Helpers as VH
 import View.Types
 
 
-helpAbout : Model -> View.Types.ViewContext -> Element.Element Msg
+helpAbout : Model -> View.Types.Context -> Element.Element Msg
 helpAbout model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30 ])
         [ Element.el VH.heading2 <| Element.text <| "About " ++ model.style.appTitle
@@ -30,7 +30,7 @@ helpAbout model context =
         ]
 
 
-defaultHelpAboutText : View.Types.ViewContext -> Element.Element Msg
+defaultHelpAboutText : View.Types.Context -> Element.Element Msg
 defaultHelpAboutText context =
     Element.column [ Element.spacing 20 ]
         [ Element.paragraph []

@@ -31,7 +31,7 @@ type alias LoginMethod =
     }
 
 
-viewLoginPicker : View.Types.ViewContext -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
+viewLoginPicker : View.Types.Context -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
 viewLoginPicker context maybeOpenIdConnectLoginConfig =
     let
         defaultLoginMethods =
@@ -128,7 +128,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
         ]
 
 
-loginPickerButton : View.Types.ViewContext -> Element.Element Msg
+loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
     Widget.textButton
         (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
@@ -138,7 +138,7 @@ loginPickerButton context =
         }
 
 
-viewLoginOpenstack : View.Types.ViewContext -> OSTypes.OpenstackLogin -> Element.Element Msg
+viewLoginOpenstack : View.Types.Context -> OSTypes.OpenstackLogin -> Element.Element Msg
 viewLoginOpenstack context openstackCreds =
     Element.column VH.exoColumnAttributes
         [ Element.el
@@ -163,7 +163,7 @@ viewLoginOpenstack context openstackCreds =
         ]
 
 
-loginOpenstackCredsEntry : View.Types.ViewContext -> OSTypes.OpenstackLogin -> Element.Element Msg
+loginOpenstackCredsEntry : View.Types.Context -> OSTypes.OpenstackLogin -> Element.Element Msg
 loginOpenstackCredsEntry context openstackCreds =
     let
         updateCreds : OSTypes.OpenstackLogin -> Msg
@@ -212,7 +212,7 @@ loginOpenstackCredsEntry context openstackCreds =
         ]
 
 
-loginOpenstackOpenRcEntry : View.Types.ViewContext -> OSTypes.OpenstackLogin -> Element.Element Msg
+loginOpenstackOpenRcEntry : View.Types.Context -> OSTypes.OpenstackLogin -> Element.Element Msg
 loginOpenstackOpenRcEntry context openstackCreds =
     Element.column
         (VH.exoColumnAttributes
@@ -245,7 +245,7 @@ loginOpenstackOpenRcEntry context openstackCreds =
         ]
 
 
-viewLoginJetstream : View.Types.ViewContext -> JetstreamCreds -> Element.Element Msg
+viewLoginJetstream : View.Types.Context -> JetstreamCreds -> Element.Element Msg
 viewLoginJetstream context jetstreamCreds =
     let
         updateCreds : JetstreamCreds -> Msg
@@ -297,7 +297,7 @@ viewLoginJetstream context jetstreamCreds =
         ]
 
 
-jetstreamLoginText : View.Types.ViewContext -> Element.Element Msg
+jetstreamLoginText : View.Types.Context -> Element.Element Msg
 jetstreamLoginText context =
     Element.column VH.exoColumnAttributes
         [ Element.paragraph

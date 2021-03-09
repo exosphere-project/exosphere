@@ -29,7 +29,7 @@ import Widget.Style.Material
 
 getSupport :
     Model
-    -> View.Types.ViewContext
+    -> View.Types.Context
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Bool

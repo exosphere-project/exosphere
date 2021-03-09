@@ -35,7 +35,7 @@ navBarHeight =
     70
 
 
-navMenu : Model -> View.Types.ViewContext -> Element.Element Msg
+navMenu : Model -> View.Types.Context -> Element.Element Msg
 navMenu model context =
     let
         projectMenuItem : Project -> Element.Element Msg
@@ -106,7 +106,7 @@ navMenu model context =
         )
 
 
-navBar : Model -> View.Types.ViewContext -> Element.Element Msg
+navBar : Model -> View.Types.Context -> Element.Element Msg
 navBar model context =
     let
         navBarContainerAttributes =

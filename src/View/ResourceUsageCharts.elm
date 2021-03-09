@@ -27,7 +27,7 @@ import View.Helpers as VH
 import View.Types
 
 
-charts : View.Types.ViewContext -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+charts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
 charts context ( currentTime, timeZone ) timeSeriesDict =
     let
         timeSeriesList =

@@ -50,7 +50,7 @@ viewElectron =
 view_ : Model -> Html.Html Msg
 view_ model =
     let
-        viewContext : View.Types.ViewContext
+        viewContext : View.Types.Context
         viewContext =
             { palette = VH.toExoPalette model.style
             , isElectron = Helpers.appIsElectron model
@@ -69,7 +69,7 @@ view_ model =
         (elementView model.maybeWindowSize model viewContext)
 
 
-elementView : Maybe WindowSize -> Model -> View.Types.ViewContext -> Element.Element Msg
+elementView : Maybe WindowSize -> Model -> View.Types.Context -> Element.Element Msg
 elementView maybeWindowSize model context =
     let
         mainContentContainerView =
@@ -191,7 +191,7 @@ elementView maybeWindowSize model context =
         ]
 
 
-electronDeprecationWarning : View.Types.ViewContext -> Element.Element Msg
+electronDeprecationWarning : View.Types.Context -> Element.Element Msg
 electronDeprecationWarning context =
     -- Electron deprecation warning per Phase 1 of https://gitlab.com/exosphere/exosphere/-/merge_requests/381
     let

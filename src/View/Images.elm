@@ -31,7 +31,7 @@ import Widget
 import Widget.Style.Material
 
 
-imagesIfLoaded : View.Types.ViewContext -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+imagesIfLoaded : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
 imagesIfLoaded context project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.row [ Element.spacing 15 ]
@@ -123,7 +123,7 @@ filterImages imageListViewParams project someImages =
         |> filterBySearchText imageListViewParams.searchText
 
 
-images : View.Types.ViewContext -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
 images context project imageListViewParams sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
@@ -294,7 +294,7 @@ images context project imageListViewParams sortTableParams =
         ]
 
 
-renderImage : View.Types.ViewContext -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
 renderImage context project imageListViewParams sortTableParams image =
     let
         imageDetailsExpanded =

@@ -34,7 +34,7 @@ import Widget
 import Widget.Style.Material
 
 
-volumes : View.Types.ViewContext -> Project -> List DeleteVolumeConfirmation -> Element.Element Msg
+volumes : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> Element.Element Msg
 volumes context project deleteVolumeConfirmations =
     Element.column
         VH.exoColumnAttributes
@@ -66,7 +66,7 @@ volumes context project deleteVolumeConfirmations =
         ]
 
 
-renderVolumeCard : View.Types.ViewContext -> Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
+renderVolumeCard : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
 renderVolumeCard context project deleteVolumeConfirmations volume =
     ExoCard.exoCard
         context.palette
@@ -77,7 +77,7 @@ renderVolumeCard context project deleteVolumeConfirmations volume =
 
 
 volumeActionButtons :
-    View.Types.ViewContext
+    View.Types.Context
     -> Project
     -> (List DeleteVolumeConfirmation -> ProjectViewConstructor)
     -> List DeleteVolumeConfirmation
@@ -195,7 +195,7 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
         ]
 
 
-volumeDetailView : View.Types.ViewContext -> Project -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
+volumeDetailView : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
 volumeDetailView context project deleteVolumeConfirmations volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -205,7 +205,7 @@ volumeDetailView context project deleteVolumeConfirmations volumeUuid =
 
 
 volumeDetail :
-    View.Types.ViewContext
+    View.Types.Context
     -> Project
     -> (List DeleteVolumeConfirmation -> ProjectViewConstructor)
     -> List DeleteVolumeConfirmation
@@ -236,7 +236,7 @@ volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations 
             )
 
 
-renderAttachment : View.Types.ViewContext -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+renderAttachment : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
 renderAttachment context project attachment =
     let
         serverName serverUuid =
@@ -281,7 +281,7 @@ renderAttachment context project attachment =
         ]
 
 
-renderAttachments : View.Types.ViewContext -> Project -> OSTypes.Volume -> Element.Element Msg
+renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element Msg
 renderAttachments context project volume =
     case List.length volume.attachments of
         0 ->
@@ -295,7 +295,7 @@ renderAttachments context project volume =
                     List.map (renderAttachment context project) volume.attachments
 
 
-createVolume : View.Types.ViewContext -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
+createVolume : View.Types.Context -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
 createVolume context project volName volSizeInput =
     let
         maybeVolumeQuotaAvail =

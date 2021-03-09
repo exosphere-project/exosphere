@@ -17,7 +17,7 @@ import Widget
 import Widget.Style.Material
 
 
-createServerImage : View.Types.ViewContext -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
+createServerImage : View.Types.Context -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
 createServerImage context project serverUuid imageName =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 (Element.text "Create Image from Server")

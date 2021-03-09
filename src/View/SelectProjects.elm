@@ -22,7 +22,7 @@ import Widget.Style.Material
 
 selectProjects :
     Model
-    -> View.Types.ViewContext
+    -> View.Types.Context
     -> OSTypes.KeystoneUrl
     -> List UnscopedProviderProject
     -> Element.Element Msg

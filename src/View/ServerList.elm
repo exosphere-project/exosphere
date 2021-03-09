@@ -36,7 +36,7 @@ import Widget
 import Widget.Style.Material
 
 
-serverList : View.Types.ViewContext -> Project -> ServerListViewParams -> Element.Element Msg
+serverList : View.Types.Context -> Project -> ServerListViewParams -> Element.Element Msg
 serverList context project serverListViewParams =
     {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
@@ -72,7 +72,7 @@ serverList context project serverListViewParams =
                     servers
 
 
-serverList_ : View.Types.ViewContext -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
+serverList_ : View.Types.Context -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
 serverList_ context projectId userUuid serverListViewParams servers =
     {- Render a list of servers -}
     let
@@ -122,7 +122,7 @@ serverList_ context projectId userUuid serverListViewParams servers =
         ]
 
 
-renderTableHead : View.Types.ViewContext -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
+renderTableHead : View.Types.Context -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
 renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
     let
         deleteButtonOnPress =
@@ -185,7 +185,7 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
         ]
 
 
-renderServer : View.Types.ViewContext -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
+renderServer : View.Types.Context -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
 renderServer context projectId serverListViewParams isMyServer server =
     let
         statusIcon =
@@ -343,7 +343,7 @@ renderServer context projectId serverListViewParams isMyServer server =
         )
 
 
-onlyOwnExpander : View.Types.ViewContext -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
+onlyOwnExpander : View.Types.Context -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
 onlyOwnExpander context projectId serverListViewParams otherUsersServers =
     let
         numOtherUsersServers =

@@ -6,7 +6,7 @@ import View.Helpers as VH
 import View.Types
 
 
-messageLog : View.Types.ViewContext -> List LogMessage -> Element.Element Msg
+messageLog : View.Types.Context -> List LogMessage -> Element.Element Msg
 messageLog context logMessages =
     Element.column
         VH.exoColumnAttributes

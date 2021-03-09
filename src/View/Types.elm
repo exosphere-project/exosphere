@@ -1,7 +1,7 @@
 module View.Types exposing
     ( BrowserLinkLabel(..)
+    , Context
     , ImageTag
-    , ViewContext
     )
 
 import Element
@@ -9,7 +9,7 @@ import Style.Types exposing (ExoPalette)
 import Types.Types exposing (Localization, Msg)
 
 
-type alias ViewContext =
+type alias Context =
     { palette : ExoPalette
     , isElectron : Bool
     , localization : Localization

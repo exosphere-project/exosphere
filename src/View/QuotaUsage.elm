@@ -16,7 +16,7 @@ import View.Helpers as VH
 import View.Types
 
 
-dashboard : View.Types.ViewContext -> Project -> Element.Element Msg
+dashboard : View.Types.Context -> Project -> Element.Element Msg
 dashboard context project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -25,7 +25,7 @@ dashboard context project =
         ]
 
 
-quotaSections : View.Types.ViewContext -> Project -> Element.Element Msg
+quotaSections : View.Types.Context -> Project -> Element.Element Msg
 quotaSections context project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -36,7 +36,7 @@ quotaSections context project =
         ]
 
 
-infoItem : View.Types.ViewContext -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
+infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
 infoItem context detail ( label, units ) =
     let
         labelLimit m_ =
@@ -71,7 +71,7 @@ infoItem context detail ( label, units ) =
         ]
 
 
-computeQuota : View.Types.ViewContext -> Project -> Element.Element Msg
+computeQuota : View.Types.Context -> Project -> Element.Element Msg
 computeQuota context project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -80,7 +80,7 @@ computeQuota context project =
         ]
 
 
-computeInfoItems : View.Types.ViewContext -> OSTypes.ComputeQuota -> Element.Element Msg
+computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element Msg
 computeInfoItems context quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -106,14 +106,14 @@ quotaDetail quota infoItemsF =
             infoItemsF quota_
 
 
-computeQuotaDetails : View.Types.ViewContext -> WebData OSTypes.ComputeQuota -> Element.Element Msg
+computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element Msg
 computeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail quota (computeInfoItems context) ]
 
 
-volumeQuota : View.Types.ViewContext -> Project -> Element.Element Msg
+volumeQuota : View.Types.Context -> Project -> Element.Element Msg
 volumeQuota context project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -122,7 +122,7 @@ volumeQuota context project =
         ]
 
 
-volumeInfoItems : View.Types.ViewContext -> OSTypes.VolumeQuota -> Element.Element Msg
+volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element Msg
 volumeInfoItems context quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -131,7 +131,7 @@ volumeInfoItems context quota =
         ]
 
 
-volumeQuoteDetails : View.Types.ViewContext -> WebData OSTypes.VolumeQuota -> Element.Element Msg
+volumeQuoteDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element Msg
 volumeQuoteDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])

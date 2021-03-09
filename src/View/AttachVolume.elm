@@ -25,7 +25,7 @@ import Widget
 import Widget.Style.Material
 
 
-attachVolume : View.Types.ViewContext -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
+attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
 attachVolume context project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
@@ -131,7 +131,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
         ]
 
 
-mountVolInstructions : View.Types.ViewContext -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
 mountVolInstructions context project attachment =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 <| Element.text "Volume Attached"

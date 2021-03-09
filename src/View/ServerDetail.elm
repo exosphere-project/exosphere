@@ -54,7 +54,7 @@ updateServerDetail project serverDetailViewParams server =
             ServerDetail server.osProps.uuid serverDetailViewParams
 
 
-serverDetail : View.Types.ViewContext -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
 serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case GetterSetters.serverLookup project serverUuid of
@@ -65,7 +65,7 @@ serverDetail context project currentTimeAndZone serverDetailViewParams serverUui
             Element.text "No server found"
 
 
-serverDetail_ : View.Types.ViewContext -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
 serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
@@ -338,7 +338,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         ]
 
 
-passwordVulnWarning : View.Types.ViewContext -> Server -> Element.Element Msg
+passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
 passwordVulnWarning context server =
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
@@ -365,7 +365,7 @@ passwordVulnWarning context server =
                 Element.none
 
 
-serverStatus : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverStatus : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
 serverStatus context projectId serverDetailViewParams server =
     let
         details =
@@ -471,7 +471,7 @@ serverStatus context projectId serverDetailViewParams server =
             ]
 
 
-interactions : View.Types.ViewContext -> Server -> ProjectIdentifier -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
+interactions : View.Types.Context -> Server -> ProjectIdentifier -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
 interactions context server projectId currentTime tlsReverseProxyHostname serverDetailViewParams =
     let
         renderInteraction interaction =
@@ -665,7 +665,7 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
         |> Element.column []
 
 
-serverPassword : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverPassword : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
 serverPassword context projectId serverDetailViewParams server =
     let
         passwordShower password =
@@ -721,7 +721,7 @@ serverPassword context projectId serverDetailViewParams server =
         ]
 
 
-viewServerActions : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+viewServerActions : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
 viewServerActions context projectId serverDetailViewParams server =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
@@ -736,7 +736,7 @@ viewServerActions context projectId serverDetailViewParams server =
                 []
 
 
-renderServerActionButton : View.Types.ViewContext -> ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
 renderServerActionButton context projectId serverDetailViewParams server serverAction =
     let
         displayConfirmation =
@@ -819,7 +819,7 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
-serverActionSelectModButton : View.Types.ViewContext -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
+serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
 serverActionSelectModButton context selectMod =
     case selectMod of
         ServerActions.NoMod ->
@@ -835,7 +835,7 @@ serverActionSelectModButton context selectMod =
             Widget.textButton (Style.Widgets.Button.dangerButton context.palette)
 
 
-renderActionButton : View.Types.ViewContext -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton context serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -853,7 +853,7 @@ renderActionButton context serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : View.Types.ViewContext -> ServerActions.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
+renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
 renderConfirmationButton context serverAction actionMsg cancelMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -878,7 +878,7 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.ViewContext -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
 resourceUsageCharts context currentTimeAndZone server =
     let
         thirtyMinMillis =
@@ -909,7 +909,7 @@ resourceUsageCharts context currentTimeAndZone server =
                         Element.text "Could not access the server console log, charts not available."
 
 
-renderIpAddresses : View.Types.ViewContext -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
+renderIpAddresses : View.Types.Context -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
 renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresses =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
@@ -1007,7 +1007,7 @@ friendlyCockpitReadiness serverOrigin =
                     "Ready"
 
 
-serverVolumes : View.Types.ViewContext -> Project -> Server -> Element.Element Msg
+serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
 serverVolumes context project server =
     let
         vols =
