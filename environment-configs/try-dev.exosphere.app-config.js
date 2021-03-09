@@ -24,7 +24,8 @@ openIdConnectLoginConfig:
   oidcLoginButtonDescription : "Under construction, may not work, Jetstream IU Cloud only"
 },
 featuredImageNamePrefix: null,
-defaultImageExcludeFilter: null
+defaultImageExcludeFilter: null,
+localization: null
 }
 
 /* Matomo tracking code */
