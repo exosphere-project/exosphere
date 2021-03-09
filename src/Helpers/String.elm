@@ -1,4 +1,9 @@
-module Helpers.String exposing (capitalizeString, indefiniteArticle, stringToTitleCase)
+module Helpers.String exposing
+    ( capitalizeString
+    , indefiniteArticle
+    , pluralizeWord
+    , stringToTitleCase
+    )
 
 
 indefiniteArticle : String -> String
@@ -14,6 +19,18 @@ indefiniteArticle word =
 
     else
         "a"
+
+
+pluralizeWord : String -> String
+pluralizeWord word =
+    String.concat
+        [ word
+        , if String.right 1 word == "s" then
+            ""
+
+          else
+            "s"
+        ]
 
 
 capitalizeString : String -> String
