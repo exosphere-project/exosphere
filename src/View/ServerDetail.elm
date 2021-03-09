@@ -12,6 +12,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -275,7 +276,14 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , creatorNameView
             , VH.compactKVRow "Image" (Element.text imageText)
             , VH.compactKVRow "Flavor" (Element.text flavorText)
-            , VH.compactKVRow "SSH Key Name" (Element.text (Maybe.withDefault "(none)" details.keypairName))
+            , VH.compactKVRow
+                (String.join " "
+                    [ context.localization.pkiPublicKeyForSsh
+                        |> Helpers.String.stringToTitleCase
+                    , "Name"
+                    ]
+                )
+                (Element.text (Maybe.withDefault "(none)" details.keypairName))
             , VH.compactKVRow "IP addresses"
                 (renderIpAddresses
                     context

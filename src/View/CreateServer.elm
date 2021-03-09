@@ -8,6 +8,7 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
@@ -611,15 +612,28 @@ keypairPicker context project viewParams =
         contents =
             if List.isEmpty project.keypairs then
                 Element.text <|
-                    String.concat
-                        [ "(This "
+                    String.join " "
+                        [ "(This"
                         , context.localization.unitOfTenancy
-                        , " has no keypairs to choose from, but you can still create a server!)"
+                        , "has no"
+                        , context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.pluralizeWord
+                        , "to choose from, but you can still create a server!)"
                         ]
 
             else
                 Input.radio []
-                    { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
+                    { label =
+                        Input.labelAbove
+                            [ Element.paddingXY 0 12 ]
+                            (Element.text <|
+                                String.join " "
+                                    [ "Choose"
+                                    , Helpers.String.indefiniteArticle context.localization.pkiPublicKeyForSsh
+                                    , context.localization.pkiPublicKeyForSsh
+                                    , "(this is optional, skip if unsure)"
+                                    ]
+                            )
                     , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
                     , options = List.map keypairAsOption project.keypairs
                     , selected = Just (Maybe.withDefault "" viewParams.keypairName)
@@ -627,7 +641,11 @@ keypairPicker context project viewParams =
     in
     Element.column
         VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] (Element.text "SSH Keypair")
+        [ Element.el
+            [ Font.bold ]
+            (Element.text
+                (Helpers.String.stringToTitleCase context.localization.pkiPublicKeyForSsh)
+            )
         , contents
         ]
 
