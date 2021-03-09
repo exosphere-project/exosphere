@@ -5,20 +5,60 @@ module Helpers.String exposing
     , stringToTitleCase
     )
 
+import Regex
+
 
 indefiniteArticle : String -> String
-indefiniteArticle word =
-    let
-        firstLetterLower =
-            word
-                |> String.left 1
-                |> String.toLower
-    in
-    if List.member firstLetterLower [ "a", "e", "i", "o", "u" ] then
-        "an"
+indefiniteArticle phrase =
+    case
+        -- Look at whatever comes before the first space, hyphen, or period
+        phrase
+            |> String.split " "
+            |> List.map (String.split "-")
+            |> List.concat
+            |> List.map (String.split ".")
+            |> List.concat
+            |> List.head
+    of
+        Nothing ->
+            -- String is empty, so we have "a" nothing
+            "a"
 
-    else
-        "a"
+        Just firstWord ->
+            let
+                acronymRegex =
+                    Regex.fromString "[A-Z]{2}"
+                        |> Maybe.withDefault Regex.never
+
+                firstWordIsPronouncedLikeAcronym =
+                    Regex.contains acronymRegex firstWord
+
+                firstLetterLowercase =
+                    phrase
+                        |> String.left 1
+                        |> String.toLower
+            in
+            if firstWordIsPronouncedLikeAcronym || String.length firstWord == 1 then
+                let
+                    lettersThatSoundVowely =
+                        [ "a", "e", "f", "h", "i", "l", "m", "n", "o", "r", "s", "x" ]
+                in
+                if List.member firstLetterLowercase lettersThatSoundVowely then
+                    "an"
+
+                else
+                    "a"
+
+            else
+                let
+                    vowels =
+                        [ "a", "e", "i", "o", "u" ]
+                in
+                if List.member firstLetterLowercase vowels then
+                    "an"
+
+                else
+                    "a"
 
 
 pluralizeWord : String -> String
