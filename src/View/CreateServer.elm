@@ -114,9 +114,9 @@ createServer context project viewParams =
                             [ Element.none ]
 
                         else
-                            [ guacamolePicker project viewParams
+                            [ guacamolePicker context project viewParams
                             , networkPicker context project viewParams
-                            , keypairPicker project viewParams
+                            , keypairPicker context project viewParams
                             , userDataInput context project viewParams
                             ]
                        )
@@ -492,11 +492,16 @@ desktopEnvironmentPicker context project createServerViewParams =
         ]
 
 
-guacamolePicker : Project -> CreateServerViewParams -> Element.Element Msg
-guacamolePicker project createServerViewParams =
+guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+guacamolePicker context project createServerViewParams =
     case createServerViewParams.deployGuacamole of
         Nothing ->
-            Element.text "Guacamole deployment is not supported for this OpenStack cloud."
+            Element.text <|
+                String.concat
+                    [ "Guacamole deployment is not supported for this "
+                    , context.localization.openstackWithOwnKeystone
+                    , "."
+                    ]
 
         Just deployGuacamole ->
             Element.column VH.exoColumnAttributes
@@ -525,7 +530,13 @@ networkPicker context project viewParams =
                 NoNetsAutoAllocate ->
                     [ Element.paragraph
                         []
-                        [ Element.text "There are no networks associated with your project so Exosphere will ask OpenStack to create one for you and hope for the best." ]
+                        [ Element.text <|
+                            String.concat
+                                [ "There are no networks associated with your "
+                                , context.localization.unitOfTenancy
+                                , " so Exosphere will ask OpenStack to create one for you and hope for the best."
+                                ]
+                        ]
                     ]
 
                 OneNet net ->
@@ -579,15 +590,20 @@ networkPicker context project viewParams =
         (Element.el [ Font.bold ] (Element.text "Network") :: contents)
 
 
-keypairPicker : Project -> CreateServerViewParams -> Element.Element Msg
-keypairPicker project viewParams =
+keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+keypairPicker context project viewParams =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
         contents =
             if List.isEmpty project.keypairs then
-                Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
+                Element.text <|
+                    String.concat
+                        [ "(This "
+                        , context.localization.unitOfTenancy
+                        , " has no keypairs to choose from, but you can still create a server!)"
+                        ]
 
             else
                 Input.radio []
