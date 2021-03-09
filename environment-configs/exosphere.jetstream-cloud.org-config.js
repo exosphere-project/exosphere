@@ -26,20 +26,20 @@ openIdConnectLoginConfig:
 featuredImageNamePrefix: "JS-API-Featured",
 defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" },
 localization: {
-  openstackWithOwnKeystone = "cloud",
-  openstackSharingKeystoneWithAnother = "region",
-  unitOfTenancy = "allocation",
-  maxResourcesPerProject = "quota",
-  pkiPublicKeyForSsh = "SSH public key",
-  virtualComputer = "instance",
-  virtualComputerHardwareConfig = "flavor",
-  cloudInitData = "boot script",
-  commandDrivenTextInterface = "web shell",
-  staticRepresentationOfBlockDeviceContents = "image",
-  blockDevice = "volume",
-  nonFloatingIpAddress = "internal IP address",
-  floatingIpAddress = "public IP address",
-  graphicalDesktopEnvironment = "web desktop"
+  openstackWithOwnKeystone: "cloud",
+  openstackSharingKeystoneWithAnother: "region",
+  unitOfTenancy: "allocation",
+  maxResourcesPerProject: "quota",
+  pkiPublicKeyForSsh: "SSH public key",
+  virtualComputer: "instance",
+  virtualComputerHardwareConfig: "flavor",
+  cloudInitData: "boot script",
+  commandDrivenTextInterface: "web shell",
+  staticRepresentationOfBlockDeviceContents: "image",
+  blockDevice: "volume",
+  nonFloatingIpAddress: "internal IP address",
+  floatingIpAddress: "public IP address",
+  graphicalDesktopEnvironment: "web desktop"
   }
 }
 
