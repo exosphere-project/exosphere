@@ -37,13 +37,13 @@ import View.Types
 view : Model -> Browser.Document Msg
 view model =
     let
-        viewContext =
+        context =
             VH.toViewContext model
     in
     { title =
-        View.PageTitle.pageTitle model viewContext
+        View.PageTitle.pageTitle model context
     , body =
-        [ view_ model viewContext ]
+        [ view_ model context ]
     }
 
 
@@ -53,17 +53,17 @@ viewElectron =
 
 
 view_ : Model -> View.Types.Context -> Html.Html Msg
-view_ model viewContext =
+view_ model context =
     Element.layout
         [ Font.size 17
         , Font.family
             [ Font.typeface "Open Sans"
             , Font.sansSerif
             ]
-        , Font.color <| SH.toElementColor <| viewContext.palette.on.background
-        , Background.color <| SH.toElementColor <| viewContext.palette.background
+        , Font.color <| SH.toElementColor <| context.palette.on.background
+        , Background.color <| SH.toElementColor <| context.palette.background
         ]
-        (elementView model.maybeWindowSize model viewContext)
+        (elementView model.maybeWindowSize model context)
 
 
 elementView : Maybe WindowSize -> Model -> View.Types.Context -> Element.Element Msg
