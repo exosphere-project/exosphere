@@ -288,7 +288,7 @@ flavorPicker context project viewParams computeQuota =
             , columns = columns
             }
         , if anyFlavorsTooLarge then
-            Element.text "Flavors marked 'X' are too large for your available quota"
+            Element.text ("Flavors marked 'X' are too large for your available " ++ context.localization.maxResourcesPerProject)
 
           else
             Element.none
@@ -371,7 +371,12 @@ volBackedPrompt context project viewParams volumeQuota flavor =
             radioInput
 
           else
-            Element.text "(N/A: volume quota exhausted, cannot launch a volume-backed instance)"
+            Element.text <|
+                String.join " "
+                    [ "(N/A: volume"
+                    , context.localization.maxResourcesPerProject
+                    , "exhausted, cannot launch a volume-backed instance)"
+                    ]
         , case viewParams.volSizeTextInput of
             Nothing ->
                 Element.none
@@ -387,7 +392,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                     , case ( volumeSizeGbAvail, volSizeTextInput ) of
                         ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
                             if i == volumeSizeAvail_ then
-                                Element.text "(quota max)"
+                                Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
                             else
                                 Element.none
@@ -421,7 +426,14 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
         [ Element.text "How many servers?"
         , case countAvail of
             Just countAvail_ ->
-                Element.text ("Your quota supports up to " ++ String.fromInt countAvail_ ++ " of these.")
+                Element.text <|
+                    String.join " "
+                        [ "Your"
+                        , context.localization.maxResourcesPerProject
+                        , "supports up to"
+                        , String.fromInt countAvail_
+                        , "of these."
+                        ]
 
             Nothing ->
                 Element.none
@@ -457,7 +469,7 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
             , case countAvail of
                 Just countAvail_ ->
                     if viewParams.count == countAvail_ then
-                        Element.text "(quota max)"
+                        Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
                     else
                         Element.none

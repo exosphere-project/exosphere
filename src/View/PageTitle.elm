@@ -97,7 +97,12 @@ pageTitle model context =
                     "Volumes for " ++ projectName
 
                 ListQuotaUsage ->
-                    "Quota Usage for " ++ projectName
+                    String.join " "
+                        [ context.localization.maxResourcesPerProject
+                            |> Helpers.String.capitalizeString
+                        , "Usage for"
+                        , projectName
+                        ]
 
                 ServerDetail serverUuid _ ->
                     "Server " ++ serverName maybeProject serverUuid

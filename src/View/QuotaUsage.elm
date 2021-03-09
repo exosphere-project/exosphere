@@ -4,6 +4,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
 import Style.Helpers as SH
@@ -20,7 +21,12 @@ dashboard : View.Types.Context -> Project -> Element.Element Msg
 dashboard context project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 <| Element.text "Quota/Usage"
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ context.localization.maxResourcesPerProject |> Helpers.String.capitalizeString
+                    , "Usage"
+                    ]
         , quotaSections context project
         ]
 
@@ -90,17 +96,25 @@ computeInfoItems context quota =
         ]
 
 
-quotaDetail : WebData q -> (q -> Element.Element Msg) -> Element.Element Msg
-quotaDetail quota infoItemsF =
+quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element Msg) -> Element.Element Msg
+quotaDetail context quota infoItemsF =
+    let
+        strProto =
+            String.join " "
+                [ context.localization.maxResourcesPerProject
+                    |> Helpers.String.capitalizeString
+                , "data"
+                ]
+    in
     case quota of
         NotAsked ->
-            Element.el [] <| Element.text "Quota data loading ..."
+            Element.el [] <| Element.text (strProto ++ " loading ...")
 
         Loading ->
-            Element.el [] <| Element.text "Quota data still loading ..."
+            Element.el [] <| Element.text (strProto ++ " still loading ...")
 
         Failure _ ->
-            Element.el [] <| Element.text "Quota data could not be loaded ..."
+            Element.el [] <| Element.text (strProto ++ " could not be loaded ...")
 
         Success quota_ ->
             infoItemsF quota_
@@ -110,7 +124,7 @@ computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Elem
 computeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail quota (computeInfoItems context) ]
+        [ quotaDetail context quota (computeInfoItems context) ]
 
 
 volumeQuota : View.Types.Context -> Project -> Element.Element Msg
@@ -135,4 +149,4 @@ volumeQuoteDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Elemen
 volumeQuoteDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ quotaDetail quota (volumeInfoItems context) ]
+        [ quotaDetail context quota (volumeInfoItems context) ]

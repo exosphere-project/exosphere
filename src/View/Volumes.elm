@@ -346,7 +346,14 @@ createVolume context project volName volSizeInput =
                             ( Nothing, Nothing )
 
                 else
-                    ( Nothing, Just "Your quota does not allow for creation of another volume." )
+                    ( Nothing
+                    , Just <|
+                        String.join " "
+                            [ "Your"
+                            , context.localization.maxResourcesPerProject
+                            , "does not allow for creation of another volume."
+                            ]
+                    )
           in
           Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
             [ case quotaWarnText of

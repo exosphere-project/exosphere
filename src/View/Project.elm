@@ -105,7 +105,12 @@ projectNav context p viewParams =
             , Element.el [] <|
                 Widget.textButton
                     (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text = "Quota/Usage"
+                    { text =
+                        String.join " "
+                            [ context.localization.maxResourcesPerProject
+                                |> Helpers.String.capitalizeString
+                            , "Usage"
+                            ]
                     , onPress =
                         SetProjectView ListQuotaUsage
                             |> ProjectMsg p.auth.project.uuid
