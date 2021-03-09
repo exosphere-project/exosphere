@@ -6,6 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
+import Helpers.String
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
@@ -91,7 +92,10 @@ navMenu model context =
                         |> Maybe.map (\loginView -> SetNonProjectView (Login loginView))
                         |> Maybe.withDefault (SetNonProjectView LoginPicker)
             in
-            MenuItem.menuItem context.palette active "Add Project" (Just destination)
+            MenuItem.menuItem context.palette
+                active
+                ("Add " ++ Helpers.String.capitalizeString context.localization.unitOfTenancy)
+                (Just destination)
     in
     Element.column
         [ Background.color (SH.toElementColor context.palette.menu.background)

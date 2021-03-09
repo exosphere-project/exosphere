@@ -1,6 +1,7 @@
 module View.PageTitle exposing (pageTitle)
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Types.Types
@@ -13,10 +14,11 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH
+import View.Types
 
 
-pageTitle : Model -> String
-pageTitle model =
+pageTitle : Model -> View.Types.Context -> String
+pageTitle model context =
     case model.viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
@@ -32,7 +34,10 @@ pageTitle model =
                             "Jetstream Cloud Login"
 
                 LoadingUnscopedProjects _ ->
-                    "Loading projects"
+                    String.join " "
+                        [ "Loading"
+                        , Helpers.String.pluralizeWord context.localization.unitOfTenancy
+                        ]
 
                 SelectProjects keystoneUrl _ ->
                     let
@@ -41,7 +46,14 @@ pageTitle model =
                                 |> UrlHelpers.hostnameFromUrl
                                 |> VH.titleFromHostname
                     in
-                    "Select Projects for " ++ providerTitle
+                    String.join " "
+                        [ "Select"
+                        , context.localization.unitOfTenancy
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.capitalizeString
+                        , "for"
+                        , providerTitle
+                        ]
 
                 MessageLog ->
                     "Message Log"
@@ -66,7 +78,13 @@ pageTitle model =
                 projectName =
                     maybeProject
                         |> Maybe.map (\p -> p.auth.project.name)
-                        |> Maybe.withDefault "could not find project name"
+                        |> Maybe.withDefault
+                            (String.join " "
+                                [ "could not find"
+                                , context.localization.unitOfTenancy
+                                , "name"
+                                ]
+                            )
             in
             case projectViewConstructor of
                 ListImages _ _ ->

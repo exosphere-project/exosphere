@@ -2,6 +2,7 @@ module View.Project exposing (project)
 
 import Element
 import FeatherIcons
+import Helpers.String
 import Helpers.Url as UrlHelpers
 import Set
 import Style.Helpers as SH
@@ -116,7 +117,11 @@ projectNav context p viewParams =
               <|
                 Widget.textButton
                     (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                    { text = "Remove Project"
+                    { text =
+                        String.join " "
+                            [ "Remove"
+                            , Helpers.String.capitalizeString context.localization.unitOfTenancy
+                            ]
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid RemoveProject
                     }

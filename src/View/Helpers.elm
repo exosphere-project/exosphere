@@ -22,6 +22,7 @@ module View.Helpers exposing
     , renderMessageAsString
     , titleFromHostname
     , toExoPalette
+    , toViewContext
     )
 
 import Color
@@ -60,6 +61,14 @@ import Types.Types
         , Style
         )
 import View.Types
+
+
+toViewContext : Model -> View.Types.Context
+toViewContext model =
+    { palette = toExoPalette model.style
+    , isElectron = Helpers.appIsElectron model
+    , localization = model.style.localization
+    }
 
 
 toExoPalette : Style -> ExoPalette

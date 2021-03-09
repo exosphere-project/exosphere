@@ -39,6 +39,7 @@ import Types.Types
         , UnscopedProvider
         , ViewState(..)
         )
+import View.Helpers
 import View.PageTitle
 
 
@@ -414,8 +415,11 @@ modelUpdateViewState viewState model =
                 , prevUrl = newUrl
             }
 
+        newViewContext =
+            View.Helpers.toViewContext newModel
+
         newPageTitle =
-            View.PageTitle.pageTitle newModel
+            View.PageTitle.pageTitle newModel newViewContext
 
         ( updateUrlFunc, updateMatomoCmd ) =
             if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then

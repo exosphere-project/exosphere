@@ -6,6 +6,7 @@ import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.String
 import Html
 import Style.Helpers as SH
 import Style.Toast
@@ -35,28 +36,24 @@ import View.Types
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        viewContext =
+            VH.toViewContext model
+    in
     { title =
-        View.PageTitle.pageTitle model
+        View.PageTitle.pageTitle model viewContext
     , body =
-        [ view_ model ]
+        [ view_ model viewContext ]
     }
 
 
-viewElectron : Model -> Html.Html Msg
+viewElectron : Model -> View.Types.Context -> Html.Html Msg
 viewElectron =
     view_
 
 
-view_ : Model -> Html.Html Msg
-view_ model =
-    let
-        viewContext : View.Types.Context
-        viewContext =
-            { palette = VH.toExoPalette model.style
-            , isElectron = Helpers.appIsElectron model
-            , localization = model.style.localization
-            }
-    in
+view_ : Model -> View.Types.Context -> Html.Html Msg
+view_ model viewContext =
     Element.layout
         [ Font.size 17
         , Font.family
@@ -102,7 +99,13 @@ elementView maybeWindowSize model context =
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here
-                                Element.text "Loading Projects"
+                                Element.text <|
+                                    String.join " "
+                                        [ "Loading"
+                                        , context.localization.unitOfTenancy
+                                            |> Helpers.String.pluralizeWord
+                                            |> Helpers.String.capitalizeString
+                                        ]
 
                             SelectProjects authUrl selectedProjects ->
                                 View.SelectProjects.selectProjects model context authUrl selectedProjects
@@ -130,7 +133,13 @@ elementView maybeWindowSize model context =
                     ProjectView projectName projectViewParams viewConstructor ->
                         case GetterSetters.projectLookup model projectName of
                             Nothing ->
-                                Element.text "Oops! Project not found"
+                                Element.text <|
+                                    String.join " "
+                                        [ "Oops!"
+                                        , context.localization.unitOfTenancy
+                                            |> Helpers.String.capitalizeString
+                                        , "not found"
+                                        ]
 
                             Just project ->
                                 View.Project.project

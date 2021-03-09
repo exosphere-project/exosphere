@@ -267,7 +267,14 @@ images context project imageListViewParams sortTableParams =
                             ListImages { imageListViewParams | onlyOwnImages = new }
                                 sortTableParams
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.text "Show only images owned by this project")
+            , label =
+                Input.labelRight [] <|
+                    Element.text <|
+                        String.join
+                            " "
+                            [ "Show only images owned by this"
+                            , context.localization.unitOfTenancy
+                            ]
             }
         , Widget.textButton
             (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
@@ -391,7 +398,11 @@ renderImage context project imageListViewParams sortTableParams image =
 
         ownerBadge =
             if projectOwnsImage project image then
-                ExoCard.badge "belongs to this project"
+                ExoCard.badge <|
+                    String.join " "
+                        [ "belongs to this"
+                        , context.localization.unitOfTenancy
+                        ]
 
             else
                 Element.none

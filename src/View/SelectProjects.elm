@@ -3,6 +3,7 @@ module View.SelectProjects exposing (selectProjects)
 import Element
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
+import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -35,7 +36,16 @@ selectProjects model context keystoneUrl selectedProjects =
             in
             Element.column VH.exoColumnAttributes
                 [ Element.el VH.heading2
-                    (Element.text <| "Choose Projects for " ++ urlLabel)
+                    (Element.text <|
+                        String.join " "
+                            [ "Choose"
+                            , context.localization.unitOfTenancy
+                                |> Helpers.String.pluralizeWord
+                                |> Helpers.String.capitalizeString
+                            , "for"
+                            , urlLabel
+                            ]
+                    )
                 , case provider.projectsAvailable of
                     RemoteData.Success projectsAvailable ->
                         Element.column VH.exoColumnAttributes <|
@@ -58,11 +68,21 @@ selectProjects model context keystoneUrl selectedProjects =
                             [ Widget.circularProgressIndicator
                                 (SH.materialStyle context.palette).progressIndicator
                                 Nothing
-                            , Element.text "Loading list of projects"
+                            , Element.text <|
+                                String.join " "
+                                    [ "Loading list of"
+                                    , Helpers.String.pluralizeWord context.localization.unitOfTenancy
+                                    ]
                             ]
 
                     RemoteData.Failure e ->
-                        Element.text ("Error loading list of projects: " ++ Debug.toString e)
+                        Element.text <|
+                            String.join " "
+                                [ "Error loading list of"
+                                , Helpers.String.pluralizeWord context.localization.unitOfTenancy
+                                , "--"
+                                , Debug.toString e
+                                ]
 
                     RemoteData.NotAsked ->
                         -- This state should be impossible because when we create an unscoped Provider we always immediately ask for a list of projects
