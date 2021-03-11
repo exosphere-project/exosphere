@@ -47,9 +47,13 @@ view model =
     }
 
 
-viewElectron : Model -> View.Types.Context -> Html.Html Msg
-viewElectron =
-    view_
+viewElectron : Model -> Html.Html Msg
+viewElectron model =
+    let
+        context =
+            VH.toViewContext model
+    in
+    view_ model context
 
 
 view_ : Model -> View.Types.Context -> Html.Html Msg
