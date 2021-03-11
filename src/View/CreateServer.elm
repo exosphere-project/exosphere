@@ -710,7 +710,9 @@ keypairPicker context project viewParams =
                         , " has no "
                         , context.localization.pkiPublicKeyForSsh
                             |> Helpers.String.pluralize
-                        , " to choose from, but you can still create a "
+                        , " to choose from, but you can still create "
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                        , " "
                         , context.localization.virtualComputer
                         , "!)"
                         ]
