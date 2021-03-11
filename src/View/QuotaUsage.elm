@@ -24,7 +24,7 @@ dashboard context project =
         [ Element.el VH.heading2 <|
             Element.text <|
                 String.join " "
-                    [ context.localization.maxResourcesPerProject |> Helpers.String.stringToTitleCase
+                    [ context.localization.maxResourcesPerProject |> Helpers.String.toTitleCase
                     , "Usage"
                     ]
         , quotaSections context project
@@ -102,7 +102,7 @@ quotaDetail context quota infoItemsF =
         strProto =
             String.join " "
                 [ context.localization.maxResourcesPerProject
-                    |> Helpers.String.stringToTitleCase
+                    |> Helpers.String.toTitleCase
                 , "data"
                 ]
     in
@@ -134,8 +134,8 @@ volumeQuota context project =
         [ Element.el VH.heading3 <|
             Element.text
                 (context.localization.blockDevice
-                    |> Helpers.String.pluralizeWord
-                    |> Helpers.String.stringToTitleCase
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
                 )
         , volumeQuoteDetails context project.volumeQuota
         ]
@@ -151,8 +151,8 @@ volumeInfoItems context quota =
             quota.volumes
             ( String.concat
                 [ context.localization.blockDevice
-                    |> Helpers.String.pluralizeWord
-                    |> Helpers.String.stringToTitleCase
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
                 , ":"
                 ]
             , "total"

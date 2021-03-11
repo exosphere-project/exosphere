@@ -36,7 +36,7 @@ pageTitle model context =
                 LoadingUnscopedProjects _ ->
                     String.join " "
                         [ "Loading"
-                        , Helpers.String.pluralizeWord context.localization.unitOfTenancy
+                        , Helpers.String.pluralize context.localization.unitOfTenancy
                         ]
 
                 SelectProjects keystoneUrl _ ->
@@ -49,8 +49,8 @@ pageTitle model context =
                     String.join " "
                         [ "Select"
                         , context.localization.unitOfTenancy
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                         , "for"
                         , providerTitle
                         ]
@@ -90,8 +90,8 @@ pageTitle model context =
                 ListImages _ _ ->
                     String.join " "
                         [ context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                         , "for"
                         , projectName
                         ]
@@ -99,8 +99,8 @@ pageTitle model context =
                 ListProjectServers _ ->
                     String.join " "
                         [ context.localization.virtualComputer
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                         , "for"
                         , projectName
                         ]
@@ -108,8 +108,8 @@ pageTitle model context =
                 ListProjectVolumes _ ->
                     String.join " "
                         [ context.localization.blockDevice
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                         , "for"
                         , projectName
                         ]
@@ -117,7 +117,7 @@ pageTitle model context =
                 ListQuotaUsage ->
                     String.join " "
                         [ context.localization.maxResourcesPerProject
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , "Usage for"
                         , projectName
                         ]
@@ -125,7 +125,7 @@ pageTitle model context =
                 ServerDetail serverUuid _ ->
                     String.join " "
                         [ context.localization.virtualComputer
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , serverName maybeProject serverUuid
                         ]
 
@@ -133,7 +133,7 @@ pageTitle model context =
                     String.join " "
                         [ "Create"
                         , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , "for"
                         , serverName maybeProject serverUuid
                         ]
@@ -141,7 +141,7 @@ pageTitle model context =
                 VolumeDetail volumeUuid _ ->
                     String.join " "
                         [ context.localization.blockDevice
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , volumeName maybeProject volumeUuid
                         ]
 
@@ -149,28 +149,28 @@ pageTitle model context =
                     String.join " "
                         [ "Create"
                         , context.localization.virtualComputer
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         ]
 
                 CreateVolume _ _ ->
                     String.join " "
                         [ "Create"
                         , context.localization.blockDevice
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         ]
 
                 AttachVolumeModal _ _ ->
                     String.join " "
                         [ "Attach"
                         , context.localization.blockDevice
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         ]
 
                 MountVolInstructions _ ->
                     String.join " "
                         [ "Mount"
                         , context.localization.blockDevice
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         ]
 
 

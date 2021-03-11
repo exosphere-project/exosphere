@@ -73,7 +73,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                         String.join
                             " "
                             [ context.localization.virtualComputer
-                                |> Helpers.String.stringToTitleCase
+                                |> Helpers.String.toTitleCase
                             , "not launched from Exosphere"
                             ]
 
@@ -84,7 +84,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                 ITypes.Unavailable <|
                                     String.join " "
                                         [ context.localization.virtualComputer
-                                            |> Helpers.String.stringToTitleCase
+                                            |> Helpers.String.toTitleCase
                                         , "was created with an older version of Exosphere"
                                         ]
 
@@ -92,7 +92,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                 ITypes.Unavailable <|
                                     String.join " "
                                         [ context.localization.virtualComputer
-                                            |> Helpers.String.stringToTitleCase
+                                            |> Helpers.String.toTitleCase
                                         , "was deployed with Guacamole support de-selected"
                                         ]
 
@@ -116,7 +116,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                             ITypes.Unavailable <|
                                                 String.join " "
                                                     [ context.localization.virtualComputer
-                                                        |> Helpers.String.stringToTitleCase
+                                                        |> Helpers.String.toTitleCase
                                                     , "does not have a"
                                                     , context.localization.floatingIpAddress
                                                     ]
@@ -126,7 +126,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                         ITypes.Unavailable <|
                                             String.join " "
                                                 [ context.localization.virtualComputer
-                                                    |> Helpers.String.stringToTitleCase
+                                                    |> Helpers.String.toTitleCase
                                                 , "is still booting or Guacamole is still deploying, check back in a few minutes"
                                                 ]
 
@@ -144,7 +144,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                 ITypes.Error <|
                                                     String.join " "
                                                         [ context.localization.virtualComputer
-                                                            |> Helpers.String.stringToTitleCase
+                                                            |> Helpers.String.toTitleCase
                                                         , "does not have a"
                                                         , context.localization.floatingIpAddress
                                                         ]
@@ -184,7 +184,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                         ITypes.Unavailable <|
                             String.join " "
                                 [ context.localization.virtualComputer
-                                    |> Helpers.String.stringToTitleCase
+                                    |> Helpers.String.toTitleCase
                                 , "not launched from Exosphere"
                                 ]
 
@@ -205,7 +205,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                         ITypes.Unavailable <|
                                             String.join " "
                                                 [ context.localization.virtualComputer
-                                                    |> Helpers.String.stringToTitleCase
+                                                    |> Helpers.String.toTitleCase
                                                 , "does not have a"
                                                 , context.localization.floatingIpAddress
                                                 ]
@@ -236,7 +236,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
             ITypes.Unavailable <|
                 String.join " "
                     [ context.localization.virtualComputer
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     , "is still building"
                     ]
 
@@ -261,7 +261,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                             ITypes.Unavailable <|
                                 String.join " "
                                     [ context.localization.virtualComputer
-                                        |> Helpers.String.stringToTitleCase
+                                        |> Helpers.String.toTitleCase
                                     , "does not have a"
                                     , context.localization.floatingIpAddress
                                     ]
@@ -287,7 +287,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
             ITypes.Unavailable <|
                 String.join " "
                     [ context.localization.virtualComputer
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     , "is not active"
                     ]
 
@@ -320,7 +320,7 @@ interactionDetails interaction context =
         ITypes.GuacTerminal ->
             ITypes.InteractionDetails
                 (context.localization.commandDrivenTextInterface
-                    |> Helpers.String.stringToTitleCase
+                    |> Helpers.String.toTitleCase
                 )
                 (String.concat
                     [ "Get a terminal session to your "
@@ -333,7 +333,7 @@ interactionDetails interaction context =
 
         ITypes.GuacDesktop ->
             ITypes.InteractionDetails
-                (Helpers.String.stringToTitleCase context.localization.graphicalDesktopEnvironment)
+                (Helpers.String.toTitleCase context.localization.graphicalDesktopEnvironment)
                 (String.concat
                     [ "Interact with your "
                     , context.localization.virtualComputer

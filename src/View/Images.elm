@@ -40,8 +40,8 @@ imagesIfLoaded context project imageListViewParams sortTableParams =
             , Element.text <|
                 String.join " "
                     [ context.localization.staticRepresentationOfBlockDeviceContents
-                        |> Helpers.String.stringToTitleCase
-                        |> Helpers.String.pluralizeWord
+                        |> Helpers.String.toTitleCase
+                        |> Helpers.String.pluralize
                     , "loading..."
                     ]
             ]
@@ -228,7 +228,7 @@ images context project imageListViewParams sortTableParams =
                     String.join " "
                         [ "Select tags to filter"
                         , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.pluralize
                         , "on:"
                         ]
                 , Element.wrappedRow []
@@ -302,7 +302,7 @@ images context project imageListViewParams sortTableParams =
                             " "
                             [ "Show only"
                             , context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralizeWord
+                                |> Helpers.String.pluralize
                             , "owned by this"
                             , context.localization.unitOfTenancy
                             ]

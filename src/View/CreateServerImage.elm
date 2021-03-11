@@ -29,11 +29,11 @@ createServerImage context project serverUuid imageName =
                     [ String.join " "
                         [ "Create"
                         , context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , "from"
                         ]
                     , context.localization.virtualComputer
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     ]
             )
         , Input.text
@@ -46,7 +46,7 @@ createServerImage context project serverUuid imageName =
                     (Element.text <|
                         String.join " "
                             [ context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.stringToTitleCase
+                                |> Helpers.String.toTitleCase
                             , "name"
                             ]
                     )

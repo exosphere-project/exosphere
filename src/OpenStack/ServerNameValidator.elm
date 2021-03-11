@@ -42,7 +42,7 @@ serverNameValidator maybeWordForServer name =
                 Just <|
                     String.join " "
                         [ wordForServer
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , "name must"
                         , reason
                         ]

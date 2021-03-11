@@ -208,7 +208,7 @@ actions maybeWordForServer maybeWordForImage =
       }
     , { name =
             wordForImage
-                |> Helpers.String.stringToTitleCase
+                |> Helpers.String.toTitleCase
       , description =
             String.join " "
                 [ "Create snapshot image of"

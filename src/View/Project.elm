@@ -88,8 +88,8 @@ projectNav context p viewParams =
                     (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                     { text =
                         context.localization.virtualComputer
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                     , onPress =
                         Just <|
                             ProjectMsg p.auth.project.uuid <|
@@ -103,8 +103,8 @@ projectNav context p viewParams =
                     (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                     { text =
                         context.localization.blockDevice
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
                     }
@@ -114,7 +114,7 @@ projectNav context p viewParams =
                     { text =
                         String.join " "
                             [ context.localization.maxResourcesPerProject
-                                |> Helpers.String.stringToTitleCase
+                                |> Helpers.String.toTitleCase
                             , "Usage"
                             ]
                     , onPress =
@@ -131,7 +131,7 @@ projectNav context p viewParams =
                     { text =
                         String.join " "
                             [ "Remove"
-                            , Helpers.String.stringToTitleCase context.localization.unitOfTenancy
+                            , Helpers.String.toTitleCase context.localization.unitOfTenancy
                             ]
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid RemoveProject
@@ -162,7 +162,7 @@ createButton context projectId expanded =
                                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                                 { text =
                                     context.localization.virtualComputer
-                                        |> Helpers.String.stringToTitleCase
+                                        |> Helpers.String.toTitleCase
                                 , onPress =
                                     Just <|
                                         ProjectMsg projectId <|
@@ -181,7 +181,7 @@ createButton context projectId expanded =
                             {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
                             , Widget.textButton
                                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                                { text = Helpers.String.stringToTitleCase context.localization.blockDevice
+                                { text = Helpers.String.toTitleCase context.localization.blockDevice
                                 , onPress =
                                     Just <|
                                         ProjectMsg projectId <|

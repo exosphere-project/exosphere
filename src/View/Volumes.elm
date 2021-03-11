@@ -42,8 +42,8 @@ volumes context project deleteVolumeConfirmations =
         [ Element.el VH.heading2
             (Element.text
                 (context.localization.blockDevice
-                    |> Helpers.String.pluralizeWord
-                    |> Helpers.String.stringToTitleCase
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
                 )
             )
         , case project.volumes of
@@ -69,7 +69,7 @@ volumes context project deleteVolumeConfirmations =
                     String.join " "
                         [ "Error loading"
                         , context.localization.blockDevice
-                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.pluralize
                         , ":("
                         ]
 
@@ -235,7 +235,7 @@ volumeDetailView context project deleteVolumeConfirmations volumeUuid =
             Element.text <|
                 String.join " "
                     [ context.localization.blockDevice
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     , "Detail"
                     ]
         , volumeDetail context project (VolumeDetail volumeUuid) deleteVolumeConfirmations volumeUuid
@@ -337,7 +337,7 @@ renderAttachment context project attachment =
                 String.join " "
                     [ "*"
                     , context.localization.blockDevice
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     , "will only be automatically formatted/mounted on operating"
                     ]
         , Element.el [ Font.size 11 ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 and CentOS 8)"
@@ -381,7 +381,7 @@ createVolume context project volName volSizeInput =
             (Element.text <|
                 String.join " "
                     [ "Create"
-                    , context.localization.blockDevice |> Helpers.String.stringToTitleCase
+                    , context.localization.blockDevice |> Helpers.String.toTitleCase
                     ]
             )
         , Input.text

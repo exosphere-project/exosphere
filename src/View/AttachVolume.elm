@@ -157,7 +157,7 @@ mountVolInstructions context project attachment =
             Element.text <|
                 String.join " "
                     [ context.localization.blockDevice
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     , "Attached"
                     ]
         , Element.text ("Device: " ++ attachment.device)

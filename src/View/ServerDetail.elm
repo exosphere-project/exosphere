@@ -222,7 +222,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                                         String.join " "
                                             [ "My"
                                             , context.localization.virtualComputer
-                                                |> Helpers.String.stringToTitleCase
+                                                |> Helpers.String.toTitleCase
                                             ]
                                     )
                                 )
@@ -287,7 +287,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 (Element.text <|
                     String.join " "
                         [ context.localization.virtualComputer
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , "Details"
                         ]
                 )
@@ -298,15 +298,15 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , VH.compactKVRow "Created on" (Element.text details.created)
             , creatorNameView
             , VH.compactKVRow
-                (Helpers.String.stringToTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
+                (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
                 (Element.text imageText)
             , VH.compactKVRow
-                (Helpers.String.stringToTitleCase context.localization.virtualComputerHardwareConfig)
+                (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
                 (Element.text flavorText)
             , VH.compactKVRow
                 (String.join " "
                     [ context.localization.pkiPublicKeyForSsh
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.toTitleCase
                     , "Name"
                     ]
                 )
@@ -323,8 +323,8 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 (Element.text <|
                     String.concat
                         [ context.localization.blockDevice
-                            |> Helpers.String.pluralizeWord
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
                         , " Attached"
                         ]
                 )
@@ -340,7 +340,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                                 " "
                                 [ "* "
                                 , context.localization.blockDevice
-                                    |> Helpers.String.stringToTitleCase
+                                    |> Helpers.String.toTitleCase
                                 , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)."
                                 ]
                         ]
@@ -501,7 +501,7 @@ serverStatus context projectId serverDetailViewParams server =
                 , VH.compactKVSubRow
                     (String.join " "
                         [ context.localization.virtualComputer
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , "Dashboard and Terminal readiness"
                         ]
                     )
@@ -1022,7 +1022,7 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
                 |> List.map
                     (\ipAddress ->
                         VH.compactKVSubRow
-                            (Helpers.String.stringToTitleCase context.localization.nonFloatingIpAddress)
+                            (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
                             (Element.text ipAddress.address)
                     )
 
@@ -1031,7 +1031,7 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
                 |> List.map
                     (\ipAddress ->
                         VH.compactKVSubRow
-                            (Helpers.String.stringToTitleCase context.localization.nonFloatingIpAddress)
+                            (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
                             (copyableText context.palette ipAddress.address)
                     )
 

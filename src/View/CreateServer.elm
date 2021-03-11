@@ -94,7 +94,7 @@ createServer context project viewParams =
                                 String.join " "
                                     [ "My"
                                     , context.localization.virtualComputer
-                                        |> Helpers.String.stringToTitleCase
+                                        |> Helpers.String.toTitleCase
                                     ]
                             )
                         )
@@ -106,7 +106,7 @@ createServer context project viewParams =
                 [ Element.text <|
                     String.concat
                         [ context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         , ": "
                         ]
                 , Element.text viewParams.imageName
@@ -160,7 +160,7 @@ createServer context project viewParams =
                     String.join " "
                         [ "Create"
                         , context.localization.virtualComputer
-                            |> Helpers.String.stringToTitleCase
+                            |> Helpers.String.toTitleCase
                         ]
                 )
             ]
@@ -324,7 +324,7 @@ flavorPicker context project viewParams computeQuota =
         VH.exoColumnAttributes
         [ Element.el
             [ Font.bold ]
-            (Element.text <| Helpers.String.stringToTitleCase context.localization.virtualComputerHardwareConfig)
+            (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.table
             flavorEmptyHint
             { data = GetterSetters.sortedFlavors project.flavors
@@ -334,8 +334,8 @@ flavorPicker context project viewParams computeQuota =
             Element.text <|
                 String.join " "
                     [ context.localization.virtualComputerHardwareConfig
-                        |> Helpers.String.pluralizeWord
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
                     , "marked 'X' are too large for your available"
                     , context.localization.maxResourcesPerProject
                     ]
@@ -497,7 +497,7 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
             String.concat
                 [ "How many "
                 , context.localization.virtualComputer
-                    |> Helpers.String.stringToTitleCase
+                    |> Helpers.String.toTitleCase
                 , "?"
                 ]
         , case countAvail of
@@ -708,7 +708,7 @@ keypairPicker context project viewParams =
                         , context.localization.unitOfTenancy
                         , " has no "
                         , context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.pluralize
                         , " to choose from, but you can still create a "
                         , context.localization.virtualComputer
                         , "!)"
@@ -737,7 +737,7 @@ keypairPicker context project viewParams =
         [ Element.el
             [ Font.bold ]
             (Element.text
-                (Helpers.String.stringToTitleCase context.localization.pkiPublicKeyForSsh)
+                (Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh)
             )
         , contents
         ]
@@ -771,6 +771,6 @@ userDataInput context project viewParams =
                 [ Element.paddingXY 20 0
                 , Font.bold
                 ]
-                (Element.text <| Helpers.String.stringToTitleCase context.localization.cloudInitData)
+                (Element.text <| Helpers.String.toTitleCase context.localization.cloudInitData)
         , spellcheck = False
         }

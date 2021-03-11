@@ -40,8 +40,8 @@ selectProjects model context keystoneUrl selectedProjects =
                         String.join " "
                             [ "Choose"
                             , context.localization.unitOfTenancy
-                                |> Helpers.String.pluralizeWord
-                                |> Helpers.String.stringToTitleCase
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
                             , "for"
                             , urlLabel
                             ]
@@ -71,7 +71,7 @@ selectProjects model context keystoneUrl selectedProjects =
                             , Element.text <|
                                 String.join " "
                                     [ "Loading list of"
-                                    , Helpers.String.pluralizeWord context.localization.unitOfTenancy
+                                    , Helpers.String.pluralize context.localization.unitOfTenancy
                                     ]
                             ]
 
@@ -79,7 +79,7 @@ selectProjects model context keystoneUrl selectedProjects =
                         Element.text <|
                             String.join " "
                                 [ "Error loading list of"
-                                , Helpers.String.pluralizeWord context.localization.unitOfTenancy
+                                , Helpers.String.pluralize context.localization.unitOfTenancy
                                 , "--"
                                 , Debug.toString e
                                 ]

@@ -1,7 +1,7 @@
 module Helpers.String exposing
     ( indefiniteArticle
-    , pluralizeWord
-    , stringToTitleCase
+    , pluralize
+    , toTitleCase
     )
 
 import Regex
@@ -60,8 +60,8 @@ indefiniteArticle phrase =
                     "a"
 
 
-pluralizeWord : String -> String
-pluralizeWord word =
+pluralize : String -> String
+pluralize word =
     String.concat
         [ word
         , if String.right 1 word == "s" then
@@ -81,8 +81,8 @@ capitalizeWord word =
         ]
 
 
-stringToTitleCase : String -> String
-stringToTitleCase s =
+toTitleCase : String -> String
+toTitleCase s =
     String.words s
         |> List.map capitalizeWord
         |> String.join " "

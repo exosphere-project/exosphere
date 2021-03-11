@@ -56,7 +56,7 @@ serverList context project serverListViewParams =
                     String.concat
                         [ "Cannot display"
                         , context.localization.virtualComputer
-                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.pluralize
                         , ". Error message: " ++ Debug.toString e
                         ]
                 ]
@@ -77,7 +77,7 @@ serverList context project serverListViewParams =
                         String.join " "
                             [ "You don't have any"
                             , context.localization.virtualComputer
-                                |> Helpers.String.pluralizeWord
+                                |> Helpers.String.pluralize
                             , "yet, go create one!"
                             ]
                     ]
@@ -122,7 +122,7 @@ serverList_ context projectId userUuid serverListViewParams servers =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2
             (Element.text <|
-                Helpers.String.pluralizeWord context.localization.virtualComputer
+                Helpers.String.pluralize context.localization.virtualComputer
             )
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
@@ -380,7 +380,7 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
                         )
 
                     else
-                        ( Helpers.String.pluralizeWord context.localization.virtualComputer
+                        ( Helpers.String.pluralize context.localization.virtualComputer
                         , "other users"
                         )
             in
@@ -397,8 +397,8 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
             else
                 String.join " "
                     [ context.localization.virtualComputer
-                        |> Helpers.String.pluralizeWord
-                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
                     , "created by other users"
                     ]
 

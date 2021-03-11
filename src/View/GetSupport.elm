@@ -72,7 +72,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                     [ Helpers.String.indefiniteArticle itemTypeStrProto
                                     , itemTypeStrProto
                                     ]
-                                    |> Helpers.String.stringToTitleCase
+                                    |> Helpers.String.toTitleCase
                         in
                         Input.option (Just itemType) (Element.text itemTypeStr)
                     )
@@ -328,7 +328,7 @@ buildSupportRequest model context maybeSupportableResource requestDescription =
         , "\n\n"
         , String.concat
             [ "## Logged-in "
-            , Helpers.String.stringToTitleCase context.localization.unitOfTenancy
+            , Helpers.String.toTitleCase context.localization.unitOfTenancy
             , "\n"
             ]
         , model.projects
