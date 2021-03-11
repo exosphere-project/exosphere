@@ -237,7 +237,14 @@ volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations 
                             Element.none
 
                         Just metadata ->
-                            VH.compactKVRow "Created from image:" <| Element.text metadata.name
+                            VH.compactKVRow
+                                (String.concat
+                                    [ "Created from "
+                                    , context.localization.staticRepresentationOfBlockDeviceContents
+                                    , ":"
+                                    ]
+                                )
+                                (Element.text metadata.name)
                     , volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirmations volume
                     ]
             )

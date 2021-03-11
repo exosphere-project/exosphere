@@ -26,7 +26,12 @@ createServerImage context project serverUuid imageName =
             (Element.text <|
                 String.join
                     " "
-                    [ "Create Image from"
+                    [ String.join " "
+                        [ "Create"
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.stringToTitleCase
+                        , "from"
+                        ]
                     , context.localization.virtualComputer
                         |> Helpers.String.stringToTitleCase
                     ]
@@ -36,7 +41,15 @@ createServerImage context project serverUuid imageName =
             { text = imageName
             , placeholder = Nothing
             , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateServerImage serverUuid n
-            , label = Input.labelAbove [] (Element.text "Image name")
+            , label =
+                Input.labelAbove []
+                    (Element.text <|
+                        String.join " "
+                            [ context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.stringToTitleCase
+                            , "name"
+                            ]
+                    )
             }
         , Widget.textButton
             (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))

@@ -6,6 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Filesize
+import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
 import Set
@@ -36,7 +37,13 @@ imagesIfLoaded context project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.row [ Element.spacing 15 ]
             [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-            , Element.text "Images loading..."
+            , Element.text <|
+                String.join " "
+                    [ context.localization.staticRepresentationOfBlockDeviceContents
+                        |> Helpers.String.stringToTitleCase
+                        |> Helpers.String.pluralizeWord
+                    , "loading..."
+                    ]
             ]
 
     else
@@ -217,7 +224,13 @@ images context project imageListViewParams sortTableParams =
                     , Element.width Element.shrink
                     ]
                     (List.map tagChipView tagsAfterFilteringImages)
-                , Element.text "Select tags to filter images on:"
+                , Element.text <|
+                    String.join " "
+                        [ "Select tags to filter"
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralizeWord
+                        , "on:"
+                        ]
                 , Element.wrappedRow []
                     (List.map tagView tagsAfterFilteringImages)
                 ]
@@ -244,7 +257,14 @@ images context project imageListViewParams sortTableParams =
         (VH.exoColumnAttributes
             ++ [ Element.width Element.fill ]
         )
-        [ Element.el VH.heading2 (Element.text "Choose an image")
+        [ Element.el VH.heading2
+            (Element.text <|
+                String.join " "
+                    [ "Choose"
+                    , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                    ]
+            )
         , Input.text (VH.inputItemAttributes context.palette.background)
             { text = imageListViewParams.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
@@ -255,7 +275,15 @@ images context project imageListViewParams sortTableParams =
                             ListImages
                                 { imageListViewParams | searchText = t }
                                 sortTableParams
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
+            , label =
+                Input.labelAbove [ Font.size 14 ]
+                    (Element.text <|
+                        String.join " "
+                            [ "Filter on"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "name:"
+                            ]
+                    )
             }
         , tagsView
         , Input.checkbox []
@@ -272,7 +300,10 @@ images context project imageListViewParams sortTableParams =
                     Element.text <|
                         String.join
                             " "
-                            [ "Show only images owned by this"
+                            [ "Show only"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralizeWord
+                            , "owned by this"
                             , context.localization.unitOfTenancy
                             ]
             }

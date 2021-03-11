@@ -102,7 +102,15 @@ createServer context project viewParams =
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , renderInvalidNameReasons
-            , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
+            , Element.row VH.exoRowAttributes
+                [ Element.text <|
+                    String.concat
+                        [ context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.stringToTitleCase
+                        , ": "
+                        ]
+                , Element.text viewParams.imageName
+                ]
             , flavorPicker context project viewParams computeQuota
             , volBackedPrompt context project viewParams volumeQuota flavor
             , countPicker context project viewParams computeQuota volumeQuota flavor
@@ -361,7 +369,11 @@ volBackedPrompt context project viewParams volumeQuota flavor =
 
         nonVolBackedOptionText =
             if flavorRootDiskSize == 0 then
-                "Default for selected image (warning, could be too small for your work)"
+                String.join " "
+                    [ "Default for selected"
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                    , "(warning, could be too small for your work)"
+                    ]
 
             else
                 String.concat

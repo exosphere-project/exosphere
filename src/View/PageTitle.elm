@@ -88,7 +88,13 @@ pageTitle model context =
             in
             case projectViewConstructor of
                 ListImages _ _ ->
-                    "Images for " ++ projectName
+                    String.join " "
+                        [ context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.stringToTitleCase
+                        , "for"
+                        , projectName
+                        ]
 
                 ListProjectServers _ ->
                     String.join " "
@@ -118,7 +124,13 @@ pageTitle model context =
                         ]
 
                 CreateServerImage serverUuid _ ->
-                    "Create Image for " ++ serverName maybeProject serverUuid
+                    String.join " "
+                        [ "Create"
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.stringToTitleCase
+                        , "for"
+                        , serverName maybeProject serverUuid
+                        ]
 
                 VolumeDetail volumeUuid _ ->
                     "Volume " ++ volumeName maybeProject volumeUuid

@@ -5,6 +5,7 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
+import Helpers.String
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -23,8 +24,8 @@ import Types.Types
         )
 
 
-getAllowed : Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
-getAllowed maybeWordForServer serverStatus serverLockStatus =
+getAllowed : Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
+getAllowed maybeWordForServer maybeWordForImage serverStatus serverLockStatus =
     let
         allowedByServerStatus action =
             case action.allowedStatuses of
@@ -42,7 +43,7 @@ getAllowed maybeWordForServer serverStatus serverLockStatus =
                 Just allowedLockStatus_ ->
                     serverLockStatus == allowedLockStatus_
     in
-    actions maybeWordForServer
+    actions maybeWordForServer maybeWordForImage
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
 
@@ -71,12 +72,16 @@ type SelectMod
     | Danger
 
 
-actions : Maybe String -> List ServerAction
-actions maybeWordForServer =
+actions : Maybe String -> Maybe String -> List ServerAction
+actions maybeWordForServer maybeWordForImage =
     let
         wordForServer =
             maybeWordForServer
                 |> Maybe.withDefault "server"
+
+        wordForImage =
+            maybeWordForImage
+                |> Maybe.withDefault "image"
     in
     [ { name = "Lock"
       , description =
@@ -201,7 +206,9 @@ actions maybeWordForServer =
       , targetStatus = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , confirmable = False
       }
-    , { name = "Image"
+    , { name =
+            wordForImage
+                |> Helpers.String.stringToTitleCase
       , description =
             String.join " "
                 [ "Create snapshot image of"

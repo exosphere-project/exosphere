@@ -297,7 +297,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , VH.compactKVRow "UUID" <| copyableText context.palette server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
             , creatorNameView
-            , VH.compactKVRow "Image" (Element.text imageText)
+            , VH.compactKVRow
+                (Helpers.String.stringToTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
+                (Element.text imageText)
             , VH.compactKVRow
                 (Helpers.String.stringToTitleCase context.localization.virtualComputerHardwareConfig)
                 (Element.text flavorText)
@@ -786,6 +788,7 @@ viewServerActions context projectId serverDetailViewParams server =
                     (renderServerActionButton context projectId serverDetailViewParams server)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
+                        (Just context.localization.staticRepresentationOfBlockDeviceContents)
                         server.osProps.details.openstackStatus
                         server.osProps.details.lockStatus
                     )
