@@ -16,7 +16,7 @@ Feature: Text presence
         And I click the "Choose" button
         Then I wait for 2 seconds
         Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
-        And I should see an element with xpath "//h2[contains(string(),'Servers')]" within 20 seconds
+        And I should see an element with xpath "//h2[contains(string(),'Instances')]" within 20 seconds
         Then I save the "exosphere-save" item in browser local storage
 
     @launch
