@@ -106,7 +106,13 @@ pageTitle model context =
                         ]
 
                 ListProjectVolumes _ ->
-                    "Volumes for " ++ projectName
+                    String.join " "
+                        [ context.localization.blockDevice
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.stringToTitleCase
+                        , "for"
+                        , projectName
+                        ]
 
                 ListQuotaUsage ->
                     String.join " "
@@ -133,7 +139,11 @@ pageTitle model context =
                         ]
 
                 VolumeDetail volumeUuid _ ->
-                    "Volume " ++ volumeName maybeProject volumeUuid
+                    String.join " "
+                        [ context.localization.blockDevice
+                            |> Helpers.String.stringToTitleCase
+                        , volumeName maybeProject volumeUuid
+                        ]
 
                 CreateServer _ ->
                     String.join " "
@@ -143,13 +153,25 @@ pageTitle model context =
                         ]
 
                 CreateVolume _ _ ->
-                    "Create Volume"
+                    String.join " "
+                        [ "Create"
+                        , context.localization.blockDevice
+                            |> Helpers.String.stringToTitleCase
+                        ]
 
                 AttachVolumeModal _ _ ->
-                    "Attach Volume"
+                    String.join " "
+                        [ "Attach"
+                        , context.localization.blockDevice
+                            |> Helpers.String.stringToTitleCase
+                        ]
 
                 MountVolInstructions _ ->
-                    "Mount Volume"
+                    String.join " "
+                        [ "Mount"
+                        , context.localization.blockDevice
+                            |> Helpers.String.stringToTitleCase
+                        ]
 
 
 serverName : Maybe Project -> OSTypes.ServerUuid -> String

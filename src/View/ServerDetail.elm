@@ -319,7 +319,15 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     serverDetailViewParams
                     details.ipAddresses
                 )
-            , Element.el VH.heading3 (Element.text "Volumes Attached")
+            , Element.el VH.heading3
+                (Element.text <|
+                    String.concat
+                        [ context.localization.blockDevice
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.stringToTitleCase
+                        , " Attached"
+                        ]
+                )
             , serverVolumes context project server
             , case GetterSetters.getVolsAttachedToServer project server of
                 [] ->
@@ -327,7 +335,15 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
                 _ ->
                     Element.paragraph [ Font.size 11 ] <|
-                        [ Element.text "* Volume will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)." ]
+                        [ Element.text <|
+                            String.join
+                                " "
+                                [ "* "
+                                , context.localization.blockDevice
+                                    |> Helpers.String.stringToTitleCase
+                                , "will only be automatically formatted/mounted on operating systems which use systemd 236 or newer (e.g. Ubuntu 18.04, CentOS 8)."
+                                ]
+                        ]
             , if
                 not <|
                     List.member
@@ -1136,7 +1152,12 @@ serverVolumes context project server =
                     let
                         ( device, mountpoint ) =
                             if isBootVol v then
-                                ( "Boot volume", "" )
+                                ( String.join " "
+                                    [ "Boot"
+                                    , context.localization.blockDevice
+                                    ]
+                                , ""
+                                )
 
                             else
                                 case deviceRawName v of

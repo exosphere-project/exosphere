@@ -58,7 +58,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                         Input.option
                             v.uuid
                             (Element.row VH.exoRowAttributes
-                                [ Element.text <| VH.possiblyUntitledResource v.name "volume"
+                                [ Element.text <| VH.possiblyUntitledResource v.name context.localization.blockDevice
                                 , Element.text " - "
                                 , Element.text <| String.fromInt v.size ++ " GB"
                                 ]
@@ -86,7 +86,9 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
             }
         , Input.radio []
             -- TODO if no volumes in list, suggest user create a volume and provide link to that view
-            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a volume")
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12 ]
+                    (Element.text ("Select a " ++ context.localization.blockDevice))
             , onChange =
                 \new ->
                     ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal maybeServerUuid (Just new)))
@@ -108,7 +110,9 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                             , warnText =
                                 Just <|
                                     String.join " "
-                                        [ "This volume is already attached to this"
+                                        [ "This"
+                                        , context.localization.blockDevice
+                                        , "is already attached to this"
                                         , context.localization.virtualComputer
                                         ]
                             }
@@ -149,7 +153,13 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
 mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
 mountVolInstructions context project attachment =
     Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading2 <| Element.text "Volume Attached"
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ context.localization.blockDevice
+                        |> Helpers.String.stringToTitleCase
+                    , "Attached"
+                    ]
         , Element.text ("Device: " ++ attachment.device)
         , case Helpers.volDeviceToMountpoint attachment.device of
             Just mountpoint ->
@@ -161,17 +171,32 @@ mountVolInstructions context project attachment =
             [ case Helpers.volDeviceToMountpoint attachment.device of
                 Just mountpoint ->
                     Element.text <|
-                        "We'll try to mount this volume at "
-                            ++ mountpoint
-                            ++ " on your instance's filesystem. You should be able to access the volume there. "
-                            ++ "If it's a completely empty volume we'll also try to format it first. "
-                            ++ "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04). "
-                            ++ "In that case, you may need to format and/or mount the volume manually."
+                        String.join " "
+                            [ "We'll try to mount this"
+                            , context.localization.blockDevice
+                            , "at"
+                            , mountpoint
+                            , "on your instance's filesystem. You should be able to access the"
+                            , context.localization.blockDevice
+                            , "there."
+                            , "If it's a completely empty"
+                            , context.localization.blockDevice
+                            , "we'll also try to format it first."
+                            , "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04)."
+                            , "In that case, you may need to format and/or mount the"
+                            , context.localization.blockDevice
+                            , "manually."
+                            ]
 
                 Nothing ->
                     Element.text <|
-                        "We attached the volume but couldn't determine a mountpoint from the device path. You "
-                            ++ "may need to format and/or mount the volume manually."
+                        String.join " "
+                            [ "We attached the"
+                            , context.localization.blockDevice
+                            , "but couldn't determine a mountpoint from the device path. You may need to format and/or mount the"
+                            , context.localization.blockDevice
+                            , "manually."
+                            ]
             ]
         , Widget.textButton
             (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))

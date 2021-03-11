@@ -7,6 +7,7 @@ import Element.Input as Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.String
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
@@ -38,7 +39,13 @@ volumes : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> Elem
 volumes context project deleteVolumeConfirmations =
     Element.column
         VH.exoColumnAttributes
-        [ Element.el VH.heading2 (Element.text "Volumes")
+        [ Element.el VH.heading2
+            (Element.text
+                (context.localization.blockDevice
+                    |> Helpers.String.pluralizeWord
+                    |> Helpers.String.stringToTitleCase
+                )
+            )
         , case project.volumes of
             RemoteData.NotAsked ->
                 Element.row [ Element.spacing 15 ]
@@ -49,11 +56,22 @@ volumes context project deleteVolumeConfirmations =
             RemoteData.Loading ->
                 Element.row [ Element.spacing 15 ]
                     [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-                    , Element.text "Loading volumes..."
+                    , Element.text <|
+                        String.concat
+                            [ "Loading "
+                            , context.localization.blockDevice
+                            , "..."
+                            ]
                     ]
 
             RemoteData.Failure _ ->
-                Element.text "Error loading volumes :("
+                Element.text <|
+                    String.join " "
+                        [ "Error loading"
+                        , context.localization.blockDevice
+                            |> Helpers.String.pluralizeWord
+                        , ":("
+                        ]
 
             RemoteData.Success vols ->
                 Element.column
@@ -70,7 +88,7 @@ renderVolumeCard : View.Types.Context -> Project -> List DeleteVolumeConfirmatio
 renderVolumeCard context project deleteVolumeConfirmations volume =
     ExoCard.exoCard
         context.palette
-        (VH.possiblyUntitledResource volume.name "volume")
+        (VH.possiblyUntitledResource volume.name context.localization.blockDevice)
         (String.fromInt volume.size ++ " GB")
     <|
         volumeDetail context project ListProjectVolumes deleteVolumeConfirmations volume.uuid
@@ -89,7 +107,9 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
             if Helpers.isBootVol Nothing volume then
                 Element.text <|
                     String.concat
-                        [ "This volume backs a "
+                        [ "This "
+                        , context.localization.blockDevice
+                        , " backs a "
                         , context.localization.virtualComputer
                         , "; it cannot be detached or deleted until the "
                         , context.localization.virtualComputer
@@ -97,7 +117,12 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                         ]
 
             else if volume.status == OSTypes.InUse then
-                Element.text "This volume must be detached before it can be deleted."
+                Element.text <|
+                    String.join " "
+                        [ "This"
+                        , context.localization.blockDevice
+                        , "must be detached before it can be deleted."
+                        ]
 
             else
                 Element.none
@@ -206,7 +231,13 @@ volumeDetailView : View.Types.Context -> Project -> List DeleteVolumeConfirmatio
 volumeDetailView context project deleteVolumeConfirmations volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 <| Element.text "Volume Detail"
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ context.localization.blockDevice
+                        |> Helpers.String.stringToTitleCase
+                    , "Detail"
+                    ]
         , volumeDetail context project (VolumeDetail volumeUuid) deleteVolumeConfirmations volumeUuid
         ]
 
@@ -220,12 +251,19 @@ volumeDetail :
     -> Element.Element Msg
 volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations volumeUuid =
     OpenStack.Volumes.volumeLookup project volumeUuid
-        |> Maybe.withDefault (Element.text "No volume found")
+        |> Maybe.withDefault
+            (Element.text <|
+                String.join " "
+                    [ "No"
+                    , context.localization.blockDevice
+                    , "found"
+                    ]
+            )
         << Maybe.map
             (\volume ->
                 Element.column
                     (VH.exoColumnAttributes ++ [ Element.width Element.fill, Element.spacing 10 ])
-                    [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name "volume"
+                    [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name context.localization.blockDevice
                     , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
                     , renderAttachments context project volume
                     , VH.compactKVRow "Description:" <|
@@ -294,7 +332,14 @@ renderAttachment context project attachment =
         , Element.text attachment.device
         , Element.el [ Font.bold ] <| Element.text "Mount point*:"
         , Helpers.volDeviceToMountpoint attachment.device |> Maybe.withDefault "" |> Element.text
-        , Element.el [ Font.size 11 ] <| Element.text "* Volume will only be automatically formatted/mounted on operating"
+        , Element.el [ Font.size 11 ] <|
+            Element.text <|
+                String.join " "
+                    [ "*"
+                    , context.localization.blockDevice
+                        |> Helpers.String.stringToTitleCase
+                    , "will only be automatically formatted/mounted on operating"
+                    ]
         , Element.el [ Font.size 11 ] <| Element.text "systems which use systemd 236 or newer (e.g. Ubuntu 18.04 and CentOS 8)"
         ]
 
@@ -332,7 +377,13 @@ createVolume context project volName volSizeInput =
                     ( True, Nothing )
     in
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20 ])
-        [ Element.el VH.heading2 (Element.text "Create Volume")
+        [ Element.el VH.heading2
+            (Element.text <|
+                String.join " "
+                    [ "Create"
+                    , context.localization.blockDevice |> Helpers.String.stringToTitleCase
+                    ]
+            )
         , Input.text
             (VH.inputItemAttributes context.palette.background)
             { text = volName
@@ -340,7 +391,12 @@ createVolume context project volName volSizeInput =
             , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume n volSizeInput
             , label = Input.labelAbove [] (Element.text "Name")
             }
-        , Element.text "(Suggestion: choose a good name that describes what the volume will store.)"
+        , Element.text <|
+            String.join " "
+                [ "(Suggestion: choose a good name that describes what the"
+                , context.localization.blockDevice
+                , "will store.)"
+                ]
         , numericTextInput
             context.palette
             (VH.inputItemAttributes context.palette.background)
@@ -366,10 +422,12 @@ createVolume context project volName volSizeInput =
                 else
                     ( Nothing
                     , Just <|
-                        String.join " "
-                            [ "Your"
+                        String.concat
+                            [ "Your "
                             , context.localization.maxResourcesPerProject
-                            , "does not allow for creation of another volume."
+                            , " does not allow for creation of another "
+                            , context.localization.blockDevice
+                            , "."
                             ]
                     )
           in

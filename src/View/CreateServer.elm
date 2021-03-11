@@ -413,7 +413,14 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                             }
                 , options =
                     [ Input.option False (Element.text nonVolBackedOptionText)
-                    , Input.option True (Element.text "Custom disk size (volume-backed)")
+                    , Input.option True
+                        (Element.text <|
+                            String.concat
+                                [ "Custom disk size ("
+                                , context.localization.blockDevice
+                                , "-backed)"
+                                ]
+                        )
                     ]
                 , selected =
                     case viewParams.volSizeTextInput of
@@ -431,10 +438,14 @@ volBackedPrompt context project viewParams volumeQuota flavor =
 
           else
             Element.text <|
-                String.join " "
-                    [ "(N/A: volume"
+                String.concat
+                    [ "(N/A: "
+                    , context.localization.blockDevice
+                    , " "
                     , context.localization.maxResourcesPerProject
-                    , "exhausted, cannot launch a volume-backed instance)"
+                    , " exhausted, cannot launch a "
+                    , context.localization.blockDevice
+                    , "-backed instance)"
                     ]
         , case viewParams.volSizeTextInput of
             Nothing ->

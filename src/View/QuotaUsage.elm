@@ -131,7 +131,12 @@ volumeQuota : View.Types.Context -> Project -> Element.Element Msg
 volumeQuota context project =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading3 <| Element.text "Volumes"
+        [ Element.el VH.heading3 <|
+            Element.text
+                (context.localization.blockDevice
+                    |> Helpers.String.pluralizeWord
+                    |> Helpers.String.stringToTitleCase
+                )
         , volumeQuoteDetails context project.volumeQuota
         ]
 
@@ -141,7 +146,17 @@ volumeInfoItems context quota =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ infoItem context quota.gigabytes ( "Storage:", "GB" )
-        , infoItem context quota.volumes ( "Volumes:", "total" )
+        , infoItem
+            context
+            quota.volumes
+            ( String.concat
+                [ context.localization.blockDevice
+                    |> Helpers.String.pluralizeWord
+                    |> Helpers.String.stringToTitleCase
+                , ":"
+                ]
+            , "total"
+            )
         ]
 
 

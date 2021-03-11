@@ -101,7 +101,10 @@ projectNav context p viewParams =
               <|
                 Widget.textButton
                     (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text = "Volumes"
+                    { text =
+                        context.localization.blockDevice
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.stringToTitleCase
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
                     }
@@ -178,7 +181,7 @@ createButton context projectId expanded =
                             {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
                             , Widget.textButton
                                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                                { text = "Volume"
+                                { text = Helpers.String.stringToTitleCase context.localization.blockDevice
                                 , onPress =
                                     Just <|
                                         ProjectMsg projectId <|
