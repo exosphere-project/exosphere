@@ -117,7 +117,8 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                 String.join " "
                                                     [ context.localization.virtualComputer
                                                         |> Helpers.String.stringToTitleCase
-                                                    , "does not have a floating IP address"
+                                                    , "does not have a"
+                                                    , context.localization.floatingIpAddress
                                                     ]
 
                                 RDPP.DontHave ->
@@ -144,7 +145,8 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                     String.join " "
                                                         [ context.localization.virtualComputer
                                                             |> Helpers.String.stringToTitleCase
-                                                        , "does not have a floating IP address"
+                                                        , "does not have a"
+                                                        , context.localization.floatingIpAddress
                                                         ]
 
                                             ( _, _, Nothing ) ->
@@ -204,7 +206,8 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                             String.join " "
                                                 [ context.localization.virtualComputer
                                                     |> Helpers.String.stringToTitleCase
-                                                , "does not have a floating IP address"
+                                                , "does not have a"
+                                                , context.localization.floatingIpAddress
                                                 ]
 
                                     ( _, Just floatingIp ) ->
@@ -259,7 +262,8 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                 String.join " "
                                     [ context.localization.virtualComputer
                                         |> Helpers.String.stringToTitleCase
-                                    , "does not have a floating IP address"
+                                    , "does not have a"
+                                    , context.localization.floatingIpAddress
                                     ]
 
                         Just floatingIp ->

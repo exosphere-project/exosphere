@@ -1021,14 +1021,18 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
             ipAddressesOfType OSTypes.IpAddressFixed
                 |> List.map
                     (\ipAddress ->
-                        VH.compactKVSubRow "Fixed IP" (Element.text ipAddress.address)
+                        VH.compactKVSubRow
+                            (Helpers.String.stringToTitleCase context.localization.nonFloatingIpAddress)
+                            (Element.text ipAddress.address)
                     )
 
         floatingIpAddressRows =
             ipAddressesOfType OSTypes.IpAddressFloating
                 |> List.map
                     (\ipAddress ->
-                        VH.compactKVSubRow "Floating IP" <| copyableText context.palette ipAddress.address
+                        VH.compactKVSubRow
+                            (Helpers.String.stringToTitleCase context.localization.nonFloatingIpAddress)
+                            (copyableText context.palette ipAddress.address)
                     )
 
         ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg
