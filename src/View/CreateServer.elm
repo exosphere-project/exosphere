@@ -497,6 +497,7 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
             String.concat
                 [ "How many "
                 , context.localization.virtualComputer
+                    |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 , "?"
                 ]

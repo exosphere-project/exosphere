@@ -94,7 +94,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         flavorText =
             GetterSetters.flavorLookup project details.flavorUuid
                 |> Maybe.map .name
-                |> Maybe.withDefault ("Unknown" ++ context.localization.virtualComputerHardwareConfig)
+                |> Maybe.withDefault ("Unknown " ++ context.localization.virtualComputerHardwareConfig)
 
         imageText =
             let
@@ -357,7 +357,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
               then
                 Widget.textButton
                     (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                    { text = "Attach volume"
+                    { text = "Attach " ++ context.localization.blockDevice
                     , onPress =
                         Just <|
                             ProjectMsg project.auth.project.uuid <|
@@ -1031,7 +1031,7 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
                 |> List.map
                     (\ipAddress ->
                         VH.compactKVSubRow
-                            (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
+                            (Helpers.String.toTitleCase context.localization.floatingIpAddress)
                             (copyableText context.palette ipAddress.address)
                     )
 

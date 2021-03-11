@@ -66,7 +66,13 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                     )
     in
     Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading2 <| Element.text "Attach a Volume"
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ "Attach a"
+                    , context.localization.blockDevice
+                        |> Helpers.String.toTitleCase
+                    ]
         , Input.radio []
             { label =
                 Input.labelAbove
