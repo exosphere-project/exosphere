@@ -122,7 +122,10 @@ serverList_ context projectId userUuid serverListViewParams servers =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2
             (Element.text <|
-                Helpers.String.pluralize context.localization.virtualComputer
+                (context.localization.virtualComputer
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
             )
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
