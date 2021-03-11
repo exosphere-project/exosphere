@@ -153,6 +153,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             let
                 invalidNameReasons =
                     serverNameValidator
+                        (Just context.localization.virtualComputer)
                         (serverDetailViewParams.serverNamePendingConfirmation
                             |> Maybe.withDefault ""
                         )
@@ -530,13 +531,13 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
         renderInteraction interaction =
             let
                 interactionDetails =
-                    IHelpers.interactionDetails interaction
+                    IHelpers.interactionDetails interaction context
 
                 interactionStatus =
                     IHelpers.interactionStatus
                         server
                         interaction
-                        context.isElectron
+                        context
                         currentTime
                         tlsReverseProxyHostname
 
@@ -783,7 +784,11 @@ viewServerActions context projectId serverDetailViewParams server =
             Nothing ->
                 List.map
                     (renderServerActionButton context projectId serverDetailViewParams server)
-                    (ServerActions.getAllowed server.osProps.details.openstackStatus server.osProps.details.lockStatus)
+                    (ServerActions.getAllowed
+                        (Just context.localization.virtualComputer)
+                        server.osProps.details.openstackStatus
+                        server.osProps.details.lockStatus
+                    )
 
             Just _ ->
                 []

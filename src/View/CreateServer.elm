@@ -43,7 +43,7 @@ createServer : View.Types.Context -> Project -> CreateServerViewParams -> Elemen
 createServer context project viewParams =
     let
         invalidNameReasons =
-            serverNameValidator viewParams.serverName
+            serverNameValidator (Just context.localization.virtualComputer) viewParams.serverName
 
         renderInvalidNameReasons =
             case invalidNameReasons of

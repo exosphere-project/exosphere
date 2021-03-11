@@ -5,6 +5,7 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -21,10 +22,11 @@ import Types.Types
         , ServerOrigin(..)
         , UserAppProxyHostname
         )
+import View.Types
 
 
-interactionStatus : Server -> ITypes.Interaction -> Bool -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
-interactionStatus server interaction isElectron currentTime tlsReverseProxyHostname =
+interactionStatus : Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
+interactionStatus server interaction context currentTime tlsReverseProxyHostname =
     let
         maybeFloatingIp =
             GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
@@ -67,16 +69,32 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
             in
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
-                    ITypes.Unavailable "Server not launched from Exosphere"
+                    ITypes.Unavailable <|
+                        String.join
+                            " "
+                            [ context.localization.virtualComputer
+                                |> Helpers.String.stringToTitleCase
+                            , "not launched from Exosphere"
+                            ]
 
                 ServerFromExo exoOriginProps ->
                     case exoOriginProps.guacamoleStatus of
                         GuacTypes.NotLaunchedWithGuacamole ->
                             if exoOriginProps.exoServerVersion < 3 then
-                                ITypes.Unavailable "Server was created with an older version of Exosphere"
+                                ITypes.Unavailable <|
+                                    String.join " "
+                                        [ context.localization.virtualComputer
+                                            |> Helpers.String.stringToTitleCase
+                                        , "was created with an older version of Exosphere"
+                                        ]
 
                             else
-                                ITypes.Unavailable "Server was deployed with Guacamole support de-selected"
+                                ITypes.Unavailable <|
+                                    String.join " "
+                                        [ context.localization.virtualComputer
+                                            |> Helpers.String.stringToTitleCase
+                                        , "was deployed with Guacamole support de-selected"
+                                        ]
 
                         GuacTypes.LaunchedWithGuacamole guacProps ->
                             case guacProps.authToken.data of
@@ -95,11 +113,21 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                             ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
 
                                         ( _, Nothing ) ->
-                                            ITypes.Unavailable "Server does not have a floating IP address"
+                                            ITypes.Unavailable <|
+                                                String.join " "
+                                                    [ context.localization.virtualComputer
+                                                        |> Helpers.String.stringToTitleCase
+                                                    , "does not have a floating IP address"
+                                                    ]
 
                                 RDPP.DontHave ->
                                     if recentServerEvent then
-                                        ITypes.Unavailable "Server is still booting or Guacamole is still deploying, check back in a few minutes"
+                                        ITypes.Unavailable <|
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.stringToTitleCase
+                                                , "is still booting or Guacamole is still deploying, check back in a few minutes"
+                                                ]
 
                                     else
                                         case
@@ -112,10 +140,20 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                                 ITypes.Error "Cannot find TLS-terminating reverse proxy server"
 
                                             ( _, Nothing, _ ) ->
-                                                ITypes.Error "Server does not have a floating IP address"
+                                                ITypes.Error <|
+                                                    String.join " "
+                                                        [ context.localization.virtualComputer
+                                                            |> Helpers.String.stringToTitleCase
+                                                        , "does not have a floating IP address"
+                                                        ]
 
                                             ( _, _, Nothing ) ->
-                                                ITypes.Error "Cannot find server password to authenticate"
+                                                ITypes.Error <|
+                                                    String.join " "
+                                                        [ "Cannot find"
+                                                        , context.localization.virtualComputer
+                                                        , "password to authenticate"
+                                                        ]
 
                                             ( Just _, Just _, Just _ ) ->
                                                 case guacProps.authToken.refreshStatus of
@@ -138,10 +176,15 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
 
         cockpit : CockpitDashboardOrTerminal -> ITypes.InteractionStatus
         cockpit dashboardOrTerminal =
-            if isElectron then
+            if context.isElectron then
                 case server.exoProps.serverOrigin of
                     ServerNotFromExo ->
-                        ITypes.Unavailable "Server not launched from Exosphere"
+                        ITypes.Unavailable <|
+                            String.join " "
+                                [ context.localization.virtualComputer
+                                    |> Helpers.String.stringToTitleCase
+                                , "not launched from Exosphere"
+                                ]
 
                     ServerFromExo serverFromExoProps ->
                         case ( dashboardOrTerminal, serverFromExoProps.guacamoleStatus ) of
@@ -157,7 +200,12 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                                         ITypes.Unavailable "Not ready"
 
                                     ( _, Nothing ) ->
-                                        ITypes.Unavailable "Server does not have a floating IP address"
+                                        ITypes.Unavailable <|
+                                            String.join " "
+                                                [ context.localization.virtualComputer
+                                                    |> Helpers.String.stringToTitleCase
+                                                , "does not have a floating IP address"
+                                                ]
 
                                     ( _, Just floatingIp ) ->
                                         case dashboardOrTerminal of
@@ -182,7 +230,12 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuilding ->
-            ITypes.Unavailable "Server is still building"
+            ITypes.Unavailable <|
+                String.join " "
+                    [ context.localization.virtualComputer
+                        |> Helpers.String.stringToTitleCase
+                    , "is still building"
+                    ]
 
         OSTypes.ServerActive ->
             case interaction of
@@ -202,7 +255,12 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                 ITypes.NativeSSH ->
                     case maybeFloatingIp of
                         Nothing ->
-                            ITypes.Unavailable "Server does not have a floating IP address"
+                            ITypes.Unavailable <|
+                                String.join " "
+                                    [ context.localization.virtualComputer
+                                        |> Helpers.String.stringToTitleCase
+                                    , "does not have a floating IP address"
+                                    ]
 
                         Just floatingIp ->
                             ITypes.Ready <| "exouser@" ++ floatingIp
@@ -222,7 +280,12 @@ interactionStatus server interaction isElectron currentTime tlsReverseProxyHostn
                             ITypes.Ready consoleUrl
 
         _ ->
-            ITypes.Unavailable "Server is not active"
+            ITypes.Unavailable <|
+                String.join " "
+                    [ context.localization.virtualComputer
+                        |> Helpers.String.stringToTitleCase
+                    , "is not active"
+                    ]
 
 
 interactionStatusWordColor : Style.Types.ExoPalette -> ITypes.InteractionStatus -> ( String, Element.Color )
@@ -247,20 +310,30 @@ interactionStatusWordColor palette status =
             ( "Hidden", SH.toElementColor palette.muted )
 
 
-interactionDetails : ITypes.Interaction -> ITypes.InteractionDetails msg
-interactionDetails interaction =
+interactionDetails : ITypes.Interaction -> View.Types.Context -> ITypes.InteractionDetails msg
+interactionDetails interaction context =
     case interaction of
         ITypes.GuacTerminal ->
             ITypes.InteractionDetails
                 "Web Terminal"
-                "Get a terminal session to your server. Pro tip, press Ctrl+Alt+Shift inside the terminal window to show a graphical file upload/download tool!"
+                (String.concat
+                    [ "Get a terminal session to your "
+                    , context.localization.virtualComputer
+                    , ". Pro tip, press Ctrl+Alt+Shift inside the terminal window to show a graphical file upload/download tool!"
+                    ]
+                )
                 (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
         ITypes.GuacDesktop ->
             ITypes.InteractionDetails
                 "Streaming Desktop"
-                "Interact with your server's desktop environment"
+                (String.concat
+                    [ "Interact with your "
+                    , context.localization.virtualComputer
+                    , "'s desktop environment"
+                    ]
+                )
                 (\_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
@@ -288,7 +361,12 @@ interactionDetails interaction =
         ITypes.Console ->
             ITypes.InteractionDetails
                 "Console"
-                "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your server (useful for troubleshooting if the Web Terminal isn't working)"
+                (String.join " "
+                    [ "Advanced feature: Launching the console is like connecting a screen, mouse, and keyboard to your"
+                    , context.localization.virtualComputer
+                    , "(useful for troubleshooting if the Web Terminal isn't working)"
+                    ]
+                )
                 Icon.console
                 ITypes.UrlInteraction
 
