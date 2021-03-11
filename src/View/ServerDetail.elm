@@ -63,7 +63,12 @@ serverDetail context project currentTimeAndZone serverDetailViewParams serverUui
             serverDetail_ context project currentTimeAndZone serverDetailViewParams server
 
         Nothing ->
-            Element.text "No server found"
+            Element.text <|
+                String.join " "
+                    [ "No"
+                    , context.localization.virtualComputer
+                    , "found"
+                    ]
 
 
 serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
@@ -208,7 +213,18 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
                         { chips = []
                         , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
-                        , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text <|
+                                        String.join " "
+                                            [ "My"
+                                            , context.localization.virtualComputer
+                                                |> Helpers.String.stringToTitleCase
+                                            ]
+                                    )
+                                )
                         , label = "Name"
                         , onChange =
                             \n ->
@@ -267,7 +283,13 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             )
             [ Element.el
                 VH.heading2
-                (Element.text "Server Details")
+                (Element.text <|
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.stringToTitleCase
+                        , "Details"
+                        ]
+                )
             , passwordVulnWarning context server
             , VH.compactKVRow "Name" serverNameView
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
@@ -356,12 +378,26 @@ passwordVulnWarning context server =
             if serverFromExoProps.exoServerVersion < 1 then
                 Element.paragraph
                     [ Font.color (SH.toElementColor context.palette.error) ]
-                    [ Element.text "Warning: this server was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the server to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
+                    [ Element.text <|
+                        String.join " "
+                            [ "Warning: this"
+                            , context.localization.virtualComputer
+                            , "was created with an older version of Exosphere which left the opportunity for unprivileged processes running on the"
+                            , context.localization.virtualComputer
+                            , "to query the instance metadata service and determine the password for exouser (who is a sudoer). This represents a "
+                            ]
                     , VH.browserLink
                         context
                         "https://en.wikipedia.org/wiki/Privilege_escalation"
                         (View.Types.BrowserLinkTextLabel "privilege escalation vulnerability")
-                    , Element.text ". If you have used this server for anything important or sensitive, consider rotating the password for exouser, or building a new server and moving to that one instead of this one. For more information, see "
+                    , Element.text <|
+                        String.join " "
+                            [ ". If you have used this"
+                            , context.localization.virtualComputer
+                            , "for anything important or sensitive, consider rotating the password for exouser, or building a new"
+                            , context.localization.virtualComputer
+                            , "and moving to that one instead of this one. For more information, see "
+                            ]
                     , VH.browserLink
                         context
                         "https://gitlab.com/exosphere/exosphere/issues/284"
@@ -441,7 +477,14 @@ serverStatus context projectId serverDetailViewParams server =
                 [ Element.text "Detailed status"
                 , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                 , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                , VH.compactKVSubRow "Server Dashboard and Terminal readiness" (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.serverOrigin) ])
+                , VH.compactKVSubRow
+                    (String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.stringToTitleCase
+                        , "Dashboard and Terminal readiness"
+                        ]
+                    )
+                    (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.serverOrigin) ])
                 ]
 
             else
@@ -894,14 +937,24 @@ resourceUsageCharts context currentTimeAndZone server =
     in
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
-            Element.text "Charts not available because server was not created by Exosphere."
+            Element.text <|
+                String.join " "
+                    [ "Charts not available because"
+                    , context.localization.virtualComputer
+                    , "was not created by Exosphere."
+                    ]
 
         ServerFromExo exoOriginProps ->
             case exoOriginProps.resourceUsage.data of
                 RDPP.DoHave history _ ->
                     if Dict.isEmpty history.timeSeries then
                         if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
-                            Element.text "No chart data yet. This server is new and may take a few minutes to start reporting data."
+                            Element.text <|
+                                String.join " "
+                                    [ "No chart data yet. This"
+                                    , context.localization.virtualComputer
+                                    , "is new and may take a few minutes to start reporting data."
+                                    ]
 
                         else
                             Element.text "No chart data to show."
@@ -911,10 +964,20 @@ resourceUsageCharts context currentTimeAndZone server =
 
                 _ ->
                     if exoOriginProps.exoServerVersion < 2 then
-                        Element.text "Charts not available because server was not created using a new enough build of Exosphere."
+                        Element.text <|
+                            String.join " "
+                                [ "Charts not available because"
+                                , context.localization.virtualComputer
+                                , "was not created using a new enough build of Exosphere."
+                                ]
 
                     else
-                        Element.text "Could not access the server console log, charts not available."
+                        Element.text <|
+                            String.join " "
+                                [ "Could not access the"
+                                , context.localization.virtualComputer
+                                , "console log, charts not available."
+                                ]
 
 
 renderIpAddresses : View.Types.Context -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg

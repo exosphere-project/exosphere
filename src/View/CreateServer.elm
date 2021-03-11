@@ -86,7 +86,18 @@ createServer context project viewParams =
             [ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = viewParams.serverName
-                , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                , placeholder =
+                    Just
+                        (Input.placeholder
+                            []
+                            (Element.text <|
+                                String.join " "
+                                    [ "My"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.stringToTitleCase
+                                    ]
+                            )
+                        )
                 , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
@@ -135,7 +146,16 @@ createServer context project viewParams =
                 ++ [ Element.width (Element.px 600) ]
             )
           <|
-            [ Element.el VH.heading2 (Element.text "Create Server") ]
+            [ Element.el
+                VH.heading2
+                (Element.text <|
+                    String.join " "
+                        [ "Create"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.stringToTitleCase
+                        ]
+                )
+            ]
                 ++ (case
                         ( GetterSetters.flavorLookup project viewParams.flavorUuid
                         , project.computeQuota
@@ -261,7 +281,11 @@ flavorPicker context project viewParams computeQuota =
         zeroRootDiskExplainText =
             case List.filter (\f -> f.disk_root == 0) project.flavors |> List.head of
                 Just _ ->
-                    "* No default root disk size is defined for this server size, see below"
+                    String.join " "
+                        [ "* No default root disk size is defined for this"
+                        , context.localization.virtualComputer
+                        , "size, see below"
+                        ]
 
                 Nothing ->
                     ""
@@ -424,7 +448,13 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
                 volumeQuota
     in
     Element.column VH.exoColumnAttributes
-        [ Element.text "How many servers?"
+        [ Element.text <|
+            String.concat
+                [ "How many "
+                , context.localization.virtualComputer
+                    |> Helpers.String.stringToTitleCase
+                , "?"
+                ]
         , case countAvail of
             Just countAvail_ ->
                 Element.text <|
@@ -498,7 +528,13 @@ desktopEnvironmentPicker context project createServerViewParams =
                 ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes
                 )
-                [ Element.text "Warning: if selected image does not already include a desktop environment, server can take 30 minutes or longer to deploy." ]
+                [ Element.text <|
+                    String.join " "
+                        [ "Warning: if selected image does not already include a desktop environment,"
+                        , context.localization.virtualComputer
+                        , "can take 30 minutes or longer to deploy."
+                        ]
+                ]
 
           else
             Element.none
@@ -612,13 +648,15 @@ keypairPicker context project viewParams =
         contents =
             if List.isEmpty project.keypairs then
                 Element.text <|
-                    String.join " "
-                        [ "(This"
+                    String.concat
+                        [ "(This "
                         , context.localization.unitOfTenancy
-                        , "has no"
+                        , " has no "
                         , context.localization.pkiPublicKeyForSsh
                             |> Helpers.String.pluralizeWord
-                        , "to choose from, but you can still create a server!)"
+                        , " to choose from, but you can still create a "
+                        , context.localization.virtualComputer
+                        , "!)"
                         ]
 
             else

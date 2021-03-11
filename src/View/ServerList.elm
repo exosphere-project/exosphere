@@ -7,6 +7,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
@@ -49,7 +50,16 @@ serverList context project serverListViewParams =
                 ]
 
         ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
-            Element.paragraph [] [ Element.text ("Cannot display servers. Error message: " ++ Debug.toString e) ]
+            Element.paragraph
+                []
+                [ Element.text <|
+                    String.concat
+                        [ "Cannot display"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.pluralizeWord
+                        , ". Error message: " ++ Debug.toString e
+                        ]
+                ]
 
         ( RDPP.DontHave, RDPP.Loading _ ) ->
             Element.row [ Element.spacing 15 ]
@@ -61,7 +71,16 @@ serverList context project serverListViewParams =
 
         ( RDPP.DoHave servers _, _ ) ->
             if List.isEmpty servers then
-                Element.paragraph [] [ Element.text "You don't have any servers yet, go create one!" ]
+                Element.paragraph
+                    []
+                    [ Element.text <|
+                        String.join " "
+                            [ "You don't have any"
+                            , context.localization.virtualComputer
+                                |> Helpers.String.pluralizeWord
+                            , "yet, go create one!"
+                            ]
+                    ]
 
             else
                 serverList_
@@ -101,7 +120,10 @@ serverList_ context projectId userUuid serverListViewParams servers =
                 selectableServers == selectedServers
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 (Element.text "Servers")
+        [ Element.el VH.heading2
+            (Element.text <|
+                Helpers.String.pluralizeWord context.localization.virtualComputer
+            )
         , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
             List.concat
                 [ [ renderTableHead
@@ -353,10 +375,14 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
             let
                 ( serversPluralization, usersPluralization ) =
                     if numOtherUsersServers == 1 then
-                        ( "server", "another user" )
+                        ( context.localization.virtualComputer
+                        , "another user"
+                        )
 
                     else
-                        ( "servers", "other users" )
+                        ( Helpers.String.pluralizeWord context.localization.virtualComputer
+                        , "other users"
+                        )
             in
             if serverListViewParams.onlyOwnServers then
                 String.concat
@@ -369,7 +395,12 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
                     ]
 
             else
-                "Servers created by other users"
+                String.join " "
+                    [ context.localization.virtualComputer
+                        |> Helpers.String.pluralizeWord
+                        |> Helpers.String.stringToTitleCase
+                    , "created by other users"
+                    ]
 
         ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
             if serverListViewParams.onlyOwnServers then

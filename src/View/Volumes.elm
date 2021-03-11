@@ -87,7 +87,14 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
     let
         volDetachDeleteWarning =
             if Helpers.isBootVol Nothing volume then
-                Element.text "This volume backs a server; it cannot be detached or deleted until the server is deleted."
+                Element.text <|
+                    String.concat
+                        [ "This volume backs a "
+                        , context.localization.virtualComputer
+                        , "; it cannot be detached or deleted until the "
+                        , context.localization.virtualComputer
+                        , " is deleted."
+                        ]
 
             else if volume.status == OSTypes.InUse then
                 Element.text "This volume must be detached before it can be deleted."
@@ -245,7 +252,11 @@ renderAttachment context project attachment =
                     server.osProps.name
 
                 Nothing ->
-                    "(Could not resolve server name)"
+                    String.join " "
+                        [ "(Could not resolve"
+                        , context.localization.virtualComputer
+                        , "name)"
+                        ]
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.padding 0 ])

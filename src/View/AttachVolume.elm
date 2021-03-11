@@ -6,6 +6,7 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
@@ -46,7 +47,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                 |> List.map
                     (\s ->
                         Input.option s.osProps.uuid
-                            (Element.text <| VH.possiblyUntitledResource s.osProps.name "server")
+                            (Element.text <| VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer)
                     )
 
         volumeChoices =
@@ -67,7 +68,16 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 <| Element.text "Attach a Volume"
         , Input.radio []
-            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a server")
+            { label =
+                Input.labelAbove
+                    [ Element.paddingXY 0 12 ]
+                    (Element.text <|
+                        String.join " "
+                            [ "Select"
+                            , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                            , context.localization.virtualComputer
+                            ]
+                    )
             , onChange =
                 \new ->
                     ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal (Just new) maybeVolumeUuid))
@@ -95,7 +105,12 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                         in
                         if volAttachedToServer then
                             { onPress = Nothing
-                            , warnText = Just "This volume is already attached to this server."
+                            , warnText =
+                                Just <|
+                                    String.join " "
+                                        [ "This volume is already attached to this"
+                                        , context.localization.virtualComputer
+                                        ]
                             }
 
                         else
@@ -160,7 +175,7 @@ mountVolInstructions context project attachment =
             ]
         , Widget.textButton
             (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-            { text = "Go to my server"
+            { text = "Go to my " ++ context.localization.virtualComputer
             , onPress =
                 Just <|
                     ProjectMsg

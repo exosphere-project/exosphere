@@ -91,7 +91,13 @@ pageTitle model context =
                     "Images for " ++ projectName
 
                 ListProjectServers _ ->
-                    "Servers for " ++ projectName
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.stringToTitleCase
+                        , "for"
+                        , projectName
+                        ]
 
                 ListProjectVolumes _ ->
                     "Volumes for " ++ projectName
@@ -105,7 +111,11 @@ pageTitle model context =
                         ]
 
                 ServerDetail serverUuid _ ->
-                    "Server " ++ serverName maybeProject serverUuid
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.stringToTitleCase
+                        , serverName maybeProject serverUuid
+                        ]
 
                 CreateServerImage serverUuid _ ->
                     "Create Image for " ++ serverName maybeProject serverUuid
@@ -114,7 +124,11 @@ pageTitle model context =
                     "Volume " ++ volumeName maybeProject volumeUuid
 
                 CreateServer _ ->
-                    "Create Server"
+                    String.join " "
+                        [ "Create"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.stringToTitleCase
+                        ]
 
                 CreateVolume _ _ ->
                     "Create Volume"

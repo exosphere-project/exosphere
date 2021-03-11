@@ -86,7 +86,10 @@ projectNav context p viewParams =
               <|
                 Widget.textButton
                     (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text = "Servers"
+                    { text =
+                        context.localization.virtualComputer
+                            |> Helpers.String.pluralizeWord
+                            |> Helpers.String.stringToTitleCase
                     , onPress =
                         Just <|
                             ProjectMsg p.auth.project.uuid <|
@@ -154,7 +157,9 @@ createButton context projectId expanded =
                             ]
                             [ Widget.textButton
                                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                                { text = "Server"
+                                { text =
+                                    context.localization.virtualComputer
+                                        |> Helpers.String.stringToTitleCase
                                 , onPress =
                                     Just <|
                                         ProjectMsg projectId <|
