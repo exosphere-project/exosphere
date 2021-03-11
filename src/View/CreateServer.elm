@@ -281,10 +281,12 @@ flavorPicker context project viewParams computeQuota =
         zeroRootDiskExplainText =
             case List.filter (\f -> f.disk_root == 0) project.flavors |> List.head of
                 Just _ ->
-                    String.join " "
-                        [ "* No default root disk size is defined for this"
+                    String.concat
+                        [ "* No default root disk size is defined for this "
                         , context.localization.virtualComputer
-                        , "size, see below"
+                        , " "
+                        , context.localization.virtualComputerHardwareConfig
+                        , ", see below"
                         ]
 
                 Nothing ->
@@ -292,7 +294,13 @@ flavorPicker context project viewParams computeQuota =
 
         flavorEmptyHint =
             if viewParams.flavorUuid == "" then
-                [ VH.hint context "Please pick a size" ]
+                [ VH.hint context <|
+                    String.join
+                        " "
+                        [ "Please pick a"
+                        , context.localization.virtualComputerHardwareConfig
+                        ]
+                ]
 
             else
                 []
@@ -306,14 +314,23 @@ flavorPicker context project viewParams computeQuota =
     in
     Element.column
         VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] (Element.text "Size")
+        [ Element.el
+            [ Font.bold ]
+            (Element.text <| Helpers.String.stringToTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.table
             flavorEmptyHint
             { data = GetterSetters.sortedFlavors project.flavors
             , columns = columns
             }
         , if anyFlavorsTooLarge then
-            Element.text ("Flavors marked 'X' are too large for your available " ++ context.localization.maxResourcesPerProject)
+            Element.text <|
+                String.join " "
+                    [ context.localization.virtualComputerHardwareConfig
+                        |> Helpers.String.pluralizeWord
+                        |> Helpers.String.stringToTitleCase
+                    , "marked 'X' are too large for your available"
+                    , context.localization.maxResourcesPerProject
+                    ]
 
           else
             Element.none
@@ -347,7 +364,12 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                 "Default for selected image (warning, could be too small for your work)"
 
             else
-                String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
+                String.concat
+                    [ String.fromInt flavorRootDiskSize
+                    , " GB (default for selected"
+                    , context.localization.virtualComputerHardwareConfig
+                    , ")"
+                    ]
 
         defaultVolSizeGB =
             10

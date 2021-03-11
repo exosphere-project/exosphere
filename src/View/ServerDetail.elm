@@ -94,7 +94,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         flavorText =
             GetterSetters.flavorLookup project details.flavorUuid
                 |> Maybe.map .name
-                |> Maybe.withDefault "Unknown flavor"
+                |> Maybe.withDefault ("Unknown" ++ context.localization.virtualComputerHardwareConfig)
 
         imageText =
             let
@@ -297,7 +297,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , VH.compactKVRow "Created on" (Element.text details.created)
             , creatorNameView
             , VH.compactKVRow "Image" (Element.text imageText)
-            , VH.compactKVRow "Flavor" (Element.text flavorText)
+            , VH.compactKVRow
+                (Helpers.String.stringToTitleCase context.localization.virtualComputerHardwareConfig)
+                (Element.text flavorText)
             , VH.compactKVRow
                 (String.join " "
                     [ context.localization.pkiPublicKeyForSsh
