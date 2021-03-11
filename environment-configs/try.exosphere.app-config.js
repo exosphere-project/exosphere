@@ -18,7 +18,8 @@ supportInfoMarkdown: null,
 userSupportEmail: "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com",
 openIdConnectLoginConfig: null,
 featuredImageNamePrefix: null,
-defaultImageExcludeFilter: null
+defaultImageExcludeFilter: null,
+localization: null
 }
 
 /* Matomo tracking code */

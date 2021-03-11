@@ -6,12 +6,12 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Filesize
+import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
 import Set
 import Set.Extra
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
@@ -32,16 +32,22 @@ import Widget
 import Widget.Style.Material
 
 
-imagesIfLoaded : Style.Types.ExoPalette -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
-imagesIfLoaded palette project imageListViewParams sortTableParams =
+imagesIfLoaded : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+imagesIfLoaded context project imageListViewParams sortTableParams =
     if List.isEmpty project.images then
         Element.row [ Element.spacing 15 ]
-            [ Widget.circularProgressIndicator (SH.materialStyle palette).progressIndicator Nothing
-            , Element.text "Images loading..."
+            [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
+            , Element.text <|
+                String.join " "
+                    [ context.localization.staticRepresentationOfBlockDeviceContents
+                        |> Helpers.String.toTitleCase
+                        |> Helpers.String.pluralize
+                    , "loading..."
+                    ]
             ]
 
     else
-        images palette project imageListViewParams sortTableParams
+        images context project imageListViewParams sortTableParams
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -124,8 +130,8 @@ filterImages imageListViewParams project someImages =
         |> filterBySearchText imageListViewParams.searchText
 
 
-images : Style.Types.ExoPalette -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
-images palette project imageListViewParams sortTableParams =
+images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
+images context project imageListViewParams sortTableParams =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -163,7 +169,7 @@ images palette project imageListViewParams sortTableParams =
                         Element.none
 
                     else
-                        Icon.plusCircle (SH.toElementColor palette.on.background) 12
+                        Icon.plusCircle (SH.toElementColor context.palette.on.background) 12
 
                 tagChecked =
                     Set.member tag.label imageListViewParams.tags
@@ -205,7 +211,7 @@ images palette project imageListViewParams sortTableParams =
                                 sortTableParams
             in
             if tagChecked then
-                chip palette (Just unselectTag) chipLabel
+                chip context.palette (Just unselectTag) chipLabel
 
             else
                 Element.none
@@ -218,23 +224,29 @@ images palette project imageListViewParams sortTableParams =
                     , Element.width Element.shrink
                     ]
                     (List.map tagChipView tagsAfterFilteringImages)
-                , Element.text "Select tags to filter images on:"
+                , Element.text <|
+                    String.join " "
+                        [ "Select tags to filter"
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralize
+                        , "on:"
+                        ]
                 , Element.wrappedRow []
                     (List.map tagView tagsAfterFilteringImages)
                 ]
 
         imagesColumnView =
             Widget.column
-                ((SH.materialStyle palette).column
+                ((SH.materialStyle context.palette).column
                     |> (\x ->
                             { x
                                 | containerColumn =
-                                    (SH.materialStyle palette).column.containerColumn
+                                    (SH.materialStyle context.palette).column.containerColumn
                                         ++ [ Element.width Element.fill
                                            , Element.padding 0
                                            ]
                                 , element =
-                                    (SH.materialStyle palette).column.element
+                                    (SH.materialStyle context.palette).column.element
                                         ++ [ Element.width Element.fill
                                            ]
                             }
@@ -245,8 +257,15 @@ images palette project imageListViewParams sortTableParams =
         (VH.exoColumnAttributes
             ++ [ Element.width Element.fill ]
         )
-        [ Element.el VH.heading2 (Element.text "Choose an image")
-        , Input.text (VH.inputItemAttributes palette.background)
+        [ Element.el VH.heading2
+            (Element.text <|
+                String.join " "
+                    [ "Choose"
+                    , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                    ]
+            )
+        , Input.text (VH.inputItemAttributes context.palette.background)
             { text = imageListViewParams.searchText
             , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
             , onChange =
@@ -256,7 +275,15 @@ images palette project imageListViewParams sortTableParams =
                             ListImages
                                 { imageListViewParams | searchText = t }
                                 sortTableParams
-            , label = Input.labelAbove [ Font.size 14 ] (Element.text "Filter on image name:")
+            , label =
+                Input.labelAbove [ Font.size 14 ]
+                    (Element.text <|
+                        String.join " "
+                            [ "Filter on"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "name:"
+                            ]
+                    )
             }
         , tagsView
         , Input.checkbox []
@@ -268,10 +295,20 @@ images palette project imageListViewParams sortTableParams =
                             ListImages { imageListViewParams | onlyOwnImages = new }
                                 sortTableParams
             , icon = Input.defaultCheckbox
-            , label = Input.labelRight [] (Element.text "Show only images owned by this project")
+            , label =
+                Input.labelRight [] <|
+                    Element.text <|
+                        String.join
+                            " "
+                            [ "Show only"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                            , "owned by this"
+                            , context.localization.unitOfTenancy
+                            ]
             }
         , Widget.textButton
-            (Widget.Style.Material.textButton (SH.toMaterialPalette palette))
+            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
             { text = "Clear filters (show all)"
             , onPress =
                 Just <|
@@ -290,13 +327,13 @@ images palette project imageListViewParams sortTableParams =
 
           else
             Element.none
-        , List.map (renderImage palette project imageListViewParams sortTableParams) combinedImages
+        , List.map (renderImage context project imageListViewParams sortTableParams) combinedImages
             |> imagesColumnView
         ]
 
 
-renderImage : Style.Types.ExoPalette -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
-renderImage palette project imageListViewParams sortTableParams image =
+renderImage : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element Msg
+renderImage context project imageListViewParams sortTableParams image =
     let
         imageDetailsExpanded =
             Set.member image.uuid imageListViewParams.expandImageDetails
@@ -362,7 +399,7 @@ renderImage palette project imageListViewParams sortTableParams image =
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
-                (Widget.button (SH.materialStyle palette).chipButton
+                (Widget.button (SH.materialStyle context.palette).chipButton
                     { text = tag
                     , icon = Element.none
                     , onPress =
@@ -372,7 +409,7 @@ renderImage palette project imageListViewParams sortTableParams image =
 
         chooseButton =
             Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                 { text = "Choose"
                 , onPress =
                     case image.status of
@@ -392,7 +429,11 @@ renderImage palette project imageListViewParams sortTableParams image =
 
         ownerBadge =
             if projectOwnsImage project image then
-                ExoCard.badge "belongs to this project"
+                ExoCard.badge <|
+                    String.join " "
+                        [ "belongs to this"
+                        , context.localization.unitOfTenancy
+                        ]
 
             else
                 Element.none
@@ -412,7 +453,7 @@ renderImage palette project imageListViewParams sortTableParams image =
                         ]
                         (Element.text image.name)
                     , Element.el
-                        [ Font.color <| SH.toElementColor <| palette.muted
+                        [ Font.color <| SH.toElementColor <| context.palette.muted
                         , Element.padding 5
                         ]
                         (Element.text size)
@@ -428,7 +469,7 @@ renderImage palette project imageListViewParams sortTableParams image =
                     [ Element.width Element.fill
                     ]
                     (Element.el
-                        [ Font.color <| SH.toElementColor <| palette.muted
+                        [ Font.color <| SH.toElementColor <| context.palette.muted
                         , Element.padding 5
                         ]
                         (Element.text "Tags:")
@@ -439,15 +480,15 @@ renderImage palette project imageListViewParams sortTableParams image =
                 ]
     in
     Widget.column
-        ((SH.materialStyle palette).cardColumn
+        ((SH.materialStyle context.palette).cardColumn
             |> (\x ->
                     { x
                         | containerColumn =
-                            (SH.materialStyle palette).cardColumn.containerColumn
+                            (SH.materialStyle context.palette).cardColumn.containerColumn
                                 ++ [ Element.padding 0
                                    ]
                         , element =
-                            (SH.materialStyle palette).cardColumn.element
+                            (SH.materialStyle context.palette).cardColumn.element
                                 ++ [ Element.padding 3
                                    ]
                     }

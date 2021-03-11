@@ -5,6 +5,7 @@ module OpenStack.ServerActions exposing
     , getAllowed
     )
 
+import Helpers.String
 import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -23,8 +24,8 @@ import Types.Types
         )
 
 
-getAllowed : OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
-getAllowed serverStatus serverLockStatus =
+getAllowed : Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
+getAllowed maybeWordForServer maybeWordForImage serverStatus serverLockStatus =
     let
         allowedByServerStatus action =
             case action.allowedStatuses of
@@ -42,7 +43,7 @@ getAllowed serverStatus serverLockStatus =
                 Just allowedLockStatus_ ->
                     serverLockStatus == allowedLockStatus_
     in
-    actions
+    actions maybeWordForServer maybeWordForImage
         |> List.filter allowedByServerStatus
         |> List.filter allowedByLockStatus
 
@@ -71,10 +72,24 @@ type SelectMod
     | Danger
 
 
-actions : List ServerAction
-actions =
+actions : Maybe String -> Maybe String -> List ServerAction
+actions maybeWordForServer maybeWordForImage =
+    let
+        wordForServer =
+            maybeWordForServer
+                |> Maybe.withDefault "server"
+
+        wordForImage =
+            maybeWordForImage
+                |> Maybe.withDefault "image"
+    in
     [ { name = "Lock"
-      , description = "Prevent further server actions until it is unlocked"
+      , description =
+            String.join " "
+                [ "Prevent further"
+                , wordForServer
+                , "actions until it is unlocked"
+                ]
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
@@ -85,7 +100,12 @@ actions =
       , confirmable = False
       }
     , { name = "Unlock"
-      , description = "Allow further server actions"
+      , description =
+            String.join " "
+                [ "Allow further"
+                , wordForServer
+                , "actions"
+                ]
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerLocked
       , action =
@@ -96,7 +116,11 @@ actions =
       , confirmable = False
       }
     , { name = "Start"
-      , description = "Start stopped server"
+      , description =
+            String.join " "
+                [ "Start stopped"
+                , wordForServer
+                ]
       , allowedStatuses = Just [ OSTypes.ServerStopped, OSTypes.ServerShutoff ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
@@ -108,7 +132,11 @@ actions =
       , confirmable = False
       }
     , { name = "Unpause"
-      , description = "Restore paused server"
+      , description =
+            String.join " "
+                [ "Restore paused"
+                , wordForServer
+                ]
       , allowedStatuses = Just [ OSTypes.ServerPaused ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
@@ -120,7 +148,11 @@ actions =
       , confirmable = False
       }
     , { name = "Resume"
-      , description = "Resume suspended server"
+      , description =
+            String.join " "
+                [ "Resume suspended"
+                , wordForServer
+                ]
       , allowedStatuses = Just [ OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
@@ -132,7 +164,11 @@ actions =
       , confirmable = False
       }
     , { name = "Unshelve"
-      , description = "Restore shelved server"
+      , description =
+            String.join " "
+                [ "Restore shelved"
+                , wordForServer
+                ]
       , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
@@ -155,7 +191,12 @@ actions =
       , confirmable = False
       }
     , { name = "Shelve"
-      , description = "Shut down server and offload it from compute host"
+      , description =
+            String.join " "
+                [ "Shut down"
+                , wordForServer
+                , "and offload it from compute host"
+                ]
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
@@ -165,8 +206,14 @@ actions =
       , targetStatus = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , confirmable = False
       }
-    , { name = "Image"
-      , description = "Create snapshot image of server"
+    , { name =
+            wordForImage
+                |> Helpers.String.toTitleCase
+      , description =
+            String.join " "
+                [ "Create snapshot image of"
+                , wordForServer
+                ]
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
       , allowedLockStatus = Nothing
       , action =
@@ -185,7 +232,11 @@ actions =
       , confirmable = False
       }
     , { name = "Reboot"
-      , description = "Restart server"
+      , description =
+            String.join " "
+                [ "Restart"
+                , wordForServer
+                ]
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
 
@@ -204,7 +255,11 @@ actions =
       , confirmable = False
       }
     , { name = "Delete"
-      , description = "Destroy server"
+      , description =
+            String.join " "
+                [ "Destroy"
+                , wordForServer
+                ]
       , allowedStatuses =
             Just
                 [ OSTypes.ServerPaused

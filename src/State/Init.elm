@@ -125,6 +125,7 @@ init flags maybeUrlKey =
                         |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
                 , featuredImageNamePrefix = flags.featuredImageNamePrefix
                 , defaultImageExcludeFilter = flags.defaultImageExcludeFilter
+                , localization = Maybe.withDefault Defaults.localization flags.localization
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
             }

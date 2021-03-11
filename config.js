@@ -20,5 +20,6 @@ supportInfoMarkdown: null,
 userSupportEmail: null,
 openIdConnectLoginConfig: null,
 featuredImageNamePrefix: null,
-defaultImageExcludeFilter: null
+defaultImageExcludeFilter: null,
+localization: null
 }

@@ -1,13 +1,17 @@
 module OpenStack.ServerNameValidator exposing (serverNameValidator)
 
+import Helpers.String
 import Regex
 
 
-serverNameValidator : String -> Maybe (List String)
-serverNameValidator name =
+serverNameValidator : Maybe String -> String -> Maybe (List String)
+serverNameValidator maybeWordForServer name =
     -- If server name is valid, returns nothing.
     -- If server name is invalid, returns a list of human-readable reasons why.
     let
+        wordForServer =
+            maybeWordForServer |> Maybe.withDefault "server"
+
         validators =
             [ ( name == ""
               , "not be empty"
@@ -35,7 +39,13 @@ serverNameValidator name =
 
         runValidator ( failCondition, reason ) =
             if failCondition then
-                Just ("Server name must " ++ reason)
+                Just <|
+                    String.join " "
+                        [ wordForServer
+                            |> Helpers.String.toTitleCase
+                        , "name must"
+                        , reason
+                        ]
 
             else
                 Nothing

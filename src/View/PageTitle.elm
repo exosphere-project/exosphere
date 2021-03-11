@@ -1,6 +1,7 @@
 module View.PageTitle exposing (pageTitle)
 
 import Helpers.GetterSetters as GetterSetters
+import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Types.Types
@@ -13,10 +14,11 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH
+import View.Types
 
 
-pageTitle : Model -> String
-pageTitle model =
+pageTitle : Model -> View.Types.Context -> String
+pageTitle model context =
     case model.viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
@@ -32,7 +34,10 @@ pageTitle model =
                             "Jetstream Cloud Login"
 
                 LoadingUnscopedProjects _ ->
-                    "Loading projects"
+                    String.join " "
+                        [ "Loading"
+                        , Helpers.String.pluralize context.localization.unitOfTenancy
+                        ]
 
                 SelectProjects keystoneUrl _ ->
                     let
@@ -41,7 +46,14 @@ pageTitle model =
                                 |> UrlHelpers.hostnameFromUrl
                                 |> VH.titleFromHostname
                     in
-                    "Select Projects for " ++ providerTitle
+                    String.join " "
+                        [ "Select"
+                        , context.localization.unitOfTenancy
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , providerTitle
+                        ]
 
                 MessageLog ->
                     "Message Log"
@@ -66,41 +78,100 @@ pageTitle model =
                 projectName =
                     maybeProject
                         |> Maybe.map (\p -> p.auth.project.name)
-                        |> Maybe.withDefault "could not find project name"
+                        |> Maybe.withDefault
+                            (String.join " "
+                                [ "could not find"
+                                , context.localization.unitOfTenancy
+                                , "name"
+                                ]
+                            )
             in
             case projectViewConstructor of
                 ListImages _ _ ->
-                    "Images for " ++ projectName
+                    String.join " "
+                        [ context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
 
                 ListProjectServers _ ->
-                    "Servers for " ++ projectName
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
 
                 ListProjectVolumes _ ->
-                    "Volumes for " ++ projectName
+                    String.join " "
+                        [ context.localization.blockDevice
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
 
                 ListQuotaUsage ->
-                    "Quota Usage for " ++ projectName
+                    String.join " "
+                        [ context.localization.maxResourcesPerProject
+                            |> Helpers.String.toTitleCase
+                        , "Usage for"
+                        , projectName
+                        ]
 
                 ServerDetail serverUuid _ ->
-                    "Server " ++ serverName maybeProject serverUuid
+                    String.join " "
+                        [ context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        , serverName maybeProject serverUuid
+                        ]
 
                 CreateServerImage serverUuid _ ->
-                    "Create Image for " ++ serverName maybeProject serverUuid
+                    String.join " "
+                        [ "Create"
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , serverName maybeProject serverUuid
+                        ]
 
                 VolumeDetail volumeUuid _ ->
-                    "Volume " ++ volumeName maybeProject volumeUuid
+                    String.join " "
+                        [ context.localization.blockDevice
+                            |> Helpers.String.toTitleCase
+                        , volumeName maybeProject volumeUuid
+                        ]
 
                 CreateServer _ ->
-                    "Create Server"
+                    String.join " "
+                        [ "Create"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        ]
 
                 CreateVolume _ _ ->
-                    "Create Volume"
+                    String.join " "
+                        [ "Create"
+                        , context.localization.blockDevice
+                            |> Helpers.String.toTitleCase
+                        ]
 
                 AttachVolumeModal _ _ ->
-                    "Attach Volume"
+                    String.join " "
+                        [ "Attach"
+                        , context.localization.blockDevice
+                            |> Helpers.String.toTitleCase
+                        ]
 
                 MountVolInstructions _ ->
-                    "Mount Volume"
+                    String.join " "
+                        [ "Mount"
+                        , context.localization.blockDevice
+                            |> Helpers.String.toTitleCase
+                        ]
 
 
 serverName : Maybe Project -> OSTypes.ServerUuid -> String

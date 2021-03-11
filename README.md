@@ -200,22 +200,23 @@ Please do not use the terminal or server dashboard functionality over untrusted 
 
 Most users should not need to change these; they are primarily intended for cloud operators and others who wish to offer a customized build of Exosphere to a specific group of users. Set these in `config.js`.
 
-| *Option*                 | *Possible Values*          | *Description*                                                       |
-|--------------------------|----------------------------|---------------------------------------------------------------------|
-| showDebugMsgs            | false, true                |                                                                     |
-| cloudCorsProxyUrl        | null, string               | See `docs/cloud-cors-proxy.md`; required to use app in web browser  |
-| cloudsWithUserAppProxy   | (see docs)                 | See `docs/user-app-proxy.md`; required for Guacamole support        |
-| palette                  | null, JSON object          | Pass custom colors to style Exosphere, see example below            |
-| logo                     | null, string               | Path to custom logo to show in top-left corner of app               |
-| favicon                  | null, string               | Path to custom favicon                                              |
-| appTitle                 | null, string               | Title to show in top-left corner of app                             |
-| defaultLoginView         | null, openstack, jetstream | Which login view to display by default                              |
-| aboutAppMarkdown         | null, string (markdown)    | What to show in the "About the app" section of Help/About view      |
-| supportInfoMarkdown      | null, string (markdown)    | What to show when user clicks "Get support" button                  |
-| userSupportEmail         | null, string (markdown)    | Email address to ask users to send problem report                   |
-| openIdConnectLoginConfig | null, JSON object          | See `docs/federated-login.md` for more info and example JSON        |
-| featuredImageNamePrefix  | null, string               | A (public) image is 'featured' if the name starts with this string  |
-| defaultImageExcludeFilter| null, JSON object          | A key:value property to exclude images from UI, see example below   |
+| *Option*                  | *Possible Values*          | *Description*                                                       |
+|---------------------------|----------------------------|---------------------------------------------------------------------|
+| showDebugMsgs             | false, true                |                                                                     |
+| cloudCorsProxyUrl         | null, string               | See `docs/cloud-cors-proxy.md`; required to use app in web browser  |
+| cloudsWithUserAppProxy    | (see docs)                 | See `docs/user-app-proxy.md`; required for Guacamole support        |
+| palette                   | null, JSON object          | Pass custom colors to style Exosphere, see example below            |
+| logo                      | null, string               | Path to custom logo to show in top-left corner of app               |
+| favicon                   | null, string               | Path to custom favicon                                              |
+| appTitle                  | null, string               | Title to show in top-left corner of app                             |
+| defaultLoginView          | null, openstack, jetstream | Which login view to display by default                              |
+| aboutAppMarkdown          | null, string (markdown)    | What to show in the "About the app" section of Help/About view      |
+| supportInfoMarkdown       | null, string (markdown)    | What to show when user clicks "Get support" button                  |
+| userSupportEmail          | null, string (markdown)    | Email address to ask users to send problem report                   |
+| openIdConnectLoginConfig  | null, JSON object          | See `docs/federated-login.md` for more info and example JSON        |
+| featuredImageNamePrefix   | null, string               | A (public) image is 'featured' if the name starts with this string  |
+| defaultImageExcludeFilter | null, JSON object          | A key:value property to exclude images from UI, see example below   |
+| localization              | null, JSON object          | Pass custom localization strings for the UI, see example below      |
 
 ### Example Custom Palette
 
@@ -231,6 +232,29 @@ This excludes images built by, and intended for the Atmosphere platform.
 
 ```
 defaultImageExcludeFilter: { filterKey : "atmo_image_include", filterValue : "true" } 
+```
+
+### Example Localization JSON object
+
+This allows a deployer to customize terms used by Exosphere for their organization or community.
+
+```
+localization: {
+    openstackWithOwnKeystone: "cloud",
+    openstackSharingKeystoneWithAnother: "region",
+    unitOfTenancy: "project",
+    maxResourcesPerProject: "resource limits",
+    pkiPublicKeyForSsh: "SSH public key",
+    virtualComputer: "instance",
+    virtualComputerHardwareConfig: "size",
+    cloudInitData: "boot script",
+    commandDrivenTextInterface: "terminal",
+    staticRepresentationOfBlockDeviceContents: "image",
+    blockDevice: "volume",
+    nonFloatingIpAddress: "internal IP address",
+    floatingIpAddress: "public IP address",
+    graphicalDesktopEnvironment: "graphical desktop environment"
+    }
 ```
 
 ## Collaborate

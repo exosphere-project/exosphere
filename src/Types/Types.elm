@@ -17,6 +17,7 @@ module Types.Types exposing
     , JetstreamCreds
     , JetstreamProvider(..)
     , KeystoneHostname
+    , Localization
     , LogMessage
     , LoginView(..)
     , Model
@@ -111,6 +112,7 @@ type alias Flags =
         Maybe OpenIdConnectLoginConfig
     , featuredImageNamePrefix : Maybe String
     , defaultImageExcludeFilter : Maybe ExcludeFilter
+    , localization : Maybe Localization
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -162,6 +164,24 @@ type alias ExcludeFilter =
     }
 
 
+type alias Localization =
+    { openstackWithOwnKeystone : String
+    , openstackSharingKeystoneWithAnother : String
+    , unitOfTenancy : String
+    , maxResourcesPerProject : String
+    , pkiPublicKeyForSsh : String
+    , virtualComputer : String
+    , virtualComputerHardwareConfig : String
+    , cloudInitData : String
+    , commandDrivenTextInterface : String
+    , staticRepresentationOfBlockDeviceContents : String
+    , blockDevice : String
+    , nonFloatingIpAddress : String
+    , floatingIpAddress : String
+    , graphicalDesktopEnvironment : String
+    }
+
+
 type alias Style =
     { logo : HelperTypes.Url
     , primaryColor : Color.Color
@@ -174,6 +194,7 @@ type alias Style =
     , userSupportEmail : String
     , featuredImageNamePrefix : Maybe String
     , defaultImageExcludeFilter : Maybe ExcludeFilter
+    , localization : Localization
     }
 
 

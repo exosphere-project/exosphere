@@ -8,13 +8,13 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import Maybe
 import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
@@ -27,6 +27,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH exposing (edges)
+import View.Types
 import Widget
 import Widget.Style.Material
 
@@ -38,17 +39,17 @@ updateCreateServerRequest project viewParams =
             CreateServer viewParams
 
 
-createServer : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-createServer palette project viewParams =
+createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+createServer context project viewParams =
     let
         invalidNameReasons =
-            serverNameValidator viewParams.serverName
+            serverNameValidator (Just context.localization.virtualComputer) viewParams.serverName
 
         renderInvalidNameReasons =
             case invalidNameReasons of
                 Just reasons ->
                     Element.column
-                        [ Font.color (SH.toElementColor palette.error)
+                        [ Font.color (SH.toElementColor context.palette.error)
                         , Font.size 14
                         , Element.alignRight
                         , Element.moveDown 6
@@ -83,18 +84,37 @@ createServer palette project viewParams =
 
         contents flavor computeQuota volumeQuota =
             [ Input.text
-                (VH.inputItemAttributes palette.background)
+                (VH.inputItemAttributes context.palette.background)
                 { text = viewParams.serverName
-                , placeholder = Just (Input.placeholder [] (Element.text "My Server"))
+                , placeholder =
+                    Just
+                        (Input.placeholder
+                            []
+                            (Element.text <|
+                                String.join " "
+                                    [ "My"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.toTitleCase
+                                    ]
+                            )
+                        )
                 , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , renderInvalidNameReasons
-            , Element.row VH.exoRowAttributes [ Element.text "Image: ", Element.text viewParams.imageName ]
-            , flavorPicker palette project viewParams computeQuota
-            , volBackedPrompt palette project viewParams volumeQuota flavor
-            , countPicker palette project viewParams computeQuota volumeQuota flavor
-            , desktopEnvironmentPicker palette project viewParams
+            , Element.row VH.exoRowAttributes
+                [ Element.text <|
+                    String.concat
+                        [ context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.toTitleCase
+                        , ": "
+                        ]
+                , Element.text viewParams.imageName
+                ]
+            , flavorPicker context project viewParams computeQuota
+            , volBackedPrompt context project viewParams volumeQuota flavor
+            , countPicker context project viewParams computeQuota volumeQuota flavor
+            , desktopEnvironmentPicker context project viewParams
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -114,15 +134,15 @@ createServer palette project viewParams =
                             [ Element.none ]
 
                         else
-                            [ guacamolePicker project viewParams
-                            , networkPicker palette project viewParams
-                            , keypairPicker project viewParams
-                            , userDataInput palette project viewParams
+                            [ guacamolePicker context project viewParams
+                            , networkPicker context project viewParams
+                            , keypairPicker context project viewParams
+                            , userDataInput context project viewParams
                             ]
                        )
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                     { text = "Create"
                     , onPress = createOnPress
                     }
@@ -134,7 +154,16 @@ createServer palette project viewParams =
                 ++ [ Element.width (Element.px 600) ]
             )
           <|
-            [ Element.el VH.heading2 (Element.text "Create Server") ]
+            [ Element.el
+                VH.heading2
+                (Element.text <|
+                    String.join " "
+                        [ "Create"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.toTitleCase
+                        ]
+                )
+            ]
                 ++ (case
                         ( GetterSetters.flavorLookup project viewParams.flavorUuid
                         , project.computeQuota
@@ -147,7 +176,7 @@ createServer palette project viewParams =
                         ( _, _, RemoteData.Loading ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (SH.materialStyle palette).progressIndicator
+                                    (SH.materialStyle context.palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -156,7 +185,7 @@ createServer palette project viewParams =
                         ( _, RemoteData.Loading, _ ) ->
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
-                                    (SH.materialStyle palette).progressIndicator
+                                    (SH.materialStyle context.palette).progressIndicator
                                     Nothing
                                 , Element.text "Loading..."
                                 ]
@@ -168,8 +197,8 @@ createServer palette project viewParams =
         ]
 
 
-flavorPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
-flavorPicker palette project viewParams computeQuota =
+flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker context project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -260,14 +289,26 @@ flavorPicker palette project viewParams computeQuota =
         zeroRootDiskExplainText =
             case List.filter (\f -> f.disk_root == 0) project.flavors |> List.head of
                 Just _ ->
-                    "* No default root disk size is defined for this server size, see below"
+                    String.concat
+                        [ "* No default root disk size is defined for this "
+                        , context.localization.virtualComputer
+                        , " "
+                        , context.localization.virtualComputerHardwareConfig
+                        , ", see below"
+                        ]
 
                 Nothing ->
                     ""
 
         flavorEmptyHint =
             if viewParams.flavorUuid == "" then
-                [ VH.hint palette "Please pick a size" ]
+                [ VH.hint context <|
+                    String.join
+                        " "
+                        [ "Please pick a"
+                        , context.localization.virtualComputerHardwareConfig
+                        ]
+                ]
 
             else
                 []
@@ -281,14 +322,23 @@ flavorPicker palette project viewParams computeQuota =
     in
     Element.column
         VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] (Element.text "Size")
+        [ Element.el
+            [ Font.bold ]
+            (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
         , Element.table
             flavorEmptyHint
             { data = GetterSetters.sortedFlavors project.flavors
             , columns = columns
             }
         , if anyFlavorsTooLarge then
-            Element.text "Flavors marked 'X' are too large for your available quota"
+            Element.text <|
+                String.join " "
+                    [ context.localization.virtualComputerHardwareConfig
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    , "marked 'X' are too large for your available"
+                    , context.localization.maxResourcesPerProject
+                    ]
 
           else
             Element.none
@@ -296,8 +346,8 @@ flavorPicker palette project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
-volBackedPrompt palette project viewParams volumeQuota flavor =
+volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt context project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
@@ -319,10 +369,19 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
 
         nonVolBackedOptionText =
             if flavorRootDiskSize == 0 then
-                "Default for selected image (warning, could be too small for your work)"
+                String.join " "
+                    [ "Default for selected"
+                    , context.localization.staticRepresentationOfBlockDeviceContents
+                    , "(warning, could be too small for your work)"
+                    ]
 
             else
-                String.fromInt flavorRootDiskSize ++ " GB (default for selected size)"
+                String.concat
+                    [ String.fromInt flavorRootDiskSize
+                    , " GB (default for selected"
+                    , context.localization.virtualComputerHardwareConfig
+                    , ")"
+                    ]
 
         defaultVolSizeGB =
             10
@@ -354,7 +413,14 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
                             }
                 , options =
                     [ Input.option False (Element.text nonVolBackedOptionText)
-                    , Input.option True (Element.text "Custom disk size (volume-backed)")
+                    , Input.option True
+                        (Element.text <|
+                            String.concat
+                                [ "Custom disk size ("
+                                , context.localization.blockDevice
+                                , "-backed)"
+                                ]
+                        )
                     ]
                 , selected =
                     case viewParams.volSizeTextInput of
@@ -371,7 +437,16 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
             radioInput
 
           else
-            Element.text "(N/A: volume quota exhausted, cannot launch a volume-backed instance)"
+            Element.text <|
+                String.concat
+                    [ "(N/A: "
+                    , context.localization.blockDevice
+                    , " "
+                    , context.localization.maxResourcesPerProject
+                    , " exhausted, cannot launch a "
+                    , context.localization.blockDevice
+                    , "-backed instance)"
+                    ]
         , case viewParams.volSizeTextInput of
             Nothing ->
                 Element.none
@@ -379,15 +454,15 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
             Just volSizeTextInput ->
                 Element.row VH.exoRowAttributes
                     [ numericTextInput
-                        palette
-                        (VH.inputItemAttributes palette.background)
+                        context.palette
+                        (VH.inputItemAttributes context.palette.background)
                         volSizeTextInput
                         defaultVolNumericInputParams
                         (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
                     , case ( volumeSizeGbAvail, volSizeTextInput ) of
                         ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
                             if i == volumeSizeAvail_ then
-                                Element.text "(quota max)"
+                                Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
                             else
                                 Element.none
@@ -399,14 +474,14 @@ volBackedPrompt palette project viewParams volumeQuota flavor =
 
 
 countPicker :
-    Style.Types.ExoPalette
+    View.Types.Context
     -> Project
     -> CreateServerViewParams
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
     -> Element.Element Msg
-countPicker palette project viewParams computeQuota volumeQuota flavor =
+countPicker context project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
             OSQuotas.overallQuotaAvailServers
@@ -418,10 +493,24 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
                 volumeQuota
     in
     Element.column VH.exoColumnAttributes
-        [ Element.text "How many servers?"
+        [ Element.text <|
+            String.concat
+                [ "How many "
+                , context.localization.virtualComputer
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                , "?"
+                ]
         , case countAvail of
             Just countAvail_ ->
-                Element.text ("Your quota supports up to " ++ String.fromInt countAvail_ ++ " of these.")
+                Element.text <|
+                    String.join " "
+                        [ "Your"
+                        , context.localization.maxResourcesPerProject
+                        , "supports up to"
+                        , String.fromInt countAvail_
+                        , "of these."
+                        ]
 
             Nothing ->
                 Element.none
@@ -436,7 +525,7 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
                         [ Element.width Element.fill
                         , Element.height (Element.px 2)
                         , Element.centerY
-                        , Background.color (SH.toElementColor palette.on.background)
+                        , Background.color (SH.toElementColor context.palette.on.background)
                         , Border.rounded 2
                         ]
                         Element.none
@@ -457,7 +546,7 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
             , case countAvail of
                 Just countAvail_ ->
                     if viewParams.count == countAvail_ then
-                        Element.text "(quota max)"
+                        Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
                     else
                         Element.none
@@ -468,11 +557,19 @@ countPicker palette project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-desktopEnvironmentPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-desktopEnvironmentPicker palette project createServerViewParams =
+desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+desktopEnvironmentPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow VH.exoElementAttributes
-            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy a graphical desktop environment?")
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
+                    (Element.text <|
+                        String.concat
+                            [ "Deploy a "
+                            , context.localization.graphicalDesktopEnvironment
+                            , "?"
+                            ]
+                    )
             , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployDesktopEnvironment = new }
             , options =
                 [ Input.option False (Element.text "No")
@@ -482,21 +579,34 @@ desktopEnvironmentPicker palette project createServerViewParams =
             }
         , if createServerViewParams.deployDesktopEnvironment then
             Element.paragraph
-                ([ Background.color (SH.toElementColor palette.warn), Font.color (SH.toElementColor palette.on.warn) ]
+                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes
                 )
-                [ Element.text "Warning: if selected image does not already include a desktop environment, server can take 30 minutes or longer to deploy." ]
+                [ Element.text <|
+                    String.join " "
+                        [ "Warning: if selected image does not already include a"
+                        , context.localization.graphicalDesktopEnvironment
+                        , ","
+                        , context.localization.virtualComputer
+                        , "can take 30 minutes or longer to deploy."
+                        ]
+                ]
 
           else
             Element.none
         ]
 
 
-guacamolePicker : Project -> CreateServerViewParams -> Element.Element Msg
-guacamolePicker project createServerViewParams =
+guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+guacamolePicker context project createServerViewParams =
     case createServerViewParams.deployGuacamole of
         Nothing ->
-            Element.text "Guacamole deployment is not supported for this OpenStack cloud."
+            Element.text <|
+                String.concat
+                    [ "Guacamole deployment is not supported for this "
+                    , context.localization.openstackWithOwnKeystone
+                    , "."
+                    ]
 
         Just deployGuacamole ->
             Element.column VH.exoColumnAttributes
@@ -514,8 +624,8 @@ guacamolePicker project createServerViewParams =
                 ]
 
 
-networkPicker : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-networkPicker palette project viewParams =
+networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker context project viewParams =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -525,7 +635,13 @@ networkPicker palette project viewParams =
                 NoNetsAutoAllocate ->
                     [ Element.paragraph
                         []
-                        [ Element.text "There are no networks associated with your project so Exosphere will ask OpenStack to create one for you and hope for the best." ]
+                        [ Element.text <|
+                            String.concat
+                                [ "There are no networks associated with your "
+                                , context.localization.unitOfTenancy
+                                , " so Exosphere will ask OpenStack to create one for you and hope for the best."
+                                ]
+                        ]
                     ]
 
                 OneNet net ->
@@ -554,7 +670,7 @@ networkPicker palette project viewParams =
 
                         networkEmptyHint =
                             if viewParams.networkUuid == "" then
-                                [ VH.hint palette "Please pick a network" ]
+                                [ VH.hint context "Please pick a network" ]
 
                             else
                                 []
@@ -579,19 +695,41 @@ networkPicker palette project viewParams =
         (Element.el [ Font.bold ] (Element.text "Network") :: contents)
 
 
-keypairPicker : Project -> CreateServerViewParams -> Element.Element Msg
-keypairPicker project viewParams =
+keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+keypairPicker context project viewParams =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
         contents =
             if List.isEmpty project.keypairs then
-                Element.text "(This OpenStack project has no keypairs to choose from, but you can still create a server!)"
+                Element.text <|
+                    String.concat
+                        [ "(This "
+                        , context.localization.unitOfTenancy
+                        , " has no "
+                        , context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.pluralize
+                        , " to choose from, but you can still create "
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                        , " "
+                        , context.localization.virtualComputer
+                        , "!)"
+                        ]
 
             else
                 Input.radio []
-                    { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a keypair (this is optional, skip if unsure)")
+                    { label =
+                        Input.labelAbove
+                            [ Element.paddingXY 0 12 ]
+                            (Element.text <|
+                                String.join " "
+                                    [ "Choose"
+                                    , Helpers.String.indefiniteArticle context.localization.pkiPublicKeyForSsh
+                                    , context.localization.pkiPublicKeyForSsh
+                                    , "(this is optional, skip if unsure)"
+                                    ]
+                            )
                     , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
                     , options = List.map keypairAsOption project.keypairs
                     , selected = Just (Maybe.withDefault "" viewParams.keypairName)
@@ -599,15 +737,19 @@ keypairPicker project viewParams =
     in
     Element.column
         VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] (Element.text "SSH Keypair")
+        [ Element.el
+            [ Font.bold ]
+            (Element.text
+                (Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh)
+            )
         , contents
         ]
 
 
-userDataInput : Style.Types.ExoPalette -> Project -> CreateServerViewParams -> Element.Element Msg
-userDataInput palette project viewParams =
+userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput context project viewParams =
     Input.multiline
-        (VH.inputItemAttributes palette.background
+        (VH.inputItemAttributes context.palette.background
             ++ [ Element.width (Element.px 600)
                , Element.height (Element.px 500)
                , Element.spacing 3
@@ -615,12 +757,23 @@ userDataInput palette project viewParams =
         )
         { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
         , text = viewParams.userDataTemplate
-        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+        , placeholder =
+            Just
+                (Input.placeholder []
+                    (Element.text <|
+                        String.join
+                            " "
+                            [ "#!/bin/bash\n\n# Your"
+                            , context.localization.cloudInitData
+                            , "here"
+                            ]
+                    )
+                )
         , label =
             Input.labelAbove
                 [ Element.paddingXY 20 0
                 , Font.bold
                 ]
-                (Element.text "User Data (Boot Script)")
+                (Element.text <| Helpers.String.toTitleCase context.localization.cloudInitData)
         , spellcheck = False
         }

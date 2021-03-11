@@ -6,10 +6,10 @@ import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
+import Helpers.String
 import Html
 import Style.Helpers as SH
 import Style.Toast
-import Style.Types
 import Toasty
 import Types.Types
     exposing
@@ -31,42 +31,47 @@ import View.Project
 import View.SelectProjects
 import View.Settings
 import View.Toast
+import View.Types
 
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        context =
+            VH.toViewContext model
+    in
     { title =
-        View.PageTitle.pageTitle model
+        View.PageTitle.pageTitle model context
     , body =
-        [ view_ model ]
+        [ view_ model context ]
     }
 
 
 viewElectron : Model -> Html.Html Msg
-viewElectron =
-    view_
-
-
-view_ : Model -> Html.Html Msg
-view_ model =
+viewElectron model =
     let
-        palette =
-            VH.toExoPalette model.style
+        context =
+            VH.toViewContext model
     in
+    view_ model context
+
+
+view_ : Model -> View.Types.Context -> Html.Html Msg
+view_ model context =
     Element.layout
         [ Font.size 17
         , Font.family
             [ Font.typeface "Open Sans"
             , Font.sansSerif
             ]
-        , Font.color <| SH.toElementColor <| palette.on.background
-        , Background.color <| SH.toElementColor <| palette.background
+        , Font.color <| SH.toElementColor <| context.palette.on.background
+        , Background.color <| SH.toElementColor <| context.palette.background
         ]
-        (elementView model.maybeWindowSize model palette)
+        (elementView model.maybeWindowSize model context)
 
 
-elementView : Maybe WindowSize -> Model -> Style.Types.ExoPalette -> Element.Element Msg
-elementView maybeWindowSize model palette =
+elementView : Maybe WindowSize -> Model -> View.Types.Context -> Element.Element Msg
+elementView maybeWindowSize model context =
     let
         mainContentContainerView =
             Element.column
@@ -86,39 +91,45 @@ elementView maybeWindowSize model palette =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.Login.viewLoginPicker (Helpers.appIsElectron model) palette model.openIdConnectLoginConfig
+                                View.Login.viewLoginPicker context model.openIdConnectLoginConfig
 
                             Login loginView ->
                                 case loginView of
                                     LoginOpenstack openstackCreds ->
-                                        View.Login.viewLoginOpenstack model palette openstackCreds
+                                        View.Login.viewLoginOpenstack context openstackCreds
 
                                     LoginJetstream jetstreamCreds ->
-                                        View.Login.viewLoginJetstream model palette jetstreamCreds
+                                        View.Login.viewLoginJetstream context jetstreamCreds
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here
-                                Element.text "Loading Projects"
+                                Element.text <|
+                                    String.join " "
+                                        [ "Loading"
+                                        , context.localization.unitOfTenancy
+                                            |> Helpers.String.pluralize
+                                            |> Helpers.String.toTitleCase
+                                        ]
 
                             SelectProjects authUrl selectedProjects ->
-                                View.SelectProjects.selectProjects model palette authUrl selectedProjects
+                                View.SelectProjects.selectProjects model context authUrl selectedProjects
 
                             MessageLog ->
-                                View.Messages.messageLog model
+                                View.Messages.messageLog context model.logMessages
 
                             Settings ->
-                                View.Settings.settings model
+                                View.Settings.settings model.style.styleMode
 
                             GetSupport maybeSupportableItem requestDescription isSubmitted ->
                                 View.GetSupport.getSupport
                                     model
-                                    palette
+                                    context
                                     maybeSupportableItem
                                     requestDescription
                                     isSubmitted
 
                             HelpAbout ->
-                                View.HelpAbout.helpAbout model palette
+                                View.HelpAbout.helpAbout model context
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
@@ -126,16 +137,22 @@ elementView maybeWindowSize model palette =
                     ProjectView projectName projectViewParams viewConstructor ->
                         case GetterSetters.projectLookup model projectName of
                             Nothing ->
-                                Element.text "Oops! Project not found"
+                                Element.text <|
+                                    String.join " "
+                                        [ "Oops!"
+                                        , context.localization.unitOfTenancy
+                                            |> Helpers.String.toTitleCase
+                                        , "not found"
+                                        ]
 
                             Just project ->
                                 View.Project.project
                                     model
-                                    palette
+                                    context
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast palette model.showDebugMsgs) ToastyMsg model.toasties)
+                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast context model.showDebugMsgs) ToastyMsg model.toasties)
                 ]
     in
     Element.row
@@ -162,9 +179,9 @@ elementView maybeWindowSize model palette =
                     Nothing ->
                         Element.fill
             ]
-            [ View.Nav.navBar model palette
+            [ View.Nav.navBar model context
             , if Helpers.appIsElectron model then
-                electronDeprecationWarning palette
+                electronDeprecationWarning context
 
               else
                 Element.none
@@ -180,15 +197,15 @@ elementView maybeWindowSize model palette =
                         Nothing ->
                             Element.fill
                 ]
-                [ View.Nav.navMenu model palette
+                [ View.Nav.navMenu model context
                 , mainContentContainerView
                 ]
             ]
         ]
 
 
-electronDeprecationWarning : Style.Types.ExoPalette -> Element.Element Msg
-electronDeprecationWarning palette =
+electronDeprecationWarning : View.Types.Context -> Element.Element Msg
+electronDeprecationWarning context =
     -- Electron deprecation warning per Phase 1 of https://gitlab.com/exosphere/exosphere/-/merge_requests/381
     let
         warningMD =
@@ -202,12 +219,11 @@ Both of these sites support installation to your desktop or home screen ([more i
         (VH.exoElementAttributes
             ++ [ Element.width Element.fill
                , Font.center
-               , Background.color <| SH.toElementColor <| palette.warn
-               , Font.color <| SH.toElementColor <| palette.on.warn
+               , Background.color <| SH.toElementColor <| context.palette.warn
+               , Font.color <| SH.toElementColor <| context.palette.on.warn
                ]
         )
     <|
         VH.renderMarkdown
-            palette
-            True
+            context
             warningMD

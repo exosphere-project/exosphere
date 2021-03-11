@@ -19,16 +19,16 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
-import Style.Types
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
 import Types.Types exposing (Msg)
 import View.Helpers as VH
+import View.Types
 
 
-charts : Style.Types.ExoPalette -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
-charts palette ( currentTime, timeZone ) timeSeriesDict =
+charts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+charts context ( currentTime, timeZone ) timeSeriesDict =
     let
         timeSeriesList =
             Dict.toList timeSeriesDict
@@ -71,7 +71,7 @@ charts palette ( currentTime, timeZone ) timeSeriesDict =
                 , variable = Just << getDataFunc
                 , pixels = 220
                 , range = Range.window 0 100
-                , axisLine = AxisLine.full palette.on.background
+                , axisLine = AxisLine.full context.palette.on.background
                 , ticks = ticks
                 }
 
@@ -81,7 +81,7 @@ charts palette ( currentTime, timeZone ) timeSeriesDict =
                 , variable = Just << getDataFunc
                 , pixels = 550
                 , range = Range.default
-                , axisLine = AxisLine.full palette.on.background
+                , axisLine = AxisLine.full context.palette.on.background
                 , ticks = Ticks.time timeZone 6
                 }
 
@@ -104,7 +104,7 @@ charts palette ( currentTime, timeZone ) timeSeriesDict =
         series : List (LineChart.Series ( Int, DataPoint ))
         series =
             [ LineChart.line
-                palette.primary
+                context.palette.primary
                 Dots.circle
                 ""
                 timeSeriesListLast30m

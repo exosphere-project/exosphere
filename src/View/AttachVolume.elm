@@ -6,10 +6,10 @@ import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Style.Types
 import Types.Defaults as Defaults
 import Types.Types
     exposing
@@ -21,12 +21,13 @@ import Types.Types
         , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
+import View.Types
 import Widget
 import Widget.Style.Material
 
 
-attachVolume : Style.Types.ExoPalette -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
-attachVolume palette project maybeServerUuid maybeVolumeUuid =
+attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
+attachVolume context project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
             -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
@@ -46,7 +47,7 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
                 |> List.map
                     (\s ->
                         Input.option s.osProps.uuid
-                            (Element.text <| VH.possiblyUntitledResource s.osProps.name "server")
+                            (Element.text <| VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer)
                     )
 
         volumeChoices =
@@ -57,7 +58,7 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
                         Input.option
                             v.uuid
                             (Element.row VH.exoRowAttributes
-                                [ Element.text <| VH.possiblyUntitledResource v.name "volume"
+                                [ Element.text <| VH.possiblyUntitledResource v.name context.localization.blockDevice
                                 , Element.text " - "
                                 , Element.text <| String.fromInt v.size ++ " GB"
                                 ]
@@ -65,9 +66,24 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
                     )
     in
     Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading2 <| Element.text "Attach a Volume"
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ "Attach a"
+                    , context.localization.blockDevice
+                        |> Helpers.String.toTitleCase
+                    ]
         , Input.radio []
-            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a server")
+            { label =
+                Input.labelAbove
+                    [ Element.paddingXY 0 12 ]
+                    (Element.text <|
+                        String.join " "
+                            [ "Select"
+                            , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                            , context.localization.virtualComputer
+                            ]
+                    )
             , onChange =
                 \new ->
                     ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal (Just new) maybeVolumeUuid))
@@ -76,7 +92,9 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
             }
         , Input.radio []
             -- TODO if no volumes in list, suggest user create a volume and provide link to that view
-            { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Select a volume")
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12 ]
+                    (Element.text ("Select a " ++ context.localization.blockDevice))
             , onChange =
                 \new ->
                     ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal maybeServerUuid (Just new)))
@@ -95,7 +113,14 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
                         in
                         if volAttachedToServer then
                             { onPress = Nothing
-                            , warnText = Just "This volume is already attached to this server."
+                            , warnText =
+                                Just <|
+                                    String.join " "
+                                        [ "This"
+                                        , context.localization.blockDevice
+                                        , "is already attached to this"
+                                        , context.localization.virtualComputer
+                                        ]
                             }
 
                         else
@@ -114,7 +139,7 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
             button =
                 Element.el [ Element.alignRight ] <|
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                         { text = "Attach"
                         , onPress = params.onPress
                         }
@@ -122,7 +147,7 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
           Element.row [ Element.width Element.fill ]
             [ case params.warnText of
                 Just warnText ->
-                    Element.el [ Font.color <| SH.toElementColor palette.error ] <| Element.text warnText
+                    Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
 
                 Nothing ->
                     Element.none
@@ -131,10 +156,16 @@ attachVolume palette project maybeServerUuid maybeVolumeUuid =
         ]
 
 
-mountVolInstructions : Style.Types.ExoPalette -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
-mountVolInstructions palette project attachment =
+mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+mountVolInstructions context project attachment =
     Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading2 <| Element.text "Volume Attached"
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ context.localization.blockDevice
+                        |> Helpers.String.toTitleCase
+                    , "Attached"
+                    ]
         , Element.text ("Device: " ++ attachment.device)
         , case Helpers.volDeviceToMountpoint attachment.device of
             Just mountpoint ->
@@ -146,21 +177,36 @@ mountVolInstructions palette project attachment =
             [ case Helpers.volDeviceToMountpoint attachment.device of
                 Just mountpoint ->
                     Element.text <|
-                        "We'll try to mount this volume at "
-                            ++ mountpoint
-                            ++ " on your instance's filesystem. You should be able to access the volume there. "
-                            ++ "If it's a completely empty volume we'll also try to format it first. "
-                            ++ "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04). "
-                            ++ "In that case, you may need to format and/or mount the volume manually."
+                        String.join " "
+                            [ "We'll try to mount this"
+                            , context.localization.blockDevice
+                            , "at"
+                            , mountpoint
+                            , "on your instance's filesystem. You should be able to access the"
+                            , context.localization.blockDevice
+                            , "there."
+                            , "If it's a completely empty"
+                            , context.localization.blockDevice
+                            , "we'll also try to format it first."
+                            , "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04)."
+                            , "In that case, you may need to format and/or mount the"
+                            , context.localization.blockDevice
+                            , "manually."
+                            ]
 
                 Nothing ->
                     Element.text <|
-                        "We attached the volume but couldn't determine a mountpoint from the device path. You "
-                            ++ "may need to format and/or mount the volume manually."
+                        String.join " "
+                            [ "We attached the"
+                            , context.localization.blockDevice
+                            , "but couldn't determine a mountpoint from the device path. You may need to format and/or mount the"
+                            , context.localization.blockDevice
+                            , "manually."
+                            ]
             ]
         , Widget.textButton
-            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
-            { text = "Go to my server"
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+            { text = "Go to my " ++ context.localization.virtualComputer
             , onPress =
                 Just <|
                     ProjectMsg

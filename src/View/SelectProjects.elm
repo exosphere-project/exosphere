@@ -3,11 +3,11 @@ module View.SelectProjects exposing (selectProjects)
 import Element
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
+import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Style.Types
 import Types.Types
     exposing
         ( Model
@@ -16,17 +16,18 @@ import Types.Types
         , UnscopedProviderProject
         )
 import View.Helpers as VH
+import View.Types
 import Widget
 import Widget.Style.Material
 
 
 selectProjects :
     Model
-    -> Style.Types.ExoPalette
+    -> View.Types.Context
     -> OSTypes.KeystoneUrl
     -> List UnscopedProviderProject
     -> Element.Element Msg
-selectProjects model palette keystoneUrl selectedProjects =
+selectProjects model context keystoneUrl selectedProjects =
     case GetterSetters.providerLookup model keystoneUrl of
         Just provider ->
             let
@@ -35,7 +36,16 @@ selectProjects model palette keystoneUrl selectedProjects =
             in
             Element.column VH.exoColumnAttributes
                 [ Element.el VH.heading2
-                    (Element.text <| "Choose Projects for " ++ urlLabel)
+                    (Element.text <|
+                        String.join " "
+                            [ "Choose"
+                            , context.localization.unitOfTenancy
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            , "for"
+                            , urlLabel
+                            ]
+                    )
                 , case provider.projectsAvailable of
                     RemoteData.Success projectsAvailable ->
                         Element.column VH.exoColumnAttributes <|
@@ -45,7 +55,7 @@ selectProjects model palette keystoneUrl selectedProjects =
                                     projectsAvailable
                                 )
                                 [ Widget.textButton
-                                    (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+                                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                                     { text = "Choose"
                                     , onPress =
                                         Just <|
@@ -56,13 +66,23 @@ selectProjects model palette keystoneUrl selectedProjects =
                     RemoteData.Loading ->
                         Element.row [ Element.spacing 15 ]
                             [ Widget.circularProgressIndicator
-                                (SH.materialStyle palette).progressIndicator
+                                (SH.materialStyle context.palette).progressIndicator
                                 Nothing
-                            , Element.text "Loading list of projects"
+                            , Element.text <|
+                                String.join " "
+                                    [ "Loading list of"
+                                    , Helpers.String.pluralize context.localization.unitOfTenancy
+                                    ]
                             ]
 
                     RemoteData.Failure e ->
-                        Element.text ("Error loading list of projects: " ++ Debug.toString e)
+                        Element.text <|
+                            String.join " "
+                                [ "Error loading list of"
+                                , Helpers.String.pluralize context.localization.unitOfTenancy
+                                , "--"
+                                , Debug.toString e
+                                ]
 
                     RemoteData.NotAsked ->
                         -- This state should be impossible because when we create an unscoped Provider we always immediately ask for a list of projects

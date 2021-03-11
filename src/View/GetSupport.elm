@@ -3,12 +3,11 @@ module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
+import Helpers.String
 import RemoteData
 import Set
 import Style.Helpers as SH
-import Style.Types
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
@@ -24,18 +23,19 @@ import Types.Types
         )
 import UUID
 import View.Helpers as VH
+import View.Types
 import Widget
 import Widget.Style.Material
 
 
 getSupport :
     Model
-    -> Style.Types.ExoPalette
+    -> View.Types.Context
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Bool
     -> Element.Element Msg
-getSupport model palette maybeSupportableResource requestDescription isSubmitted =
+getSupport model context maybeSupportableResource requestDescription isSubmitted =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 30
@@ -46,7 +46,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
         , case model.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column [] <|
-                    VH.renderMarkdown palette (Helpers.appIsElectron model) markdown
+                    VH.renderMarkdown context markdown
 
             Nothing ->
                 Element.none
@@ -61,19 +61,39 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                     |> Just
             , label = Input.labelAbove [] (Element.text "What do you need help with?")
             , options =
-                [ Input.option (Just SupportableServer) (Element.text "A server")
-                , Input.option (Just SupportableVolume) (Element.text "A volume")
-                , Input.option (Just SupportableImage) (Element.text "An image")
-                , Input.option (Just SupportableProject) (Element.text "A project")
-                , Input.option Nothing (Element.text "None of these things")
-                ]
+                List.map
+                    (\itemType ->
+                        let
+                            itemTypeStrProto =
+                                supportableItemTypeStr context itemType
+
+                            itemTypeStr =
+                                String.join " "
+                                    [ Helpers.String.indefiniteArticle itemTypeStrProto
+                                    , itemTypeStrProto
+                                    ]
+                                    |> Helpers.String.toTitleCase
+                        in
+                        Input.option (Just itemType) (Element.text itemTypeStr)
+                    )
+                    [ SupportableServer
+                    , SupportableVolume
+                    , SupportableImage
+                    , SupportableProject
+                    ]
+                    ++ [ Input.option Nothing (Element.text "None of these things") ]
             }
         , case maybeSupportableResource of
             Nothing ->
                 Element.none
 
             Just ( supportableItemType, _ ) ->
-                Element.text ("Which " ++ supportableItemTypeStr supportableItemType ++ " do you need help with?")
+                Element.text <|
+                    String.join " "
+                        [ "Which"
+                        , supportableItemTypeStr context supportableItemType
+                        , "do you need help with?"
+                        ]
         , case maybeSupportableResource of
             Nothing ->
                 Element.none
@@ -148,7 +168,15 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                                     |> List.sortBy Tuple.second
 
                     label =
-                        "Select a " ++ supportableItemTypeStr supportableItemType
+                        let
+                            itemStrProto =
+                                supportableItemTypeStr context supportableItemType
+                        in
+                        String.join " "
+                            [ "Select"
+                            , Helpers.String.indefiniteArticle itemStrProto
+                            , itemStrProto
+                            ]
                 in
                 Style.Widgets.Select.select
                     []
@@ -172,7 +200,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
             , spellcheck = True
             }
         , Widget.textButton
-            (Widget.Style.Material.containedButton (SH.toMaterialPalette palette))
+            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
             { text = "Build Support Request"
             , onPress =
                 if String.isEmpty requestDescription then
@@ -189,7 +217,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                     [ Element.spacing 10 ]
                     [ Element.text "Please copy all of the text below and paste it into an email message to: "
                     , Element.el [ Font.extraBold ] <|
-                        Style.Widgets.CopyableText.copyableText palette model.style.userSupportEmail
+                        Style.Widgets.CopyableText.copyableText context.palette model.style.userSupportEmail
                     , Element.text "Someone will respond and assist you."
                     ]
                 , Input.multiline
@@ -202,7 +230,7 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
                            ]
                     )
                     { onChange = \_ -> NoOp
-                    , text = buildSupportRequest model maybeSupportableResource requestDescription
+                    , text = buildSupportRequest model context maybeSupportableResource requestDescription
                     , placeholder = Nothing
                     , label = Input.labelHidden "Support request"
                     , spellcheck = False
@@ -214,20 +242,20 @@ getSupport model palette maybeSupportableResource requestDescription isSubmitted
         ]
 
 
-supportableItemTypeStr : SupportableItemType -> String
-supportableItemTypeStr supportableItemType =
+supportableItemTypeStr : View.Types.Context -> SupportableItemType -> String
+supportableItemTypeStr context supportableItemType =
     case supportableItemType of
         SupportableProject ->
-            "project"
+            context.localization.unitOfTenancy
 
         SupportableImage ->
-            "image"
+            context.localization.staticRepresentationOfBlockDeviceContents
 
         SupportableServer ->
-            "server"
+            context.localization.virtualComputer
 
         SupportableVolume ->
-            "volume"
+            context.localization.blockDevice
 
 
 viewStateToSupportableItem : ViewState -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
@@ -270,8 +298,8 @@ viewStateToSupportableItem viewState =
             Just <| supportableProjectItem projectUuid projectViewConstructor
 
 
-buildSupportRequest : Model -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
-buildSupportRequest model maybeSupportableResource requestDescription =
+buildSupportRequest : Model -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
+buildSupportRequest model context maybeSupportableResource requestDescription =
     String.concat
         [ "# Support Request From "
         , model.style.appTitle
@@ -283,7 +311,7 @@ buildSupportRequest model maybeSupportableResource requestDescription =
 
             Just ( itemType, maybeUuid ) ->
                 String.concat
-                    [ supportableItemTypeStr itemType
+                    [ supportableItemTypeStr context itemType
                     , case maybeUuid of
                         Just uuid ->
                             " with UUID " ++ uuid
@@ -298,7 +326,11 @@ buildSupportRequest model maybeSupportableResource requestDescription =
         , "## Exosphere Client UUID\n"
         , UUID.toString model.clientUuid
         , "\n\n"
-        , "## Logged-in Projects\n"
+        , String.concat
+            [ "## Logged-in "
+            , Helpers.String.toTitleCase context.localization.unitOfTenancy
+            , "\n"
+            ]
         , model.projects
             |> List.map
                 (\p ->
