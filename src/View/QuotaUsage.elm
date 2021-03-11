@@ -24,7 +24,7 @@ dashboard context project =
         [ Element.el VH.heading2 <|
             Element.text <|
                 String.join " "
-                    [ context.localization.maxResourcesPerProject |> Helpers.String.capitalizeString
+                    [ context.localization.maxResourcesPerProject |> Helpers.String.stringToTitleCase
                     , "Usage"
                     ]
         , quotaSections context project
@@ -102,7 +102,7 @@ quotaDetail context quota infoItemsF =
         strProto =
             String.join " "
                 [ context.localization.maxResourcesPerProject
-                    |> Helpers.String.capitalizeString
+                    |> Helpers.String.stringToTitleCase
                 , "data"
                 ]
     in

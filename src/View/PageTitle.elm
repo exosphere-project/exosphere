@@ -50,7 +50,7 @@ pageTitle model context =
                         [ "Select"
                         , context.localization.unitOfTenancy
                             |> Helpers.String.pluralizeWord
-                            |> Helpers.String.capitalizeString
+                            |> Helpers.String.stringToTitleCase
                         , "for"
                         , providerTitle
                         ]
@@ -117,7 +117,7 @@ pageTitle model context =
                 ListQuotaUsage ->
                     String.join " "
                         [ context.localization.maxResourcesPerProject
-                            |> Helpers.String.capitalizeString
+                            |> Helpers.String.stringToTitleCase
                         , "Usage for"
                         , projectName
                         ]

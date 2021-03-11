@@ -1,6 +1,5 @@
 module Helpers.String exposing
-    ( capitalizeString
-    , indefiniteArticle
+    ( indefiniteArticle
     , pluralizeWord
     , stringToTitleCase
     )
@@ -73,8 +72,8 @@ pluralizeWord word =
         ]
 
 
-capitalizeString : String -> String
-capitalizeString word =
+capitalizeWord : String -> String
+capitalizeWord word =
     String.concat
         [ String.left 1 word
             |> String.toUpper
@@ -85,5 +84,5 @@ capitalizeString word =
 stringToTitleCase : String -> String
 stringToTitleCase s =
     String.words s
-        |> List.map capitalizeString
+        |> List.map capitalizeWord
         |> String.join " "

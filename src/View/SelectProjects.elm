@@ -41,7 +41,7 @@ selectProjects model context keystoneUrl selectedProjects =
                             [ "Choose"
                             , context.localization.unitOfTenancy
                                 |> Helpers.String.pluralizeWord
-                                |> Helpers.String.capitalizeString
+                                |> Helpers.String.stringToTitleCase
                             , "for"
                             , urlLabel
                             ]

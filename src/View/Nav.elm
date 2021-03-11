@@ -94,7 +94,7 @@ navMenu model context =
             in
             MenuItem.menuItem context.palette
                 active
-                ("Add " ++ Helpers.String.capitalizeString context.localization.unitOfTenancy)
+                ("Add " ++ Helpers.String.stringToTitleCase context.localization.unitOfTenancy)
                 (Just destination)
     in
     Element.column

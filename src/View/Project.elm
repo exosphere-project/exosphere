@@ -114,7 +114,7 @@ projectNav context p viewParams =
                     { text =
                         String.join " "
                             [ context.localization.maxResourcesPerProject
-                                |> Helpers.String.capitalizeString
+                                |> Helpers.String.stringToTitleCase
                             , "Usage"
                             ]
                     , onPress =
@@ -131,7 +131,7 @@ projectNav context p viewParams =
                     { text =
                         String.join " "
                             [ "Remove"
-                            , Helpers.String.capitalizeString context.localization.unitOfTenancy
+                            , Helpers.String.stringToTitleCase context.localization.unitOfTenancy
                             ]
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid RemoveProject

@@ -104,7 +104,7 @@ elementView maybeWindowSize model context =
                                         [ "Loading"
                                         , context.localization.unitOfTenancy
                                             |> Helpers.String.pluralizeWord
-                                            |> Helpers.String.capitalizeString
+                                            |> Helpers.String.stringToTitleCase
                                         ]
 
                             SelectProjects authUrl selectedProjects ->
@@ -137,7 +137,7 @@ elementView maybeWindowSize model context =
                                     String.join " "
                                         [ "Oops!"
                                         , context.localization.unitOfTenancy
-                                            |> Helpers.String.capitalizeString
+                                            |> Helpers.String.stringToTitleCase
                                         , "not found"
                                         ]
 
