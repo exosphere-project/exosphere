@@ -333,7 +333,7 @@ interactionDetails interaction context =
 
         ITypes.GuacDesktop ->
             ITypes.InteractionDetails
-                "Streaming Desktop"
+                (Helpers.String.stringToTitleCase context.localization.graphicalDesktopEnvironment)
                 (String.concat
                     [ "Interact with your "
                     , context.localization.virtualComputer

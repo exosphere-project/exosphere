@@ -560,7 +560,15 @@ desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewPara
 desktopEnvironmentPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow VH.exoElementAttributes
-            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy a graphical desktop environment?")
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
+                    (Element.text <|
+                        String.concat
+                            [ "Deploy a "
+                            , context.localization.graphicalDesktopEnvironment
+                            , "?"
+                            ]
+                    )
             , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployDesktopEnvironment = new }
             , options =
                 [ Input.option False (Element.text "No")
@@ -575,7 +583,9 @@ desktopEnvironmentPicker context project createServerViewParams =
                 )
                 [ Element.text <|
                     String.join " "
-                        [ "Warning: if selected image does not already include a desktop environment,"
+                        [ "Warning: if selected image does not already include a"
+                        , context.localization.graphicalDesktopEnvironment
+                        , ","
                         , context.localization.virtualComputer
                         , "can take 30 minutes or longer to deploy."
                         ]
