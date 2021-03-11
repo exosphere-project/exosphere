@@ -721,12 +721,23 @@ userDataInput context project viewParams =
         )
         { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
         , text = viewParams.userDataTemplate
-        , placeholder = Just (Input.placeholder [] (Element.text "#!/bin/bash\n\n# Your script here"))
+        , placeholder =
+            Just
+                (Input.placeholder []
+                    (Element.text <|
+                        String.join
+                            " "
+                            [ "#!/bin/bash\n\n# Your"
+                            , context.localization.cloudInitData
+                            , "here"
+                            ]
+                    )
+                )
         , label =
             Input.labelAbove
                 [ Element.paddingXY 20 0
                 , Font.bold
                 ]
-                (Element.text "User Data (Boot Script)")
+                (Element.text <| Helpers.String.stringToTitleCase context.localization.cloudInitData)
         , spellcheck = False
         }
