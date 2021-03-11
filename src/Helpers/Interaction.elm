@@ -315,7 +315,9 @@ interactionDetails interaction context =
     case interaction of
         ITypes.GuacTerminal ->
             ITypes.InteractionDetails
-                "Web Terminal"
+                (context.localization.commandDrivenTextInterface
+                    |> Helpers.String.stringToTitleCase
+                )
                 (String.concat
                     [ "Get a terminal session to your "
                     , context.localization.virtualComputer
