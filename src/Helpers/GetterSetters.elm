@@ -20,10 +20,12 @@ module Helpers.GetterSetters exposing
     , providerLookup
     , serverLookup
     , sortedFlavors
+    , userAppProxyLookup
     , volumeIsAttachedToServer
     , volumeLookup
     )
 
+import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
@@ -31,6 +33,7 @@ import RemoteData
 import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types exposing (Model, Project, ProjectIdentifier, Server, UnscopedProvider)
+import View.Types
 
 
 
@@ -301,3 +304,13 @@ modelUpdateUnscopedProvider model newProvider =
             List.sortBy (\p -> p.authUrl) newProviders
     in
     { model | unscopedProviders = newProvidersSorted }
+
+
+userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.Types.UserAppProxyHostname
+userAppProxyLookup context project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+        |> Maybe.andThen (\csc -> csc.userAppProxy)
