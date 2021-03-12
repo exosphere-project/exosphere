@@ -15,6 +15,7 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
+    , imageExcludeFilterLookup
     , inputItemAttributes
     , possiblyUntitledResource
     , renderMarkdown
@@ -26,6 +27,7 @@ module View.Helpers exposing
     )
 
 import Color
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border
@@ -670,3 +672,13 @@ friendlyProjectTitle model project =
 
     else
         providerTitle
+
+
+imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
+imageExcludeFilterLookup context project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+        |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
