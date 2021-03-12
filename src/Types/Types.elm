@@ -130,7 +130,8 @@ type alias Flags =
 
 
 type alias CloudSpecificConfig =
-    { userAppProxy : Maybe UserAppProxyHostname
+    { keystoneHostname : KeystoneHostname
+    , userAppProxy : Maybe UserAppProxyHostname
     , imageExcludeFilter : Maybe ExcludeFilter
     , featuredImageNamePrefix : Maybe String
     }
