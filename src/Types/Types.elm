@@ -1,5 +1,6 @@
 module Types.Types exposing
-    ( CloudsWithUserAppProxy
+    ( CloudSpecificConfig
+    , CloudsWithUserAppProxy
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
@@ -125,6 +126,13 @@ type alias Flags =
     , epoch : Int
     , timeZone : Int
     , cloudsWithUserAppProxy : List ( String, String )
+    }
+
+
+type alias CloudSpecificConfig =
+    { userAppProxy : Maybe UserAppProxyHostname
+    , imageExcludeFilter : Maybe ExcludeFilter
+    , featuredImageNamePrefix : Maybe String
     }
 
 
