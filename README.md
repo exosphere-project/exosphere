@@ -27,7 +27,7 @@ _OK, what can I do with Exosphere?_
 - 100% self-hostable, 99% standalone client application
   - Two small proxy servers facilitate secure web browser connections to OpenStack APIs and services running on user-launched cloud instances
 - On the roadmap:
-  - Support for containers and data science workbenches as first-class objects
+  - First-class support for containers and data science workbenches
   - Cluster orchestration
   - Community-curated deployment automations for scientific workflows and custom services
 - Fully open source and open development process -- come hack with us!
