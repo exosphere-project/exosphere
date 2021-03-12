@@ -68,6 +68,7 @@ toViewContext model =
     { palette = toExoPalette model.style
     , isElectron = Helpers.appIsElectron model
     , localization = model.style.localization
+    , cloudSpecificConfigs = model.cloudSpecificConfigs
     }
 
 
