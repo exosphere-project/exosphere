@@ -165,6 +165,7 @@ type alias Model =
     , style : Style
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
+    , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     }
 
 
