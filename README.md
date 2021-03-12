@@ -140,7 +140,7 @@ When it's time to cleanup, you can do `docker stop exosphere` and `docker rm exo
 
 ### Exosphere Compatibility
 
-#### To Use with an OpenStack Cloud
+#### To use with an OpenStack Cloud
 
 - Exosphere works with OpenStack Queens version (released February 2018) or later.
 - Exosphere works best with clouds that have [automatic allocation of network topology](https://docs.openstack.org/neutron/latest/admin/config-auto-allocation.html) enabled.
