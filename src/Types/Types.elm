@@ -114,6 +114,7 @@ type alias Flags =
     , featuredImageNamePrefix : Maybe String
     , defaultImageExcludeFilter : Maybe ExcludeFilter
     , localization : Maybe Localization
+    , clouds : List CloudSpecificConfig
 
     -- Flags that Exosphere sets dynamically
     , width : Int
