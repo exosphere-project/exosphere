@@ -128,6 +128,10 @@ init flags maybeUrlKey =
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
+            , cloudSpecificConfigs =
+                flags.clouds
+                    |> List.map (\c -> ( c.keystoneHostname, c ))
+                    |> Dict.fromList
             }
 
         -- This only gets used if we do not find a client UUID in stored state
