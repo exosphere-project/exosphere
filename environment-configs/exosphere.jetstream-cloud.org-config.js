@@ -41,7 +41,27 @@ var config = {
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "public IP address",
     graphicalDesktopEnvironment: "web desktop"
-  }
+  },
+  clouds: [
+    {
+      keystoneHostname: "iu.jetstream-cloud.org",
+      userAppProxy: "proxy-j7m-iu.exosphere.app",
+      imageExcludeFilter: {
+        filterKey: "atmo_image_include",
+        filterValue: "true"
+      },
+      featuredImageNamePrefix: "JS-API-Featured"
+    },
+    {
+      keystoneHostname: "tacc.jetstream-cloud.org",
+      userAppProxy: "proxy-j7m-tacc.exosphere.app",
+      imageExcludeFilter: {
+        filterKey: "atmo_image_include",
+        filterValue: "true"
+      },
+      featuredImageNamePrefix: "JS-API-Featured"
+    }
+  ]
 }
 
 /* Matomo tracking code */

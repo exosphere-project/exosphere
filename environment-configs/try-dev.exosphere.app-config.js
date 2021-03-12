@@ -26,7 +26,21 @@ var config = {
     },
   featuredImageNamePrefix: null,
   defaultImageExcludeFilter: null,
-  localization: null
+  localization: null,
+  clouds: [
+    {
+      keystoneHostname: "iu.jetstream-cloud.org",
+      userAppProxy: "proxy-j7m-iu.exosphere.app",
+      imageExcludeFilter: null,
+      featuredImageNamePrefix: null
+    },
+    {
+      keystoneHostname: "tacc.jetstream-cloud.org",
+      userAppProxy: "proxy-j7m-tacc.exosphere.app",
+      imageExcludeFilter: null,
+      featuredImageNamePrefix: null
+    }
+  ]
 }
 
 /* Matomo tracking code */
