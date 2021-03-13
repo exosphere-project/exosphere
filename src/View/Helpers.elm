@@ -7,6 +7,7 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
+    , featuredImageNamePrefixLookup
     , friendlyProjectTitle
     , getServerUiStatus
     , getServerUiStatusColor
@@ -682,3 +683,13 @@ imageExcludeFilterLookup context project =
     in
     Dict.get projectKeystoneHostname context.cloudSpecificConfigs
         |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
+
+
+featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String
+featuredImageNamePrefixLookup context project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+        |> Maybe.andThen (\csc -> csc.featuredImageNamePrefix)
