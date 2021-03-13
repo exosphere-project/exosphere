@@ -111,8 +111,6 @@ type alias Flags =
     , userSupportEmail : Maybe String
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , featuredImageNamePrefix : Maybe String
-    , defaultImageExcludeFilter : Maybe ExcludeFilter
     , localization : Maybe Localization
     , clouds : List CloudSpecificConfig
 
@@ -203,8 +201,6 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
-    , featuredImageNamePrefix : Maybe String
-    , defaultImageExcludeFilter : Maybe ExcludeFilter
     , localization : Localization
     }
 
@@ -273,8 +269,6 @@ type alias Project =
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     , userAppProxyHostname : Maybe UserAppProxyHostname
-    , excludeFilter : Maybe ExcludeFilter
-    , featuredImageNamePrefix : Maybe String
     }
 
 
