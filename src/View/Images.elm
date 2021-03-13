@@ -130,13 +130,17 @@ filterByNotExcludedByDeployer maybeExcludeFilter someImages =
             List.filter (isNotExcludedByDeployer excludeFilter) someImages
 
 
-filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages imageListViewParams project someImages =
+filterImages : View.Types.Context -> ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages context imageListViewParams project someImages =
+    let
+        imageExcludeFilter =
+            VH.imageExcludeFilterLookup context project
+    in
     someImages
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
-        |> filterByNotExcludedByDeployer project.excludeFilter
+        |> filterByNotExcludedByDeployer imageExcludeFilter
 
 
 images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
@@ -153,7 +157,7 @@ images context project imageListViewParams sortTableParams =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages imageListViewParams project
+            project.images |> filterImages context imageListViewParams project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
