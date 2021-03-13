@@ -19,8 +19,6 @@ var config = {
   supportInfoMarkdown: null,
   userSupportEmail: null,
   openIdConnectLoginConfig: null,
-  featuredImageNamePrefix: null,
-  defaultImageExcludeFilter: null,
   localization: null,
   clouds: [
     {

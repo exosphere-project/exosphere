@@ -24,8 +24,6 @@ var config = {
       oidcLoginButtonLabel: "Add XSEDE Account",
       oidcLoginButtonDescription: "Under construction, may not work, Jetstream IU Cloud only"
     },
-  featuredImageNamePrefix: null,
-  defaultImageExcludeFilter: null,
   localization: null,
   clouds: [
     {
