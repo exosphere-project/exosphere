@@ -165,8 +165,11 @@ images context project imageListViewParams sortTableParams =
         noMatchWarning =
             (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
+        featuredImageNamePrefix =
+            VH.featuredImageNamePrefixLookup context project
+
         ( featuredImages, nonFeaturedImages_ ) =
-            List.partition (isImageFeaturedByDeployer project.featuredImageNamePrefix) filteredImages
+            List.partition (isImageFeaturedByDeployer featuredImageNamePrefix) filteredImages
 
         ( ownImages, otherImages ) =
             List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
@@ -433,8 +436,11 @@ renderImage context project imageListViewParams sortTableParams image =
                             Nothing
                 }
 
+        featuredImageNamePrefix =
+            VH.featuredImageNamePrefixLookup context project
+
         featuredBadge =
-            if isImageFeaturedByDeployer project.featuredImageNamePrefix image then
+            if isImageFeaturedByDeployer featuredImageNamePrefix image then
                 ExoCard.badge "featured"
 
             else
