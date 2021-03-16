@@ -90,20 +90,24 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
-isImageNotExcludedByDeployer : Maybe ExcludeFilter -> OSTypes.Image -> Bool
-isImageNotExcludedByDeployer maybeExcludeFilter image =
-    case maybeExcludeFilter of
+isImageExcludedByDeployer : ExcludeFilter -> OSTypes.Image -> Bool
+isImageExcludedByDeployer excludeFilter image =
+    let
+        maybeActualValue =
+            Dict.get excludeFilter.filterKey image.additionalProperties
+    in
+    case maybeActualValue of
         Nothing ->
-            True
+            False
 
-        Just excludeFilter ->
-            let
-                excluded =
-                    Dict.get excludeFilter.filterKey image.additionalProperties
-                        |> Maybe.map (\actualValue -> excludeFilter.filterValue /= actualValue)
-                        |> Maybe.withDefault False
-            in
-            not excluded
+        Just actualValue ->
+            excludeFilter.filterValue == actualValue
+
+
+isNotExcludedByDeployer : ExcludeFilter -> OSTypes.Image -> Bool
+isNotExcludedByDeployer excludeFilter image =
+    isImageExcludedByDeployer excludeFilter image
+        |> not
 
 
 isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
@@ -116,18 +120,23 @@ isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
             String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
 
 
-filterByExcludedByDeployer : Maybe ExcludeFilter -> List OSTypes.Image -> List OSTypes.Image
-filterByExcludedByDeployer maybeExcludeFilter someImages =
-    List.filter (isImageNotExcludedByDeployer maybeExcludeFilter) someImages
+filterByNotExcludedByDeployer : Maybe ExcludeFilter -> List OSTypes.Image -> List OSTypes.Image
+filterByNotExcludedByDeployer maybeExcludeFilter someImages =
+    case maybeExcludeFilter of
+        Nothing ->
+            someImages
+
+        Just excludeFilter ->
+            List.filter (isNotExcludedByDeployer excludeFilter) someImages
 
 
 filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
 filterImages imageListViewParams project someImages =
     someImages
-        |> filterByExcludedByDeployer project.excludeFilter
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
+        |> filterByNotExcludedByDeployer project.excludeFilter
 
 
 images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
