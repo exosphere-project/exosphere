@@ -1052,7 +1052,11 @@ decodeKeypairs =
 
 keypairDecoder : Decode.Decoder OSTypes.Keypair
 keypairDecoder =
-    Decode.map3 OSTypes.Keypair
+    Decode.map4 OSTypes.Keypair
         (Decode.at [ "keypair", "name" ] Decode.string)
         (Decode.at [ "keypair", "public_key" ] Decode.string)
         (Decode.at [ "keypair", "fingerprint" ] Decode.string)
+        (Decode.at [ "keypair", "created_at" ] Decode.string
+            |> Decode.andThen
+                iso8601StringToPosixDecodeError
+        )

@@ -234,6 +234,7 @@ type alias Keypair =
     { name : String
     , publicKey : String
     , fingerprint : String
+    , createdAt : Time.Posix
     }
 
 
