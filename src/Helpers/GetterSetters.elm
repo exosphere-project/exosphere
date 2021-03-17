@@ -21,7 +21,6 @@ module Helpers.GetterSetters exposing
     , providerLookup
     , serverLookup
     , sortedFlavors
-    , userAppProxyLookup
     , volumeIsAttachedToServer
     , volumeLookup
     )
@@ -41,7 +40,6 @@ import Types.Types
         , Server
         , UnscopedProvider
         )
-import View.Types
 
 
 
@@ -312,16 +310,6 @@ modelUpdateUnscopedProvider model newProvider =
             List.sortBy (\p -> p.authUrl) newProviders
     in
     { model | unscopedProviders = newProvidersSorted }
-
-
-userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.Types.UserAppProxyHostname
-userAppProxyLookup context project =
-    let
-        projectKeystoneHostname =
-            UrlHelpers.hostnameFromUrl project.endpoints.keystone
-    in
-    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
-        |> Maybe.andThen (\csc -> csc.userAppProxy)
 
 
 cloudConfigLookup : Model -> Project -> Maybe Types.Types.CloudSpecificConfig
