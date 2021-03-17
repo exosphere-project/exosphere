@@ -22,6 +22,7 @@ module View.Helpers exposing
     , renderMarkdown
     , renderMessageAsElement
     , renderMessageAsString
+    , renderWebData
     , titleFromHostname
     , toExoPalette
     , toViewContext
@@ -48,6 +49,7 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Types as OSTypes
 import Regex
+import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
@@ -327,6 +329,38 @@ titleFromHostname hostname =
 
         _ ->
             hostname
+
+
+renderWebData : RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
+renderWebData remoteData resourceWord renderSuccessCase =
+    case remoteData of
+        RemoteData.NotAsked ->
+            Element.text <|
+                String.join " "
+                    [ "Have not requested"
+                    , resourceWord
+                    , "yet"
+                    ]
+
+        RemoteData.Loading ->
+            Element.text <|
+                String.concat
+                    [ "Loading"
+                    , resourceWord
+                    , "..."
+                    ]
+
+        RemoteData.Failure error ->
+            Element.text <|
+                String.join " "
+                    [ "Could not load"
+                    , resourceWord
+                    , "because:"
+                    , Debug.toString error
+                    ]
+
+        RemoteData.Success resource ->
+            renderSuccessCase resource
 
 
 getServerUiStatus : Server -> ServerUiStatus
