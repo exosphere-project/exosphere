@@ -111,7 +111,13 @@ type alias Flags =
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
     , localization : Maybe Localization
-    , clouds : List CloudSpecificConfig
+    , clouds :
+        List
+            { keystoneHostname : KeystoneHostname
+            , userAppProxy : Maybe UserAppProxyHostname
+            , imageExcludeFilter : Maybe ExcludeFilter
+            , featuredImageNamePrefix : Maybe String
+            }
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -127,8 +133,7 @@ type alias Flags =
 
 
 type alias CloudSpecificConfig =
-    { keystoneHostname : KeystoneHostname
-    , userAppProxy : Maybe UserAppProxyHostname
+    { userAppProxy : Maybe UserAppProxyHostname
     , imageExcludeFilter : Maybe ExcludeFilter
     , featuredImageNamePrefix : Maybe String
     }

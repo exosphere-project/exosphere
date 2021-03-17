@@ -127,7 +127,15 @@ init flags maybeUrlKey =
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
             , cloudSpecificConfigs =
                 flags.clouds
-                    |> List.map (\c -> ( c.keystoneHostname, c ))
+                    |> List.map
+                        (\c ->
+                            ( c.keystoneHostname
+                            , { userAppProxy = c.userAppProxy
+                              , imageExcludeFilter = c.imageExcludeFilter
+                              , featuredImageNamePrefix = c.featuredImageNamePrefix
+                              }
+                            )
+                        )
                     |> Dict.fromList
             }
 
