@@ -153,7 +153,7 @@ actionButtons : View.Types.Context -> Project -> (List DeleteKeypairConfirmation
 actionButtons context project toProjectViewConstructor deleteConfirmations keypair =
     let
         confirmationNeeded =
-            List.member keypair.fingerprint deleteConfirmations
+            List.member ( keypair.name, keypair.fingerprint ) deleteConfirmations
 
         deleteButton =
             if confirmationNeeded then
@@ -176,7 +176,11 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                                 ProjectMsg
                                     project.auth.project.uuid
                                     (SetProjectView <|
-                                        toProjectViewConstructor (deleteConfirmations |> List.filter ((/=) keypair.fingerprint))
+                                        toProjectViewConstructor
+                                            (deleteConfirmations
+                                                |> List.filter
+                                                    ((/=) ( keypair.name, keypair.fingerprint ))
+                                            )
                                     )
                         }
                     ]
@@ -189,7 +193,11 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                         Just <|
                             ProjectMsg
                                 project.auth.project.uuid
-                                (SetProjectView <| toProjectViewConstructor [ keypair.fingerprint ])
+                                (SetProjectView <|
+                                    toProjectViewConstructor
+                                        [ ( keypair.name, keypair.fingerprint )
+                                        ]
+                                )
                     }
     in
     Element.row

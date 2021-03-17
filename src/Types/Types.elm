@@ -489,7 +489,7 @@ type alias DeleteVolumeConfirmation =
 
 
 type alias DeleteKeypairConfirmation =
-    OSTypes.KeypairFingerprint
+    ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
 
 
 type IPInfoLevel
