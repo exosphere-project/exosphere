@@ -3,6 +3,7 @@ module Types.Types exposing
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
+    , DeleteKeypairConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
     , ExcludeFilter
@@ -421,6 +422,7 @@ type ProjectViewConstructor
     = ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
+    | ListKeypairs (List DeleteKeypairConfirmation)
     | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
@@ -479,6 +481,10 @@ type alias DeleteConfirmation =
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
+
+
+type alias DeleteKeypairConfirmation =
+    OSTypes.KeypairFingerprint
 
 
 type IPInfoLevel
