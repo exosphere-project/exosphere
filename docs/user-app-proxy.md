@@ -63,9 +63,9 @@ server {
 
 ## How to configure Exosphere to know about a new UAP
 
-In order for Exosphere to deploy instances with Guacamole support on a given cloud, Exosphere must know about a UAP at that cloud. UAPs known to Exosphere are configured in `ports.js`, in the `cloudsWithUserAppProxy` flag. This flag is passed to Exosphere on startup.
+In order for Exosphere to deploy instances with Guacamole support on a given cloud, Exosphere must know about a UAP at that cloud. UAPs known to Exosphere are configured in `ports.js`, as a list item in the `clouds` flag. This flag is passed to Exosphere on startup.
 
-The `cloudsWithUserAppProxy` flag is an array of 2-element arrays. In each inner array, the first element is the hostname of the Keystone API for a given OpenStack cloud, and the second element is the hostname of the UAP.
+The `clouds` flag is a list containing JSON objects for each cloud with a custom configuration. Each of these JSON objects contains `keystoneHostname` and `userAppProxy` properties (amongst others). `keystoneHostname` is the hostname of the Keystone API for a given OpenStack cloud, and `userAppProxy` is the hostname of the UAP.
 
 Known UAPs are already configured in `ports.js` on the master branch of Exosphere. If you operate an OpenStack cloud, you may wish to add an entry for your UAP to the master branch, so that everyone can benefit from using it; feel free to submit a merge request.
 
