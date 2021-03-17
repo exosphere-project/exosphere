@@ -13,6 +13,7 @@ module Rest.Nova exposing
     , receiveServer
     , receiveServers
     , requestConsoleUrls
+    , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
     , requestDeleteServer
@@ -244,6 +245,44 @@ requestKeypairs project =
         (expectJsonWithErrorBody
             resultToMsg_
             decodeKeypairs
+        )
+
+
+requestCreateKeypair : Project -> OSTypes.KeypairName -> OSTypes.PublicKey -> Cmd Msg
+requestCreateKeypair project keypairName publicKey =
+    let
+        body =
+            Encode.object
+                [ ( "keypair"
+                  , Encode.object
+                        [ ( "name", Encode.string keypairName )
+                        , ( "public_key", Encode.string publicKey )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("create keypair for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody errorContext
+                (\keypair ->
+                    ProjectMsg project.auth.project.uuid <|
+                        ReceiveCreateKeypair keypair
+                )
+    in
+    openstackCredentialedRequest
+        project
+        Post
+        Nothing
+        (project.endpoints.nova ++ "/os-keypairs")
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            keypairDecoder
         )
 
 

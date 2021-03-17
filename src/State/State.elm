@@ -889,8 +889,17 @@ processProjectSpecificMsg model project msg =
             Rest.Nova.receiveKeypairs model project keypairs
 
         RequestCreateKeypair keypairName publicKey ->
-            -- TODO implement me
-            ( model, Cmd.none )
+            ( model, Rest.Nova.requestCreateKeypair project keypairName publicKey )
+
+        ReceiveCreateKeypair keypair ->
+            let
+                newProject =
+                    GetterSetters.projectUpdateKeypair project keypair
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs [])
 
         RequestDeleteKeypair keypairName ->
             -- TODO implement me

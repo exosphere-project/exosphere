@@ -17,6 +17,7 @@ module Helpers.GetterSetters exposing
     , projectSetNetworksLoading
     , projectSetServerLoading
     , projectSetServersLoading
+    , projectUpdateKeypair
     , projectUpdateServer
     , providerLookup
     , serverLookup
@@ -319,3 +320,23 @@ cloudConfigLookup model project =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
     in
     Dict.get projectKeystoneHostname model.cloudSpecificConfigs
+
+
+projectUpdateKeypair : Project -> OSTypes.Keypair -> Project
+projectUpdateKeypair project keypair =
+    let
+        otherKeypairs =
+            project.keypairs
+                |> RemoteData.withDefault []
+                |> List.filter
+                    (\k ->
+                        k.fingerprint
+                            /= keypair.fingerprint
+                            && k.name
+                            /= keypair.name
+                    )
+
+        keypairs =
+            keypair :: otherKeypairs
+    in
+    { project | keypairs = RemoteData.Success keypairs }

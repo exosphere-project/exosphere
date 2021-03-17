@@ -348,6 +348,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
+    | ReceiveCreateKeypair OSTypes.Keypair
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
