@@ -68,7 +68,7 @@ runcmd:
   - |
     {guacamole-setup}
   - unset PASSPHRASE
-  - "command -v apt && apt install -y haveged  # This is for stubborn Ubuntu 18"
+  - "command -v apt-get && DEBIAN_FRONTEND=noninteractive apt-get install -yq haveged  # This is for stubborn Ubuntu 18"
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
@@ -99,9 +99,9 @@ mounts:
 guacamoleUserData : String
 guacamoleUserData =
     """cd /opt
-    GUAC_CONFIG_GIT_TAG=4
+    GUAC_CONFIG_GIT_TAG=5
     GUAC_CONFIG_URL=https://gitlab.com/exosphere/guacamole-config/-/archive/$GUAC_CONFIG_GIT_TAG/guacamole-config-$GUAC_CONFIG_GIT_TAG.tar.gz
-    GUAC_CONFIG_SHA512=443b38de27591db4d621c27d10eaf55666f1c5b981354f9f10e3ec9e97388b422180a65ac72e8bad16c8cdfb18c07515756e9b259d37778bf9d0614c20f9ce57
+    GUAC_CONFIG_SHA512=1cb3bb49bc14833de430d319cb786d08d94d20bba92a29cf8006b883f7dc4d4f320bf357b333e89b1bce2060b67f8b93c8af7c776a6148c6eb2d28e312c03c67
     wget --quiet --output-document=guacamole-config.tar.gz $GUAC_CONFIG_URL
     if echo $GUAC_CONFIG_SHA512 guacamole-config.tar.gz | sha512sum --check --quiet; then
       tar -zxvf guacamole-config.tar.gz
@@ -115,7 +115,7 @@ guacamoleUserData =
 desktopEnvironmentUserData : String
 desktopEnvironmentUserData =
     """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
-      apt install -y ubuntu-desktop-minimal
+      DEBIAN_FRONTEND=noninteractive apt-get install -yq ubuntu-desktop-minimal
     elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
       yum -y groupinstall workstation
     fi
