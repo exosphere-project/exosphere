@@ -258,7 +258,7 @@ type alias Project =
     , images : List OSTypes.Image
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , flavors : List OSTypes.Flavor
-    , keypairs : List OSTypes.Keypair
+    , keypairs : WebData (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , floatingIps : List OSTypes.IpAddress

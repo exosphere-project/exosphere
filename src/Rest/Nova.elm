@@ -842,7 +842,7 @@ receiveKeypairs : Model -> Project -> List OSTypes.Keypair -> ( Model, Cmd Msg )
 receiveKeypairs model project keypairs =
     let
         newProject =
-            { project | keypairs = keypairs }
+            { project | keypairs = RemoteData.Success keypairs }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

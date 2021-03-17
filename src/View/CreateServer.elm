@@ -702,38 +702,68 @@ keypairPicker context project viewParams =
             Input.option keypair.name (Element.text keypair.name)
 
         contents =
-            if List.isEmpty project.keypairs then
-                Element.text <|
-                    String.concat
-                        [ "(This "
-                        , context.localization.unitOfTenancy
-                        , " has no "
-                        , context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralize
-                        , " to choose from, but you can still create "
-                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                        , " "
-                        , context.localization.virtualComputer
-                        , "!)"
-                        ]
+            case project.keypairs of
+                RemoteData.NotAsked ->
+                    Element.text <|
+                        String.join " "
+                            [ "Have not requested list of"
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , "yet"
+                            ]
 
-            else
-                Input.radio []
-                    { label =
-                        Input.labelAbove
-                            [ Element.paddingXY 0 12 ]
-                            (Element.text <|
-                                String.join " "
-                                    [ "Choose"
-                                    , Helpers.String.indefiniteArticle context.localization.pkiPublicKeyForSsh
-                                    , context.localization.pkiPublicKeyForSsh
-                                    , "(this is optional, skip if unsure)"
-                                    ]
-                            )
-                    , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
-                    , options = List.map keypairAsOption project.keypairs
-                    , selected = Just (Maybe.withDefault "" viewParams.keypairName)
-                    }
+                RemoteData.Loading ->
+                    Element.text <|
+                        String.concat
+                            [ "Loading "
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , "..."
+                            ]
+
+                RemoteData.Failure error ->
+                    Element.text <|
+                        String.join " "
+                            [ "Could not load"
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , "because:"
+                            , Debug.toString error
+                            ]
+
+                RemoteData.Success keypairs ->
+                    if List.isEmpty keypairs then
+                        Element.text <|
+                            String.concat
+                                [ "(This "
+                                , context.localization.unitOfTenancy
+                                , " has no "
+                                , context.localization.pkiPublicKeyForSsh
+                                    |> Helpers.String.pluralize
+                                , " to choose from, but you can still create "
+                                , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                                , " "
+                                , context.localization.virtualComputer
+                                , "!)"
+                                ]
+
+                    else
+                        Input.radio []
+                            { label =
+                                Input.labelAbove
+                                    [ Element.paddingXY 0 12 ]
+                                    (Element.text <|
+                                        String.join " "
+                                            [ "Choose"
+                                            , Helpers.String.indefiniteArticle context.localization.pkiPublicKeyForSsh
+                                            , context.localization.pkiPublicKeyForSsh
+                                            , "(this is optional, skip if unsure)"
+                                            ]
+                                    )
+                            , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
+                            , options = List.map keypairAsOption keypairs
+                            , selected = Just (Maybe.withDefault "" viewParams.keypairName)
+                            }
     in
     Element.column
         VH.exoColumnAttributes
