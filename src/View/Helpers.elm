@@ -7,6 +7,7 @@ module View.Helpers exposing
     , exoElementAttributes
     , exoPaddingSpacingAttributes
     , exoRowAttributes
+    , featuredImageNamePrefixLookup
     , friendlyProjectTitle
     , getServerUiStatus
     , getServerUiStatusColor
@@ -15,6 +16,7 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
+    , imageExcludeFilterLookup
     , inputItemAttributes
     , possiblyUntitledResource
     , renderMarkdown
@@ -23,9 +25,11 @@ module View.Helpers exposing
     , titleFromHostname
     , toExoPalette
     , toViewContext
+    , userAppProxyLookup
     )
 
 import Color
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border
@@ -68,6 +72,7 @@ toViewContext model =
     { palette = toExoPalette model.style
     , isElectron = Helpers.appIsElectron model
     , localization = model.style.localization
+    , cloudSpecificConfigs = model.cloudSpecificConfigs
     }
 
 
@@ -669,3 +674,33 @@ friendlyProjectTitle model project =
 
     else
         providerTitle
+
+
+imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
+imageExcludeFilterLookup context project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+        |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
+
+
+featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String
+featuredImageNamePrefixLookup context project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+        |> Maybe.andThen (\csc -> csc.featuredImageNamePrefix)
+
+
+userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.Types.UserAppProxyHostname
+userAppProxyLookup context project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
+        |> Maybe.andThen (\csc -> csc.userAppProxy)

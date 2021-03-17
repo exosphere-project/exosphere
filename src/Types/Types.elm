@@ -1,5 +1,5 @@
 module Types.Types exposing
-    ( CloudsWithUserAppProxy
+    ( CloudSpecificConfig
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
@@ -110,9 +110,14 @@ type alias Flags =
     , userSupportEmail : Maybe String
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , featuredImageNamePrefix : Maybe String
-    , defaultImageExcludeFilter : Maybe ExcludeFilter
     , localization : Maybe Localization
+    , clouds :
+        List
+            { keystoneHostname : KeystoneHostname
+            , userAppProxy : Maybe UserAppProxyHostname
+            , imageExcludeFilter : Maybe ExcludeFilter
+            , featuredImageNamePrefix : Maybe String
+            }
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -124,7 +129,13 @@ type alias Flags =
     , randomSeed3 : Int
     , epoch : Int
     , timeZone : Int
-    , cloudsWithUserAppProxy : List ( String, String )
+    }
+
+
+type alias CloudSpecificConfig =
+    { userAppProxy : Maybe UserAppProxyHostname
+    , imageExcludeFilter : Maybe ExcludeFilter
+    , featuredImageNamePrefix : Maybe String
     }
 
 
@@ -147,7 +158,6 @@ type alias Model =
     , projects : List Project
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
-    , cloudsWithUserAppProxy : CloudsWithUserAppProxy
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
@@ -155,6 +165,7 @@ type alias Model =
     , style : Style
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
+    , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     }
 
 
@@ -192,8 +203,6 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
-    , featuredImageNamePrefix : Maybe String
-    , defaultImageExcludeFilter : Maybe ExcludeFilter
     , localization : Localization
     }
 
@@ -209,10 +218,6 @@ type alias OpenIdConnectLoginConfig =
 
 type alias CloudCorsProxyUrl =
     HelperTypes.Url
-
-
-type alias CloudsWithUserAppProxy =
-    Dict.Dict KeystoneHostname UserAppProxyHostname
 
 
 type alias KeystoneHostname =
@@ -261,9 +266,6 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
-    , userAppProxyHostname : Maybe UserAppProxyHostname
-    , excludeFilter : Maybe ExcludeFilter
-    , featuredImageNamePrefix : Maybe String
     }
 
 

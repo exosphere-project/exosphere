@@ -4,6 +4,7 @@ module View.Types exposing
     , ImageTag
     )
 
+import Dict
 import Element
 import Style.Types exposing (ExoPalette)
 import Types.Types exposing (Localization, Msg)
@@ -13,6 +14,7 @@ type alias Context =
     { palette : ExoPalette
     , isElectron : Bool
     , localization : Localization
+    , cloudSpecificConfigs : Dict.Dict Types.Types.KeystoneHostname Types.Types.CloudSpecificConfig
     }
 
 

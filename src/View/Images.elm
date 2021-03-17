@@ -130,13 +130,17 @@ filterByNotExcludedByDeployer maybeExcludeFilter someImages =
             List.filter (isNotExcludedByDeployer excludeFilter) someImages
 
 
-filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages imageListViewParams project someImages =
+filterImages : View.Types.Context -> ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages context imageListViewParams project someImages =
+    let
+        imageExcludeFilter =
+            VH.imageExcludeFilterLookup context project
+    in
     someImages
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
-        |> filterByNotExcludedByDeployer project.excludeFilter
+        |> filterByNotExcludedByDeployer imageExcludeFilter
 
 
 images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
@@ -153,7 +157,7 @@ images context project imageListViewParams sortTableParams =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages imageListViewParams project
+            project.images |> filterImages context imageListViewParams project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
@@ -161,8 +165,11 @@ images context project imageListViewParams sortTableParams =
         noMatchWarning =
             (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
 
+        featuredImageNamePrefix =
+            VH.featuredImageNamePrefixLookup context project
+
         ( featuredImages, nonFeaturedImages_ ) =
-            List.partition (isImageFeaturedByDeployer project.featuredImageNamePrefix) filteredImages
+            List.partition (isImageFeaturedByDeployer featuredImageNamePrefix) filteredImages
 
         ( ownImages, otherImages ) =
             List.partition (\i -> projectOwnsImage project i) nonFeaturedImages_
@@ -404,7 +411,9 @@ renderImage context project imageListViewParams sortTableParams image =
                         Defaults.createServerViewParams
                             image.uuid
                             image.name
-                            (project.userAppProxyHostname |> Maybe.map (\_ -> True))
+                            (VH.userAppProxyLookup context project
+                                |> Maybe.map (\_ -> True)
+                            )
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
@@ -429,8 +438,11 @@ renderImage context project imageListViewParams sortTableParams image =
                             Nothing
                 }
 
+        featuredImageNamePrefix =
+            VH.featuredImageNamePrefixLookup context project
+
         featuredBadge =
-            if isImageFeaturedByDeployer project.featuredImageNamePrefix image then
+            if isImageFeaturedByDeployer featuredImageNamePrefix image then
                 ExoCard.badge "featured"
 
             else

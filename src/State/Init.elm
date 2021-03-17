@@ -99,7 +99,6 @@ init flags maybeUrlKey =
             , projects = []
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
-            , cloudsWithUserAppProxy = Dict.fromList flags.cloudsWithUserAppProxy
             , clientUuid = uuid
             , clientCurrentTime = currentTime
             , timeZone = timeZone
@@ -123,11 +122,21 @@ init flags maybeUrlKey =
                 , userSupportEmail =
                     flags.userSupportEmail
                         |> Maybe.withDefault "incoming+exosphere-exosphere-6891229-issue-@incoming.gitlab.com"
-                , featuredImageNamePrefix = flags.featuredImageNamePrefix
-                , defaultImageExcludeFilter = flags.defaultImageExcludeFilter
                 , localization = Maybe.withDefault Defaults.localization flags.localization
                 }
             , openIdConnectLoginConfig = flags.openIdConnectLoginConfig
+            , cloudSpecificConfigs =
+                flags.clouds
+                    |> List.map
+                        (\c ->
+                            ( c.keystoneHostname
+                            , { userAppProxy = c.userAppProxy
+                              , imageExcludeFilter = c.imageExcludeFilter
+                              , featuredImageNamePrefix = c.featuredImageNamePrefix
+                              }
+                            )
+                        )
+                    |> Dict.fromList
             }
 
         -- This only gets used if we do not find a client UUID in stored state

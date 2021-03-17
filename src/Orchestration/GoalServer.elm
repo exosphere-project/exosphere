@@ -17,7 +17,8 @@ import Types.Guacamole as GuacTypes
 import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
-        ( ExoSetupStatus(..)
+        ( CloudSpecificConfig
+        , ExoSetupStatus(..)
         , FloatingIpState(..)
         , Msg(..)
         , Project
@@ -48,13 +49,16 @@ goalNewServer exoClientUuid time project =
     ( newProject, newCmds )
 
 
-goalPollServers : Time.Posix -> Project -> ( Project, Cmd Msg )
-goalPollServers time project =
+goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd Msg )
+goalPollServers time maybeCloudSpecificConfig project =
     let
+        userAppProxy =
+            maybeCloudSpecificConfig |> Maybe.andThen (\csc -> csc.userAppProxy)
+
         steps =
             [ stepServerPoll time
             , stepServerPollConsoleLog time
-            , stepServerGuacamoleAuth time
+            , stepServerGuacamoleAuth time userAppProxy
             ]
 
         ( newProject, newCmds ) =
@@ -460,8 +464,8 @@ stepServerPollConsoleLog time project server =
                     )
 
 
-stepServerGuacamoleAuth : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
-stepServerGuacamoleAuth time project server =
+stepServerGuacamoleAuth : Time.Posix -> Maybe Types.Types.UserAppProxyHostname -> Project -> Server -> ( Project, Cmd Msg )
+stepServerGuacamoleAuth time maybeUserAppProxy project server =
     -- TODO ensure server is active
     let
         -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
@@ -533,7 +537,7 @@ stepServerGuacamoleAuth time project server =
                     case
                         ( GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
                         , GetterSetters.getServerExouserPassword server.osProps.details
-                        , project.userAppProxyHostname
+                        , maybeUserAppProxy
                         )
                     of
                         ( Just floatingIp, Just password, Just tlsReverseProxyHostname ) ->
