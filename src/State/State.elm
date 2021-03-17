@@ -866,8 +866,23 @@ processProjectSpecificMsg model project msg =
             Rest.Nova.receiveFlavors model project flavors
 
         RequestKeypairs ->
-            ( model
-            , Rest.Nova.requestKeypairs project
+            let
+                newKeypairs =
+                    case project.keypairs of
+                        RemoteData.Success _ ->
+                            project.keypairs
+
+                        _ ->
+                            RemoteData.Loading
+
+                newProject =
+                    { project | keypairs = newKeypairs }
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel
+            , Rest.Nova.requestKeypairs newProject
             )
 
         ReceiveKeypairs keypairs ->
