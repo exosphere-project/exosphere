@@ -18,14 +18,20 @@ var config = {
     {
       keystoneHostname: "iu.jetstream-cloud.org",
       userAppProxy: "proxy-j7m-iu.exosphere.app",
-      imageExcludeFilter: null,
-      featuredImageNamePrefix: null
+      imageExcludeFilter: {
+        filterKey: "atmo_image_include",
+        filterValue: "true"
+      },
+      featuredImageNamePrefix: "JS-API-Featured"
     },
     {
       keystoneHostname: "tacc.jetstream-cloud.org",
       userAppProxy: "proxy-j7m-tacc.exosphere.app",
-      imageExcludeFilter: null,
-      featuredImageNamePrefix: null
+      imageExcludeFilter: {
+        filterKey: "atmo_image_include",
+        filterValue: "true"
+      },
+      featuredImageNamePrefix: "JS-API-Featured"
     }
   ]
 }
