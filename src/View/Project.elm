@@ -57,7 +57,7 @@ project model context p viewParams viewConstructor =
                     View.AttachVolume.mountVolInstructions context p attachment
 
                 ListKeypairs deleteConfirmations ->
-                    View.Keypairs.keypairs context p deleteConfirmations
+                    View.Keypairs.listKeypairs context p deleteConfirmations
 
                 CreateServerImage serverUuid imageName ->
                     View.CreateServerImage.createServerImage context p serverUuid imageName

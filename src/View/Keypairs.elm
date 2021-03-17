@@ -1,4 +1,4 @@
-module View.Keypairs exposing (keypairs)
+module View.Keypairs exposing (listKeypairs)
 
 import Element
 import Element.Font as Font
@@ -23,8 +23,8 @@ import Widget
 import Widget.Style.Material
 
 
-keypairs : View.Types.Context -> Project -> List DeleteKeypairConfirmation -> Element.Element Msg
-keypairs context project deleteConfirmations =
+listKeypairs : View.Types.Context -> Project -> List DeleteKeypairConfirmation -> Element.Element Msg
+listKeypairs context project deleteConfirmations =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
