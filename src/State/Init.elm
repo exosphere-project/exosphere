@@ -99,7 +99,6 @@ init flags maybeUrlKey =
             , projects = []
             , toasties = Toasty.initialState
             , cloudCorsProxyUrl = flags.cloudCorsProxyUrl
-            , cloudsWithUserAppProxy = Dict.fromList flags.cloudsWithUserAppProxy
             , clientUuid = uuid
             , clientCurrentTime = currentTime
             , timeZone = timeZone

@@ -4,10 +4,8 @@ module LocalStorage.LocalStorage exposing
     , hydrateModelFromStoredState
     )
 
-import Dict
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Url as UrlHelpers
 import Json.Decode as Decode
 import Json.Encode as Encode
 import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject2, StoredState)
@@ -44,9 +42,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
 
         projects =
             List.map
-                (hydrateProjectFromStoredProject
-                    model.cloudsWithUserAppProxy
-                )
+                hydrateProjectFromStoredProject
                 storedState.projects
 
         clientUuid =
@@ -73,8 +69,8 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
     }
 
 
-hydrateProjectFromStoredProject : Types.CloudsWithUserAppProxy -> StoredProject -> Types.Project
-hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
+hydrateProjectFromStoredProject : StoredProject -> Types.Project
+hydrateProjectFromStoredProject storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
     , endpoints = storedProject.endpoints
@@ -90,10 +86,6 @@ hydrateProjectFromStoredProject cloudsWithTlsReverseProxy storedProject =
     , computeQuota = RemoteData.NotAsked
     , volumeQuota = RemoteData.NotAsked
     , pendingCredentialedRequests = []
-    , userAppProxyHostname =
-        storedProject.endpoints.keystone
-            |> UrlHelpers.hostnameFromUrl
-            |> (\h -> Dict.get h cloudsWithTlsReverseProxy)
     }
 
 

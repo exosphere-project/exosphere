@@ -6,6 +6,7 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Filesize
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -411,7 +412,9 @@ renderImage context project imageListViewParams sortTableParams image =
                         Defaults.createServerViewParams
                             image.uuid
                             image.name
-                            (project.userAppProxyHostname |> Maybe.map (\_ -> True))
+                            (GetterSetters.userAppProxyLookup context project
+                                |> Maybe.map (\_ -> True)
+                            )
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]

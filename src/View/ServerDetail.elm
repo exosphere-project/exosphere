@@ -375,7 +375,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 server
                 project.auth.project.uuid
                 (Tuple.first currentTimeAndZone)
-                project.userAppProxyHostname
+                (GetterSetters.userAppProxyLookup context project)
                 serverDetailViewParams
             , Element.el VH.heading3 (Element.text "Password")
             , serverPassword context project.auth.project.uuid serverDetailViewParams server

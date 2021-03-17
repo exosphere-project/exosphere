@@ -3,7 +3,6 @@ module State.State exposing (update)
 import AppUrl.Builder
 import AppUrl.Parser
 import Browser.Navigation
-import Dict
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -1533,10 +1532,6 @@ createProject model authToken endpoints =
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
             , pendingCredentialedRequests = []
-            , userAppProxyHostname =
-                endpoints.keystone
-                    |> UrlHelpers.hostnameFromUrl
-                    |> (\h -> Dict.get h model.cloudsWithUserAppProxy)
             }
 
         newProjects =

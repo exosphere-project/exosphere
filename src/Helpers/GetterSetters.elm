@@ -1,5 +1,6 @@
 module Helpers.GetterSetters exposing
-    ( flavorLookup
+    ( cloudConfigLookup
+    , flavorLookup
     , getExternalNetwork
     , getPublicEndpointFromService
     , getServerExouserPassword
@@ -32,7 +33,14 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Time
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (Model, Project, ProjectIdentifier, Server, UnscopedProvider)
+import Types.Types
+    exposing
+        ( Model
+        , Project
+        , ProjectIdentifier
+        , Server
+        , UnscopedProvider
+        )
 import View.Types
 
 
@@ -314,3 +322,12 @@ userAppProxyLookup context project =
     in
     Dict.get projectKeystoneHostname context.cloudSpecificConfigs
         |> Maybe.andThen (\csc -> csc.userAppProxy)
+
+
+cloudConfigLookup : Model -> Project -> Maybe Types.Types.CloudSpecificConfig
+cloudConfigLookup model project =
+    let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+    in
+    Dict.get projectKeystoneHostname model.cloudSpecificConfigs

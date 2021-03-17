@@ -1,9 +1,17 @@
 module Orchestration.Orchestration exposing (orchModel)
 
+import Helpers.GetterSetters
 import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
-import Types.Types exposing (FloatingIpState(..), Model, Msg, Project)
+import Types.Types
+    exposing
+        ( CloudSpecificConfig
+        , FloatingIpState(..)
+        , Model
+        , Msg
+        , Project
+        )
 import UUID
 
 
@@ -12,19 +20,20 @@ orchModel model time =
     let
         ( newProjects, newCmds ) =
             model.projects
-                |> List.map (orchProject model.clientUuid time)
+                |> List.map (\proj -> ( Helpers.GetterSetters.cloudConfigLookup model proj, proj ))
+                |> List.map (\( cloudConfig, proj ) -> orchProject model.clientUuid time cloudConfig proj)
                 |> List.unzip
     in
     ( { model | projects = newProjects }, Cmd.batch newCmds )
 
 
-orchProject : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd Msg )
-orchProject exoClientUuid time project =
+orchProject : UUID.UUID -> Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd Msg )
+orchProject exoClientUuid time maybeCloudSpecificConfig project =
     let
         goals =
             [ goalDummy exoClientUuid time
             , goalNewServer exoClientUuid time
-            , goalPollServers time
+            , goalPollServers time maybeCloudSpecificConfig
             ]
 
         ( newProject, newCmds ) =

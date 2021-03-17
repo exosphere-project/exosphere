@@ -124,7 +124,6 @@ type alias Flags =
     , randomSeed3 : Int
     , epoch : Int
     , timeZone : Int
-    , cloudsWithUserAppProxy : List ( String, String )
     }
 
 
@@ -155,7 +154,6 @@ type alias Model =
     , projects : List Project
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
-    , cloudsWithUserAppProxy : CloudsWithUserAppProxy
     , clientUuid : UUID.UUID
     , clientCurrentTime : Time.Posix
     , timeZone : Time.Zone
@@ -268,7 +266,6 @@ type alias Project =
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
     , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
-    , userAppProxyHostname : Maybe UserAppProxyHostname
     }
 
 
