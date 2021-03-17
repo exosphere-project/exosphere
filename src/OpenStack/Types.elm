@@ -22,6 +22,7 @@ module OpenStack.Types exposing
     , IpAddressValue
     , Keypair
     , KeypairFingerprint
+    , KeypairName
     , KeystoneUrl
     , MetadataItem
     , NameAndUuid
@@ -232,10 +233,14 @@ type ImageVisibility
 
 
 type alias Keypair =
-    { name : String
+    { name : KeypairName
     , publicKey : String
     , fingerprint : KeypairFingerprint
     }
+
+
+type alias KeypairName =
+    String
 
 
 type alias KeypairFingerprint =

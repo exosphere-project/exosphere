@@ -294,7 +294,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , passwordVulnWarning context server
             , VH.compactKVRow "Name" serverNameView
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
-            , VH.compactKVRow "UUID" <| copyableText context.palette server.osProps.uuid
+            , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow "Created on" (Element.text details.created)
             , creatorNameView
             , VH.compactKVRow
@@ -714,7 +714,7 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
                                             Element.row
                                                 []
                                                 [ Element.text ": "
-                                                , copyableText context.palette text
+                                                , copyableText context.palette [] text
                                                 ]
 
                                         _ ->
@@ -745,7 +745,7 @@ serverPassword context projectId serverDetailViewParams server =
                 [ Element.spacing 10 ]
                 [ case serverDetailViewParams.passwordVisibility of
                     PasswordShown ->
-                        copyableText context.palette password
+                        copyableText context.palette [] password
 
                     PasswordHidden ->
                         Element.none
@@ -1032,7 +1032,7 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
                     (\ipAddress ->
                         VH.compactKVSubRow
                             (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                            (copyableText context.palette ipAddress.address)
+                            (copyableText context.palette [] ipAddress.address)
                     )
 
         ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg

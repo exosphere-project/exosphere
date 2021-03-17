@@ -335,6 +335,8 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
+    | RequestKeypairs
+    | RequestDeleteKeypair OSTypes.KeypairName
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)

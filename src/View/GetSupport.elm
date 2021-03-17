@@ -217,7 +217,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                     [ Element.spacing 10 ]
                     [ Element.text "Please copy all of the text below and paste it into an email message to: "
                     , Element.el [ Font.extraBold ] <|
-                        Style.Widgets.CopyableText.copyableText context.palette model.style.userSupportEmail
+                        Style.Widgets.CopyableText.copyableText context.palette [] model.style.userSupportEmail
                     , Element.text "Someone will respond and assist you."
                     ]
                 , Input.multiline

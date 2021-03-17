@@ -865,8 +865,17 @@ processProjectSpecificMsg model project msg =
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors model project flavors
 
+        RequestKeypairs ->
+            ( model
+            , Rest.Nova.requestKeypairs project
+            )
+
         ReceiveKeypairs keypairs ->
             Rest.Nova.receiveKeypairs model project keypairs
+
+        RequestDeleteKeypair keypairName ->
+            -- TODO implement me
+            ( model, Cmd.none )
 
         ReceiveCreateServer _ ->
             let
