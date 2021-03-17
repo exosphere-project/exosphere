@@ -106,7 +106,7 @@ quotaDetail context quota infoItemsF =
                 , "data"
                 ]
     in
-    VH.renderWebData quota resourceWord infoItemsF
+    VH.renderWebData context quota resourceWord infoItemsF
 
 
 computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element Msg

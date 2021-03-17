@@ -67,6 +67,7 @@ import Types.Types
         , Style
         )
 import View.Types
+import Widget
 
 
 toViewContext : Model -> View.Types.Context
@@ -331,24 +332,30 @@ titleFromHostname hostname =
             hostname
 
 
-renderWebData : RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
-renderWebData remoteData resourceWord renderSuccessCase =
+renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
+renderWebData context remoteData resourceWord renderSuccessCase =
     case remoteData of
         RemoteData.NotAsked ->
             Element.text <|
-                String.join " "
-                    [ "Have not requested"
-                    , resourceWord
-                    , "yet"
-                    ]
-
-        RemoteData.Loading ->
-            Element.text <|
+                -- This is an ugly hack because some of our API calls don't set RemoteData to "Loading" when they should.
                 String.concat
-                    [ "Loading"
+                    [ "Loading "
                     , resourceWord
                     , "..."
                     ]
+
+        RemoteData.Loading ->
+            Element.row [ Element.spacing 15 ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text <|
+                    String.concat
+                        [ "Loading "
+                        , resourceWord
+                        , "..."
+                        ]
+                ]
 
         RemoteData.Failure error ->
             Element.text <|

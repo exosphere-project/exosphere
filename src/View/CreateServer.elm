@@ -743,6 +743,7 @@ keypairPicker context project viewParams =
                 (Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh)
             )
         , VH.renderWebData
+            context
             project.keypairs
             (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
             renderKeypairs

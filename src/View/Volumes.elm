@@ -60,7 +60,11 @@ volumes context project deleteVolumeConfirmations =
                     |> Helpers.String.toTitleCase
                 )
             )
-        , VH.renderWebData project.volumes (Helpers.String.pluralize context.localization.blockDevice) renderSuccessCase
+        , VH.renderWebData
+            context
+            project.volumes
+            (Helpers.String.pluralize context.localization.blockDevice)
+            renderSuccessCase
         ]
 
 

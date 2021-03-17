@@ -63,6 +63,7 @@ selectProjects model context keystoneUrl selectedProjects =
                             ]
                     )
                 , VH.renderWebData
+                    context
                     provider.projectsAvailable
                     (context.localization.unitOfTenancy
                         |> Helpers.String.pluralize
