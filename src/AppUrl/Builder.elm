@@ -157,7 +157,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "keypairs" ]
                 []
 
-        CreateKeypair keypairName publicKey ->
+        CreateKeypair _ _ ->
             buildUrlFunc
                 [ "createkeypair" ]
                 []
