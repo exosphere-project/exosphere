@@ -195,8 +195,9 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                                 project.auth.project.uuid
                                 (SetProjectView <|
                                     toProjectViewConstructor
-                                        [ ( keypair.name, keypair.fingerprint )
-                                        ]
+                                        (( keypair.name, keypair.fingerprint )
+                                            :: deleteConfirmations
+                                        )
                                 )
                     }
     in
