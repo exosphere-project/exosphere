@@ -1,6 +1,5 @@
 module Types.Types exposing
     ( CloudSpecificConfig
-    , CloudsWithUserAppProxy
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
@@ -214,10 +213,6 @@ type alias OpenIdConnectLoginConfig =
 
 type alias CloudCorsProxyUrl =
     HelperTypes.Url
-
-
-type alias CloudsWithUserAppProxy =
-    Dict.Dict KeystoneHostname UserAppProxyHostname
 
 
 type alias KeystoneHostname =
