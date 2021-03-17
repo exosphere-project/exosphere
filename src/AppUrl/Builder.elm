@@ -157,6 +157,11 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "keypairs" ]
                 []
 
+        CreateKeypair keypairName publicKey ->
+            buildUrlFunc
+                [ "createkeypair" ]
+                []
+
         ListQuotaUsage ->
             UB.absolute
                 [ "quotausage" ]

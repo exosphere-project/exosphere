@@ -336,6 +336,7 @@ type ProjectSpecificMsgConstructor
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestKeypairs
+    | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairName
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
@@ -425,6 +426,7 @@ type ProjectViewConstructor
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ListKeypairs (List DeleteKeypairConfirmation)
+    | CreateKeypair String String
     | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String

@@ -181,6 +181,9 @@ projectViewConstructorParsers =
         (ListKeypairs [])
         (s "keypairs")
     , map
+        (CreateKeypair "" "")
+        (s "createkeypair")
+    , map
         ListQuotaUsage
         (s "quotausage")
     , map

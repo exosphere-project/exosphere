@@ -30,6 +30,7 @@ module OpenStack.Types exposing
     , NetworkUuid
     , OpenstackLogin
     , Port
+    , PublicKey
     , QuotaItemDetail
     , ScopedAuthToken
     , SecurityGroup
@@ -234,12 +235,16 @@ type ImageVisibility
 
 type alias Keypair =
     { name : KeypairName
-    , publicKey : String
+    , publicKey : PublicKey
     , fingerprint : KeypairFingerprint
     }
 
 
 type alias KeypairName =
+    String
+
+
+type alias PublicKey =
     String
 
 

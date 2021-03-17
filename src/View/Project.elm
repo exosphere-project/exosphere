@@ -59,6 +59,9 @@ project model context p viewParams viewConstructor =
                 ListKeypairs deleteConfirmations ->
                     View.Keypairs.listKeypairs context p deleteConfirmations
 
+                CreateKeypair keypairName publicKey ->
+                    View.Keypairs.createKeypair context p keypairName publicKey
+
                 CreateServerImage serverUuid imageName ->
                     View.CreateServerImage.createServerImage context p serverUuid imageName
 
@@ -203,6 +206,15 @@ createButton context projectId expanded =
                                         ProjectMsg projectId <|
                                             SetProjectView <|
                                                 CreateVolume "" (ValidNumericTextInput 10)
+                                }
+                            , Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                { text = Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                CreateKeypair "" ""
                                 }
                             ]
                   ]

@@ -123,6 +123,14 @@ pageTitle model context =
                         , projectName
                         ]
 
+                CreateKeypair _ _ ->
+                    String.join " "
+                        [ "Create"
+                        , context.localization.pkiPublicKeyForSsh
+                        , "for"
+                        , projectName
+                        ]
+
                 ListQuotaUsage ->
                     String.join " "
                         [ context.localization.maxResourcesPerProject

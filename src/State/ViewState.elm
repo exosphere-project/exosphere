@@ -357,6 +357,9 @@ setProjectView model project projectViewConstructor =
                     in
                     ( model, cmd )
 
+                CreateKeypair _ _ ->
+                    ( model, Cmd.none )
+
                 ListQuotaUsage ->
                     let
                         cmd =
