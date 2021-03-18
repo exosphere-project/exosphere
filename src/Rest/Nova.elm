@@ -16,6 +16,7 @@ module Rest.Nova exposing
     , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
+    , requestDeleteKeypair
     , requestDeleteServer
     , requestFlavors
     , requestKeypairs
@@ -283,6 +284,26 @@ requestCreateKeypair project keypairName publicKey =
         (expectJsonWithErrorBody
             resultToMsg_
             keypairDecoder
+        )
+
+
+requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd Msg
+requestDeleteKeypair project keypairName =
+    let
+        errorContext =
+            ErrorContext
+                ("delete keypair with name \"" ++ keypairName ++ "\"")
+                ErrorCrit
+                Nothing
+    in
+    openstackCredentialedRequest
+        project
+        Delete
+        Nothing
+        (project.endpoints.nova ++ "/os-keypairs/" ++ keypairName)
+        Http.emptyBody
+        (Http.expectWhatever
+            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext keypairName result)
         )
 
 

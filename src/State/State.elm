@@ -902,8 +902,32 @@ processProjectSpecificMsg model project msg =
             ViewStateHelpers.setProjectView newModel newProject (ListKeypairs [])
 
         RequestDeleteKeypair keypairName ->
-            -- TODO implement me
-            ( model, Cmd.none )
+            ( model, Rest.Nova.requestDeleteKeypair project keypairName )
+
+        ReceiveDeleteKeypair errorContext keypairName result ->
+            case result of
+                Err e ->
+                    State.Error.processStringError model errorContext (Debug.toString e)
+
+                Ok () ->
+                    let
+                        newKeypairs =
+                            case project.keypairs of
+                                RemoteData.Success keypairs ->
+                                    keypairs
+                                        |> List.filter (\k -> k.name /= keypairName)
+                                        |> RemoteData.Success
+
+                                _ ->
+                                    project.keypairs
+
+                        newProject =
+                            { project | keypairs = newKeypairs }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject model newProject
+                    in
+                    ( newModel, Cmd.none )
 
         ReceiveCreateServer _ ->
             let

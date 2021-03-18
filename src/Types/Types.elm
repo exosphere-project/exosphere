@@ -349,6 +349,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
     | ReceiveCreateKeypair OSTypes.Keypair
+    | ReceiveDeleteKeypair ErrorContext OSTypes.KeypairName (Result Http.Error ())
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
