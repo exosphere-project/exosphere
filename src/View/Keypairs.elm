@@ -32,7 +32,7 @@ createKeypair context project name publicKey =
         [ Element.el VH.heading2 <|
             Element.text <|
                 String.join " "
-                    [ "Create"
+                    [ "Upload"
                     , context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     ]
@@ -107,7 +107,7 @@ listKeypairs context project deleteConfirmations =
                             [ "You don't have any"
                             , context.localization.pkiPublicKeyForSsh
                                 |> Helpers.String.pluralize
-                            , "yet, go create one!"
+                            , "yet, go upload one!"
                             ]
                     , let
                         text =

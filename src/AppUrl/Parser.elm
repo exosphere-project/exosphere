@@ -182,7 +182,7 @@ projectViewConstructorParsers =
         (s "keypairs")
     , map
         (CreateKeypair "" "")
-        (s "createkeypair")
+        (s "uploadkeypair")
     , map
         ListQuotaUsage
         (s "quotausage")

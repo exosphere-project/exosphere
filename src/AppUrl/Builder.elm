@@ -159,7 +159,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
 
         CreateKeypair _ _ ->
             buildUrlFunc
-                [ "createkeypair" ]
+                [ "uploadkeypair" ]
                 []
 
         ListQuotaUsage ->

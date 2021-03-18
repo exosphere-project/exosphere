@@ -125,7 +125,7 @@ pageTitle model context =
 
                 CreateKeypair _ _ ->
                     String.join " "
-                        [ "Create"
+                        [ "Upload"
                         , context.localization.pkiPublicKeyForSsh
                         , "for"
                         , projectName
