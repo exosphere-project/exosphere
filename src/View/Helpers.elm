@@ -334,17 +334,8 @@ titleFromHostname hostname =
 
 renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
 renderWebData context remoteData resourceWord renderSuccessCase =
-    case remoteData of
-        RemoteData.NotAsked ->
-            Element.text <|
-                -- This is an ugly hack because some of our API calls don't set RemoteData to "Loading" when they should.
-                String.concat
-                    [ "Loading "
-                    , resourceWord
-                    , "..."
-                    ]
-
-        RemoteData.Loading ->
+    let
+        loadingStuff =
             Element.row [ Element.spacing 15 ]
                 [ Widget.circularProgressIndicator
                     (SH.materialStyle context.palette).progressIndicator
@@ -356,6 +347,14 @@ renderWebData context remoteData resourceWord renderSuccessCase =
                         , "..."
                         ]
                 ]
+    in
+    case remoteData of
+        RemoteData.NotAsked ->
+            -- This is an ugly hack because some of our API calls don't set RemoteData to "Loading" when they should.
+            loadingStuff
+
+        RemoteData.Loading ->
+            loadingStuff
 
         RemoteData.Failure error ->
             Element.text <|
