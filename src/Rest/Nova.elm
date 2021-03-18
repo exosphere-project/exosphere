@@ -266,7 +266,7 @@ requestCreateKeypair project keypairName publicKey =
             ErrorContext
                 ("create keypair for project \"" ++ project.auth.project.name ++ "\"")
                 ErrorCrit
-                Nothing
+                (Just "ensure that you are entering the entire public key with no extra line breaks or other characters.")
 
         resultToMsg_ =
             resultToMsgErrorBody errorContext
