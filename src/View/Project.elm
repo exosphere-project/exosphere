@@ -8,7 +8,21 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Types exposing (Model, Msg(..), NonProjectViewConstructor(..), Project, ProjectIdentifier, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
+import Types.Types
+    exposing
+        ( DeleteKeypairConfirmation
+        , DeleteVolumeConfirmation
+        , Model
+        , Msg(..)
+        , NonProjectViewConstructor(..)
+        , Project
+        , ProjectIdentifier
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        , ProjectViewParams
+        , ServerListViewParams
+        , ViewState(..)
+        )
 import View.AttachVolume
 import View.CreateServer
 import View.CreateServerImage
@@ -29,6 +43,9 @@ project model context p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
+                AllResources serverListViewParams deleteVolumeConfirmations deleteKeypairConfirmations ->
+                    allResources context p serverListViewParams deleteVolumeConfirmations deleteKeypairConfirmations
+
                 ListImages imageFilter sortTableParams ->
                     View.Images.imagesIfLoaded context p imageFilter sortTableParams
 
@@ -77,9 +94,26 @@ project model context p viewParams viewConstructor =
         ]
 
 
+allResources :
+    View.Types.Context
+    -> Project
+    -> ServerListViewParams
+    -> List DeleteVolumeConfirmation
+    -> List DeleteKeypairConfirmation
+    -> Element.Element Msg
+allResources context p serverListViewParams deleteVolumeConfirmations deleteKeypairConfirmations =
+    Element.column
+        []
+        [ View.ServerList.serverList context p serverListViewParams
+        , View.Volumes.volumes context p deleteVolumeConfirmations
+        , View.Keypairs.listKeypairs context p deleteKeypairConfirmations
+        , View.QuotaUsage.dashboard context p
+        ]
+
+
 projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element Msg
 projectNav context p viewParams =
-    Element.column [ Element.width Element.fill, Element.spacing 10 ]
+    Element.row [ Element.width Element.fill, Element.spacing 10 ]
         [ Element.el
             VH.heading2
           <|
@@ -87,78 +121,23 @@ projectNav context p viewParams =
                 UrlHelpers.hostnameFromUrl p.endpoints.keystone
                     ++ " - "
                     ++ p.auth.project.name
-        , Element.row [ Element.width Element.fill, Element.spacing 10 ]
-            [ Element.el
-                []
-              <|
-                Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text =
-                        context.localization.virtualComputer
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                    , onPress =
-                        Just <|
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListProjectServers Defaults.serverListViewParams
-                    }
-            , Element.el
-                []
-              <|
-                Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text =
-                        context.localization.blockDevice
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                    , onPress =
-                        Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
-                    }
-            , Element.el
-                []
-              <|
-                Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text =
-                        context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                    , onPress =
-                        Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListKeypairs []
-                    }
-            , Element.el [] <|
-                Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                    { text =
-                        String.join " "
-                            [ context.localization.maxResourcesPerProject
-                                |> Helpers.String.toTitleCase
-                            , "Usage"
-                            ]
-                    , onPress =
-                        SetProjectView ListQuotaUsage
-                            |> ProjectMsg p.auth.project.uuid
-                            |> Just
-                    }
-            , Element.el
-                -- TODO replace these
-                [ Element.alignRight ]
-              <|
-                Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                    { text =
-                        String.join " "
-                            [ "Remove"
-                            , Helpers.String.toTitleCase context.localization.unitOfTenancy
-                            ]
-                    , onPress =
-                        Just <| ProjectMsg p.auth.project.uuid RemoveProject
-                    }
-            , Element.el
-                [ Element.alignRight ]
-                (createButton context p.auth.project.uuid viewParams.createPopup)
-            ]
+        , Element.el
+            -- TODO replace these
+            [ Element.alignRight ]
+          <|
+            Widget.textButton
+                (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                { text =
+                    String.join " "
+                        [ "Remove"
+                        , Helpers.String.toTitleCase context.localization.unitOfTenancy
+                        ]
+                , onPress =
+                    Just <| ProjectMsg p.auth.project.uuid RemoveProject
+                }
+        , Element.el
+            [ Element.alignRight ]
+            (createButton context p.auth.project.uuid viewParams.createPopup)
         ]
 
 

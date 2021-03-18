@@ -151,6 +151,9 @@ projectViewConstructorParsers =
         (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
         (s "images")
     , map
+        (AllResources Defaults.serverListViewParams [] [])
+        (s "resources")
+    , map
         (\svrUuid imageName ->
             CreateServerImage svrUuid imageName
         )

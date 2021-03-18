@@ -137,6 +137,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
 projectSpecificUrlPart : (List String -> List UB.QueryParameter -> String) -> ProjectViewConstructor -> String
 projectSpecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
+        AllResources _ _ _ ->
+            buildUrlFunc
+                [ "resources" ]
+                []
+
         ListImages _ _ ->
             buildUrlFunc
                 [ "images" ]

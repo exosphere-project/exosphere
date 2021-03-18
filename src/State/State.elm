@@ -1609,14 +1609,14 @@ createProject model authToken endpoints =
                         newProject.auth.project.uuid
                         { createPopup = False }
                     <|
-                        ListProjectServers Defaults.serverListViewParams
+                        AllResources Defaults.serverListViewParams [] []
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         newProject.auth.project.uuid
                         projectViewParams
                     <|
-                        ListProjectServers Defaults.serverListViewParams
+                        AllResources Defaults.serverListViewParams [] []
 
         newModel =
             { model

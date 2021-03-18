@@ -187,6 +187,33 @@ setProjectView model project projectViewConstructor =
 
         viewSpecificModelAndCmd =
             case projectViewConstructor of
+                AllResources _ _ _ ->
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (AllResources _ _ _) ->
+                            ( model, Cmd.none )
+
+                        _ ->
+                            let
+                                newProject =
+                                    project
+                                        |> projectResetCockpitStatuses
+
+                                ( newModel, newCmd ) =
+                                    ApiModelHelpers.requestServers project.auth.project.uuid model
+                            in
+                            ( newModel
+                            , Cmd.batch
+                                [ newCmd
+                                , Rest.Neutron.requestFloatingIps newProject
+                                , OSVolumes.requestVolumes project
+                                , Rest.Nova.requestKeypairs project
+                                , OSQuotas.requestComputeQuota project
+                                , OSQuotas.requestVolumeQuota project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                            )
+
                 ListImages _ _ ->
                     let
                         cmd =

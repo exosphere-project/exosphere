@@ -87,6 +87,12 @@ pageTitle model context =
                             )
             in
             case projectViewConstructor of
+                AllResources _ _ _ ->
+                    String.join " "
+                        [ "All resources for"
+                        , projectName
+                        ]
+
                 ListImages _ _ ->
                     String.join " "
                         [ context.localization.staticRepresentationOfBlockDeviceContents

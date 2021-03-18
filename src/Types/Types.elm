@@ -424,7 +424,8 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = ListImages ImageListViewParams SortTableParams
+    = AllResources ServerListViewParams (List DeleteVolumeConfirmation) (List DeleteKeypairConfirmation)
+    | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
     | ListKeypairs (List DeleteKeypairConfirmation)
