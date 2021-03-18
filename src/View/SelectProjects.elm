@@ -6,7 +6,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
-import RemoteData
 import Style.Helpers as SH
 import Types.Types
     exposing
@@ -33,6 +32,23 @@ selectProjects model context keystoneUrl selectedProjects =
             let
                 urlLabel =
                     UrlHelpers.hostnameFromUrl keystoneUrl
+
+                renderSuccessCase : List UnscopedProviderProject -> Element.Element Msg
+                renderSuccessCase projects =
+                    Element.column VH.exoColumnAttributes <|
+                        List.append
+                            (List.map
+                                (renderProject keystoneUrl selectedProjects)
+                                projects
+                            )
+                            [ Widget.textButton
+                                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                                { text = "Choose"
+                                , onPress =
+                                    Just <|
+                                        RequestProjectLoginFromProvider keystoneUrl selectedProjects
+                                }
+                            ]
             in
             Element.column VH.exoColumnAttributes
                 [ Element.el VH.heading2
@@ -46,47 +62,13 @@ selectProjects model context keystoneUrl selectedProjects =
                             , urlLabel
                             ]
                     )
-                , case provider.projectsAvailable of
-                    RemoteData.Success projectsAvailable ->
-                        Element.column VH.exoColumnAttributes <|
-                            List.append
-                                (List.map
-                                    (renderProject keystoneUrl selectedProjects)
-                                    projectsAvailable
-                                )
-                                [ Widget.textButton
-                                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                                    { text = "Choose"
-                                    , onPress =
-                                        Just <|
-                                            RequestProjectLoginFromProvider keystoneUrl selectedProjects
-                                    }
-                                ]
-
-                    RemoteData.Loading ->
-                        Element.row [ Element.spacing 15 ]
-                            [ Widget.circularProgressIndicator
-                                (SH.materialStyle context.palette).progressIndicator
-                                Nothing
-                            , Element.text <|
-                                String.join " "
-                                    [ "Loading list of"
-                                    , Helpers.String.pluralize context.localization.unitOfTenancy
-                                    ]
-                            ]
-
-                    RemoteData.Failure e ->
-                        Element.text <|
-                            String.join " "
-                                [ "Error loading list of"
-                                , Helpers.String.pluralize context.localization.unitOfTenancy
-                                , "--"
-                                , Debug.toString e
-                                ]
-
-                    RemoteData.NotAsked ->
-                        -- This state should be impossible because when we create an unscoped Provider we always immediately ask for a list of projects
-                        Element.none
+                , VH.renderWebData
+                    context
+                    provider.projectsAvailable
+                    (context.localization.unitOfTenancy
+                        |> Helpers.String.pluralize
+                    )
+                    renderSuccessCase
                 ]
 
         Nothing ->

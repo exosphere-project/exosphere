@@ -178,6 +178,12 @@ projectViewConstructorParsers =
         (ListProjectVolumes [])
         (s "volumes")
     , map
+        (ListKeypairs [])
+        (s "keypairs")
+    , map
+        (CreateKeypair "" "")
+        (s "uploadkeypair")
+    , map
         ListQuotaUsage
         (s "quotausage")
     , map

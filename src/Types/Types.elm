@@ -3,6 +3,7 @@ module Types.Types exposing
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
+    , DeleteKeypairConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
     , ExcludeFilter
@@ -257,7 +258,7 @@ type alias Project =
     , images : List OSTypes.Image
     , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
     , flavors : List OSTypes.Flavor
-    , keypairs : List OSTypes.Keypair
+    , keypairs : WebData (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , floatingIps : List OSTypes.IpAddress
@@ -334,6 +335,9 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
+    | RequestKeypairs
+    | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
+    | RequestDeleteKeypair OSTypes.KeypairName
     | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
@@ -344,6 +348,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
+    | ReceiveCreateKeypair OSTypes.Keypair
+    | ReceiveDeleteKeypair ErrorContext OSTypes.KeypairName (Result Http.Error ())
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
@@ -421,6 +427,8 @@ type ProjectViewConstructor
     = ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes (List DeleteVolumeConfirmation)
+    | ListKeypairs (List DeleteKeypairConfirmation)
+    | CreateKeypair String String
     | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
@@ -479,6 +487,10 @@ type alias DeleteConfirmation =
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
+
+
+type alias DeleteKeypairConfirmation =
+    ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
 
 
 type IPInfoLevel

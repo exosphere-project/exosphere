@@ -13,8 +13,10 @@ module Rest.Nova exposing
     , receiveServer
     , receiveServers
     , requestConsoleUrls
+    , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
+    , requestDeleteKeypair
     , requestDeleteServer
     , requestFlavors
     , requestKeypairs
@@ -244,6 +246,64 @@ requestKeypairs project =
         (expectJsonWithErrorBody
             resultToMsg_
             decodeKeypairs
+        )
+
+
+requestCreateKeypair : Project -> OSTypes.KeypairName -> OSTypes.PublicKey -> Cmd Msg
+requestCreateKeypair project keypairName publicKey =
+    let
+        body =
+            Encode.object
+                [ ( "keypair"
+                  , Encode.object
+                        [ ( "name", Encode.string keypairName )
+                        , ( "public_key", Encode.string publicKey )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("create keypair for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                (Just "ensure that you are entering the entire public key with no extra line breaks or other characters.")
+
+        resultToMsg_ =
+            resultToMsgErrorBody errorContext
+                (\keypair ->
+                    ProjectMsg project.auth.project.uuid <|
+                        ReceiveCreateKeypair keypair
+                )
+    in
+    openstackCredentialedRequest
+        project
+        Post
+        Nothing
+        (project.endpoints.nova ++ "/os-keypairs")
+        (Http.jsonBody body)
+        (expectJsonWithErrorBody
+            resultToMsg_
+            keypairDecoder
+        )
+
+
+requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd Msg
+requestDeleteKeypair project keypairName =
+    let
+        errorContext =
+            ErrorContext
+                ("delete keypair with name \"" ++ keypairName ++ "\"")
+                ErrorCrit
+                Nothing
+    in
+    openstackCredentialedRequest
+        project
+        Delete
+        Nothing
+        (project.endpoints.nova ++ "/os-keypairs/" ++ keypairName)
+        Http.emptyBody
+        (Http.expectWhatever
+            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext keypairName result)
         )
 
 
@@ -842,7 +902,7 @@ receiveKeypairs : Model -> Project -> List OSTypes.Keypair -> ( Model, Cmd Msg )
 receiveKeypairs model project keypairs =
     let
         newProject =
-            { project | keypairs = keypairs }
+            { project | keypairs = RemoteData.Success keypairs }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

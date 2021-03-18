@@ -14,6 +14,7 @@ import View.CreateServer
 import View.CreateServerImage
 import View.Helpers as VH
 import View.Images
+import View.Keypairs
 import View.QuotaUsage
 import View.ServerDetail
 import View.ServerList
@@ -54,6 +55,12 @@ project model context p viewParams viewConstructor =
 
                 MountVolInstructions attachment ->
                     View.AttachVolume.mountVolInstructions context p attachment
+
+                ListKeypairs deleteConfirmations ->
+                    View.Keypairs.listKeypairs context p deleteConfirmations
+
+                CreateKeypair keypairName publicKey ->
+                    View.Keypairs.createKeypair context p keypairName publicKey
 
                 CreateServerImage serverUuid imageName ->
                     View.CreateServerImage.createServerImage context p serverUuid imageName
@@ -107,6 +114,18 @@ projectNav context p viewParams =
                             |> Helpers.String.toTitleCase
                     , onPress =
                         Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListProjectVolumes []
+                    }
+            , Element.el
+                []
+              <|
+                Widget.textButton
+                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                    { text =
+                        context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                    , onPress =
+                        Just <| ProjectMsg p.auth.project.uuid <| SetProjectView <| ListKeypairs []
                     }
             , Element.el [] <|
                 Widget.textButton
@@ -187,6 +206,15 @@ createButton context projectId expanded =
                                         ProjectMsg projectId <|
                                             SetProjectView <|
                                                 CreateVolume "" (ValidNumericTextInput 10)
+                                }
+                            , Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                { text = Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh
+                                , onPress =
+                                    Just <|
+                                        ProjectMsg projectId <|
+                                            SetProjectView <|
+                                                CreateKeypair "" ""
                                 }
                             ]
                   ]

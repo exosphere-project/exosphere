@@ -865,8 +865,69 @@ processProjectSpecificMsg model project msg =
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors model project flavors
 
+        RequestKeypairs ->
+            let
+                newKeypairs =
+                    case project.keypairs of
+                        RemoteData.Success _ ->
+                            project.keypairs
+
+                        _ ->
+                            RemoteData.Loading
+
+                newProject =
+                    { project | keypairs = newKeypairs }
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel
+            , Rest.Nova.requestKeypairs newProject
+            )
+
         ReceiveKeypairs keypairs ->
             Rest.Nova.receiveKeypairs model project keypairs
+
+        RequestCreateKeypair keypairName publicKey ->
+            ( model, Rest.Nova.requestCreateKeypair project keypairName publicKey )
+
+        ReceiveCreateKeypair keypair ->
+            let
+                newProject =
+                    GetterSetters.projectUpdateKeypair project keypair
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs [])
+
+        RequestDeleteKeypair keypairName ->
+            ( model, Rest.Nova.requestDeleteKeypair project keypairName )
+
+        ReceiveDeleteKeypair errorContext keypairName result ->
+            case result of
+                Err e ->
+                    State.Error.processStringError model errorContext (Debug.toString e)
+
+                Ok () ->
+                    let
+                        newKeypairs =
+                            case project.keypairs of
+                                RemoteData.Success keypairs ->
+                                    keypairs
+                                        |> List.filter (\k -> k.name /= keypairName)
+                                        |> RemoteData.Success
+
+                                _ ->
+                                    project.keypairs
+
+                        newProject =
+                            { project | keypairs = newKeypairs }
+
+                        newModel =
+                            GetterSetters.modelUpdateProject model newProject
+                    in
+                    ( newModel, Cmd.none )
 
         ReceiveCreateServer _ ->
             let
@@ -1523,7 +1584,7 @@ createProject model authToken endpoints =
             , images = []
             , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.Loading model.clientCurrentTime)
             , flavors = []
-            , keypairs = []
+            , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked
             , networks = RDPP.empty
             , floatingIps = []

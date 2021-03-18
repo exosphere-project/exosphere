@@ -5,6 +5,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -701,8 +702,8 @@ keypairPicker context project viewParams =
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
 
-        contents =
-            if List.isEmpty project.keypairs then
+        renderKeypairs keypairs =
+            if List.isEmpty keypairs then
                 Element.text <|
                     String.concat
                         [ "(This "
@@ -731,7 +732,7 @@ keypairPicker context project viewParams =
                                     ]
                             )
                     , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
-                    , options = List.map keypairAsOption project.keypairs
+                    , options = List.map keypairAsOption keypairs
                     , selected = Just (Maybe.withDefault "" viewParams.keypairName)
                     }
     in
@@ -742,7 +743,34 @@ keypairPicker context project viewParams =
             (Element.text
                 (Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh)
             )
-        , contents
+        , VH.renderWebData
+            context
+            project.keypairs
+            (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
+            renderKeypairs
+        , let
+            text =
+                String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
+          in
+          Widget.iconButton
+            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+            { text = text
+            , icon =
+                Element.row
+                    [ Element.spacing 5 ]
+                    [ Element.text text
+                    , Element.el []
+                        (FeatherIcons.chevronRight
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                        )
+                    ]
+            , onPress =
+                Just <|
+                    ProjectMsg project.auth.project.uuid <|
+                        SetProjectView <|
+                            CreateKeypair "" ""
+            }
         ]
 
 

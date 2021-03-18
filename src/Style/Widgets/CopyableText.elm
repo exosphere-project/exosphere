@@ -15,13 +15,15 @@ import Style.Widgets.Icon exposing (copyToClipboard)
     copyableText (Element.text "foobar")
 
 -}
-copyableText : ExoPalette -> String -> Element msg
-copyableText palette text =
+copyableText : ExoPalette -> List (Element.Attribute msg) -> String -> Element msg
+copyableText palette textAttributes text =
     Element.row
-        [ Element.spacing 8 ]
-        [ Element.html <|
-            Html.div [ Html.Attributes.id ("copy-me-" ++ hash text) ] <|
-                [ Html.text text ]
+        [ Element.spacing 8, Element.width Element.fill ]
+        [ Element.paragraph textAttributes <|
+            [ Element.html <|
+                Html.div [ Html.Attributes.id ("copy-me-" ++ hash text) ] <|
+                    [ Html.text text ]
+            ]
         , Element.el [] Element.none -- To preserve spacing
         , Input.button
             [ Element.htmlAttribute <| Html.Attributes.class "copy-button"

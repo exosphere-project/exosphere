@@ -22,6 +22,7 @@ module View.Helpers exposing
     , renderMarkdown
     , renderMessageAsElement
     , renderMessageAsString
+    , renderWebData
     , titleFromHostname
     , toExoPalette
     , toViewContext
@@ -48,6 +49,7 @@ import Markdown.Parser
 import Markdown.Renderer
 import OpenStack.Types as OSTypes
 import Regex
+import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
@@ -65,6 +67,7 @@ import Types.Types
         , Style
         )
 import View.Types
+import Widget
 
 
 toViewContext : Model -> View.Types.Context
@@ -327,6 +330,43 @@ titleFromHostname hostname =
 
         _ ->
             hostname
+
+
+renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
+renderWebData context remoteData resourceWord renderSuccessCase =
+    let
+        loadingStuff =
+            Element.row [ Element.spacing 15 ]
+                [ Widget.circularProgressIndicator
+                    (SH.materialStyle context.palette).progressIndicator
+                    Nothing
+                , Element.text <|
+                    String.concat
+                        [ "Loading "
+                        , resourceWord
+                        , "..."
+                        ]
+                ]
+    in
+    case remoteData of
+        RemoteData.NotAsked ->
+            -- This is an ugly hack because some of our API calls don't set RemoteData to "Loading" when they should.
+            loadingStuff
+
+        RemoteData.Loading ->
+            loadingStuff
+
+        RemoteData.Failure error ->
+            Element.text <|
+                String.join " "
+                    [ "Could not load"
+                    , resourceWord
+                    , "because:"
+                    , Debug.toString error
+                    ]
+
+        RemoteData.Success resource ->
+            renderSuccessCase resource
 
 
 getServerUiStatus : Server -> ServerUiStatus

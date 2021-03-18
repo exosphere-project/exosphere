@@ -114,6 +114,23 @@ pageTitle model context =
                         , projectName
                         ]
 
+                ListKeypairs _ ->
+                    String.join " "
+                        [ context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
+                CreateKeypair _ _ ->
+                    String.join " "
+                        [ "Upload"
+                        , context.localization.pkiPublicKeyForSsh
+                        , "for"
+                        , projectName
+                        ]
+
                 ListQuotaUsage ->
                     String.join " "
                         [ context.localization.maxResourcesPerProject

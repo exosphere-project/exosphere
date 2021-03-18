@@ -37,6 +37,20 @@ import Widget.Style.Material
 
 volumes : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> Element.Element Msg
 volumes context project deleteVolumeConfirmations =
+    let
+        renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
+        renderSuccessCase volumes_ =
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.spacing 15
+                       , Element.width (Element.fill |> Element.minimum 960)
+                       ]
+                )
+                (List.map
+                    (renderVolumeCard context project deleteVolumeConfirmations)
+                    volumes_
+                )
+    in
     Element.column
         VH.exoColumnAttributes
         [ Element.el VH.heading2
@@ -46,41 +60,11 @@ volumes context project deleteVolumeConfirmations =
                     |> Helpers.String.toTitleCase
                 )
             )
-        , case project.volumes of
-            RemoteData.NotAsked ->
-                Element.row [ Element.spacing 15 ]
-                    [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-                    , Element.text "Please wait..."
-                    ]
-
-            RemoteData.Loading ->
-                Element.row [ Element.spacing 15 ]
-                    [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
-                    , Element.text <|
-                        String.concat
-                            [ "Loading "
-                            , context.localization.blockDevice
-                            , "..."
-                            ]
-                    ]
-
-            RemoteData.Failure _ ->
-                Element.text <|
-                    String.join " "
-                        [ "Error loading"
-                        , context.localization.blockDevice
-                            |> Helpers.String.pluralize
-                        , ":("
-                        ]
-
-            RemoteData.Success vols ->
-                Element.column
-                    (VH.exoColumnAttributes
-                        ++ [ Element.spacing 15
-                           , Element.width (Element.fill |> Element.minimum 960)
-                           ]
-                    )
-                    (List.map (renderVolumeCard context project deleteVolumeConfirmations) vols)
+        , VH.renderWebData
+            context
+            project.volumes
+            (Helpers.String.pluralize context.localization.blockDevice)
+            renderSuccessCase
         ]
 
 
@@ -269,7 +253,7 @@ volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations 
                     , VH.compactKVRow "Description:" <|
                         Element.paragraph [ Element.width (Element.fill |> Element.maximum 706) ] <|
                             [ Element.text <| Maybe.withDefault "" volume.description ]
-                    , VH.compactKVRow "UUID:" <| copyableText context.palette volume.uuid
+                    , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
                     , case volume.imageMetadata of
                         Nothing ->
                             Element.none

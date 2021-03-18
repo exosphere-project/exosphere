@@ -30,6 +30,7 @@ import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Regex
+import RemoteData
 import ServerDeploy
 import Time
 import Types.Guacamole as GuacTypes
@@ -178,6 +179,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         getPublicKeyFromKeypairName : String -> Maybe String
         getPublicKeyFromKeypairName keypairName =
             project.keypairs
+                |> RemoteData.withDefault []
                 |> List.filter (\kp -> kp.name == keypairName)
                 |> List.head
                 |> Maybe.map .publicKey

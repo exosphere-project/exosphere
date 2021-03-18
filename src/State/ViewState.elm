@@ -341,6 +341,25 @@ setProjectView model project projectViewConstructor =
                     in
                     ( model, cmd )
 
+                ListKeypairs _ ->
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (ListKeypairs _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    Cmd.batch
+                                        [ Rest.Nova.requestKeypairs project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                    in
+                    ( model, cmd )
+
+                CreateKeypair _ _ ->
+                    ( model, Cmd.none )
+
                 ListQuotaUsage ->
                     let
                         cmd =

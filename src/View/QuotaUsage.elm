@@ -99,25 +99,14 @@ computeInfoItems context quota =
 quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element Msg) -> Element.Element Msg
 quotaDetail context quota infoItemsF =
     let
-        strProto =
+        resourceWord =
             String.join " "
                 [ context.localization.maxResourcesPerProject
                     |> Helpers.String.toTitleCase
                 , "data"
                 ]
     in
-    case quota of
-        NotAsked ->
-            Element.el [] <| Element.text (strProto ++ " loading ...")
-
-        Loading ->
-            Element.el [] <| Element.text (strProto ++ " still loading ...")
-
-        Failure _ ->
-            Element.el [] <| Element.text (strProto ++ " could not be loaded ...")
-
-        Success quota_ ->
-            infoItemsF quota_
+    VH.renderWebData context quota resourceWord infoItemsF
 
 
 computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element Msg
