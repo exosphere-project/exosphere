@@ -3,6 +3,7 @@ module View.Keypairs exposing (createKeypair, listKeypairs)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
@@ -98,21 +99,57 @@ listKeypairs context project deleteConfirmations =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
-            Element.column
-                VH.exoColumnAttributes
-                [ Element.el VH.heading2 <|
-                    Element.text
-                        (context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        )
-                , Element.column
+            if List.isEmpty keypairs_ then
+                Element.column
                     VH.exoColumnAttributes
-                    (List.map
-                        (renderKeypairCard context project deleteConfirmations)
-                        keypairs_
-                    )
-                ]
+                    [ Element.text <|
+                        String.join " "
+                            [ "You don't have any"
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , "yet, go create one!"
+                            ]
+                    , let
+                        text =
+                            String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
+                      in
+                      Widget.iconButton
+                        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                        { text = text
+                        , icon =
+                            Element.row
+                                [ Element.spacing 5 ]
+                                [ Element.text text
+                                , Element.el []
+                                    (FeatherIcons.chevronRight
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                    )
+                                ]
+                        , onPress =
+                            Just <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    SetProjectView <|
+                                        CreateKeypair "" ""
+                        }
+                    ]
+
+            else
+                Element.column
+                    VH.exoColumnAttributes
+                    [ Element.el VH.heading2 <|
+                        Element.text
+                            (context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                                |> Helpers.String.toTitleCase
+                            )
+                    , Element.column
+                        VH.exoColumnAttributes
+                        (List.map
+                            (renderKeypairCard context project deleteConfirmations)
+                            keypairs_
+                        )
+                    ]
     in
     VH.renderWebData
         context
