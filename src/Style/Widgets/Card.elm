@@ -1,9 +1,15 @@
-module Style.Widgets.Card exposing (badge, exoCard)
+module Style.Widgets.Card exposing
+    ( badge
+    , exoCard
+    , expandoCard
+    )
 
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
+import FeatherIcons
 import Style.Helpers as SH
 import Style.Types
 import Widget
@@ -20,6 +26,70 @@ exoCard palette title subTitle content =
             ]
         , content
         ]
+
+
+expandoCard : Style.Types.ExoPalette -> Bool -> (Bool -> msg) -> String -> Element msg -> Element msg -> Element msg
+expandoCard palette expanded expandToggleMsg title subTitle content =
+    let
+        expandButton : Element.Element msg
+        expandButton =
+            let
+                iconFunction checked =
+                    let
+                        featherIcon =
+                            if checked then
+                                FeatherIcons.chevronDown
+
+                            else
+                                FeatherIcons.chevronRight
+                    in
+                    featherIcon |> FeatherIcons.toHtml [] |> Element.html
+
+                checkboxLabel =
+                    ""
+            in
+            Element.el
+                [ Element.alignLeft
+                , Element.centerY
+                , Element.width Element.shrink
+                ]
+                (Input.checkbox [ Element.paddingXY 10 5 ]
+                    { checked = expanded
+                    , onChange = expandToggleMsg
+                    , icon = iconFunction
+                    , label = Input.labelRight [] (Element.text checkboxLabel)
+                    }
+                )
+
+        firstRow =
+            Element.row
+                [ Element.width Element.fill, Element.spacing 15 ]
+                [ expandButton
+                , Element.el [ Font.bold, Font.size 20 ] (Element.text title)
+                , Element.el [ Element.alignRight, Element.paddingXY 10 0 ] subTitle
+                ]
+    in
+    Widget.column
+        ((SH.materialStyle palette).cardColumn
+            |> (\x ->
+                    { x
+                        | containerColumn =
+                            (SH.materialStyle palette).cardColumn.containerColumn
+                                ++ [ Element.padding 0
+                                   ]
+                        , element =
+                            (SH.materialStyle palette).cardColumn.element
+                                ++ [ Element.padding 3
+                                   ]
+                    }
+               )
+        )
+        (if expanded then
+            [ firstRow, Element.el [ Element.padding 6 ] content ]
+
+         else
+            [ firstRow ]
+        )
 
 
 badge : String -> Element msg

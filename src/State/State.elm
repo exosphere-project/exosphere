@@ -455,7 +455,7 @@ processTick model interval time =
                                         _ ->
                                             ( model, Cmd.none )
 
-                                ListProjectVolumes _ ->
+                                ListProjectVolumes _ _ ->
                                     ( model
                                     , case interval of
                                         5 ->
@@ -1097,7 +1097,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes [] [])
 
         ReceiveVolumes volumes ->
             let
@@ -1188,7 +1188,7 @@ processProjectSpecificMsg model project msg =
             ViewStateHelpers.setProjectView model project (MountVolInstructions attachment)
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes [] [])
 
         ReceiveAppCredential appCredential ->
             let
@@ -1609,14 +1609,14 @@ createProject model authToken endpoints =
                         newProject.auth.project.uuid
                         { createPopup = False }
                     <|
-                        AllResources Defaults.serverListViewParams [] []
+                        AllResources Defaults.serverListViewParams [] [] []
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         newProject.auth.project.uuid
                         projectViewParams
                     <|
-                        AllResources Defaults.serverListViewParams [] []
+                        AllResources Defaults.serverListViewParams [] [] []
 
         newModel =
             { model

@@ -187,10 +187,10 @@ setProjectView model project projectViewConstructor =
 
         viewSpecificModelAndCmd =
             case projectViewConstructor of
-                AllResources _ _ _ ->
+                AllResources _ _ _ _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (AllResources _ _ _) ->
+                        Just (AllResources _ _ _ _) ->
                             ( model, Cmd.none )
 
                         _ ->
@@ -352,12 +352,12 @@ setProjectView model project projectViewConstructor =
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
 
-                ListProjectVolumes _ ->
+                ListProjectVolumes _ _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListProjectVolumes _) ->
+                                Just (ListProjectVolumes _ _) ->
                                     Cmd.none
 
                                 _ ->

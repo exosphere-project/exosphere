@@ -35,8 +35,8 @@ import Widget
 import Widget.Style.Material
 
 
-volumes : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> Element.Element Msg
-volumes context project deleteVolumeConfirmations =
+volumes : View.Types.Context -> Project -> List OSTypes.VolumeUuid -> List DeleteVolumeConfirmation -> Element.Element Msg
+volumes context project expandedVolumeUuids deleteVolumeConfirmations =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
@@ -47,7 +47,7 @@ volumes context project deleteVolumeConfirmations =
                        ]
                 )
                 (List.map
-                    (renderVolumeCard context project deleteVolumeConfirmations)
+                    (renderVolumeCard context project expandedVolumeUuids deleteVolumeConfirmations)
                     volumes_
                 )
     in
@@ -68,14 +68,29 @@ volumes context project deleteVolumeConfirmations =
         ]
 
 
-renderVolumeCard : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
-renderVolumeCard context project deleteVolumeConfirmations volume =
-    ExoCard.exoCard
+renderVolumeCard : View.Types.Context -> Project -> List OSTypes.VolumeUuid -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
+renderVolumeCard context project expandedVolumeUuids deleteVolumeConfirmations volume =
+    ExoCard.expandoCard
         context.palette
+        (List.member volume.uuid expandedVolumeUuids)
+        (\bool ->
+            ProjectMsg
+                project.auth.project.uuid
+                (SetProjectView <|
+                    ListProjectVolumes
+                        (if bool then
+                            volume.uuid :: expandedVolumeUuids
+
+                         else
+                            List.filter (\v -> v /= volume.uuid) expandedVolumeUuids
+                        )
+                        deleteVolumeConfirmations
+                )
+        )
         (VH.possiblyUntitledResource volume.name context.localization.blockDevice)
-        (String.fromInt volume.size ++ " GB")
+        (Element.text <| String.fromInt volume.size ++ " GB")
     <|
-        volumeDetail context project ListProjectVolumes deleteVolumeConfirmations volume.uuid
+        volumeDetail context project (ListProjectVolumes expandedVolumeUuids) deleteVolumeConfirmations volume.uuid
 
 
 volumeActionButtons :

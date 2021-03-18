@@ -151,7 +151,7 @@ projectViewConstructorParsers =
         (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
         (s "images")
     , map
-        (AllResources Defaults.serverListViewParams [] [])
+        (AllResources Defaults.serverListViewParams [] [] [])
         (s "resources")
     , map
         (\svrUuid imageName ->
@@ -178,7 +178,7 @@ projectViewConstructorParsers =
         )
         (s "volumes" </> string)
     , map
-        (ListProjectVolumes [])
+        (ListProjectVolumes [] [])
         (s "volumes")
     , map
         (ListKeypairs [])

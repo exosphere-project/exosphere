@@ -424,10 +424,10 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = AllResources ServerListViewParams (List DeleteVolumeConfirmation) (List DeleteKeypairConfirmation)
+    = AllResources ServerListViewParams (List OSTypes.VolumeUuid) (List DeleteVolumeConfirmation) (List DeleteKeypairConfirmation)
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
-    | ListProjectVolumes (List DeleteVolumeConfirmation)
+    | ListProjectVolumes (List OSTypes.VolumeUuid) (List DeleteVolumeConfirmation)
     | ListKeypairs (List DeleteKeypairConfirmation)
     | CreateKeypair String String
     | ListQuotaUsage
