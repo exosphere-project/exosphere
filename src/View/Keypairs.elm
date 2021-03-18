@@ -99,57 +99,57 @@ listKeypairs context project deleteConfirmations =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
-            if List.isEmpty keypairs_ then
-                Element.column
-                    VH.exoColumnAttributes
-                    [ Element.text <|
-                        String.join " "
-                            [ "You don't have any"
-                            , context.localization.pkiPublicKeyForSsh
-                                |> Helpers.String.pluralize
-                            , "yet, go upload one!"
-                            ]
-                    , let
-                        text =
-                            String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
-                      in
-                      Widget.iconButton
-                        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                        { text = text
-                        , icon =
-                            Element.row
-                                [ Element.spacing 5 ]
-                                [ Element.text text
-                                , Element.el []
-                                    (FeatherIcons.chevronRight
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                    )
+            Element.column
+                VH.exoColumnAttributes
+                [ Element.el VH.heading2 <|
+                    Element.text
+                        (context.localization.pkiPublicKeyForSsh
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        )
+                , if List.isEmpty keypairs_ then
+                    Element.column
+                        VH.exoColumnAttributes
+                        [ Element.text <|
+                            String.join " "
+                                [ "You don't have any"
+                                , context.localization.pkiPublicKeyForSsh
+                                    |> Helpers.String.pluralize
+                                , "yet, go upload one!"
                                 ]
-                        , onPress =
-                            Just <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        CreateKeypair "" ""
-                        }
-                    ]
+                        , let
+                            text =
+                                String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
+                          in
+                          Widget.iconButton
+                            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                            { text = text
+                            , icon =
+                                Element.row
+                                    [ Element.spacing 5 ]
+                                    [ Element.text text
+                                    , Element.el []
+                                        (FeatherIcons.chevronRight
+                                            |> FeatherIcons.toHtml []
+                                            |> Element.html
+                                        )
+                                    ]
+                            , onPress =
+                                Just <|
+                                    ProjectMsg project.auth.project.uuid <|
+                                        SetProjectView <|
+                                            CreateKeypair "" ""
+                            }
+                        ]
 
-            else
-                Element.column
-                    VH.exoColumnAttributes
-                    [ Element.el VH.heading2 <|
-                        Element.text
-                            (context.localization.pkiPublicKeyForSsh
-                                |> Helpers.String.pluralize
-                                |> Helpers.String.toTitleCase
-                            )
-                    , Element.column
+                  else
+                    Element.column
                         VH.exoColumnAttributes
                         (List.map
                             (renderKeypairCard context project deleteConfirmations)
                             keypairs_
                         )
-                    ]
+                ]
     in
     VH.renderWebData
         context
