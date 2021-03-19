@@ -7,6 +7,7 @@ module Style.Widgets.Card exposing
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -76,6 +77,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                         | containerColumn =
                             (SH.materialStyle palette).cardColumn.containerColumn
                                 ++ [ Element.padding 0
+                                   , Events.onClick (expanded |> not |> expandToggleMsg)
                                    ]
                         , element =
                             (SH.materialStyle palette).cardColumn.element
