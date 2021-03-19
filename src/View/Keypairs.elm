@@ -106,7 +106,7 @@ listKeypairs context project viewParams toMsg =
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
             Element.column
-                VH.exoColumnAttributes
+                (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
                 [ Element.el VH.heading2 <|
                     Element.text
                         (context.localization.pkiPublicKeyForSsh
@@ -150,7 +150,9 @@ listKeypairs context project viewParams toMsg =
 
                   else
                     Element.column
-                        VH.exoColumnAttributes
+                        (VH.exoColumnAttributes
+                            ++ [ Element.width Element.fill ]
+                        )
                         (List.map
                             (renderKeypairCard context project viewParams toMsg)
                             keypairs_
@@ -178,8 +180,7 @@ renderKeypairCard context project viewParams toMsg keypair =
                 VH.exoColumnAttributes
                 [ VH.compactKVRow "Public Key" <|
                     Style.Widgets.CopyableText.copyableText context.palette
-                        [ Element.width <| Element.px 500
-                        , Font.family [ Font.monospace ]
+                        [ Font.family [ Font.monospace ]
                         , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                         ]
                         keypair.publicKey

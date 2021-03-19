@@ -120,7 +120,7 @@ allResources :
     -> Element.Element Msg
 allResources context p viewParams =
     Element.column
-        []
+        [ Element.width Element.fill ]
         [ View.ServerList.serverList context p viewParams.serverListViewParams
         , View.Volumes.volumes context
             p

@@ -127,7 +127,7 @@ serverList_ context projectId userUuid serverListViewParams servers =
                     |> Helpers.String.toTitleCase
                 )
             )
-        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
+        , Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ]) <|
             List.concat
                 [ [ renderTableHead
                         context

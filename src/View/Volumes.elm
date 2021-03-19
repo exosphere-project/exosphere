@@ -44,7 +44,7 @@ volumes context project viewParams toMsg =
             Element.column
                 (VH.exoColumnAttributes
                     ++ [ Element.spacing 15
-                       , Element.width (Element.fill |> Element.minimum 960)
+                       , Element.width Element.fill
                        ]
                 )
                 (List.map
@@ -53,7 +53,7 @@ volumes context project viewParams toMsg =
                 )
     in
     Element.column
-        VH.exoColumnAttributes
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2
             (Element.text
                 (context.localization.blockDevice
@@ -277,7 +277,7 @@ volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
                     , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
                     , renderAttachments context project volume
                     , VH.compactKVRow "Description:" <|
-                        Element.paragraph [ Element.width (Element.fill |> Element.maximum 706) ] <|
+                        Element.paragraph [ Element.width Element.fill ] <|
                             [ Element.text <| Maybe.withDefault "" volume.description ]
                     , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
                     , case volume.imageMetadata of
