@@ -127,7 +127,7 @@ allResources :
     -> Element.Element Msg
 allResources context p viewParams =
     Element.column
-        [ Element.width Element.fill ]
+        [ Element.spacing 18, Element.width Element.fill ]
         [ View.ServerList.serverList context
             p
             viewParams.serverListViewParams
@@ -157,7 +157,11 @@ allResources context p viewParams =
 
 projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element Msg
 projectNav context p viewParams =
-    Element.row [ Element.width Element.fill, Element.spacing 10 ]
+    let
+        edges =
+            VH.edges
+    in
+    Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
         [ Element.el
             VH.heading2
           <|

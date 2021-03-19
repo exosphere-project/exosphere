@@ -63,7 +63,7 @@ infoItem context detail ( label, units ) =
             Element.paddingXY 4 2
     in
     Element.row
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        (VH.exoRowAttributes ++ [ Element.spacing 5, Element.width Element.fill ])
         [ Element.el [ Font.bold ] <|
             Element.text label
         , Element.el [ bg, border, pad ] <|

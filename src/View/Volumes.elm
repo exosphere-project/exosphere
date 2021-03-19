@@ -54,8 +54,8 @@ volumes context project viewParams toMsg =
                 )
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2
+        [ Element.width Element.fill ]
+        [ Element.el VH.heading3
             (Element.text
                 (context.localization.blockDevice
                     |> Helpers.String.pluralize

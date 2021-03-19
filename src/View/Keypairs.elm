@@ -104,65 +104,65 @@ listKeypairs context project viewParams toMsg =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
-            Element.column
-                (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-                [ Element.el VH.heading2 <|
-                    Element.text
-                        (context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        )
-                , if List.isEmpty keypairs_ then
-                    Element.column
-                        VH.exoColumnAttributes
-                        [ Element.text <|
-                            String.join " "
-                                [ "You don't have any"
-                                , context.localization.pkiPublicKeyForSsh
-                                    |> Helpers.String.pluralize
-                                , "yet, go upload one!"
+            if List.isEmpty keypairs_ then
+                Element.column
+                    VH.exoColumnAttributes
+                    [ Element.text <|
+                        String.join " "
+                            [ "You don't have any"
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , "yet, go upload one!"
+                            ]
+                    , let
+                        text =
+                            String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
+                      in
+                      Widget.iconButton
+                        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                        { text = text
+                        , icon =
+                            Element.row
+                                [ Element.spacing 5 ]
+                                [ Element.text text
+                                , Element.el []
+                                    (FeatherIcons.chevronRight
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                    )
                                 ]
-                        , let
-                            text =
-                                String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
-                          in
-                          Widget.iconButton
-                            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                            { text = text
-                            , icon =
-                                Element.row
-                                    [ Element.spacing 5 ]
-                                    [ Element.text text
-                                    , Element.el []
-                                        (FeatherIcons.chevronRight
-                                            |> FeatherIcons.toHtml []
-                                            |> Element.html
-                                        )
-                                    ]
-                            , onPress =
-                                Just <|
-                                    ProjectMsg project.auth.project.uuid <|
-                                        SetProjectView <|
-                                            CreateKeypair "" ""
-                            }
-                        ]
+                        , onPress =
+                            Just <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    SetProjectView <|
+                                        CreateKeypair "" ""
+                        }
+                    ]
 
-                  else
-                    Element.column
-                        (VH.exoColumnAttributes
-                            ++ [ Element.width Element.fill ]
-                        )
-                        (List.map
-                            (renderKeypairCard context project viewParams toMsg)
-                            keypairs_
-                        )
-                ]
+            else
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.width Element.fill ]
+                    )
+                    (List.map
+                        (renderKeypairCard context project viewParams toMsg)
+                        keypairs_
+                    )
     in
-    VH.renderWebData
-        context
-        project.keypairs
-        (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
-        renderKeypairs
+    Element.column
+        [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.el VH.heading3 <|
+            Element.text
+                (context.localization.pkiPublicKeyForSsh
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+        , VH.renderWebData
+            context
+            project.keypairs
+            (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
+            renderKeypairs
+        ]
 
 
 renderKeypairCard :

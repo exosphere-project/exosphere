@@ -94,8 +94,8 @@ serverList context project serverListViewParams toMsg =
                             toMsg
                             servers
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2
+    Element.column [ Element.width Element.fill ]
+        [ Element.el VH.heading3
             (Element.text <|
                 (context.localization.virtualComputer
                     |> Helpers.String.pluralize
@@ -142,7 +142,7 @@ serverList_ context projectId userUuid serverListViewParams toMsg servers =
             else
                 selectableServers == selectedServers
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ]) <|
+    Element.column [ Element.paddingXY 10 0, Element.spacing 10, Element.width Element.fill ] <|
         List.concat
             [ [ renderTableHead
                     context
@@ -199,32 +199,25 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
             in
             toMsg newParams
 
-        extraColAttrs =
-            [ Element.width Element.fill
-            , Element.paddingXY 5 0
-            ]
-
         extraRowAttrs =
-            [ Element.padding 5
+            [ Element.paddingXY 5 0
             , Element.width Element.fill
             ]
     in
-    Element.column (VH.exoColumnAttributes ++ extraColAttrs)
-        [ Element.row (VH.exoRowAttributes ++ extraRowAttrs) <|
-            [ Element.el [] <|
-                Input.checkbox []
-                    { checked = allServersSelected
-                    , onChange = onChecked
-                    , icon = Input.defaultCheckbox
-                    , label = Input.labelRight [] (Element.text "Select All")
-                    }
-            , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (Style.Widgets.Button.dangerButton context.palette)
-                    { text = "Delete"
-                    , onPress = deleteButtonOnPress
-                    }
-            ]
+    Element.row (VH.exoRowAttributes ++ extraRowAttrs) <|
+        [ Element.el [] <|
+            Input.checkbox []
+                { checked = allServersSelected
+                , onChange = onChecked
+                , icon = Input.defaultCheckbox
+                , label = Input.labelRight [] (Element.text "Select All")
+                }
+        , Element.el [ Element.alignRight ] <|
+            Widget.textButton
+                (Style.Widgets.Button.dangerButton context.palette)
+                { text = "Delete"
+                , onPress = deleteButtonOnPress
+                }
         ]
 
 
@@ -472,7 +465,7 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
         Element.none
 
     else
-        Element.column (VH.exoColumnAttributes ++ [ Element.padding 0, Element.width Element.fill ])
+        Element.column [ Element.spacing 3, Element.padding 0, Element.width Element.fill ]
             [ Element.el
                 [ Element.centerX, Font.size 14 ]
                 (Element.text statusText)
