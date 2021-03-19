@@ -13,8 +13,7 @@ import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Types.Types
     exposing
-        ( KeypairIdentifier
-        , KeypairListViewParams
+        ( KeypairListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
