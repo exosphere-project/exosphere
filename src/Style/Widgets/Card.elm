@@ -20,13 +20,20 @@ exoCard : Style.Types.ExoPalette -> Element msg -> Element msg -> Element msg ->
 exoCard palette title subTitle content =
     Widget.column
         (SH.materialStyle palette).cardColumn
-        [ Element.row
-            [ Element.width Element.fill, Element.spacing 15 ]
-            [ Element.el [ Font.bold, Font.size 16 ] title
-            , Element.el [ Element.alignRight ] subTitle
+    <|
+        List.append
+            [ Element.row
+                [ Element.width Element.fill, Element.spacing 10 ]
+                [ Element.el [ Font.bold, Font.size 16 ] title
+                , Element.el [ Element.alignRight ] subTitle
+                ]
             ]
-        , content
-        ]
+            (if content == Element.none then
+                []
+
+             else
+                [ content ]
+            )
 
 
 expandoCard : Style.Types.ExoPalette -> Bool -> (Bool -> msg) -> String -> Element msg -> Element msg -> Element msg

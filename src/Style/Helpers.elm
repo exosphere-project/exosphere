@@ -82,7 +82,14 @@ materialStyle exoPalette =
     in
     { textInput = Material.textInput palette
     , column = Material.column
-    , cardColumn = Material.cardColumn palette
+    , cardColumn =
+        let
+            style =
+                Material.cardColumn palette
+        in
+        { style
+            | element = style.element ++ [ Element.paddingXY 8 6 ]
+        }
     , primaryButton = Material.containedButton palette
     , button = Material.outlinedButton palette
     , chipButton = Material.chip palette
