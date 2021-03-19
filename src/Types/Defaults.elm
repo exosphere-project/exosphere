@@ -6,6 +6,7 @@ module Types.Defaults exposing
     , jetstreamCreds
     , localization
     , openstackCreds
+    , projectViewParams
     , serverDetailViewParams
     , serverListViewParams
     , sortTableParams
@@ -56,6 +57,11 @@ jetstreamCreds =
     , taccUsername = ""
     , taccPassword = ""
     }
+
+
+projectViewParams : Types.ProjectViewParams
+projectViewParams =
+    { createPopup = False }
 
 
 imageListViewParams : Types.ImageListViewParams

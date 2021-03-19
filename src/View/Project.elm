@@ -4,7 +4,6 @@ import Element
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
-import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -60,10 +59,25 @@ project model context p viewParams viewConstructor =
                     View.CreateServer.createServer context p createServerViewParams
 
                 ListProjectVolumes volumeListViewParams ->
-                    View.Volumes.volumes context p volumeListViewParams
+                    View.Volumes.volumes context
+                        p
+                        volumeListViewParams
+                        (\newParams ->
+                            ProjectMsg p.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListProjectVolumes newParams
+                        )
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
-                    View.Volumes.volumeDetailView context p deleteVolumeConfirmations volumeUuid
+                    View.Volumes.volumeDetailView context
+                        p
+                        deleteVolumeConfirmations
+                        (\newParams ->
+                            ProjectMsg p.auth.project.uuid <|
+                                SetProjectView <|
+                                    VolumeDetail volumeUuid newParams
+                        )
+                        volumeUuid
 
                 CreateVolume volName volSizeInput ->
                     View.Volumes.createVolume context p volName volSizeInput
@@ -104,7 +118,14 @@ allResources context p viewParams =
     Element.column
         []
         [ View.ServerList.serverList context p viewParams.serverListViewParams
-        , View.Volumes.volumes context p viewParams.volumeListViewParams
+        , View.Volumes.volumes context
+            p
+            viewParams.volumeListViewParams
+            (\newParams ->
+                ProjectMsg p.auth.project.uuid <|
+                    SetProjectView <|
+                        AllResources { viewParams | volumeListViewParams = newParams }
+            )
         , View.Keypairs.listKeypairs context p viewParams.keypairListViewParams
         , View.QuotaUsage.dashboard context p
         ]
