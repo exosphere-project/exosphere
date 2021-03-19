@@ -181,7 +181,7 @@ projectViewConstructorParsers =
         (ListProjectVolumes Defaults.volumeListViewParams)
         (s "volumes")
     , map
-        (ListKeypairs [])
+        (ListKeypairs Defaults.keypairListViewParams)
         (s "keypairs")
     , map
         (CreateKeypair "" "")

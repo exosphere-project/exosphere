@@ -917,7 +917,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
             in
-            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs [])
+            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs Defaults.keypairListViewParams)
 
         RequestDeleteKeypair keypairName ->
             ( model, Rest.Nova.requestDeleteKeypair project keypairName )

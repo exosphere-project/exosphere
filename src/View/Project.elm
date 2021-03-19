@@ -85,8 +85,15 @@ project model context p viewParams viewConstructor =
                 MountVolInstructions attachment ->
                     View.AttachVolume.mountVolInstructions context p attachment
 
-                ListKeypairs deleteConfirmations ->
-                    View.Keypairs.listKeypairs context p deleteConfirmations
+                ListKeypairs keypairListViewParams ->
+                    View.Keypairs.listKeypairs context
+                        p
+                        keypairListViewParams
+                        (\newParams ->
+                            ProjectMsg p.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListKeypairs newParams
+                        )
 
                 CreateKeypair keypairName publicKey ->
                     View.Keypairs.createKeypair context p keypairName publicKey
@@ -123,7 +130,14 @@ allResources context p viewParams =
                     SetProjectView <|
                         AllResources { viewParams | volumeListViewParams = newParams }
             )
-        , View.Keypairs.listKeypairs context p viewParams.keypairListViewParams
+        , View.Keypairs.listKeypairs context
+            p
+            viewParams.keypairListViewParams
+            (\newParams ->
+                ProjectMsg p.auth.project.uuid <|
+                    SetProjectView <|
+                        AllResources { viewParams | keypairListViewParams = newParams }
+            )
         , View.QuotaUsage.dashboard context p
         ]
 

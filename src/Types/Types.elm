@@ -4,7 +4,6 @@ module Types.Types exposing
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
-    , DeleteKeypairConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
     , ExcludeFilter
@@ -18,6 +17,8 @@ module Types.Types exposing
     , ImageListViewParams
     , JetstreamCreds
     , JetstreamProvider(..)
+    , KeypairIdentifier
+    , KeypairListViewParams
     , KeystoneHostname
     , Localization
     , LogMessage
@@ -430,7 +431,7 @@ type ProjectViewConstructor
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes VolumeListViewParams
-    | ListKeypairs (List DeleteKeypairConfirmation)
+    | ListKeypairs KeypairListViewParams
     | CreateKeypair String String
     | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
@@ -445,7 +446,7 @@ type ProjectViewConstructor
 type alias AllResourcesListViewParams =
     { serverListViewParams : ServerListViewParams
     , volumeListViewParams : VolumeListViewParams
-    , keypairListViewParams : List DeleteKeypairConfirmation
+    , keypairListViewParams : KeypairListViewParams
     }
 
 
@@ -505,7 +506,13 @@ type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
 
 
-type alias DeleteKeypairConfirmation =
+type alias KeypairListViewParams =
+    { expandedKeypairs : List KeypairIdentifier
+    , deleteConfirmations : List KeypairIdentifier
+    }
+
+
+type alias KeypairIdentifier =
     ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
 
 

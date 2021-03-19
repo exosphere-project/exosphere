@@ -13,7 +13,8 @@ import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Types.Types
     exposing
-        ( DeleteKeypairConfirmation
+        ( KeypairIdentifier
+        , KeypairListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -94,8 +95,13 @@ createKeypair context project name publicKey =
         ]
 
 
-listKeypairs : View.Types.Context -> Project -> List DeleteKeypairConfirmation -> Element.Element Msg
-listKeypairs context project deleteConfirmations =
+listKeypairs :
+    View.Types.Context
+    -> Project
+    -> KeypairListViewParams
+    -> (KeypairListViewParams -> Msg)
+    -> Element.Element Msg
+listKeypairs context project viewParams toMsg =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
@@ -146,7 +152,7 @@ listKeypairs context project deleteConfirmations =
                     Element.column
                         VH.exoColumnAttributes
                         (List.map
-                            (renderKeypairCard context project deleteConfirmations)
+                            (renderKeypairCard context project viewParams toMsg)
                             keypairs_
                         )
                 ]
@@ -158,15 +164,22 @@ listKeypairs context project deleteConfirmations =
         renderKeypairs
 
 
-renderKeypairCard : View.Types.Context -> Project -> List DeleteKeypairConfirmation -> OSTypes.Keypair -> Element.Element Msg
-renderKeypairCard context project deleteConfirmations keypair =
+renderKeypairCard :
+    View.Types.Context
+    -> Project
+    -> KeypairListViewParams
+    -> (KeypairListViewParams -> Msg)
+    -> OSTypes.Keypair
+    -> Element.Element Msg
+renderKeypairCard context project viewParams toMsg keypair =
     let
         cardBody =
             Element.column
                 VH.exoColumnAttributes
                 [ VH.compactKVRow "Public Key" <|
                     Style.Widgets.CopyableText.copyableText context.palette
-                        [ Font.family [ Font.monospace ]
+                        [ Element.width <| Element.px 500
+                        , Font.family [ Font.monospace ]
                         , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                         ]
                         keypair.publicKey
@@ -176,21 +189,41 @@ renderKeypairCard context project deleteConfirmations keypair =
                         , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                         ]
                         keypair.fingerprint
-                , actionButtons context project ListKeypairs deleteConfirmations keypair
+                , actionButtons context project toMsg viewParams keypair
                 ]
+
+        expanded =
+            List.member ( keypair.name, keypair.fingerprint ) viewParams.expandedKeypairs
     in
-    Card.exoCard
+    Card.expandoCard
         context.palette
+        expanded
+        (\bool ->
+            toMsg
+                { viewParams
+                    | expandedKeypairs =
+                        if bool then
+                            ( keypair.name, keypair.fingerprint ) :: viewParams.expandedKeypairs
+
+                        else
+                            List.filter (\k -> ( keypair.name, keypair.fingerprint ) /= k) viewParams.expandedKeypairs
+                }
+        )
         (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh)
-        ""
+        (if expanded then
+            Element.none
+
+         else
+            Element.el [ Font.family [ Font.monospace ] ] (Element.text keypair.fingerprint)
+        )
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (List DeleteKeypairConfirmation -> ProjectViewConstructor) -> List DeleteKeypairConfirmation -> OSTypes.Keypair -> Element.Element Msg
-actionButtons context project toProjectViewConstructor deleteConfirmations keypair =
+actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> Msg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element Msg
+actionButtons context project toMsg viewParams keypair =
     let
         confirmationNeeded =
-            List.member ( keypair.name, keypair.fingerprint ) deleteConfirmations
+            List.member ( keypair.name, keypair.fingerprint ) viewParams.deleteConfirmations
 
         deleteButton =
             if confirmationNeeded then
@@ -210,15 +243,13 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                         { text = "Cancel"
                         , onPress =
                             Just <|
-                                ProjectMsg
-                                    project.auth.project.uuid
-                                    (SetProjectView <|
-                                        toProjectViewConstructor
-                                            (deleteConfirmations
-                                                |> List.filter
-                                                    ((/=) ( keypair.name, keypair.fingerprint ))
-                                            )
-                                    )
+                                toMsg
+                                    { viewParams
+                                        | deleteConfirmations =
+                                            List.filter
+                                                ((/=) ( keypair.name, keypair.fingerprint ))
+                                                viewParams.deleteConfirmations
+                                    }
                         }
                     ]
 
@@ -228,14 +259,12 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                     { text = "Delete"
                     , onPress =
                         Just <|
-                            ProjectMsg
-                                project.auth.project.uuid
-                                (SetProjectView <|
-                                    toProjectViewConstructor
-                                        (( keypair.name, keypair.fingerprint )
-                                            :: deleteConfirmations
-                                        )
-                                )
+                            toMsg
+                                { viewParams
+                                    | deleteConfirmations =
+                                        ( keypair.name, keypair.fingerprint )
+                                            :: viewParams.deleteConfirmations
+                                }
                     }
     in
     Element.row

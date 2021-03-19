@@ -4,6 +4,7 @@ module Types.Defaults exposing
     , createVolumeView
     , imageListViewParams
     , jetstreamCreds
+    , keypairListViewParams
     , localization
     , openstackCreds
     , projectViewParams
@@ -84,7 +85,7 @@ allResourcesListViewParams : Types.AllResourcesListViewParams
 allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
     , volumeListViewParams = volumeListViewParams
-    , keypairListViewParams = []
+    , keypairListViewParams = keypairListViewParams
     }
 
 
@@ -132,3 +133,8 @@ createVolumeView =
 volumeListViewParams : Types.VolumeListViewParams
 volumeListViewParams =
     Types.VolumeListViewParams [] []
+
+
+keypairListViewParams : Types.KeypairListViewParams
+keypairListViewParams =
+    Types.KeypairListViewParams [] []
