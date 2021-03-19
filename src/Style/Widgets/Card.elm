@@ -4,11 +4,10 @@ module Style.Widgets.Card exposing
     , expandoCard
     )
 
--- import Element.Events as Events
-
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -76,12 +75,15 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
             |> (\x ->
                     { x
                         | containerColumn =
-                            (SH.materialStyle palette).cardColumn.containerColumn
-                                ++ [ Element.padding 0
+                            List.concat
+                                [ (SH.materialStyle palette).cardColumn.containerColumn
+                                , [ Element.padding 0 ]
+                                , if expanded then
+                                    []
 
-                                   -- TODO make this work with buttons on the card
-                                   -- , Events.onClick (expanded |> not |> expandToggleMsg)
-                                   ]
+                                  else
+                                    [ Events.onClick (expanded |> not |> expandToggleMsg) ]
+                                ]
                         , element =
                             (SH.materialStyle palette).cardColumn.element
                                 ++ [ Element.padding 3
