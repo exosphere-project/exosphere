@@ -87,7 +87,9 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                )
         )
         (if expanded then
-            [ firstRow, Element.el [ Element.padding 6 ] content ]
+            [ firstRow
+            , content
+            ]
 
          else
             [ firstRow ]
