@@ -106,7 +106,7 @@ listKeypairs context project viewParams toMsg =
         renderKeypairs keypairs_ =
             if List.isEmpty keypairs_ then
                 Element.column
-                    VH.exoColumnAttributes
+                    (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
                     [ Element.text <|
                         String.join " "
                             [ "You don't have any"
@@ -142,7 +142,7 @@ listKeypairs context project viewParams toMsg =
             else
                 Element.column
                     (VH.exoColumnAttributes
-                        ++ [ Element.width Element.fill ]
+                        ++ [ Element.paddingXY 10 0, Element.width Element.fill ]
                     )
                     (List.map
                         (renderKeypairCard context project viewParams toMsg)
@@ -150,7 +150,7 @@ listKeypairs context project viewParams toMsg =
                     )
     in
     Element.column
-        [ Element.spacing 10, Element.width Element.fill ]
+        [ Element.spacing 20, Element.width Element.fill ]
         [ Element.el VH.heading3 <|
             Element.text
                 (context.localization.pkiPublicKeyForSsh

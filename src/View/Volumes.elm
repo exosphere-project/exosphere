@@ -44,7 +44,8 @@ volumes context project viewParams toMsg =
         renderSuccessCase volumes_ =
             Element.column
                 (VH.exoColumnAttributes
-                    ++ [ Element.spacing 15
+                    ++ [ Element.paddingXY 10 0
+                       , Element.spacing 15
                        , Element.width Element.fill
                        ]
                 )

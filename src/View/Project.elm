@@ -127,7 +127,7 @@ allResources :
     -> Element.Element Msg
 allResources context p viewParams =
     Element.column
-        [ Element.spacing 18, Element.width Element.fill ]
+        [ Element.spacing 25, Element.width Element.fill ]
         [ View.ServerList.serverList context
             p
             viewParams.serverListViewParams
