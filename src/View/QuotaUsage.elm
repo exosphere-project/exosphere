@@ -126,7 +126,7 @@ volumeQuota context project =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-        , volumeQuoteDetails context project.volumeQuota
+        , volumeQuotaDetails context project.volumeQuota
         ]
 
 
@@ -149,8 +149,8 @@ volumeInfoItems context quota =
         ]
 
 
-volumeQuoteDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element Msg
-volumeQuoteDetails context quota =
+volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element Msg
+volumeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (volumeInfoItems context) ]
