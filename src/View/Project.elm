@@ -10,8 +10,6 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( AllResourcesListViewParams
-        , DeleteKeypairConfirmation
-        , DeleteVolumeConfirmation
         , Model
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -20,7 +18,6 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , ProjectViewParams
-        , ServerListViewParams
         , ViewState(..)
         )
 import View.AttachVolume
