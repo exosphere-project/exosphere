@@ -47,7 +47,14 @@ project model context p viewParams viewConstructor =
                     View.Images.imagesIfLoaded context p imageFilter sortTableParams
 
                 ListProjectServers serverListViewParams ->
-                    View.ServerList.serverList context p serverListViewParams
+                    View.ServerList.serverList context
+                        p
+                        serverListViewParams
+                        (\newParams ->
+                            ProjectMsg p.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListProjectServers newParams
+                        )
 
                 ServerDetail serverUuid serverDetailViewParams ->
                     View.ServerDetail.serverDetail context p ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
@@ -121,7 +128,14 @@ allResources :
 allResources context p viewParams =
     Element.column
         [ Element.width Element.fill ]
-        [ View.ServerList.serverList context p viewParams.serverListViewParams
+        [ View.ServerList.serverList context
+            p
+            viewParams.serverListViewParams
+            (\newParams ->
+                ProjectMsg p.auth.project.uuid <|
+                    SetProjectView <|
+                        AllResources { viewParams | serverListViewParams = newParams }
+            )
         , View.Volumes.volumes context
             p
             viewParams.volumeListViewParams

@@ -37,8 +37,8 @@ import Widget
 import Widget.Style.Material
 
 
-serverList : View.Types.Context -> Project -> ServerListViewParams -> Element.Element Msg
-serverList context project serverListViewParams =
+serverList : View.Types.Context -> Project -> ServerListViewParams -> (ServerListViewParams -> Msg) -> Element.Element Msg
+serverList context project serverListViewParams toMsg =
     {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
     case ( project.servers.data, project.servers.refreshStatus ) of
         ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
@@ -88,11 +88,19 @@ serverList context project serverListViewParams =
                     project.auth.project.uuid
                     project.auth.user.uuid
                     serverListViewParams
+                    toMsg
                     servers
 
 
-serverList_ : View.Types.Context -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
-serverList_ context projectId userUuid serverListViewParams servers =
+serverList_ :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> OSTypes.UserUuid
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> List Server
+    -> Element.Element Msg
+serverList_ context projectId userUuid serverListViewParams toMsg servers =
     {- Render a list of servers -}
     let
         ( ownServers, otherUsersServers ) =
@@ -135,20 +143,28 @@ serverList_ context projectId userUuid serverListViewParams servers =
                         allServersSelected
                         ( selectableServers, selectedServers )
                         serverListViewParams
+                        toMsg
                   ]
-                , List.map (renderServer context projectId serverListViewParams True) ownServers
-                , [ onlyOwnExpander context projectId serverListViewParams otherUsersServers ]
+                , List.map (renderServer context projectId serverListViewParams toMsg True) ownServers
+                , [ onlyOwnExpander context serverListViewParams toMsg otherUsersServers ]
                 , if serverListViewParams.onlyOwnServers then
                     []
 
                   else
-                    List.map (renderServer context projectId serverListViewParams False) otherUsersServers
+                    List.map (renderServer context projectId serverListViewParams toMsg False) otherUsersServers
                 ]
         ]
 
 
-renderTableHead : View.Types.Context -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
-renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
+renderTableHead :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> Bool
+    -> ( List Server, List Server )
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> Element.Element Msg
+renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams toMsg =
     let
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
@@ -175,9 +191,7 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                 newParams =
                     { serverListViewParams | selectedServers = newSelection }
             in
-            ListProjectServers newParams
-                |> SetProjectView
-                |> ProjectMsg projectId
+            toMsg newParams
 
         extraColAttrs =
             [ Element.width Element.fill
@@ -210,8 +224,15 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
         ]
 
 
-renderServer : View.Types.Context -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
-renderServer context projectId serverListViewParams isMyServer server =
+renderServer :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> Bool
+    -> Server
+    -> Element.Element Msg
+renderServer context projectId serverListViewParams toMsg isMyServer server =
     let
         statusIcon =
             Element.el
@@ -253,7 +274,7 @@ renderServer context projectId serverListViewParams isMyServer server =
                                     newParams =
                                         modifyServerSelection server action serverListViewParams
                                 in
-                                ProjectMsg projectId <| SetProjectView <| ListProjectServers newParams
+                                toMsg newParams
                         , icon = Input.defaultCheckbox
                         , label = Input.labelHidden server.osProps.name
                         }
@@ -320,18 +341,13 @@ renderServer context projectId serverListViewParams isMyServer server =
                         { icon = Icon.windowClose (SH.toElementColor context.palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
-                            Just
-                                (ProjectMsg
-                                    projectId
-                                    (SetProjectView <|
-                                        ListProjectServers
-                                            { serverListViewParams
-                                                | deleteConfirmations =
-                                                    serverListViewParams.deleteConfirmations
-                                                        |> List.filter ((/=) server.osProps.uuid)
-                                            }
-                                    )
-                                )
+                            Just <|
+                                toMsg
+                                    { serverListViewParams
+                                        | deleteConfirmations =
+                                            serverListViewParams.deleteConfirmations
+                                                |> List.filter ((/=) server.osProps.uuid)
+                                    }
                         }
                     ]
 
@@ -341,13 +357,9 @@ renderServer context projectId serverListViewParams isMyServer server =
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
-                            Just
-                                (ProjectMsg projectId
-                                    (SetProjectView <|
-                                        ListProjectServers
-                                            { serverListViewParams | deleteConfirmations = [ server.osProps.uuid ] }
-                                    )
-                                )
+                            Just <|
+                                toMsg
+                                    { serverListViewParams | deleteConfirmations = [ server.osProps.uuid ] }
                         }
                     ]
 
@@ -368,8 +380,13 @@ renderServer context projectId serverListViewParams isMyServer server =
         )
 
 
-onlyOwnExpander : View.Types.Context -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
-onlyOwnExpander context projectId serverListViewParams otherUsersServers =
+onlyOwnExpander :
+    View.Types.Context
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> List Server
+    -> Element.Element Msg
+onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
     let
         numOtherUsersServers =
             List.length otherUsersServers
@@ -433,10 +450,7 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
 
         changeOnlyOwnMsg : Msg
         changeOnlyOwnMsg =
-            ProjectMsg projectId <|
-                SetProjectView <|
-                    ListProjectServers
-                        newServerListViewParams
+            toMsg newServerListViewParams
 
         changeButton =
             Widget.button
