@@ -54,7 +54,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                 , Element.centerY
                 , Element.width Element.shrink
                 ]
-                (Input.checkbox [ Element.paddingXY 10 5 ]
+                (Input.checkbox [ Element.paddingXY 5 5 ]
                     { checked = expanded
                     , onChange = expandToggleMsg
                     , icon = iconFunction
