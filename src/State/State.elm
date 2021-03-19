@@ -429,6 +429,24 @@ processTick model interval time =
 
                         Just project ->
                             case projectViewState of
+                                AllResources _ ->
+                                    -- TODO deduplicate this with the code for ListProjectVolumes
+                                    ( model
+                                    , case interval of
+                                        5 ->
+                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
+                                                OSVolumes.requestVolumes project
+
+                                            else
+                                                Cmd.none
+
+                                        60 ->
+                                            OSVolumes.requestVolumes project
+
+                                        _ ->
+                                            Cmd.none
+                                    )
+
                                 ServerDetail serverUuid _ ->
                                     let
                                         volCmd =
