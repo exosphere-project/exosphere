@@ -1,4 +1,4 @@
-module View.QuotaUsage exposing (dashboard)
+module View.QuotaUsage exposing (computeQuotaDetails, dashboard, volumeQuotaDetails)
 
 import Element
 import Element.Background as Background
@@ -88,8 +88,8 @@ computeQuota context project =
 
 computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element Msg
 computeInfoItems context quota =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    Element.wrappedRow
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ infoItem context quota.cores ( "Cores:", "total" )
         , infoItem context quota.instances ( "Instances:", "total" )
         , infoItem context quota.ram ( "RAM:", "MB" )
@@ -132,8 +132,8 @@ volumeQuota context project =
 
 volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element Msg
 volumeInfoItems context quota =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    Element.wrappedRow
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ infoItem context quota.gigabytes ( "Storage:", "GB" )
         , infoItem
             context
