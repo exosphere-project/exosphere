@@ -32,6 +32,7 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
+import View.QuotaUsage
 import View.Types
 import Widget
 import Widget.Style.Material
@@ -39,57 +40,71 @@ import Widget.Style.Material
 
 serverList : View.Types.Context -> Project -> ServerListViewParams -> (ServerListViewParams -> Msg) -> Element.Element Msg
 serverList context project serverListViewParams toMsg =
-    {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
-    case ( project.servers.data, project.servers.refreshStatus ) of
-        ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
-            Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
-                , Element.text "Please wait..."
-                ]
-
-        ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
-            Element.paragraph
-                []
-                [ Element.text <|
-                    String.concat
-                        [ "Cannot display"
-                        , context.localization.virtualComputer
-                            |> Helpers.String.pluralize
-                        , ". Error message: " ++ Debug.toString e
+    let
+        serverListContents =
+            {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
+            case ( project.servers.data, project.servers.refreshStatus ) of
+                ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
+                    Element.row [ Element.spacing 15 ]
+                        [ Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+                        , Element.text "Please wait..."
                         ]
-                ]
 
-        ( RDPP.DontHave, RDPP.Loading _ ) ->
-            Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
-                , Element.text "Loading..."
-                ]
+                ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
+                    Element.paragraph
+                        []
+                        [ Element.text <|
+                            String.concat
+                                [ "Cannot display"
+                                , context.localization.virtualComputer
+                                    |> Helpers.String.pluralize
+                                , ". Error message: " ++ Debug.toString e
+                                ]
+                        ]
 
-        ( RDPP.DoHave servers _, _ ) ->
-            if List.isEmpty servers then
-                Element.paragraph
-                    []
-                    [ Element.text <|
-                        String.join " "
-                            [ "You don't have any"
-                            , context.localization.virtualComputer
-                                |> Helpers.String.pluralize
-                            , "yet, go create one!"
+                ( RDPP.DontHave, RDPP.Loading _ ) ->
+                    Element.row [ Element.spacing 15 ]
+                        [ Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+                        , Element.text "Loading..."
+                        ]
+
+                ( RDPP.DoHave servers _, _ ) ->
+                    if List.isEmpty servers then
+                        Element.paragraph
+                            []
+                            [ Element.text <|
+                                String.join " "
+                                    [ "You don't have any"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.pluralize
+                                    , "yet, go create one!"
+                                    ]
                             ]
-                    ]
 
-            else
-                serverList_
-                    context
-                    project.auth.project.uuid
-                    project.auth.user.uuid
-                    serverListViewParams
-                    toMsg
-                    servers
+                    else
+                        serverList_
+                            context
+                            project.auth.project.uuid
+                            project.auth.user.uuid
+                            serverListViewParams
+                            toMsg
+                            servers
+    in
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.el VH.heading2
+            (Element.text <|
+                (context.localization.virtualComputer
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+            )
+        , View.QuotaUsage.computeQuotaDetails context project.computeQuota
+        , serverListContents
+        ]
 
 
 serverList_ :
@@ -127,33 +142,24 @@ serverList_ context projectId userUuid serverListViewParams toMsg servers =
             else
                 selectableServers == selectedServers
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2
-            (Element.text <|
-                (context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-            )
-        , Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ]) <|
-            List.concat
-                [ [ renderTableHead
-                        context
-                        projectId
-                        allServersSelected
-                        ( selectableServers, selectedServers )
-                        serverListViewParams
-                        toMsg
-                  ]
-                , List.map (renderServer context projectId serverListViewParams toMsg True) ownServers
-                , [ onlyOwnExpander context serverListViewParams toMsg otherUsersServers ]
-                , if serverListViewParams.onlyOwnServers then
-                    []
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ]) <|
+        List.concat
+            [ [ renderTableHead
+                    context
+                    projectId
+                    allServersSelected
+                    ( selectableServers, selectedServers )
+                    serverListViewParams
+                    toMsg
+              ]
+            , List.map (renderServer context projectId serverListViewParams toMsg True) ownServers
+            , [ onlyOwnExpander context serverListViewParams toMsg otherUsersServers ]
+            , if serverListViewParams.onlyOwnServers then
+                []
 
-                  else
-                    List.map (renderServer context projectId serverListViewParams toMsg False) otherUsersServers
-                ]
-        ]
+              else
+                List.map (renderServer context projectId serverListViewParams toMsg False) otherUsersServers
+            ]
 
 
 renderTableHead :

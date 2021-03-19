@@ -152,7 +152,6 @@ allResources context p viewParams =
                     SetProjectView <|
                         AllResources { viewParams | keypairListViewParams = newParams }
             )
-        , View.QuotaUsage.dashboard context p
         ]
 
 

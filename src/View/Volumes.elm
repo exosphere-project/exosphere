@@ -31,6 +31,7 @@ import Types.Types
         , VolumeListViewParams
         )
 import View.Helpers as VH
+import View.QuotaUsage
 import View.Types
 import Widget
 import Widget.Style.Material
@@ -61,6 +62,7 @@ volumes context project viewParams toMsg =
                     |> Helpers.String.toTitleCase
                 )
             )
+        , View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
         , VH.renderWebData
             context
             project.volumes
