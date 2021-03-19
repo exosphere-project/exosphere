@@ -87,7 +87,7 @@ pageTitle model context =
                             )
             in
             case projectViewConstructor of
-                AllResources _ _ _ _ ->
+                AllResources _ ->
                     String.join " "
                         [ "All resources for"
                         , projectName
@@ -111,7 +111,7 @@ pageTitle model context =
                         , projectName
                         ]
 
-                ListProjectVolumes _ _ ->
+                ListProjectVolumes _ ->
                     String.join " "
                         [ context.localization.blockDevice
                             |> Helpers.String.pluralize

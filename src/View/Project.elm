@@ -8,10 +8,10 @@ import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( DeleteKeypairConfirmation
+        ( AllResourcesListViewParams
+        , DeleteKeypairConfirmation
         , DeleteVolumeConfirmation
         , Model
         , Msg(..)
@@ -44,8 +44,8 @@ project model context p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
-                AllResources serverListViewParams expandedVolumeUuids deleteVolumeConfirmations deleteKeypairConfirmations ->
-                    allResources context p serverListViewParams expandedVolumeUuids deleteVolumeConfirmations deleteKeypairConfirmations
+                AllResources allResourcesViewParams ->
+                    allResources context p allResourcesViewParams
 
                 ListImages imageFilter sortTableParams ->
                     View.Images.imagesIfLoaded context p imageFilter sortTableParams
@@ -59,8 +59,8 @@ project model context p viewParams viewConstructor =
                 CreateServer createServerViewParams ->
                     View.CreateServer.createServer context p createServerViewParams
 
-                ListProjectVolumes expandedVolumeUuids deleteVolumeConfirmations ->
-                    View.Volumes.volumes context p expandedVolumeUuids deleteVolumeConfirmations
+                ListProjectVolumes volumeListViewParams ->
+                    View.Volumes.volumes context p volumeListViewParams
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
                     View.Volumes.volumeDetailView context p deleteVolumeConfirmations volumeUuid
@@ -98,17 +98,14 @@ project model context p viewParams viewConstructor =
 allResources :
     View.Types.Context
     -> Project
-    -> ServerListViewParams
-    -> List OSTypes.VolumeUuid
-    -> List DeleteVolumeConfirmation
-    -> List DeleteKeypairConfirmation
+    -> AllResourcesListViewParams
     -> Element.Element Msg
-allResources context p serverListViewParams expandedVolumeUuids deleteVolumeConfirmations deleteKeypairConfirmations =
+allResources context p viewParams =
     Element.column
         []
-        [ View.ServerList.serverList context p serverListViewParams
-        , View.Volumes.volumes context p expandedVolumeUuids deleteVolumeConfirmations
-        , View.Keypairs.listKeypairs context p deleteKeypairConfirmations
+        [ View.ServerList.serverList context p viewParams.serverListViewParams
+        , View.Volumes.volumes context p viewParams.volumeListViewParams
+        , View.Keypairs.listKeypairs context p viewParams.keypairListViewParams
         , View.QuotaUsage.dashboard context p
         ]
 

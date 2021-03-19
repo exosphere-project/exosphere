@@ -1,5 +1,6 @@
 module Types.Defaults exposing
-    ( createServerViewParams
+    ( allResourcesListViewParams
+    , createServerViewParams
     , createVolumeView
     , imageListViewParams
     , jetstreamCreds
@@ -8,6 +9,7 @@ module Types.Defaults exposing
     , serverDetailViewParams
     , serverListViewParams
     , sortTableParams
+    , volumeListViewParams
     )
 
 import OpenStack.Types as OSTypes
@@ -72,6 +74,14 @@ sortTableParams =
     }
 
 
+allResourcesListViewParams : Types.AllResourcesListViewParams
+allResourcesListViewParams =
+    { serverListViewParams = serverListViewParams
+    , volumeListViewParams = volumeListViewParams
+    , keypairListViewParams = []
+    }
+
+
 serverListViewParams : Types.ServerListViewParams
 serverListViewParams =
     { onlyOwnServers = True
@@ -111,3 +121,8 @@ createServerViewParams imageUuid imageName deployGuacamole =
 createVolumeView : Types.ProjectViewConstructor
 createVolumeView =
     Types.CreateVolume "" (ValidNumericTextInput 10)
+
+
+volumeListViewParams : Types.VolumeListViewParams
+volumeListViewParams =
+    Types.VolumeListViewParams [] []

@@ -28,6 +28,7 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , VolumeListViewParams
         )
 import View.Helpers as VH
 import View.Types
@@ -35,8 +36,8 @@ import Widget
 import Widget.Style.Material
 
 
-volumes : View.Types.Context -> Project -> List OSTypes.VolumeUuid -> List DeleteVolumeConfirmation -> Element.Element Msg
-volumes context project expandedVolumeUuids deleteVolumeConfirmations =
+volumes : View.Types.Context -> Project -> VolumeListViewParams -> Element.Element Msg
+volumes context project viewParams =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
@@ -47,7 +48,7 @@ volumes context project expandedVolumeUuids deleteVolumeConfirmations =
                        ]
                 )
                 (List.map
-                    (renderVolumeCard context project expandedVolumeUuids deleteVolumeConfirmations)
+                    (renderVolumeCard context project viewParams)
                     volumes_
                 )
     in
@@ -68,29 +69,35 @@ volumes context project expandedVolumeUuids deleteVolumeConfirmations =
         ]
 
 
-renderVolumeCard : View.Types.Context -> Project -> List OSTypes.VolumeUuid -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
-renderVolumeCard context project expandedVolumeUuids deleteVolumeConfirmations volume =
+renderVolumeCard : View.Types.Context -> Project -> VolumeListViewParams -> OSTypes.Volume -> Element.Element Msg
+renderVolumeCard context project viewParams volume =
     ExoCard.expandoCard
         context.palette
-        (List.member volume.uuid expandedVolumeUuids)
+        (List.member volume.uuid viewParams.expandedVols)
         (\bool ->
             ProjectMsg
                 project.auth.project.uuid
                 (SetProjectView <|
                     ListProjectVolumes
-                        (if bool then
-                            volume.uuid :: expandedVolumeUuids
+                        { viewParams
+                            | expandedVols =
+                                if bool then
+                                    volume.uuid :: viewParams.expandedVols
 
-                         else
-                            List.filter (\v -> v /= volume.uuid) expandedVolumeUuids
-                        )
-                        deleteVolumeConfirmations
+                                else
+                                    List.filter (\v -> v /= volume.uuid) viewParams.expandedVols
+                        }
                 )
         )
         (VH.possiblyUntitledResource volume.name context.localization.blockDevice)
         (Element.text <| String.fromInt volume.size ++ " GB")
     <|
-        volumeDetail context project (ListProjectVolumes expandedVolumeUuids) deleteVolumeConfirmations volume.uuid
+        volumeDetail
+            context
+            project
+            (\deleteConfirmations -> ListProjectVolumes { viewParams | deleteConfirmations = deleteConfirmations })
+            viewParams.deleteConfirmations
+            volume.uuid
 
 
 volumeActionButtons :
@@ -100,7 +107,7 @@ volumeActionButtons :
     -> List DeleteVolumeConfirmation
     -> OSTypes.Volume
     -> Element.Element Msg
-volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirmations volume =
+volumeActionButtons context project toProjectViewConstructor deleteConfirmations volume =
     let
         volDetachDeleteWarning =
             if Helpers.isBootVol Nothing volume then
@@ -166,7 +173,7 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                     Element.none
 
         confirmationNeeded =
-            List.member volume.uuid deleteVolumeConfirmations
+            List.member volume.uuid deleteConfirmations
 
         deleteButton =
             case ( volume.status, confirmationNeeded ) of
@@ -193,7 +200,8 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                                     ProjectMsg
                                         project.auth.project.uuid
                                         (SetProjectView <|
-                                            toProjectViewConstructor (deleteVolumeConfirmations |> List.filter ((/=) volume.uuid))
+                                            toProjectViewConstructor
+                                                (deleteConfirmations |> List.filter ((/=) volume.uuid))
                                         )
                             }
                         ]
@@ -214,7 +222,10 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                                 Just <|
                                     ProjectMsg
                                         project.auth.project.uuid
-                                        (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
+                                        (SetProjectView <|
+                                            toProjectViewConstructor
+                                                [ volume.uuid ]
+                                        )
                             }
     in
     Element.column (Element.width Element.fill :: VH.exoColumnAttributes)

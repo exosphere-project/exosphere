@@ -1,5 +1,6 @@
 module Types.Types exposing
-    ( CloudSpecificConfig
+    ( AllResourcesListViewParams
+    , CloudSpecificConfig
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
@@ -54,6 +55,7 @@ module Types.Types exposing
     , UserAppProxyHostname
     , VerboseStatus
     , ViewState(..)
+    , VolumeListViewParams
     , WindowSize
     , currentExoServerVersion
     )
@@ -424,10 +426,10 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = AllResources ServerListViewParams (List OSTypes.VolumeUuid) (List DeleteVolumeConfirmation) (List DeleteKeypairConfirmation)
+    = AllResources AllResourcesListViewParams
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
-    | ListProjectVolumes (List OSTypes.VolumeUuid) (List DeleteVolumeConfirmation)
+    | ListProjectVolumes VolumeListViewParams
     | ListKeypairs (List DeleteKeypairConfirmation)
     | CreateKeypair String String
     | ListQuotaUsage
@@ -438,6 +440,13 @@ type ProjectViewConstructor
     | CreateVolume OSTypes.VolumeName NumericTextInput
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
+
+
+type alias AllResourcesListViewParams =
+    { serverListViewParams : ServerListViewParams
+    , volumeListViewParams : VolumeListViewParams
+    , keypairListViewParams : List DeleteKeypairConfirmation
+    }
 
 
 type alias ServerListViewParams =
@@ -460,6 +469,12 @@ type alias ServerDetailViewParams =
 type ServerDetailActiveTooltip
     = InteractionTooltip Interaction
     | InteractionStatusTooltip Interaction
+
+
+type alias VolumeListViewParams =
+    { expandedVols : List OSTypes.VolumeUuid
+    , deleteConfirmations : List DeleteVolumeConfirmation
+    }
 
 
 type alias CreateServerViewParams =
