@@ -2,9 +2,10 @@ image: node:current-buster
 
 stages:
   - build
-  - dockerize
-  - test
-  - deploy
+# temporarily disabled
+#  - dockerize
+#  - test
+#  - deploy
 
 cache:
   key: ${CI_JOB_NAME}
