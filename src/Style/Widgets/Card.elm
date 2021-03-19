@@ -77,7 +77,9 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                         | containerColumn =
                             (SH.materialStyle palette).cardColumn.containerColumn
                                 ++ [ Element.padding 0
-                                   , Events.onClick (expanded |> not |> expandToggleMsg)
+
+                                   -- TODO make this work with buttons on the card
+                                   -- , Events.onClick (expanded |> not |> expandToggleMsg)
                                    ]
                         , element =
                             (SH.materialStyle palette).cardColumn.element
