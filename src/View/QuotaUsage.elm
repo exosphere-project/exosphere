@@ -90,9 +90,18 @@ computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element
 computeInfoItems context quota =
     Element.wrappedRow
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        [ infoItem context quota.instances ( "Instances:", "total" )
-        , infoItem context quota.cores ( "Cores:", "total" )
-        , infoItem context quota.ram ( "RAM:", "MB" )
+        [ infoItem context
+            quota.instances
+            ( String.join " "
+                [ context.localization.virtualComputer
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                , "used:"
+                ]
+            , "total"
+            )
+        , infoItem context quota.cores ( "Cores used:", "total" )
+        , infoItem context quota.ram ( "RAM used:", "MB" )
         ]
 
 
@@ -137,15 +146,15 @@ volumeInfoItems context quota =
         [ infoItem
             context
             quota.volumes
-            ( String.concat
+            ( String.join " "
                 [ context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
-                , ":"
+                , "used:"
                 ]
             , "total"
             )
-        , infoItem context quota.gigabytes ( "Storage:", "GB" )
+        , infoItem context quota.gigabytes ( "Storage used:", "GB" )
         ]
 
 
