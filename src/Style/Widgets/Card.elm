@@ -17,14 +17,14 @@ import Style.Types
 import Widget
 
 
-exoCard : Style.Types.ExoPalette -> String -> String -> Element msg -> Element msg
+exoCard : Style.Types.ExoPalette -> Element msg -> Element msg -> Element msg -> Element msg
 exoCard palette title subTitle content =
     Widget.column
         (SH.materialStyle palette).cardColumn
         [ Element.row
             [ Element.width Element.fill, Element.spacing 15 ]
-            [ Element.el [ Font.bold, Font.size 16 ] (Element.text title)
-            , Element.el [] (Element.text subTitle)
+            [ Element.el [ Font.bold, Font.size 16 ] title
+            , Element.el [ Element.alignRight ] subTitle
             ]
         , content
         ]

@@ -1,7 +1,6 @@
 module View.ServerList exposing (serverList)
 
 import Element
-import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
@@ -12,6 +11,7 @@ import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Button
+import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.Types
@@ -195,8 +195,6 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
 
         extraColAttrs =
             [ Element.width Element.fill
-            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            , Border.color (SH.toElementColor context.palette.on.background)
             , Element.paddingXY 5 0
             ]
 
@@ -312,7 +310,8 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 ]
                 [ serverLabelName aServer
                 , creatorNameView
-                , Element.el [ Font.size 15 ] (Element.text (server |> VH.getServerUiStatus |> VH.getServerUiStatusStr))
+
+                -- , Element.el [ Font.size 15 ] (Element.text (server |> VH.getServerUiStatus |> VH.getServerUiStatusStr))
                 ]
 
         deletionAttempted =
@@ -372,12 +371,11 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                         }
                     ]
     in
-    Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        ([ checkbox
-         , serverLabel server
-         ]
-            ++ deleteWidget
-        )
+    Style.Widgets.Card.exoCard
+        context.palette
+        (Element.row [ Element.spacing 8 ] [ checkbox, serverLabel server ])
+        (Element.row [ Element.spacing 8 ] deleteWidget)
+        Element.none
 
 
 onlyOwnExpander :
@@ -470,12 +468,6 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
     else
         Element.column (VH.exoColumnAttributes ++ [ Element.padding 0, Element.width Element.fill ])
             [ Element.el
-                [ Element.width Element.fill
-                , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-                , Border.color (SH.toElementColor context.palette.on.background)
-                ]
-                Element.none
-            , Element.el
                 [ Element.centerX, Font.size 14 ]
                 (Element.text statusText)
             , Element.el
