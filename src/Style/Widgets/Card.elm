@@ -59,9 +59,6 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                                 FeatherIcons.chevronRight
                     in
                     featherIcon |> FeatherIcons.toHtml [] |> Element.html
-
-                checkboxLabel =
-                    "expand"
             in
             Element.el
                 [ Element.alignLeft
@@ -72,7 +69,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                     { checked = expanded
                     , onChange = expandToggleMsg
                     , icon = iconFunction
-                    , label = Input.labelHidden checkboxLabel
+                    , label = Input.labelHidden "expand"
                     }
                 )
 
