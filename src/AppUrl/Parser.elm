@@ -140,7 +140,7 @@ pathParsers defaultViewState =
         (NonProjectView PageNotFound)
         (s "pagenotfound")
     , map
-        (\uuid projectViewConstructor -> ProjectView uuid { createPopup = False } <| projectViewConstructor)
+        (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)
         (s "projects" </> string </> oneOf projectViewConstructorParsers)
     ]
 

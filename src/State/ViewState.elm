@@ -148,7 +148,7 @@ setProjectView model project projectViewConstructor =
                     Nothing
 
         newViewState =
-            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
+            ProjectView project.auth.project.uuid Defaults.projectViewParams projectViewConstructor
 
         projectResetCockpitStatuses project_ =
             -- We need to re-poll Cockpit to determine its availability and get a session cookie
@@ -506,7 +506,7 @@ defaultViewState model =
         firstProject :: _ ->
             ProjectView
                 firstProject.auth.project.uuid
-                { createPopup = False }
+                Defaults.projectViewParams
                 (AllResources
                     Defaults.allResourcesListViewParams
                 )

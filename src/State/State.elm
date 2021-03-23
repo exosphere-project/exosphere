@@ -287,7 +287,7 @@ updateUnderlying msg model =
                                         Just project ->
                                             ProjectView
                                                 project.auth.project.uuid
-                                                { createPopup = False }
+                                                Defaults.projectViewParams
                                             <|
                                                 AllResources Defaults.allResourcesListViewParams
 
@@ -612,7 +612,7 @@ processProjectSpecificMsg model project msg =
                                 Just p ->
                                     ProjectView
                                         p.auth.project.uuid
-                                        { createPopup = False }
+                                        Defaults.projectViewParams
                                     <|
                                         AllResources
                                             Defaults.allResourcesListViewParams
@@ -952,7 +952,7 @@ processProjectSpecificMsg model project msg =
                 newViewState =
                     ProjectView
                         project.auth.project.uuid
-                        { createPopup = False }
+                        Defaults.projectViewParams
                     <|
                         AllResources
                             Defaults.allResourcesListViewParams
