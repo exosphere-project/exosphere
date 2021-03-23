@@ -69,7 +69,12 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                     { checked = expanded
                     , onChange = expandToggleMsg
                     , icon = iconFunction
-                    , label = Input.labelHidden "expand"
+                    , label =
+                        Input.labelRight
+                            -- 0 font size is a hack so that screen readers and headless browser tests see the label,
+                            -- but regular users just see the icon.
+                            [ Font.size 0 ]
+                            (Element.text "expand")
                     }
                 )
 
