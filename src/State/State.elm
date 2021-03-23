@@ -428,9 +428,9 @@ processTick model interval time =
                             ( model, Cmd.none )
 
                         Just project ->
-                            case projectViewState of
-                                AllResources _ ->
-                                    -- TODO deduplicate this with the code for ListProjectVolumes
+                            let
+                                pollVolumes : ( Model, Cmd Msg )
+                                pollVolumes =
                                     ( model
                                     , case interval of
                                         5 ->
@@ -446,6 +446,10 @@ processTick model interval time =
                                         _ ->
                                             Cmd.none
                                     )
+                            in
+                            case projectViewState of
+                                AllResources _ ->
+                                    pollVolumes
 
                                 ServerDetail serverUuid _ ->
                                     let
@@ -474,21 +478,7 @@ processTick model interval time =
                                             ( model, Cmd.none )
 
                                 ListProjectVolumes _ ->
-                                    ( model
-                                    , case interval of
-                                        5 ->
-                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
-                                                OSVolumes.requestVolumes project
-
-                                            else
-                                                Cmd.none
-
-                                        60 ->
-                                            OSVolumes.requestVolumes project
-
-                                        _ ->
-                                            Cmd.none
-                                    )
+                                    pollVolumes
 
                                 VolumeDetail volumeUuid _ ->
                                     ( model
