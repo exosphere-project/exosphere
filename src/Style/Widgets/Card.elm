@@ -72,7 +72,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
                     { checked = expanded
                     , onChange = expandToggleMsg
                     , icon = iconFunction
-                    , label = Input.labelRight [] (Element.text checkboxLabel)
+                    , label = Input.labelHidden checkboxLabel
                     }
                 )
 
