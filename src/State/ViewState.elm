@@ -507,6 +507,6 @@ defaultViewState model =
             ProjectView
                 firstProject.auth.project.uuid
                 { createPopup = False }
-                (ListProjectServers
-                    Defaults.serverListViewParams
+                (AllResources
+                    Defaults.allResourcesListViewParams
                 )

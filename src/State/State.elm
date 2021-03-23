@@ -289,7 +289,7 @@ updateUnderlying msg model =
                                                 project.auth.project.uuid
                                                 { createPopup = False }
                                             <|
-                                                ListProjectServers Defaults.serverListViewParams
+                                                AllResources Defaults.allResourcesListViewParams
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -614,8 +614,8 @@ processProjectSpecificMsg model project msg =
                                         p.auth.project.uuid
                                         { createPopup = False }
                                     <|
-                                        ListProjectServers
-                                            Defaults.serverListViewParams
+                                        AllResources
+                                            Defaults.allResourcesListViewParams
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -729,8 +729,8 @@ processProjectSpecificMsg model project msg =
                         project.auth.project.uuid
                         { createPopup = False }
                     <|
-                        ListProjectServers
-                            Defaults.serverListViewParams
+                        AllResources
+                            Defaults.allResourcesListViewParams
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project serverUuid imageName
@@ -954,8 +954,8 @@ processProjectSpecificMsg model project msg =
                         project.auth.project.uuid
                         { createPopup = False }
                     <|
-                        ListProjectServers
-                            Defaults.serverListViewParams
+                        AllResources
+                            Defaults.allResourcesListViewParams
             in
             ( model, Cmd.none )
                 |> Helpers.pipelineCmd
@@ -976,8 +976,8 @@ processProjectSpecificMsg model project msg =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (ListProjectServers
-                                                Defaults.serverListViewParams
+                                            (AllResources
+                                                Defaults.allResourcesListViewParams
                                             )
 
                                     else
