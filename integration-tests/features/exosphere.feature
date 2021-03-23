@@ -45,7 +45,7 @@ Feature: Text presence
         And the browser's URL should contain "/projects/f477d7139ced4da384dab42001a7ea3c/resources"
         When I press the last element with xpath "//div[contains(string(),'bdd_test_server')]"
         Then I should see an element with xpath "//h2[contains(string(),'Instance Details')]" within 2 seconds
-        And I should see an element with xpath "//div[contains(string(),'Building')]" within 5 seconds
+        And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
         When I click the "See detail" button
         Then I should see "Detailed status"
         And I should see "OpenStack status"
