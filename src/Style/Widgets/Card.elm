@@ -73,7 +73,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
             Element.row
                 [ Element.width Element.fill, Element.spacing 15 ]
                 [ expandButton
-                , Element.el [ Font.bold, Font.size 20 ] (Element.text title)
+                , Element.el [ Font.bold, Font.size 16 ] (Element.text title)
                 , Element.el [ Element.alignRight, Element.paddingXY 10 0 ] subTitle
                 ]
     in
