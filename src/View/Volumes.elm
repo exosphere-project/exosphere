@@ -94,7 +94,9 @@ renderVolumeCard context project viewParams toMsg volume =
                             List.filter (\v -> v /= volume.uuid) viewParams.expandedVols
                 }
         )
-        (VH.possiblyUntitledResource volume.name context.localization.blockDevice)
+        (VH.possiblyUntitledResource volume.name context.localization.blockDevice
+            |> Element.text
+        )
         (Element.text <| String.fromInt volume.size ++ " GB")
     <|
         volumeDetail

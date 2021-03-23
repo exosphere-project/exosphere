@@ -4,7 +4,6 @@ import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Filesize
 import Helpers.String
 import List.Extra
@@ -354,55 +353,13 @@ renderImage context project imageListViewParams sortTableParams image =
         imageDetailsExpanded =
             Set.member image.uuid imageListViewParams.expandImageDetails
 
-        expandImageDetailsButton : Element.Element Msg
-        expandImageDetailsButton =
-            let
-                iconFunction checked =
-                    let
-                        featherIcon =
-                            if checked then
-                                FeatherIcons.chevronDown
-
-                            else
-                                FeatherIcons.chevronRight
-                    in
-                    featherIcon |> FeatherIcons.toHtml [] |> Element.html
-
-                checkboxLabel =
-                    ""
-            in
-            Element.el
-                [ Element.alignLeft
-                , Element.centerY
-                , Element.width Element.shrink
-                ]
-                (Input.checkbox [ Element.paddingXY 10 5 ]
-                    { checked = imageDetailsExpanded
-                    , onChange =
-                        \_ ->
-                            ProjectMsg project.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListImages
-                                        { imageListViewParams
-                                            | expandImageDetails =
-                                                Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails
-                                        }
-                                        sortTableParams
-                    , icon = iconFunction
-                    , label = Input.labelRight [] (Element.text checkboxLabel)
-                    }
-                )
-
         size =
-            "("
-                ++ (case image.size of
-                        Just s ->
-                            Filesize.format s
+            case image.size of
+                Just s ->
+                    Filesize.format s
 
-                        Nothing ->
-                            "size unknown"
-                   )
-                ++ ")"
+                Nothing ->
+                    "size unknown"
 
         chooseMsg =
             ProjectMsg project.auth.project.uuid <|
@@ -459,33 +416,34 @@ renderImage context project imageListViewParams sortTableParams image =
             else
                 Element.none
 
-        imageBriefView =
+        title =
             Element.row
                 [ Element.width Element.fill
-                , Element.spacingXY 0 0
                 ]
-                [ Element.wrappedRow
-                    [ Element.width Element.fill
+                [ Element.el
+                    [ Font.bold
+                    , Element.padding 5
                     ]
-                    [ expandImageDetailsButton
-                    , Element.el
-                        [ Font.bold
-                        , Element.padding 5
-                        ]
-                        (Element.text image.name)
-                    , Element.el
-                        [ Font.color <| SH.toElementColor <| context.palette.muted
-                        , Element.padding 5
-                        ]
-                        (Element.text size)
-                    , featuredBadge
-                    , ownerBadge
+                    (Element.text image.name)
+                , featuredBadge
+                , ownerBadge
+                ]
+
+        subtitle =
+            Element.row
+                []
+                [ Element.el
+                    [ Font.color <| SH.toElementColor <| context.palette.muted
+                    , Element.padding 5
                     ]
-                , chooseButton
+                    (Element.text size)
                 ]
 
         imageDetailsView =
-            Element.column []
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
+                )
                 [ Element.wrappedRow
                     [ Element.width Element.fill
                     ]
@@ -498,28 +456,24 @@ renderImage context project imageListViewParams sortTableParams image =
                             tagChip
                             image.tags
                     )
+                , Element.el
+                    [ Element.alignRight ]
+                    chooseButton
                 ]
     in
-    Widget.column
-        ((SH.materialStyle context.palette).cardColumn
-            |> (\x ->
-                    { x
-                        | containerColumn =
-                            (SH.materialStyle context.palette).cardColumn.containerColumn
-                                ++ [ Element.padding 0
-                                   ]
-                        , element =
-                            (SH.materialStyle context.palette).cardColumn.element
-                                ++ [ Element.padding 3
-                                   ]
-                    }
-               )
+    ExoCard.expandoCard
+        context.palette
+        imageDetailsExpanded
+        (\_ ->
+            ProjectMsg project.auth.project.uuid <|
+                SetProjectView <|
+                    ListImages
+                        { imageListViewParams
+                            | expandImageDetails =
+                                Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails
+                        }
+                        sortTableParams
         )
-        (if imageDetailsExpanded then
-            [ imageBriefView
-            , imageDetailsView
-            ]
-
-         else
-            [ imageBriefView ]
-        )
+        title
+        subtitle
+        imageDetailsView

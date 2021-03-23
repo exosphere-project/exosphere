@@ -36,7 +36,14 @@ exoCard palette title subTitle content =
             )
 
 
-expandoCard : Style.Types.ExoPalette -> Bool -> (Bool -> msg) -> String -> Element msg -> Element msg -> Element msg
+expandoCard :
+    Style.Types.ExoPalette
+    -> Bool
+    -> (Bool -> msg)
+    -> Element msg
+    -> Element msg
+    -> Element msg
+    -> Element msg
 expandoCard palette expanded expandToggleMsg title subTitle content =
     let
         expandButton : Element.Element msg
@@ -73,7 +80,7 @@ expandoCard palette expanded expandToggleMsg title subTitle content =
             Element.row
                 [ Element.width Element.fill, Element.spacing 15 ]
                 [ expandButton
-                , Element.el [ Font.bold, Font.size 16 ] (Element.text title)
+                , Element.el [ Font.bold, Font.size 16 ] title
                 , Element.el [ Element.alignRight, Element.paddingXY 10 0 ] subTitle
                 ]
     in

@@ -209,7 +209,9 @@ renderKeypairCard context project viewParams toMsg keypair =
                             List.filter (\k -> ( keypair.name, keypair.fingerprint ) /= k) viewParams.expandedKeypairs
                 }
         )
-        (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh)
+        (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh
+            |> Element.text
+        )
         (if expanded then
             Element.none
 
