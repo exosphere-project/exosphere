@@ -1,19 +1,15 @@
 module View.Project exposing (project)
 
 import Element
-import Element.Events as Events
-import Element.Font as Font
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import Set
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( AllResourcesListViewParams
-        , Model
+        ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
         , Project
@@ -23,6 +19,7 @@ import Types.Types
         , ProjectViewParams
         , ViewState(..)
         )
+import View.AllResources
 import View.AttachVolume
 import View.CreateServer
 import View.CreateServerImage
@@ -44,7 +41,10 @@ project model context p viewParams viewConstructor =
         v =
             case viewConstructor of
                 AllResources allResourcesViewParams ->
-                    allResources context p allResourcesViewParams
+                    View.AllResources.allResources
+                        context
+                        p
+                        allResourcesViewParams
 
                 ListImages imageFilter sortTableParams ->
                     View.Images.imagesIfLoaded context p imageFilter sortTableParams
@@ -123,102 +123,6 @@ project model context p viewParams viewConstructor =
         )
         [ projectNav context p viewParams
         , v
-        ]
-
-
-allResources :
-    View.Types.Context
-    -> Project
-    -> AllResourcesListViewParams
-    -> Element.Element Msg
-allResources context p viewParams =
-    let
-        renderHeaderLink : String -> Msg -> Element.Element Msg
-        renderHeaderLink str msg =
-            Element.el
-                (VH.heading3
-                    ++ [ Events.onClick msg
-                       , Element.mouseOver
-                            [ Font.color
-                                (context.palette.primary
-                                    |> SH.toElementColor
-                                )
-                            ]
-                       , Element.pointer
-                       ]
-                )
-                (Element.text str)
-    in
-    Element.column
-        [ Element.spacing 25, Element.width Element.fill ]
-        [ Element.column
-            [ Element.width Element.fill ]
-            [ renderHeaderLink
-                (context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListProjectServers
-                            Defaults.serverListViewParams
-                )
-            , View.ServerList.serverList context
-                False
-                p
-                viewParams.serverListViewParams
-                (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | serverListViewParams = newParams }
-                )
-            ]
-        , Element.column
-            [ Element.width Element.fill ]
-            [ renderHeaderLink
-                (context.localization.blockDevice
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListProjectVolumes
-                            Defaults.volumeListViewParams
-                )
-            , View.Volumes.volumes context
-                False
-                p
-                viewParams.volumeListViewParams
-                (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | volumeListViewParams = newParams }
-                )
-            ]
-        , Element.column
-            [ Element.width Element.fill
-            , Element.spacingXY 0 15 -- Because no quota view taking up space
-            ]
-            [ renderHeaderLink
-                (context.localization.pkiPublicKeyForSsh
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListKeypairs
-                            Defaults.keypairListViewParams
-                )
-            , View.Keypairs.listKeypairs context
-                False
-                p
-                viewParams.keypairListViewParams
-                (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | keypairListViewParams = newParams }
-                )
-            ]
         ]
 
 
