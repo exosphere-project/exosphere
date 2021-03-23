@@ -26,7 +26,6 @@ import View.CreateServerImage
 import View.Helpers as VH
 import View.Images
 import View.Keypairs
-import View.QuotaUsage
 import View.ServerDetail
 import View.ServerList
 import View.Types
@@ -113,9 +112,6 @@ project model context p viewParams viewConstructor =
 
                 CreateServerImage serverUuid imageName ->
                     View.CreateServerImage.createServerImage context p serverUuid imageName
-
-                ListQuotaUsage ->
-                    View.QuotaUsage.dashboard context p
     in
     Element.column
         (Element.width Element.fill

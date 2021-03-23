@@ -387,22 +387,6 @@ setProjectView model project projectViewConstructor =
                 CreateKeypair _ _ ->
                     ( model, Cmd.none )
 
-                ListQuotaUsage ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just ListQuotaUsage ->
-                                    Cmd.none
-
-                                _ ->
-                                    Cmd.batch
-                                        [ OSQuotas.requestComputeQuota project
-                                        , OSQuotas.requestVolumeQuota project
-                                        ]
-                    in
-                    ( model, cmd )
-
                 VolumeDetail _ _ ->
                     ( model, Cmd.none )
 

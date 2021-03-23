@@ -187,9 +187,6 @@ projectViewConstructorParsers =
         (CreateKeypair "" "")
         (s "uploadkeypair")
     , map
-        ListQuotaUsage
-        (s "quotausage")
-    , map
         (\params ->
             CreateServer params
         )

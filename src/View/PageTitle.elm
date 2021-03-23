@@ -137,14 +137,6 @@ pageTitle model context =
                         , projectName
                         ]
 
-                ListQuotaUsage ->
-                    String.join " "
-                        [ context.localization.maxResourcesPerProject
-                            |> Helpers.String.toTitleCase
-                        , "Usage for"
-                        , projectName
-                        ]
-
                 ServerDetail serverUuid _ ->
                     String.join " "
                         [ context.localization.virtualComputer

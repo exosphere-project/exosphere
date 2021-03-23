@@ -433,7 +433,6 @@ type ProjectViewConstructor
     | ListProjectVolumes VolumeListViewParams
     | ListKeypairs KeypairListViewParams
     | CreateKeypair String String
-    | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)

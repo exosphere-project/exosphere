@@ -167,11 +167,6 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "uploadkeypair" ]
                 []
 
-        ListQuotaUsage ->
-            UB.absolute
-                [ "quotausage" ]
-                []
-
         ServerDetail serverUuid _ ->
             buildUrlFunc
                 [ "servers"
