@@ -96,11 +96,12 @@ createKeypair context project name publicKey =
 
 listKeypairs :
     View.Types.Context
+    -> Bool
     -> Project
     -> KeypairListViewParams
     -> (KeypairListViewParams -> Msg)
     -> Element.Element Msg
-listKeypairs context project viewParams toMsg =
+listKeypairs context showHeading project viewParams toMsg =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
@@ -151,12 +152,16 @@ listKeypairs context project viewParams toMsg =
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
-        [ Element.el VH.heading3 <|
-            Element.text
-                (context.localization.pkiPublicKeyForSsh
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
+        [ if showHeading then
+            Element.el VH.heading2 <|
+                Element.text
+                    (context.localization.pkiPublicKeyForSsh
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
+
+          else
+            Element.none
         , VH.renderWebData
             context
             project.keypairs

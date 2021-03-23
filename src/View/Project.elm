@@ -1,12 +1,15 @@
 module View.Project exposing (project)
 
 import Element
+import Element.Events as Events
+import Element.Font as Font
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import Set
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( AllResourcesListViewParams
@@ -48,6 +51,7 @@ project model context p viewParams viewConstructor =
 
                 ListProjectServers serverListViewParams ->
                     View.ServerList.serverList context
+                        True
                         p
                         serverListViewParams
                         (\newParams ->
@@ -64,6 +68,7 @@ project model context p viewParams viewConstructor =
 
                 ListProjectVolumes volumeListViewParams ->
                     View.Volumes.volumes context
+                        True
                         p
                         volumeListViewParams
                         (\newParams ->
@@ -94,6 +99,7 @@ project model context p viewParams viewConstructor =
 
                 ListKeypairs keypairListViewParams ->
                     View.Keypairs.listKeypairs context
+                        True
                         p
                         keypairListViewParams
                         (\newParams ->
@@ -126,32 +132,93 @@ allResources :
     -> AllResourcesListViewParams
     -> Element.Element Msg
 allResources context p viewParams =
+    let
+        renderHeaderLink : String -> Msg -> Element.Element Msg
+        renderHeaderLink str msg =
+            Element.el
+                (VH.heading3
+                    ++ [ Events.onClick msg
+                       , Element.mouseOver
+                            [ Font.color
+                                (context.palette.primary
+                                    |> SH.toElementColor
+                                )
+                            ]
+                       , Element.pointer
+                       ]
+                )
+                (Element.text str)
+    in
     Element.column
         [ Element.spacing 25, Element.width Element.fill ]
-        [ View.ServerList.serverList context
-            p
-            viewParams.serverListViewParams
-            (\newParams ->
-                ProjectMsg p.auth.project.uuid <|
+        [ Element.column
+            [ Element.width Element.fill ]
+            [ renderHeaderLink
+                (context.localization.virtualComputer
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+                (ProjectMsg p.auth.project.uuid <|
                     SetProjectView <|
-                        AllResources { viewParams | serverListViewParams = newParams }
-            )
-        , View.Volumes.volumes context
-            p
-            viewParams.volumeListViewParams
-            (\newParams ->
-                ProjectMsg p.auth.project.uuid <|
+                        ListProjectServers
+                            Defaults.serverListViewParams
+                )
+            , View.ServerList.serverList context
+                False
+                p
+                viewParams.serverListViewParams
+                (\newParams ->
+                    ProjectMsg p.auth.project.uuid <|
+                        SetProjectView <|
+                            AllResources { viewParams | serverListViewParams = newParams }
+                )
+            ]
+        , Element.column
+            [ Element.width Element.fill ]
+            [ renderHeaderLink
+                (context.localization.blockDevice
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+                (ProjectMsg p.auth.project.uuid <|
                     SetProjectView <|
-                        AllResources { viewParams | volumeListViewParams = newParams }
-            )
-        , View.Keypairs.listKeypairs context
-            p
-            viewParams.keypairListViewParams
-            (\newParams ->
-                ProjectMsg p.auth.project.uuid <|
+                        ListProjectVolumes
+                            Defaults.volumeListViewParams
+                )
+            , View.Volumes.volumes context
+                False
+                p
+                viewParams.volumeListViewParams
+                (\newParams ->
+                    ProjectMsg p.auth.project.uuid <|
+                        SetProjectView <|
+                            AllResources { viewParams | volumeListViewParams = newParams }
+                )
+            ]
+        , Element.column
+            [ Element.width Element.fill
+            , Element.spacingXY 0 15 -- Because no quota view taking up space
+            ]
+            [ renderHeaderLink
+                (context.localization.pkiPublicKeyForSsh
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+                (ProjectMsg p.auth.project.uuid <|
                     SetProjectView <|
-                        AllResources { viewParams | keypairListViewParams = newParams }
-            )
+                        ListKeypairs
+                            Defaults.keypairListViewParams
+                )
+            , View.Keypairs.listKeypairs context
+                False
+                p
+                viewParams.keypairListViewParams
+                (\newParams ->
+                    ProjectMsg p.auth.project.uuid <|
+                        SetProjectView <|
+                            AllResources { viewParams | keypairListViewParams = newParams }
+                )
+            ]
         ]
 
 

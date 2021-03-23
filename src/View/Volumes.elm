@@ -37,8 +37,14 @@ import Widget
 import Widget.Style.Material
 
 
-volumes : View.Types.Context -> Project -> VolumeListViewParams -> (VolumeListViewParams -> Msg) -> Element.Element Msg
-volumes context project viewParams toMsg =
+volumes :
+    View.Types.Context
+    -> Bool
+    -> Project
+    -> VolumeListViewParams
+    -> (VolumeListViewParams -> Msg)
+    -> Element.Element Msg
+volumes context showHeading project viewParams toMsg =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
@@ -56,13 +62,17 @@ volumes context project viewParams toMsg =
     in
     Element.column
         [ Element.width Element.fill ]
-        [ Element.el VH.heading3
-            (Element.text
-                (context.localization.blockDevice
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
+        [ if showHeading then
+            Element.el VH.heading2
+                (Element.text
+                    (context.localization.blockDevice
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
                 )
-            )
+
+          else
+            Element.none
         , View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
         , VH.renderWebData
             context

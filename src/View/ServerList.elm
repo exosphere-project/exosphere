@@ -38,8 +38,14 @@ import Widget
 import Widget.Style.Material
 
 
-serverList : View.Types.Context -> Project -> ServerListViewParams -> (ServerListViewParams -> Msg) -> Element.Element Msg
-serverList context project serverListViewParams toMsg =
+serverList :
+    View.Types.Context
+    -> Bool
+    -> Project
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> Element.Element Msg
+serverList context showHeading project serverListViewParams toMsg =
     let
         serverListContents =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
@@ -95,13 +101,17 @@ serverList context project serverListViewParams toMsg =
                             servers
     in
     Element.column [ Element.width Element.fill ]
-        [ Element.el VH.heading3
-            (Element.text <|
-                (context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
+        [ if showHeading then
+            Element.el VH.heading2
+                (Element.text <|
+                    (context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
                 )
-            )
+
+          else
+            Element.none
         , View.QuotaUsage.computeQuotaDetails context project.computeQuota
         , serverListContents
         ]
