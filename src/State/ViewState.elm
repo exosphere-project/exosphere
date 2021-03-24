@@ -43,8 +43,8 @@ import View.Helpers
 import View.PageTitle
 
 
-setNonProjectView : Model -> NonProjectViewConstructor -> ( Model, Cmd Msg )
-setNonProjectView model nonProjectViewConstructor =
+setNonProjectView : NonProjectViewConstructor -> Model -> ( Model, Cmd Msg )
+setNonProjectView nonProjectViewConstructor model =
     let
         prevNonProjectViewConstructor =
             case model.viewState of
@@ -132,8 +132,8 @@ setNonProjectView model nonProjectViewConstructor =
         |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
 
 
-setProjectView : Model -> Project -> ProjectViewConstructor -> ( Model, Cmd Msg )
-setProjectView model project projectViewConstructor =
+setProjectView : Project -> ProjectViewConstructor -> Model -> ( Model, Cmd Msg )
+setProjectView project projectViewConstructor model =
     let
         prevProjectViewConstructor =
             case model.viewState of
