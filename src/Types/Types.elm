@@ -152,7 +152,7 @@ type alias WindowSize =
 type alias Model =
     { logMessages : List LogMessage
     , urlPathPrefix : Maybe String
-    , maybeNavigationKey : Maybe Browser.Navigation.Key
+    , navigationKey : Browser.Navigation.Key
 
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
     , prevUrl : String

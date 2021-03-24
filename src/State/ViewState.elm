@@ -460,17 +460,10 @@ modelUpdateViewState viewState model =
                 ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
 
         urlCmd =
-            -- This case statement prevents us from trying to update the URL/Matomo in the electron app (where we don't have
-            -- a navigation key)
-            case model.maybeNavigationKey of
-                Just key ->
-                    Cmd.batch
-                        [ updateUrlFunc key newUrl
-                        , updateMatomoCmd
-                        ]
-
-                Nothing ->
-                    Cmd.none
+            Cmd.batch
+                [ updateUrlFunc model.navigationKey newUrl
+                , updateMatomoCmd
+                ]
     in
     ( newModel, urlCmd )
 
