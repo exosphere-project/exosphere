@@ -45,12 +45,12 @@ widgets msgMapper palette model =
     , Element.text "Style.Widgets.Icon.timesCircle"
     , timesCircle (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Card.exoCard"
-    , exoCard palette "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
+    , exoCard palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.expandoCard"
     , expandoCard palette
         model.expandoCardExpanded
         (\new -> msgMapper (ToggleExpandoCard new))
-        "Title"
+        (Element.text "Title")
         (Element.text "Subtitle")
         (Element.text "contents")
     , Element.text "Style.Widgets.Card.badge"
