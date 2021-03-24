@@ -111,7 +111,7 @@ updateUnderlying msg model =
             Orchestration.orchModel model posixTime
 
         SetNonProjectView nonProjectViewConstructor ->
-            ViewStateHelpers.setNonProjectView model nonProjectViewConstructor
+            ViewStateHelpers.setNonProjectView nonProjectViewConstructor model
 
         HandleApiErrorWithBody errorContext error ->
             State.Error.processSynchronousApiError model errorContext error
@@ -517,7 +517,7 @@ processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor ->
 processProjectSpecificMsg model project msg =
     case msg of
         SetProjectView projectViewConstructor ->
-            ViewStateHelpers.setProjectView model project projectViewConstructor
+            ViewStateHelpers.setProjectView project projectViewConstructor model
 
         PrepareCredentialedRequest requestProto posixTime ->
             let
@@ -907,7 +907,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
             in
-            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs Defaults.keypairListViewParams)
+            ViewStateHelpers.setProjectView newProject (ListKeypairs Defaults.keypairListViewParams) newModel
 
         RequestDeleteKeypair keypairName ->
             ( model, Rest.Nova.requestDeleteKeypair project keypairName )
@@ -1105,7 +1105,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView model project (ListProjectVolumes Defaults.volumeListViewParams)
+            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) model
 
         ReceiveVolumes volumes ->
             let
@@ -1193,10 +1193,10 @@ processProjectSpecificMsg model project msg =
             ( model, OSVolumes.requestVolumes project )
 
         ReceiveAttachVolume attachment ->
-            ViewStateHelpers.setProjectView model project (MountVolInstructions attachment)
+            ViewStateHelpers.setProjectView project (MountVolInstructions attachment) model
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView model project (ListProjectVolumes Defaults.volumeListViewParams)
+            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) model
 
         ReceiveAppCredential appCredential ->
             let

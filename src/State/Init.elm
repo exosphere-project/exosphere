@@ -228,13 +228,13 @@ init flags maybeUrlKey =
         ( setViewModel, setViewCmd ) =
             case viewState of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView newModel nonProjectViewConstructor
+                    setNonProjectView nonProjectViewConstructor newModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
                     case GetterSetters.projectLookup newModel projectId of
                         Just project ->
-                            setProjectView newModel project projectViewConstructor
+                            setProjectView project projectViewConstructor newModel
 
                         Nothing ->
                             ( newModel, Cmd.none )
