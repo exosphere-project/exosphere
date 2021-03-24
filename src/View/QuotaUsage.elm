@@ -1,4 +1,4 @@
-module View.QuotaUsage exposing (computeQuotaDetails, dashboard, volumeQuotaDetails)
+module View.QuotaUsage exposing (computeQuotaDetails, volumeQuotaDetails)
 
 import Element
 import Element.Background as Background
@@ -11,35 +11,9 @@ import Style.Helpers as SH
 import Types.Types
     exposing
         ( Msg(..)
-        , Project
         )
 import View.Helpers as VH
 import View.Types
-
-
-dashboard : View.Types.Context -> Project -> Element.Element Msg
-dashboard context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 <|
-            Element.text <|
-                String.join " "
-                    [ context.localization.maxResourcesPerProject |> Helpers.String.toTitleCase
-                    , "Usage"
-                    ]
-        , quotaSections context project
-        ]
-
-
-quotaSections : View.Types.Context -> Project -> Element.Element Msg
-quotaSections context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ computeQuota context project
-        , volumeQuota context project
-
-        -- networkQuota stuff - whenever I find that
-        ]
 
 
 infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
@@ -74,15 +48,6 @@ infoItem context detail ( label, units ) =
             Element.text (labelLimit detail.limit)
         , Element.el [ Font.italic ] <|
             Element.text units
-        ]
-
-
-computeQuota : View.Types.Context -> Project -> Element.Element Msg
-computeQuota context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading3 <| Element.text "Compute"
-        , computeQuotaDetails context project.computeQuota
         ]
 
 
@@ -123,20 +88,6 @@ computeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (computeInfoItems context) ]
-
-
-volumeQuota : View.Types.Context -> Project -> Element.Element Msg
-volumeQuota context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading3 <|
-            Element.text
-                (context.localization.blockDevice
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-        , volumeQuotaDetails context project.volumeQuota
-        ]
 
 
 volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element Msg
