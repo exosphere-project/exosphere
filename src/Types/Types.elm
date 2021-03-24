@@ -1,7 +1,6 @@
 module Types.Types exposing
     ( AllResourcesListViewParams
     , CloudSpecificConfig
-    , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
@@ -359,7 +358,6 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
-    | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
     | ReceiveDeleteVolume
@@ -571,7 +569,6 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ExoSetupStatus
-    , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
     , exoCreatorUsername : Maybe String
@@ -598,13 +595,6 @@ type FloatingIpState
     | RequestedWaiting
     | Success
     | Failed
-
-
-type CockpitLoginStatus
-    = NotChecked
-    | CheckedNotReady
-    | Ready
-    | ReadyButRecheck
 
 
 type ServerUiStatus

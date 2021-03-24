@@ -25,8 +25,7 @@ import Time
 import Types.Interaction as ITypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , IPInfoLevel(..)
+        ( IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
         , PasswordVisibility(..)
@@ -498,14 +497,6 @@ serverStatus context projectId serverDetailViewParams server =
                 [ Element.text "Detailed status"
                 , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                 , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                , VH.compactKVSubRow
-                    (String.join " "
-                        [ context.localization.virtualComputer
-                            |> Helpers.String.toTitleCase
-                        , "Dashboard and Terminal readiness"
-                        ]
-                    )
-                    (Element.paragraph [] [ Element.text (friendlyCockpitReadiness server.exoProps.serverOrigin) ])
                 ]
 
             else
@@ -728,8 +719,6 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
                         ]
     in
     [ ITypes.GuacTerminal
-    , ITypes.CockpitDashboard
-    , ITypes.CockpitTerminal
     , ITypes.NativeSSH
     , ITypes.Console
     ]
@@ -1085,27 +1074,6 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
             Element.column
                 (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IPDetails ])
-
-
-friendlyCockpitReadiness : ServerOrigin -> String
-friendlyCockpitReadiness serverOrigin =
-    case serverOrigin of
-        ServerNotFromExo ->
-            "N/A"
-
-        ServerFromExo serverFromExoProps ->
-            case serverFromExoProps.cockpitStatus of
-                NotChecked ->
-                    "Not checked yet"
-
-                CheckedNotReady ->
-                    "Checked, not ready yet"
-
-                Ready ->
-                    "Ready"
-
-                ReadyButRecheck ->
-                    "Ready"
 
 
 serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg

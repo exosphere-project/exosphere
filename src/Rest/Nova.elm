@@ -40,7 +40,6 @@ import Json.Encode as Encode
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Cockpit exposing (requestCockpitIfRequestable)
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -789,11 +788,8 @@ receiveServer_ project osServer =
                         _ ->
                             Cmd.none
 
-        cockpitLoginCmd =
-            Cmd.none
-
         allCmds =
-            [ consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
+            [ consoleUrlCmd, passwordCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )

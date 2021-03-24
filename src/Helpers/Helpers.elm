@@ -35,8 +35,7 @@ import Time
 import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , Endpoints
+        ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
         , FloatingIpState(..)
@@ -444,7 +443,7 @@ serverOrigin serverDetails =
     case exoServerVersion of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v exoSetupStatusRDPP NotChecked RDPP.empty guacamoleStatus creatorName
+                ServerFromExoProps v exoSetupStatusRDPP RDPP.empty guacamoleStatus creatorName
 
         Nothing ->
             ServerNotFromExo

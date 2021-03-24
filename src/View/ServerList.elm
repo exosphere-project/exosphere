@@ -16,8 +16,7 @@ import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , IPInfoLevel(..)
+        ( IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
         , PasswordVisibility(..)

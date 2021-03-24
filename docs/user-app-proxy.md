@@ -78,7 +78,6 @@ For more context of how this solution was explored, see [issue 381](https://gitl
 Exosphere relies on a rich ecosystem of free, open-source software services to provide users with rich interactivity to their cloud servers (a.k.a. instances). A few important examples of these:
 
 - [Apache Guacamole](http://guacamole.apache.org/), which allows users to access their servers with a remote terminal and graphical desktop environment, all from their web browser
-- [Cockpit](https://cockpit-project.org) (Exosphere is deprecating this integration), which provides a graphical server management dashboard interface in the user's web browser
 - [JupyterLab](https://jupyter.org/), which is not tightly integrated with Exosphere yet but is already used in the community of Exosphere users. (Several other data science tools and workbenches are also in this category.) 
 
 What do these share in common? They are all web-based services. In the Exosphere ecosystem, they are all served from a user's cloud _server_ (a.k.a. instance) and accessed in the user's web browser (the _client_).

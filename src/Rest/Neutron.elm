@@ -415,7 +415,6 @@ receiveCreateFloatingIp model project serverUuid ipAddress =
             ( model, Cmd.none )
 
         Just server ->
-            {- This repeats a lot of code in receiveCockpitStatus, badly needs a refactor -}
             let
                 newServer =
                     let

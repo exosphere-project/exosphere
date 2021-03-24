@@ -17,8 +17,7 @@ import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , Server
+        ( Server
         , ServerOrigin(..)
         , UserAppProxyHostname
         )
@@ -175,10 +174,6 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                                     ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
                                                                         ++ Debug.toString error
                                                                     )
-
-        cockpit : CockpitDashboardOrTerminal -> ITypes.InteractionStatus
-        cockpit dashboardOrTerminal =
-            ITypes.Hidden
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuilding ->
@@ -197,12 +192,6 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                 ITypes.GuacDesktop ->
                     -- not implemented yet
                     ITypes.Hidden
-
-                ITypes.CockpitDashboard ->
-                    cockpit Dashboard
-
-                ITypes.CockpitTerminal ->
-                    cockpit Terminal
 
                 ITypes.NativeSSH ->
                     case maybeFloatingIp of
@@ -292,20 +281,6 @@ interactionDetails interaction context =
                 (\_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
-        ITypes.CockpitDashboard ->
-            ITypes.InteractionDetails
-                "Server Dashboard"
-                "Deprecated feature"
-                Icon.gauge
-                ITypes.UrlInteraction
-
-        ITypes.CockpitTerminal ->
-            ITypes.InteractionDetails
-                "Old Web Terminal"
-                "Deprecated feature"
-                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
-                ITypes.UrlInteraction
-
         ITypes.NativeSSH ->
             ITypes.InteractionDetails
                 "Native SSH"
@@ -324,8 +299,3 @@ interactionDetails interaction context =
                 )
                 Icon.console
                 ITypes.UrlInteraction
-
-
-type CockpitDashboardOrTerminal
-    = Dashboard
-    | Terminal
