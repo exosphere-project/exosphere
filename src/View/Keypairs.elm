@@ -13,7 +13,7 @@ import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Types.Types
     exposing
-        ( DeleteKeypairConfirmation
+        ( KeypairListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -94,72 +94,90 @@ createKeypair context project name publicKey =
         ]
 
 
-listKeypairs : View.Types.Context -> Project -> List DeleteKeypairConfirmation -> Element.Element Msg
-listKeypairs context project deleteConfirmations =
+listKeypairs :
+    View.Types.Context
+    -> Bool
+    -> Project
+    -> KeypairListViewParams
+    -> (KeypairListViewParams -> Msg)
+    -> Element.Element Msg
+listKeypairs context showHeading project viewParams toMsg =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
-            Element.column
-                VH.exoColumnAttributes
-                [ Element.el VH.heading2 <|
-                    Element.text
-                        (context.localization.pkiPublicKeyForSsh
-                            |> Helpers.String.pluralize
-                            |> Helpers.String.toTitleCase
-                        )
-                , if List.isEmpty keypairs_ then
-                    Element.column
-                        VH.exoColumnAttributes
-                        [ Element.text <|
-                            String.join " "
-                                [ "You don't have any"
-                                , context.localization.pkiPublicKeyForSsh
-                                    |> Helpers.String.pluralize
-                                , "yet, go upload one!"
+            if List.isEmpty keypairs_ then
+                Element.column
+                    (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
+                    [ Element.text <|
+                        String.join " "
+                            [ "You don't have any"
+                            , context.localization.pkiPublicKeyForSsh
+                                |> Helpers.String.pluralize
+                            , "yet, go upload one!"
+                            ]
+                    , let
+                        text =
+                            String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
+                      in
+                      Widget.iconButton
+                        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                        { text = text
+                        , icon =
+                            Element.row
+                                [ Element.spacing 5 ]
+                                [ Element.text text
+                                , Element.el []
+                                    (FeatherIcons.chevronRight
+                                        |> FeatherIcons.toHtml []
+                                        |> Element.html
+                                    )
                                 ]
-                        , let
-                            text =
-                                String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
-                          in
-                          Widget.iconButton
-                            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                            { text = text
-                            , icon =
-                                Element.row
-                                    [ Element.spacing 5 ]
-                                    [ Element.text text
-                                    , Element.el []
-                                        (FeatherIcons.chevronRight
-                                            |> FeatherIcons.toHtml []
-                                            |> Element.html
-                                        )
-                                    ]
-                            , onPress =
-                                Just <|
-                                    ProjectMsg project.auth.project.uuid <|
-                                        SetProjectView <|
-                                            CreateKeypair "" ""
-                            }
-                        ]
+                        , onPress =
+                            Just <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    SetProjectView <|
+                                        CreateKeypair "" ""
+                        }
+                    ]
 
-                  else
-                    Element.column
-                        VH.exoColumnAttributes
-                        (List.map
-                            (renderKeypairCard context project deleteConfirmations)
-                            keypairs_
-                        )
-                ]
+            else
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.paddingXY 10 0, Element.width Element.fill ]
+                    )
+                    (List.map
+                        (renderKeypairCard context project viewParams toMsg)
+                        keypairs_
+                    )
     in
-    VH.renderWebData
-        context
-        project.keypairs
-        (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
-        renderKeypairs
+    Element.column
+        [ Element.spacing 20, Element.width Element.fill ]
+        [ if showHeading then
+            Element.el VH.heading2 <|
+                Element.text
+                    (context.localization.pkiPublicKeyForSsh
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
+
+          else
+            Element.none
+        , VH.renderWebData
+            context
+            project.keypairs
+            (Helpers.String.pluralize context.localization.pkiPublicKeyForSsh)
+            renderKeypairs
+        ]
 
 
-renderKeypairCard : View.Types.Context -> Project -> List DeleteKeypairConfirmation -> OSTypes.Keypair -> Element.Element Msg
-renderKeypairCard context project deleteConfirmations keypair =
+renderKeypairCard :
+    View.Types.Context
+    -> Project
+    -> KeypairListViewParams
+    -> (KeypairListViewParams -> Msg)
+    -> OSTypes.Keypair
+    -> Element.Element Msg
+renderKeypairCard context project viewParams toMsg keypair =
     let
         cardBody =
             Element.column
@@ -176,21 +194,43 @@ renderKeypairCard context project deleteConfirmations keypair =
                         , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                         ]
                         keypair.fingerprint
-                , actionButtons context project ListKeypairs deleteConfirmations keypair
+                , actionButtons context project toMsg viewParams keypair
                 ]
+
+        expanded =
+            List.member ( keypair.name, keypair.fingerprint ) viewParams.expandedKeypairs
     in
-    Card.exoCard
+    Card.expandoCard
         context.palette
-        (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh)
-        ""
+        expanded
+        (\bool ->
+            toMsg
+                { viewParams
+                    | expandedKeypairs =
+                        if bool then
+                            ( keypair.name, keypair.fingerprint ) :: viewParams.expandedKeypairs
+
+                        else
+                            List.filter (\k -> ( keypair.name, keypair.fingerprint ) /= k) viewParams.expandedKeypairs
+                }
+        )
+        (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh
+            |> Element.text
+        )
+        (if expanded then
+            Element.none
+
+         else
+            Element.el [ Font.family [ Font.monospace ] ] (Element.text keypair.fingerprint)
+        )
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (List DeleteKeypairConfirmation -> ProjectViewConstructor) -> List DeleteKeypairConfirmation -> OSTypes.Keypair -> Element.Element Msg
-actionButtons context project toProjectViewConstructor deleteConfirmations keypair =
+actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> Msg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element Msg
+actionButtons context project toMsg viewParams keypair =
     let
         confirmationNeeded =
-            List.member ( keypair.name, keypair.fingerprint ) deleteConfirmations
+            List.member ( keypair.name, keypair.fingerprint ) viewParams.deleteConfirmations
 
         deleteButton =
             if confirmationNeeded then
@@ -210,15 +250,13 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                         { text = "Cancel"
                         , onPress =
                             Just <|
-                                ProjectMsg
-                                    project.auth.project.uuid
-                                    (SetProjectView <|
-                                        toProjectViewConstructor
-                                            (deleteConfirmations
-                                                |> List.filter
-                                                    ((/=) ( keypair.name, keypair.fingerprint ))
-                                            )
-                                    )
+                                toMsg
+                                    { viewParams
+                                        | deleteConfirmations =
+                                            List.filter
+                                                ((/=) ( keypair.name, keypair.fingerprint ))
+                                                viewParams.deleteConfirmations
+                                    }
                         }
                     ]
 
@@ -228,14 +266,12 @@ actionButtons context project toProjectViewConstructor deleteConfirmations keypa
                     { text = "Delete"
                     , onPress =
                         Just <|
-                            ProjectMsg
-                                project.auth.project.uuid
-                                (SetProjectView <|
-                                    toProjectViewConstructor
-                                        (( keypair.name, keypair.fingerprint )
-                                            :: deleteConfirmations
-                                        )
-                                )
+                            toMsg
+                                { viewParams
+                                    | deleteConfirmations =
+                                        ( keypair.name, keypair.fingerprint )
+                                            :: viewParams.deleteConfirmations
+                                }
                     }
     in
     Element.row

@@ -140,7 +140,7 @@ pathParsers defaultViewState =
         (NonProjectView PageNotFound)
         (s "pagenotfound")
     , map
-        (\uuid projectViewConstructor -> ProjectView uuid { createPopup = False } <| projectViewConstructor)
+        (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)
         (s "projects" </> string </> oneOf projectViewConstructorParsers)
     ]
 
@@ -150,6 +150,9 @@ projectViewConstructorParsers =
     [ map
         (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
         (s "images")
+    , map
+        (AllResources Defaults.allResourcesListViewParams)
+        (s "resources")
     , map
         (\svrUuid imageName ->
             CreateServerImage svrUuid imageName
@@ -175,17 +178,14 @@ projectViewConstructorParsers =
         )
         (s "volumes" </> string)
     , map
-        (ListProjectVolumes [])
+        (ListProjectVolumes Defaults.volumeListViewParams)
         (s "volumes")
     , map
-        (ListKeypairs [])
+        (ListKeypairs Defaults.keypairListViewParams)
         (s "keypairs")
     , map
         (CreateKeypair "" "")
         (s "uploadkeypair")
-    , map
-        ListQuotaUsage
-        (s "quotausage")
     , map
         (\params ->
             CreateServer params

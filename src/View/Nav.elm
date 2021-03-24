@@ -64,8 +64,7 @@ navMenu model context =
                 (Just
                     (ProjectMsg project.auth.project.uuid
                         (SetProjectView <|
-                            ListProjectServers
-                                Defaults.serverListViewParams
+                            AllResources Defaults.allResourcesListViewParams
                         )
                     )
                 )

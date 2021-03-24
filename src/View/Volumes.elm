@@ -28,38 +28,52 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , VolumeListViewParams
         )
 import View.Helpers as VH
+import View.QuotaUsage
 import View.Types
 import Widget
 import Widget.Style.Material
 
 
-volumes : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> Element.Element Msg
-volumes context project deleteVolumeConfirmations =
+volumes :
+    View.Types.Context
+    -> Bool
+    -> Project
+    -> VolumeListViewParams
+    -> (VolumeListViewParams -> Msg)
+    -> Element.Element Msg
+volumes context showHeading project viewParams toMsg =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
             Element.column
                 (VH.exoColumnAttributes
-                    ++ [ Element.spacing 15
-                       , Element.width (Element.fill |> Element.minimum 960)
+                    ++ [ Element.paddingXY 10 0
+                       , Element.spacing 15
+                       , Element.width Element.fill
                        ]
                 )
                 (List.map
-                    (renderVolumeCard context project deleteVolumeConfirmations)
+                    (renderVolumeCard context project viewParams toMsg)
                     volumes_
                 )
     in
     Element.column
-        VH.exoColumnAttributes
-        [ Element.el VH.heading2
-            (Element.text
-                (context.localization.blockDevice
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
+        [ Element.width Element.fill ]
+        [ if showHeading then
+            Element.el VH.heading2
+                (Element.text
+                    (context.localization.blockDevice
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
                 )
-            )
+
+          else
+            Element.none
+        , View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
         , VH.renderWebData
             context
             project.volumes
@@ -68,24 +82,49 @@ volumes context project deleteVolumeConfirmations =
         ]
 
 
-renderVolumeCard : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> OSTypes.Volume -> Element.Element Msg
-renderVolumeCard context project deleteVolumeConfirmations volume =
-    ExoCard.exoCard
+renderVolumeCard :
+    View.Types.Context
+    -> Project
+    -> VolumeListViewParams
+    -> (VolumeListViewParams -> Msg)
+    -> OSTypes.Volume
+    -> Element.Element Msg
+renderVolumeCard context project viewParams toMsg volume =
+    ExoCard.expandoCard
         context.palette
-        (VH.possiblyUntitledResource volume.name context.localization.blockDevice)
-        (String.fromInt volume.size ++ " GB")
+        (List.member volume.uuid viewParams.expandedVols)
+        (\bool ->
+            toMsg
+                { viewParams
+                    | expandedVols =
+                        if bool then
+                            volume.uuid :: viewParams.expandedVols
+
+                        else
+                            List.filter (\v -> v /= volume.uuid) viewParams.expandedVols
+                }
+        )
+        (VH.possiblyUntitledResource volume.name context.localization.blockDevice
+            |> Element.text
+        )
+        (Element.text <| String.fromInt volume.size ++ " GB")
     <|
-        volumeDetail context project ListProjectVolumes deleteVolumeConfirmations volume.uuid
+        volumeDetail
+            context
+            project
+            (\deleteConfirmations -> toMsg { viewParams | deleteConfirmations = deleteConfirmations })
+            viewParams.deleteConfirmations
+            volume.uuid
 
 
 volumeActionButtons :
     View.Types.Context
     -> Project
-    -> (List DeleteVolumeConfirmation -> ProjectViewConstructor)
+    -> (List DeleteVolumeConfirmation -> Msg)
     -> List DeleteVolumeConfirmation
     -> OSTypes.Volume
     -> Element.Element Msg
-volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirmations volume =
+volumeActionButtons context project toMsg deleteConfirmations volume =
     let
         volDetachDeleteWarning =
             if Helpers.isBootVol Nothing volume then
@@ -151,7 +190,7 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                     Element.none
 
         confirmationNeeded =
-            List.member volume.uuid deleteVolumeConfirmations
+            List.member volume.uuid deleteConfirmations
 
         deleteButton =
             case ( volume.status, confirmationNeeded ) of
@@ -175,11 +214,8 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                             { text = "Cancel"
                             , onPress =
                                 Just <|
-                                    ProjectMsg
-                                        project.auth.project.uuid
-                                        (SetProjectView <|
-                                            toProjectViewConstructor (deleteVolumeConfirmations |> List.filter ((/=) volume.uuid))
-                                        )
+                                    toMsg
+                                        (deleteConfirmations |> List.filter ((/=) volume.uuid))
                             }
                         ]
 
@@ -197,9 +233,8 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
                             { text = "Delete"
                             , onPress =
                                 Just <|
-                                    ProjectMsg
-                                        project.auth.project.uuid
-                                        (SetProjectView <| toProjectViewConstructor [ volume.uuid ])
+                                    toMsg
+                                        [ volume.uuid ]
                             }
     in
     Element.column (Element.width Element.fill :: VH.exoColumnAttributes)
@@ -211,8 +246,14 @@ volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirm
         ]
 
 
-volumeDetailView : View.Types.Context -> Project -> List DeleteVolumeConfirmation -> OSTypes.VolumeUuid -> Element.Element Msg
-volumeDetailView context project deleteVolumeConfirmations volumeUuid =
+volumeDetailView :
+    View.Types.Context
+    -> Project
+    -> List DeleteVolumeConfirmation
+    -> (List DeleteVolumeConfirmation -> Msg)
+    -> OSTypes.VolumeUuid
+    -> Element.Element Msg
+volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el VH.heading2 <|
@@ -222,18 +263,18 @@ volumeDetailView context project deleteVolumeConfirmations volumeUuid =
                         |> Helpers.String.toTitleCase
                     , "Detail"
                     ]
-        , volumeDetail context project (VolumeDetail volumeUuid) deleteVolumeConfirmations volumeUuid
+        , volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid
         ]
 
 
 volumeDetail :
     View.Types.Context
     -> Project
-    -> (List DeleteVolumeConfirmation -> ProjectViewConstructor)
+    -> (List DeleteVolumeConfirmation -> Msg)
     -> List DeleteVolumeConfirmation
     -> OSTypes.VolumeUuid
     -> Element.Element Msg
-volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations volumeUuid =
+volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
     OpenStack.Volumes.volumeLookup project volumeUuid
         |> Maybe.withDefault
             (Element.text <|
@@ -251,7 +292,7 @@ volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations 
                     , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
                     , renderAttachments context project volume
                     , VH.compactKVRow "Description:" <|
-                        Element.paragraph [ Element.width (Element.fill |> Element.maximum 706) ] <|
+                        Element.paragraph [ Element.width Element.fill ] <|
                             [ Element.text <| Maybe.withDefault "" volume.description ]
                     , VH.compactKVRow "UUID:" <| copyableText context.palette [] volume.uuid
                     , case volume.imageMetadata of
@@ -267,7 +308,7 @@ volumeDetail context project toProjectViewConstructor deleteVolumeConfirmations 
                                     ]
                                 )
                                 (Element.text metadata.name)
-                    , volumeActionButtons context project toProjectViewConstructor deleteVolumeConfirmations volume
+                    , volumeActionButtons context project toMsg deleteVolumeConfirmations volume
                     ]
             )
 

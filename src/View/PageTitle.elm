@@ -87,6 +87,12 @@ pageTitle model context =
                             )
             in
             case projectViewConstructor of
+                AllResources _ ->
+                    String.join " "
+                        [ "All resources for"
+                        , projectName
+                        ]
+
                 ListImages _ _ ->
                     String.join " "
                         [ context.localization.staticRepresentationOfBlockDeviceContents
@@ -128,14 +134,6 @@ pageTitle model context =
                         [ "Upload"
                         , context.localization.pkiPublicKeyForSsh
                         , "for"
-                        , projectName
-                        ]
-
-                ListQuotaUsage ->
-                    String.join " "
-                        [ context.localization.maxResourcesPerProject
-                            |> Helpers.String.toTitleCase
-                        , "Usage for"
                         , projectName
                         ]
 

@@ -8,7 +8,7 @@ import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
 import Style.Widgets.Button exposing (dangerButton, warningButton)
-import Style.Widgets.Card exposing (badge, exoCard)
+import Style.Widgets.Card exposing (badge, exoCard, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, remove, roundRect, timesCircle)
@@ -23,6 +23,7 @@ import Widget
 
 type Msg
     = ChipsFilterMsg Style.Widgets.ChipsFilter.ChipsFilterMsg
+    | ToggleExpandoCard Bool
     | NoOp
 
 
@@ -44,7 +45,14 @@ widgets msgMapper palette model =
     , Element.text "Style.Widgets.Icon.timesCircle"
     , timesCircle (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Card.exoCard"
-    , exoCard palette "Title" "Subtitle" (Element.text "Lorem ipsum dolor sit amet.")
+    , exoCard palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
+    , Element.text "Style.Widgets.Card.expandoCard"
+    , expandoCard palette
+        model.expandoCardExpanded
+        (\new -> msgMapper (ToggleExpandoCard new))
+        (Element.text "Title")
+        (Element.text "Subtitle")
+        (Element.text "contents")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
     , Element.text "Style.Widgets.Button.dangerButton"
@@ -56,7 +64,7 @@ widgets msgMapper palette model =
         (warningButton palette)
         { text = "Warning button", onPress = Just (msgMapper NoOp) }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
-    , copyableText palette "foobar"
+    , copyableText palette [] "foobar"
     , Element.text "Style.Widgets.IconButton.chip"
     , chip palette Nothing (Element.text "chip label")
     , Element.text "Style.Widgets.IconButton.chip (with badge)"
@@ -113,6 +121,7 @@ type alias ChipFilterModel =
 
 type alias Model =
     { chipFilterModel : ChipFilterModel
+    , expandoCardExpanded : Bool
     }
 
 
@@ -123,6 +132,7 @@ init =
             , textInput = ""
             , options = options
             }
+      , expandoCardExpanded = False
       }
     , Cmd.none
     )
@@ -160,6 +170,13 @@ update msg model =
             ( { model
                 | chipFilterModel =
                     { cfm | textInput = string }
+              }
+            , Cmd.none
+            )
+
+        ToggleExpandoCard new ->
+            ( { model
+                | expandoCardExpanded = new
               }
             , Cmd.none
             )

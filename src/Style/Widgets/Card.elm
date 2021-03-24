@@ -1,25 +1,120 @@
-module Style.Widgets.Card exposing (badge, exoCard)
+module Style.Widgets.Card exposing
+    ( badge
+    , exoCard
+    , expandoCard
+    )
 
 import Element exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
+import Element.Input as Input
+import FeatherIcons
 import Style.Helpers as SH
 import Style.Types
 import Widget
 
 
-exoCard : Style.Types.ExoPalette -> String -> String -> Element msg -> Element msg
+exoCard : Style.Types.ExoPalette -> Element msg -> Element msg -> Element msg -> Element msg
 exoCard palette title subTitle content =
     Widget.column
         (SH.materialStyle palette).cardColumn
-        [ Element.row
-            [ Element.width Element.fill, Element.spacing 15 ]
-            [ Element.el [ Font.bold, Font.size 16 ] (Element.text title)
-            , Element.el [] (Element.text subTitle)
+    <|
+        List.append
+            [ Element.row
+                [ Element.width Element.fill, Element.spacing 10 ]
+                [ Element.el [ Font.bold, Font.size 16 ] title
+                , Element.el [ Element.alignRight ] subTitle
+                ]
             ]
-        , content
-        ]
+            (if content == Element.none then
+                []
+
+             else
+                [ content ]
+            )
+
+
+expandoCard :
+    Style.Types.ExoPalette
+    -> Bool
+    -> (Bool -> msg)
+    -> Element msg
+    -> Element msg
+    -> Element msg
+    -> Element msg
+expandoCard palette expanded expandToggleMsg title subTitle content =
+    let
+        expandButton : Element.Element msg
+        expandButton =
+            let
+                iconFunction checked =
+                    let
+                        featherIcon =
+                            if checked then
+                                FeatherIcons.chevronDown
+
+                            else
+                                FeatherIcons.chevronRight
+                    in
+                    featherIcon |> FeatherIcons.toHtml [] |> Element.html
+            in
+            Element.el
+                [ Element.alignLeft
+                , Element.centerY
+                , Element.width Element.shrink
+                ]
+                (Input.checkbox [ Element.paddingXY 5 5 ]
+                    { checked = expanded
+                    , onChange = expandToggleMsg
+                    , icon = iconFunction
+                    , label =
+                        Input.labelRight
+                            -- 0 font size is a hack so that screen readers and headless browser tests see the label,
+                            -- but regular users just see the icon.
+                            [ Font.size 0 ]
+                            (Element.text "expand")
+                    }
+                )
+
+        firstRow =
+            Element.row
+                [ Element.width Element.fill, Element.spacing 15 ]
+                [ expandButton
+                , Element.el [ Font.bold, Font.size 16 ] title
+                , Element.el [ Element.alignRight, Element.paddingXY 10 0 ] subTitle
+                ]
+    in
+    Widget.column
+        ((SH.materialStyle palette).cardColumn
+            |> (\x ->
+                    { x
+                        | containerColumn =
+                            List.concat
+                                [ (SH.materialStyle palette).cardColumn.containerColumn
+                                , [ Element.padding 0 ]
+                                , if expanded then
+                                    []
+
+                                  else
+                                    [ Events.onClick (expanded |> not |> expandToggleMsg) ]
+                                ]
+                        , element =
+                            (SH.materialStyle palette).cardColumn.element
+                                ++ [ Element.padding 3
+                                   ]
+                    }
+               )
+        )
+        (if expanded then
+            [ firstRow
+            , content
+            ]
+
+         else
+            [ firstRow ]
+        )
 
 
 badge : String -> Element msg

@@ -1,7 +1,6 @@
 module View.ServerList exposing (serverList)
 
 import Element
-import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
@@ -12,6 +11,7 @@ import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Button
+import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.Types
@@ -32,67 +32,100 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
+import View.QuotaUsage
 import View.Types
 import Widget
 import Widget.Style.Material
 
 
-serverList : View.Types.Context -> Project -> ServerListViewParams -> Element.Element Msg
-serverList context project serverListViewParams =
-    {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
-    case ( project.servers.data, project.servers.refreshStatus ) of
-        ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
-            Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
-                , Element.text "Please wait..."
-                ]
-
-        ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
-            Element.paragraph
-                []
-                [ Element.text <|
-                    String.concat
-                        [ "Cannot display"
-                        , context.localization.virtualComputer
-                            |> Helpers.String.pluralize
-                        , ". Error message: " ++ Debug.toString e
+serverList :
+    View.Types.Context
+    -> Bool
+    -> Project
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> Element.Element Msg
+serverList context showHeading project serverListViewParams toMsg =
+    let
+        serverListContents =
+            {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
+            case ( project.servers.data, project.servers.refreshStatus ) of
+                ( RDPP.DontHave, RDPP.NotLoading Nothing ) ->
+                    Element.row [ Element.spacing 15 ]
+                        [ Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+                        , Element.text "Please wait..."
                         ]
-                ]
 
-        ( RDPP.DontHave, RDPP.Loading _ ) ->
-            Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
-                , Element.text "Loading..."
-                ]
+                ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
+                    Element.paragraph
+                        []
+                        [ Element.text <|
+                            String.concat
+                                [ "Cannot display"
+                                , context.localization.virtualComputer
+                                    |> Helpers.String.pluralize
+                                , ". Error message: " ++ Debug.toString e
+                                ]
+                        ]
 
-        ( RDPP.DoHave servers _, _ ) ->
-            if List.isEmpty servers then
-                Element.paragraph
-                    []
-                    [ Element.text <|
-                        String.join " "
-                            [ "You don't have any"
-                            , context.localization.virtualComputer
-                                |> Helpers.String.pluralize
-                            , "yet, go create one!"
+                ( RDPP.DontHave, RDPP.Loading _ ) ->
+                    Element.row [ Element.spacing 15 ]
+                        [ Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+                        , Element.text "Loading..."
+                        ]
+
+                ( RDPP.DoHave servers _, _ ) ->
+                    if List.isEmpty servers then
+                        Element.paragraph
+                            []
+                            [ Element.text <|
+                                String.join " "
+                                    [ "You don't have any"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.pluralize
+                                    , "yet, go create one!"
+                                    ]
                             ]
-                    ]
 
-            else
-                serverList_
-                    context
-                    project.auth.project.uuid
-                    project.auth.user.uuid
-                    serverListViewParams
-                    servers
+                    else
+                        serverList_
+                            context
+                            project.auth.project.uuid
+                            project.auth.user.uuid
+                            serverListViewParams
+                            toMsg
+                            servers
+    in
+    Element.column [ Element.width Element.fill ]
+        [ if showHeading then
+            Element.el VH.heading2
+                (Element.text <|
+                    (context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                        |> Helpers.String.toTitleCase
+                    )
+                )
+
+          else
+            Element.none
+        , View.QuotaUsage.computeQuotaDetails context project.computeQuota
+        , serverListContents
+        ]
 
 
-serverList_ : View.Types.Context -> ProjectIdentifier -> OSTypes.UserUuid -> ServerListViewParams -> List Server -> Element.Element Msg
-serverList_ context projectId userUuid serverListViewParams servers =
+serverList_ :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> OSTypes.UserUuid
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> List Server
+    -> Element.Element Msg
+serverList_ context projectId userUuid serverListViewParams toMsg servers =
     {- Render a list of servers -}
     let
         ( ownServers, otherUsersServers ) =
@@ -119,36 +152,35 @@ serverList_ context projectId userUuid serverListViewParams servers =
             else
                 selectableServers == selectedServers
     in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2
-            (Element.text <|
-                (context.localization.virtualComputer
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-            )
-        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.fill |> Element.maximum 960) ]) <|
-            List.concat
-                [ [ renderTableHead
-                        context
-                        projectId
-                        allServersSelected
-                        ( selectableServers, selectedServers )
-                        serverListViewParams
-                  ]
-                , List.map (renderServer context projectId serverListViewParams True) ownServers
-                , [ onlyOwnExpander context projectId serverListViewParams otherUsersServers ]
-                , if serverListViewParams.onlyOwnServers then
-                    []
+    Element.column [ Element.paddingXY 10 0, Element.spacing 10, Element.width Element.fill ] <|
+        List.concat
+            [ [ renderTableHead
+                    context
+                    projectId
+                    allServersSelected
+                    ( selectableServers, selectedServers )
+                    serverListViewParams
+                    toMsg
+              ]
+            , List.map (renderServer context projectId serverListViewParams toMsg True) ownServers
+            , [ onlyOwnExpander context serverListViewParams toMsg otherUsersServers ]
+            , if serverListViewParams.onlyOwnServers then
+                []
 
-                  else
-                    List.map (renderServer context projectId serverListViewParams False) otherUsersServers
-                ]
-        ]
+              else
+                List.map (renderServer context projectId serverListViewParams toMsg False) otherUsersServers
+            ]
 
 
-renderTableHead : View.Types.Context -> ProjectIdentifier -> Bool -> ( List Server, List Server ) -> ServerListViewParams -> Element.Element Msg
-renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams =
+renderTableHead :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> Bool
+    -> ( List Server, List Server )
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> Element.Element Msg
+renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams toMsg =
     let
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
@@ -175,43 +207,39 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                 newParams =
                     { serverListViewParams | selectedServers = newSelection }
             in
-            ListProjectServers newParams
-                |> SetProjectView
-                |> ProjectMsg projectId
-
-        extraColAttrs =
-            [ Element.width Element.fill
-            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            , Border.color (SH.toElementColor context.palette.on.background)
-            , Element.paddingXY 5 0
-            ]
+            toMsg newParams
 
         extraRowAttrs =
-            [ Element.padding 5
+            [ Element.paddingXY 5 0
             , Element.width Element.fill
             ]
     in
-    Element.column (VH.exoColumnAttributes ++ extraColAttrs)
-        [ Element.row (VH.exoRowAttributes ++ extraRowAttrs) <|
-            [ Element.el [] <|
-                Input.checkbox []
-                    { checked = allServersSelected
-                    , onChange = onChecked
-                    , icon = Input.defaultCheckbox
-                    , label = Input.labelRight [] (Element.text "Select All")
-                    }
-            , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (Style.Widgets.Button.dangerButton context.palette)
-                    { text = "Delete"
-                    , onPress = deleteButtonOnPress
-                    }
-            ]
+    Element.row (VH.exoRowAttributes ++ extraRowAttrs) <|
+        [ Element.el [] <|
+            Input.checkbox []
+                { checked = allServersSelected
+                , onChange = onChecked
+                , icon = Input.defaultCheckbox
+                , label = Input.labelRight [] (Element.text "Select All")
+                }
+        , Element.el [ Element.alignRight ] <|
+            Widget.textButton
+                (Style.Widgets.Button.dangerButton context.palette)
+                { text = "Delete"
+                , onPress = deleteButtonOnPress
+                }
         ]
 
 
-renderServer : View.Types.Context -> ProjectIdentifier -> ServerListViewParams -> Bool -> Server -> Element.Element Msg
-renderServer context projectId serverListViewParams isMyServer server =
+renderServer :
+    View.Types.Context
+    -> ProjectIdentifier
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> Bool
+    -> Server
+    -> Element.Element Msg
+renderServer context projectId serverListViewParams toMsg isMyServer server =
     let
         statusIcon =
             Element.el
@@ -253,7 +281,7 @@ renderServer context projectId serverListViewParams isMyServer server =
                                     newParams =
                                         modifyServerSelection server action serverListViewParams
                                 in
-                                ProjectMsg projectId <| SetProjectView <| ListProjectServers newParams
+                                toMsg newParams
                         , icon = Input.defaultCheckbox
                         , label = Input.labelHidden server.osProps.name
                         }
@@ -291,7 +319,6 @@ renderServer context projectId serverListViewParams isMyServer server =
                 ]
                 [ serverLabelName aServer
                 , creatorNameView
-                , Element.el [ Font.size 15 ] (Element.text (server |> VH.getServerUiStatus |> VH.getServerUiStatusStr))
                 ]
 
         deletionAttempted =
@@ -320,18 +347,13 @@ renderServer context projectId serverListViewParams isMyServer server =
                         { icon = Icon.windowClose (SH.toElementColor context.palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
-                            Just
-                                (ProjectMsg
-                                    projectId
-                                    (SetProjectView <|
-                                        ListProjectServers
-                                            { serverListViewParams
-                                                | deleteConfirmations =
-                                                    serverListViewParams.deleteConfirmations
-                                                        |> List.filter ((/=) server.osProps.uuid)
-                                            }
-                                    )
-                                )
+                            Just <|
+                                toMsg
+                                    { serverListViewParams
+                                        | deleteConfirmations =
+                                            serverListViewParams.deleteConfirmations
+                                                |> List.filter ((/=) server.osProps.uuid)
+                                    }
                         }
                     ]
 
@@ -341,13 +363,9 @@ renderServer context projectId serverListViewParams isMyServer server =
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
-                            Just
-                                (ProjectMsg projectId
-                                    (SetProjectView <|
-                                        ListProjectServers
-                                            { serverListViewParams | deleteConfirmations = [ server.osProps.uuid ] }
-                                    )
-                                )
+                            Just <|
+                                toMsg
+                                    { serverListViewParams | deleteConfirmations = [ server.osProps.uuid ] }
                         }
                     ]
 
@@ -360,16 +378,20 @@ renderServer context projectId serverListViewParams isMyServer server =
                         }
                     ]
     in
-    Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-        ([ checkbox
-         , serverLabel server
-         ]
-            ++ deleteWidget
-        )
+    Style.Widgets.Card.exoCard
+        context.palette
+        (Element.row [ Element.spacing 8 ] [ checkbox, serverLabel server ])
+        (Element.row [ Element.spacing 8 ] deleteWidget)
+        Element.none
 
 
-onlyOwnExpander : View.Types.Context -> ProjectIdentifier -> ServerListViewParams -> List Server -> Element.Element Msg
-onlyOwnExpander context projectId serverListViewParams otherUsersServers =
+onlyOwnExpander :
+    View.Types.Context
+    -> ServerListViewParams
+    -> (ServerListViewParams -> Msg)
+    -> List Server
+    -> Element.Element Msg
+onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
     let
         numOtherUsersServers =
             List.length otherUsersServers
@@ -433,10 +455,7 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
 
         changeOnlyOwnMsg : Msg
         changeOnlyOwnMsg =
-            ProjectMsg projectId <|
-                SetProjectView <|
-                    ListProjectServers
-                        newServerListViewParams
+            toMsg newServerListViewParams
 
         changeButton =
             Widget.button
@@ -454,14 +473,8 @@ onlyOwnExpander context projectId serverListViewParams otherUsersServers =
         Element.none
 
     else
-        Element.column (VH.exoColumnAttributes ++ [ Element.padding 0, Element.width Element.fill ])
+        Element.column [ Element.spacing 3, Element.padding 0, Element.width Element.fill ]
             [ Element.el
-                [ Element.width Element.fill
-                , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-                , Border.color (SH.toElementColor context.palette.on.background)
-                ]
-                Element.none
-            , Element.el
                 [ Element.centerX, Font.size 14 ]
                 (Element.text statusText)
             , Element.el

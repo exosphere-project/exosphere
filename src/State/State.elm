@@ -287,9 +287,9 @@ updateUnderlying msg model =
                                         Just project ->
                                             ProjectView
                                                 project.auth.project.uuid
-                                                { createPopup = False }
+                                                Defaults.projectViewParams
                                             <|
-                                                ListProjectServers Defaults.serverListViewParams
+                                                AllResources Defaults.allResourcesListViewParams
 
                                         Nothing ->
                                             NonProjectView LoginPicker
@@ -428,7 +428,29 @@ processTick model interval time =
                             ( model, Cmd.none )
 
                         Just project ->
+                            let
+                                pollVolumes : ( Model, Cmd Msg )
+                                pollVolumes =
+                                    ( model
+                                    , case interval of
+                                        5 ->
+                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
+                                                OSVolumes.requestVolumes project
+
+                                            else
+                                                Cmd.none
+
+                                        60 ->
+                                            OSVolumes.requestVolumes project
+
+                                        _ ->
+                                            Cmd.none
+                                    )
+                            in
                             case projectViewState of
+                                AllResources _ ->
+                                    pollVolumes
+
                                 ServerDetail serverUuid _ ->
                                     let
                                         volCmd =
@@ -456,21 +478,7 @@ processTick model interval time =
                                             ( model, Cmd.none )
 
                                 ListProjectVolumes _ ->
-                                    ( model
-                                    , case interval of
-                                        5 ->
-                                            if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
-                                                OSVolumes.requestVolumes project
-
-                                            else
-                                                Cmd.none
-
-                                        60 ->
-                                            OSVolumes.requestVolumes project
-
-                                        _ ->
-                                            Cmd.none
-                                    )
+                                    pollVolumes
 
                                 VolumeDetail volumeUuid _ ->
                                     ( model
@@ -594,10 +602,10 @@ processProjectSpecificMsg model project msg =
                                 Just p ->
                                     ProjectView
                                         p.auth.project.uuid
-                                        { createPopup = False }
+                                        Defaults.projectViewParams
                                     <|
-                                        ListProjectServers
-                                            Defaults.serverListViewParams
+                                        AllResources
+                                            Defaults.allResourcesListViewParams
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -711,8 +719,8 @@ processProjectSpecificMsg model project msg =
                         project.auth.project.uuid
                         { createPopup = False }
                     <|
-                        ListProjectServers
-                            Defaults.serverListViewParams
+                        AllResources
+                            Defaults.allResourcesListViewParams
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project serverUuid imageName
@@ -899,7 +907,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
             in
-            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs [])
+            ViewStateHelpers.setProjectView newModel newProject (ListKeypairs Defaults.keypairListViewParams)
 
         RequestDeleteKeypair keypairName ->
             ( model, Rest.Nova.requestDeleteKeypair project keypairName )
@@ -934,10 +942,10 @@ processProjectSpecificMsg model project msg =
                 newViewState =
                     ProjectView
                         project.auth.project.uuid
-                        { createPopup = False }
+                        Defaults.projectViewParams
                     <|
-                        ListProjectServers
-                            Defaults.serverListViewParams
+                        AllResources
+                            Defaults.allResourcesListViewParams
             in
             ( model, Cmd.none )
                 |> Helpers.pipelineCmd
@@ -958,8 +966,8 @@ processProjectSpecificMsg model project msg =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (ListProjectServers
-                                                Defaults.serverListViewParams
+                                            (AllResources
+                                                Defaults.allResourcesListViewParams
                                             )
 
                                     else
@@ -1097,7 +1105,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes Defaults.volumeListViewParams)
 
         ReceiveVolumes volumes ->
             let
@@ -1188,7 +1196,7 @@ processProjectSpecificMsg model project msg =
             ViewStateHelpers.setProjectView model project (MountVolInstructions attachment)
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView model project (ListProjectVolumes [])
+            ViewStateHelpers.setProjectView model project (ListProjectVolumes Defaults.volumeListViewParams)
 
         ReceiveAppCredential appCredential ->
             let
@@ -1609,14 +1617,14 @@ createProject model authToken endpoints =
                         newProject.auth.project.uuid
                         { createPopup = False }
                     <|
-                        ListProjectServers Defaults.serverListViewParams
+                        AllResources Defaults.allResourcesListViewParams
 
                 ProjectView _ projectViewParams _ ->
                     ProjectView
                         newProject.auth.project.uuid
                         projectViewParams
                     <|
-                        ListProjectServers Defaults.serverListViewParams
+                        AllResources Defaults.allResourcesListViewParams
 
         newModel =
             { model

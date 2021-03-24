@@ -148,7 +148,7 @@ setProjectView model project projectViewConstructor =
                     Nothing
 
         newViewState =
-            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
+            ProjectView project.auth.project.uuid Defaults.projectViewParams projectViewConstructor
 
         projectResetCockpitStatuses project_ =
             -- We need to re-poll Cockpit to determine its availability and get a session cookie
@@ -187,6 +187,33 @@ setProjectView model project projectViewConstructor =
 
         viewSpecificModelAndCmd =
             case projectViewConstructor of
+                AllResources _ ->
+                    -- Don't fire cmds if we're already in this view
+                    case prevProjectViewConstructor of
+                        Just (AllResources _) ->
+                            ( model, Cmd.none )
+
+                        _ ->
+                            let
+                                newProject =
+                                    project
+                                        |> projectResetCockpitStatuses
+
+                                ( newModel, newCmd ) =
+                                    ApiModelHelpers.requestServers project.auth.project.uuid model
+                            in
+                            ( newModel
+                            , Cmd.batch
+                                [ newCmd
+                                , Rest.Neutron.requestFloatingIps newProject
+                                , OSVolumes.requestVolumes project
+                                , Rest.Nova.requestKeypairs project
+                                , OSQuotas.requestComputeQuota project
+                                , OSQuotas.requestVolumeQuota project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                            )
+
                 ListImages _ _ ->
                     let
                         cmd =
@@ -360,22 +387,6 @@ setProjectView model project projectViewConstructor =
                 CreateKeypair _ _ ->
                     ( model, Cmd.none )
 
-                ListQuotaUsage ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just ListQuotaUsage ->
-                                    Cmd.none
-
-                                _ ->
-                                    Cmd.batch
-                                        [ OSQuotas.requestComputeQuota project
-                                        , OSQuotas.requestVolumeQuota project
-                                        ]
-                    in
-                    ( model, cmd )
-
                 VolumeDetail _ _ ->
                     ( model, Cmd.none )
 
@@ -479,7 +490,7 @@ defaultViewState model =
         firstProject :: _ ->
             ProjectView
                 firstProject.auth.project.uuid
-                { createPopup = False }
-                (ListProjectServers
-                    Defaults.serverListViewParams
+                Defaults.projectViewParams
+                (AllResources
+                    Defaults.allResourcesListViewParams
                 )

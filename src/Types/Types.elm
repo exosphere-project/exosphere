@@ -1,9 +1,9 @@
 module Types.Types exposing
-    ( CloudSpecificConfig
+    ( AllResourcesListViewParams
+    , CloudSpecificConfig
     , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
-    , DeleteKeypairConfirmation
     , DeleteVolumeConfirmation
     , Endpoints
     , ExcludeFilter
@@ -17,6 +17,8 @@ module Types.Types exposing
     , ImageListViewParams
     , JetstreamCreds
     , JetstreamProvider(..)
+    , KeypairIdentifier
+    , KeypairListViewParams
     , KeystoneHostname
     , Localization
     , LogMessage
@@ -54,6 +56,7 @@ module Types.Types exposing
     , UserAppProxyHostname
     , VerboseStatus
     , ViewState(..)
+    , VolumeListViewParams
     , WindowSize
     , currentExoServerVersion
     )
@@ -424,12 +427,12 @@ type alias ProjectViewParams =
 
 
 type ProjectViewConstructor
-    = ListImages ImageListViewParams SortTableParams
+    = AllResources AllResourcesListViewParams
+    | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
-    | ListProjectVolumes (List DeleteVolumeConfirmation)
-    | ListKeypairs (List DeleteKeypairConfirmation)
+    | ListProjectVolumes VolumeListViewParams
+    | ListKeypairs KeypairListViewParams
     | CreateKeypair String String
-    | ListQuotaUsage
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
@@ -437,6 +440,13 @@ type ProjectViewConstructor
     | CreateVolume OSTypes.VolumeName NumericTextInput
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
+
+
+type alias AllResourcesListViewParams =
+    { serverListViewParams : ServerListViewParams
+    , volumeListViewParams : VolumeListViewParams
+    , keypairListViewParams : KeypairListViewParams
+    }
 
 
 type alias ServerListViewParams =
@@ -459,6 +469,12 @@ type alias ServerDetailViewParams =
 type ServerDetailActiveTooltip
     = InteractionTooltip Interaction
     | InteractionStatusTooltip Interaction
+
+
+type alias VolumeListViewParams =
+    { expandedVols : List OSTypes.VolumeUuid
+    , deleteConfirmations : List DeleteVolumeConfirmation
+    }
 
 
 type alias CreateServerViewParams =
@@ -489,7 +505,13 @@ type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
 
 
-type alias DeleteKeypairConfirmation =
+type alias KeypairListViewParams =
+    { expandedKeypairs : List KeypairIdentifier
+    , deleteConfirmations : List KeypairIdentifier
+    }
+
+
+type alias KeypairIdentifier =
     ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
 
 

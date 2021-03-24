@@ -137,6 +137,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
 projectSpecificUrlPart : (List String -> List UB.QueryParameter -> String) -> ProjectViewConstructor -> String
 projectSpecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
+        AllResources _ ->
+            buildUrlFunc
+                [ "resources" ]
+                []
+
         ListImages _ _ ->
             buildUrlFunc
                 [ "images" ]
@@ -160,11 +165,6 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
         CreateKeypair _ _ ->
             buildUrlFunc
                 [ "uploadkeypair" ]
-                []
-
-        ListQuotaUsage ->
-            UB.absolute
-                [ "quotausage" ]
                 []
 
         ServerDetail serverUuid _ ->

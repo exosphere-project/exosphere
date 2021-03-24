@@ -1,4 +1,4 @@
-module View.QuotaUsage exposing (dashboard)
+module View.QuotaUsage exposing (computeQuotaDetails, volumeQuotaDetails)
 
 import Element
 import Element.Background as Background
@@ -11,35 +11,9 @@ import Style.Helpers as SH
 import Types.Types
     exposing
         ( Msg(..)
-        , Project
         )
 import View.Helpers as VH
 import View.Types
-
-
-dashboard : View.Types.Context -> Project -> Element.Element Msg
-dashboard context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 <|
-            Element.text <|
-                String.join " "
-                    [ context.localization.maxResourcesPerProject |> Helpers.String.toTitleCase
-                    , "Usage"
-                    ]
-        , quotaSections context project
-        ]
-
-
-quotaSections : View.Types.Context -> Project -> Element.Element Msg
-quotaSections context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ computeQuota context project
-        , volumeQuota context project
-
-        -- networkQuota stuff - whenever I find that
-        ]
 
 
 infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element Msg
@@ -63,7 +37,7 @@ infoItem context detail ( label, units ) =
             Element.paddingXY 4 2
     in
     Element.row
-        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        (VH.exoRowAttributes ++ [ Element.spacing 5, Element.width Element.fill ])
         [ Element.el [ Font.bold ] <|
             Element.text label
         , Element.el [ bg, border, pad ] <|
@@ -77,22 +51,22 @@ infoItem context detail ( label, units ) =
         ]
 
 
-computeQuota : View.Types.Context -> Project -> Element.Element Msg
-computeQuota context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading3 <| Element.text "Compute"
-        , computeQuotaDetails context project.computeQuota
-        ]
-
-
 computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element Msg
 computeInfoItems context quota =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem context quota.cores ( "Cores:", "total" )
-        , infoItem context quota.instances ( "Instances:", "total" )
-        , infoItem context quota.ram ( "RAM:", "MB" )
+    Element.wrappedRow
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        [ infoItem context
+            quota.instances
+            ( String.join " "
+                [ context.localization.virtualComputer
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                , "used:"
+                ]
+            , "total"
+            )
+        , infoItem context quota.cores ( "Cores used:", "total" )
+        , infoItem context quota.ram ( "RAM used:", "MB" )
         ]
 
 
@@ -116,41 +90,27 @@ computeQuotaDetails context quota =
         [ quotaDetail context quota (computeInfoItems context) ]
 
 
-volumeQuota : View.Types.Context -> Project -> Element.Element Msg
-volumeQuota context project =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading3 <|
-            Element.text
-                (context.localization.blockDevice
-                    |> Helpers.String.pluralize
-                    |> Helpers.String.toTitleCase
-                )
-        , volumeQuoteDetails context project.volumeQuota
-        ]
-
-
 volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element Msg
 volumeInfoItems context quota =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ infoItem context quota.gigabytes ( "Storage:", "GB" )
-        , infoItem
+    Element.wrappedRow
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        [ infoItem
             context
             quota.volumes
-            ( String.concat
+            ( String.join " "
                 [ context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
-                , ":"
+                , "used:"
                 ]
             , "total"
             )
+        , infoItem context quota.gigabytes ( "Storage used:", "GB" )
         ]
 
 
-volumeQuoteDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element Msg
-volumeQuoteDetails context quota =
+volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element Msg
+volumeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (volumeInfoItems context) ]
