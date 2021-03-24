@@ -331,9 +331,6 @@ updateUnderlying msg model =
             in
             ViewStateHelpers.modelUpdateViewState newViewState model
 
-        OpenInBrowser url ->
-            ( model, Ports.openInBrowser url )
-
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
 

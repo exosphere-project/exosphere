@@ -307,7 +307,6 @@ type Msg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
-    | OpenInBrowser String
     | OpenNewWindow String
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
