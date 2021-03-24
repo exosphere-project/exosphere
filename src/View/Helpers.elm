@@ -34,7 +34,6 @@ import Dict
 import Element
 import Element.Background as Background
 import Element.Border
-import Element.Events
 import Element.Font as Font
 import Element.Input
 import Element.Region as Region
