@@ -532,8 +532,8 @@ processProjectSpecificMsg model project msg =
                     project.auth.expiresAt |> Time.posixToMillis
 
                 tokenExpired =
-                    -- Token expiring within 10 minutes
-                    tokenExpireTimeMillis < currentTimeMillis + 600000
+                    -- Token expiring within 5 minutes
+                    tokenExpireTimeMillis < currentTimeMillis + 300000
             in
             if not tokenExpired then
                 -- Token still valid, fire the request with current token
