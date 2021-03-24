@@ -73,7 +73,6 @@ import Widget
 toViewContext : Model -> View.Types.Context
 toViewContext model =
     { palette = toExoPalette model.style
-    , isElectron = Helpers.appIsElectron model
     , localization = model.style.localization
     , cloudSpecificConfigs = model.cloudSpecificConfigs
     }
@@ -284,19 +283,11 @@ browserLink context url label =
                     , contents = el
                     }
     in
-    if context.isElectron then
-        Element.el
-            (renderedLabel.attribs
-                ++ [ Element.Events.onClick (OpenInBrowser url) ]
-            )
-            renderedLabel.contents
-
-    else
-        Element.newTabLink
-            renderedLabel.attribs
-            { url = url
-            , label = renderedLabel.contents
-            }
+    Element.newTabLink
+        renderedLabel.attribs
+        { url = url
+        , label = renderedLabel.contents
+        }
 
 
 possiblyUntitledResource : String -> String -> String

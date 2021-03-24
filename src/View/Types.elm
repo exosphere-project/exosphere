@@ -12,7 +12,6 @@ import Types.Types exposing (Localization, Msg)
 
 type alias Context =
     { palette : ExoPalette
-    , isElectron : Bool
     , localization : Localization
     , cloudSpecificConfigs : Dict.Dict Types.Types.KeystoneHostname Types.Types.CloudSpecificConfig
     }

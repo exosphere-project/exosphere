@@ -178,58 +178,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
 
         cockpit : CockpitDashboardOrTerminal -> ITypes.InteractionStatus
         cockpit dashboardOrTerminal =
-            if context.isElectron then
-                case server.exoProps.serverOrigin of
-                    ServerNotFromExo ->
-                        ITypes.Unavailable <|
-                            String.join " "
-                                [ context.localization.virtualComputer
-                                    |> Helpers.String.toTitleCase
-                                , "not launched from Exosphere"
-                                ]
-
-                    ServerFromExo serverFromExoProps ->
-                        case ( dashboardOrTerminal, serverFromExoProps.guacamoleStatus ) of
-                            ( Terminal, GuacTypes.LaunchedWithGuacamole _ ) ->
-                                ITypes.Hidden
-
-                            _ ->
-                                case ( serverFromExoProps.cockpitStatus, maybeFloatingIp ) of
-                                    ( NotChecked, _ ) ->
-                                        ITypes.Unavailable "Status of server dashboard and terminal not available yet"
-
-                                    ( CheckedNotReady, _ ) ->
-                                        ITypes.Unavailable "Not ready"
-
-                                    ( _, Nothing ) ->
-                                        ITypes.Unavailable <|
-                                            String.join " "
-                                                [ context.localization.virtualComputer
-                                                    |> Helpers.String.toTitleCase
-                                                , "does not have a"
-                                                , context.localization.floatingIpAddress
-                                                ]
-
-                                    ( _, Just floatingIp ) ->
-                                        case dashboardOrTerminal of
-                                            Dashboard ->
-                                                ITypes.Warn
-                                                    ("https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090"
-                                                    )
-                                                    "Server Dashboard is a deprecated feature and will not work after March 31, 2021."
-
-                                            Terminal ->
-                                                ITypes.Warn
-                                                    ("https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                                    )
-                                                    "Old Web Terminal is a deprecated feature and will not work after March 31, 2021."
-
-            else
-                ITypes.Hidden
+            ITypes.Hidden
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuilding ->

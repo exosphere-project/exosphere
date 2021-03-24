@@ -1,6 +1,5 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , appIsElectron
     , checkFloatingIpState
     , getBootVol
     , isBootVol
@@ -511,16 +510,6 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
 
         Ok createdTime ->
             (curTimeMillis - Time.posixToMillis createdTime) < maxServerAgeMillis
-
-
-appIsElectron : Model -> Bool
-appIsElectron model =
-    case model.maybeNavigationKey of
-        Nothing ->
-            True
-
-        Just _ ->
-            False
 
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places
