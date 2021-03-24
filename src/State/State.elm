@@ -275,31 +275,30 @@ updateUnderlying msg model =
                                 model.unscopedProviders
 
                         -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
-                        newViewState =
+                        newViewStateFunc =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
-                                    NonProjectView <|
-                                        SelectProjects unscopedProvider.authUrl []
+                                    ViewStateHelpers.setNonProjectView
+                                        (SelectProjects unscopedProvider.authUrl [])
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
                                     case List.head model.projects of
                                         Just project ->
-                                            ProjectView
-                                                project.auth.project.uuid
-                                                Defaults.projectViewParams
+                                            ViewStateHelpers.setProjectView
+                                                project
                                             <|
                                                 AllResources Defaults.allResourcesListViewParams
 
                                         Nothing ->
-                                            NonProjectView LoginPicker
+                                            ViewStateHelpers.setNonProjectView
+                                                LoginPicker
 
                         modelUpdatedUnscopedProviders =
                             { model | unscopedProviders = newUnscopedProviders }
                     in
                     ( modelUpdatedUnscopedProviders, loginRequests )
-                        |> Helpers.pipelineCmd
-                            (ViewStateHelpers.modelUpdateViewState newViewState)
+                        |> Helpers.pipelineCmd newViewStateFunc
 
                 Nothing ->
                     State.Error.processStringError
@@ -1606,30 +1605,23 @@ createProject model authToken endpoints =
         newProjects =
             newProject :: model.projects
 
-        newViewState =
+        newViewStateFunc =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
             case model.viewState of
                 NonProjectView (SelectProjects _ _) ->
-                    model.viewState
+                    \model_ -> ( model_, Cmd.none )
 
                 NonProjectView _ ->
-                    ProjectView
-                        newProject.auth.project.uuid
-                        { createPopup = False }
-                    <|
+                    ViewStateHelpers.setProjectView newProject <|
                         AllResources Defaults.allResourcesListViewParams
 
-                ProjectView _ projectViewParams _ ->
-                    ProjectView
-                        newProject.auth.project.uuid
-                        projectViewParams
-                    <|
+                ProjectView _ _ _ ->
+                    ViewStateHelpers.setProjectView newProject <|
                         AllResources Defaults.allResourcesListViewParams
 
         newModel =
             { model
                 | projects = newProjects
-                , viewState = newViewState
             }
     in
     ( newModel
@@ -1641,6 +1633,7 @@ createProject model authToken endpoints =
         |> List.map (\x -> x newProject)
         |> Cmd.batch
     )
+        |> Helpers.pipelineCmd newViewStateFunc
 
 
 createUnscopedProvider : Model -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
