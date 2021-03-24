@@ -319,8 +319,6 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 ]
                 [ serverLabelName aServer
                 , creatorNameView
-
-                -- , Element.el [ Font.size 15 ] (Element.text (server |> VH.getServerUiStatus |> VH.getServerUiStatusStr))
                 ]
 
         deletionAttempted =
