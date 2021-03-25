@@ -11,11 +11,11 @@ Feature: Text presence
         And I click the "IU Cloud" radio button
         And I click the "Log In" button
         Then I should see "Choose Projects for" within 15 seconds
-        And I should see "TG-CCR190024"
-        When I click the "TG-CCR190024" checkbox
+        And I should see "TG-INI210003"
+        When I click the "TG-INI210003" checkbox
         And I click the "Choose" button
         Then I wait for 2 seconds
-        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 5 seconds
+        Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 5 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         Then I save the "exosphere-save" item in browser local storage
 
@@ -25,12 +25,12 @@ Feature: Text presence
         When I go to Exosphere
         Then I should see "Choose a login method" within 60 seconds
         When I load the "exosphere-save" item in browser local storage
-        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 15 seconds
+        Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]"
         When I click the "Create" button
         And I click the "Instance" button
-        Then the browser's URL should contain "/projects/f477d7139ced4da384dab42001a7ea3c/images"
+        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/images"
         And I should see "Images loading..."
         And I should see an element with xpath "//h2[contains(string(),'Choose an image')]" within 120 seconds
         When I fill input labeled "Filter on image name:" with "JS-API-Featured-Ubuntu20-Latest"
@@ -42,7 +42,7 @@ Feature: Text presence
         When I fill input labeled "Name" with "bdd_test_server"
         And I click the last "Create" button
         Then I should see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 5 seconds
-        And the browser's URL should contain "/projects/f477d7139ced4da384dab42001a7ea3c/resources"
+        And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/resources"
         When I press the last element with xpath "//div[contains(string(),'bdd_test_server')]"
         Then I should see an element with xpath "//h2[contains(string(),'Instance Details')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
@@ -62,7 +62,7 @@ Feature: Text presence
         When I go to Exosphere
         Then I should see "Choose a login method" within 60 seconds
         When I load the "exosphere-save" item in browser local storage
-        Then I should see "iu.jetstream-cloud.org - TG-CCR190024" within 15 seconds
+        Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         And I should see an element with xpath "//div[contains(string(),'bdd_test_server')]"
         Then I should see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
