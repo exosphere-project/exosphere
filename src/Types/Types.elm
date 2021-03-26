@@ -490,6 +490,7 @@ type alias CreateServerViewParams =
     , keypairName : Maybe String
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
+    , installOperatingSystemUpdates : Bool
     }
 
 

@@ -122,6 +122,7 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
+    , installOperatingSystemUpdates = True
     }
 
 

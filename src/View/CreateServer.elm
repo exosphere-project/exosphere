@@ -135,7 +135,8 @@ createServer context project viewParams =
                             [ Element.none ]
 
                         else
-                            [ guacamolePicker context project viewParams
+                            [ skipOperatingSystemUpdatesPicker context project viewParams
+                            , guacamolePicker context project viewParams
                             , networkPicker context project viewParams
                             , keypairPicker context project viewParams
                             , userDataInput context project viewParams
@@ -623,6 +624,23 @@ guacamolePicker context project createServerViewParams =
                     , selected = Just deployGuacamole
                     }
                 ]
+
+
+skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+skipOperatingSystemUpdatesPicker _ project createServerViewParams =
+    Element.column VH.exoColumnAttributes
+        [ Input.radioRow [ Element.spacing 10 ]
+            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Install operating system updates?")
+            , onChange = \new -> updateCreateServerRequest project { createServerViewParams | installOperatingSystemUpdates = new }
+            , options =
+                [ Input.option True (Element.text "Yes")
+                , Input.option False (Element.text "No")
+
+                {- -}
+                ]
+            , selected = Just createServerViewParams.installOperatingSystemUpdates
+            }
+        ]
 
 
 networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
