@@ -12,7 +12,7 @@ users:
     sudo: ['ALL=(ALL) NOPASSWD:ALL']{ssh-authorized-keys}
 ssh_pwauth: true
 package_update: true
-package_upgrade: true
+package_upgrade: {install-os-updates}
 packages:
   - haveged
 runcmd:

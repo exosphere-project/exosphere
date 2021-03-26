@@ -639,6 +639,7 @@ processProjectSpecificMsg model project msg =
                             viewParams.keypairName
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
                             viewParams.deployDesktopEnvironment
+                            viewParams.installOperatingSystemUpdates
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion

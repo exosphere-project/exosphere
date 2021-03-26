@@ -172,8 +172,8 @@ checkFloatingIpState serverDetails floatingIpState =
                 NotRequestable
 
 
-renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> Bool -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment =
+renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> Bool -> Bool -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment installOperatingSystemUpdates =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -208,10 +208,19 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
             else
                 "echo \"Not deploying a desktop environment\""
+
+        installOperatingSystemUpatesYaml : String
+        installOperatingSystemUpatesYaml =
+            if installOperatingSystemUpdates then
+                "true"
+
+            else
+                "false"
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{guacamole-setup}\n", guacamoleSetupCmdsYaml )
     , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
+    , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     ]
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
