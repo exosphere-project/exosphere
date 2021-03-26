@@ -627,7 +627,7 @@ guacamolePicker context project createServerViewParams =
 
 
 skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
-skipOperatingSystemUpdatesPicker _ project createServerViewParams =
+skipOperatingSystemUpdatesPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Install operating system updates?")
@@ -640,6 +640,27 @@ skipOperatingSystemUpdatesPicker _ project createServerViewParams =
                 ]
             , selected = Just createServerViewParams.installOperatingSystemUpdates
             }
+        , if not createServerViewParams.installOperatingSystemUpdates then
+            Element.paragraph
+                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
+                    ++ VH.exoElementAttributes
+                )
+                [ Element.text <|
+                    String.join ""
+                        [ "Warning: Skipping operating system updates is a security risk, especially when launching "
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                        , " "
+                        , context.localization.virtualComputer
+                        , " from an older "
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                        , ". Do not use this "
+                        , context.localization.virtualComputer
+                        , " for any sensitive information or workloads."
+                        ]
+                ]
+
+          else
+            Element.none
         ]
 
 
