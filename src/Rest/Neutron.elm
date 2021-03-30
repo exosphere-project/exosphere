@@ -362,14 +362,11 @@ receiveNetworks model project networks =
                                 let
                                     defaultNetUuid =
                                         case Helpers.newServerNetworkOptions newProject of
-                                            NoNetsAutoAllocate ->
+                                            NoSuitableNetsAutoAllocate ->
                                                 "auto"
 
-                                            OneNet net ->
+                                            AutoSelectedNetwork net ->
                                                 net.uuid
-
-                                            MultipleNetsWithGuess _ guessNet _ ->
-                                                guessNet.uuid
                                 in
                                 ProjectView
                                     project.auth.project.uuid

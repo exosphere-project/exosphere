@@ -670,69 +670,59 @@ networkPicker context project viewParams =
         networkOptions =
             Helpers.newServerNetworkOptions project
 
-        contents =
+        guidanceText =
             case networkOptions of
-                NoNetsAutoAllocate ->
-                    [ Element.paragraph
+                NoSuitableNetsAutoAllocate ->
+                    Element.paragraph
                         []
                         [ Element.text <|
-                            String.concat
-                                [ "There are no networks associated with your "
+                            String.join " "
+                                [ "There are no suitable networks associated with your"
                                 , context.localization.unitOfTenancy
-                                , " so Exosphere will ask OpenStack to create one for you and hope for the best."
+                                , "so Exosphere will ask OpenStack to create one for you."
+                                , "Please only change this option if you know what you're doing."
                                 ]
                         ]
-                    ]
 
-                OneNet net ->
-                    [ Element.paragraph
+                AutoSelectedNetwork net ->
+                    Element.paragraph
                         []
-                        [ Element.text ("There is only one network, with name \"" ++ net.name ++ "\", so Exosphere will use that one.") ]
-                    ]
+                        [ Element.text
+                            ("The network \"" ++ net.name ++ "\" is probably a good guess so Exosphere has picked it by default. Please only change it if you know what you're doing.")
+                        ]
 
-                MultipleNetsWithGuess _ guessNet goodGuess ->
-                    let
-                        guessText =
-                            if goodGuess then
-                                Element.paragraph
-                                    []
-                                    [ Element.text
-                                        ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
-                                    ]
+        picker =
+            let
+                networkAsInputOption network =
+                    Input.option network.uuid (Element.text network.name)
 
-                            else
-                                Element.paragraph
-                                    []
-                                    [ Element.text "The selected network is a guess and might not be the best choice." ]
+                networkEmptyHint =
+                    if viewParams.networkUuid == "" then
+                        [ VH.hint context "Please pick a network" ]
 
-                        networkAsInputOption network =
-                            Input.option network.uuid (Element.text network.name)
+                    else
+                        []
+            in
+            Input.radio networkEmptyHint
+                { label = Input.labelHidden "Choose a Network"
+                , onChange = \networkUuid -> updateCreateServerRequest project { viewParams | networkUuid = networkUuid }
+                , options =
+                    case project.networks.data of
+                        RDPP.DoHave networks _ ->
+                            Input.option "auto" (Element.text "(create or use auto-allocated network)")
+                                :: List.map networkAsInputOption networks
 
-                        networkEmptyHint =
-                            if viewParams.networkUuid == "" then
-                                [ VH.hint context "Please pick a network" ]
-
-                            else
-                                []
-                    in
-                    [ Input.radio networkEmptyHint
-                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
-                        , onChange = \networkUuid -> updateCreateServerRequest project { viewParams | networkUuid = networkUuid }
-                        , options =
-                            case project.networks.data of
-                                RDPP.DoHave networks _ ->
-                                    List.map networkAsInputOption networks
-
-                                RDPP.DontHave ->
-                                    []
-                        , selected = Just viewParams.networkUuid
-                        }
-                    , guessText
-                    ]
+                        RDPP.DontHave ->
+                            []
+                , selected = Just viewParams.networkUuid
+                }
     in
     Element.column
         VH.exoColumnAttributes
-        (Element.el [ Font.bold ] (Element.text "Network") :: contents)
+        [ Element.el [ Font.bold ] <| Element.text "Network"
+        , guidanceText
+        , picker
+        ]
 
 
 keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg

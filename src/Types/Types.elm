@@ -644,13 +644,8 @@ type alias ProjectTitle =
 
 
 type NewServerNetworkOptions
-    = NoNetsAutoAllocate
-    | OneNet OSTypes.Network
-    | MultipleNetsWithGuess (List OSTypes.Network) OSTypes.Network GoodGuess
-
-
-type alias GoodGuess =
-    Bool
+    = NoSuitableNetsAutoAllocate
+    | AutoSelectedNetwork OSTypes.Network
 
 
 

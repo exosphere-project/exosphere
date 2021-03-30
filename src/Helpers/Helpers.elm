@@ -297,30 +297,21 @@ newServerNetworkOptions project =
     case projectNets of
         -- If there is no suitable network then we specify "auto" and hope that OpenStack will create one for us
         [] ->
-            NoNetsAutoAllocate
+            NoSuitableNetsAutoAllocate
 
-        firstNet :: otherNets ->
-            if List.isEmpty otherNets then
-                -- If there is only one network then we pick that one
-                OneNet firstNet
+        _ ->
+            -- If there are multiple networks then we look for existing auto-allocated or project-specific network
+            case maybeAutoAllocatedNet of
+                Just n ->
+                    AutoSelectedNetwork n
 
-            else
-                -- If there are multiple networks then we let user choose and try to guess a good default
-                let
-                    ( guessNet, goodGuess ) =
-                        case maybeAutoAllocatedNet of
-                            Just n ->
-                                ( n, True )
+                Nothing ->
+                    case maybeProjectNameNet of
+                        Just n ->
+                            AutoSelectedNetwork n
 
-                            Nothing ->
-                                case maybeProjectNameNet of
-                                    Just n ->
-                                        ( n, True )
-
-                                    Nothing ->
-                                        ( firstNet, False )
-                in
-                MultipleNetsWithGuess projectNets guessNet goodGuess
+                        Nothing ->
+                            NoSuitableNetsAutoAllocate
 
 
 isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool
