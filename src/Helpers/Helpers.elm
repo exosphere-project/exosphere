@@ -272,8 +272,8 @@ newServerNetworkOptions : Project -> NewServerNetworkOptions
 newServerNetworkOptions project =
     {- When creating a new server, make a reasonable choice of project network, if we can. -}
     let
-        -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
         projectNets =
+            -- Filter on networks that are status ACTIVE, adminStateUp, and not external
             case project.networks.data of
                 RDPP.DoHave networks _ ->
                     networks
@@ -284,34 +284,58 @@ newServerNetworkOptions project =
                 RDPP.DontHave ->
                     []
 
-        maybeAutoAllocatedNet =
-            projectNets
-                |> List.filter (\n -> n.name == "auto_allocated_network")
-                |> List.head
-
         maybeProjectNameNet =
             projectNets
-                |> List.filter (\n -> String.contains project.auth.project.name n.name)
+                |> List.filter
+                    (\n ->
+                        String.contains
+                            (String.toLower project.auth.project.name)
+                            (String.toLower n.name)
+                    )
                 |> List.head
     in
-    case projectNets of
-        -- If there is no suitable network then we specify "auto" and hope that OpenStack will create one for us
-        [] ->
-            NoSuitableNetsAutoAllocate
+    -- Prefer auto-allocated network topology that we get/create
+    case project.autoAllocatedNetworkUuid.data of
+        RDPP.DoHave netUuid _ ->
+            AutoSelectedNetwork netUuid
 
-        _ ->
-            -- If there are multiple networks then we look for existing auto-allocated or project-specific network
-            case maybeAutoAllocatedNet of
-                Just n ->
-                    AutoSelectedNetwork n
+        RDPP.DontHave ->
+            case project.autoAllocatedNetworkUuid.refreshStatus of
+                RDPP.Loading _ ->
+                    NetworksLoading
 
-                Nothing ->
-                    case maybeProjectNameNet of
-                        Just n ->
-                            AutoSelectedNetwork n
-
+                RDPP.NotLoading maybeError ->
+                    case maybeError of
                         Nothing ->
-                            NoSuitableNetsAutoAllocate
+                            -- We haven't gotten auto-allocated network yet, say "loading" anyway
+                            NetworksLoading
+
+                        Just _ ->
+                            -- auto-allocation API call failed, so look through list of networks
+                            case
+                                projectNets
+                                    |> List.filter (\n -> n.name == "auto_allocated_network")
+                                    |> List.head
+                            of
+                                Just net ->
+                                    AutoSelectedNetwork net.uuid
+
+                                Nothing ->
+                                    case maybeProjectNameNet of
+                                        Just projectNameNet ->
+                                            AutoSelectedNetwork projectNameNet.uuid
+
+                                        Nothing ->
+                                            case project.networks.refreshStatus of
+                                                RDPP.Loading _ ->
+                                                    NetworksLoading
+
+                                                RDPP.NotLoading _ ->
+                                                    if List.isEmpty projectNets then
+                                                        NoneAvailable
+
+                                                    else
+                                                        ManualNetworkSelection
 
 
 isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool

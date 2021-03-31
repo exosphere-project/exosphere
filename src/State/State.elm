@@ -620,7 +620,7 @@ processProjectSpecificMsg model project msg =
         RequestServer serverUuid ->
             ApiModelHelpers.requestServer project.auth.project.uuid serverUuid model
 
-        RequestCreateServer viewParams ->
+        RequestCreateServer viewParams networkUuid ->
             let
                 createServerRequest =
                     { name = viewParams.serverName
@@ -630,7 +630,7 @@ processProjectSpecificMsg model project msg =
                     , volBackedSizeGb =
                         viewParams.volSizeTextInput
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
-                    , networkUuid = viewParams.networkUuid
+                    , networkUuid = networkUuid
                     , keypairName = viewParams.keypairName
                     , userData =
                         Helpers.renderUserDataTemplate
@@ -1051,6 +1051,73 @@ processProjectSpecificMsg model project msg =
                         newModel =
                             GetterSetters.modelUpdateProject model newProject
                     in
+                    State.Error.processSynchronousApiError newModel errorContext httpError
+
+        ReceiveAutoAllocatedNetwork errorContext result ->
+            let
+                newProject =
+                    case result of
+                        Ok netUuid ->
+                            { project
+                                | autoAllocatedNetworkUuid =
+                                    RDPP.RemoteDataPlusPlus
+                                        (RDPP.DoHave netUuid model.clientCurrentTime)
+                                        (RDPP.NotLoading Nothing)
+                            }
+
+                        Err httpError ->
+                            { project
+                                | autoAllocatedNetworkUuid =
+                                    RDPP.RemoteDataPlusPlus
+                                        project.autoAllocatedNetworkUuid.data
+                                        (RDPP.NotLoading
+                                            (Just
+                                                ( httpError
+                                                , model.clientCurrentTime
+                                                )
+                                            )
+                                        )
+                            }
+
+                newViewState =
+                    case model.viewState of
+                        ProjectView _ viewParams projectViewConstructor ->
+                            case projectViewConstructor of
+                                CreateServer createServerViewParams ->
+                                    if createServerViewParams.networkUuid == Nothing then
+                                        case Helpers.newServerNetworkOptions newProject of
+                                            AutoSelectedNetwork netUuid ->
+                                                ProjectView
+                                                    project.auth.project.uuid
+                                                    viewParams
+                                                    (CreateServer
+                                                        { createServerViewParams
+                                                            | networkUuid = Just netUuid
+                                                        }
+                                                    )
+
+                                            _ ->
+                                                model.viewState
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        _ ->
+                            model.viewState
+
+                newModel =
+                    GetterSetters.modelUpdateProject
+                        { model | viewState = newViewState }
+                        newProject
+            in
+            case result of
+                Ok _ ->
+                    ApiModelHelpers.requestNetworks project.auth.project.uuid newModel
+
+                Err httpError ->
                     State.Error.processSynchronousApiError newModel errorContext httpError
 
         ReceiveFloatingIps ips ->
@@ -1595,6 +1662,7 @@ createProject model authToken endpoints =
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked
             , networks = RDPP.empty
+            , autoAllocatedNetworkUuid = RDPP.empty
             , floatingIps = []
             , ports = RDPP.empty
             , securityGroups = []

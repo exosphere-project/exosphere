@@ -14,6 +14,7 @@ module Helpers.GetterSetters exposing
     , modelUpdateUnscopedProvider
     , projectDeleteServer
     , projectLookup
+    , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetNetworksLoading
     , projectSetServerLoading
     , projectSetServersLoading
@@ -294,6 +295,11 @@ projectSetServerLoading project serverUuid =
 projectSetNetworksLoading : Time.Posix -> Project -> Project
 projectSetNetworksLoading time project =
     { project | networks = RDPP.setLoading project.networks time }
+
+
+projectSetAutoAllocatedNetworkUuidLoading : Time.Posix -> Project -> Project
+projectSetAutoAllocatedNetworkUuidLoading time project =
+    { project | autoAllocatedNetworkUuid = RDPP.setLoading project.autoAllocatedNetworkUuid time }
 
 
 modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model

@@ -11,6 +11,7 @@ module Rest.Neutron exposing
     , receiveFloatingIps
     , receiveNetworks
     , receiveSecurityGroupsAndEnsureExoGroup
+    , requestAutoAllocatedNetwork
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
     , requestDeleteFloatingIp
@@ -79,6 +80,32 @@ requestNetworks project =
         (expectJsonWithErrorBody
             resultToMsg
             decodeNetworks
+        )
+
+
+requestAutoAllocatedNetwork : Project -> Cmd Msg
+requestAutoAllocatedNetwork project =
+    let
+        errorContext =
+            ErrorContext
+                ("get/create auto-allocated network for project \"" ++ project.auth.project.name ++ "\"")
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg
+                project.auth.project.uuid
+                (ReceiveAutoAllocatedNetwork errorContext result)
+    in
+    openstackCredentialedRequest
+        project
+        Get
+        Nothing
+        (project.endpoints.neutron ++ "/v2.0/auto-allocated-topology/" ++ project.auth.project.uuid)
+        Http.emptyBody
+        (expectJsonWithErrorBody
+            resultToMsg
+            (Decode.at [ "auto_allocated_topology", "id" ] Decode.string)
         )
 
 
@@ -358,24 +385,20 @@ receiveNetworks model project networks =
                 ProjectView _ viewParams projectViewConstructor ->
                     case projectViewConstructor of
                         CreateServer createServerViewParams ->
-                            if createServerViewParams.networkUuid == "" then
-                                let
-                                    defaultNetUuid =
-                                        case Helpers.newServerNetworkOptions newProject of
-                                            NoSuitableNetsAutoAllocate ->
-                                                "auto"
+                            if createServerViewParams.networkUuid == Nothing then
+                                case Helpers.newServerNetworkOptions newProject of
+                                    AutoSelectedNetwork netUuid ->
+                                        ProjectView
+                                            project.auth.project.uuid
+                                            viewParams
+                                            (CreateServer
+                                                { createServerViewParams
+                                                    | networkUuid = Just netUuid
+                                                }
+                                            )
 
-                                            AutoSelectedNetwork net ->
-                                                net.uuid
-                                in
-                                ProjectView
-                                    project.auth.project.uuid
-                                    viewParams
-                                    (CreateServer
-                                        { createServerViewParams
-                                            | networkUuid = defaultNetUuid
-                                        }
-                                    )
+                                    _ ->
+                                        model.viewState
 
                             else
                                 model.viewState

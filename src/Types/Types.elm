@@ -264,6 +264,7 @@ type alias Project =
     , keypairs : WebData (List OSTypes.Keypair)
     , volumes : WebData (List OSTypes.Volume)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
+    , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
     , floatingIps : List OSTypes.IpAddress
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
@@ -329,7 +330,7 @@ type ProjectSpecificMsgConstructor
     | RemoveProject
     | RequestServers
     | RequestServer OSTypes.ServerUuid
-    | RequestCreateServer CreateServerViewParams
+    | RequestCreateServer CreateServerViewParams OSTypes.NetworkUuid
     | RequestDeleteServer OSTypes.ServerUuid
     | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
@@ -354,6 +355,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveCreateKeypair OSTypes.Keypair
     | ReceiveDeleteKeypair ErrorContext OSTypes.KeypairName (Result Http.Error ())
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
+    | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
     | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
@@ -485,7 +487,7 @@ type alias CreateServerViewParams =
     , flavorUuid : OSTypes.FlavorUuid
     , volSizeTextInput : Maybe NumericTextInput
     , userDataTemplate : String
-    , networkUuid : OSTypes.NetworkUuid
+    , networkUuid : Maybe OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
     , keypairName : Maybe String
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
@@ -644,8 +646,10 @@ type alias ProjectTitle =
 
 
 type NewServerNetworkOptions
-    = NoSuitableNetsAutoAllocate
-    | AutoSelectedNetwork OSTypes.Network
+    = NetworksLoading
+    | AutoSelectedNetwork OSTypes.NetworkUuid
+    | ManualNetworkSelection
+    | NoneAvailable
 
 
 

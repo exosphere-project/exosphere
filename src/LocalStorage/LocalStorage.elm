@@ -80,6 +80,7 @@ hydrateProjectFromStoredProject storedProject =
     , keypairs = RemoteData.NotAsked
     , volumes = RemoteData.NotAsked
     , networks = RDPP.empty
+    , autoAllocatedNetworkUuid = RDPP.empty
     , floatingIps = []
     , ports = RDPP.empty
     , securityGroups = []
