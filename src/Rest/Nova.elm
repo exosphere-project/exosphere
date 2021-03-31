@@ -419,7 +419,7 @@ requestCreateServer project createServerRequest =
                     openstackCredentialedRequest
                         project
                         Post
-                        (Just "compute 2.37")
+                        Nothing
                         (project.endpoints.nova ++ "/servers")
                         (Http.jsonBody requestBody)
                         (expectJsonWithErrorBody
