@@ -3,7 +3,6 @@ elm-stuff
 # elm-repl generated files
 repl-temp-*
 elm.js
-elm-electron.js
 elm-web.js
 node_modules/
 /dist/

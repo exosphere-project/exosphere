@@ -42,8 +42,8 @@ import UUID
 import Url
 
 
-init : Flags -> Maybe ( Url.Url, Browser.Navigation.Key ) -> ( Model, Cmd Msg )
-init flags maybeUrlKey =
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( Model, Cmd Msg )
+init flags urlKey =
     let
         currentTime =
             Time.millisToPosix flags.epoch
@@ -89,7 +89,7 @@ init flags maybeUrlKey =
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
-            , maybeNavigationKey = maybeUrlKey |> Maybe.map Tuple.second
+            , navigationKey = Tuple.second urlKey
             , prevUrl = ""
             , viewState =
                 -- This is will get replaced with the appropriate login view
@@ -179,13 +179,8 @@ init flags maybeUrlKey =
                 defaultViewState =
                     State.ViewState.defaultViewState hydratedModel
             in
-            case maybeUrlKey of
-                Just ( url, _ ) ->
-                    AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState url
-                        |> Maybe.withDefault (NonProjectView PageNotFound)
-
-                Nothing ->
-                    defaultViewState
+            AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
+                |> Maybe.withDefault (NonProjectView PageNotFound)
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project

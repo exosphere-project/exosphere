@@ -10,7 +10,6 @@ import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
-import Helpers.RemoteDataPlusPlus as RDPP
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -28,8 +27,7 @@ import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , Model
+        ( Model
         , Msg(..)
         , NonProjectViewConstructor(..)
         , Project
@@ -150,41 +148,6 @@ setProjectView project projectViewConstructor model =
         newViewState =
             ProjectView project.auth.project.uuid Defaults.projectViewParams projectViewConstructor
 
-        projectResetCockpitStatuses project_ =
-            -- We need to re-poll Cockpit to determine its availability and get a session cookie
-            -- See merge request 289
-            let
-                serverResetCockpitStatus s =
-                    case s.exoProps.serverOrigin of
-                        ServerNotFromExo ->
-                            s
-
-                        ServerFromExo serverFromExoProps ->
-                            let
-                                newCockpitStatus =
-                                    case serverFromExoProps.cockpitStatus of
-                                        Ready ->
-                                            ReadyButRecheck
-
-                                        _ ->
-                                            serverFromExoProps.cockpitStatus
-
-                                newOriginProps =
-                                    ServerFromExo { serverFromExoProps | cockpitStatus = newCockpitStatus }
-
-                                newExoProps =
-                                    let
-                                        oldExoProps =
-                                            s.exoProps
-                                    in
-                                    { oldExoProps | serverOrigin = newOriginProps }
-                            in
-                            { s | exoProps = newExoProps }
-            in
-            RDPP.withDefault [] project_.servers
-                |> List.map serverResetCockpitStatus
-                |> List.foldl (\s p -> GetterSetters.projectUpdateServer p s) project_
-
         viewSpecificModelAndCmd =
             case projectViewConstructor of
                 AllResources _ ->
@@ -195,17 +158,13 @@ setProjectView project projectViewConstructor model =
 
                         _ ->
                             let
-                                newProject =
-                                    project
-                                        |> projectResetCockpitStatuses
-
                                 ( newModel, newCmd ) =
                                     ApiModelHelpers.requestServers project.auth.project.uuid model
                             in
                             ( newModel
                             , Cmd.batch
                                 [ newCmd
-                                , Rest.Neutron.requestFloatingIps newProject
+                                , Rest.Neutron.requestFloatingIps project
                                 , OSVolumes.requestVolumes project
                                 , Rest.Nova.requestKeypairs project
                                 , OSQuotas.requestComputeQuota project
@@ -235,17 +194,13 @@ setProjectView project projectViewConstructor model =
 
                         _ ->
                             let
-                                newProject =
-                                    project
-                                        |> projectResetCockpitStatuses
-
                                 ( newModel, newCmd ) =
                                     ApiModelHelpers.requestServers project.auth.project.uuid model
                             in
                             ( newModel
                             , Cmd.batch
                                 [ newCmd
-                                , Rest.Neutron.requestFloatingIps newProject
+                                , Rest.Neutron.requestFloatingIps project
                                 ]
                             )
 
@@ -259,7 +214,6 @@ setProjectView project projectViewConstructor model =
                             let
                                 newModel =
                                     project
-                                        |> projectResetCockpitStatuses
                                         |> GetterSetters.modelUpdateProject model
 
                                 cmd =
@@ -460,17 +414,10 @@ modelUpdateViewState viewState model =
                 ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
 
         urlCmd =
-            -- This case statement prevents us from trying to update the URL/Matomo in the electron app (where we don't have
-            -- a navigation key)
-            case model.maybeNavigationKey of
-                Just key ->
-                    Cmd.batch
-                        [ updateUrlFunc key newUrl
-                        , updateMatomoCmd
-                        ]
-
-                Nothing ->
-                    Cmd.none
+            Cmd.batch
+                [ updateUrlFunc model.navigationKey newUrl
+                , updateMatomoCmd
+                ]
     in
     ( newModel, urlCmd )
 

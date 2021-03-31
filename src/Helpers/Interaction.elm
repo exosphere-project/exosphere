@@ -17,8 +17,7 @@ import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
 import Types.Types
     exposing
-        ( CockpitLoginStatus(..)
-        , Server
+        ( Server
         , ServerOrigin(..)
         , UserAppProxyHostname
         )
@@ -175,61 +174,6 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                                     ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
                                                                         ++ Debug.toString error
                                                                     )
-
-        cockpit : CockpitDashboardOrTerminal -> ITypes.InteractionStatus
-        cockpit dashboardOrTerminal =
-            if context.isElectron then
-                case server.exoProps.serverOrigin of
-                    ServerNotFromExo ->
-                        ITypes.Unavailable <|
-                            String.join " "
-                                [ context.localization.virtualComputer
-                                    |> Helpers.String.toTitleCase
-                                , "not launched from Exosphere"
-                                ]
-
-                    ServerFromExo serverFromExoProps ->
-                        case ( dashboardOrTerminal, serverFromExoProps.guacamoleStatus ) of
-                            ( Terminal, GuacTypes.LaunchedWithGuacamole _ ) ->
-                                ITypes.Hidden
-
-                            _ ->
-                                case ( serverFromExoProps.cockpitStatus, maybeFloatingIp ) of
-                                    ( NotChecked, _ ) ->
-                                        ITypes.Unavailable "Status of server dashboard and terminal not available yet"
-
-                                    ( CheckedNotReady, _ ) ->
-                                        ITypes.Unavailable "Not ready"
-
-                                    ( _, Nothing ) ->
-                                        ITypes.Unavailable <|
-                                            String.join " "
-                                                [ context.localization.virtualComputer
-                                                    |> Helpers.String.toTitleCase
-                                                , "does not have a"
-                                                , context.localization.floatingIpAddress
-                                                ]
-
-                                    ( _, Just floatingIp ) ->
-                                        case dashboardOrTerminal of
-                                            Dashboard ->
-                                                ITypes.Warn
-                                                    ("https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090"
-                                                    )
-                                                    "Server Dashboard is a deprecated feature and will not work after March 31, 2021."
-
-                                            Terminal ->
-                                                ITypes.Warn
-                                                    ("https://"
-                                                        ++ floatingIp
-                                                        ++ ":9090/cockpit/@localhost/system/terminal.html"
-                                                    )
-                                                    "Old Web Terminal is a deprecated feature and will not work after March 31, 2021."
-
-            else
-                ITypes.Hidden
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuilding ->
@@ -248,12 +192,6 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                 ITypes.GuacDesktop ->
                     -- not implemented yet
                     ITypes.Hidden
-
-                ITypes.CockpitDashboard ->
-                    cockpit Dashboard
-
-                ITypes.CockpitTerminal ->
-                    cockpit Terminal
 
                 ITypes.NativeSSH ->
                     case maybeFloatingIp of
@@ -343,20 +281,6 @@ interactionDetails interaction context =
                 (\_ _ -> FeatherIcons.monitor |> FeatherIcons.toHtml [] |> Element.html)
                 ITypes.UrlInteraction
 
-        ITypes.CockpitDashboard ->
-            ITypes.InteractionDetails
-                "Server Dashboard"
-                "Deprecated feature"
-                Icon.gauge
-                ITypes.UrlInteraction
-
-        ITypes.CockpitTerminal ->
-            ITypes.InteractionDetails
-                "Old Web Terminal"
-                "Deprecated feature"
-                (\_ _ -> FeatherIcons.terminal |> FeatherIcons.toHtml [] |> Element.html)
-                ITypes.UrlInteraction
-
         ITypes.NativeSSH ->
             ITypes.InteractionDetails
                 "Native SSH"
@@ -375,8 +299,3 @@ interactionDetails interaction context =
                 )
                 Icon.console
                 ITypes.UrlInteraction
-
-
-type CockpitDashboardOrTerminal
-    = Dashboard
-    | Terminal

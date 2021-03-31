@@ -1,11 +1,10 @@
-module View.View exposing (view, viewElectron)
+module View.View exposing (view)
 
 import Browser
 import Element
 import Element.Background as Background
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
 import Helpers.String
 import Html
 import Style.Helpers as SH
@@ -45,15 +44,6 @@ view model =
     , body =
         [ view_ model context ]
     }
-
-
-viewElectron : Model -> Html.Html Msg
-viewElectron model =
-    let
-        context =
-            VH.toViewContext model
-    in
-    view_ model context
 
 
 view_ : Model -> View.Types.Context -> Html.Html Msg
@@ -180,11 +170,6 @@ elementView maybeWindowSize model context =
                         Element.fill
             ]
             [ View.Nav.navBar model context
-            , if Helpers.appIsElectron model then
-                electronDeprecationWarning context
-
-              else
-                Element.none
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
@@ -202,28 +187,3 @@ elementView maybeWindowSize model context =
                 ]
             ]
         ]
-
-
-electronDeprecationWarning : View.Types.Context -> Element.Element Msg
-electronDeprecationWarning context =
-    -- Electron deprecation warning per Phase 1 of https://gitlab.com/exosphere/exosphere/-/merge_requests/381
-    let
-        warningMD =
-            """**Deprecation Notice:** this Electron-based desktop application will stop working starting March 31, 2021.
-
-Please start using Exosphere in your browser at [try.exosphere.app](https://try.exosphere.app). If you are a Jetstream user, please use [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org).
-
-Both of these sites support installation to your desktop or home screen ([more info](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/pwa-install.md))."""
-    in
-    Element.column
-        (VH.exoElementAttributes
-            ++ [ Element.width Element.fill
-               , Font.center
-               , Background.color <| SH.toElementColor <| context.palette.warn
-               , Font.color <| SH.toElementColor <| context.palette.on.warn
-               ]
-        )
-    <|
-        VH.renderMarkdown
-            context
-            warningMD

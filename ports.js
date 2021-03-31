@@ -18,8 +18,18 @@ var randomSeeds = crypto.getRandomValues(typedArray);
 // We need this to get the UTC offset?
 var d = new Date();
 
+var electronDeprecationNotice = `
+<html>
+<body>
+<p>This Electron-based desktop application has been deprecated.</p>
+<p>Please start using Exosphere in your browser at https://try.exosphere.app. If you are a Jetstream user, please use https://exosphere.jetstream-cloud.org.</p>
+<p>Both of these sites support installation to your desktop or home screen; see https://gitlab.com/exosphere/exosphere/-/blob/master/docs/pwa-install.md for more information.</p>
+</body>
+</html>
+`
+
 if (isElectron) {
-    var moduleToInit = Elm.ExosphereElectron.init;
+    document.write(electronDeprecationNotice);
 } else {
     var moduleToInit = Elm.Exosphere.init;
 }
@@ -45,39 +55,8 @@ var app = moduleToInit({
     flags: Object.assign(flags, config)
 });
 
-app.ports.openInBrowser.subscribe(function (url) {
-    if (isElectron) {
-        // Open link in user's browser rather than Electron app
-        const { shell } = require('electron')
-        shell.openExternal(url)
-    } else {
-        window.open(url);
-    }
-});
-
-
 app.ports.openNewWindow.subscribe(function (url) {
-    if (isElectron) {
-        // Open link in new Electron window, with 'nodeIntegration: false' so
-        // Bootstrap will work.
-        const electron = require('electron');
-        const BrowserWindow = electron.remote.BrowserWindow;
-        let newWindow = new BrowserWindow({
-            width: 800,
-            height: 600,
-            webPreferences: {
-                nodeIntegration: false
-            }
-        });
-        console.log('after constructor');
-        newWindow.on('closed', () => {
-            newWindow = null
-        });
-        // display the index.html file
-        newWindow.loadURL(url);
-    } else {
-        window.open(url);
-    }
+    window.open(url);
 });
 
 app.ports.setStorage.subscribe(function(state) {

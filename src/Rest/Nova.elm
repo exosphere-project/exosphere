@@ -40,7 +40,6 @@ import Json.Encode as Encode
 import OpenStack.ServerPassword as OSServerPassword
 import OpenStack.Types as OSTypes
 import RemoteData
-import Rest.Cockpit exposing (requestCockpitIfRequestable)
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -592,7 +591,7 @@ receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
             osServers
-                |> List.map (receiveServer_ (Helpers.appIsElectron model) project)
+                |> List.map (receiveServer_ project)
                 |> List.unzip
 
         newExoServersClearSomeExoProps =
@@ -643,7 +642,7 @@ receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
 receiveServer model project osServer =
     let
         ( newServer, cmd ) =
-            receiveServer_ (Helpers.appIsElectron model) project osServer
+            receiveServer_ project osServer
 
         newServerUpdatedSomeExoProps =
             let
@@ -677,8 +676,8 @@ receiveServer model project osServer =
     )
 
 
-receiveServer_ : Bool -> Project -> OSTypes.Server -> ( Server, Cmd Msg )
-receiveServer_ isElectron project osServer =
+receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd Msg )
+receiveServer_ project osServer =
     let
         newServer : Server
         newServer =
@@ -789,15 +788,8 @@ receiveServer_ isElectron project osServer =
                         _ ->
                             Cmd.none
 
-        cockpitLoginCmd =
-            if isElectron then
-                requestCockpitIfRequestable project newServer
-
-            else
-                Cmd.none
-
         allCmds =
-            [ consoleUrlCmd, passwordCmd, cockpitLoginCmd ]
+            [ consoleUrlCmd, passwordCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )

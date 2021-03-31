@@ -96,11 +96,11 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
         loginMethods =
             List.append
                 defaultLoginMethods
-                (case ( maybeOpenIdConnectLoginConfig, context.isElectron ) of
-                    ( Just oidcLoginConfig, False ) ->
+                (case maybeOpenIdConnectLoginConfig of
+                    Just oidcLoginConfig ->
                         [ oidcLoginMethod oidcLoginConfig ]
 
-                    ( _, _ ) ->
+                    Nothing ->
                         []
                 )
 

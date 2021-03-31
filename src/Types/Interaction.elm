@@ -11,8 +11,6 @@ import Element
 type Interaction
     = GuacTerminal
     | GuacDesktop
-    | CockpitDashboard
-    | CockpitTerminal
     | NativeSSH
     | Console
 

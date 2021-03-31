@@ -15,7 +15,7 @@ import View.View exposing (view)
 main : Program Flags Model Msg
 main =
     application
-        { init = \flags url key -> State.Init.init flags (Just ( url, key ))
+        { init = \flags url key -> State.Init.init flags ( url, key )
         , view = view
         , update = State.update
         , subscriptions = State.Subscriptions.subscriptions

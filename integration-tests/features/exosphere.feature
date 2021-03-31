@@ -50,7 +50,6 @@ Feature: Text presence
         Then I should see "Detailed status"
         And I should see "OpenStack status"
         And I should see "Power state"
-        And I should see "Instance Dashboard and Terminal readiness"
         # Now we wait for the instance to become ready...
         Then I should see an element with xpath "//div[contains(string(),'Partially Active')]" within 500 seconds
         Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 300 seconds
@@ -72,7 +71,6 @@ Feature: Text presence
         Then I should see "Detailed status"
         And I should see "OpenStack status"
         And I should see "Power state"
-        And I should see "Instance Dashboard and Terminal readiness"
         When I click the "Delete" button
         Then I should see "Are you sure you want to delete?" within 5 seconds
         When I click the "Yes" button

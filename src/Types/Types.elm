@@ -1,7 +1,6 @@
 module Types.Types exposing
     ( AllResourcesListViewParams
     , CloudSpecificConfig
-    , CockpitLoginStatus(..)
     , CreateServerViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
@@ -152,7 +151,7 @@ type alias WindowSize =
 type alias Model =
     { logMessages : List LogMessage
     , urlPathPrefix : Maybe String
-    , maybeNavigationKey : Maybe Browser.Navigation.Key
+    , navigationKey : Browser.Navigation.Key
 
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
     , prevUrl : String
@@ -307,7 +306,6 @@ type Msg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
     | InputOpenRc OSTypes.OpenstackLogin String
-    | OpenInBrowser String
     | OpenNewWindow String
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
@@ -360,7 +358,6 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
-    | ReceiveCockpitLoginStatus OSTypes.ServerUuid (Result Http.Error String)
     | ReceiveCreateVolume
     | ReceiveVolumes (List OSTypes.Volume)
     | ReceiveDeleteVolume
@@ -573,7 +570,6 @@ type ServerOrigin
 type alias ServerFromExoProps =
     { exoServerVersion : ExoServerVersion
     , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ExoSetupStatus
-    , cockpitStatus : CockpitLoginStatus
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
     , exoCreatorUsername : Maybe String
@@ -600,13 +596,6 @@ type FloatingIpState
     | RequestedWaiting
     | Success
     | Failed
-
-
-type CockpitLoginStatus
-    = NotChecked
-    | CheckedNotReady
-    | Ready
-    | ReadyButRecheck
 
 
 type ServerUiStatus

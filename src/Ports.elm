@@ -1,6 +1,5 @@
 port module Ports exposing
     ( instantiateClipboardJs
-    , openInBrowser
     , openNewWindow
     , pushUrlAndTitleToMatomo
     , setFavicon
@@ -8,9 +7,6 @@ port module Ports exposing
     )
 
 import Json.Encode as Encode
-
-
-port openInBrowser : String -> Cmd msg
 
 
 port openNewWindow : String -> Cmd msg

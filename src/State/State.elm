@@ -22,7 +22,6 @@ import Orchestration.Orchestration as Orchestration
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
-import Rest.Cockpit
 import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
@@ -329,9 +328,6 @@ updateUnderlying msg model =
                     NonProjectView <| Login <| LoginOpenstack newCreds
             in
             ViewStateHelpers.modelUpdateViewState newViewState model
-
-        OpenInBrowser url ->
-            ( model, Ports.openInBrowser url )
 
         OpenNewWindow url ->
             ( model, Ports.openNewWindow url )
@@ -1099,9 +1095,6 @@ processProjectSpecificMsg model project msg =
 
         ReceiveCreateExoSecurityGroup group ->
             Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules model project group
-
-        ReceiveCockpitLoginStatus serverUuid result ->
-            Rest.Cockpit.receiveCockpitLoginStatus model project serverUuid result
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
