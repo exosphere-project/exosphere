@@ -26,7 +26,8 @@ Feature: Text presence
         When I add a Jetstream Cloud Account for allocation "TG-INI210003"
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
-        And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]"
+        Given a unique instance name starting with "ubuntu"
+        And I should not see the unique instance name within 30 seconds
         When I click the "Create" button
         And I click the "Instance" button
         Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/images"
@@ -38,7 +39,6 @@ Feature: Text presence
         Then I should see an element with xpath "//h2[contains(string(),'Create Instance')]" within 5 seconds
         # Wait a few seconds to allow all API requests to complete
         Then I wait for 5 seconds
-        Given a unique instance name starting with "ubuntu"
         When I fill input labeled "Name" with the unique instance name
         And I press the "Show" option in the "Advanced Options" radio button group
         Then I should see "Install operating system updates?" within 2 seconds
