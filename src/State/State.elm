@@ -1119,6 +1119,7 @@ processProjectSpecificMsg model project msg =
 
                 Err httpError ->
                     State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps model project ips
