@@ -5,7 +5,7 @@
   "description": "A client for making things happen in the cloud. Currently targeting OpenStack.",
   "main": "elm-web.js",
   "scripts": {
-    "elm": "elm make src/Exosphere.elm || true",
+    "elm": "elm make src/Exosphere.elm --output=elm-web.js || true",
     "live": "elm-live src/Exosphere.elm --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js",
     "live-debug": "elm-live src/Exosphere.elm --pushstate true --verbose --start-page index.html --hot true -- --output=elm-web.js --debug",
     "build-style-guide": "elm make src/Style/StyleGuide.elm --output=styleguide.html",
