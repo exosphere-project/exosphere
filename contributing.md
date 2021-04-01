@@ -24,7 +24,7 @@ Our CI pipeline runs:
 
 ## End-to-end browser tests
 
-Our CI pipeline also runs integration tests with real browsers. For these tests to work you need:
+Our CI pipeline also runs end-to-end tests with real browsers. For these tests to work you need:
 
 1. Access to a Jetstream allocation
 2. Valid TACC (Texas Advanced Computing Center) credentials
@@ -35,6 +35,12 @@ Ask the maintainers for testing credentials if you don't have a Jetstream alloca
 How to add TACC credentials as environment variables to your GitLab repository settings:
 
 ![Environment variables for end-to-end browser tests](docs/environment-variables-e2e-browser-tests.png)
+
+There are subtle but important differences between how the pipeline runs end-to-end browser tests for merge requests, as opposed to `master` and `dev` branches:
+
+**Merge requests:** Compiled Exosphere assets from the `elm_make` stage is combined with Selenium and a headless browser in a custom container, and the tests point at Exosphere served by this container. (See the `.build_with_kaniko`-based jobs in the `dockerize` stage.) Browser tests for merge requests run in the `test` stage along with the other tests (like Elm unit tests, `elm-analyze`, etc.).
+
+**master and dev branches:** The `dockerize` stage is skipped, and the browser tests are run in the `postdeploy` stage (_after_ the `deploy` stage). The browser tests in the `postdeploy` stage use the standard, unmodified Selenium container image (does _not_ contain any Exosphere assets). For the `master` branch the browser tests run against production environments ([https://try.exosphere.app/](https://try.exosphere.app/) and [https://exosphere.jetstream-cloud.org/](https://exosphere.jetstream-cloud.org/)) and tests for the `dev` branch run against the development environment ([https://try-dev.exosphere.app/](https://try-dev.exosphere.app/)).
 
 
 ## Architecture Decisions
