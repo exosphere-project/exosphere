@@ -1,11 +1,22 @@
 import os
+import random
+import string
 
 from behaving import environment as benv
 
 PERSONAS = {
 }
 
+
+def generate_unique_string():
+    return ''.join(
+        random.SystemRandom().choice(string.ascii_letters + string.digits)
+        for _
+        in range(10))
+
+
 BEHAVE_DEBUG_ON_ERROR = False
+UNIQUE_TAG = None
 
 
 def setup_debug_on_error(userdata):
@@ -13,9 +24,17 @@ def setup_debug_on_error(userdata):
     BEHAVE_DEBUG_ON_ERROR = userdata.getbool("BEHAVE_DEBUG_ON_ERROR")
 
 
+def setup_unique_tag(userdata):
+    global UNIQUE_TAG
+    UNIQUE_TAG = userdata.get('UNIQUE_TAG', generate_unique_string())
+
+
 def before_all(context):
     setup_debug_on_error(context.config.userdata)
-    context.remote_webdriver = context.config.userdata.getbool("REMOTE_WEBDRIVER", False)
+    setup_unique_tag(context.config.userdata)
+    context.unique_tag = UNIQUE_TAG
+    context.remote_webdriver = context.config.userdata.getbool(
+        "REMOTE_WEBDRIVER", False)
     if not hasattr(context, "browser_args"):
         context.browser_args = {}
     command_executor = context.config.userdata.get("COMMAND_EXECUTOR")

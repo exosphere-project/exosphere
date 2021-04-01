@@ -46,13 +46,10 @@ behave features/exosphere.feature
 Run selected Exosphere scenarios by tag:
 
 ```bash
-behave --tags @setup features/exosphere.feature
+behave --tags @add-allocation features/exosphere.feature
 behave --tags @launch features/exosphere.feature
 behave --tags @delete features/exosphere.feature
-behave --tags @cleanup features/exosphere.feature
 ```
-
-Note: All the scenarios (except for the first one - `@setup`) depend on a file `/tmp/exosphere-save`. This file should contain valid local storage data for the Exosphere app. The first (`@setup`) scenario creates this file, and the last (`@cleanup`) scenario deletes it.   
 
 You can use a custom URL for Exosphere:
 
