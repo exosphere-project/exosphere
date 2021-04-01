@@ -302,7 +302,7 @@ setProjectView project projectViewConstructor model =
                                         ]
                             in
                             ( model, cmd )
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork project.auth.project.uuid)
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
 

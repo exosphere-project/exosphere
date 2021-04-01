@@ -61,6 +61,46 @@ createServer context project viewParams =
                 Nothing ->
                     Element.none
 
+        maybeNetworkGuidance =
+            case Helpers.newServerNetworkOptions project of
+                NetworksLoading ->
+                    Just "Loading networks, please wait a moment."
+
+                AutoSelectedNetwork _ ->
+                    Nothing
+
+                ManualNetworkSelection ->
+                    case viewParams.networkUuid of
+                        Just _ ->
+                            Nothing
+
+                        Nothing ->
+                            Just <|
+                                String.join " "
+                                    [ "Exosphere could not determine a suitable network to create a server."
+                                    , "Please select a network in the advanced options."
+                                    ]
+
+                NoneAvailable ->
+                    Just <|
+                        String.join " "
+                            [ "No networks to create a server available."
+                            , "Please contact your cloud administrator."
+                            ]
+
+        renderNetworkGuidance =
+            case maybeNetworkGuidance of
+                Nothing ->
+                    Element.none
+
+                Just guidanceText ->
+                    Element.paragraph
+                        [ Font.color (SH.toElementColor context.palette.error)
+                        , Element.alignRight
+                        ]
+                        [ Element.text guidanceText
+                        ]
+
         createOnPress =
             let
                 invalidVolSizeTextInput =
@@ -76,11 +116,11 @@ createServer context project viewParams =
                         Nothing ->
                             False
             in
-            case ( invalidNameReasons, invalidVolSizeTextInput ) of
-                ( Nothing, False ) ->
-                    Just (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams))
+            case ( invalidNameReasons, invalidVolSizeTextInput, viewParams.networkUuid ) of
+                ( Nothing, False, Just netUuid ) ->
+                    Just (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams netUuid))
 
-                ( _, _ ) ->
+                ( _, _, _ ) ->
                     Nothing
 
         contents flavor computeQuota volumeQuota =
@@ -142,6 +182,7 @@ createServer context project viewParams =
                             , userDataInput context project viewParams
                             ]
                        )
+            , renderNetworkGuidance
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
@@ -176,6 +217,7 @@ createServer context project viewParams =
                             contents flavor computeQuota volumeQuota
 
                         ( _, _, RemoteData.Loading ) ->
+                            -- TODO deduplicate this with code below
                             [ Element.row [ Element.spacing 15 ]
                                 [ Widget.circularProgressIndicator
                                     (SH.materialStyle context.palette).progressIndicator
@@ -670,69 +712,48 @@ networkPicker context project viewParams =
         networkOptions =
             Helpers.newServerNetworkOptions project
 
-        contents =
-            case networkOptions of
-                NoNetsAutoAllocate ->
-                    [ Element.paragraph
-                        []
-                        [ Element.text <|
-                            String.concat
-                                [ "There are no networks associated with your "
-                                , context.localization.unitOfTenancy
-                                , " so Exosphere will ask OpenStack to create one for you and hope for the best."
-                                ]
-                        ]
-                    ]
+        guidance =
+            let
+                maybeStr =
+                    if networkOptions == ManualNetworkSelection && viewParams.networkUuid == Nothing then
+                        Just "Please choose a network."
 
-                OneNet net ->
-                    [ Element.paragraph
-                        []
-                        [ Element.text ("There is only one network, with name \"" ++ net.name ++ "\", so Exosphere will use that one.") ]
-                    ]
+                    else
+                        Just "Please only change this if you know what you are doing."
+            in
+            case maybeStr of
+                Just str ->
+                    Element.paragraph
+                        [ Font.color (context.palette.error |> SH.toElementColor) ]
+                        [ Element.text str ]
 
-                MultipleNetsWithGuess _ guessNet goodGuess ->
-                    let
-                        guessText =
-                            if goodGuess then
-                                Element.paragraph
-                                    []
-                                    [ Element.text
-                                        ("The network \"" ++ guessNet.name ++ "\" is probably a good guess so Exosphere has picked it by default.")
-                                    ]
+                Nothing ->
+                    Element.none
 
-                            else
-                                Element.paragraph
-                                    []
-                                    [ Element.text "The selected network is a guess and might not be the best choice." ]
+        picker =
+            let
+                networkAsInputOption network =
+                    Input.option network.uuid (Element.text network.name)
+            in
+            Input.radio []
+                { label = Input.labelHidden "Choose a Network"
+                , onChange = \networkUuid -> updateCreateServerRequest project { viewParams | networkUuid = Just networkUuid }
+                , options =
+                    case project.networks.data of
+                        RDPP.DoHave networks _ ->
+                            List.map networkAsInputOption networks
 
-                        networkAsInputOption network =
-                            Input.option network.uuid (Element.text network.name)
-
-                        networkEmptyHint =
-                            if viewParams.networkUuid == "" then
-                                [ VH.hint context "Please pick a network" ]
-
-                            else
-                                []
-                    in
-                    [ Input.radio networkEmptyHint
-                        { label = Input.labelAbove [ Element.paddingXY 0 12 ] (Element.text "Choose a Network")
-                        , onChange = \networkUuid -> updateCreateServerRequest project { viewParams | networkUuid = networkUuid }
-                        , options =
-                            case project.networks.data of
-                                RDPP.DoHave networks _ ->
-                                    List.map networkAsInputOption networks
-
-                                RDPP.DontHave ->
-                                    []
-                        , selected = Just viewParams.networkUuid
-                        }
-                    , guessText
-                    ]
+                        RDPP.DontHave ->
+                            []
+                , selected = viewParams.networkUuid
+                }
     in
     Element.column
         VH.exoColumnAttributes
-        (Element.el [ Font.bold ] (Element.text "Network") :: contents)
+        [ Element.el [ Font.bold ] <| Element.text "Network"
+        , guidance
+        , picker
+        ]
 
 
 keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg

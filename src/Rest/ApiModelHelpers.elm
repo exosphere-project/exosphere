@@ -1,5 +1,6 @@
 module Rest.ApiModelHelpers exposing
-    ( requestComputeQuota
+    ( requestAutoAllocatedNetwork
+    , requestComputeQuota
     , requestNetworks
     , requestServer
     , requestServers
@@ -55,6 +56,20 @@ requestNetworks projectUuid model =
                 |> (\p -> GetterSetters.projectSetNetworksLoading model.clientCurrentTime p)
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestNetworks project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestAutoAllocatedNetwork : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+requestAutoAllocatedNetwork projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( project
+                |> (\p -> GetterSetters.projectSetAutoAllocatedNetworkUuidLoading model.clientCurrentTime p)
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Neutron.requestAutoAllocatedNetwork project
             )
 
         Nothing ->

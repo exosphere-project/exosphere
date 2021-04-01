@@ -270,8 +270,8 @@ newServerNetworkOptions : Project -> NewServerNetworkOptions
 newServerNetworkOptions project =
     {- When creating a new server, make a reasonable choice of project network, if we can. -}
     let
-        -- First, filter on networks that are status ACTIVE, adminStateUp, and not external
         projectNets =
+            -- Filter on networks that are status ACTIVE, adminStateUp, and not external
             case project.networks.data of
                 RDPP.DoHave networks _ ->
                     networks
@@ -282,43 +282,58 @@ newServerNetworkOptions project =
                 RDPP.DontHave ->
                     []
 
-        maybeAutoAllocatedNet =
-            projectNets
-                |> List.filter (\n -> n.name == "auto_allocated_network")
-                |> List.head
-
         maybeProjectNameNet =
             projectNets
-                |> List.filter (\n -> String.contains project.auth.project.name n.name)
+                |> List.filter
+                    (\n ->
+                        String.contains
+                            (String.toLower project.auth.project.name)
+                            (String.toLower n.name)
+                    )
                 |> List.head
     in
-    case projectNets of
-        -- If there is no suitable network then we specify "auto" and hope that OpenStack will create one for us
-        [] ->
-            NoNetsAutoAllocate
+    -- Prefer auto-allocated network topology that we get/create
+    case project.autoAllocatedNetworkUuid.data of
+        RDPP.DoHave netUuid _ ->
+            AutoSelectedNetwork netUuid
 
-        firstNet :: otherNets ->
-            if List.isEmpty otherNets then
-                -- If there is only one network then we pick that one
-                OneNet firstNet
+        RDPP.DontHave ->
+            case project.autoAllocatedNetworkUuid.refreshStatus of
+                RDPP.Loading _ ->
+                    NetworksLoading
 
-            else
-                -- If there are multiple networks then we let user choose and try to guess a good default
-                let
-                    ( guessNet, goodGuess ) =
-                        case maybeAutoAllocatedNet of
-                            Just n ->
-                                ( n, True )
+                RDPP.NotLoading maybeError ->
+                    case maybeError of
+                        Nothing ->
+                            -- We haven't gotten auto-allocated network yet, say "loading" anyway
+                            NetworksLoading
 
-                            Nothing ->
-                                case maybeProjectNameNet of
-                                    Just n ->
-                                        ( n, True )
+                        Just _ ->
+                            -- auto-allocation API call failed, so look through list of networks
+                            case
+                                projectNets
+                                    |> List.filter (\n -> n.name == "auto_allocated_network")
+                                    |> List.head
+                            of
+                                Just net ->
+                                    AutoSelectedNetwork net.uuid
 
-                                    Nothing ->
-                                        ( firstNet, False )
-                in
-                MultipleNetsWithGuess projectNets guessNet goodGuess
+                                Nothing ->
+                                    case maybeProjectNameNet of
+                                        Just projectNameNet ->
+                                            AutoSelectedNetwork projectNameNet.uuid
+
+                                        Nothing ->
+                                            case project.networks.refreshStatus of
+                                                RDPP.Loading _ ->
+                                                    NetworksLoading
+
+                                                RDPP.NotLoading _ ->
+                                                    if List.isEmpty projectNets then
+                                                        NoneAvailable
+
+                                                    else
+                                                        ManualNetworkSelection
 
 
 isBootVol : Maybe OSTypes.ServerUuid -> OSTypes.Volume -> Bool

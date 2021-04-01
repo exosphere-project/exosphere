@@ -24,18 +24,24 @@ processStringError model errorContext error =
                 errorContext
                 model.clientCurrentTime
 
-        toast =
-            Toast
-                errorContext
-                error
-
         newLogMessages =
             logMessage :: model.logMessages
 
         newModel =
             { model | logMessages = newLogMessages }
     in
-    Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
+    case errorContext.level of
+        ErrorDebug ->
+            ( newModel, Cmd.none )
+
+        _ ->
+            let
+                toast =
+                    Toast
+                        errorContext
+                        error
+            in
+            Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
 
 processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
