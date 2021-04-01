@@ -89,7 +89,7 @@ requestAutoAllocatedNetwork project =
         errorContext =
             ErrorContext
                 ("get/create auto-allocated network for project \"" ++ project.auth.project.name ++ "\"")
-                ErrorCrit
+                ErrorDebug
                 Nothing
 
         resultToMsg result =
