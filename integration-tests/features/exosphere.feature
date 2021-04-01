@@ -47,7 +47,7 @@ Feature: Text presence
         And I click the last "Create" button
         Then I should see the unique instance name within 5 seconds
         And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/resources"
-        When I press on the unique server name
+        When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance Details')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
         When I click the "See detail" button
@@ -69,7 +69,7 @@ Feature: Text presence
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
         Given a unique instance name starting with "ubuntu"
         Then I should see the unique instance name within 30 seconds
-        When I press on the unique server name
+        When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance Details')]" within 2 seconds
         When I click the "See detail" button
         Then I should see "Detailed status"

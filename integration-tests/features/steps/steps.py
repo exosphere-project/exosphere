@@ -187,7 +187,7 @@ def not_see_unique_instance_name_within(context, timeout):
     """)
 
 
-@step(u'I press on the unique server name')
+@step(u'I press on the unique instance name')
 @persona_vars
 def see_unique_instance_name_within(context):
     context.execute_steps(f"""
