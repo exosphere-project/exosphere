@@ -233,7 +233,7 @@ deploy_dev:
   script:
     - cd integration-tests
     - echo -e "section_start:`date +%s`:behave_run[collapsed=false]\r\e[0KRun behave"
-    - behave --junit --no-skipped -D UNIQUE_TAG="e2e-$BROWSER_LOWER-$CI_COMMIT_REF_SLUG" -D EXOSPHERE_BASE_URL=$CI_ENVIRONMENT_URL -D BROWSER=$BROWSER_LOWER -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e.exosphere.service:4444/wd/hub features/exosphere.feature
+    - behave --junit --no-skipped -D UNIQUE_TAG="e2e-$BROWSER_LOWER-$CI_COMMIT_REF_SLUG" -D EXOSPHERE_BASE_URL=$EXOSPHERE_BASE_URL -D BROWSER=$BROWSER_LOWER -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e.exosphere.service:4444/wd/hub features/exosphere.feature
     - echo -e "section_end:`date +%s`:behave_run\r\e[0K"
   artifacts:
     when: always
@@ -248,9 +248,7 @@ deploy_dev:
   stage: test
   variables:
     CI_DISPOSABLE_ENVIRONMENT: "true"
-  environment:
-    name: merge_request
-    url: http://app.exosphere.localhost:8000
+    EXOSPHERE_BASE_URL: "http://app.exosphere.localhost:8000"
   except:
     - master
     - dev
@@ -285,9 +283,8 @@ mr_e2e_chrome:
 
 .dev_post_deploy:
   stage: postdeploy
-  environment:
-    name: dev
-    url: https://try-dev.exosphere.app/exosphere
+  variables:
+    EXOSPHERE_BASE_URL: "https://try-dev.exosphere.app/exosphere"
   needs:
     - deploy_dev
   only:
@@ -295,9 +292,8 @@ mr_e2e_chrome:
 
 .prod_post_deploy:
   stage: postdeploy
-  environment:
-    name: prod
-    url: https://try.exosphere.app/exosphere
+  variables:
+    EXOSPHERE_BASE_URL: "https://try.exosphere.app/exosphere"
   needs:
     - deploy_prod
   only:
@@ -305,9 +301,8 @@ mr_e2e_chrome:
 
 .jetstream_post_deploy:
   stage: postdeploy
-  environment:
-    name: jetstream
-    url: https://exosphere.jetstream-cloud.org/exosphere
+  variables:
+    EXOSPHERE_BASE_URL: "https://exosphere.jetstream-cloud.org/exosphere"
   needs:
     - deploy_jetstream
   only:
