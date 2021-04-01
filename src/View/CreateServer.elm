@@ -585,12 +585,12 @@ desktopEnvironmentPicker context project createServerViewParams =
                     ++ VH.exoElementAttributes
                 )
                 [ Element.text <|
-                    String.join " "
-                        [ "Warning: if selected image does not already include a"
+                    String.concat
+                        [ "Warning: If selected image does not already include a "
                         , context.localization.graphicalDesktopEnvironment
-                        , ","
+                        , ", "
                         , context.localization.virtualComputer
-                        , "can take 30 minutes or longer to deploy."
+                        , " can take 30 minutes or longer to deploy."
                         ]
                 ]
 
@@ -646,7 +646,7 @@ skipOperatingSystemUpdatesPicker context project createServerViewParams =
                     ++ VH.exoElementAttributes
                 )
                 [ Element.text <|
-                    String.join ""
+                    String.concat
                         [ "Warning: Skipping operating system updates is a security risk, especially when launching "
                         , Helpers.String.indefiniteArticle context.localization.virtualComputer
                         , " "
