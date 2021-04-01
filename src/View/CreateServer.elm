@@ -94,12 +94,12 @@ createServer context project viewParams =
                     Element.none
 
                 Just guidanceText ->
-                    Element.el
+                    Element.paragraph
                         [ Font.color (SH.toElementColor context.palette.error)
                         , Element.alignRight
                         ]
-                    <|
-                        Element.text guidanceText
+                        [ Element.text guidanceText
+                        ]
 
         createOnPress =
             let
