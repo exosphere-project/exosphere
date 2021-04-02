@@ -36,12 +36,11 @@ How to add TACC credentials as environment variables to your GitLab repository s
 
 ![Environment variables for end-to-end browser tests](docs/environment-variables-e2e-browser-tests.png)
 
-There are subtle but important differences between how the pipeline runs end-to-end browser tests for merge requests, as opposed to `master` and `dev` branches:
+The CI pipeline's end-to-end browser tests have special behavior for `master` and `dev` branches, as opposed to all other git repository branches.
 
-**Merge requests:** Compiled Exosphere assets from the `elm_make` stage is combined with Selenium and a headless browser in a custom container, and the tests point at Exosphere served by this container. (See the `.build_with_kaniko`-based jobs in the `dockerize` stage.) Browser tests for merge requests run in the `test` stage along with the other tests (like Elm unit tests, `elm-analyze`, etc.).
+**`master` and `dev` branches:** The CI pipeline deploys Exosphere to production environments ([try.exosphere.app](https://try.exosphere.app/) and [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org/) for master branch, [try-dev.exosphere.app](https://try-dev.exosphere.app/) for dev branch), then runs the tests against these live production environments. If you are working on a fork of `exosphere/exosphere` on GitLab, these deploy jobs will not succeed (because you hopefully lack the secrets needed to deploy to production) and the tests may fail as well. So, contributors are encouraged _not_ to work on branches named `master` or `dev` at this time, even on your own fork of the project.
 
-**master and dev branches:** The `dockerize` stage is skipped, and the browser tests are run in the `postdeploy` stage (_after_ the `deploy` stage). The browser tests in the `postdeploy` stage use the standard, unmodified Selenium container image (does _not_ contain any Exosphere assets). For the `master` branch the browser tests run against production environments ([https://try.exosphere.app/](https://try.exosphere.app/) and [https://exosphere.jetstream-cloud.org/](https://exosphere.jetstream-cloud.org/)) and tests for the `dev` branch run against the development environment ([https://try-dev.exosphere.app/](https://try-dev.exosphere.app/)).
-
+**All other branches:** Compiled Exosphere assets from the `elm_make` stage are combined with Selenium and a headless browser in a custom container, and the tests point at Exosphere served by this container. (See the `.build_with_kaniko`-based jobs in the `dockerize` stage.) Browser tests for merge requests run in the `test` stage along with the other tests (like Elm unit tests, `elm-analyze`, etc.). This is all self-contained within the CI pipeline; it does not use or modify live production environments.
 
 ## Architecture Decisions
 
