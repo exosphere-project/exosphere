@@ -1,6 +1,6 @@
 Feature: Text presence
 
-    @setup
+    @add-allocation
     Scenario: Adding a Jetstream cloud account
         Given a browser
         When I go to Exosphere
@@ -17,17 +17,17 @@ Feature: Text presence
         Then I wait for 2 seconds
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 5 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
-        Then I save the "exosphere-save" item in browser local storage
 
     @launch
     Scenario: Launch an instance
         Given a browser
         When I go to Exosphere
         Then I should see "Choose a login method" within 60 seconds
-        When I load the "exosphere-save" item in browser local storage
+        When I add a Jetstream Cloud Account for allocation "TG-INI210003"
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
-        And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]"
+        Given a unique instance name starting with "ubuntu"
+        And I should not see the unique instance name within 30 seconds
         When I click the "Create" button
         And I click the "Instance" button
         Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/images"
@@ -39,11 +39,15 @@ Feature: Text presence
         Then I should see an element with xpath "//h2[contains(string(),'Create Instance')]" within 5 seconds
         # Wait a few seconds to allow all API requests to complete
         Then I wait for 5 seconds
-        When I fill input labeled "Name" with "bdd_test_server"
+        When I fill input labeled "Name" with the unique instance name
+        And I press the "Show" option in the "Advanced Options" radio button group
+        Then I should see "Install operating system updates?" within 2 seconds
+        And I press the "No" option in the "Install operating system updates?" radio button group
+        And I should see "Warning: Skipping operating system updates is a security risk" within 2 seconds
         And I click the last "Create" button
-        Then I should see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 5 seconds
+        Then I should see the unique instance name within 5 seconds
         And the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/resources"
-        When I press the last element with xpath "//div[contains(string(),'bdd_test_server')]"
+        When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance Details')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
         When I click the "See detail" button
@@ -60,12 +64,12 @@ Feature: Text presence
         Given a browser
         When I go to Exosphere
         Then I should see "Choose a login method" within 60 seconds
-        When I load the "exosphere-save" item in browser local storage
+        When I add a Jetstream Cloud Account for allocation "TG-INI210003"
         Then I should see "iu.jetstream-cloud.org - TG-INI210003" within 15 seconds
         And I should see an element with xpath "//h3[contains(string(),'Instances')]" within 20 seconds
-        And I should see an element with xpath "//div[contains(string(),'bdd_test_server')]"
-        Then I should see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
-        When I press the last element with xpath "//div[contains(string(),'bdd_test_server')]"
+        Given a unique instance name starting with "ubuntu"
+        Then I should see the unique instance name within 30 seconds
+        When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance Details')]" within 2 seconds
         When I click the "See detail" button
         Then I should see "Detailed status"
@@ -75,5 +79,6 @@ Feature: Text presence
         Then I should see "Are you sure you want to delete?" within 5 seconds
         When I click the "Yes" button
         Then I should see "Deleting..." within 5 seconds
-        And I should not see an element with xpath "//div[contains(string(),'bdd_test_server')]" within 30 seconds
+        And I should not see the unique instance name within 30 seconds
         And I should not see "Deleting..."
+

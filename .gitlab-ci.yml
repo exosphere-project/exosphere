@@ -5,6 +5,7 @@ stages:
   - dockerize
   - test
   - deploy
+  - postdeploy
 
 cache:
   key: ${CI_JOB_NAME}
@@ -19,8 +20,6 @@ cache:
   stage: dockerize
   needs:
     - elm_make
-  allow_failure: true
-  retry: 1
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
@@ -42,7 +41,9 @@ cache:
       fi
       DOCKER_FILE="$CI_PROJECT_DIR/integration-tests/docker/Selenium${BROWSER}AndExosphere/Dockerfile"
       /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $DOCKER_FILE $FORMATTEDTAGLIST
-
+  except:
+    - master
+    - dev
 
 build_with_kaniko_e2e_firefox:
   extends: .build_with_kaniko
@@ -207,13 +208,11 @@ deploy_dev:
 
 .e2e:
   #Hidden job to use as an "extends" template
-  stage: test
-  resource_group: e2e_iu_openstack
   image: python:3
   allow_failure: true
   retry: 1
   services:
-    - name: "$CI_REGISTRY_IMAGE:e2e-${BROWSER_LOWER}-$CI_COMMIT_BRANCH"
+    - name: "$SELENIUM_CONTAINER_IMAGE"
       alias: e2e.exosphere.service
   before_script:
     - if [[ -z "$taccusername" || -z "$taccpass" ]]; then echo "Must provide taccusername and taccpass in environment" 1>&2; exit 1; fi
@@ -234,7 +233,7 @@ deploy_dev:
   script:
     - cd integration-tests
     - echo -e "section_start:`date +%s`:behave_run[collapsed=false]\r\e[0KRun behave"
-    - behave --junit --no-skipped -D EXOSPHERE_BASE_URL=http://app.exosphere.localhost:8000 -D BROWSER=$BROWSER_LOWER -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e.exosphere.service:4444/wd/hub features/exosphere.feature
+    - behave --junit --no-skipped -D UNIQUE_TAG="e2e-$BROWSER_LOWER-$CI_COMMIT_REF_SLUG-$ENV_NAME" -D EXOSPHERE_BASE_URL=$EXOSPHERE_BASE_URL -D BROWSER=$BROWSER_LOWER -D REMOTE_WEBDRIVER=yes -D COMMAND_EXECUTOR=http://e2e.exosphere.service:4444/wd/hub features/exosphere.feature
     - echo -e "section_end:`date +%s`:behave_run\r\e[0K"
   artifacts:
     when: always
@@ -244,19 +243,105 @@ deploy_dev:
       - integration-tests/screenshots
       - integration-tests/logs
 
-e2e_firefox:
+.mr_e2e:
   extends: .e2e
+  stage: test
+  variables:
+    CI_DISPOSABLE_ENVIRONMENT: "true"
+    EXOSPHERE_BASE_URL: "http://app.exosphere.localhost:8000"
+    ENV_NAME: "mr"
+  except:
+    - master
+    - dev
+
+mr_e2e_firefox:
+  extends: .mr_e2e
   variables:
     BROWSER_LOWER: "firefox"
+    SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-firefox-$CI_COMMIT_BRANCH"
   needs:
     - build_with_kaniko_e2e_firefox
 
-e2e_chrome:
+mr_e2e_chrome:
+  extends: .mr_e2e
+  variables:
+    BROWSER_LOWER: "chrome"
+    SELENIUM_CONTAINER_IMAGE: "$CI_REGISTRY_IMAGE:e2e-chrome-$CI_COMMIT_BRANCH"
+  needs:
+    - build_with_kaniko_e2e_chrome
+
+.e2e_chrome:
   extends: .e2e
   variables:
     BROWSER_LOWER: "chrome"
+    SELENIUM_CONTAINER_IMAGE: "selenium/standalone-chrome:4"
+
+.e2e_firefox:
+  extends: .e2e
+  variables:
+    BROWSER_LOWER: "firefox"
+    SELENIUM_CONTAINER_IMAGE: "selenium/standalone-firefox:4"
+
+.dev_post_deploy:
+  stage: postdeploy
+  variables:
+    EXOSPHERE_BASE_URL: "https://try-dev.exosphere.app/exosphere"
+    ENV_NAME: "dev"
   needs:
-    - build_with_kaniko_e2e_chrome
+    - deploy_dev
+  only:
+    - dev
+
+.prod_post_deploy:
+  stage: postdeploy
+  variables:
+    EXOSPHERE_BASE_URL: "https://try.exosphere.app/exosphere"
+    ENV_NAME: "prod"
+  needs:
+    - deploy_prod
+  only:
+    - master
+
+.jetstream_post_deploy:
+  stage: postdeploy
+  variables:
+    EXOSPHERE_BASE_URL: "https://exosphere.jetstream-cloud.org/exosphere"
+    ENV_NAME: "j7m"
+  needs:
+    - deploy_jetstream
+  only:
+    - master
+
+dev_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .dev_post_deploy
+
+dev_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .dev_post_deploy
+
+prod_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .prod_post_deploy
+
+prod_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .prod_post_deploy
+
+jetstream_post_deploy_e2e_chrome:
+  extends:
+    - .e2e_chrome
+    - .jetstream_post_deploy
+
+jetstream_post_deploy_e2e_firefox:
+  extends:
+    - .e2e_firefox
+    - .jetstream_post_deploy
+
 
 include:
   - template: Dependency-Scanning.gitlab-ci.yml

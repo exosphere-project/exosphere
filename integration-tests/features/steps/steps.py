@@ -1,5 +1,4 @@
 import os
-import pathlib
 
 from behave import then, when, step
 from behaving.personas.persona import persona_vars
@@ -142,45 +141,63 @@ def i_login_to_exosphere(context):
     """)
 
 
-@step('I save the "{local_storage_item}" item in browser local storage')
+@step('I add a Jetstream Cloud Account for allocation "{allocation}"')
 @persona_vars
-def i_save_local_storage(context, local_storage_item):
-    local_storage_file_path = path_for_local_storage_item(local_storage_item)
-    local_storage_item_content = context.browser.evaluate_script(
-        f"localStorage.getItem('{local_storage_item}')")
-    with open(local_storage_file_path, 'w') as temporary_file:
-        temporary_file.write(local_storage_item_content)
+def i_add_jetstream_cloud_account_for_allocation(context, allocation):
+    context.execute_steps(f"""
+    When I click the "Add Jetstream Account" button
+    Then I should see "Add a Jetstream Cloud Account" within 15 seconds
+    When I enter TACC credentials
+    And I click the "IU Cloud" radio button
+    And I click the "Log In" button
+    Then I should see "Choose Projects for" within 15 seconds
+    And I should see "{allocation}"
+    When I click the "{allocation}" checkbox
+    And I click the "Choose" button
+    Then I wait for 2 seconds
+    """)
 
 
-@step('I load the "{local_storage_item}" item in browser local storage')
+@step('a unique instance name starting with "{instance_name_begin}"')
 @persona_vars
-def i_load_local_storage(context, local_storage_item):
-    local_storage_file_path = path_for_local_storage_item(local_storage_item)
-    with open(local_storage_file_path, 'r') as temporary_file:
-        local_storage_item_content = temporary_file.read()
-
-    context.browser.evaluate_script(
-        f"localStorage.setItem('{local_storage_item}', '{local_storage_item_content}')")
-    context.execute_steps("""When I go to Exosphere""")
+def unique_instance_name(context, instance_name_begin):
+    context.unique_instance_name = f'{instance_name_begin}-{context.unique_tag}'
 
 
-def path_for_local_storage_item(local_storage_item):
-    # Try to turn local storage item name into an environment variable
-    # E.g. if local_storage_item == 'exosphere-save', then 'EXOSPHERE_SAVE_FILE'
-    # If the variable is not set then default to: '/tmp/{local_storage_item}'
-    file_path_variable_name = f'{local_storage_item}_FILE'.replace('-', '_').upper()
-    local_storage_file_path = os.environ.get(file_path_variable_name,
-                                             f'/tmp/{local_storage_item}')
-    return local_storage_file_path
-
-
-@step('I delete "{local_storage_item}" browser local storage item file')
+@step(u'I fill input labeled "{label}" with the unique instance name')
 @persona_vars
-def i_delete_local_storage_file(context, local_storage_item):
-    local_storage_file_path = path_for_local_storage_item(local_storage_item)
-    file_path = pathlib.Path(local_storage_file_path)
-    try:
-        file_path.unlink()
-    except FileNotFoundError:
-        # Ignore if the file we're trying to delete does not exist.
-        pass
+def i_fill_input_labeled_with_unique_instance_name(context, label):
+    element = find_input_by_label(context, label).first
+    element.fill(context.unique_instance_name)
+
+
+@step(u'I should see the unique instance name within {timeout:d} seconds')
+@persona_vars
+def see_unique_instance_name_within(context, timeout):
+    context.execute_steps(f"""
+    Then I should see an element with xpath "//div[contains(string(),'{context.unique_instance_name}')]" within {timeout} seconds
+    """)
+
+
+@step(u'I should not see the unique instance name within {timeout:d} seconds')
+@persona_vars
+def not_see_unique_instance_name_within(context, timeout):
+    context.execute_steps(f"""
+    Then I should not see an element with xpath "//div[contains(string(),'{context.unique_instance_name}')]" within {timeout} seconds
+    """)
+
+
+@step(u'I press on the unique instance name')
+@persona_vars
+def see_unique_instance_name_within(context):
+    context.execute_steps(f"""
+    When I press the last element with xpath "//div[contains(string(),'{context.unique_instance_name}')]"
+    """)
+
+
+@step(u'I press the "{option}" option in the "{label}" radio button group')
+def press_radio_button_in_group(context, option, label):
+    radio_group = context.browser.find_by_xpath(
+        xpath=f"//label[@role='radiogroup' and contains(string(), '{label}')]")
+    radio_button = radio_group.first.find_by_text(option)
+    radio_button.click()
