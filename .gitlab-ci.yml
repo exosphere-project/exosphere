@@ -305,7 +305,7 @@ mr_e2e_chrome:
 .jetstream_post_deploy:
   stage: postdeploy
   variables:
-    EXOSPHERE_BASE_URL: "https://exosphere.jetstream-cloud.org/exosphere"
+    EXOSPHERE_BASE_URL: "https://exosphere.jetstream-cloud.org/exosphere/loginpicker"
     ENV_NAME: "j7m"
   needs:
     - deploy_jetstream
