@@ -150,8 +150,7 @@ def i_add_jetstream_cloud_account_for_allocation(context, allocation):
     When I enter TACC credentials
     And I click the "IU Cloud" radio button
     And I click the "Log In" button
-    Then I should see "Choose Projects for" within 15 seconds
-    And I should see "{allocation}"
+    And I should see "{allocation}" within 15 seconds
     When I click the "{allocation}" checkbox
     And I click the "Choose" button
     Then I wait for 2 seconds

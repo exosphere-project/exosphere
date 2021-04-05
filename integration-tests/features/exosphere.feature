@@ -10,8 +10,7 @@ Feature: Text presence
         When I enter TACC credentials
         And I click the "IU Cloud" radio button
         And I click the "Log In" button
-        Then I should see "Choose Projects for" within 15 seconds
-        And I should see "TG-INI210003"
+        Then I should see "TG-INI210003" within 15 seconds
         When I click the "TG-INI210003" checkbox
         And I click the "Choose" button
         Then I wait for 2 seconds
