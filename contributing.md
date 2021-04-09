@@ -17,6 +17,7 @@ Our CI pipeline runs:
  
  ```bash
  npm install
+ npm install --no-save elm-analyse
  npm run elm:format
  npm run elm:analyse
  ```

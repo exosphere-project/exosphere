@@ -15,12 +15,22 @@ RUN apt-get update && \
 
 # Install and cache dependencies
 COPY package*.json ./
-RUN npm install
+COPY elm.json ./
+COPY elm-tooling.json ./
+RUN npm install \
+    && npm install --no-save elm-live
 
 # Add remainder of files
-COPY . .
-RUN npx elm make src/Exosphere.elm --output public/elm-web.js
+COPY index.html .
+COPY service-worker.js .
+COPY environment-configs/docker-config.js ./config.js
+COPY ports.js .
+COPY exosphere.webmanifest .
+COPY src ./src
+COPY assets ./assets
+COPY fonts ./fonts
+RUN npx elm make src/Exosphere.elm --output elm-web.js
 
 EXPOSE 8000
 
-#ENTRYPOINT ["npm", "run live"]
+CMD npx elm-live src/Exosphere.elm --pushstate true --proxy-prefix '/proxy' --proxy-host 'https://try-dev.exosphere.app/proxy' --host 0.0.0.0 --verbose --start-page index.html --hot true -- --output=elm-web.js

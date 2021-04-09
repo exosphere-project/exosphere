@@ -1,21 +1,15 @@
 # Exosphere Tests
 
-
 ## Installation
 
-To run test, you'll need to install `elm-test`.
-
-If you are comfortable installing it globally, then use the following:
+To run tests, you'll need to install the Exosphere development dependencies:
 
 ```
-npm install -g elm-test
+npm install
 ```
-
-Or, you can configure it to installed within `node_modules` and define an NPM script with the _path_ including `elm-test` via `.bin`.
-
-The current Exosphere project leverages globally installed Elm tools (see "./package.json")
 
 ## Getting Started
+
 You can use the elm-test README as a way to orient to structure of tests:
 
 https://github.com/elm-community/elm-test#quick-start
