@@ -63,7 +63,13 @@ Then install the project's dependencies (including Elm). Convenience command to 
 npm install
 ```
 
-To compile the app and serve it using a local development server run this command:
+To compile the app and serve it using a local development server install `elm-live` (once only):
+
+```
+npm install --no-save elm-live
+```
+
+Then run this command:
 
 ```
 npm run live
