@@ -97,52 +97,62 @@ to build a container instead. First, build the container:
 docker build -t exosphere .
 ```
 
-And then run, binding port 80 to 8080 in the container:
+And then run, binding port 8000 to 8000 in the container:
 
 ```bash
-$ docker run -it -p 80:8080 exosphere
-Starting up http-server, serving ./
-Available on:
-  http://127.0.0.1:8080
-  http://172.17.0.3:8080
-Hit CTRL-C to stop the server
+docker run --rm -it --name exosphere -p 8000:8000 exosphere
 ```
 
-You can open your browser to [http://127.0.0.1](http://127.0.0.1) to see the interface.
+You should see `elm-live` starting:
+
+```
+elm-live:
+  Hot Reloading is ON
+
+  Warning: Hot Reloading does not replay the messages of the app.
+  It just restores the previous state and can lead to bad state.
+  If this happen, reload the app in the browser manually to fix it.
+
+
+elm-live:
+  Server has been started! Server details below:
+    - Website URL: http://0.0.0.0:8000
+    - Serving files from: /usr/src/app
+    - Proxying requests starting with /proxy to https://try-dev.exosphere.app/proxy
+
+elm-live:
+  The build has succeeded. 
+
+elm-live:
+  Watching the following files:
+    - src/**/*.elm
+```
+
+You can open your browser to [http://127.0.0.1:8000](http://127.0.0.1:8000) to see the interface.
+
 If you want a development environment to make changes to files, you can run
 the container and bind the src directory:
 
 ```bash
-$ docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 80:8080 exosphere
+$ docker run --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 8000:8000 exosphere
 ```
 
-And then either run the above command with `-d` (for detached)
-
-```bash
-$ docker run -d --rm -v $PWD/src:/usr/src/app/src -it --name exosphere -p 80:8080 exosphere
-```
-
-or in another window execute a command to the container to rebuild the elm-web.js file:
-
-```bash
-$ docker exec exosphere elm make src/Exosphere.elm --output elm-web.js
-Success! Compiled 47 modules.
-
-    Exosphere ───> elm-web.js
-```
+You can then edit the Elm source code on your host using your favorite editor and `elm-live` inside the container will
+detect the changes, automatically recompile the source code, and then reload the app in your browser.
 
 If you need changes done to other files in the root, you can either bind them
 or make changes and rebuild the base. You generally shouldn't make changes to files
 from inside the container that are bound to the host, as the permissions will be
 modified.
 
-If you want to copy the elm-web.js from inside the container (or any other file) you can do:
+If you want to copy the elm-web.js from inside the container (or any other file) you can do the following in another
+terminal window:
 
 ```bash
 docker cp exosphere:/usr/src/app/elm-web.js my-elm.js
 ```
 
-When it's time to cleanup, you can do `docker stop exosphere` and `docker rm exosphere`.
+When it's time to cleanup, press Ctrl-C in the terminal window running `elm-live`.
 
 ### Exosphere Compatibility
 
