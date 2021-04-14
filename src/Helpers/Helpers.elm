@@ -20,7 +20,6 @@ module Helpers.Helpers exposing
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
-import Debug
 import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
