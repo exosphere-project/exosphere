@@ -489,8 +489,8 @@ decodeAuthTokenHelper response tokenDetailsDecoder =
                         Err errStr ->
                             Err errStr
 
-                Err error ->
-                    Err (Debug.toString error)
+                Err decodeError ->
+                    Err (Decode.errorToString decodeError)
 
         Http.BadStatus_ _ body ->
             Err (Debug.toString body)
