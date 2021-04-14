@@ -1,5 +1,6 @@
 module State.Error exposing (processStringError, processSynchronousApiError)
 
+import Helpers.Helpers as Helpers
 import Http
 import Json.Decode as Decode
 import OpenStack.Error as OSError
@@ -69,6 +70,6 @@ processSynchronousApiError model errorContext httpError =
                                 ++ ")"
 
                 _ ->
-                    Debug.toString httpError
+                    Helpers.httpErrorToString httpError.error
     in
     processStringError model errorContext formattedError

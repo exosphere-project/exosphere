@@ -5,6 +5,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
@@ -57,7 +58,7 @@ serverList context showHeading project serverListViewParams toMsg =
                         , Element.text "Please wait..."
                         ]
 
-                ( RDPP.DontHave, RDPP.NotLoading (Just _) ) ->
+                ( RDPP.DontHave, RDPP.NotLoading (Just ( httpErrorWithBody, _ )) ) ->
                     Element.paragraph
                         []
                         [ Element.text <|
@@ -65,7 +66,7 @@ serverList context showHeading project serverListViewParams toMsg =
                                 [ "Cannot display"
                                 , context.localization.virtualComputer
                                     |> Helpers.String.pluralize
-                                , ". Error message: " ++ Debug.toString e
+                                , ". Error message: " ++ Helpers.httpErrorToString httpErrorWithBody.error
                                 ]
                         ]
 

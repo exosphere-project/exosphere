@@ -352,7 +352,7 @@ renderWebData context remoteData resourceWord renderSuccessCase =
                     [ "Could not load"
                     , resourceWord
                     , "because:"
-                    , Debug.toString error
+                    , Helpers.httpErrorToString error
                     ]
 
         RemoteData.Success resource ->

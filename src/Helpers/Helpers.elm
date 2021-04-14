@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( alwaysRegex
     , checkFloatingIpState
     , getBootVol
+    , httpErrorToString
     , isBootVol
     , newGuacMetadata
     , newServerMetadata
@@ -20,11 +21,11 @@ module Helpers.Helpers exposing
 -- Many functions which get and set things in the data model have been moved from here to GetterSetters.elm.
 -- Getter/setter functions that remain here are too "smart" (too much business logic) for GetterSetters.elm.
 
-import Debug
 import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
+import Http
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -124,8 +125,8 @@ serviceCatalogToEndpoints catalog =
                         |> Dict.keys
             in
             Err
-                ("Could not locate URL(s) in service catalog for the following service(s):"
-                    ++ Debug.toString unfoundServices
+                ("Could not locate URL(s) in service catalog for the following service(s): "
+                    ++ String.join ", " unfoundServices
                 )
 
 
@@ -544,3 +545,22 @@ pipelineCmd fn ( model, cmd ) =
             fn model
     in
     ( newModel, Cmd.batch [ cmd, newCmd ] )
+
+
+httpErrorToString : Http.Error -> String
+httpErrorToString httpError =
+    case httpError of
+        Http.BadUrl url ->
+            "BadUrl: " ++ url
+
+        Http.Timeout ->
+            "Timeout"
+
+        Http.NetworkError ->
+            "NetworkError"
+
+        Http.BadStatus int ->
+            "BadStatus: " ++ String.fromInt int
+
+        Http.BadBody string ->
+            "BadBody: " ++ string

@@ -169,10 +169,10 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                                 -- a token yet but orchestration code will make request soon
                                                                 ITypes.Loading
 
-                                                            Just ( error, _ ) ->
+                                                            Just ( httpError, _ ) ->
                                                                 ITypes.Error
                                                                     ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
-                                                                        ++ Debug.toString error
+                                                                        ++ Helpers.httpErrorToString httpError
                                                                     )
     in
     case server.osProps.details.openstackStatus of
@@ -215,8 +215,8 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                         RemoteData.Loading ->
                             ITypes.Loading
 
-                        RemoteData.Failure error ->
-                            ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Debug.toString error)
+                        RemoteData.Failure httpErrorWithBody ->
+                            ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString httpErrorWithBody.error)
 
                         RemoteData.Success consoleUrl ->
                             ITypes.Ready consoleUrl
