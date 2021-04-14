@@ -55,7 +55,7 @@ toast context showDebugMsgs t =
         layoutWith Element.none
 
 
-genericToast : View.Types.Context -> String -> String -> String -> a -> Maybe String -> Element.Element Msg
+genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element Msg
 genericToast context variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")
@@ -81,7 +81,7 @@ genericToast context variantClass title actionContext error maybeRecoveryHint =
                 , Element.text ", this happened:"
                 ]
             , Element.paragraph []
-                [ Element.text <| Debug.toString error ]
+                [ Element.text error ]
             , case maybeRecoveryHint of
                 Just recoveryHint ->
                     Element.paragraph []
