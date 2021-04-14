@@ -492,11 +492,17 @@ decodeAuthTokenHelper response tokenDetailsDecoder =
                 Err decodeError ->
                     Err (Decode.errorToString decodeError)
 
-        Http.BadStatus_ _ body ->
-            Err (Debug.toString body)
+        Http.BadUrl_ url ->
+            Err ("BadUrl: " ++ url)
 
-        _ ->
-            Err (Debug.toString "foo")
+        Http.Timeout_ ->
+            Err "Timeout"
+
+        Http.NetworkError_ ->
+            Err "NetworkError"
+
+        Http.BadStatus_ metadata body ->
+            Err ("BadStatus: " ++ String.fromInt metadata.statusCode ++ " " ++ body)
 
 
 authTokenFromHeader : Http.Metadata -> Result String String
