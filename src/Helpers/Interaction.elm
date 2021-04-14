@@ -215,8 +215,8 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                         RemoteData.Loading ->
                             ITypes.Loading
 
-                        RemoteData.Failure error ->
-                            ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Debug.toString error)
+                        RemoteData.Failure httpErrorWithBody ->
+                            ITypes.Error ("Exosphere requested a console URL and got the following error: " ++ Helpers.httpErrorToString httpErrorWithBody.error)
 
                         RemoteData.Success consoleUrl ->
                             ITypes.Ready consoleUrl
