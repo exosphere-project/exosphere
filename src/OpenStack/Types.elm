@@ -55,6 +55,7 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
+    , serverPowerStateToString
     , serverStatusToString
     )
 
@@ -349,6 +350,28 @@ type ServerPowerState
     | PowerShutdown
     | PowerCrashed
     | PowerSuspended
+
+
+serverPowerStateToString : ServerPowerState -> String
+serverPowerStateToString serverPowerState =
+    case serverPowerState of
+        PowerNoState ->
+            "PowerNoState"
+
+        PowerRunning ->
+            "PowerRunning"
+
+        PowerPaused ->
+            "PowerPaused"
+
+        PowerShutdown ->
+            "PowerShutdown"
+
+        PowerCrashed ->
+            "PowerCrashed"
+
+        PowerSuspended ->
+            "PowerSuspended"
 
 
 type ServerLockStatus

@@ -440,7 +440,7 @@ serverStatus context projectId serverDetailViewParams server =
                 |> String.dropLeft 6
 
         friendlyPowerState =
-            Debug.toString details.powerState
+            OSTypes.serverPowerStateToString details.powerState
                 |> String.dropLeft 5
 
         statusGraphic =
