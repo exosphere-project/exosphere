@@ -169,10 +169,10 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                                 -- a token yet but orchestration code will make request soon
                                                                 ITypes.Loading
 
-                                                            Just ( error, _ ) ->
+                                                            Just ( httpError, _ ) ->
                                                                 ITypes.Error
                                                                     ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
-                                                                        ++ Debug.toString error
+                                                                        ++ Helpers.httpErrorToString httpError
                                                                     )
     in
     case server.osProps.details.openstackStatus of
