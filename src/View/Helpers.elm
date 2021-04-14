@@ -16,7 +16,6 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
-    , httpErrorToString
     , imageExcludeFilterLookup
     , inputItemAttributes
     , possiblyUntitledResource
@@ -354,30 +353,11 @@ renderWebData context remoteData resourceWord renderSuccessCase =
                     [ "Could not load"
                     , resourceWord
                     , "because:"
-                    , httpErrorToString error
+                    , Helpers.httpErrorToString error
                     ]
 
         RemoteData.Success resource ->
             renderSuccessCase resource
-
-
-httpErrorToString : Http.Error -> String
-httpErrorToString httpError =
-    case httpError of
-        Http.BadUrl url ->
-            "BadUrl: " ++ url
-
-        Http.Timeout ->
-            "Timeout"
-
-        Http.NetworkError ->
-            "NetworkError"
-
-        Http.BadStatus int ->
-            "BadStatus: " ++ String.fromInt int
-
-        Http.BadBody string ->
-            "BadBody: " ++ string
 
 
 getServerUiStatus : Server -> ServerUiStatus

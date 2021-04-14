@@ -2,6 +2,7 @@ module Helpers.Helpers exposing
     ( alwaysRegex
     , checkFloatingIpState
     , getBootVol
+    , httpErrorToString
     , isBootVol
     , newGuacMetadata
     , newServerMetadata
@@ -24,6 +25,7 @@ import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (iso8601StringToPosix)
+import Http
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
@@ -543,3 +545,22 @@ pipelineCmd fn ( model, cmd ) =
             fn model
     in
     ( newModel, Cmd.batch [ cmd, newCmd ] )
+
+
+httpErrorToString : Http.Error -> String
+httpErrorToString httpError =
+    case httpError of
+        Http.BadUrl url ->
+            "BadUrl: " ++ url
+
+        Http.Timeout ->
+            "Timeout"
+
+        Http.NetworkError ->
+            "NetworkError"
+
+        Http.BadStatus int ->
+            "BadStatus: " ++ String.fromInt int
+
+        Http.BadBody string ->
+            "BadBody: " ++ string

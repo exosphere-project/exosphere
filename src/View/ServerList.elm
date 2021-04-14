@@ -5,6 +5,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
@@ -65,7 +66,7 @@ serverList context showHeading project serverListViewParams toMsg =
                                 [ "Cannot display"
                                 , context.localization.virtualComputer
                                     |> Helpers.String.pluralize
-                                , ". Error message: " ++ VH.httpErrorToString httpErrorWithBody.error
+                                , ". Error message: " ++ Helpers.httpErrorToString httpErrorWithBody.error
                                 ]
                         ]
 
