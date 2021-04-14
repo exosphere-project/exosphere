@@ -65,7 +65,7 @@ elm_make:
     - if [ -d home/.npm ]; then echo "Restoring ~/.npm"; mv home/.npm ~/; fi
     - npm install
   script:
-    - npx elm make src/Exosphere.elm --output public/elm-web.js
+    - npx elm make --optimize src/Exosphere.elm --output public/elm-web.js
     - cp index.html public/index.html
     - cp ports.js public/ports.js
     - cp config.js public/config.js
