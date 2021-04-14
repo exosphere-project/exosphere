@@ -7,7 +7,6 @@ import Element.Input as Input
 import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import Http
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
@@ -59,24 +58,6 @@ serverList context showHeading project serverListViewParams toMsg =
                         ]
 
                 ( RDPP.DontHave, RDPP.NotLoading (Just ( httpErrorWithBody, _ )) ) ->
-                    let
-                        errorMessage =
-                            case httpErrorWithBody.error of
-                                Http.BadUrl url ->
-                                    "BadUrl: " ++ url
-
-                                Http.Timeout ->
-                                    "Timeout"
-
-                                Http.NetworkError ->
-                                    "NetworkError"
-
-                                Http.BadStatus int ->
-                                    "BadStatus " ++ String.fromInt int ++ ": " ++ httpErrorWithBody.body
-
-                                Http.BadBody string ->
-                                    "BadBody " ++ string
-                    in
                     Element.paragraph
                         []
                         [ Element.text <|
@@ -84,7 +65,7 @@ serverList context showHeading project serverListViewParams toMsg =
                                 [ "Cannot display"
                                 , context.localization.virtualComputer
                                     |> Helpers.String.pluralize
-                                , ". Error message: " ++ errorMessage
+                                , ". Error message: " ++ VH.httpErrorToString httpErrorWithBody.error
                                 ]
                         ]
 
