@@ -910,8 +910,8 @@ processProjectSpecificMsg model project msg =
 
         ReceiveDeleteKeypair errorContext keypairName result ->
             case result of
-                Err e ->
-                    State.Error.processStringError model errorContext (Debug.toString e)
+                Err httpError ->
+                    State.Error.processStringError model errorContext (Helpers.httpErrorToString httpError)
 
                 Ok () ->
                     let
