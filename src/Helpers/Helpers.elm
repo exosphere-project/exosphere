@@ -124,8 +124,8 @@ serviceCatalogToEndpoints catalog =
                         |> Dict.keys
             in
             Err
-                ("Could not locate URL(s) in service catalog for the following service(s):"
-                    ++ Debug.toString unfoundServices
+                ("Could not locate URL(s) in service catalog for the following service(s): "
+                    ++ String.join ", " unfoundServices
                 )
 
 
