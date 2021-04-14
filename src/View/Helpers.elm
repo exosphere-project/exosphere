@@ -42,7 +42,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Time exposing (humanReadableTime)
 import Helpers.Url as UrlHelpers
 import Html
-import Http
 import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
