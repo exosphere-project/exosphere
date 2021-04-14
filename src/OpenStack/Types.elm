@@ -55,6 +55,7 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
+    , serverStatusToString
     )
 
 import Dict
@@ -296,6 +297,49 @@ type ServerStatus
     | ServerShelved
     | ServerShelvedOffloaded
     | ServerDeleted
+
+
+serverStatusToString : ServerStatus -> String
+serverStatusToString serverStatus =
+    case serverStatus of
+        ServerPaused ->
+            "ServerPaused"
+
+        ServerSuspended ->
+            "ServerSuspended"
+
+        ServerActive ->
+            "ServerActive"
+
+        ServerReboot ->
+            "ServerReboot"
+
+        ServerShutoff ->
+            "ServerShutoff"
+
+        ServerStopped ->
+            "ServerStopped"
+
+        ServerSoftDeleted ->
+            "ServerSoftDeleted"
+
+        ServerError ->
+            "ServerError"
+
+        ServerBuilding ->
+            "ServerBuilding"
+
+        ServerRescued ->
+            "ServerRescued"
+
+        ServerShelved ->
+            "ServerShelved"
+
+        ServerShelvedOffloaded ->
+            "ServerShelvedOffloaded"
+
+        ServerDeleted ->
+            "ServerDeleted"
 
 
 type ServerPowerState

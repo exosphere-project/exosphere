@@ -436,7 +436,7 @@ serverStatus context projectId serverDetailViewParams server =
             server.osProps.details
 
         friendlyOpenstackStatus =
-            Debug.toString details.openstackStatus
+            OSTypes.serverStatusToString details.openstackStatus
                 |> String.dropLeft 6
 
         friendlyPowerState =
