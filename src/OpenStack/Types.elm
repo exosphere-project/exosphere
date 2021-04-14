@@ -57,6 +57,7 @@ module OpenStack.Types exposing
     , VolumeUuid
     , serverPowerStateToString
     , serverStatusToString
+    , volumeStatusToString
     )
 
 import Dict
@@ -484,6 +485,70 @@ type VolumeStatus
     | Uploading
     | Retyping
     | Extending
+
+
+volumeStatusToString : VolumeStatus -> String
+volumeStatusToString volumeStatus =
+    case volumeStatus of
+        Creating ->
+            "Creating"
+
+        Available ->
+            "Available"
+
+        Reserved ->
+            "Reserved"
+
+        Attaching ->
+            "Attaching"
+
+        Detaching ->
+            "Detaching"
+
+        InUse ->
+            "InUse"
+
+        Maintenance ->
+            "Maintenance"
+
+        Deleting ->
+            "Deleting"
+
+        AwaitingTransfer ->
+            "AwaitingTransfer"
+
+        Error ->
+            "Error"
+
+        ErrorDeleting ->
+            "ErrorDeleting"
+
+        BackingUp ->
+            "BackingUp"
+
+        RestoringBackup ->
+            "RestoringBackup"
+
+        ErrorBackingUp ->
+            "ErrorBackingUp"
+
+        ErrorRestoring ->
+            "ErrorRestoring"
+
+        ErrorExtending ->
+            "ErrorExtending"
+
+        Downloading ->
+            "Downloading"
+
+        Uploading ->
+            "Uploading"
+
+        Retyping ->
+            "Retyping"
+
+        Extending ->
+            "Extending"
 
 
 type alias VolumeAttachment =

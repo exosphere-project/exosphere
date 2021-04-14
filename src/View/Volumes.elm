@@ -289,7 +289,7 @@ volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
                 Element.column
                     (VH.exoColumnAttributes ++ [ Element.width Element.fill, Element.spacing 10 ])
                     [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name context.localization.blockDevice
-                    , VH.compactKVRow "Status:" <| Element.text <| Debug.toString volume.status
+                    , VH.compactKVRow "Status:" <| Element.text <| OSTypes.volumeStatusToString volume.status
                     , renderAttachments context project volume
                     , VH.compactKVRow "Description:" <|
                         Element.paragraph [ Element.width Element.fill ] <|
