@@ -111,9 +111,19 @@ desktopEnvironmentUserData : String
 desktopEnvironmentUserData =
     """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
       DEBIAN_FRONTEND=noninteractive apt-get install -yq ubuntu-desktop-minimal
+      GDM_CUSTOM_CONF_LOCATION=/etc/gdm3/custom.conf
     elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
       yum -y groupinstall workstation
+      GDM_CUSTOM_CONF_LOCATION=/etc/gdm/custom.conf
     fi
+
+    if ! grep -qF "AutomaticLogin = exouser" $GDM_CUSTOM_CONF_LOCATION; then
+      sed -i "s/\\[daemon\\]/[daemon]\\nAutomaticLoginEnable = true\\nAutomaticLogin = exouser\\n/" $GDM_CUSTOM_CONF_LOCATION
+    fi
+
+    gsettings set org.gnome.desktop.lockdown disable-lock-screen 'true'
+    gsettings set org.gnome.desktop.screensaver lock-enabled false
+
     systemctl enable graphical.target
     systemctl set-default graphical.target
     systemctl isolate graphical.target
