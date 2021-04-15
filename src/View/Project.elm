@@ -1,6 +1,8 @@
 module View.Project exposing (project)
 
 import Element
+import Element.Background as Background
+import Element.Border as Border
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
@@ -151,7 +153,14 @@ projectNav context p viewParams =
                     Just <| ProjectMsg p.auth.project.uuid RemoveProject
                 }
         , Element.el
-            [ Element.alignRight ]
+            [ Element.alignRight
+            , Element.paddingEach
+                { top = 0
+                , right = 15
+                , bottom = 0
+                , left = 0
+                }
+            ]
             (createButton context p.auth.project.uuid viewParams.createPopup)
         ]
 
@@ -163,13 +172,25 @@ createButton context projectId expanded =
             if expanded then
                 ( [ Element.below <|
                         Element.column
-                            [ Element.spacing 5
+                            [ Element.alignRight
+                            , Element.moveDown 5
+                            , Element.spacing 5
                             , Element.paddingEach
                                 { top = 5
-                                , bottom = 0
-                                , right = 0
-                                , left = 0
+                                , right = 6
+                                , bottom = 5
+                                , left = 6
                                 }
+                            , Background.color <| SH.toElementColor context.palette.background
+                            , Border.shadow
+                                { blur = 10
+                                , color = SH.toElementColorWithOpacity context.palette.muted 0.2
+                                , offset = ( 0, 2 )
+                                , size = 1
+                                }
+                            , Border.width 1
+                            , Border.color <| SH.toElementColor context.palette.muted
+                            , Border.rounded 4
                             ]
                             [ Widget.textButton
                                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
