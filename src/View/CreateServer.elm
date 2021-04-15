@@ -422,7 +422,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
             else
                 String.concat
                     [ String.fromInt flavorRootDiskSize
-                    , " GB (default for selected"
+                    , " GB (default for selected "
                     , context.localization.virtualComputerHardwareConfig
                     , ")"
                     ]
