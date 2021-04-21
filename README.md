@@ -6,6 +6,13 @@
 
 [![screenshot of Exosphere](docs/screenshot-for-readme.png)](docs/screenshot-for-readme.png)
 
+## Video presentation and demo
+
+
+<figure class="video_container">
+  <iframe src="https://www.youtube.com/embed/fXWLMg-5Z5M " frameborder="0" allowfullscreen="true"> </iframe>
+</figure>
+
 
 ## Quick Start
 
