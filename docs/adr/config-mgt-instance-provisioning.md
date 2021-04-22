@@ -97,7 +97,7 @@ Unclear if this is even possible. Cloud-init isn't intended to be a full-feature
 
 ## Decision and Consequences
 
-- Create a new `instance-provision` repository
+- Create a new `instance-config-mgt` repository
 - Write Ansible code to replace what is in the [guacamole-config](https://gitlab.com/exosphere/guacamole-config) repository; deprecate that repo
 - Document that Exosphere uses Ansible to provision instances in `contributing.md` and any other appropriate spots
-- If this works well, consider migrating some/most of the bash in [`src/ServerDeploy.elm`](https://gitlab.com/exosphere/exosphere/-/blob/c583d345ce2d9f65ec5fbf65e148ad93104197ed/src/ServerDeploy.elm) to Ansible code in the `instance-provision` repo
+- If this works well, consider migrating some/most of the bash in [`src/ServerDeploy.elm`](https://gitlab.com/exosphere/exosphere/-/blob/c583d345ce2d9f65ec5fbf65e148ad93104197ed/src/ServerDeploy.elm) to Ansible code in the `instance-config-mgt` repo
