@@ -99,17 +99,10 @@ mounts:
 
 guacamoleUserData : String
 guacamoleUserData =
-    """cd /opt
-    GUAC_CONFIG_GIT_TAG=5
-    GUAC_CONFIG_URL=https://gitlab.com/exosphere/guacamole-config/-/archive/$GUAC_CONFIG_GIT_TAG/guacamole-config-$GUAC_CONFIG_GIT_TAG.tar.gz
-    GUAC_CONFIG_SHA512=1cb3bb49bc14833de430d319cb786d08d94d20bba92a29cf8006b883f7dc4d4f320bf357b333e89b1bce2060b67f8b93c8af7c776a6148c6eb2d28e312c03c67
-    wget --quiet --output-document=guacamole-config.tar.gz $GUAC_CONFIG_URL
-    if echo $GUAC_CONFIG_SHA512 guacamole-config.tar.gz | sha512sum --check --quiet; then
-      tar -zxvf guacamole-config.tar.gz
-      mv guacamole-config-$GUAC_CONFIG_GIT_TAG guacamole-config
-      cd guacamole-config
-      /bin/bash deploy-guac.sh "$PASSPHRASE"
-    fi
+    """virtualenv /opt/ansible-venv
+    . /opt/ansible-venv/bin/activate
+    pip install ansible-base
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout f3c8d669b41594bb85dd5f07883fba5945d5da64 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
