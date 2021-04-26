@@ -15,6 +15,7 @@ package_update: true
 package_upgrade: {install-os-updates}
 packages:
   - haveged
+  - python3-virtualenv
 runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' > /dev/console
