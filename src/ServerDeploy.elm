@@ -11,6 +11,14 @@ users:
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']{ssh-authorized-keys}
 ssh_pwauth: true
+yum_repos:
+  epel-release:
+    baseurl: https://download.fedoraproject.org/pub/epel/8/Everything/x86_64
+    enabled: true
+    failovermethod: priority
+    gpgcheck: true
+    gpgkey: https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
+    name: Extra Packages for Enterprise Linux 8 - Release
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
