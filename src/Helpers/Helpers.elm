@@ -199,6 +199,14 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
             else
                 "echo \"Not deploying Guacamole\""
 
+        ansibleExtraVars : String
+        ansibleExtraVars =
+            if deployDesktopEnvironment then
+                "gui_enabled=true"
+
+            else
+                ""
+
         desktopEnvironmentSetupCmdsYaml : String
         desktopEnvironmentSetupCmdsYaml =
             if deployDesktopEnvironment then
@@ -217,6 +225,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{guacamole-setup}\n", guacamoleSetupCmdsYaml )
+    , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     ]
