@@ -8,11 +8,7 @@
 
 ## Video presentation and demo
 
-
-<figure class="video_container">
-  <iframe src="https://www.youtube.com/embed/fXWLMg-5Z5M" frameborder="0" allowfullscreen="true"> </iframe>
-</figure>
-
+[![Exosphere: A researcher-friendly GUI for OpenStack](https://img.youtube.com/vi/CTL-6icekYQ/0.jpg)](https://www.youtube.com/watch?v=CTL-6icekYQ)
 
 ## Quick Start
 
