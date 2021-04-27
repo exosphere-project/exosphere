@@ -36,11 +36,11 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                 guacUpstreamPort =
                     49528
 
-                twentyMinMillis =
-                    1000 * 60 * 20
+                fortyMinMillis =
+                    1000 * 60 * 40
 
                 newServer =
-                    Helpers.serverLessThanThisOld server currentTime twentyMinMillis
+                    Helpers.serverLessThanThisOld server currentTime fortyMinMillis
 
                 recentServerEvent =
                     server.events
@@ -62,7 +62,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                         -- See if most recent event is recent enough
                         |> Maybe.map
                             (\eventTime ->
-                                eventTime > (Time.posixToMillis currentTime - twentyMinMillis)
+                                eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
                             )
                         |> Maybe.withDefault newServer
             in
