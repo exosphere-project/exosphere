@@ -202,7 +202,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         ansibleExtraVars : String
         ansibleExtraVars =
             if deployDesktopEnvironment then
-                "gui_enabled=true"
+                -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
+                """{\\"gui_enabled\\":true}"""
 
             else
                 ""
