@@ -206,7 +206,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 """{\\"gui_enabled\\":true}"""
 
             else
-                ""
+                """{\\"gui_enabled\\":false}"""
 
         desktopEnvironmentSetupCmdsYaml : String
         desktopEnvironmentSetupCmdsYaml =
