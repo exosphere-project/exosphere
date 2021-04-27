@@ -1552,19 +1552,6 @@ processProjectSpecificMsg model project msg =
                             GetterSetters.modelUpdateProject model newProject
                     in
                     newModel
-
-                serverMetadataSetGuacDeployComplete : GuacTypes.LaunchedWithGuacProps -> Cmd Msg
-                serverMetadataSetGuacDeployComplete launchedWithGuacProps =
-                    let
-                        value =
-                            Helpers.newGuacMetadata launchedWithGuacProps
-
-                        metadataItem =
-                            OSTypes.MetadataItem
-                                "exoGuac"
-                                value
-                    in
-                    Rest.Nova.requestSetServerMetadata project serverUuid metadataItem
             in
             case GetterSetters.serverLookup project serverUuid of
                 Just server ->
@@ -1601,25 +1588,12 @@ processProjectSpecificMsg model project msg =
                                                                 oldGuacProps.authToken.data
                                                                 (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
                                                     }
-
-                                        updateMetadataCmd =
-                                            -- TODO not super happy with this factoring
-                                            if oldGuacProps.deployComplete then
-                                                Cmd.none
-
-                                            else
-                                                case result of
-                                                    Ok _ ->
-                                                        serverMetadataSetGuacDeployComplete newGuacProps
-
-                                                    Err _ ->
-                                                        Cmd.none
                                     in
                                     ( modelUpdateGuacProps
                                         server
                                         exoOriginProps
                                         newGuacProps
-                                    , updateMetadataCmd
+                                    , Cmd.none
                                     )
 
                                 GuacTypes.NotLaunchedWithGuacamole ->

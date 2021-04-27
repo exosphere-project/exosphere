@@ -4,7 +4,6 @@ module Helpers.Helpers exposing
     , getBootVol
     , httpErrorToString
     , isBootVol
-    , newGuacMetadata
     , newServerMetadata
     , newServerNetworkOptions
     , pipelineCmd
@@ -231,7 +230,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsern
             if deployGuacamole then
                 [ ( "exoGuac"
                   , Json.Encode.string
-                        """{"v":"1","ssh":true,"vnc":false,"deployComplete":false}"""
+                        """{"v":"1","ssh":true,"vnc":false}"""
                   )
                 ]
 
@@ -254,17 +253,6 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsern
             )
           ]
         ]
-
-
-newGuacMetadata : GuacTypes.LaunchedWithGuacProps -> String
-newGuacMetadata launchedWithGuacProps =
-    Json.Encode.object
-        [ ( "v", Json.Encode.int 1 )
-        , ( "ssh", Json.Encode.bool launchedWithGuacProps.sshSupported )
-        , ( "vnc", Json.Encode.bool launchedWithGuacProps.vncSupported )
-        , ( "deployComplete", Json.Encode.bool launchedWithGuacProps.deployComplete )
-        ]
-        |> Json.Encode.encode 0
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions
@@ -437,11 +425,10 @@ serverOrigin serverDetails =
 
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
-            Decode.map4
+            Decode.map3
                 GuacTypes.LaunchedWithGuacProps
                 (Decode.field "ssh" Decode.bool)
                 (Decode.field "vnc" Decode.bool)
-                (Decode.field "deployComplete" Decode.bool)
                 (Decode.succeed RDPP.empty)
 
         guacamoleStatus =
