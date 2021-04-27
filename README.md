@@ -6,6 +6,9 @@
 
 [![screenshot of Exosphere](docs/screenshot-for-readme.png)](docs/screenshot-for-readme.png)
 
+## Video presentation and demo
+
+[![Exosphere: A researcher-friendly GUI for OpenStack](https://img.youtube.com/vi/CTL-6icekYQ/0.jpg)](https://www.youtube.com/watch?v=CTL-6icekYQ)
 
 ## Quick Start
 
