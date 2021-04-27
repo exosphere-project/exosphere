@@ -223,14 +223,19 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> String -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsername =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername =
     let
         guacMetadata =
             if deployGuacamole then
                 [ ( "exoGuac"
-                  , Json.Encode.string
-                        """{"v":"1","ssh":true,"vnc":false}"""
+                  , Json.Encode.string <|
+                        Json.Encode.encode 0 <|
+                            Json.Encode.object
+                                [ ( "v", Json.Encode.int 1 )
+                                , ( "ssh", Json.Encode.bool True )
+                                , ( "vnc", Json.Encode.bool deployDesktopEnvironment )
+                                ]
                   )
                 ]
 

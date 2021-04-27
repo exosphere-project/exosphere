@@ -641,6 +641,7 @@ processProjectSpecificMsg model project msg =
                             currentExoServerVersion
                             model.clientUuid
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
+                            viewParams.deployDesktopEnvironment
                             project.auth.user.name
                     }
             in
