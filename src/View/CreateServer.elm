@@ -609,7 +609,7 @@ desktopEnvironmentPicker context project createServerViewParams =
                 Input.labelAbove [ Element.paddingXY 0 12, Font.bold ]
                     (Element.text <|
                         String.concat
-                            [ "Deploy a "
+                            [ "Enable "
                             , context.localization.graphicalDesktopEnvironment
                             , "?"
                             ]
@@ -628,9 +628,7 @@ desktopEnvironmentPicker context project createServerViewParams =
                 )
                 [ Element.text <|
                     String.concat
-                        [ "Warning: If selected image does not already include a "
-                        , context.localization.graphicalDesktopEnvironment
-                        , ", "
+                        [ "Warning: If selected image does not already include a graphical desktop environment, "
                         , context.localization.virtualComputer
                         , " can take 30 minutes or longer to deploy."
                         ]
