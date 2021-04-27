@@ -36,7 +36,7 @@ localization =
     , blockDevice = "volume"
     , nonFloatingIpAddress = "internal IP address"
     , floatingIpAddress = "public IP address"
-    , graphicalDesktopEnvironment = "graphical desktop environment"
+    , graphicalDesktopEnvironment = "graphical desktop"
     }
 
 
