@@ -719,6 +719,7 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
                         ]
     in
     [ ITypes.GuacTerminal
+    , ITypes.GuacDesktop
     , ITypes.NativeSSH
     , ITypes.Console
     ]
