@@ -603,6 +603,62 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 desktopEnvironmentPicker context project createServerViewParams =
+    let
+        warnings : List (Element.Element Msg)
+        warnings =
+            [ let
+                warningMaxGB =
+                    12
+
+                rootDiskWarnText =
+                    String.join " "
+                        [ "Warning: root disk may be too small for a graphical desktop environment. Please select a"
+                        , context.localization.virtualComputerHardwareConfig
+                        , "with a"
+                        , String.fromInt warningMaxGB
+                        , "GB or larger root disk, or select a volume-backed root disk at least"
+                        , String.fromInt warningMaxGB
+                        , "GB in size."
+                        ]
+              in
+              case createServerViewParams.volSizeTextInput of
+                Nothing ->
+                    case GetterSetters.flavorLookup project createServerViewParams.flavorUuid of
+                        Just flavor ->
+                            if flavor.disk_root < warningMaxGB then
+                                Just <| Element.text rootDiskWarnText
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+
+                Just numericTextInput ->
+                    case numericTextInput of
+                        ValidNumericTextInput rootVolSize ->
+                            if rootVolSize < warningMaxGB then
+                                Just <| Element.text rootDiskWarnText
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
+            , if createServerViewParams.deployDesktopEnvironment then
+                Just <|
+                    Element.text <|
+                        String.concat
+                            [ "Warning: If selected image does not already include a graphical desktop environment, "
+                            , context.localization.virtualComputer
+                            , " can take 30 minutes or longer to deploy."
+                            ]
+
+              else
+                Nothing
+            ]
+                |> List.filterMap identity
+    in
     Element.column VH.exoColumnAttributes
         [ Input.radioRow VH.exoElementAttributes
             { label =
@@ -622,17 +678,11 @@ desktopEnvironmentPicker context project createServerViewParams =
             , selected = Just createServerViewParams.deployDesktopEnvironment
             }
         , if createServerViewParams.deployDesktopEnvironment then
-            Element.paragraph
+            Element.column
                 ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes
                 )
-                [ Element.text <|
-                    String.concat
-                        [ "Warning: If selected image does not already include a graphical desktop environment, "
-                        , context.localization.virtualComputer
-                        , " can take 30 minutes or longer to deploy."
-                        ]
-                ]
+                (List.map (\warning -> Element.paragraph [] [ warning ]) warnings)
 
           else
             Element.none
