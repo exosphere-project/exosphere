@@ -12,7 +12,7 @@
 
 You can launch a live-updating Exosphere style guide by doing the following:
 - Run `npm run live-style-guide`
-- Browse to <http://127.0.0.1:8000>
+- Browse to <http://127.0.0.1:8001>
 
 This guide will automatically refresh whenever you save changes to code in `src/Style`!
 
