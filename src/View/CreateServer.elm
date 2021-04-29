@@ -606,7 +606,20 @@ desktopEnvironmentPicker context project createServerViewParams =
     let
         warnings : List (Element.Element Msg)
         warnings =
-            [ let
+            [ Just <|
+                Element.text <|
+                    String.concat
+                        [ "Warning: this is an alpha feature that currently only supports "
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.pluralize
+                        , " based on CentOS 8. Support for other operating systems is coming soon, but if you choose "
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                            |> Helpers.String.indefiniteArticle
+                        , " "
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                        , " based on a different operating system now, it is unlikely to work."
+                        ]
+            , let
                 warningMaxGB =
                     12
 
@@ -648,10 +661,12 @@ desktopEnvironmentPicker context project createServerViewParams =
             , if createServerViewParams.deployDesktopEnvironment then
                 Just <|
                     Element.text <|
-                        String.concat
-                            [ "Warning: If selected image does not already include a graphical desktop environment, "
+                        String.join " "
+                            [ "Warning: If selected"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "does not already include a graphical desktop environment,"
                             , context.localization.virtualComputer
-                            , " can take 30 minutes or longer to deploy."
+                            , "can take 30 minutes or longer to deploy."
                             ]
 
               else
