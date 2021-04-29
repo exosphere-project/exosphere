@@ -24,7 +24,7 @@ _OK, what can I do with Exosphere?_
 - Easily create instances to run your code, and volumes to manage your data
   - Works great for containers, intensive compute jobs, disposable experiments, and persistent web services
 - Get **one-click, browser-based shell** access to cloud resources with Exosphere's [Apache Guacamole](http://guacamole.apache.org) integration
-  - One-click **graphical desktop with GPU support** shipping by August 2021
+  - One-click **graphical desktop** as well! (alpha feature for CentOS 8)
 - **Pretty graphs** show resource utilization of each instance at a glance
 - If you're a cloud operator, deliver a customized interface with white-labeling, localized nomenclature, and single sign-on
 - 100% self-hostable, 99% standalone client application
