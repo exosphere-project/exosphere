@@ -111,7 +111,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 0c0e10552f8edece5bd6d387190a5b0840d3ebf1 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout c76f4f1ed50f73048c9c509b9b3dc62c65fb63e9 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
@@ -119,18 +119,9 @@ desktopEnvironmentUserData : String
 desktopEnvironmentUserData =
     """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
       DEBIAN_FRONTEND=noninteractive apt-get install -yq ubuntu-desktop-minimal
-      GDM_CUSTOM_CONF_LOCATION=/etc/gdm3/custom.conf
     elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
       yum -y groupinstall workstation
-      GDM_CUSTOM_CONF_LOCATION=/etc/gdm/custom.conf
     fi
-
-    if ! grep -qF "AutomaticLogin = exouser" $GDM_CUSTOM_CONF_LOCATION; then
-      sed -i "s/\\[daemon\\]/[daemon]\\nAutomaticLoginEnable = true\\nAutomaticLogin = exouser\\n/" $GDM_CUSTOM_CONF_LOCATION
-    fi
-
-    gsettings set org.gnome.desktop.lockdown disable-lock-screen 'true'
-    gsettings set org.gnome.desktop.screensaver lock-enabled false
 
     systemctl enable graphical.target
     systemctl set-default graphical.target
