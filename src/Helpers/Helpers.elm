@@ -197,7 +197,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 ServerDeploy.guacamoleUserData
 
             else
-                "echo \"Not deploying Guacamole\""
+                "echo \"Not deploying Guacamole\"\n"
 
         ansibleExtraVars : String
         ansibleExtraVars =
@@ -214,7 +214,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 ServerDeploy.desktopEnvironmentUserData
 
             else
-                "echo \"Not deploying a desktop environment\""
+                "echo \"Not deploying a desktop environment\"\n"
 
         installOperatingSystemUpatesYaml : String
         installOperatingSystemUpatesYaml =
