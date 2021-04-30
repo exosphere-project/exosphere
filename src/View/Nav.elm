@@ -135,7 +135,7 @@ navBar model context =
                     , Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
                     (Element.text model.style.appTitle)
-                , Element.image [ Element.height (Element.px 40) ] { src = model.style.logo, description = "" }
+                , Element.image [ Element.height (Element.px 31), Element.padding 6 ] { src = model.style.logo, description = "" }
                 ]
 
         navBarRight =
