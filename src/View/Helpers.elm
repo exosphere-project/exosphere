@@ -23,6 +23,7 @@ module View.Helpers exposing
     , renderMessageAsElement
     , renderMessageAsString
     , renderWebData
+    , sortProjects
     , titleFromHostname
     , toExoPalette
     , toViewContext
@@ -675,6 +676,16 @@ heading { level, children } =
                 heading2
         )
         children
+
+
+sortProjects : List Types.Types.UnscopedProviderProject -> List Types.Types.UnscopedProviderProject
+sortProjects projects =
+    let
+        projectComparator a b =
+            compare a.project.name b.project.name
+    in
+    projects
+        |> List.sortWith projectComparator
 
 
 friendlyProjectTitle : Model -> Project -> String

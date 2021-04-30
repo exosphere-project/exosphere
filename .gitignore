@@ -7,3 +7,4 @@ elm-web.js
 node_modules/
 /dist/
 styleguide.html
+.idea
