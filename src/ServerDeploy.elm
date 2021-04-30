@@ -111,7 +111,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout ab2e0fbbd0980777814b94dbf7c983fde425f877 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 90d8268b7b945fcbc7d0e85e6c731ddf0f97ff77 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
