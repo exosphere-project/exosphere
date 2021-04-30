@@ -75,6 +75,7 @@ runcmd:
     fi
   - |
     {desktop-environment-setup}
+  - chmod 640 /var/log/cloud-init-output.log
   - |
     {guacamole-setup}
   - unset PASSPHRASE
@@ -111,7 +112,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout cfcf134a3dcb07aac102ba932c21285833f0ba46 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout e0509a00e7b8967d95ef7a2054ec85bf054b973b --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
