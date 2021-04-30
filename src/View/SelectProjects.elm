@@ -39,7 +39,7 @@ selectProjects model context keystoneUrl selectedProjects =
                         List.append
                             (List.map
                                 (renderProject keystoneUrl selectedProjects)
-                                projects
+                                (VH.sortProjects projects)
                             )
                             [ Widget.textButton
                                 (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
