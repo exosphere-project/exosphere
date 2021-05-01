@@ -24,7 +24,7 @@ _OK, what can I do with Exosphere?_
 - Easily create instances to run your code, and volumes to manage your data
   - Works great for containers, intensive compute jobs, disposable experiments, and persistent web services
 - Get **one-click, browser-based shell** access to cloud resources with Exosphere's [Apache Guacamole](http://guacamole.apache.org) integration
-  - One-click **graphical desktop with GPU support** shipping by August 2021
+  - One-click **graphical desktop** as well! (alpha feature for CentOS 8)
 - **Pretty graphs** show resource utilization of each instance at a glance
 - If you're a cloud operator, deliver a customized interface with white-labeling, localized nomenclature, and single sign-on
 - 100% self-hostable, 99% standalone client application
@@ -163,6 +163,14 @@ When it's time to cleanup, press Ctrl-C in the terminal window running `elm-live
 
 - Exosphere works with OpenStack Queens version (released February 2018) or later.
 - Exosphere works best with clouds that have [automatic allocation of network topology](https://docs.openstack.org/neutron/latest/admin/config-auto-allocation.html) enabled.
+
+#### Supported Instance Operating Systems
+
+Exosphere works best with instances launched from images based on **Ubuntu 20.04 LTS and CentOS 8**. Ubuntu 18.04 and CentOS 7 are also supported, but they receive less attention when testing new features. Exosphere can launch instances that run other operating systems, but some features and integrations are likely to not work.
+
+One exception to the above: the one-click graphical desktop feature, currently in alpha stage, only works with CentOS 8.
+
+If your community relies on an operating system that we don't currently support, please [create an issue](https://gitlab.com/exosphere/exosphere/-/issues) explaining your need! It's probably not hard to add support for Linux distros that use systemd and an APT/YUM/DNF package system.
 
 #### To host the Exosphere Web Application  
 

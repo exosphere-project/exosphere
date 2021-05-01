@@ -30,17 +30,17 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
         maybeFloatingIp =
             GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
 
-        guacTerminal : ITypes.InteractionStatus
-        guacTerminal =
+        guac : GuacType -> ITypes.InteractionStatus
+        guac guacType =
             let
                 guacUpstreamPort =
                     49528
 
-                twentyMinMillis =
-                    1000 * 60 * 20
+                fortyMinMillis =
+                    1000 * 60 * 40
 
                 newServer =
-                    Helpers.serverLessThanThisOld server currentTime twentyMinMillis
+                    Helpers.serverLessThanThisOld server currentTime fortyMinMillis
 
                 recentServerEvent =
                     server.events
@@ -62,9 +62,20 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                         -- See if most recent event is recent enough
                         |> Maybe.map
                             (\eventTime ->
-                                eventTime > (Time.posixToMillis currentTime - twentyMinMillis)
+                                eventTime > (Time.posixToMillis currentTime - fortyMinMillis)
                             )
                         |> Maybe.withDefault newServer
+
+                connectionStringBase64 =
+                    -- Per https://sourceforge.net/p/guacamole/discussion/1110834/thread/fb609070/
+                    case guacType of
+                        Terminal ->
+                            -- printf 'shell\0c\0default' | base64
+                            "c2hlbGwAYwBkZWZhdWx0"
+
+                        Desktop ->
+                            -- printf 'desktop\0c\0default' | base64
+                            "ZGVza3RvcABjAGRlZmF1bHQ="
             in
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
@@ -96,51 +107,35 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                         ]
 
                         GuacTypes.LaunchedWithGuacamole guacProps ->
-                            case guacProps.authToken.data of
-                                RDPP.DoHave token _ ->
-                                    case ( tlsReverseProxyHostname, maybeFloatingIp ) of
-                                        ( Just proxyHostname, Just floatingIp ) ->
-                                            ITypes.Ready <|
-                                                UrlHelpers.buildProxyUrl
-                                                    proxyHostname
-                                                    floatingIp
-                                                    guacUpstreamPort
-                                                    ("/guacamole/#/client/c2hlbGwAYwBkZWZhdWx0?token=" ++ token)
-                                                    False
+                            if not guacProps.vncSupported && (guacType == Desktop) then
+                                ITypes.Unavailable <|
+                                    String.join " "
+                                        [ context.localization.graphicalDesktopEnvironment
+                                            |> Helpers.String.toTitleCase
+                                        , "was not enabled when"
+                                        , context.localization.virtualComputer
+                                            |> Helpers.String.toTitleCase
+                                        , "was deployed"
+                                        ]
 
-                                        ( Nothing, _ ) ->
-                                            ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
+                            else
+                                case guacProps.authToken.data of
+                                    RDPP.DoHave token _ ->
+                                        case ( tlsReverseProxyHostname, maybeFloatingIp ) of
+                                            ( Just proxyHostname, Just floatingIp ) ->
+                                                ITypes.Ready <|
+                                                    UrlHelpers.buildProxyUrl
+                                                        proxyHostname
+                                                        floatingIp
+                                                        guacUpstreamPort
+                                                        ("/guacamole/#/client/" ++ connectionStringBase64 ++ "?token=" ++ token)
+                                                        False
 
-                                        ( _, Nothing ) ->
-                                            ITypes.Unavailable <|
-                                                String.join " "
-                                                    [ context.localization.virtualComputer
-                                                        |> Helpers.String.toTitleCase
-                                                    , "does not have a"
-                                                    , context.localization.floatingIpAddress
-                                                    ]
+                                            ( Nothing, _ ) ->
+                                                ITypes.Unavailable "Cannot find TLS-terminating reverse proxy server"
 
-                                RDPP.DontHave ->
-                                    if recentServerEvent then
-                                        ITypes.Unavailable <|
-                                            String.join " "
-                                                [ context.localization.virtualComputer
-                                                    |> Helpers.String.toTitleCase
-                                                , "is still booting or Guacamole is still deploying, check back in a few minutes"
-                                                ]
-
-                                    else
-                                        case
-                                            ( tlsReverseProxyHostname
-                                            , maybeFloatingIp
-                                            , GetterSetters.getServerExouserPassword server.osProps.details
-                                            )
-                                        of
-                                            ( Nothing, _, _ ) ->
-                                                ITypes.Error "Cannot find TLS-terminating reverse proxy server"
-
-                                            ( _, Nothing, _ ) ->
-                                                ITypes.Error <|
+                                            ( _, Nothing ) ->
+                                                ITypes.Unavailable <|
                                                     String.join " "
                                                         [ context.localization.virtualComputer
                                                             |> Helpers.String.toTitleCase
@@ -148,32 +143,60 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                                         , context.localization.floatingIpAddress
                                                         ]
 
-                                            ( _, _, Nothing ) ->
-                                                ITypes.Error <|
-                                                    String.join " "
-                                                        [ "Cannot find"
-                                                        , context.localization.virtualComputer
-                                                        , "password to authenticate"
-                                                        ]
+                                    RDPP.DontHave ->
+                                        if recentServerEvent then
+                                            ITypes.Unavailable <|
+                                                String.join " "
+                                                    [ context.localization.virtualComputer
+                                                        |> Helpers.String.toTitleCase
+                                                    , "is still booting or Guacamole is still deploying, check back in a few minutes"
+                                                    ]
 
-                                            ( Just _, Just _, Just _ ) ->
-                                                case guacProps.authToken.refreshStatus of
-                                                    RDPP.Loading _ ->
-                                                        ITypes.Loading
+                                        else
+                                            case
+                                                ( tlsReverseProxyHostname
+                                                , maybeFloatingIp
+                                                , GetterSetters.getServerExouserPassword server.osProps.details
+                                                )
+                                            of
+                                                ( Nothing, _, _ ) ->
+                                                    ITypes.Error "Cannot find TLS-terminating reverse proxy server"
 
-                                                    RDPP.NotLoading maybeErrorTuple ->
-                                                        -- If deployment is complete but we can't get a token, show error to user
-                                                        case maybeErrorTuple of
-                                                            Nothing ->
-                                                                -- This is a slight misrepresentation; we haven't requested
-                                                                -- a token yet but orchestration code will make request soon
-                                                                ITypes.Loading
+                                                ( _, Nothing, _ ) ->
+                                                    ITypes.Error <|
+                                                        String.join " "
+                                                            [ context.localization.virtualComputer
+                                                                |> Helpers.String.toTitleCase
+                                                            , "does not have a"
+                                                            , context.localization.floatingIpAddress
+                                                            ]
 
-                                                            Just ( httpError, _ ) ->
-                                                                ITypes.Error
-                                                                    ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
-                                                                        ++ Helpers.httpErrorToString httpError
-                                                                    )
+                                                ( _, _, Nothing ) ->
+                                                    ITypes.Error <|
+                                                        String.join " "
+                                                            [ "Cannot find"
+                                                            , context.localization.virtualComputer
+                                                            , "password to authenticate"
+                                                            ]
+
+                                                ( Just _, Just _, Just _ ) ->
+                                                    case guacProps.authToken.refreshStatus of
+                                                        RDPP.Loading _ ->
+                                                            ITypes.Loading
+
+                                                        RDPP.NotLoading maybeErrorTuple ->
+                                                            -- If deployment is complete but we can't get a token, show error to user
+                                                            case maybeErrorTuple of
+                                                                Nothing ->
+                                                                    -- This is a slight misrepresentation; we haven't requested
+                                                                    -- a token yet but orchestration code will make request soon
+                                                                    ITypes.Loading
+
+                                                                Just ( httpError, _ ) ->
+                                                                    ITypes.Error
+                                                                        ("Exosphere tried to authenticate to the Guacamole API, and received this error: "
+                                                                            ++ Helpers.httpErrorToString httpError
+                                                                        )
     in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerBuilding ->
@@ -187,11 +210,10 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
         OSTypes.ServerActive ->
             case interaction of
                 ITypes.GuacTerminal ->
-                    guacTerminal
+                    guac Terminal
 
                 ITypes.GuacDesktop ->
-                    -- not implemented yet
-                    ITypes.Hidden
+                    guac Desktop
 
                 ITypes.NativeSSH ->
                     case maybeFloatingIp of
@@ -299,3 +321,8 @@ interactionDetails interaction context =
                 )
                 Icon.console
                 ITypes.UrlInteraction
+
+
+type GuacType
+    = Terminal
+    | Desktop

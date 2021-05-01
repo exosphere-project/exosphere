@@ -11,6 +11,14 @@ users:
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']{ssh-authorized-keys}
 ssh_pwauth: true
+yum_repos:
+  epel-release:
+    baseurl: https://download.fedoraproject.org/pub/epel/8/Everything/x86_64
+    enabled: true
+    failovermethod: priority
+    gpgcheck: true
+    gpgkey: https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
+    name: Extra Packages for Enterprise Linux 8 - Release
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
@@ -67,6 +75,7 @@ runcmd:
     fi
   - |
     {desktop-environment-setup}
+  - chmod 640 /var/log/cloud-init-output.log
   - |
     {guacamole-setup}
   - unset PASSPHRASE
@@ -103,7 +112,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout f3c8d669b41594bb85dd5f07883fba5945d5da64 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout e0509a00e7b8967d95ef7a2054ec85bf054b973b --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
@@ -114,6 +123,7 @@ desktopEnvironmentUserData =
     elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
       yum -y groupinstall workstation
     fi
+
     systemctl enable graphical.target
     systemctl set-default graphical.target
     systemctl isolate graphical.target

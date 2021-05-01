@@ -4,7 +4,6 @@ module Helpers.Helpers exposing
     , getBootVol
     , httpErrorToString
     , isBootVol
-    , newGuacMetadata
     , newServerMetadata
     , newServerNetworkOptions
     , pipelineCmd
@@ -198,7 +197,16 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 ServerDeploy.guacamoleUserData
 
             else
-                "echo \"Not deploying Guacamole\""
+                "echo \"Not deploying Guacamole\"\n"
+
+        ansibleExtraVars : String
+        ansibleExtraVars =
+            if deployDesktopEnvironment then
+                -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
+                """{\\"gui_enabled\\":true}"""
+
+            else
+                """{\\"gui_enabled\\":false}"""
 
         desktopEnvironmentSetupCmdsYaml : String
         desktopEnvironmentSetupCmdsYaml =
@@ -206,7 +214,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 ServerDeploy.desktopEnvironmentUserData
 
             else
-                "echo \"Not deploying a desktop environment\""
+                "echo \"Not deploying a desktop environment\"\n"
 
         installOperatingSystemUpatesYaml : String
         installOperatingSystemUpatesYaml =
@@ -218,20 +226,26 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{guacamole-setup}\n", guacamoleSetupCmdsYaml )
+    , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     ]
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> String -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsername =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername =
     let
         guacMetadata =
             if deployGuacamole then
                 [ ( "exoGuac"
-                  , Json.Encode.string
-                        """{"v":"1","ssh":true,"vnc":false,"deployComplete":false}"""
+                  , Json.Encode.string <|
+                        Json.Encode.encode 0 <|
+                            Json.Encode.object
+                                [ ( "v", Json.Encode.int 1 )
+                                , ( "ssh", Json.Encode.bool True )
+                                , ( "vnc", Json.Encode.bool deployDesktopEnvironment )
+                                ]
                   )
                 ]
 
@@ -254,17 +268,6 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole exoCreatorUsern
             )
           ]
         ]
-
-
-newGuacMetadata : GuacTypes.LaunchedWithGuacProps -> String
-newGuacMetadata launchedWithGuacProps =
-    Json.Encode.object
-        [ ( "v", Json.Encode.int 1 )
-        , ( "ssh", Json.Encode.bool launchedWithGuacProps.sshSupported )
-        , ( "vnc", Json.Encode.bool launchedWithGuacProps.vncSupported )
-        , ( "deployComplete", Json.Encode.bool launchedWithGuacProps.deployComplete )
-        ]
-        |> Json.Encode.encode 0
 
 
 newServerNetworkOptions : Project -> NewServerNetworkOptions
@@ -437,11 +440,10 @@ serverOrigin serverDetails =
 
         decodeGuacamoleProps : Decode.Decoder GuacTypes.LaunchedWithGuacProps
         decodeGuacamoleProps =
-            Decode.map4
+            Decode.map3
                 GuacTypes.LaunchedWithGuacProps
                 (Decode.field "ssh" Decode.bool)
                 (Decode.field "vnc" Decode.bool)
-                (Decode.field "deployComplete" Decode.bool)
                 (Decode.succeed RDPP.empty)
 
         guacamoleStatus =
