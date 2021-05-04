@@ -32,7 +32,7 @@ runcmd:
     WORDS_SHA512=a71dd2806263d6bce2b45775d80530a4187921a6d4d974d6502f02f6228612e685e2f6dcc1d7f53f5e2a260d0f8a14773458a1a6e7553430727a9b46d5d6e002
     wget --quiet --output-document=words $WORDS_URL
     if echo $WORDS_SHA512 words | sha512sum --check --quiet; then
-      PASSPHRASE=$(cat words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1)
+      export PASSPHRASE="$(cat words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1)"
       POST_URL=http://169.254.169.254/openstack/latest/password
       if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
         echo exouser:$PASSPHRASE | chpasswd
@@ -112,7 +112,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout e0509a00e7b8967d95ef7a2054ec85bf054b973b --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "exouser_password=\\"$PASSPHRASE\\"" -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 9c5c10a746c897eb57e6bcdbbd1fbeb28ef2cb2d --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
