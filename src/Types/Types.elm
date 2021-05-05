@@ -44,6 +44,7 @@ module Types.Types exposing
     , ServerListViewParams
     , ServerOrigin(..)
     , ServerSelection
+    , ServerSpecificMsgConstructor(..)
     , ServerUiStatus(..)
     , SortTableParams
     , Style
@@ -326,6 +327,7 @@ type ProjectSpecificMsgConstructor
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | ToggleCreatePopup
     | RemoveProject
+    | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers
     | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerViewParams OSTypes.NetworkUuid
@@ -369,10 +371,13 @@ type ProjectSpecificMsgConstructor
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
     | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
-    | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
     | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.ServerUuid OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveGuacamoleAuthToken OSTypes.ServerUuid (Result Http.Error GuacTypes.GuacamoleAuthToken)
+
+
+type ServerSpecificMsgConstructor
+    = ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
 type ViewState
