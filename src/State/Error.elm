@@ -47,6 +47,7 @@ processStringError model errorContext error =
 
 processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
 processSynchronousApiError model errorContext httpError =
+    -- TODO
     let
         apiErrorDecodeResult =
             Decode.decodeString
