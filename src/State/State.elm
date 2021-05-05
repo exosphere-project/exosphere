@@ -1194,7 +1194,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                     ( model, Cmd.none )
 
         ReceiveConsoleUrl url ->
-            Rest.Nova.receiveConsoleUrl model project server.osProps.uuid url
+            Rest.Nova.receiveConsoleUrl model project server url
 
         ReceiveDeleteServer maybeIpAddress ->
             let

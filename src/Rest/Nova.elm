@@ -800,49 +800,39 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
-receiveConsoleUrl model project serverUuid result =
-    let
-        maybeServer =
-            GetterSetters.serverLookup project serverUuid
-    in
-    case maybeServer of
-        Nothing ->
+receiveConsoleUrl : Model -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl model project server result =
+    case server.osProps.consoleUrl of
+        RemoteData.Success _ ->
+            -- Don't overwrite a potentially successful call to get console URL with a failed call
             ( model, Cmd.none )
 
-        -- This is an error state (server not found) but probably not one worth throwing an error at the user over. Someone might have just deleted their server
-        Just server ->
-            case server.osProps.consoleUrl of
-                RemoteData.Success _ ->
-                    -- Don't overwrite a potentially successful call to get console URL with a failed call
-                    ( model, Cmd.none )
+        _ ->
+            let
+                consoleUrl =
+                    case result of
+                        Err error ->
+                            RemoteData.Failure error
 
-                _ ->
-                    let
-                        consoleUrl =
-                            case result of
-                                Err error ->
-                                    RemoteData.Failure error
+                        Ok url ->
+                            RemoteData.Success url
 
-                                Ok url ->
-                                    RemoteData.Success url
+                oldOsProps =
+                    server.osProps
 
-                        oldOsProps =
-                            server.osProps
+                newOsProps =
+                    { oldOsProps | consoleUrl = consoleUrl }
 
-                        newOsProps =
-                            { oldOsProps | consoleUrl = consoleUrl }
+                newServer =
+                    { server | osProps = newOsProps }
 
-                        newServer =
-                            { server | osProps = newOsProps }
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
 
-                        newProject =
-                            GetterSetters.projectUpdateServer project newServer
-
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
-                    in
-                    ( newModel, Cmd.none )
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Project -> List OSTypes.Flavor -> ( Model, Cmd Msg )
