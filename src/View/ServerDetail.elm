@@ -199,8 +199,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
                         ( Nothing, Just validName ) ->
                             Just
-                                (ProjectMsg project.auth.project.uuid
-                                    (RequestSetServerName server.osProps.uuid validName)
+                                (ProjectMsg project.auth.project.uuid <|
+                                    ServerMsg server.osProps.uuid <|
+                                        RequestSetServerName validName
                                 )
 
                         ( _, _ ) ->

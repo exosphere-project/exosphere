@@ -64,6 +64,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
 
@@ -141,9 +142,9 @@ requestServerEvents project serverUuid =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg
-                project.auth.project.uuid
-                (ReceiveServerEvents serverUuid errorContext result)
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveServerEvents errorContext result
     in
     openstackCredentialedRequest
         project
@@ -189,7 +190,11 @@ requestConsoleUrls project serverUuid =
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (expectJsonWithErrorBody
-                    (\result -> ProjectMsg project.auth.project.uuid (ReceiveConsoleUrl serverUuid result))
+                    (\result ->
+                        ProjectMsg project.auth.project.uuid <|
+                            ServerMsg serverUuid <|
+                                ReceiveConsoleUrl result
+                    )
                     decodeConsoleUrl
                 )
     in
@@ -446,9 +451,9 @@ requestDeleteServer project server =
             resultToMsgErrorBody
                 errorContext
                 (\_ ->
-                    ProjectMsg
-                        project.auth.project.uuid
-                        (ReceiveDeleteServer server.osProps.uuid getFloatingIp)
+                    ProjectMsg project.auth.project.uuid <|
+                        ServerMsg server.osProps.uuid <|
+                            ReceiveDeleteServer getFloatingIp
                 )
     in
     openstackCredentialedRequest
@@ -525,9 +530,9 @@ requestSetServerName project serverUuid newServerName =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg
-                project.auth.project.uuid
-                (ReceiveSetServerName serverUuid newServerName errorContext result)
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveSetServerName newServerName errorContext result
     in
     openstackCredentialedRequest
         project
@@ -566,9 +571,9 @@ requestSetServerMetadata project serverUuid metadataItem =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg
-                project.auth.project.uuid
-                (ReceiveSetServerMetadata serverUuid metadataItem errorContext result)
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveSetServerMetadata metadataItem errorContext result
     in
     openstackCredentialedRequest
         project

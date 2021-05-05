@@ -49,6 +49,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
 
@@ -188,9 +189,9 @@ requestCreateFloatingIp project network port_ server =
             resultToMsgErrorBody
                 errorContext
                 (\ip ->
-                    ProjectMsg
-                        project.auth.project.uuid
-                        (ReceiveCreateFloatingIp server.osProps.uuid ip)
+                    ProjectMsg project.auth.project.uuid <|
+                        ServerMsg server.osProps.uuid <|
+                            ReceiveCreateFloatingIp ip
                 )
 
         requestCmd =
@@ -427,40 +428,34 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receiveCreateFloatingIp : Model -> Project -> OSTypes.ServerUuid -> OSTypes.IpAddress -> ( Model, Cmd Msg )
-receiveCreateFloatingIp model project serverUuid ipAddress =
-    case GetterSetters.serverLookup project serverUuid of
-        Nothing ->
-            -- No server found, may have been deleted, nothing to do
-            ( model, Cmd.none )
-
-        Just server ->
+receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveCreateFloatingIp model project server ipAddress =
+    let
+        newServer =
             let
-                newServer =
-                    let
-                        oldOSProps =
-                            server.osProps
+                oldOSProps =
+                    server.osProps
 
-                        oldExoProps =
-                            server.exoProps
+                oldExoProps =
+                    server.exoProps
 
-                        details =
-                            addFloatingIpInServerDetails
-                                server.osProps.details
-                                ipAddress
-                    in
-                    { server
-                        | osProps = { oldOSProps | details = details }
-                        , exoProps = { oldExoProps | priorFloatingIpState = Success }
-                    }
-
-                newProject =
-                    GetterSetters.projectUpdateServer project newServer
-
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
+                details =
+                    addFloatingIpInServerDetails
+                        server.osProps.details
+                        ipAddress
             in
-            ( newModel, Cmd.none )
+            { server
+                | osProps = { oldOSProps | details = details }
+                , exoProps = { oldExoProps | priorFloatingIpState = Success }
+            }
+
+        newProject =
+            GetterSetters.projectUpdateServer project newServer
+
+        newModel =
+            GetterSetters.modelUpdateProject model newProject
+    in
+    ( newModel, Cmd.none )
 
 
 receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> ( Model, Cmd Msg )

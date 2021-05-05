@@ -11,6 +11,7 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , ServerSpecificMsgConstructor(..)
         )
 import View.Helpers as VH
 import View.Types
@@ -57,6 +58,7 @@ createServerImage context project serverUuid imageName =
             , onPress =
                 Just <|
                     ProjectMsg project.auth.project.uuid <|
-                        RequestCreateServerImage serverUuid imageName
+                        ServerMsg serverUuid <|
+                            RequestCreateServerImage imageName
             }
         ]

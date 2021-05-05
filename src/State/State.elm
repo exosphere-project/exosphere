@@ -624,9 +624,6 @@ processProjectSpecificMsg model project msg =
         RequestServers ->
             ApiModelHelpers.requestServers project.auth.project.uuid model
 
-        RequestServer serverUuid ->
-            ApiModelHelpers.requestServer project.auth.project.uuid serverUuid model
-
         RequestCreateServer viewParams networkUuid ->
             let
                 createServerRequest =
@@ -658,13 +655,6 @@ processProjectSpecificMsg model project msg =
             in
             ( model, Rest.Nova.requestCreateServer project createServerRequest )
 
-        RequestDeleteServer serverUuid ->
-            let
-                ( newProject, cmd ) =
-                    requestDeleteServer project serverUuid
-            in
-            ( GetterSetters.modelUpdateProject model newProject, cmd )
-
         RequestCreateVolume name size ->
             let
                 createVolumeRequest =
@@ -676,9 +666,6 @@ processProjectSpecificMsg model project msg =
 
         RequestDeleteVolume volumeUuid ->
             ( model, OSVolumes.requestDeleteVolume project volumeUuid )
-
-        RequestAttachVolume serverUuid volumeUuid ->
-            ( model, OSSvrVols.requestAttachVolume project serverUuid volumeUuid )
 
         RequestDetachVolume volumeUuid ->
             let
@@ -703,26 +690,6 @@ processProjectSpecificMsg model project msg =
                             Nothing
                         )
                         "Could not determine server attached to this volume."
-
-        RequestCreateServerImage serverUuid imageName ->
-            let
-                newViewState =
-                    ProjectView
-                        project.auth.project.uuid
-                        { createPopup = False }
-                    <|
-                        AllResources
-                            Defaults.allResourcesListViewParams
-
-                createImageCmd =
-                    Rest.Nova.requestCreateServerImage project serverUuid imageName
-            in
-            ( model, createImageCmd )
-                |> Helpers.pipelineCmd
-                    (ViewStateHelpers.modelUpdateViewState newViewState)
-
-        RequestSetServerName serverUuid newServerName ->
-            ( model, Rest.Nova.requestSetServerName project serverUuid newServerName )
 
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
@@ -835,33 +802,6 @@ processProjectSpecificMsg model project msg =
                         _ ->
                             non404
 
-        ReceiveServerEvents serverUuid _ result ->
-            case result of
-                Ok serverEvents ->
-                    case GetterSetters.serverLookup project serverUuid of
-                        Just server ->
-                            let
-                                newServer =
-                                    { server | events = RemoteData.Success serverEvents }
-
-                                newProject =
-                                    GetterSetters.projectUpdateServer project newServer
-                            in
-                            ( GetterSetters.modelUpdateProject model newProject
-                            , Cmd.none
-                            )
-
-                        Nothing ->
-                            -- Couldn't find a server, mighta been deleted
-                            ( model, Cmd.none )
-
-                Err _ ->
-                    -- Dropping this on the floor for now, someday we may want to do something different
-                    ( model, Cmd.none )
-
-        ReceiveConsoleUrl serverUuid url ->
-            Rest.Nova.receiveConsoleUrl model project serverUuid url
-
         ReceiveFlavors flavors ->
             Rest.Nova.receiveFlavors model project flavors
 
@@ -946,81 +886,6 @@ processProjectSpecificMsg model project msg =
                     (ApiModelHelpers.requestNetworks project.auth.project.uuid)
                 |> Helpers.pipelineCmd
                     (ViewStateHelpers.modelUpdateViewState newViewState)
-
-        ReceiveDeleteServer serverUuid maybeIpAddress ->
-            let
-                ( serverDeletedModel, urlCmd ) =
-                    let
-                        newViewState =
-                            case model.viewState of
-                                ProjectView projectId viewParams (ServerDetail viewServerUuid _) ->
-                                    if viewServerUuid == serverUuid then
-                                        ProjectView
-                                            projectId
-                                            viewParams
-                                            (AllResources
-                                                Defaults.allResourcesListViewParams
-                                            )
-
-                                    else
-                                        model.viewState
-
-                                _ ->
-                                    model.viewState
-
-                        newProject =
-                            case GetterSetters.serverLookup project serverUuid of
-                                Just server ->
-                                    let
-                                        oldExoProps =
-                                            server.exoProps
-
-                                        newExoProps =
-                                            { oldExoProps | deletionAttempted = True }
-
-                                        newServer =
-                                            { server | exoProps = newExoProps }
-                                    in
-                                    GetterSetters.projectUpdateServer project newServer
-
-                                Nothing ->
-                                    project
-
-                        modelUpdatedProject =
-                            GetterSetters.modelUpdateProject model newProject
-                    in
-                    ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
-            in
-            case maybeIpAddress of
-                Nothing ->
-                    ( serverDeletedModel, urlCmd )
-
-                Just ipAddress ->
-                    let
-                        maybeFloatingIpUuid =
-                            project.floatingIps
-                                |> List.filter (\i -> i.address == ipAddress)
-                                |> List.head
-                                |> Maybe.andThen .uuid
-                    in
-                    case maybeFloatingIpUuid of
-                        Nothing ->
-                            let
-                                errorContext =
-                                    ErrorContext
-                                        "Look for a floating IP address to delete now that we have just deleted its server"
-                                        ErrorInfo
-                                        Nothing
-                            in
-                            State.Error.processStringError
-                                serverDeletedModel
-                                errorContext
-                                ("Could not find a UUID for floating IP address from deleted server with UUID " ++ serverUuid)
-
-                        Just uuid ->
-                            ( serverDeletedModel
-                            , Cmd.batch [ urlCmd, Rest.Neutron.requestDeleteFloatingIp project uuid ]
-                            )
 
         ReceiveNetworks errorContext result ->
             case result of
@@ -1148,9 +1013,6 @@ processProjectSpecificMsg model project msg =
                     in
                     State.Error.processSynchronousApiError newModel errorContext httpError
 
-        ReceiveCreateFloatingIp serverUuid ip ->
-            Rest.Neutron.receiveCreateFloatingIp model project serverUuid ip
-
         ReceiveDeleteFloatingIp uuid ->
             Rest.Neutron.receiveDeleteFloatingIp model project uuid
 
@@ -1276,7 +1138,138 @@ processProjectSpecificMsg model project msg =
             in
             ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
 
-        ReceiveServerPassword serverUuid password ->
+
+processServerSpecificMsg : Model -> Project -> Server -> ServerSpecificMsgConstructor -> ( Model, Cmd Msg )
+processServerSpecificMsg model project server serverMsgConstructor =
+    case serverMsgConstructor of
+        RequestServer ->
+            ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid model
+
+        RequestDeleteServer ->
+            let
+                ( newProject, cmd ) =
+                    requestDeleteServer project server.osProps.uuid
+            in
+            ( GetterSetters.modelUpdateProject model newProject, cmd )
+
+        RequestAttachVolume volumeUuid ->
+            ( model, OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid )
+
+        RequestCreateServerImage imageName ->
+            let
+                newViewState =
+                    ProjectView
+                        project.auth.project.uuid
+                        { createPopup = False }
+                    <|
+                        AllResources
+                            Defaults.allResourcesListViewParams
+
+                createImageCmd =
+                    Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
+            in
+            ( model, createImageCmd )
+                |> Helpers.pipelineCmd
+                    (ViewStateHelpers.modelUpdateViewState newViewState)
+
+        RequestSetServerName newServerName ->
+            ( model, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
+
+        ReceiveServerEvents _ result ->
+            case result of
+                Ok serverEvents ->
+                    let
+                        newServer =
+                            { server | events = RemoteData.Success serverEvents }
+
+                        newProject =
+                            GetterSetters.projectUpdateServer project newServer
+                    in
+                    ( GetterSetters.modelUpdateProject model newProject
+                    , Cmd.none
+                    )
+
+                Err _ ->
+                    -- Dropping this on the floor for now, someday we may want to do something different
+                    ( model, Cmd.none )
+
+        ReceiveConsoleUrl url ->
+            Rest.Nova.receiveConsoleUrl model project server.osProps.uuid url
+
+        ReceiveDeleteServer maybeIpAddress ->
+            let
+                ( serverDeletedModel, urlCmd ) =
+                    let
+                        newViewState =
+                            case model.viewState of
+                                ProjectView projectId viewParams (ServerDetail viewServerUuid _) ->
+                                    if viewServerUuid == server.osProps.uuid then
+                                        ProjectView
+                                            projectId
+                                            viewParams
+                                            (AllResources
+                                                Defaults.allResourcesListViewParams
+                                            )
+
+                                    else
+                                        model.viewState
+
+                                _ ->
+                                    model.viewState
+
+                        newProject =
+                            let
+                                oldExoProps =
+                                    server.exoProps
+
+                                newExoProps =
+                                    { oldExoProps | deletionAttempted = True }
+
+                                newServer =
+                                    { server | exoProps = newExoProps }
+                            in
+                            GetterSetters.projectUpdateServer project newServer
+
+                        modelUpdatedProject =
+                            GetterSetters.modelUpdateProject model newProject
+                    in
+                    ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
+            in
+            case maybeIpAddress of
+                Nothing ->
+                    ( serverDeletedModel, urlCmd )
+
+                Just ipAddress ->
+                    let
+                        maybeFloatingIpUuid =
+                            project.floatingIps
+                                |> List.filter (\i -> i.address == ipAddress)
+                                |> List.head
+                                |> Maybe.andThen .uuid
+                    in
+                    case maybeFloatingIpUuid of
+                        Nothing ->
+                            let
+                                errorContext =
+                                    ErrorContext
+                                        "Look for a floating IP address to delete now that we have just deleted its server"
+                                        ErrorInfo
+                                        Nothing
+                            in
+                            State.Error.processStringError
+                                serverDeletedModel
+                                errorContext
+                                ("Could not find a UUID for floating IP address from deleted server with UUID " ++ server.osProps.uuid)
+
+                        Just uuid ->
+                            ( serverDeletedModel
+                            , Cmd.batch [ urlCmd, Rest.Neutron.requestDeleteFloatingIp project uuid ]
+                            )
+
+        ReceiveCreateFloatingIp ip ->
+            Rest.Neutron.receiveCreateFloatingIp model project server ip
+
+        ReceiveServerPassword password ->
             if String.isEmpty password then
                 ( model, Cmd.none )
 
@@ -1286,37 +1279,28 @@ processProjectSpecificMsg model project msg =
                         "exoPw:" ++ password
 
                     cmd =
-                        case GetterSetters.serverLookup project serverUuid of
-                            Just server ->
-                                case server.exoProps.serverOrigin of
-                                    ServerNotFromExo ->
-                                        Cmd.none
-
-                                    ServerFromExo serverFromExoProps ->
-                                        if serverFromExoProps.exoServerVersion >= 1 then
-                                            Cmd.batch
-                                                [ OSServerTags.requestCreateServerTag project serverUuid tag
-                                                , OSServerPassword.requestClearServerPassword project serverUuid
-                                                ]
-
-                                        else
-                                            Cmd.none
-
-                            Nothing ->
+                        case server.exoProps.serverOrigin of
+                            ServerNotFromExo ->
                                 Cmd.none
+
+                            ServerFromExo serverFromExoProps ->
+                                if serverFromExoProps.exoServerVersion >= 1 then
+                                    Cmd.batch
+                                        [ OSServerTags.requestCreateServerTag project server.osProps.uuid tag
+                                        , OSServerPassword.requestClearServerPassword project server.osProps.uuid
+                                        ]
+
+                                else
+                                    Cmd.none
                 in
                 ( model, cmd )
 
-        ReceiveSetServerName serverUuid _ errorContext result ->
-            case ( GetterSetters.serverLookup project serverUuid, result ) of
-                ( Nothing, _ ) ->
-                    -- Ensure that the server UUID we get back exists in the model. If not, ignore.
-                    ( model, Cmd.none )
-
-                ( _, Err e ) ->
+        ReceiveSetServerName _ errorContext result ->
+            case result of
+                Err e ->
                     State.Error.processSynchronousApiError model errorContext e
 
-                ( Just server, Ok actualNewServerName ) ->
+                Ok actualNewServerName ->
                     let
                         oldOsProps =
                             server.osProps
@@ -1337,7 +1321,7 @@ processProjectSpecificMsg model project msg =
                         updatedView =
                             case model.viewState of
                                 ProjectView projectIdentifier projectViewParams (ServerDetail serverUuid_ serverDetailViewParams) ->
-                                    if serverUuid == serverUuid_ then
+                                    if server.osProps.uuid == serverUuid_ then
                                         let
                                             newServerDetailsViewParams =
                                                 { serverDetailViewParams
@@ -1358,17 +1342,13 @@ processProjectSpecificMsg model project msg =
                     in
                     ViewStateHelpers.modelUpdateViewState updatedView modelWithUpdatedProject
 
-        ReceiveSetServerMetadata serverUuid intendedMetadataItem errorContext result ->
-            case ( GetterSetters.serverLookup project serverUuid, result ) of
-                ( Nothing, _ ) ->
-                    -- Server does not exist in the model, ignore it
-                    ( model, Cmd.none )
-
-                ( _, Err e ) ->
+        ReceiveSetServerMetadata intendedMetadataItem errorContext result ->
+            case result of
+                Err e ->
                     -- Error from API
                     State.Error.processSynchronousApiError model errorContext e
 
-                ( Just server, Ok newServerMetadata ) ->
+                Ok newServerMetadata ->
                     -- Update the model after ensuring the intended metadata item was actually added
                     if List.member intendedMetadataItem newServerMetadata then
                         let
@@ -1402,7 +1382,7 @@ processProjectSpecificMsg model project msg =
                             errorContext
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
 
-        ReceiveGuacamoleAuthToken serverUuid result ->
+        ReceiveGuacamoleAuthToken result ->
             let
                 errorContext =
                     ErrorContext
@@ -1410,8 +1390,8 @@ processProjectSpecificMsg model project msg =
                         ErrorDebug
                         Nothing
 
-                modelUpdateGuacProps : Server -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> Model
-                modelUpdateGuacProps server exoOriginProps guacProps =
+                modelUpdateGuacProps : ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> Model
+                modelUpdateGuacProps exoOriginProps guacProps =
                     let
                         newOriginProps =
                             { exoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole guacProps }
@@ -1433,71 +1413,58 @@ processProjectSpecificMsg model project msg =
                     in
                     newModel
             in
-            case GetterSetters.serverLookup project serverUuid of
-                Just server ->
-                    case server.exoProps.serverOrigin of
-                        ServerFromExo exoOriginProps ->
-                            case exoOriginProps.guacamoleStatus of
-                                GuacTypes.LaunchedWithGuacamole oldGuacProps ->
-                                    let
-                                        newGuacProps =
-                                            case result of
-                                                Ok tokenValue ->
-                                                    if server.osProps.details.openstackStatus == OSTypes.ServerActive then
-                                                        { oldGuacProps
-                                                            | authToken =
-                                                                RDPP.RemoteDataPlusPlus
-                                                                    (RDPP.DoHave
-                                                                        tokenValue
-                                                                        model.clientCurrentTime
-                                                                    )
-                                                                    (RDPP.NotLoading Nothing)
-                                                        }
+            case server.exoProps.serverOrigin of
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.guacamoleStatus of
+                        GuacTypes.LaunchedWithGuacamole oldGuacProps ->
+                            let
+                                newGuacProps =
+                                    case result of
+                                        Ok tokenValue ->
+                                            if server.osProps.details.openstackStatus == OSTypes.ServerActive then
+                                                { oldGuacProps
+                                                    | authToken =
+                                                        RDPP.RemoteDataPlusPlus
+                                                            (RDPP.DoHave
+                                                                tokenValue
+                                                                model.clientCurrentTime
+                                                            )
+                                                            (RDPP.NotLoading Nothing)
+                                                }
 
-                                                    else
-                                                        -- Server is not active, this token won't work, so we don't store it
-                                                        { oldGuacProps
-                                                            | authToken =
-                                                                RDPP.empty
-                                                        }
+                                            else
+                                                -- Server is not active, this token won't work, so we don't store it
+                                                { oldGuacProps
+                                                    | authToken =
+                                                        RDPP.empty
+                                                }
 
-                                                Err e ->
-                                                    { oldGuacProps
-                                                        | authToken =
-                                                            RDPP.RemoteDataPlusPlus
-                                                                oldGuacProps.authToken.data
-                                                                (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
-                                                    }
-                                    in
-                                    ( modelUpdateGuacProps
-                                        server
-                                        exoOriginProps
-                                        newGuacProps
-                                    , Cmd.none
-                                    )
+                                        Err e ->
+                                            { oldGuacProps
+                                                | authToken =
+                                                    RDPP.RemoteDataPlusPlus
+                                                        oldGuacProps.authToken.data
+                                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                            }
+                            in
+                            ( modelUpdateGuacProps
+                                exoOriginProps
+                                newGuacProps
+                            , Cmd.none
+                            )
 
-                                GuacTypes.NotLaunchedWithGuacamole ->
-                                    State.Error.processStringError
-                                        model
-                                        errorContext
-                                        "Server does not appear to have been launched with Guacamole support"
-
-                        ServerNotFromExo ->
+                        GuacTypes.NotLaunchedWithGuacamole ->
                             State.Error.processStringError
                                 model
                                 errorContext
-                                "Server does not appear to have been launched from Exosphere"
+                                "Server does not appear to have been launched with Guacamole support"
 
-                Nothing ->
+                ServerNotFromExo ->
                     State.Error.processStringError
                         model
                         errorContext
-                        "Could not find server in the model, maybe it has been deleted."
+                        "Server does not appear to have been launched from Exosphere"
 
-
-processServerSpecificMsg : Model -> Project -> Server -> ServerSpecificMsgConstructor -> ( Model, Cmd Msg )
-processServerSpecificMsg model project server serverMsgConstructor =
-    case serverMsgConstructor of
         RequestServerAction func targetStatus ->
             let
                 oldExoProps =

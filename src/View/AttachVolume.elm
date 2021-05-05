@@ -19,6 +19,7 @@ import Types.Types
         , Project
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
+        , ServerSpecificMsgConstructor(..)
         )
 import View.Helpers as VH
 import View.Types
@@ -126,7 +127,9 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                         else
                             { onPress =
                                 Just <|
-                                    ProjectMsg project.auth.project.uuid (RequestAttachVolume serverUuid volumeUuid)
+                                    ProjectMsg project.auth.project.uuid <|
+                                        ServerMsg serverUuid <|
+                                            RequestAttachVolume volumeUuid
                             , warnText = Nothing
                             }
 
