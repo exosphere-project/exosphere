@@ -665,22 +665,6 @@ processProjectSpecificMsg model project msg =
             in
             ( GetterSetters.modelUpdateProject model newProject, cmd )
 
-        RequestServerAction server func targetStatus ->
-            let
-                oldExoProps =
-                    server.exoProps
-
-                newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus } server.events
-
-                newProject =
-                    GetterSetters.projectUpdateServer project newServer
-
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
-            in
-            ( newModel, func newProject newServer )
-
         RequestCreateVolume name size ->
             let
                 createVolumeRequest =
@@ -1514,6 +1498,22 @@ processProjectSpecificMsg model project msg =
 processServerSpecificMsg : Model -> Project -> Server -> ServerSpecificMsgConstructor -> ( Model, Cmd Msg )
 processServerSpecificMsg model project server serverMsgConstructor =
     case serverMsgConstructor of
+        RequestServerAction func targetStatus ->
+            let
+                oldExoProps =
+                    server.exoProps
+
+                newServer =
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus } server.events
+
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel, func newProject newServer )
+
         ReceiveConsoleLog errorContext result ->
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->

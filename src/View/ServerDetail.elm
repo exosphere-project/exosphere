@@ -37,6 +37,7 @@ import Types.Types
         , ServerDetailActiveTooltip(..)
         , ServerDetailViewParams
         , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
         , UserAppProxyHostname
         , ViewState(..)
         )
@@ -834,10 +835,10 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
                 actionMsg =
                     Just <|
                         ProjectMsg projectId <|
-                            RequestServerAction
-                                server
-                                cmdAction
-                                serverAction.targetStatus
+                            ServerMsg server.osProps.uuid <|
+                                RequestServerAction
+                                    cmdAction
+                                    serverAction.targetStatus
 
                 cancelMsg =
                     Just <|
@@ -860,10 +861,10 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
                 actionMsg =
                     Just <|
                         ProjectMsg projectId <|
-                            RequestServerAction
-                                server
-                                cmdAction
-                                serverAction.targetStatus
+                            ServerMsg server.osProps.uuid <|
+                                RequestServerAction
+                                    cmdAction
+                                    serverAction.targetStatus
 
                 title =
                     serverAction.name

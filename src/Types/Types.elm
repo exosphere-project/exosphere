@@ -334,7 +334,6 @@ type ProjectSpecificMsgConstructor
     | RequestDeleteServer OSTypes.ServerUuid
     | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
-    | RequestServerAction Server (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
@@ -377,7 +376,8 @@ type ProjectSpecificMsgConstructor
 
 
 type ServerSpecificMsgConstructor
-    = ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
+    = RequestServerAction (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
+    | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
 type ViewState
