@@ -11,19 +11,12 @@ users:
     groups: sudo, admin
     sudo: ['ALL=(ALL) NOPASSWD:ALL']{ssh-authorized-keys}
 ssh_pwauth: true
-yum_repos:
-  epel-release:
-    baseurl: https://download.fedoraproject.org/pub/epel/8/Everything/x86_64
-    enabled: true
-    failovermethod: priority
-    gpgcheck: true
-    gpgkey: https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
-    name: Extra Packages for Enterprise Linux 8 - Release
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
-  - haveged
   - python3-virtualenv
+  - git
+  - wget
 runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' > /dev/console
@@ -79,7 +72,6 @@ runcmd:
   - |
     {guacamole-setup}
   - unset PASSPHRASE
-  - "command -v apt-get && DEBIAN_FRONTEND=noninteractive apt-get install -yq haveged  # This is for stubborn Ubuntu 18"
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
@@ -112,7 +104,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 011afcdc84a68f07e90d44fd5c2ecc911303ad87 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 0ceda941129d1aaa4013ae2ff81a1fc9e68fba7b --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
