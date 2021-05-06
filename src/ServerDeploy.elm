@@ -14,7 +14,6 @@ ssh_pwauth: true
 package_update: true
 package_upgrade: {install-os-updates}
 packages:
-  - haveged
   - python3-virtualenv
 runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
@@ -71,7 +70,6 @@ runcmd:
   - |
     {guacamole-setup}
   - unset PASSPHRASE
-  - "command -v apt-get && DEBIAN_FRONTEND=noninteractive apt-get install -yq haveged  # This is for stubborn Ubuntu 18"
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
@@ -104,7 +102,7 @@ guacamoleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
-    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 011afcdc84a68f07e90d44fd5c2ecc911303ad87 --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
+    ansible-pull --url https://gitlab.com/exosphere/instance-config-mgt.git --checkout 0ceda941129d1aaa4013ae2ff81a1fc9e68fba7b --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
 
 
