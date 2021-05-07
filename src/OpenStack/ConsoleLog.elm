@@ -42,7 +42,7 @@ requestConsoleLog project server maybeLength =
         errorContext =
             ErrorContext
                 ("request console log for server " ++ server.osProps.uuid)
-                ErrorCrit
+                ErrorDebug
                 Nothing
 
         resultToMsg result =
