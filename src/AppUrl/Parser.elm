@@ -125,8 +125,27 @@ pathParsers defaultViewState =
 
     -- Not bothering to decode the SelectProjects view, because you can't currently navigate there on a fresh page load and see anything useful
     , map
-        (NonProjectView MessageLog)
-        (s "msglog")
+        (\maybeShowDebugMsgs ->
+            let
+                showDebugMsgs =
+                    case maybeShowDebugMsgs of
+                        Just str ->
+                            case str of
+                                "true" ->
+                                    True
+
+                                "false" ->
+                                    False
+
+                                _ ->
+                                    False
+
+                        Nothing ->
+                            False
+            in
+            NonProjectView <| MessageLog showDebugMsgs
+        )
+        (s "msglog" <?> Query.string "showdebug")
     , map
         (NonProjectView Settings)
         (s "settings")

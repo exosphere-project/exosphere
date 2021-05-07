@@ -1,21 +1,43 @@
 module View.Messages exposing (messageLog)
 
 import Element
-import Types.Types exposing (LogMessage, Msg(..))
+import Element.Input as Input
+import Types.Error exposing (ErrorLevel(..))
+import Types.Types exposing (LogMessage, Msg(..), NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 
 
-messageLog : View.Types.Context -> List LogMessage -> Element.Element Msg
-messageLog context logMessages =
+messageLog : View.Types.Context -> List LogMessage -> Bool -> Element.Element Msg
+messageLog context logMessages showDebugMsgs =
+    let
+        shownMessages =
+            let
+                filter =
+                    if showDebugMsgs then
+                        \_ -> True
+
+                    else
+                        \message -> message.context.level /= ErrorDebug
+            in
+            logMessages
+                |> List.filter filter
+    in
     Element.column
         VH.exoColumnAttributes
         [ Element.el
             VH.heading2
             (Element.text "Recent Messages")
-        , if List.isEmpty logMessages then
+        , Input.checkbox
+            []
+            { label = Input.labelRight [] (Element.text "Show low-level debug messages")
+            , icon = Input.defaultCheckbox
+            , checked = showDebugMsgs
+            , onChange = \new -> SetNonProjectView <| MessageLog new
+            }
+        , if List.isEmpty shownMessages then
             Element.text "(No Messages)"
 
           else
-            Element.column VH.exoColumnAttributes (List.map (VH.renderMessageAsElement context) logMessages)
+            Element.column VH.exoColumnAttributes (List.map (VH.renderMessageAsElement context) shownMessages)
         ]

@@ -390,7 +390,7 @@ type NonProjectViewConstructor
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | MessageLog
+    | MessageLog Bool
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout

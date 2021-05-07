@@ -104,8 +104,8 @@ elementView maybeWindowSize model context =
                             SelectProjects authUrl selectedProjects ->
                                 View.SelectProjects.selectProjects model context authUrl selectedProjects
 
-                            MessageLog ->
-                                View.Messages.messageLog context model.logMessages
+                            MessageLog showDebugMsgs ->
+                                View.Messages.messageLog context model.logMessages showDebugMsgs
 
                             Settings ->
                                 View.Settings.settings model.style.styleMode

@@ -108,10 +108,17 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ UB.string "keystoneurl" keystoneUrl
                 ]
 
-        MessageLog ->
+        MessageLog showDebugMsgs ->
             buildUrlFunc
                 [ "msglog" ]
-                []
+                [ UB.string "showdebug"
+                    (if showDebugMsgs then
+                        "true"
+
+                     else
+                        "false"
+                    )
+                ]
 
         Settings ->
             buildUrlFunc
