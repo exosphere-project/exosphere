@@ -4,6 +4,7 @@ module Helpers.Helpers exposing
     , getBootVol
     , httpErrorToString
     , isBootVol
+    , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
     , pipelineCmd
@@ -28,11 +29,13 @@ import Http
 import Json.Decode as Decode
 import Json.Encode
 import OpenStack.Types as OSTypes
+import Parser exposing ((|.))
 import Regex
 import RemoteData
 import ServerDeploy
 import Time
 import Types.Guacamole as GuacTypes
+import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( Endpoints
@@ -81,6 +84,18 @@ stringIsUuidOrDefault str =
             str == "default"
     in
     stringIsUuid || stringIsDefault
+
+
+naiveUuidParser : Parser.Parser HelperTypes.Uuid
+naiveUuidParser =
+    -- Looks for any combination of hex digits and hyphens
+    let
+        isUuidChar c =
+            Char.isHexDigit c || c == '-'
+    in
+    Parser.getChompedString <|
+        Parser.succeed identity
+            |. Parser.chompWhile isUuidChar
 
 
 serviceCatalogToEndpoints : OSTypes.ServiceCatalog -> Result String Endpoints
