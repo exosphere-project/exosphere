@@ -185,6 +185,7 @@ requestCreateFloatingIp project network port_ server =
                 ErrorCrit
                 (Just "It's possible your cloud has run out of public IP address space; ask your cloud administrator.")
 
+        -- TODO if this API call results in an error, see if server is deleted; if so, suppress error message
         resultToMsg_ =
             resultToMsgErrorBody
                 errorContext
