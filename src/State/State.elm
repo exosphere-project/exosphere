@@ -1253,7 +1253,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                 errorContext =
                                     ErrorContext
                                         "Look for a floating IP address to delete now that we have just deleted its server"
-                                        ErrorInfo
+                                        ErrorDebug
                                         Nothing
                             in
                             State.Error.processStringError
