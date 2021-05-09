@@ -1,5 +1,6 @@
 module State.Error exposing (processStringError, processSynchronousApiError)
 
+import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
@@ -74,17 +75,7 @@ processSynchronousApiError model errorContext httpError =
                     False
 
                 Ok errInstanceUuid ->
-                    let
-                        allInstanceUuids =
-                            model.projects
-                                |> List.map .servers
-                                |> List.map (RDPP.withDefault [])
-                                |> List.concat
-                                |> List.filter (\s -> not s.exoProps.deletionAttempted)
-                                |> List.map .osProps
-                                |> List.map .uuid
-                    in
-                    not <| List.member errInstanceUuid allInstanceUuids
+                    not <| GetterSetters.serverPresentNotDeleting model errInstanceUuid
 
         newErrorContext =
             -- Suppress error if it's about a nonexistent instance
