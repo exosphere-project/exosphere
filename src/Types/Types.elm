@@ -371,7 +371,7 @@ type ServerSpecificMsgConstructor
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer (Maybe OSTypes.IpAddressValue)
-    | ReceiveCreateFloatingIp OSTypes.IpAddress
+    | ReceiveCreateFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.IpAddress)
     | ReceiveServerPassword OSTypes.ServerPassword
     | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))

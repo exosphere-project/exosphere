@@ -1266,8 +1266,21 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             , Cmd.batch [ urlCmd, Rest.Neutron.requestDeleteFloatingIp project uuid ]
                             )
 
-        ReceiveCreateFloatingIp ip ->
-            Rest.Neutron.receiveCreateFloatingIp model project server ip
+        ReceiveCreateFloatingIp errorContext result ->
+            case result of
+                Ok ip ->
+                    Rest.Neutron.receiveCreateFloatingIp model project server ip
+
+                Err httpErrorWithBody ->
+                    let
+                        newErrorContext =
+                            if GetterSetters.serverPresentNotDeleting model server.osProps.uuid then
+                                errorContext
+
+                            else
+                                { errorContext | level = ErrorDebug }
+                    in
+                    State.Error.processSynchronousApiError model newErrorContext httpErrorWithBody
 
         ReceiveServerPassword password ->
             if String.isEmpty password then
