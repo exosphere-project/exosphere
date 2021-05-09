@@ -2,7 +2,6 @@ module State.Error exposing (processStringError, processSynchronousApiError)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
 import OpenStack.Error as OSError
