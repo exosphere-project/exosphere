@@ -2,11 +2,9 @@ module Helpers.GetterSetters exposing
     ( cloudConfigLookup
     , flavorLookup
     , getExternalNetwork
-    , getPublicEndpointFromService
     , getServerExouserPassword
     , getServerFloatingIp
     , getServersWithVolAttached
-    , getServiceFromCatalog
     , getServicePublicUrl
     , getVolsAttachedToServer
     , imageLookup
