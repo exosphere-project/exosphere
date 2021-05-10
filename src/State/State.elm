@@ -614,9 +614,22 @@ processProjectSpecificMsg model project msg =
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
                 Nothing ->
-                    -- Server does not exist, may have been deleted, nothing to do
-                    -- TODO in the future log a debug message for this?
-                    ( model, Cmd.none )
+                    let
+                        errorContext =
+                            ErrorContext
+                                "receive results of API call for a specific server"
+                                ErrorDebug
+                                Nothing
+                    in
+                    State.Error.processStringError
+                        model
+                        errorContext
+                        (String.join " "
+                            [ "Instance"
+                            , serverUuid
+                            , "does not exist in the model, it may have been deleted."
+                            ]
+                        )
 
                 Just server ->
                     processServerSpecificMsg model project server serverMsgConstructor
