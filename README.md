@@ -131,7 +131,7 @@ elm-live:
     - src/**/*.elm
 ```
 
-You can open your browser to [http://127.0.0.1:8000](http://127.0.0.1:8000) to see the interface.
+You can open your browser to [http://app.exosphere.localhost:8000/](http://app.exosphere.localhost:8000/) to see the interface.
 
 If you want a development environment to make changes to files, you can run
 the container and bind the src directory:
