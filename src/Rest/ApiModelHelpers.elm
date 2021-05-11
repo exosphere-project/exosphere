@@ -1,6 +1,7 @@
 module Rest.ApiModelHelpers exposing
     ( requestAutoAllocatedNetwork
     , requestComputeQuota
+    , requestFloatingIps
     , requestNetworks
     , requestServer
     , requestServers
@@ -100,6 +101,21 @@ requestVolumeQuota projectUuid model =
               }
                 |> GetterSetters.modelUpdateProject model
             , OpenStack.Quotas.requestVolumeQuota project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestFloatingIps : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+requestFloatingIps projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( { project
+                | floatingIps = RemoteData.Loading
+              }
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Neutron.requestFloatingIps project
             )
 
         Nothing ->

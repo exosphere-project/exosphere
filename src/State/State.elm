@@ -1255,7 +1255,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                 Just ipAddress ->
                     let
                         maybeFloatingIpUuid =
-                            project.floatingIps
+                            RemoteData.withDefault [] project.floatingIps
                                 |> List.filter (\i -> i.address == ipAddress)
                                 |> List.head
                                 |> Maybe.andThen .uuid
@@ -1635,7 +1635,7 @@ createProject model authToken endpoints =
             , volumes = RemoteData.NotAsked
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
-            , floatingIps = []
+            , floatingIps = RemoteData.NotAsked
             , ports = RDPP.empty
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
@@ -1668,12 +1668,13 @@ createProject model authToken endpoints =
     ( newModel
     , [ Rest.Nova.requestServers
       , Rest.Neutron.requestSecurityGroups
-      , Rest.Neutron.requestFloatingIps
       , Rest.Keystone.requestAppCredential model.clientUuid model.clientCurrentTime
       ]
         |> List.map (\x -> x newProject)
         |> Cmd.batch
     )
+        |> Helpers.pipelineCmd
+            (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
         |> Helpers.pipelineCmd newViewStateFunc
 
 

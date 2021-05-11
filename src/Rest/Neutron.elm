@@ -29,6 +29,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
+import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -417,7 +418,7 @@ receiveFloatingIps : Model -> Project -> List OSTypes.IpAddress -> ( Model, Cmd 
 receiveFloatingIps model project floatingIps =
     let
         newProject =
-            { project | floatingIps = floatingIps }
+            { project | floatingIps = RemoteData.Success floatingIps }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -457,17 +458,22 @@ receiveCreateFloatingIp model project server ipAddress =
 
 receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> ( Model, Cmd Msg )
 receiveDeleteFloatingIp model project uuid =
-    let
-        newFloatingIps =
-            List.filter (\f -> f.uuid /= Just uuid) project.floatingIps
+    case project.floatingIps of
+        RemoteData.Success floatingIps ->
+            let
+                newFloatingIps =
+                    List.filter (\f -> f.uuid /= Just uuid) floatingIps
 
-        newProject =
-            { project | floatingIps = newFloatingIps }
+                newProject =
+                    { project | floatingIps = RemoteData.Success newFloatingIps }
 
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.none )
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
