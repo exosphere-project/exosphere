@@ -55,7 +55,7 @@ pageTitle model context =
                         , providerTitle
                         ]
 
-                MessageLog ->
+                MessageLog _ ->
                     "Message Log"
 
                 Settings ->

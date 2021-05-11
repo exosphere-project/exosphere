@@ -26,6 +26,7 @@ import Types.Types
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
         , UserAppProxyHostname
         )
 import UUID
@@ -520,7 +521,8 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                 password
                 (\result ->
                     ProjectMsg project.auth.project.uuid <|
-                        ReceiveGuacamoleAuthToken server.osProps.uuid result
+                        ServerMsg server.osProps.uuid <|
+                            ReceiveGuacamoleAuthToken result
                 )
             )
     in

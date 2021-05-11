@@ -20,6 +20,7 @@ module Helpers.GetterSetters exposing
     , projectUpdateServer
     , providerLookup
     , serverLookup
+    , serverPresentNotDeleting
     , sortedFlavors
     , volumeIsAttachedToServer
     , volumeLookup
@@ -183,6 +184,21 @@ volumeIsAttachedToServer volumeUuid server =
 getServersWithVolAttached : Project -> OSTypes.Volume -> List OSTypes.ServerUuid
 getServersWithVolAttached _ volume =
     volume.attachments |> List.map .serverUuid
+
+
+serverPresentNotDeleting : Model -> OSTypes.ServerUuid -> Bool
+serverPresentNotDeleting model serverUuid =
+    let
+        notDeletingServerUuids =
+            model.projects
+                |> List.map .servers
+                |> List.map (RDPP.withDefault [])
+                |> List.concat
+                |> List.filter (\s -> not s.exoProps.deletionAttempted)
+                |> List.map .osProps
+                |> List.map .uuid
+    in
+    List.member serverUuid notDeletingServerUuids
 
 
 

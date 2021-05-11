@@ -44,6 +44,7 @@ module Types.Types exposing
     , ServerListViewParams
     , ServerOrigin(..)
     , ServerSelection
+    , ServerSpecificMsgConstructor(..)
     , ServerUiStatus(..)
     , SortTableParams
     , Style
@@ -326,28 +327,20 @@ type ProjectSpecificMsgConstructor
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | ToggleCreatePopup
     | RemoveProject
+    | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers
-    | RequestServer OSTypes.ServerUuid
     | RequestCreateServer CreateServerViewParams OSTypes.NetworkUuid
-    | RequestDeleteServer OSTypes.ServerUuid
-    | RequestSetServerName OSTypes.ServerUuid String
     | RequestDeleteServers (List OSTypes.ServerUuid)
-    | RequestServerAction Server (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
-    | RequestAttachVolume OSTypes.ServerUuid OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairName
-    | RequestCreateServerImage OSTypes.ServerUuid String
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
-    | ReceiveServerEvents OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
-    | ReceiveConsoleUrl OSTypes.ServerUuid (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveCreateServer OSTypes.ServerUuid
-    | ReceiveDeleteServer OSTypes.ServerUuid (Maybe OSTypes.IpAddressValue)
     | ReceiveFlavors (List OSTypes.Flavor)
     | ReceiveKeypairs (List OSTypes.Keypair)
     | ReceiveCreateKeypair OSTypes.Keypair
@@ -356,7 +349,6 @@ type ProjectSpecificMsgConstructor
     | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
-    | ReceiveCreateFloatingIp OSTypes.ServerUuid OSTypes.IpAddress
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
@@ -368,11 +360,24 @@ type ProjectSpecificMsgConstructor
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
-    | ReceiveServerPassword OSTypes.ServerUuid OSTypes.ServerPassword
-    | ReceiveConsoleLog ErrorContext OSTypes.ServerUuid (Result HttpErrorWithBody String)
-    | ReceiveSetServerName OSTypes.ServerUuid String ErrorContext (Result HttpErrorWithBody String)
-    | ReceiveSetServerMetadata OSTypes.ServerUuid OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
-    | ReceiveGuacamoleAuthToken OSTypes.ServerUuid (Result Http.Error GuacTypes.GuacamoleAuthToken)
+
+
+type ServerSpecificMsgConstructor
+    = RequestServer
+    | RequestDeleteServer
+    | RequestSetServerName String
+    | RequestAttachVolume OSTypes.VolumeUuid
+    | RequestCreateServerImage String
+    | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
+    | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
+    | ReceiveDeleteServer (Maybe OSTypes.IpAddressValue)
+    | ReceiveCreateFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.IpAddress)
+    | ReceiveServerPassword OSTypes.ServerPassword
+    | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
+    | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
+    | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
+    | RequestServerAction (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
+    | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
 type ViewState
@@ -385,7 +390,7 @@ type NonProjectViewConstructor
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | MessageLog
+    | MessageLog Bool
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout

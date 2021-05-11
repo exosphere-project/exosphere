@@ -150,7 +150,7 @@ navBar model context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView MessageLog)
+                        { onPress = Just (SetNonProjectView <| MessageLog False)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])

@@ -37,6 +37,7 @@ import Types.Types
         , ServerDetailActiveTooltip(..)
         , ServerDetailViewParams
         , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
         , UserAppProxyHostname
         , ViewState(..)
         )
@@ -198,8 +199,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
                         ( Nothing, Just validName ) ->
                             Just
-                                (ProjectMsg project.auth.project.uuid
-                                    (RequestSetServerName server.osProps.uuid validName)
+                                (ProjectMsg project.auth.project.uuid <|
+                                    ServerMsg server.osProps.uuid <|
+                                        RequestSetServerName validName
                                 )
 
                         ( _, _ ) ->
@@ -834,10 +836,10 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
                 actionMsg =
                     Just <|
                         ProjectMsg projectId <|
-                            RequestServerAction
-                                server
-                                cmdAction
-                                serverAction.targetStatus
+                            ServerMsg server.osProps.uuid <|
+                                RequestServerAction
+                                    cmdAction
+                                    serverAction.targetStatus
 
                 cancelMsg =
                     Just <|
@@ -860,10 +862,10 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
                 actionMsg =
                     Just <|
                         ProjectMsg projectId <|
-                            RequestServerAction
-                                server
-                                cmdAction
-                                serverAction.targetStatus
+                            ServerMsg server.osProps.uuid <|
+                                RequestServerAction
+                                    cmdAction
+                                    serverAction.targetStatus
 
                 title =
                     serverAction.name

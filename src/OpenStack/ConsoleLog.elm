@@ -13,6 +13,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerSpecificMsgConstructor(..)
         )
 
 
@@ -41,12 +42,13 @@ requestConsoleLog project server maybeLength =
         errorContext =
             ErrorContext
                 ("request console log for server " ++ server.osProps.uuid)
-                ErrorCrit
+                ErrorDebug
                 Nothing
 
         resultToMsg result =
             ProjectMsg project.auth.project.uuid <|
-                ReceiveConsoleLog errorContext server.osProps.uuid result
+                ServerMsg server.osProps.uuid <|
+                    ReceiveConsoleLog errorContext result
     in
     openstackCredentialedRequest
         project

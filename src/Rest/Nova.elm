@@ -64,6 +64,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , Server
         , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
 
@@ -141,9 +142,9 @@ requestServerEvents project serverUuid =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg
-                project.auth.project.uuid
-                (ReceiveServerEvents serverUuid errorContext result)
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveServerEvents errorContext result
     in
     openstackCredentialedRequest
         project
@@ -189,7 +190,11 @@ requestConsoleUrls project serverUuid =
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
                 (Http.jsonBody reqBody)
                 (expectJsonWithErrorBody
-                    (\result -> ProjectMsg project.auth.project.uuid (ReceiveConsoleUrl serverUuid result))
+                    (\result ->
+                        ProjectMsg project.auth.project.uuid <|
+                            ServerMsg serverUuid <|
+                                ReceiveConsoleUrl result
+                    )
                     decodeConsoleUrl
                 )
     in
@@ -446,9 +451,9 @@ requestDeleteServer project server =
             resultToMsgErrorBody
                 errorContext
                 (\_ ->
-                    ProjectMsg
-                        project.auth.project.uuid
-                        (ReceiveDeleteServer server.osProps.uuid getFloatingIp)
+                    ProjectMsg project.auth.project.uuid <|
+                        ServerMsg server.osProps.uuid <|
+                            ReceiveDeleteServer getFloatingIp
                 )
     in
     openstackCredentialedRequest
@@ -525,9 +530,9 @@ requestSetServerName project serverUuid newServerName =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg
-                project.auth.project.uuid
-                (ReceiveSetServerName serverUuid newServerName errorContext result)
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveSetServerName newServerName errorContext result
     in
     openstackCredentialedRequest
         project
@@ -566,9 +571,9 @@ requestSetServerMetadata project serverUuid metadataItem =
                 Nothing
 
         resultToMsg result =
-            ProjectMsg
-                project.auth.project.uuid
-                (ReceiveSetServerMetadata serverUuid metadataItem errorContext result)
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveSetServerMetadata metadataItem errorContext result
     in
     openstackCredentialedRequest
         project
@@ -795,49 +800,39 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-receiveConsoleUrl : Model -> Project -> OSTypes.ServerUuid -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
-receiveConsoleUrl model project serverUuid result =
-    let
-        maybeServer =
-            GetterSetters.serverLookup project serverUuid
-    in
-    case maybeServer of
-        Nothing ->
+receiveConsoleUrl : Model -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl model project server result =
+    case server.osProps.consoleUrl of
+        RemoteData.Success _ ->
+            -- Don't overwrite a potentially successful call to get console URL with a failed call
             ( model, Cmd.none )
 
-        -- This is an error state (server not found) but probably not one worth throwing an error at the user over. Someone might have just deleted their server
-        Just server ->
-            case server.osProps.consoleUrl of
-                RemoteData.Success _ ->
-                    -- Don't overwrite a potentially successful call to get console URL with a failed call
-                    ( model, Cmd.none )
+        _ ->
+            let
+                consoleUrl =
+                    case result of
+                        Err error ->
+                            RemoteData.Failure error
 
-                _ ->
-                    let
-                        consoleUrl =
-                            case result of
-                                Err error ->
-                                    RemoteData.Failure error
+                        Ok url ->
+                            RemoteData.Success url
 
-                                Ok url ->
-                                    RemoteData.Success url
+                oldOsProps =
+                    server.osProps
 
-                        oldOsProps =
-                            server.osProps
+                newOsProps =
+                    { oldOsProps | consoleUrl = consoleUrl }
 
-                        newOsProps =
-                            { oldOsProps | consoleUrl = consoleUrl }
+                newServer =
+                    { server | osProps = newOsProps }
 
-                        newServer =
-                            { server | osProps = newOsProps }
+                newProject =
+                    GetterSetters.projectUpdateServer project newServer
 
-                        newProject =
-                            GetterSetters.projectUpdateServer project newServer
-
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
-                    in
-                    ( newModel, Cmd.none )
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel, Cmd.none )
 
 
 receiveFlavors : Model -> Project -> List OSTypes.Flavor -> ( Model, Cmd Msg )

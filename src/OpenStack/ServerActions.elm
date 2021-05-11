@@ -21,6 +21,7 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
+        , ServerSpecificMsgConstructor(..)
         )
 
 
@@ -323,6 +324,10 @@ doAction body project server =
         (expectStringWithErrorBody
             (resultToMsgErrorBody
                 errorContext
-                (\_ -> ProjectMsg project.auth.project.uuid <| RequestServer server.osProps.uuid)
+                (\_ ->
+                    ProjectMsg project.auth.project.uuid <|
+                        ServerMsg server.osProps.uuid <|
+                            RequestServer
+                )
             )
         )

@@ -29,6 +29,7 @@ import Types.Types
         , ServerListViewParams
         , ServerOrigin(..)
         , ServerSelection
+        , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
@@ -339,8 +340,10 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
-                            Just
-                                (ProjectMsg projectId (RequestDeleteServer server.osProps.uuid))
+                            Just <|
+                                ProjectMsg projectId <|
+                                    ServerMsg server.osProps.uuid <|
+                                        RequestDeleteServer
                         }
                     , Widget.iconButton
                         (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))

@@ -11,7 +11,14 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project, ProjectSpecificMsgConstructor(..))
+import Types.Types
+    exposing
+        ( HttpRequestMethod(..)
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ServerSpecificMsgConstructor(..)
+        )
 
 
 requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg
@@ -28,9 +35,9 @@ requestServerPassword project serverUuid =
                 errorContext
             <|
                 \serverPassword ->
-                    ProjectMsg
-                        project.auth.project.uuid
-                        (ReceiveServerPassword serverUuid serverPassword)
+                    ProjectMsg project.auth.project.uuid <|
+                        ServerMsg serverUuid <|
+                            ReceiveServerPassword serverPassword
     in
     openstackCredentialedRequest
         project
