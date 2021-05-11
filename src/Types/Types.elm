@@ -10,6 +10,7 @@ module Types.Types exposing
     , ExoServerVersion
     , ExoSetupStatus(..)
     , Flags
+    , FloatingIpListViewParams
     , FloatingIpState(..)
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
@@ -435,6 +436,7 @@ type ProjectViewConstructor
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes VolumeListViewParams
+    | ListFloatingIps FloatingIpListViewParams
     | ListKeypairs KeypairListViewParams
     | CreateKeypair String String
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
@@ -508,6 +510,11 @@ type alias DeleteConfirmation =
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
+
+
+type alias FloatingIpListViewParams =
+    { deleteConfirmations : List OSTypes.IpAddress
+    }
 
 
 type alias KeypairListViewParams =

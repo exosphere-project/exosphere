@@ -93,6 +93,19 @@ allResources context p viewParams =
                 )
             ]
         , Element.column
+            [ Element.width Element.fill ]
+            [ renderHeaderLink
+                (context.localization.floatingIpAddress
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                )
+                (ProjectMsg p.auth.project.uuid <|
+                    SetProjectView <|
+                        ListFloatingIps
+                            Defaults.floatingIpListViewParams
+                )
+            ]
+        , Element.column
             [ Element.width Element.fill
             , Element.spacingXY 0 15 -- Because no quota view taking up space
             ]

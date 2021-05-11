@@ -322,6 +322,22 @@ setProjectView project projectViewConstructor model =
                     in
                     ( model, cmd )
 
+                ListFloatingIps _ ->
+                    let
+                        cmd =
+                            -- Don't fire cmds if we're already in this view
+                            case prevProjectViewConstructor of
+                                Just (ListFloatingIps _) ->
+                                    Cmd.none
+
+                                _ ->
+                                    Cmd.batch
+                                        [ Rest.Neutron.requestFloatingIps project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                    in
+                    ( model, cmd )
+
                 ListKeypairs _ ->
                     let
                         cmd =

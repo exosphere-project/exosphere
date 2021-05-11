@@ -25,6 +25,7 @@ import View.AllResources
 import View.AttachVolume
 import View.CreateServer
 import View.CreateServerImage
+import View.FloatingIps
 import View.Helpers as VH
 import View.Images
 import View.Keypairs
@@ -97,6 +98,9 @@ project model context p viewParams viewConstructor =
 
                 MountVolInstructions attachment ->
                     View.AttachVolume.mountVolInstructions context p attachment
+
+                ListFloatingIps floatingIpListViewParams ->
+                    View.FloatingIps.floatingIps
 
                 ListKeypairs keypairListViewParams ->
                     View.Keypairs.listKeypairs context
