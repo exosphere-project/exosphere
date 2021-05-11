@@ -65,7 +65,7 @@ pluralize word =
     String.concat
         [ word
         , if String.right 1 word == "s" then
-            ""
+            "es"
 
           else
             "s"
