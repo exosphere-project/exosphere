@@ -16,6 +16,7 @@ import Types.Types
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import View.FloatingIps
 import View.Helpers as VH
 import View.Keypairs
 import View.ServerList
@@ -103,6 +104,15 @@ allResources context p viewParams =
                     SetProjectView <|
                         ListFloatingIps
                             Defaults.floatingIpListViewParams
+                )
+            , View.FloatingIps.floatingIps context
+                False
+                p
+                viewParams.floatingIpListViewParams
+                (\newParams ->
+                    ProjectMsg p.auth.project.uuid <|
+                        SetProjectView <|
+                            AllResources { viewParams | floatingIpListViewParams = newParams }
                 )
             ]
         , Element.column

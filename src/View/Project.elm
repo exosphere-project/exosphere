@@ -100,7 +100,15 @@ project model context p viewParams viewConstructor =
                     View.AttachVolume.mountVolInstructions context p attachment
 
                 ListFloatingIps floatingIpListViewParams ->
-                    View.FloatingIps.floatingIps
+                    View.FloatingIps.floatingIps context
+                        True
+                        p
+                        floatingIpListViewParams
+                        (\newParams ->
+                            ProjectMsg p.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListFloatingIps newParams
+                        )
 
                 ListKeypairs keypairListViewParams ->
                     View.Keypairs.listKeypairs context

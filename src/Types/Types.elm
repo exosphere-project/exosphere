@@ -452,6 +452,7 @@ type alias AllResourcesListViewParams =
     { serverListViewParams : ServerListViewParams
     , volumeListViewParams : VolumeListViewParams
     , keypairListViewParams : KeypairListViewParams
+    , floatingIpListViewParams : FloatingIpListViewParams
     }
 
 

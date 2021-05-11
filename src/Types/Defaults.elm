@@ -87,6 +87,7 @@ allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
     , volumeListViewParams = volumeListViewParams
     , keypairListViewParams = keypairListViewParams
+    , floatingIpListViewParams = floatingIpListViewParams
     }
 
 
