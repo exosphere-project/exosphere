@@ -1,17 +1,51 @@
 module View.FloatingIps exposing (floatingIps)
 
 import Element exposing (Element)
+import Element.Font as Font
 import Helpers.String
-import Types.Types exposing (FloatingIpListViewParams, Msg(..), Project)
+import OpenStack.Types as OSTypes
+import Style.Helpers as SH
+import Style.Widgets.Button
+import Style.Widgets.Card
+import Style.Widgets.CopyableText
+import Types.Types exposing (FloatingIpListViewParams, Msg(..), Project, ProjectSpecificMsgConstructor(..))
 import View.Helpers as VH
 import View.Types
+import Widget
+import Widget.Style.Material
 
 
 floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> Msg) -> Element.Element Msg
 floatingIps context showHeading project viewParams toMsg =
     let
-        renderFloatingIps =
-            Element.text "TODO"
+        renderFloatingIps : List OSTypes.IpAddress -> Element.Element Msg
+        renderFloatingIps ips =
+            if List.isEmpty ips then
+                Element.column
+                    (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
+                    [ Element.text <|
+                        String.concat
+                            [ "You don't have any "
+                            , context.localization.floatingIpAddress
+                                |> Helpers.String.pluralize
+                            , " yet. They will be created when you launch "
+                            , context.localization.virtualComputer
+                                |> Helpers.String.indefiniteArticle
+                            , " "
+                            , context.localization.virtualComputer
+                            , "."
+                            ]
+                    ]
+
+            else
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.paddingXY 10 0, Element.width Element.fill ]
+                    )
+                    (List.map
+                        (renderFloatingIpCard context project viewParams toMsg)
+                        ips
+                    )
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
@@ -25,5 +59,91 @@ floatingIps context showHeading project viewParams toMsg =
 
           else
             Element.none
-        , Element.text <| Debug.toString project.floatingIps
+        , VH.renderWebData
+            context
+            project.floatingIps
+            (Helpers.String.pluralize context.localization.floatingIpAddress)
+            renderFloatingIps
         ]
+
+
+renderFloatingIpCard :
+    View.Types.Context
+    -> Project
+    -> FloatingIpListViewParams
+    -> (FloatingIpListViewParams -> Msg)
+    -> OSTypes.IpAddress
+    -> Element.Element Msg
+renderFloatingIpCard context project viewParams toMsg ip =
+    let
+        cardBody =
+            Element.column
+                (VH.exoColumnAttributes ++ [ Element.alignRight ])
+                [ actionButtons context project toMsg viewParams ip
+                ]
+    in
+    Style.Widgets.Card.exoCard
+        context.palette
+        (Style.Widgets.CopyableText.copyableText
+            context.palette
+            [ Font.family [ Font.monospace ] ]
+            ip.address
+        )
+        Element.none
+        cardBody
+
+
+actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.IpAddress -> Element.Element Msg
+actionButtons context project toMsg viewParams ip =
+    let
+        confirmationNeeded =
+            List.member ip.address viewParams.deleteConfirmations
+
+        deleteButton =
+            if confirmationNeeded then
+                Element.row [ Element.spacing 10 ]
+                    [ Element.text "Confirm delete?"
+                    , Widget.textButton
+                        (Style.Widgets.Button.dangerButton context.palette)
+                        { text = "Delete"
+                        , onPress =
+                            ip.uuid
+                                |> Maybe.map
+                                    (\uuid ->
+                                        ProjectMsg
+                                            project.auth.project.uuid
+                                            (RequestDeleteFloatingIp uuid)
+                                    )
+                        }
+                    , Widget.textButton
+                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        { text = "Cancel"
+                        , onPress =
+                            Just <|
+                                toMsg
+                                    { viewParams
+                                        | deleteConfirmations =
+                                            List.filter
+                                                ((/=) ip.address)
+                                                viewParams.deleteConfirmations
+                                    }
+                        }
+                    ]
+
+            else
+                Widget.textButton
+                    (Style.Widgets.Button.dangerButton context.palette)
+                    { text = "Delete"
+                    , onPress =
+                        Just <|
+                            toMsg
+                                { viewParams
+                                    | deleteConfirmations =
+                                        ip.address
+                                            :: viewParams.deleteConfirmations
+                                }
+                    }
+    in
+    Element.row
+        [ Element.width Element.fill ]
+        [ Element.el [ Element.alignRight ] deleteButton ]

@@ -704,6 +704,9 @@ processProjectSpecificMsg model project msg =
                         )
                         "Could not determine server attached to this volume."
 
+        RequestDeleteFloatingIp floatingIpAddress ->
+            ( model, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
+
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
 

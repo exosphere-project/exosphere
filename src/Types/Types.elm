@@ -338,6 +338,7 @@ type ProjectSpecificMsgConstructor
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairName
+    | RequestDeleteFloatingIp OSTypes.IpAddressUuid
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
@@ -514,7 +515,7 @@ type alias DeleteVolumeConfirmation =
 
 
 type alias FloatingIpListViewParams =
-    { deleteConfirmations : List OSTypes.IpAddress
+    { deleteConfirmations : List OSTypes.IpAddressUuid
     }
 
 
