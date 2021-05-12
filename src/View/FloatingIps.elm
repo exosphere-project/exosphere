@@ -10,7 +10,9 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText
-import Types.Types exposing (FloatingIpListViewParams, Msg(..), Project, ProjectSpecificMsgConstructor(..))
+import Style.Widgets.IconButton
+import Types.Defaults as Defaults
+import Types.Types exposing (FloatingIpListViewParams, Msg(..), Project, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.QuotaUsage
 import View.Types
@@ -92,12 +94,22 @@ renderFloatingIpCard context project viewParams toMsg ip =
         cardBody =
             case GetterSetters.getFloatingIpServer project ip.address of
                 Just server ->
-                    Element.text <|
-                        String.join " "
-                            [ "Assigned to"
-                            , context.localization.virtualComputer
-                            , server.osProps.name
-                            ]
+                    Element.row [ Element.spacing 5 ]
+                        [ Element.text <|
+                            String.join " "
+                                [ "Assigned to"
+                                , context.localization.virtualComputer
+                                , server.osProps.name
+                                ]
+                        , Style.Widgets.IconButton.goToButton
+                            context.palette
+                            (Just
+                                (ProjectMsg project.auth.project.uuid <|
+                                    SetProjectView <|
+                                        ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
+                                )
+                            )
+                        ]
 
                 Nothing ->
                     case ip.status of
