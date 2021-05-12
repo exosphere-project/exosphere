@@ -2,6 +2,8 @@ module Helpers.GetterSetters exposing
     ( cloudConfigLookup
     , flavorLookup
     , getExternalNetwork
+    , getFloatingIpServer
+    , getPublicEndpointFromService
     , getServerExouserPassword
     , getServerFloatingIp
     , getServersWithVolAttached
@@ -134,6 +136,22 @@ getServerFloatingIp ipAddresses =
     List.filter isFloating ipAddresses
         |> List.head
         |> Maybe.map .address
+
+
+getFloatingIpServer : Project -> OSTypes.IpAddressValue -> Maybe Server
+getFloatingIpServer project ipAddressValue =
+    let
+        serverFilter : Server -> Bool
+        serverFilter server =
+            getServerFloatingIp server.osProps.details.ipAddresses
+                |> Maybe.map
+                    (\floatingIp -> floatingIp == ipAddressValue)
+                |> Maybe.withDefault False
+    in
+    project.servers
+        |> RDPP.withDefault []
+        |> List.filter serverFilter
+        |> List.head
 
 
 getServerExouserPassword : OSTypes.ServerDetails -> Maybe String

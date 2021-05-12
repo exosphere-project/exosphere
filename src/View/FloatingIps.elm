@@ -2,6 +2,7 @@ module View.FloatingIps exposing (floatingIps)
 
 import Element exposing (Element)
 import Element.Font as Font
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -90,6 +91,30 @@ renderFloatingIpCard context project viewParams toMsg ip =
                 (VH.exoColumnAttributes ++ [ Element.alignRight ])
                 [ actionButtons context project toMsg viewParams ip
                 ]
+
+        subtitle =
+            case GetterSetters.getFloatingIpServer project ip.address of
+                Just server ->
+                    Element.text <|
+                        String.join " "
+                            [ "Assigned to"
+                            , context.localization.virtualComputer
+                            , server.osProps.name
+                            ]
+
+                Nothing ->
+                    case ip.status of
+                        Just OSTypes.IpAddressActive ->
+                            Element.text "Active"
+
+                        Just OSTypes.IpAddressDown ->
+                            Element.text "Unassigned"
+
+                        Just OSTypes.IpAddressError ->
+                            Element.text "Status: Error"
+
+                        Nothing ->
+                            Element.none
     in
     Style.Widgets.Card.exoCard
         context.palette
@@ -98,7 +123,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
             [ Font.family [ Font.monospace ] ]
             ip.address
         )
-        Element.none
+        subtitle
         cardBody
 
 

@@ -3,6 +3,7 @@ module Rest.Neutron exposing
     , decodeFloatingIpCreation
     , decodeNetworks
     , decodePorts
+    , ipAddressStatusDecoder
     , networkDecoder
     , portDecoder
     , receiveCreateExoSecurityGroupAndRequestCreateRules
@@ -584,10 +585,30 @@ decodeFloatingIps =
 
 floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
 floatingIpDecoder =
-    Decode.map3 OSTypes.IpAddress
+    Decode.map4 OSTypes.IpAddress
         (Decode.field "id" Decode.string |> Decode.map (\i -> Just i))
         (Decode.field "floating_ip_address" Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
+        (Decode.field "status" Decode.string
+            |> Decode.andThen ipAddressStatusDecoder
+            |> Decode.map (\s -> Just s)
+        )
+
+
+ipAddressStatusDecoder : String -> Decode.Decoder OSTypes.IpAddressStatus
+ipAddressStatusDecoder status =
+    case status of
+        "ACTIVE" ->
+            Decode.succeed OSTypes.IpAddressActive
+
+        "DOWN" ->
+            Decode.succeed OSTypes.IpAddressDown
+
+        "ERROR" ->
+            Decode.succeed OSTypes.IpAddressError
+
+        _ ->
+            Decode.fail "unrecognised IP address type"
 
 
 decodePorts : Decode.Decoder (List OSTypes.Port)
@@ -606,10 +627,14 @@ portDecoder =
 
 decodeFloatingIpCreation : Decode.Decoder OSTypes.IpAddress
 decodeFloatingIpCreation =
-    Decode.map3 OSTypes.IpAddress
+    Decode.map4 OSTypes.IpAddress
         (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
+        (Decode.field "status" Decode.string
+            |> Decode.andThen ipAddressStatusDecoder
+            |> Decode.map (\s -> Just s)
+        )
 
 
 decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)
