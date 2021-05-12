@@ -21,6 +21,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.IconButton
 import Time
 import Types.Interaction as ITypes
 import Types.Types
@@ -1103,25 +1104,13 @@ serverVolumes context project server =
         _ ->
             let
                 volDetailsButton v =
-                    Input.button
-                        [ Border.width 1
-                        , Border.rounded 6
-                        , Border.color <| SH.toElementColor context.palette.muted
-                        , Element.padding 3
-                        ]
-                        { onPress =
-                            Just
-                                (ProjectMsg
-                                    project.auth.project.uuid
-                                    (SetProjectView <| VolumeDetail v.uuid [])
-                                )
-                        , label =
-                            FeatherIcons.chevronRight
-                                |> FeatherIcons.withSize 14
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                                |> Element.el []
-                        }
+                    Style.Widgets.IconButton.goToButton context.palette
+                        (Just
+                            (ProjectMsg
+                                project.auth.project.uuid
+                                (SetProjectView <| VolumeDetail v.uuid [])
+                            )
+                        )
 
                 volumeRow v =
                     let
