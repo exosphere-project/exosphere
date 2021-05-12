@@ -6,6 +6,7 @@ module Helpers.GetterSetters exposing
     , getPublicEndpointFromService
     , getServerExouserPassword
     , getServerFloatingIp
+    , getServerPort
     , getServersWithVolAttached
     , getServicePublicUrl
     , getVolsAttachedToServer
@@ -16,6 +17,7 @@ module Helpers.GetterSetters exposing
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetNetworksLoading
+    , projectSetPortsLoading
     , projectSetServerLoading
     , projectSetServersLoading
     , projectUpdateKeypair
@@ -125,6 +127,13 @@ getExternalNetwork project =
 
         RDPP.DontHave ->
             Nothing
+
+
+getServerPort : Project -> Server -> Maybe OSTypes.Port
+getServerPort project server =
+    RDPP.withDefault [] project.ports
+        |> List.filter (\port_ -> port_.deviceUuid == server.osProps.uuid)
+        |> List.head
 
 
 getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
@@ -327,6 +336,11 @@ projectSetServerLoading project serverUuid =
 projectSetNetworksLoading : Time.Posix -> Project -> Project
 projectSetNetworksLoading time project =
     { project | networks = RDPP.setLoading project.networks time }
+
+
+projectSetPortsLoading : Time.Posix -> Project -> Project
+projectSetPortsLoading time project =
+    { project | ports = RDPP.setLoading project.ports time }
 
 
 projectSetAutoAllocatedNetworkUuidLoading : Time.Posix -> Project -> Project

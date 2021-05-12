@@ -3,6 +3,7 @@ module Rest.ApiModelHelpers exposing
     , requestComputeQuota
     , requestFloatingIps
     , requestNetworks
+    , requestPorts
     , requestServer
     , requestServers
     , requestVolumeQuota
@@ -116,6 +117,19 @@ requestFloatingIps projectUuid model =
               }
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestFloatingIps project
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+requestPorts : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+requestPorts projectUuid model =
+    case GetterSetters.projectLookup model projectUuid of
+        Just project ->
+            ( GetterSetters.projectSetPortsLoading model.clientCurrentTime project
+                |> GetterSetters.modelUpdateProject model
+            , Rest.Neutron.requestPorts project
             )
 
         Nothing ->

@@ -242,6 +242,7 @@ stepServerRequestFloatingIp _ project server =
                             == Requestable
                        )
             then
+                -- TODO use GetterSetters.getServerPort
                 RDPP.withDefault [] project.ports
                     |> List.filter (\port_ -> port_.deviceUuid == server.osProps.uuid)
                     |> List.head

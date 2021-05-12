@@ -203,6 +203,9 @@ projectViewConstructorParsers =
         (ListFloatingIps Defaults.floatingIpListViewParams)
         (s "floatingips")
     , map
+        (AssignFloatingIp Defaults.assignFloatingIpViewParams)
+        (s "assignfloatingip")
+    , map
         (ListKeypairs Defaults.keypairListViewParams)
         (s "keypairs")
     , map

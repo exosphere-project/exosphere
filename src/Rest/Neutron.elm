@@ -1,6 +1,6 @@
 module Rest.Neutron exposing
     ( addFloatingIpInServerDetails
-    , decodeFloatingIpCreation
+    , decodeFloatingIp
     , decodeNetworks
     , decodePorts
     , ipAddressStatusDecoder
@@ -12,6 +12,7 @@ module Rest.Neutron exposing
     , receiveFloatingIps
     , receiveNetworks
     , receiveSecurityGroupsAndEnsureExoGroup
+    , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
@@ -20,6 +21,7 @@ module Rest.Neutron exposing
     , requestNetworks
     , requestPorts
     , requestSecurityGroups
+    , requestUnassignFloatingIp
     )
 
 import Helpers.GetterSetters as GetterSetters
@@ -202,7 +204,7 @@ requestCreateFloatingIp project network port_ server =
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
                     resultToMsg_
-                    decodeFloatingIpCreation
+                    decodeFloatingIp
                 )
     in
     requestCmd
@@ -235,6 +237,90 @@ requestDeleteFloatingIp project uuid =
         (expectStringWithErrorBody
             resultToMsg_
         )
+
+
+requestAssignFloatingIp : Project -> OSTypes.Port -> OSTypes.IpAddressUuid -> Cmd Msg
+requestAssignFloatingIp project port_ floatingIpUuid =
+    let
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "port_id", Encode.string port_.uuid )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("Assign floating IP address " ++ floatingIpUuid ++ "to port " ++ port_.uuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\ip ->
+                    ProjectMsg
+                        project.auth.project.uuid
+                        (ReceiveAssignFloatingIp ip)
+                )
+
+        requestCmd =
+            openstackCredentialedRequest
+                project
+                Put
+                Nothing
+                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+                (Http.jsonBody requestBody)
+                (expectJsonWithErrorBody
+                    resultToMsg_
+                    decodeFloatingIp
+                )
+    in
+    requestCmd
+
+
+requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
+requestUnassignFloatingIp project floatingIpUuid =
+    let
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "port_id", Encode.null )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("Unassign floating IP address " ++ floatingIpUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\ip ->
+                    ProjectMsg
+                        project.auth.project.uuid
+                        (ReceiveUnassignFloatingIp ip)
+                )
+
+        requestCmd =
+            openstackCredentialedRequest
+                project
+                Put
+                Nothing
+                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+                (Http.jsonBody requestBody)
+                (expectJsonWithErrorBody
+                    resultToMsg_
+                    decodeFloatingIp
+                )
+    in
+    requestCmd
 
 
 requestSecurityGroups : Project -> Cmd Msg
@@ -625,8 +711,8 @@ portDecoder =
         (Decode.field "status" Decode.string)
 
 
-decodeFloatingIpCreation : Decode.Decoder OSTypes.IpAddress
-decodeFloatingIpCreation =
+decodeFloatingIp : Decode.Decoder OSTypes.IpAddress
+decodeFloatingIp =
     Decode.map4 OSTypes.IpAddress
         (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)

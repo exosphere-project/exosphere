@@ -707,6 +707,12 @@ processProjectSpecificMsg model project msg =
         RequestDeleteFloatingIp floatingIpAddress ->
             ( model, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
 
+        RequestAssignFloatingIp port_ floatingIpUuid ->
+            ( model, Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid )
+
+        RequestUnassignFloatingIp floatingIpUuid ->
+            ( model, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
 
@@ -1031,6 +1037,12 @@ processProjectSpecificMsg model project msg =
 
         ReceiveDeleteFloatingIp uuid ->
             Rest.Neutron.receiveDeleteFloatingIp model project uuid
+
+        ReceiveAssignFloatingIp floatingIp ->
+            processNewFloatingIp model project floatingIp
+
+        ReceiveUnassignFloatingIp floatingIp ->
+            processNewFloatingIp model project floatingIp
 
         ReceiveSecurityGroups groups ->
             Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup model project groups
@@ -1620,6 +1632,23 @@ processServerSpecificMsg model project server serverMsgConstructor =
 
                         Ok _ ->
                             ( newModel, exoSetupStatusMetadataCmd )
+
+
+processNewFloatingIp : Model -> Project -> OSTypes.IpAddress -> ( Model, Cmd Msg )
+processNewFloatingIp model project floatingIp =
+    let
+        otherIps =
+            project.floatingIps
+                |> RemoteData.withDefault []
+                |> List.filter (\i -> i.uuid /= floatingIp.uuid)
+
+        newIps =
+            floatingIp :: otherIps
+
+        newProject =
+            { project | floatingIps = RemoteData.Success newIps }
+    in
+    ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
 
 
 createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )

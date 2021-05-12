@@ -1,4 +1,4 @@
-module View.FloatingIps exposing (floatingIps)
+module View.FloatingIps exposing (assignFloatingIp, floatingIps)
 
 import Element
 import Element.Font as Font
@@ -13,7 +13,15 @@ import Style.Widgets.Card
 import Style.Widgets.CopyableText
 import Style.Widgets.IconButton
 import Types.Defaults as Defaults
-import Types.Types exposing (FloatingIpListViewParams, Msg(..), Project, ProjectSpecificMsgConstructor(..), ProjectViewConstructor(..))
+import Types.Types
+    exposing
+        ( AssignFloatingIpViewParams
+        , FloatingIpListViewParams
+        , Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , ProjectViewConstructor(..)
+        )
 import View.Helpers as VH
 import View.QuotaUsage
 import View.Types
@@ -160,6 +168,30 @@ renderFloatingIpCard context project viewParams toMsg ip =
 actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.IpAddress -> Element.Element Msg
 actionButtons context project toMsg viewParams ip =
     let
+        assignUnassignButton =
+            let
+                ( text, onPress ) =
+                    case ( GetterSetters.getFloatingIpServer project ip.address, ip.uuid ) of
+                        ( Nothing, Just ipUuid ) ->
+                            -- TODO take user to floating IP assignment view
+                            ( "Assign", Nothing )
+
+                        ( Nothing, Nothing ) ->
+                            ( "Assign", Nothing )
+
+                        ( Just _, Just ipUuid ) ->
+                            ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipUuid )
+
+                        ( Just _, Nothing ) ->
+                            ( "Unassign", Nothing )
+            in
+            Widget.textButton
+                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                { text = text
+                , onPress =
+                    onPress
+                }
+
         confirmationNeeded =
             List.member ip.address viewParams.deleteConfirmations
 
@@ -210,7 +242,7 @@ actionButtons context project toMsg viewParams ip =
     in
     Element.row
         [ Element.width Element.fill ]
-        [ Element.el [ Element.alignRight ] deleteButton ]
+        [ Element.row [ Element.alignRight, Element.spacing 10 ] [ assignUnassignButton, deleteButton ] ]
 
 
 
@@ -308,3 +340,9 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
                 [ Element.centerX ]
                 changeButton
             ]
+
+
+assignFloatingIp : View.Types.Context -> Project -> AssignFloatingIpViewParams -> Element.Element Msg
+assignFloatingIp context project viewParams =
+    -- TODO
+    Element.none

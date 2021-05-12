@@ -110,6 +110,12 @@ project model context p viewParams viewConstructor =
                                     ListFloatingIps newParams
                         )
 
+                AssignFloatingIp assignFloatingIpViewParams ->
+                    View.FloatingIps.assignFloatingIp
+                        context
+                        p
+                        assignFloatingIpViewParams
+
                 ListKeypairs keypairListViewParams ->
                     View.Keypairs.listKeypairs context
                         True
