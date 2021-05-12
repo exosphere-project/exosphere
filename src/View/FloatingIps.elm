@@ -1,6 +1,6 @@
 module View.FloatingIps exposing (floatingIps)
 
-import Element exposing (Element)
+import Element
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
