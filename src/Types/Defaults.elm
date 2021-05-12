@@ -140,7 +140,7 @@ volumeListViewParams =
 
 floatingIpListViewParams : Types.FloatingIpListViewParams
 floatingIpListViewParams =
-    Types.FloatingIpListViewParams []
+    Types.FloatingIpListViewParams [] True
 
 
 keypairListViewParams : Types.KeypairListViewParams

@@ -516,6 +516,7 @@ type alias DeleteVolumeConfirmation =
 
 type alias FloatingIpListViewParams =
     { deleteConfirmations : List OSTypes.IpAddressUuid
+    , hideAssignedIps : Bool
     }
 
 
