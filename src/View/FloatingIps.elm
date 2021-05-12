@@ -86,13 +86,10 @@ renderFloatingIpCard :
     -> Element.Element Msg
 renderFloatingIpCard context project viewParams toMsg ip =
     let
-        cardBody =
-            Element.column
-                (VH.exoColumnAttributes ++ [ Element.alignRight ])
-                [ actionButtons context project toMsg viewParams ip
-                ]
-
         subtitle =
+            actionButtons context project toMsg viewParams ip
+
+        cardBody =
             case GetterSetters.getFloatingIpServer project ip.address of
                 Just server ->
                     Element.text <|
