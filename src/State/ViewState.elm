@@ -330,6 +330,7 @@ setProjectView project projectViewConstructor model =
                             ( model, Ports.instantiateClipboardJs () )
                                 |> Helpers.pipelineCmd
                                     (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
 
                 ListKeypairs _ ->
                     let
