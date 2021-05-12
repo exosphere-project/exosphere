@@ -410,6 +410,7 @@ type alias ComputeQuota =
     { cores : QuotaItemDetail
     , instances : QuotaItemDetail
     , ram : QuotaItemDetail
+    , floatingIps : QuotaItemDetail
     }
 
 
