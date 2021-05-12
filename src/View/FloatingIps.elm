@@ -60,7 +60,7 @@ floatingIps context showHeading project viewParams toMsg =
         [ if showHeading then
             Element.el VH.heading2 <|
                 Element.text
-                    (context.localization.pkiPublicKeyForSsh
+                    (context.localization.floatingIpAddress
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
