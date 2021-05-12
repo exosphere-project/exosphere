@@ -1,4 +1,8 @@
-module View.QuotaUsage exposing (computeQuotaDetails, volumeQuotaDetails)
+module View.QuotaUsage exposing
+    ( computeQuotaDetails
+    , floatingIpQuotaDetails
+    , volumeQuotaDetails
+    )
 
 import Element
 import Element.Background as Background
@@ -88,6 +92,48 @@ computeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (computeInfoItems context) ]
+
+
+floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element Msg
+floatingIpInfoItems context floatingIpsused quota =
+    {-
+       Compute quota reports incorrect number of floating IPs used (0), so we are overriding it with a count of the floating IPs returned by Neutron.
+
+       Reference: https://access.redhat.com/solutions/3602741
+
+       > openstack limits command report zero number of floating ip(s) used
+
+       > This is not a bug but rather expected out put as the command "openstack limits show" is a part of nova CLI which was earlier used to check the floating ip count of nova-network. That's why it fetch value from nova-network DB and not from actual Neutron DB.For checking floating ip statistics used by neutron then please execute the below command.Raw
+
+       > $openstack floating ip list --project marvel_test -f json | jq  --raw-output '.[] | select(.["Fixed IP Address"] == null ) | .["Floating IP Address"]'
+    -}
+    let
+        incorrectIpsQuota =
+            quota.floatingIps
+
+        correctedIpsQuota =
+            { incorrectIpsQuota | inUse = floatingIpsused }
+    in
+    Element.wrappedRow
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        [ infoItem context
+            correctedIpsQuota
+            ( String.join " "
+                [ context.localization.floatingIpAddress
+                    |> Helpers.String.pluralize
+                    |> Helpers.String.toTitleCase
+                , "used:"
+                ]
+            , "total"
+            )
+        ]
+
+
+floatingIpQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Int -> Element.Element Msg
+floatingIpQuotaDetails context quota floatingIpsUsed =
+    Element.row
+        (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+        [ quotaDetail context quota (floatingIpInfoItems context floatingIpsUsed) ]
 
 
 volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element Msg
