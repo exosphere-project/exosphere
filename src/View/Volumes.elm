@@ -61,7 +61,7 @@ volumes context showHeading project viewParams toMsg =
                 )
     in
     Element.column
-        [ Element.width Element.fill ]
+        [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
             Element.el VH.heading2
                 (Element.text
