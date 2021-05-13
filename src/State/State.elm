@@ -1039,11 +1039,23 @@ processProjectSpecificMsg model project msg =
             Rest.Neutron.receiveDeleteFloatingIp model project uuid
 
         ReceiveAssignFloatingIp floatingIp ->
-            -- TODO take user to a different view, perhaps view of that server? Maybe say "confirmed it worked"?
-            processNewFloatingIp model project floatingIp
+            let
+                newProject =
+                    processNewFloatingIp project floatingIp
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ViewStateHelpers.setProjectView newProject
+                (ListFloatingIps Defaults.floatingIpListViewParams)
+                newModel
 
         ReceiveUnassignFloatingIp floatingIp ->
-            processNewFloatingIp model project floatingIp
+            let
+                newProject =
+                    processNewFloatingIp project floatingIp
+            in
+            ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
 
         ReceiveSecurityGroups groups ->
             Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup model project groups
@@ -1635,8 +1647,8 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             ( newModel, exoSetupStatusMetadataCmd )
 
 
-processNewFloatingIp : Model -> Project -> OSTypes.IpAddress -> ( Model, Cmd Msg )
-processNewFloatingIp model project floatingIp =
+processNewFloatingIp : Project -> OSTypes.IpAddress -> Project
+processNewFloatingIp project floatingIp =
     let
         otherIps =
             project.floatingIps
@@ -1645,11 +1657,8 @@ processNewFloatingIp model project floatingIp =
 
         newIps =
             floatingIp :: otherIps
-
-        newProject =
-            { project | floatingIps = RemoteData.Success newIps }
     in
-    ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+    { project | floatingIps = RemoteData.Success newIps }
 
 
 createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
