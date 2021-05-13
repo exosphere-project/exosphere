@@ -2,8 +2,10 @@ module View.FloatingIps exposing (assignFloatingIp, floatingIps)
 
 import Element
 import Element.Font as Font
+import Element.Input as Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
+import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
@@ -173,8 +175,12 @@ actionButtons context project toMsg viewParams ip =
                 ( text, onPress ) =
                     case ( GetterSetters.getFloatingIpServer project ip.address, ip.uuid ) of
                         ( Nothing, Just ipUuid ) ->
-                            -- TODO take user to floating IP assignment view
-                            ( "Assign", Nothing )
+                            ( "Assign"
+                            , Just <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    SetProjectView <|
+                                        AssignFloatingIp (AssignFloatingIpViewParams (Just ipUuid) Nothing)
+                            )
 
                         ( Nothing, Nothing ) ->
                             ( "Assign", Nothing )
@@ -344,5 +350,165 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
 
 assignFloatingIp : View.Types.Context -> Project -> AssignFloatingIpViewParams -> Element.Element Msg
 assignFloatingIp context project viewParams =
-    -- TODO
-    Element.none
+    let
+        serverChoices =
+            project.servers
+                |> RDPP.withDefault []
+                |> List.filter
+                    (\s ->
+                        not <|
+                            List.member s.osProps.details.openstackStatus
+                                [ OSTypes.ServerSoftDeleted
+                                , OSTypes.ServerError
+                                , OSTypes.ServerBuilding
+                                , OSTypes.ServerDeleted
+                                ]
+                    )
+                |> List.map
+                    (\s ->
+                        Input.option s.osProps.uuid
+                            (Element.text <| VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer)
+                    )
+
+        ipChoices =
+            project.floatingIps
+                |> RemoteData.withDefault []
+                |> List.filter (\ip -> ip.status == Just OSTypes.IpAddressDown)
+                |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip.address == Nothing)
+                |> List.filterMap
+                    (\ip ->
+                        case ip.uuid of
+                            Just uuid ->
+                                Just ( uuid, ip.address )
+
+                            Nothing ->
+                                Nothing
+                    )
+                |> List.map
+                    (\uuidAddressTuple ->
+                        Input.option (Tuple.first uuidAddressTuple)
+                            (Element.el [ Font.family [ Font.monospace ] ] <|
+                                Element.text (Tuple.second uuidAddressTuple)
+                            )
+                    )
+    in
+    Element.column VH.exoColumnAttributes
+        [ Element.el VH.heading2 <|
+            Element.text <|
+                String.join " "
+                    [ "Assign"
+                    , context.localization.floatingIpAddress
+                        |> Helpers.String.toTitleCase
+                    ]
+        , Input.radio []
+            { label =
+                Input.labelAbove
+                    [ Element.paddingXY 0 12 ]
+                    (Element.text <|
+                        String.join " "
+                            [ "Select"
+                            , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                            , context.localization.virtualComputer
+                            ]
+                    )
+            , onChange =
+                \new ->
+                    ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | serverUuid = Just new }))
+            , options = serverChoices
+            , selected = viewParams.serverUuid
+            }
+        , Input.radio []
+            -- TODO if no floating IPs in list, suggest user create a floating IP and provide link to that view (once we build it)
+            { label =
+                Input.labelAbove [ Element.paddingXY 0 12 ]
+                    (Element.text
+                        (String.join " "
+                            [ "Select"
+                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+                            , context.localization.floatingIpAddress
+                            ]
+                        )
+                    )
+            , onChange =
+                \new ->
+                    ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | ipUuid = Just new }))
+            , options = ipChoices
+            , selected = viewParams.ipUuid
+            }
+        , let
+            params =
+                case ( viewParams.serverUuid, viewParams.ipUuid ) of
+                    ( Just serverUuid, Just ipUuid ) ->
+                        case ( GetterSetters.serverLookup project serverUuid, GetterSetters.floatingIpLookup project ipUuid ) of
+                            ( Just server, Just floatingIp ) ->
+                                let
+                                    ipAssignedToServer =
+                                        case GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses of
+                                            Just serverFloatingIp ->
+                                                serverFloatingIp == floatingIp.address
+
+                                            _ ->
+                                                False
+
+                                    maybePort =
+                                        GetterSetters.getServerPort project server
+                                in
+                                case ( ipAssignedToServer, maybePort ) of
+                                    ( True, _ ) ->
+                                        { onPress = Nothing
+                                        , warnText =
+                                            Just <|
+                                                String.join " "
+                                                    [ "This"
+                                                    , context.localization.floatingIpAddress
+                                                    , "is already assigned to this"
+                                                    , context.localization.virtualComputer
+                                                    ]
+                                        }
+
+                                    ( _, Nothing ) ->
+                                        { onPress = Nothing
+                                        , warnText = Just <| "Error: cannot resolve port"
+                                        }
+
+                                    ( False, Just port_ ) ->
+                                        -- Conditions are perfect
+                                        { onPress =
+                                            Just <|
+                                                ProjectMsg project.auth.project.uuid (RequestAssignFloatingIp port_ ipUuid)
+                                        , warnText = Nothing
+                                        }
+
+                            _ ->
+                                {- Either server or floating IP cannot be resolved in the model -}
+                                { onPress = Nothing
+                                , warnText =
+                                    Just <|
+                                        String.join " "
+                                            [ "Error: cannot resolve", context.localization.virtualComputer, "or", context.localization.floatingIpAddress ]
+                                }
+
+                    _ ->
+                        {- User hasn't selected a server or floating IP yet so we keep the button disabled but don't yell at them -}
+                        { onPress = Nothing
+                        , warnText = Nothing
+                        }
+
+            button =
+                Element.el [ Element.alignRight ] <|
+                    Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        { text = "Assign"
+                        , onPress = params.onPress
+                        }
+          in
+          Element.row [ Element.width Element.fill ]
+            [ case params.warnText of
+                Just warnText ->
+                    Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
+
+                Nothing ->
+                    Element.none
+            , button
+            ]
+        ]

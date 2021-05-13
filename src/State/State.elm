@@ -1039,6 +1039,7 @@ processProjectSpecificMsg model project msg =
             Rest.Neutron.receiveDeleteFloatingIp model project uuid
 
         ReceiveAssignFloatingIp floatingIp ->
+            -- TODO take user to a different view, perhaps view of that server? Maybe say "confirmed it worked"?
             processNewFloatingIp model project floatingIp
 
         ReceiveUnassignFloatingIp floatingIp ->

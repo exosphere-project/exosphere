@@ -1,6 +1,7 @@
 module Helpers.GetterSetters exposing
     ( cloudConfigLookup
     , flavorLookup
+    , floatingIpLookup
     , getExternalNetwork
     , getFloatingIpServer
     , getPublicEndpointFromService
@@ -96,6 +97,14 @@ providerLookup model keystoneUrl =
         |> List.head
 
 
+floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.IpAddress
+floatingIpLookup project ipUuid =
+    List.filter
+        (\i -> i.uuid == Just ipUuid)
+        (RemoteData.withDefault [] project.floatingIps)
+        |> List.head
+
+
 
 -- Slightly smarter getters
 
@@ -136,7 +145,7 @@ getServerPort project server =
         |> List.head
 
 
-getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
+getServerFloatingIp : List OSTypes.IpAddress -> Maybe OSTypes.IpAddressValue
 getServerFloatingIp ipAddresses =
     let
         isFloating ipAddress =
