@@ -330,7 +330,10 @@ setProjectView project projectViewConstructor model =
                             ( model, Ports.instantiateClipboardJs () )
                                 |> Helpers.pipelineCmd
                                     (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestServers project.auth.project.uuid)
 
                 AssignFloatingIp _ ->
                     case prevProjectViewConstructor of
