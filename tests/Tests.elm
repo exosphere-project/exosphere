@@ -118,6 +118,10 @@ computeQuotasAndLimitsSuite =
                             { inUse = 1024
                             , limit = Just 999999
                             }
+                        , floatingIps =
+                            { inUse = 0
+                            , limit = Just 10
+                            }
                         }
                     )
         ]
