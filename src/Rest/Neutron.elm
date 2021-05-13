@@ -717,7 +717,7 @@ decodeFloatingIp =
         (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
         (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
-        (Decode.field "status" Decode.string
+        (Decode.at [ "floatingip", "status" ] Decode.string
             |> Decode.andThen ipAddressStatusDecoder
             |> Decode.map (\s -> Just s)
         )
