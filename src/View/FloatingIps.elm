@@ -197,8 +197,7 @@ actionButtons context project toMsg viewParams ip =
             Widget.textButton
                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                 { text = text
-                , onPress =
-                    onPress
+                , onPress = onPress
                 }
 
         confirmationNeeded =

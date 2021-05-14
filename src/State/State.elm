@@ -1039,6 +1039,7 @@ processProjectSpecificMsg model project msg =
             Rest.Neutron.receiveDeleteFloatingIp model project uuid
 
         ReceiveAssignFloatingIp floatingIp ->
+            -- TODO update servers so that new assignment is reflected in the UI
             let
                 newProject =
                     processNewFloatingIp project floatingIp
@@ -1051,6 +1052,7 @@ processProjectSpecificMsg model project msg =
                 newModel
 
         ReceiveUnassignFloatingIp floatingIp ->
+            -- TODO update servers so that unassignment is reflected in the UI
             let
                 newProject =
                     processNewFloatingIp project floatingIp
