@@ -371,18 +371,14 @@ assignFloatingIp context project viewParams =
                     )
 
         ipChoices =
+            -- Show only un-assigned IP addresses for which we have a UUID
             project.floatingIps
                 |> RemoteData.withDefault []
                 |> List.filter (\ip -> ip.status == Just OSTypes.IpAddressDown)
                 |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip.address == Nothing)
                 |> List.filterMap
                     (\ip ->
-                        case ip.uuid of
-                            Just uuid ->
-                                Just ( uuid, ip.address )
-
-                            Nothing ->
-                                Nothing
+                        ip.uuid |> Maybe.map (\uuid -> ( uuid, ip.address ))
                     )
                 |> List.map
                     (\uuidAddressTuple ->
