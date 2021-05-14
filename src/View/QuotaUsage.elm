@@ -95,7 +95,7 @@ computeQuotaDetails context quota =
 
 
 floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element Msg
-floatingIpInfoItems context floatingIpsused quota =
+floatingIpInfoItems context floatingIpsUsed quota =
     {-
        Compute quota reports incorrect number of floating IPs used (0), so we are overriding it with a count of the floating IPs returned by Neutron.
 
@@ -112,7 +112,7 @@ floatingIpInfoItems context floatingIpsused quota =
             quota.floatingIps
 
         correctedIpsQuota =
-            { incorrectIpsQuota | inUse = floatingIpsused }
+            { incorrectIpsQuota | inUse = floatingIpsUsed }
     in
     Element.wrappedRow
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
