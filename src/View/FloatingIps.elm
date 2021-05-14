@@ -364,6 +364,12 @@ assignFloatingIp context project viewParams =
                                 , OSTypes.ServerDeleted
                                 ]
                     )
+                |> List.filter
+                    (\s ->
+                        s.osProps.details.ipAddresses
+                            |> List.filter (\ip -> ip.openstackType == OSTypes.IpAddressFloating)
+                            |> List.isEmpty
+                    )
                 |> List.map
                     (\s ->
                         Input.option s.osProps.uuid
