@@ -669,6 +669,11 @@ decodeFloatingIps =
     Decode.field "floatingips" (Decode.list floatingIpDecoder)
 
 
+decodeFloatingIp : Decode.Decoder OSTypes.IpAddress
+decodeFloatingIp =
+    Decode.field "floatingip" floatingIpDecoder
+
+
 floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
 floatingIpDecoder =
     Decode.map4 OSTypes.IpAddress
@@ -709,18 +714,6 @@ portDecoder =
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
-
-
-decodeFloatingIp : Decode.Decoder OSTypes.IpAddress
-decodeFloatingIp =
-    Decode.map4 OSTypes.IpAddress
-        (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
-        (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
-        (Decode.succeed OSTypes.IpAddressFloating)
-        (Decode.at [ "floatingip", "status" ] Decode.string
-            |> Decode.andThen ipAddressStatusDecoder
-            |> Decode.map (\s -> Just s)
-        )
 
 
 decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)
