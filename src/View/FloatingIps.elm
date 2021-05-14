@@ -37,6 +37,9 @@ floatingIps context showHeading project viewParams toMsg =
         renderFloatingIps : List OSTypes.IpAddress -> Element.Element Msg
         renderFloatingIps ips =
             let
+                ipsSorted =
+                    List.sortBy .address ips
+
                 ipAssignedToServersWeKnowAbout ip =
                     case GetterSetters.getFloatingIpServer project ip.address of
                         Just _ ->
@@ -46,9 +49,9 @@ floatingIps context showHeading project viewParams toMsg =
                             False
 
                 ( ipsAssignedToServers, ipsNotAssignedToServers ) =
-                    List.partition ipAssignedToServersWeKnowAbout ips
+                    List.partition ipAssignedToServersWeKnowAbout ipsSorted
             in
-            if List.isEmpty ips then
+            if List.isEmpty ipsSorted then
                 Element.column
                     (VH.exoColumnAttributes ++ [ Element.paddingXY 10 0 ])
                     [ Element.text <|
@@ -380,6 +383,7 @@ assignFloatingIp context project viewParams =
             -- Show only un-assigned IP addresses for which we have a UUID
             project.floatingIps
                 |> RemoteData.withDefault []
+                |> List.sortBy .address
                 |> List.filter (\ip -> ip.status == Just OSTypes.IpAddressDown)
                 |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip.address == Nothing)
                 |> List.filterMap
