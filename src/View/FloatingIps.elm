@@ -397,6 +397,20 @@ assignFloatingIp context project viewParams =
                                 Element.text (Tuple.second uuidAddressTuple)
                             )
                     )
+
+        selectIpText =
+            String.join " "
+                [ "Select"
+                , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
+                , context.localization.floatingIpAddress
+                ]
+
+        selectServerText =
+            String.join " "
+                [ "Select"
+                , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                , context.localization.virtualComputer
+                ]
     in
     Element.column VH.exoColumnAttributes
         [ Element.el VH.heading2 <|
@@ -406,41 +420,50 @@ assignFloatingIp context project viewParams =
                     , context.localization.floatingIpAddress
                         |> Helpers.String.toTitleCase
                     ]
-        , Input.radio []
-            { label =
-                Input.labelAbove
-                    [ Element.paddingXY 0 12 ]
-                    (Element.text <|
-                        String.join " "
-                            [ "Select"
-                            , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                            , context.localization.virtualComputer
-                            ]
-                    )
-            , onChange =
-                \new ->
-                    ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | serverUuid = Just new }))
-            , options = serverChoices
-            , selected = viewParams.serverUuid
-            }
-        , Input.radio []
-            -- TODO if no floating IPs in list, suggest user create a floating IP and provide link to that view (once we build it)
-            { label =
-                Input.labelAbove [ Element.paddingXY 0 12 ]
-                    (Element.text
-                        (String.join " "
-                            [ "Select"
-                            , Helpers.String.indefiniteArticle context.localization.floatingIpAddress
-                            , context.localization.floatingIpAddress
-                            ]
-                        )
-                    )
-            , onChange =
-                \new ->
-                    ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | ipUuid = Just new }))
-            , options = ipChoices
-            , selected = viewParams.ipUuid
-            }
+        , Element.el [ Font.bold ] <| Element.text selectServerText
+        , if List.isEmpty serverChoices then
+            Element.text <|
+                String.join " "
+                    [ "You don't have any"
+                    , context.localization.virtualComputer
+                        |> Helpers.String.pluralize
+                    , "that don't already have a"
+                    , context.localization.floatingIpAddress
+                    , "assigned."
+                    ]
+
+          else
+            Input.radio []
+                { label =
+                    Input.labelHidden selectServerText
+                , onChange =
+                    \new ->
+                        ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | serverUuid = Just new }))
+                , options = serverChoices
+                , selected = viewParams.serverUuid
+                }
+        , Element.el [ Font.bold ] <| Element.text selectIpText
+        , if List.isEmpty ipChoices then
+            -- TODO suggest user create a floating IP and provide link to that view (once we build it)
+            Element.text <|
+                String.concat
+                    [ "You don't have any "
+                    , context.localization.floatingIpAddress
+                        |> Helpers.String.pluralize
+                    , " that aren't already assigned to a "
+                    , context.localization.virtualComputer
+                    , "."
+                    ]
+
+          else
+            Input.radio []
+                { label = Input.labelHidden selectIpText
+                , onChange =
+                    \new ->
+                        ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | ipUuid = Just new }))
+                , options = ipChoices
+                , selected = viewParams.ipUuid
+                }
         , let
             params =
                 case ( viewParams.serverUuid, viewParams.ipUuid ) of
