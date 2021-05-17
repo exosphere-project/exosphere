@@ -56,7 +56,7 @@ The following techniques are intended for cloud operators, advanced users, and f
 
 ### Build and Run Exosphere Locally
 
-If you are building Exosphere for consumption in a web browser, please also see [cloud-cors-proxy.md](docs/cloud-cors-proxy.md).
+If you are building Exosphere for consumption in a web browser, please also see [solving-cors-problem.md](docs/solving-cors-problem.md).
 
 First [install node.js + npm](https://www.npmjs.com/get-npm). (If you use Ubuntu/Debian you may also need to `apt-get install nodejs-legacy`.)
 
@@ -175,27 +175,27 @@ If your community relies on an operating system that we don't currently support,
 #### To host the Exosphere Web Application  
 
 - The Exosphere client-side application can be served as static content from any web server.
-- Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/cloud-cors-proxy.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
+- Exosphere's two supporting proxy servers ([Cloud CORS Proxy](docs/solving-cors-problem.md) and [User Application Proxy](docs/user-app-proxy.md)) require [Nginx](https://nginx.org) configured with browser-accepted TLS (e.g. via [Let's Encrypt](https://letsencrypt.org)). The User Application Proxy requires a wildcard TLS certificate; Let's Encrypt issues these free of charge.
 
 ### Runtime configuration options
 
 These options are primarily intended for cloud operators who wish to offer a customized deployment of Exosphere to their user community. Set these in `config.js`.
 
-| *Option*                  | *Possible Values*          | *Description*                                                       |
-|---------------------------|----------------------------|---------------------------------------------------------------------|
-| showDebugMsgs             | false, true                |                                                                     |
-| cloudCorsProxyUrl         | null, string               | See `docs/cloud-cors-proxy.md`; required to use app in web browser  |
-| clouds                    | list                       | See example below; required for Guacamole support                   |
-| palette                   | null, JSON object          | Pass custom colors to style Exosphere, see example below            |
-| logo                      | null, string               | Path to custom logo to show in top-left corner of app               |
-| favicon                   | null, string               | Path to custom favicon                                              |
-| appTitle                  | null, string               | Title to show in top-left corner of app                             |
-| defaultLoginView          | null, openstack, jetstream | Which login view to display by default                              |
-| aboutAppMarkdown          | null, string (markdown)    | What to show in the "About the app" section of Help/About view      |
-| supportInfoMarkdown       | null, string (markdown)    | What to show when user clicks "Get support" button                  |
-| userSupportEmail          | null, string (markdown)    | Email address to ask users to send problem report                   |
-| openIdConnectLoginConfig  | null, JSON object          | See `docs/federated-login.md` for more info and example JSON        |
-| localization              | null, JSON object          | Pass custom localization strings for the UI, see example below      |
+| *Option*                  | *Possible Values*          | *Description*                                                          |
+|---------------------------|----------------------------|------------------------------------------------------------------------|
+| showDebugMsgs             | false, true                |                                                                        |
+| cloudCorsProxyUrl         | null, string               | See `docs/solving-cors-problem.md`; required to use app in web browser |
+| clouds                    | list                       | See example below; required for Guacamole support                      |
+| palette                   | null, JSON object          | Pass custom colors to style Exosphere, see example below               |
+| logo                      | null, string               | Path to custom logo to show in top-left corner of app                  |
+| favicon                   | null, string               | Path to custom favicon                                                 |
+| appTitle                  | null, string               | Title to show in top-left corner of app                                |
+| defaultLoginView          | null, openstack, jetstream | Which login view to display by default                                 |
+| aboutAppMarkdown          | null, string (markdown)    | What to show in the "About the app" section of Help/About view         |
+| supportInfoMarkdown       | null, string (markdown)    | What to show when user clicks "Get support" button                     |
+| userSupportEmail          | null, string (markdown)    | Email address to ask users to send problem report                      |
+| openIdConnectLoginConfig  | null, JSON object          | See `docs/federated-login.md` for more info and example JSON           |
+| localization              | null, JSON object          | Pass custom localization strings for the UI, see example below         |
 
 #### Example cloud configuration
 

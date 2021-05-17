@@ -2,7 +2,7 @@
 
 var config = {
 // These are configuration values that allow Exosphere to be customized for a specific organization or use case.
-// See README.me for documentation on how to use them.
+// See README.md for documentation on how to use them.
   showDebugMsgs: false,
   cloudCorsProxyUrl: "https://try-dev.exosphere.app/proxy",
   urlPathPrefix: null,
