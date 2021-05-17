@@ -1,10 +1,8 @@
 module View.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
 
 import Element
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.String
@@ -16,6 +14,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.IconButton
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -61,7 +60,7 @@ volumes context showHeading project viewParams toMsg =
                 )
     in
     Element.column
-        [ Element.width Element.fill ]
+        [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
             Element.el VH.heading2
                 (Element.text
@@ -333,25 +332,13 @@ renderAttachment context project attachment =
         [ Element.el [ Font.bold ] <| Element.text "Server:"
         , Element.row [ Element.spacing 5 ]
             [ Element.text (serverName attachment.serverUuid)
-            , Input.button
-                [ Border.width 1
-                , Border.rounded 6
-                , Border.color (SH.toElementColor context.palette.muted)
-                , Element.padding 3
-                ]
-                { onPress =
-                    Just
-                        (ProjectMsg
-                            project.auth.project.uuid
-                            (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
-                        )
-                , label =
-                    FeatherIcons.chevronRight
-                        |> FeatherIcons.withSize 14
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el []
-                }
+            , Style.Widgets.IconButton.goToButton context.palette
+                (Just
+                    (ProjectMsg
+                        project.auth.project.uuid
+                        (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
+                    )
+                )
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
         , Element.text attachment.device

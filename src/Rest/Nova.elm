@@ -1018,12 +1018,13 @@ serverPowerStateDecoder int =
 
 serverIpAddressDecoder : Decode.Decoder OSTypes.IpAddress
 serverIpAddressDecoder =
-    Decode.map3 OSTypes.IpAddress
+    Decode.map4 OSTypes.IpAddress
         (Decode.succeed Nothing)
         (Decode.field "addr" Decode.string)
         (Decode.field "OS-EXT-IPS:type" Decode.string
             |> Decode.andThen ipAddressOpenstackTypeDecoder
         )
+        (Decode.succeed Nothing)
 
 
 ipAddressOpenstackTypeDecoder : String -> Decode.Decoder OSTypes.IpAddressType

@@ -388,6 +388,10 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
         Element.none
 
 
+
+-- TODO factor this out with ipsAssignedToServersExpander in ServerList.elm
+
+
 onlyOwnExpander :
     View.Types.Context
     -> ServerListViewParams

@@ -1,9 +1,13 @@
 module Helpers.GetterSetters exposing
     ( cloudConfigLookup
     , flavorLookup
+    , floatingIpLookup
     , getExternalNetwork
+    , getFloatingIpServer
+    , getPublicEndpointFromService
     , getServerExouserPassword
     , getServerFloatingIp
+    , getServerPort
     , getServersWithVolAttached
     , getServicePublicUrl
     , getVolsAttachedToServer
@@ -14,6 +18,7 @@ module Helpers.GetterSetters exposing
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
     , projectSetNetworksLoading
+    , projectSetPortsLoading
     , projectSetServerLoading
     , projectSetServersLoading
     , projectUpdateKeypair
@@ -92,6 +97,14 @@ providerLookup model keystoneUrl =
         |> List.head
 
 
+floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.IpAddress
+floatingIpLookup project ipUuid =
+    List.filter
+        (\i -> i.uuid == Just ipUuid)
+        (RemoteData.withDefault [] project.floatingIps)
+        |> List.head
+
+
 
 -- Slightly smarter getters
 
@@ -125,7 +138,14 @@ getExternalNetwork project =
             Nothing
 
 
-getServerFloatingIp : List OSTypes.IpAddress -> Maybe String
+getServerPort : Project -> Server -> Maybe OSTypes.Port
+getServerPort project server =
+    RDPP.withDefault [] project.ports
+        |> List.filter (\port_ -> port_.deviceUuid == server.osProps.uuid)
+        |> List.head
+
+
+getServerFloatingIp : List OSTypes.IpAddress -> Maybe OSTypes.IpAddressValue
 getServerFloatingIp ipAddresses =
     let
         isFloating ipAddress =
@@ -134,6 +154,22 @@ getServerFloatingIp ipAddresses =
     List.filter isFloating ipAddresses
         |> List.head
         |> Maybe.map .address
+
+
+getFloatingIpServer : Project -> OSTypes.IpAddressValue -> Maybe Server
+getFloatingIpServer project ipAddressValue =
+    let
+        serverFilter : Server -> Bool
+        serverFilter server =
+            getServerFloatingIp server.osProps.details.ipAddresses
+                |> Maybe.map
+                    (\floatingIp -> floatingIp == ipAddressValue)
+                |> Maybe.withDefault False
+    in
+    project.servers
+        |> RDPP.withDefault []
+        |> List.filter serverFilter
+        |> List.head
 
 
 getServerExouserPassword : OSTypes.ServerDetails -> Maybe String
@@ -309,6 +345,11 @@ projectSetServerLoading project serverUuid =
 projectSetNetworksLoading : Time.Posix -> Project -> Project
 projectSetNetworksLoading time project =
     { project | networks = RDPP.setLoading project.networks time }
+
+
+projectSetPortsLoading : Time.Posix -> Project -> Project
+projectSetPortsLoading time project =
+    { project | ports = RDPP.setLoading project.ports time }
 
 
 projectSetAutoAllocatedNetworkUuidLoading : Time.Posix -> Project -> Project

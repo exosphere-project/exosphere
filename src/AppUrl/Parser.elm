@@ -200,6 +200,12 @@ projectViewConstructorParsers =
         (ListProjectVolumes Defaults.volumeListViewParams)
         (s "volumes")
     , map
+        (ListFloatingIps Defaults.floatingIpListViewParams)
+        (s "floatingips")
+    , map
+        (AssignFloatingIp Defaults.assignFloatingIpViewParams)
+        (s "assignfloatingip")
+    , map
         (ListKeypairs Defaults.keypairListViewParams)
         (s "keypairs")
     , map

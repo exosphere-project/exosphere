@@ -21,11 +21,14 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
+import Style.Widgets.IconButton
 import Time
 import Types.Interaction as ITypes
 import Types.Types
     exposing
-        ( IPInfoLevel(..)
+        ( AssignFloatingIpViewParams
+        , FloatingIpState(..)
+        , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
         , PasswordVisibility(..)
@@ -316,7 +319,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 (renderIpAddresses
                     context
                     project.auth.project.uuid
-                    server.osProps.uuid
+                    server
                     serverDetailViewParams
                     details.ipAddresses
                 )
@@ -998,8 +1001,8 @@ resourceUsageCharts context currentTimeAndZone server =
                                 ]
 
 
-renderIpAddresses : View.Types.Context -> ProjectIdentifier -> OSTypes.ServerUuid -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
-renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresses =
+renderIpAddresses : View.Types.Context -> ProjectIdentifier -> Server -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
+renderIpAddresses context projectId server serverDetailViewParams ipAddresses =
     let
         ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
         ipAddressesOfType ipAddressType =
@@ -1019,13 +1022,46 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
                     )
 
         floatingIpAddressRows =
-            ipAddressesOfType OSTypes.IpAddressFloating
-                |> List.map
-                    (\ipAddress ->
-                        VH.compactKVSubRow
-                            (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                            (copyableText context.palette [] ipAddress.address)
-                    )
+            if List.isEmpty (ipAddressesOfType OSTypes.IpAddressFloating) then
+                if List.member server.exoProps.priorFloatingIpState [ Success, Failed ] then
+                    -- Floating IP creation tasks associated with initial server launch have either finished or failed, and the server doesn't have any, so give user option to assign one
+                    [ Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.floatingIpAddress
+                            , "assigned."
+                            ]
+                    , Widget.textButton
+                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        { text =
+                            String.join " "
+                                [ "Assign a", context.localization.floatingIpAddress ]
+                        , onPress =
+                            Just <|
+                                ProjectMsg projectId <|
+                                    SetProjectView <|
+                                        AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
+                        }
+                    ]
+
+                else
+                    -- Floating IP is not yet created as part of server launch, but it will be.
+                    [ Element.text <|
+                        String.join " "
+                            [ "No"
+                            , context.localization.floatingIpAddress
+                            , "yet, please wait"
+                            ]
+                    ]
+
+            else
+                ipAddressesOfType OSTypes.IpAddressFloating
+                    |> List.map
+                        (\ipAddress ->
+                            VH.compactKVSubRow
+                                (Helpers.String.toTitleCase context.localization.floatingIpAddress)
+                                (copyableText context.palette [] ipAddress.address)
+                        )
 
         ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg
         ipButton label displayLabel ipMsg =
@@ -1043,7 +1079,7 @@ renderIpAddresses context projectId serverUuid serverDetailViewParams ipAddresse
                             ProjectMsg projectId <|
                                 SetProjectView <|
                                     ServerDetail
-                                        serverUuid
+                                        server.osProps.uuid
                                         { serverDetailViewParams | ipInfoLevel = ipMsg }
                     , label = label
                     }
@@ -1103,25 +1139,13 @@ serverVolumes context project server =
         _ ->
             let
                 volDetailsButton v =
-                    Input.button
-                        [ Border.width 1
-                        , Border.rounded 6
-                        , Border.color <| SH.toElementColor context.palette.muted
-                        , Element.padding 3
-                        ]
-                        { onPress =
-                            Just
-                                (ProjectMsg
-                                    project.auth.project.uuid
-                                    (SetProjectView <| VolumeDetail v.uuid [])
-                                )
-                        , label =
-                            FeatherIcons.chevronRight
-                                |> FeatherIcons.withSize 14
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                                |> Element.el []
-                        }
+                    Style.Widgets.IconButton.goToButton context.palette
+                        (Just
+                            (ProjectMsg
+                                project.auth.project.uuid
+                                (SetProjectView <| VolumeDetail v.uuid [])
+                            )
+                        )
 
                 volumeRow v =
                     let

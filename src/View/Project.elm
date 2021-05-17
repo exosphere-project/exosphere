@@ -25,6 +25,7 @@ import View.AllResources
 import View.AttachVolume
 import View.CreateServer
 import View.CreateServerImage
+import View.FloatingIps
 import View.Helpers as VH
 import View.Images
 import View.Keypairs
@@ -97,6 +98,23 @@ project model context p viewParams viewConstructor =
 
                 MountVolInstructions attachment ->
                     View.AttachVolume.mountVolInstructions context p attachment
+
+                ListFloatingIps floatingIpListViewParams ->
+                    View.FloatingIps.floatingIps context
+                        True
+                        p
+                        floatingIpListViewParams
+                        (\newParams ->
+                            ProjectMsg p.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListFloatingIps newParams
+                        )
+
+                AssignFloatingIp assignFloatingIpViewParams ->
+                    View.FloatingIps.assignFloatingIp
+                        context
+                        p
+                        assignFloatingIpViewParams
 
                 ListKeypairs keypairListViewParams ->
                     View.Keypairs.listKeypairs context

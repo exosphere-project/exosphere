@@ -120,6 +120,24 @@ pageTitle model context =
                         , projectName
                         ]
 
+                ListFloatingIps _ ->
+                    String.join " "
+                        [ context.localization.floatingIpAddress
+                            |> Helpers.String.pluralize
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
+                AssignFloatingIp _ ->
+                    String.join " "
+                        [ "Assign"
+                        , context.localization.floatingIpAddress
+                            |> Helpers.String.toTitleCase
+                        , "for"
+                        , projectName
+                        ]
+
                 ListKeypairs _ ->
                     String.join " "
                         [ context.localization.pkiPublicKeyForSsh

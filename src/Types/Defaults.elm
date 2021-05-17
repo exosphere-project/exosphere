@@ -1,7 +1,9 @@
 module Types.Defaults exposing
     ( allResourcesListViewParams
+    , assignFloatingIpViewParams
     , createServerViewParams
     , createVolumeView
+    , floatingIpListViewParams
     , imageListViewParams
     , jetstreamCreds
     , keypairListViewParams
@@ -86,6 +88,7 @@ allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
     , volumeListViewParams = volumeListViewParams
     , keypairListViewParams = keypairListViewParams
+    , floatingIpListViewParams = floatingIpListViewParams
     }
 
 
@@ -134,6 +137,16 @@ createVolumeView =
 volumeListViewParams : Types.VolumeListViewParams
 volumeListViewParams =
     Types.VolumeListViewParams [] []
+
+
+floatingIpListViewParams : Types.FloatingIpListViewParams
+floatingIpListViewParams =
+    Types.FloatingIpListViewParams [] True
+
+
+assignFloatingIpViewParams : Types.AssignFloatingIpViewParams
+assignFloatingIpViewParams =
+    Types.AssignFloatingIpViewParams Nothing Nothing
 
 
 keypairListViewParams : Types.KeypairListViewParams

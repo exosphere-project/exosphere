@@ -1,8 +1,9 @@
 module Rest.Neutron exposing
     ( addFloatingIpInServerDetails
-    , decodeFloatingIpCreation
+    , decodeFloatingIp
     , decodeNetworks
     , decodePorts
+    , ipAddressStatusDecoder
     , networkDecoder
     , portDecoder
     , receiveCreateExoSecurityGroupAndRequestCreateRules
@@ -11,6 +12,7 @@ module Rest.Neutron exposing
     , receiveFloatingIps
     , receiveNetworks
     , receiveSecurityGroupsAndEnsureExoGroup
+    , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
     , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
@@ -19,6 +21,7 @@ module Rest.Neutron exposing
     , requestNetworks
     , requestPorts
     , requestSecurityGroups
+    , requestUnassignFloatingIp
     )
 
 import Helpers.GetterSetters as GetterSetters
@@ -29,6 +32,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
+import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -200,7 +204,7 @@ requestCreateFloatingIp project network port_ server =
                 (Http.jsonBody requestBody)
                 (expectJsonWithErrorBody
                     resultToMsg_
-                    decodeFloatingIpCreation
+                    decodeFloatingIp
                 )
     in
     requestCmd
@@ -233,6 +237,90 @@ requestDeleteFloatingIp project uuid =
         (expectStringWithErrorBody
             resultToMsg_
         )
+
+
+requestAssignFloatingIp : Project -> OSTypes.Port -> OSTypes.IpAddressUuid -> Cmd Msg
+requestAssignFloatingIp project port_ floatingIpUuid =
+    let
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "port_id", Encode.string port_.uuid )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("Assign floating IP address " ++ floatingIpUuid ++ "to port " ++ port_.uuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\ip ->
+                    ProjectMsg
+                        project.auth.project.uuid
+                        (ReceiveAssignFloatingIp ip)
+                )
+
+        requestCmd =
+            openstackCredentialedRequest
+                project
+                Put
+                Nothing
+                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+                (Http.jsonBody requestBody)
+                (expectJsonWithErrorBody
+                    resultToMsg_
+                    decodeFloatingIp
+                )
+    in
+    requestCmd
+
+
+requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
+requestUnassignFloatingIp project floatingIpUuid =
+    let
+        requestBody =
+            Encode.object
+                [ ( "floatingip"
+                  , Encode.object
+                        [ ( "port_id", Encode.null )
+                        ]
+                  )
+                ]
+
+        errorContext =
+            ErrorContext
+                ("Unassign floating IP address " ++ floatingIpUuid)
+                ErrorCrit
+                Nothing
+
+        resultToMsg_ =
+            resultToMsgErrorBody
+                errorContext
+                (\ip ->
+                    ProjectMsg
+                        project.auth.project.uuid
+                        (ReceiveUnassignFloatingIp ip)
+                )
+
+        requestCmd =
+            openstackCredentialedRequest
+                project
+                Put
+                Nothing
+                (project.endpoints.neutron ++ "/v2.0/floatingips/" ++ floatingIpUuid)
+                (Http.jsonBody requestBody)
+                (expectJsonWithErrorBody
+                    resultToMsg_
+                    decodeFloatingIp
+                )
+    in
+    requestCmd
 
 
 requestSecurityGroups : Project -> Cmd Msg
@@ -417,7 +505,7 @@ receiveFloatingIps : Model -> Project -> List OSTypes.IpAddress -> ( Model, Cmd 
 receiveFloatingIps model project floatingIps =
     let
         newProject =
-            { project | floatingIps = floatingIps }
+            { project | floatingIps = RemoteData.Success floatingIps }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -457,17 +545,22 @@ receiveCreateFloatingIp model project server ipAddress =
 
 receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> ( Model, Cmd Msg )
 receiveDeleteFloatingIp model project uuid =
-    let
-        newFloatingIps =
-            List.filter (\f -> f.uuid /= Just uuid) project.floatingIps
+    case project.floatingIps of
+        RemoteData.Success floatingIps ->
+            let
+                newFloatingIps =
+                    List.filter (\f -> f.uuid /= Just uuid) floatingIps
 
-        newProject =
-            { project | floatingIps = newFloatingIps }
+                newProject =
+                    { project | floatingIps = RemoteData.Success newFloatingIps }
 
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
-    in
-    ( newModel, Cmd.none )
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ( newModel, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
@@ -576,12 +669,37 @@ decodeFloatingIps =
     Decode.field "floatingips" (Decode.list floatingIpDecoder)
 
 
+decodeFloatingIp : Decode.Decoder OSTypes.IpAddress
+decodeFloatingIp =
+    Decode.field "floatingip" floatingIpDecoder
+
+
 floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
 floatingIpDecoder =
-    Decode.map3 OSTypes.IpAddress
+    Decode.map4 OSTypes.IpAddress
         (Decode.field "id" Decode.string |> Decode.map (\i -> Just i))
         (Decode.field "floating_ip_address" Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
+        (Decode.field "status" Decode.string
+            |> Decode.andThen ipAddressStatusDecoder
+            |> Decode.map (\s -> Just s)
+        )
+
+
+ipAddressStatusDecoder : String -> Decode.Decoder OSTypes.IpAddressStatus
+ipAddressStatusDecoder status =
+    case status of
+        "ACTIVE" ->
+            Decode.succeed OSTypes.IpAddressActive
+
+        "DOWN" ->
+            Decode.succeed OSTypes.IpAddressDown
+
+        "ERROR" ->
+            Decode.succeed OSTypes.IpAddressError
+
+        _ ->
+            Decode.fail "unrecognised IP address type"
 
 
 decodePorts : Decode.Decoder (List OSTypes.Port)
@@ -596,14 +714,6 @@ portDecoder =
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
-
-
-decodeFloatingIpCreation : Decode.Decoder OSTypes.IpAddress
-decodeFloatingIpCreation =
-    Decode.map3 OSTypes.IpAddress
-        (Decode.at [ "floatingip", "id" ] Decode.string |> Decode.map (\i -> Just i))
-        (Decode.at [ "floatingip", "floating_ip_address" ] Decode.string)
-        (Decode.succeed OSTypes.IpAddressFloating)
 
 
 decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)

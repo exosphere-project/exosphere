@@ -18,7 +18,6 @@ import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Keystone
-import Rest.Neutron
 import Rest.Nova
 import State.Error
 import Style.Widgets.NumericTextInput.NumericTextInput
@@ -164,7 +163,6 @@ setProjectView project projectViewConstructor model =
                             ( newModel
                             , Cmd.batch
                                 [ newCmd
-                                , Rest.Neutron.requestFloatingIps project
                                 , OSVolumes.requestVolumes project
                                 , Rest.Nova.requestKeypairs project
                                 , OSQuotas.requestComputeQuota project
@@ -172,6 +170,10 @@ setProjectView project projectViewConstructor model =
                                 , Ports.instantiateClipboardJs ()
                                 ]
                             )
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestFloatingIps
+                                        project.auth.project.uuid
+                                    )
 
                 ListImages _ _ ->
                     let
@@ -193,16 +195,13 @@ setProjectView project projectViewConstructor model =
                             ( model, Cmd.none )
 
                         _ ->
-                            let
-                                ( newModel, newCmd ) =
-                                    ApiModelHelpers.requestServers project.auth.project.uuid model
-                            in
-                            ( newModel
-                            , Cmd.batch
-                                [ newCmd
-                                , Rest.Neutron.requestFloatingIps project
-                                ]
-                            )
+                            ApiModelHelpers.requestServers
+                                project.auth.project.uuid
+                                model
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestFloatingIps
+                                        project.auth.project.uuid
+                                    )
 
                 ServerDetail serverUuid _ ->
                     -- Don't fire cmds if we're already in this view
@@ -321,6 +320,31 @@ setProjectView project projectViewConstructor model =
                                         ]
                     in
                     ( model, cmd )
+
+                ListFloatingIps _ ->
+                    case prevProjectViewConstructor of
+                        Just (ListFloatingIps _) ->
+                            ( model, Cmd.none )
+
+                        _ ->
+                            ( model, Ports.instantiateClipboardJs () )
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestServers project.auth.project.uuid)
+
+                AssignFloatingIp _ ->
+                    case prevProjectViewConstructor of
+                        Just (AssignFloatingIp _) ->
+                            ( model, Cmd.none )
+
+                        _ ->
+                            ( model, Cmd.none )
+                                |> Helpers.pipelineCmd
+                                    (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
 
                 ListKeypairs _ ->
                     let

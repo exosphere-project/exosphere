@@ -1,5 +1,6 @@
 module Types.Types exposing
     ( AllResourcesListViewParams
+    , AssignFloatingIpViewParams
     , CloudSpecificConfig
     , CreateServerViewParams
     , DeleteConfirmation
@@ -10,6 +11,7 @@ module Types.Types exposing
     , ExoServerVersion
     , ExoSetupStatus(..)
     , Flags
+    , FloatingIpListViewParams
     , FloatingIpState(..)
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
@@ -265,7 +267,7 @@ type alias Project =
     , volumes : WebData (List OSTypes.Volume)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
-    , floatingIps : List OSTypes.IpAddress
+    , floatingIps : WebData (List OSTypes.IpAddress)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
@@ -337,6 +339,9 @@ type ProjectSpecificMsgConstructor
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
     | RequestDeleteKeypair OSTypes.KeypairName
+    | RequestDeleteFloatingIp OSTypes.IpAddressUuid
+    | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
+    | RequestUnassignFloatingIp OSTypes.IpAddressUuid
     | ReceiveImages (List OSTypes.Image)
     | ReceiveServer OSTypes.ServerUuid ErrorContext (Result HttpErrorWithBody OSTypes.Server)
     | ReceiveServers ErrorContext (Result HttpErrorWithBody (List OSTypes.Server))
@@ -350,6 +355,8 @@ type ProjectSpecificMsgConstructor
     | ReceiveFloatingIps (List OSTypes.IpAddress)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
+    | ReceiveAssignFloatingIp OSTypes.IpAddress
+    | ReceiveUnassignFloatingIp OSTypes.IpAddress
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCreateVolume
@@ -435,6 +442,8 @@ type ProjectViewConstructor
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes VolumeListViewParams
+    | ListFloatingIps FloatingIpListViewParams
+    | AssignFloatingIp AssignFloatingIpViewParams
     | ListKeypairs KeypairListViewParams
     | CreateKeypair String String
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
@@ -450,6 +459,7 @@ type alias AllResourcesListViewParams =
     { serverListViewParams : ServerListViewParams
     , volumeListViewParams : VolumeListViewParams
     , keypairListViewParams : KeypairListViewParams
+    , floatingIpListViewParams : FloatingIpListViewParams
     }
 
 
@@ -508,6 +518,18 @@ type alias DeleteConfirmation =
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
+
+
+type alias FloatingIpListViewParams =
+    { deleteConfirmations : List OSTypes.IpAddressUuid
+    , hideAssignedIps : Bool
+    }
+
+
+type alias AssignFloatingIpViewParams =
+    { ipUuid : Maybe OSTypes.IpAddressUuid
+    , serverUuid : Maybe OSTypes.ServerUuid
+    }
 
 
 type alias KeypairListViewParams =

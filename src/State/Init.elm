@@ -14,7 +14,6 @@ import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
-import Rest.Neutron
 import State.ViewState exposing (setNonProjectView, setProjectView)
 import Style.Types
 import Time
@@ -209,29 +208,34 @@ init flags urlKey =
                 )
                 projectsNeedingAppCredentials
                 |> Cmd.batch
-            , List.map Rest.Neutron.requestFloatingIps hydratedModel.projects |> Cmd.batch
             , setFaviconCmd
             ]
                 |> Cmd.batch
 
-        ( newModel, newCmd ) =
+        ( requestServersModel, requestServersCmd ) =
             hydratedModel.projects
                 |> List.map (\p -> p.auth.project.uuid)
                 |> List.map ApiModelHelpers.requestServers
                 |> List.foldl Helpers.pipelineCmd ( hydratedModel, otherCmds )
 
+        ( requestServersAndIpsModel, requestServersAndIpsCmd ) =
+            requestServersModel.projects
+                |> List.map (\p -> p.auth.project.uuid)
+                |> List.map ApiModelHelpers.requestFloatingIps
+                |> List.foldl Helpers.pipelineCmd ( requestServersModel, requestServersCmd )
+
         ( setViewModel, setViewCmd ) =
             case viewState of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView nonProjectViewConstructor newModel
+                    setNonProjectView nonProjectViewConstructor requestServersAndIpsModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-                    case GetterSetters.projectLookup newModel projectId of
+                    case GetterSetters.projectLookup requestServersAndIpsModel projectId of
                         Just project ->
-                            setProjectView project projectViewConstructor newModel
+                            setProjectView project projectViewConstructor requestServersAndIpsModel
 
                         Nothing ->
-                            ( newModel, Cmd.none )
+                            ( requestServersAndIpsModel, Cmd.none )
     in
-    ( setViewModel, Cmd.batch [ newCmd, setViewCmd ] )
+    ( setViewModel, Cmd.batch [ requestServersAndIpsCmd, setViewCmd ] )

@@ -17,6 +17,7 @@ module OpenStack.Types exposing
     , ImageUuid
     , ImageVisibility(..)
     , IpAddress
+    , IpAddressStatus(..)
     , IpAddressType(..)
     , IpAddressUuid
     , IpAddressValue
@@ -410,6 +411,7 @@ type alias ComputeQuota =
     { cores : QuotaItemDetail
     , instances : QuotaItemDetail
     , ram : QuotaItemDetail
+    , floatingIps : QuotaItemDetail
     }
 
 
@@ -596,6 +598,7 @@ type alias IpAddress =
     { uuid : Maybe IpAddressUuid -- IP addresses returned in server details do not show UUIDs :(
     , address : IpAddressValue
     , openstackType : IpAddressType
+    , status : Maybe IpAddressStatus -- IP addresses returned in server details do not show status :(
     }
 
 
@@ -610,6 +613,12 @@ type alias IpAddressUuid =
 type IpAddressType
     = IpAddressFixed
     | IpAddressFloating
+
+
+type IpAddressStatus
+    = IpAddressActive
+    | IpAddressDown
+    | IpAddressError
 
 
 type alias Network =

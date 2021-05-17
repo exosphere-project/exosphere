@@ -704,6 +704,15 @@ processProjectSpecificMsg model project msg =
                         )
                         "Could not determine server attached to this volume."
 
+        RequestDeleteFloatingIp floatingIpAddress ->
+            ( model, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
+
+        RequestAssignFloatingIp port_ floatingIpUuid ->
+            ( model, Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid )
+
+        RequestUnassignFloatingIp floatingIpUuid ->
+            ( model, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+
         ReceiveImages images ->
             Rest.Glance.receiveImages model project images
 
@@ -1029,6 +1038,27 @@ processProjectSpecificMsg model project msg =
         ReceiveDeleteFloatingIp uuid ->
             Rest.Neutron.receiveDeleteFloatingIp model project uuid
 
+        ReceiveAssignFloatingIp floatingIp ->
+            -- TODO update servers so that new assignment is reflected in the UI
+            let
+                newProject =
+                    processNewFloatingIp project floatingIp
+
+                newModel =
+                    GetterSetters.modelUpdateProject model newProject
+            in
+            ViewStateHelpers.setProjectView newProject
+                (ListFloatingIps Defaults.floatingIpListViewParams)
+                newModel
+
+        ReceiveUnassignFloatingIp floatingIp ->
+            -- TODO update servers so that unassignment is reflected in the UI
+            let
+                newProject =
+                    processNewFloatingIp project floatingIp
+            in
+            ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+
         ReceiveSecurityGroups groups ->
             Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup model project groups
 
@@ -1255,7 +1285,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                 Just ipAddress ->
                     let
                         maybeFloatingIpUuid =
-                            project.floatingIps
+                            RemoteData.withDefault [] project.floatingIps
                                 |> List.filter (\i -> i.address == ipAddress)
                                 |> List.head
                                 |> Maybe.andThen .uuid
@@ -1619,6 +1649,20 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             ( newModel, exoSetupStatusMetadataCmd )
 
 
+processNewFloatingIp : Project -> OSTypes.IpAddress -> Project
+processNewFloatingIp project floatingIp =
+    let
+        otherIps =
+            project.floatingIps
+                |> RemoteData.withDefault []
+                |> List.filter (\i -> i.uuid /= floatingIp.uuid)
+
+        newIps =
+            floatingIp :: otherIps
+    in
+    { project | floatingIps = RemoteData.Success newIps }
+
+
 createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
 createProject model authToken endpoints =
     let
@@ -1635,7 +1679,7 @@ createProject model authToken endpoints =
             , volumes = RemoteData.NotAsked
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
-            , floatingIps = []
+            , floatingIps = RemoteData.NotAsked
             , ports = RDPP.empty
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
@@ -1668,12 +1712,13 @@ createProject model authToken endpoints =
     ( newModel
     , [ Rest.Nova.requestServers
       , Rest.Neutron.requestSecurityGroups
-      , Rest.Neutron.requestFloatingIps
       , Rest.Keystone.requestAppCredential model.clientUuid model.clientCurrentTime
       ]
         |> List.map (\x -> x newProject)
         |> Cmd.batch
     )
+        |> Helpers.pipelineCmd
+            (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
         |> Helpers.pipelineCmd newViewStateFunc
 
 
