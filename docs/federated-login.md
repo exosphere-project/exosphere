@@ -75,7 +75,7 @@ If your server environment is set up using docker-compose, just put something li
         EXOSPHERE_URL: 'https://your.exosphere.domain'
 ```
 
-These instructions assume that you are setting up OIDC Redirector behind a reverse proxy server, perhaps the same Nginx server that serves Exosphere and runs your [Cloud CORS Proxy](cloud-cors-proxy.md). (This is what the Exosphere project does for the Exosphere hosted apps, e.g. at <https://try.exosphere.app>.) Here is an example Nginx configuration:
+These instructions assume that you are setting up OIDC Redirector behind a reverse proxy server, perhaps the same Nginx server that serves Exosphere and runs your [Cloud CORS Proxy](solving-cors-problem.md). (This is what the Exosphere project does for the Exosphere hosted apps, e.g. at <https://try.exosphere.app>.) Here is an example Nginx configuration:
 
 ```
 upstream oidc-redirector {
