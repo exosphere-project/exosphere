@@ -1,0 +1,5 @@
+polkit.addRule(function(action, subject) {
+    if (subject.isInGroup("{{ desktop_user }}")) {
+        return polkit.Result.YES;
+    }
+});

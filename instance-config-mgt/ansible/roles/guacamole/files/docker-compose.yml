@@ -1,0 +1,34 @@
+---
+
+version: '3.2'
+networks:
+  exo-guac-net:
+    driver: bridge
+services:
+  exo-guac-guacd:
+    image: 'guacamole/guacd'
+    restart: 'always'
+    networks:
+      exo-guac-net:
+  exo-guac-guacamole:
+    image: 'guacamole/guacamole'
+    restart: 'always'
+    networks:
+      exo-guac-net:
+    depends_on:
+      - 'exo-guac-guacd'
+    links:
+      - 'exo-guac-guacd:guacd'
+    environment:
+      MYSQL_HOSTNAME: 'dummy-ignore'
+      MYSQL_DATABASE: 'dummy-ignore'
+      MYSQL_USER: 'dummy-ignore'
+      MYSQL_PASSWORD: 'dummy-ignore'
+      GUACD_HOSTNAME: 'guacd'
+      GUACAMOLE_HOME: '/config'
+    volumes:
+      - type: 'bind'
+        source: './config'
+        target: '/config'
+    ports:
+      - '49528:8080'

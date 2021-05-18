@@ -1,0 +1,10 @@
+---
+
+- name: 'tasks imported for CentOS'
+  import_tasks: 'centos.yml'
+  when: 'ansible_distribution == "CentOS"'
+
+- name: 'packages installed'
+  package:
+    name: 'haveged'
+    state: 'present'

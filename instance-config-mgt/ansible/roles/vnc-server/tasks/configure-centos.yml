@@ -1,0 +1,36 @@
+---
+
+- name: 'vncserver.users populated'
+  lineinfile:
+    path: '/etc/tigervnc/vncserver.users'
+    line: ':1={{ vnc_server_user }}'
+
+- name: 'vncserver-config-defaults populated'
+  blockinfile:
+    path: '/etc/tigervnc/vncserver-config-defaults'
+    block: |
+      interface=172.17.0.1
+      localhost=no
+      session=gnome
+      rfbauth=/home/{{ vnc_server_user }}/.vnc/passwd
+      MaxCutText=99999999
+
+- name: 'SELinux context restored for .vnc directory'
+  command: 'restorecon -RFv /home/{{ vnc_server_user }}/.vnc'
+
+- name: 'systemd service override directory created'
+  file:
+    path: '/etc/systemd/system/vncserver@.service.d'
+    state: 'directory'
+
+- name: 'systemd service start order override templated'
+  template:
+    src: 'start_order.conf.j2'
+    dest: '/etc/systemd/system/vncserver@.service.d/start_order.conf'
+
+- name: 'systemd service enabled and started'
+  systemd:
+    name: 'vncserver@:1.service'
+    daemon_reload: 'yes'
+    enabled: 'yes'
+    state: 'started'

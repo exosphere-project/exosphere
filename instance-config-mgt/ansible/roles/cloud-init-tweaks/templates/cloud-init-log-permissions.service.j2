@@ -1,0 +1,16 @@
+[Unit]
+Description=Correct cloud-init's logfile permissions
+
+# We want to start *AFTER* cloud-init has opened its log files:
+After=cloud-init.service
+
+# We want to restart any time cloud-init is restarted (requires RemainAfterExit below):
+PartOf=cloud-init.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/chmod u=rw,g=r,o= /var/log/cloud-init.log /var/log/cloud-init-output.log
+
+[Install]
+WantedBy=multi-user.target

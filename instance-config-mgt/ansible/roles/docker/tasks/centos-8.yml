@@ -1,0 +1,33 @@
+---
+
+# May not be needed
+# - name: 'yum-utils installed'
+#   yum:
+#     name: 'yum-utils'
+#     state: 'present'
+
+- name: 'Docker repository added'
+  get_url:
+    url: 'https://download.docker.com/linux/centos/docker-ce.repo'
+    dest: '/etc/yum.repos.d/docker-ce.repo'
+
+- name: 'Packages installed'
+  dnf:
+    name:
+      - 'docker-ce'
+      - 'docker-ce-cli'
+      - 'containerd.io'
+    state: 'present'
+
+- name: 'docker-compose downloaded'
+  get_url:
+    url: 'https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64'
+    dest: '/usr/local/bin/docker-compose'
+    mode: 'a+x'
+
+
+- name: 'docker-compose symlinked'
+  file:
+    dest: '/usr/bin/docker-compose'
+    src: '/usr/local/bin/docker-compose'
+    state: link

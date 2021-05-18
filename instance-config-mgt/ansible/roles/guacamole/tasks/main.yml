@@ -1,0 +1,40 @@
+---
+
+- name: 'Guacamole password hash set'
+  shell: 'echo -n "{{ exouser_password }}" | md5sum | cut --fields=1 --only-delimited --delimiter=" "'
+  check_mode: false
+  register: 'guac_password_md5sum_cmd'
+  no_log: true
+
+- set_fact:
+    guac_password_md5sum: '{{ guac_password_md5sum_cmd.stdout }}'
+
+- name: 'Guacamole config directories created'
+  file:
+    path: '/opt/guacamole/config'
+    state: 'directory'
+
+- name: 'Guacamole configuration templated'
+  template:
+    src: 'user-mapping.xml.j2'
+    dest: '/opt/guacamole/config/user-mapping.xml'
+    owner: 'root'
+    group: 'root'
+    mode: '500'
+
+- name: 'Guacamole properties file written'
+  copy:
+    src: 'guacamole.properties'
+    dest: '/opt/guacamole/config/guacamole.properties'
+
+- name: 'docker-compose file written'
+  copy:
+    src: 'docker-compose.yml'
+    dest: '/opt/guacamole/docker-compose.yml'
+
+- name: 'containers started'
+  command: 'docker-compose up -d --force-recreate'
+  args:
+    chdir: '/opt/guacamole'
+
+- shell: 'echo ''{"guacDeployComplete":true}'' > /dev/console'
