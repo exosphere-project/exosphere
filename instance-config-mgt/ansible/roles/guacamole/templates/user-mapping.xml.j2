@@ -1,0 +1,29 @@
+<user-mapping>
+    <authorize
+        username="exouser"
+	    password="{{ guac_password_md5sum }}"
+        encoding="md5">
+        <connection name="shell">
+            <protocol>ssh</protocol>
+            <param name="hostname">172.17.0.1</param>
+            <param name="port">22</param>
+            <param name="username">exouser</param>
+            <param name="password">${GUAC_PASSWORD}</param>
+            <param name="enable-sftp">true</param>
+        </connection>
+        {% if gui_enabled is defined and gui_enabled == true %}
+        <connection name="desktop">
+            <protocol>vnc</protocol>
+            <param name="hostname">172.17.0.1</param>
+            <param name="port">5901</param>
+            <param name="autoretry">3</param>
+            <param name="password">${GUAC_PASSWORD}</param>
+            <param name="enable-sftp">true</param>
+            <param name="sftp-hostname">172.17.0.1</param>
+            <param name="sftp-port">22</param>
+            <param name="sftp-username">exouser</param>
+            <param name="sftp-password">${GUAC_PASSWORD}</param>
+        </connection>
+        {% endif %}
+    </authorize>
+</user-mapping>

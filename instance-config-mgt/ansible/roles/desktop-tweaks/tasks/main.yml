@@ -1,0 +1,46 @@
+---
+
+- name: 'operating system-specific variables imported'
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+
+- name: 'Automatic login enabled in GDM custom config'
+  blockinfile:
+    path: '{{ gdm_custom_conf_location }}'
+    block: |
+      AutomaticLoginEnable = true
+      AutomaticLogin = {{ desktop_user }}
+    insertafter: '\[default\]'
+
+# https://askubuntu.com/questions/1048774/disabling-lock-screen-18-04
+# https://people.gnome.org/~pmkovar/system-admin-guide/screen-locking.html
+# https://askubuntu.com/questions/967842/how-to-remove-phone-style-gnome-swipe-to-unlock/1159085#1159085
+
+- name: 'User dconf profile created'
+  lineinfile:
+    line: '{{ item }}'
+    path: '/etc/dconf/profile/user'
+  loop:
+    - 'user-db:user'
+    - 'system-db:local'
+
+
+- name: 'Screen lock disabled'
+  template:
+    src: '00-screenlock.j2'
+    dest: '/etc/dconf/db/local.d/00-screenlock'
+
+- name: 'User preferences overridden for screen lock'
+  template:
+    src: 'screenlock.j2'
+    dest: '/etc/dconf/db/local.d/locks/screensaver'
+
+- name: 'dconf database updated'
+  command: 'dconf update'
+
+- name: 'polkit rule written to not prompt desktop user for password for administrative actions'
+  template:
+    src: '49-nopasswd_global.rules.j2'
+    dest: '/etc/polkit-1/rules.d/49-nopasswd_global.rules'
