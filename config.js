@@ -35,5 +35,7 @@ var config = {
       },
       featuredImageNamePrefix: "JS-API-Featured"
     }
-  ]
+  ],
+  instanceConfigMgtRepoUrl: null,
+  instanceConfigMgtRepoCheckout: null
 }

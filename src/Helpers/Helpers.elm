@@ -185,8 +185,17 @@ checkFloatingIpState serverDetails floatingIpState =
                 NotRequestable
 
 
-renderUserDataTemplate : Project -> String -> Maybe String -> Bool -> Bool -> Bool -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment installOperatingSystemUpdates =
+renderUserDataTemplate :
+    Project
+    -> String
+    -> Maybe String
+    -> Bool
+    -> Bool
+    -> Bool
+    -> String
+    -> String
+    -> String
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -244,6 +253,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
+    , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
+    , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )
     ]
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
