@@ -305,4 +305,5 @@ Exosphere sets these variables when running the instance provisioning code on a 
 | variable     | type    | required | description                                                             |
 |--------------|---------|----------|-------------------------------------------------------------------------|
 | PASSPHRASE   | string  | yes      | passphrase for local user. set as environment variable, not Ansible var |
+| guac_enabled | boolean | no       | deploys Apache Guacamole to serve terminal (and optionally desktop)     |
 | gui_enabled  | boolean | no       | deploys VNC server, configures Guacamole to serve graphical desktop     |

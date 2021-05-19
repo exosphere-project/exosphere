@@ -215,22 +215,14 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 Nothing ->
                     "\n"
 
-        guacamoleSetupCmdsYaml : String
-        guacamoleSetupCmdsYaml =
-            if deployGuacamole then
-                ServerDeploy.guacamoleUserData
-
-            else
-                "echo \"Not deploying Guacamole\"\n"
-
         ansibleExtraVars : String
         ansibleExtraVars =
-            if deployDesktopEnvironment then
-                -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
-                """{\\"gui_enabled\\":true}"""
-
-            else
-                """{\\"gui_enabled\\":false}"""
+            -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
+            Json.Encode.object
+                [ ( "guac_enabled", Json.Encode.bool deployGuacamole )
+                , ( "gui_enabled", Json.Encode.bool deployDesktopEnvironment )
+                ]
+                |> Json.Encode.encode 0
 
         desktopEnvironmentSetupCmdsYaml : String
         desktopEnvironmentSetupCmdsYaml =
@@ -249,7 +241,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 "false"
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
-    , ( "{guacamole-setup}\n", guacamoleSetupCmdsYaml )
+    , ( "{guacamole-setup}\n", ServerDeploy.guacamoleUserData )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
