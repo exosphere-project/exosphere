@@ -34,7 +34,7 @@ _OK, what can I do with Exosphere?_
   - Cluster orchestration
   - Community-curated deployment automations for scientific workflows and custom services
 - Fully open source and open development process -- come hack with us!
-  - See Exosphere's [values and goals](docs/values-goals.md)
+  - See Exosphere's [values and goals](values-goals.md)
   
 Exosphere will be a primary user interface for [Jetstream 2](https://itnews.iu.edu/articles/2020/NSF-awards-IU-10M-to-build-Jetstream-2-cloud-computing-system-.php), an [NSF](https://www.nsf.gov)-funded science and engineering cloud. Jetstream 2 will be available to any US-based researcher starting late 2021.
 
