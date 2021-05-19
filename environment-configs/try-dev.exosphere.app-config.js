@@ -40,7 +40,9 @@ var config = {
       },
       featuredImageNamePrefix: "JS-API-Featured"
     }
-  ]
+  ],
+  instanceConfigMgtRepoUrl: null,
+  instanceConfigMgtRepoCheckout: "dev"
 }
 
 /* Matomo tracking code */
