@@ -217,11 +217,22 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         ansibleExtraVars : String
         ansibleExtraVars =
             -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
-            Json.Encode.object
-                [ ( "guac_enabled", Json.Encode.bool deployGuacamole )
-                , ( "gui_enabled", Json.Encode.bool deployDesktopEnvironment )
+            -- I'm so sorry... doing by hand because Elm Json.Encode doesn't insert enough double quotes
+            String.concat
+                [ """{\\"guac_enabled\\":"""
+                , if deployGuacamole then
+                    "true"
+
+                  else
+                    "false"
+                , """,\\"gui_enabled\\":"""
+                , if deployDesktopEnvironment then
+                    "true"
+
+                  else
+                    "false"
+                , """}"""
                 ]
-                |> Json.Encode.encode 0
 
         installOperatingSystemUpatesYaml : String
         installOperatingSystemUpatesYaml =
