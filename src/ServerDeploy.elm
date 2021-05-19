@@ -1,4 +1,4 @@
-module ServerDeploy exposing (cloudInitUserDataTemplate, desktopEnvironmentUserData, guacamoleUserData)
+module ServerDeploy exposing (ansibleUserData, cloudInitUserDataTemplate, desktopEnvironmentUserData)
 
 
 cloudInitUserDataTemplate : String
@@ -70,7 +70,7 @@ runcmd:
     {desktop-environment-setup}
   - chmod 640 /var/log/cloud-init-output.log
   - |
-    {guacamole-setup}
+    {ansible-setup}
   - unset PASSPHRASE
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
@@ -99,8 +99,8 @@ mounts:
 """
 
 
-guacamoleUserData : String
-guacamoleUserData =
+ansibleUserData : String
+ansibleUserData =
     """virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base

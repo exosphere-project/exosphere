@@ -241,7 +241,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 "false"
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
-    , ( "{guacamole-setup}\n", ServerDeploy.guacamoleUserData )
+    , ( "{ansible-setup}\n", ServerDeploy.ansibleUserData )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
