@@ -32,7 +32,6 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
 import RemoteData
-import ServerDeploy
 import Time
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
@@ -233,7 +232,6 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 "false"
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
-    , ( "{ansible-setup}\n", ServerDeploy.ansibleUserData )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )

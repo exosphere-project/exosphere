@@ -1,4 +1,4 @@
-module ServerDeploy exposing (ansibleUserData, cloudInitUserDataTemplate)
+module ServerDeploy exposing (cloudInitUserDataTemplate)
 
 
 cloudInitUserDataTemplate : String
@@ -68,7 +68,10 @@ runcmd:
     fi
   - chmod 640 /var/log/cloud-init-output.log
   - |
-    {ansible-setup}
+    virtualenv /opt/ansible-venv
+    . /opt/ansible-venv/bin/activate
+    pip install ansible-base
+    ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
   - unset PASSPHRASE
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
@@ -94,13 +97,4 @@ mounts:
   - [ /dev/vdi, /media/volume/vdi ]
   - [ /dev/vdj, /media/volume/vdj ]
   - [ /dev/vdk, /media/volume/vdk ]
-"""
-
-
-ansibleUserData : String
-ansibleUserData =
-    """virtualenv /opt/ansible-venv
-    . /opt/ansible-venv/bin/activate
-    pip install ansible-base
-    ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
 """
