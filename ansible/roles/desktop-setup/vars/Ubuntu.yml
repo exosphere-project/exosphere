@@ -1,0 +1,5 @@
+---
+
+desktop_environment_package_name: 'ubuntu-desktop-minimal'
+
+gdm_custom_conf_location: '/etc/gdm3/custom.conf'

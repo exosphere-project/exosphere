@@ -224,14 +224,6 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 ]
                 |> Json.Encode.encode 0
 
-        desktopEnvironmentSetupCmdsYaml : String
-        desktopEnvironmentSetupCmdsYaml =
-            if deployDesktopEnvironment then
-                ServerDeploy.desktopEnvironmentUserData
-
-            else
-                "echo \"Not deploying a desktop environment\"\n"
-
         installOperatingSystemUpatesYaml : String
         installOperatingSystemUpatesYaml =
             if installOperatingSystemUpdates then
@@ -243,7 +235,6 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
     , ( "{ansible-setup}\n", ServerDeploy.ansibleUserData )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
-    , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
     , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )

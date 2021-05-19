@@ -1,3 +1,5 @@
 ---
 
+desktop_environment_package_name: '@workstation'
+
 gdm_custom_conf_location: '/etc/gdm/custom.conf'

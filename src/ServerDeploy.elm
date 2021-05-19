@@ -1,4 +1,4 @@
-module ServerDeploy exposing (ansibleUserData, cloudInitUserDataTemplate, desktopEnvironmentUserData)
+module ServerDeploy exposing (ansibleUserData, cloudInitUserDataTemplate)
 
 
 cloudInitUserDataTemplate : String
@@ -66,8 +66,6 @@ runcmd:
       $SYS_LOAD_SCRIPT_FILE > /dev/console
       echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
     fi
-  - |
-    {desktop-environment-setup}
   - chmod 640 /var/log/cloud-init-output.log
   - |
     {ansible-setup}
@@ -105,18 +103,4 @@ ansibleUserData =
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
-"""
-
-
-desktopEnvironmentUserData : String
-desktopEnvironmentUserData =
-    """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
-      DEBIAN_FRONTEND=noninteractive apt-get install -yq ubuntu-desktop-minimal
-    elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
-      yum -y groupinstall workstation
-    fi
-
-    systemctl enable graphical.target
-    systemctl set-default graphical.target
-    systemctl isolate graphical.target
 """
