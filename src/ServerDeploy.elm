@@ -31,7 +31,6 @@ runcmd:
         echo exouser:$PASSPHRASE | chpasswd
       fi
     fi
-  - "usermod -a -G centos exouser || usermod -a -G ubuntu exouser || true  # Using usermod because native cloud-init will create non-existent groups, and a centos/ubuntu group on Ubuntu/CentOS could be confusing"
   - chmod 640 /var/log/cloud-init-output.log
   - |
     virtualenv /opt/ansible-venv
