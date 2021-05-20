@@ -32,10 +32,6 @@ runcmd:
       fi
     fi
   - "usermod -a -G centos exouser || usermod -a -G ubuntu exouser || true  # Using usermod because native cloud-init will create non-existent groups, and a centos/ubuntu group on Ubuntu/CentOS could be confusing"
-  - "mkdir -p /media/volume"
-  - "cd /media/volume; for x in b c d e f g h i j k; do mkdir -p sd$x; mkdir -p vd$x; done"
-  - "systemctl daemon-reload"
-  - ""
   - chmod 640 /var/log/cloud-init-output.log
   - |
     virtualenv /opt/ansible-venv

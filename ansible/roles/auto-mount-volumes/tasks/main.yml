@@ -1,7 +1,20 @@
 ---
 
+- name: 'mount point directory created'
+  file:
+    path: '/media/volume'
+    state: directory
+
+- name: 'mount points created'
+  file:
+    path: '/media/volume/{{ item }}'
+    state: directory
+  loop: '{{ vols }}'
+
+
 - name: 'volumes automatically mounted'
   systemd:
+    daemon-reload: 'yes'
     name: 'media-volume-{{ item }}.automount'
     state: 'started'
   loop: '{{ vols }}'
