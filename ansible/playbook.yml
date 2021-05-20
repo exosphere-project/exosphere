@@ -2,14 +2,8 @@
 - name: Instance deployment
   hosts:
     - 'localhost'
-  pre_tasks:
-    - set_fact:
-        exouser_password: '{{ lookup("env", "PASSPHRASE") }}'
-      no_log: true
-    - fail:
-        msg: "PASSPHRASE is a mandatory value to execute the playbook; pass it as an environment variable "
-      when: 'exouser_password == ""'
   roles:
+    - 'password'
     - 'base-setup'
     - 'system-load-logging'
     - 'cloud-init-tweaks'

@@ -20,24 +20,12 @@ packages:
 runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' > /dev/console
-  - |
-    WORDS_URL=https://gitlab.com/exosphere/exosphere/snippets/1943838/raw
-    WORDS_SHA512=a71dd2806263d6bce2b45775d80530a4187921a6d4d974d6502f02f6228612e685e2f6dcc1d7f53f5e2a260d0f8a14773458a1a6e7553430727a9b46d5d6e002
-    wget --quiet --output-document=words $WORDS_URL
-    if echo $WORDS_SHA512 words | sha512sum --check --quiet; then
-      export PASSPHRASE="$(cat words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1)"
-      POST_URL=http://169.254.169.254/openstack/latest/password
-      if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
-        echo exouser:$PASSPHRASE | chpasswd
-      fi
-    fi
   - chmod 640 /var/log/cloud-init-output.log
   - |
     virtualenv /opt/ansible-venv
     . /opt/ansible-venv/bin/activate
     pip install ansible-base
     ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
-  - unset PASSPHRASE
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
