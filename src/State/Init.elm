@@ -136,6 +136,12 @@ init flags urlKey =
                             )
                         )
                     |> Dict.fromList
+            , instanceConfigMgtRepoUrl =
+                flags.instanceConfigMgtRepoUrl
+                    |> Maybe.withDefault "https://gitlab.com/exosphere/exosphere.git"
+            , instanceConfigMgtRepoCheckout =
+                flags.instanceConfigMgtRepoCheckout
+                    |> Maybe.withDefault "master"
             }
 
         -- This only gets used if we do not find a client UUID in stored state

@@ -1,0 +1,36 @@
+---
+
+- name: 'operating system-specific variables imported'
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+
+- name: 'VNC Server installed'
+  package:
+    name: '{{ vncserver_package_name }}'
+    state: 'present'
+
+- name: 'user-specific VNC configuration directory created'
+  file:
+    path: '/home/{{ vnc_server_user }}/.vnc'
+    state: 'directory'
+    owner: '{{ vnc_server_user }}'
+
+- name: 'VNC password set'
+  shell: 'echo "{{ exouser_password }}" | vncpasswd -f > /home/{{ vnc_server_user }}/.vnc/passwd'
+  no_log: true
+
+- name: 'permissions set on VNC password file'
+  file:
+    path: '/home/{{ vnc_server_user }}/.vnc/passwd'
+    mode: '600'
+    owner: '{{ vnc_server_user }}'
+
+- name: 'configuration tasks imported for Ubuntu'
+  import_tasks: 'configure-ubuntu.yml'
+  when: 'ansible_distribution == "Ubuntu"'
+
+- name: 'configuration tasks imported for CentOS'
+  import_tasks: 'configure-centos.yml'
+  when: 'ansible_distribution == "CentOS"'

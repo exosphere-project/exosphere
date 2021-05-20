@@ -1,0 +1,8 @@
+---
+
+- name: 'Docker and docker-compose installed'
+  apt:
+    name:
+      - 'docker.io'
+      - 'docker-compose'
+    state: 'present'

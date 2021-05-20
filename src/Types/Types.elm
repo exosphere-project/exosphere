@@ -124,6 +124,8 @@ type alias Flags =
             , imageExcludeFilter : Maybe ExcludeFilter
             , featuredImageNamePrefix : Maybe String
             }
+    , instanceConfigMgtRepoUrl : Maybe String
+    , instanceConfigMgtRepoCheckout : Maybe String
 
     -- Flags that Exosphere sets dynamically
     , width : Int
@@ -172,6 +174,8 @@ type alias Model =
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
     , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
+    , instanceConfigMgtRepoUrl : HelperTypes.Url
+    , instanceConfigMgtRepoCheckout : String
     }
 
 

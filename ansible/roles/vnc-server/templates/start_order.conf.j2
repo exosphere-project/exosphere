@@ -1,0 +1,6 @@
+[Unit]
+After=syslog.target network.target gdm.service docker.service
+Requires=gdm.service docker.service
+
+[Install]
+WantedBy=graphical.target

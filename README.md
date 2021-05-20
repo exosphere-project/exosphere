@@ -181,21 +181,23 @@ If your community relies on an operating system that we don't currently support,
 
 These options are primarily intended for cloud operators who wish to offer a customized deployment of Exosphere to their user community. Set these in `config.js`.
 
-| *Option*                  | *Possible Values*          | *Description*                                                          |
-|---------------------------|----------------------------|------------------------------------------------------------------------|
-| showDebugMsgs             | false, true                |                                                                        |
-| cloudCorsProxyUrl         | null, string               | See `docs/solving-cors-problem.md`; required to use app in web browser |
-| clouds                    | list                       | See example below; required for Guacamole support                      |
-| palette                   | null, JSON object          | Pass custom colors to style Exosphere, see example below               |
-| logo                      | null, string               | Path to custom logo to show in top-left corner of app                  |
-| favicon                   | null, string               | Path to custom favicon                                                 |
-| appTitle                  | null, string               | Title to show in top-left corner of app                                |
-| defaultLoginView          | null, openstack, jetstream | Which login view to display by default                                 |
-| aboutAppMarkdown          | null, string (markdown)    | What to show in the "About the app" section of Help/About view         |
-| supportInfoMarkdown       | null, string (markdown)    | What to show when user clicks "Get support" button                     |
-| userSupportEmail          | null, string (markdown)    | Email address to ask users to send problem report                      |
-| openIdConnectLoginConfig  | null, JSON object          | See `docs/federated-login.md` for more info and example JSON           |
-| localization              | null, JSON object          | Pass custom localization strings for the UI, see example below         |
+| *Option*                      | *Possible Values*          | *Description*                                                          |
+|-------------------------------|----------------------------|------------------------------------------------------------------------|
+| showDebugMsgs                 | false, true                |                                                                        |
+| cloudCorsProxyUrl             | null, string               | See `docs/solving-cors-problem.md`; required to use app in web browser |
+| clouds                        | list                       | See example below; required for Guacamole support                      |
+| palette                       | null, JSON object          | Pass custom colors to style Exosphere, see example below               |
+| logo                          | null, string               | Path to custom logo to show in top-left corner of app                  |
+| favicon                       | null, string               | Path to custom favicon                                                 |
+| appTitle                      | null, string               | Title to show in top-left corner of app                                |
+| defaultLoginView              | null, openstack, jetstream | Which login view to display by default                                 |
+| aboutAppMarkdown              | null, string (markdown)    | What to show in the "About the app" section of Help/About view         |
+| supportInfoMarkdown           | null, string (markdown)    | What to show when user clicks "Get support" button                     |
+| userSupportEmail              | null, string (markdown)    | Email address to ask users to send problem report                      |
+| openIdConnectLoginConfig      | null, JSON object          | See `docs/federated-login.md` for more info and example JSON           |
+| localization                  | null, JSON object          | Pass custom localization strings for the UI, see example below         |
+| instanceConfigMgtRepoUrl      | null, string               | Set a custom repository to use for instance provisioning code          |
+| instanceConfigMgtRepoCheckout | null, string               | Check out specific branch/tag/commit of instance provisioning code     |
 
 #### Example cloud configuration
 
@@ -267,3 +269,40 @@ localization: {
     graphicalDesktopEnvironment: "graphical desktop environment"
     }
 ```
+
+### Instance Provisioning Code
+
+Exosphere uses Ansible to configure and provision new instances. (Among other things, it installs and configures Docker and Apache Guacamole server for the one-click terminal and remote desktop environment.) The provisioning code is stored in the `ansible/` directory of the Exosphere repository.
+
+By default, new instances pull this code from the master branch of the upstream [exosphere/exosphere](https://gitlab.com/exosphere/exosphere/) repository. This is true even for instances which are launched using a different branch or fork of Exosphere.
+
+You may wish to configure Exosphere to deploy instances using your own (modified) instance provisioning code, for development/testing purposes or as customized for your own organization. To do that, you must push the code to a git repository somewhere that new instances can download from, and then set two options in `config.js`:
+
+- `instanceConfigMgtRepoUrl` to the git repository URL that new instances can download your provisioning code from
+- `instanceConfigMgtRepoCheckout` to the repository branch/tag/commit that should be checked out (defaults to master if left `null`)
+
+Note that Exosphere downloads the specified repo and runs the playbook stored at `ansible/playbook.yml`, so implement your changes by modifying that playbook.
+
+---
+
+To test the instance provisioning code locally on a cloud instance, do this:
+```
+virtualenv /opt/ansible-venv
+. /opt/ansible-venv/bin/activate
+pip install ansible-base
+PASSPHRASE="enter-exouser-passphrase-here"
+ansible-pull --url https://gitlab.com/exosphere/exosphere.git --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts /opt/instance-config-mgt/ansible/playbook.yml
+```
+
+Optionally, pass the `--checkout` argument to specify a git branch/tag or commit hash.
+
+For now, we are using only [built-in Ansible modules](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/#modules), because Exosphere uses the lightweight `ansible-base` / `ansible-core` package.
+
+#### Ansible variables currently used
+
+Exosphere sets these variables when running the instance provisioning code on a new instance.
+
+| variable     | type    | required | description                                                             |
+|--------------|---------|----------|-------------------------------------------------------------------------|
+| PASSPHRASE   | string  | yes      | passphrase for local user. set as environment variable, not Ansible var |
+| gui_enabled  | boolean | no       | deploys VNC server, configures Guacamole to serve graphical desktop     |
