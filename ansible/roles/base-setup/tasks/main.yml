@@ -4,7 +4,6 @@
   import_tasks: 'centos.yml'
   when: 'ansible_distribution == "CentOS"'
 
-- name: 'packages installed'
-  package:
-    name: 'haveged'
-    state: 'present'
+- name: 'tasks imported for Ubuntu'
+  import_tasks: 'ubuntu.yml'
+  when: 'ansible_distribution == "Ubuntu"'
