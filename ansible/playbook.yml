@@ -11,6 +11,7 @@
       when: 'exouser_password == ""'
   roles:
     - 'base-setup'
+    - 'system-load-logging'
     - 'cloud-init-tweaks'
     - role: 'docker'
       when: 'guac_enabled is defined and guac_enabled == true'

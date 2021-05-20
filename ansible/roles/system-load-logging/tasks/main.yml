@@ -1,0 +1,15 @@
+---
+
+- name: 'system load logging script copied into place'
+  copy:
+    src: 'system_load_json.py'
+    dest: '/opt/system_load_json.py'
+    mode: '0544'
+
+- name: 'system load logged first time'
+  shell: '/opt/system_load_json.py > /dev/console'
+
+- name: 'system load logging script run every minute'
+  cron:
+    name: 'system load logging script run every minute'
+    job: '/opt/system_load_json.py > /dev/console'

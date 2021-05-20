@@ -56,16 +56,6 @@ runcmd:
       systemctl enable exouser-owns-media-volume-$x.service
     done
   - "chown exouser:exouser /media/volume/*"
-  - |
-    SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
-    SYS_LOAD_SCRIPT_SHA512=0667348aeb268ac8e0b642b03c14a8f87ddd38e11a50243fe1ab6ee764ebd724949c5ec98f95c03aaa7c16c77652bc968cc7aba50f6b1038b1a20ceefc133a73
-    SYS_LOAD_SCRIPT_FILE=/opt/system_load_json.py
-    wget --quiet --output-document=$SYS_LOAD_SCRIPT_FILE $SYS_LOAD_SCRIPT_URL
-    if echo $SYS_LOAD_SCRIPT_SHA512 $SYS_LOAD_SCRIPT_FILE | sha512sum --check --quiet; then
-      chmod +x $SYS_LOAD_SCRIPT_FILE
-      $SYS_LOAD_SCRIPT_FILE > /dev/console
-      echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
-    fi
   - chmod 640 /var/log/cloud-init-output.log
   - |
     virtualenv /opt/ansible-venv
