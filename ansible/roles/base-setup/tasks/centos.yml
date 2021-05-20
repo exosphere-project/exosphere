@@ -1,6 +1,6 @@
 ---
 
-- name: 'EPEL installed'
+- name: 'packages installed'
   yum:
     name:
       - 'epel-release'
