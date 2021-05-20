@@ -1,0 +1,19 @@
+---
+
+- name: 'volumes automatically mounted'
+  systemd:
+    name: 'media-volume-{{ item }}.automount'
+    state: 'started'
+  loop: '{{ vols }}'
+
+- name: 'systemd unit templated to set volume ownership'
+  template:
+    src: 'exouser-owns-vol.service.j2'
+    dest: '/etc/systemd/system/exouser-owns-media-volume-{{ item }}.service'
+  loop: '{{ vols }}'
+
+- name: 'systemd service enabled to set volume ownership'
+  systemd:
+    name: 'exouser-owns-media-volume-{{ item }}.service'
+    enabled: 'yes'
+  loop: '{{ vols }}'

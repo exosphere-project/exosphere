@@ -1,0 +1,10 @@
+[Unit]
+Description=ExouserOwnsVolume{{ item }}
+Requires=media-volume-{{ item }}.mount
+After=media-volume-{{ item }}.mount
+
+[Service]
+ExecStart=/bin/chown exouser:exouser /media/volume/{{ item }}
+
+[Install]
+WantedBy=media-volume-{{ item }}.mount
