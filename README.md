@@ -290,7 +290,6 @@ To test the instance provisioning code locally on a cloud instance, do this:
 virtualenv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
 pip install ansible-base
-PASSPHRASE="enter-exouser-passphrase-here"
 ansible-pull --url https://gitlab.com/exosphere/exosphere.git --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts /opt/instance-config-mgt/ansible/playbook.yml
 ```
 
