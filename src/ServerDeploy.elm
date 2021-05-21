@@ -16,7 +16,6 @@ package_upgrade: {install-os-updates}
 packages:
   - python3-virtualenv
   - git
-  - wget
 runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' > /dev/console
