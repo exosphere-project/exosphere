@@ -34,7 +34,7 @@ _OK, what can I do with Exosphere?_
   - Cluster orchestration
   - Community-curated deployment automations for scientific workflows and custom services
 - Fully open source and open development process -- come hack with us!
-  - See Exosphere's [values and goals](docs/values-goals.md)
+  - See Exosphere's [values and goals](values-goals.md)
   
 Exosphere will be a primary user interface for [Jetstream 2](https://itnews.iu.edu/articles/2020/NSF-awards-IU-10M-to-build-Jetstream-2-cloud-computing-system-.php), an [NSF](https://www.nsf.gov)-funded science and engineering cloud. Jetstream 2 will be available to any US-based researcher starting late 2021.
 
@@ -290,7 +290,6 @@ To test the instance provisioning code locally on a cloud instance, do this:
 virtualenv /opt/ansible-venv
 . /opt/ansible-venv/bin/activate
 pip install ansible-base
-PASSPHRASE="enter-exouser-passphrase-here"
 ansible-pull --url https://gitlab.com/exosphere/exosphere.git --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts /opt/instance-config-mgt/ansible/playbook.yml
 ```
 
@@ -304,5 +303,5 @@ Exosphere sets these variables when running the instance provisioning code on a 
 
 | variable     | type    | required | description                                                             |
 |--------------|---------|----------|-------------------------------------------------------------------------|
-| PASSPHRASE   | string  | yes      | passphrase for local user. set as environment variable, not Ansible var |
+| guac_enabled | boolean | no       | deploys Apache Guacamole to serve terminal (and optionally desktop)     |
 | gui_enabled  | boolean | no       | deploys VNC server, configures Guacamole to serve graphical desktop     |

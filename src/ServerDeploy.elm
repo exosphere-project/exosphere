@@ -1,4 +1,4 @@
-module ServerDeploy exposing (cloudInitUserDataTemplate, desktopEnvironmentUserData, guacamoleUserData)
+module ServerDeploy exposing (cloudInitUserDataTemplate)
 
 
 cloudInitUserDataTemplate : String
@@ -16,62 +16,15 @@ package_upgrade: {install-os-updates}
 packages:
   - python3-virtualenv
   - git
-  - wget
 runcmd:
   - sleep 1  # Ensures that console log output from any previous command completes before the following command begins
   - echo '{"exoSetup":"running"}' > /dev/console
-  - |
-    WORDS_URL=https://gitlab.com/exosphere/exosphere/snippets/1943838/raw
-    WORDS_SHA512=a71dd2806263d6bce2b45775d80530a4187921a6d4d974d6502f02f6228612e685e2f6dcc1d7f53f5e2a260d0f8a14773458a1a6e7553430727a9b46d5d6e002
-    wget --quiet --output-document=words $WORDS_URL
-    if echo $WORDS_SHA512 words | sha512sum --check --quiet; then
-      export PASSPHRASE="$(cat words | shuf --random-source=/dev/urandom --head-count 11 | paste --delimiters=' ' --serial | head -c -1)"
-      POST_URL=http://169.254.169.254/openstack/latest/password
-      if curl --fail --silent --request POST $POST_URL --data "$PASSPHRASE"; then
-        echo exouser:$PASSPHRASE | chpasswd
-      fi
-    fi
-  - "usermod -a -G centos exouser || usermod -a -G ubuntu exouser || true  # Using usermod because native cloud-init will create non-existent groups, and a centos/ubuntu group on Ubuntu/CentOS could be confusing"
-  - "mkdir -p /media/volume"
-  - "cd /media/volume; for x in b c d e f g h i j k; do mkdir -p sd$x; mkdir -p vd$x; done"
-  - "systemctl daemon-reload"
-  - ""
-  - |
-    for x in sdb sdc sdd sde sdf sdg sdh sdi sdj sdk vdb vdc vdd vde vdf vdg vdh vdi vdj vdk; do
-      systemctl start media-volume-$x.automount;
-
-      cat << EOF > /etc/systemd/system/exouser-owns-media-volume-$x.service
-      [Unit]
-      Description=ExouserOwnsVolume$x
-      Requires=media-volume-$x.mount
-      After=media-volume-$x.mount
-
-      [Service]
-      ExecStart=/bin/chown exouser:exouser /media/volume/$x
-
-      [Install]
-      WantedBy=media-volume-$x.mount
-    EOF
-
-      systemctl enable exouser-owns-media-volume-$x.service
-    done
-  - "chown exouser:exouser /media/volume/*"
-  - |
-    SYS_LOAD_SCRIPT_URL=https://gitlab.com/exosphere/exosphere/-/snippets/2015130/raw
-    SYS_LOAD_SCRIPT_SHA512=0667348aeb268ac8e0b642b03c14a8f87ddd38e11a50243fe1ab6ee764ebd724949c5ec98f95c03aaa7c16c77652bc968cc7aba50f6b1038b1a20ceefc133a73
-    SYS_LOAD_SCRIPT_FILE=/opt/system_load_json.py
-    wget --quiet --output-document=$SYS_LOAD_SCRIPT_FILE $SYS_LOAD_SCRIPT_URL
-    if echo $SYS_LOAD_SCRIPT_SHA512 $SYS_LOAD_SCRIPT_FILE | sha512sum --check --quiet; then
-      chmod +x $SYS_LOAD_SCRIPT_FILE
-      $SYS_LOAD_SCRIPT_FILE > /dev/console
-      echo "* * * * * root $SYS_LOAD_SCRIPT_FILE > /dev/console" >> /etc/crontab
-    fi
-  - |
-    {desktop-environment-setup}
   - chmod 640 /var/log/cloud-init-output.log
   - |
-    {guacamole-setup}
-  - unset PASSPHRASE
+    virtualenv /opt/ansible-venv
+    . /opt/ansible-venv/bin/activate
+    pip install ansible-base
+    ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
   - sleep 1  # Ensures that console log output from previous command completes before the following command begins
   - echo '{"exoSetup":"complete"}' > /dev/console
 mount_default_fields: [None, None, "ext4", "user,rw,auto,nofail,x-systemd.makefs,x-systemd.automount", "0", "2"]
@@ -96,27 +49,4 @@ mounts:
   - [ /dev/vdi, /media/volume/vdi ]
   - [ /dev/vdj, /media/volume/vdj ]
   - [ /dev/vdk, /media/volume/vdk ]
-"""
-
-
-guacamoleUserData : String
-guacamoleUserData =
-    """virtualenv /opt/ansible-venv
-    . /opt/ansible-venv/bin/activate
-    pip install ansible-base
-    ansible-pull --url "{instance-config-mgt-repo-url}" --checkout "{instance-config-mgt-repo-checkout}" --directory /opt/instance-config-mgt -i /opt/instance-config-mgt/ansible/hosts -e "{ansible-extra-vars}" /opt/instance-config-mgt/ansible/playbook.yml
-"""
-
-
-desktopEnvironmentUserData : String
-desktopEnvironmentUserData =
-    """if grep --ignore-case --quiet "ubuntu" /etc/issue; then
-      DEBIAN_FRONTEND=noninteractive apt-get install -yq ubuntu-desktop-minimal
-    elif grep --ignore-case --quiet "centos" /etc/redhat-release; then
-      yum -y groupinstall workstation
-    fi
-
-    systemctl enable graphical.target
-    systemctl set-default graphical.target
-    systemctl isolate graphical.target
 """

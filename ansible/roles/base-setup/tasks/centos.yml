@@ -1,6 +1,9 @@
 ---
 
-- name: 'EPEL installed'
+- name: 'packages installed'
   yum:
-    name: 'epel-release'
+    name:
+      - 'epel-release'
+      - 'haveged'
     state: 'present'
+

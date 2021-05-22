@@ -32,7 +32,6 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.))
 import Regex
 import RemoteData
-import ServerDeploy
 import Time
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
@@ -215,30 +214,25 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 Nothing ->
                     "\n"
 
-        guacamoleSetupCmdsYaml : String
-        guacamoleSetupCmdsYaml =
-            if deployGuacamole then
-                ServerDeploy.guacamoleUserData
-
-            else
-                "echo \"Not deploying Guacamole\"\n"
-
         ansibleExtraVars : String
         ansibleExtraVars =
-            if deployDesktopEnvironment then
-                -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
-                """{\\"gui_enabled\\":true}"""
+            -- JSON format is required to pass boolean values to Ansible as extra vars at runtime
+            -- I'm so sorry... doing by hand because Elm Json.Encode doesn't insert enough double quotes
+            String.concat
+                [ """{\\"guac_enabled\\":"""
+                , if deployGuacamole then
+                    "true"
 
-            else
-                """{\\"gui_enabled\\":false}"""
+                  else
+                    "false"
+                , """,\\"gui_enabled\\":"""
+                , if deployDesktopEnvironment then
+                    "true"
 
-        desktopEnvironmentSetupCmdsYaml : String
-        desktopEnvironmentSetupCmdsYaml =
-            if deployDesktopEnvironment then
-                ServerDeploy.desktopEnvironmentUserData
-
-            else
-                "echo \"Not deploying a desktop environment\"\n"
+                  else
+                    "false"
+                , """}"""
+                ]
 
         installOperatingSystemUpatesYaml : String
         installOperatingSystemUpatesYaml =
@@ -249,9 +243,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                 "false"
     in
     [ ( "{ssh-authorized-keys}\n", authorizedKeysYaml )
-    , ( "{guacamole-setup}\n", guacamoleSetupCmdsYaml )
     , ( "{ansible-extra-vars}", ansibleExtraVars )
-    , ( "{desktop-environment-setup}\n", desktopEnvironmentSetupCmdsYaml )
     , ( "{install-os-updates}", installOperatingSystemUpatesYaml )
     , ( "{instance-config-mgt-repo-url}", instanceConfigMgtRepoUrl )
     , ( "{instance-config-mgt-repo-checkout}", instanceConfigMgtRepoCheckout )

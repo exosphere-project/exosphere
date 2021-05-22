@@ -6,6 +6,22 @@
     - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
     - "{{ ansible_distribution }}.yml"
 
+- name: 'graphical environment installed'
+  package:
+    name: '{{ desktop_environment_package_name }}'
+    state: 'present'
+
+- name: 'graphical environment started on boot'
+  systemd:
+    name: 'graphical.target'
+    enabled: 'yes'
+
+- name: 'graphical environment set as default systemd target'
+  command: 'systemctl set-default graphical.target'
+
+- name: 'graphical environment isolated'
+  command: 'systemctl isolate graphical.target'
+
 - name: 'Automatic login enabled in GDM custom config'
   blockinfile:
     path: '{{ gdm_custom_conf_location }}'

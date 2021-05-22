@@ -2,23 +2,21 @@
 - name: Instance deployment
   hosts:
     - 'localhost'
-  pre_tasks:
-    - set_fact:
-        exouser_password: '{{ lookup("env", "PASSPHRASE") }}'
-      no_log: true
-    - fail:
-        msg: "PASSPHRASE is a mandatory value to execute the playbook; pass it as an environment variable "
-      when: 'exouser_password == ""'
   roles:
+    - 'password'
     - 'base-setup'
+    - 'system-load-logging'
     - 'cloud-init-tweaks'
-    - 'docker'
-    - role: 'desktop-tweaks'
+    - 'auto-mount-volumes'
+    - role: 'docker'
+      when: 'guac_enabled is defined and guac_enabled == true'
+    - role: 'desktop-setup'
       when: 'gui_enabled is defined and gui_enabled == true'
     # VNC service must run after Docker service because it listens on Docker network interface
     - role: 'vnc-server'
       when: 'gui_enabled is defined and gui_enabled == true'
-    - 'guacamole'
+    - role: 'guacamole'
+      when: 'guac_enabled is defined and guac_enabled == true'
   tasks:
     - name: 'ensure hosts are reachable'
       ping:

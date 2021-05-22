@@ -1,10 +1,22 @@
 ---
 
+- name: 'operating system-specific variables imported'
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+
+- name: 'exouser added to distro-default user group'
+  user:
+    name: 'exouser'
+    append: 'yes'
+    groups:
+      - '{{ default_user_group }}'
+
 - name: 'tasks imported for CentOS'
   import_tasks: 'centos.yml'
   when: 'ansible_distribution == "CentOS"'
 
-- name: 'packages installed'
-  package:
-    name: 'haveged'
-    state: 'present'
+- name: 'tasks imported for Ubuntu'
+  import_tasks: 'ubuntu.yml'
+  when: 'ansible_distribution == "Ubuntu"'
