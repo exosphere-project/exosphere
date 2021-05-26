@@ -172,10 +172,10 @@ stringIsUuidOrDefaultSuite =
         , test "rejects a non-uuid" <|
             \_ ->
                 Expect.equal False (Helpers.stringIsUuidOrDefault "gesnodulator")
-        , test "Accepts \"default\"" <|
+        , test "Accepts 'default'" <|
             \_ ->
                 Expect.equal True (Helpers.stringIsUuidOrDefault "default")
-        , test "Rejects \"Default\" (note upper case)" <|
+        , test "Rejects 'Default' (note upper case)" <|
             \_ ->
                 Expect.equal False (Helpers.stringIsUuidOrDefault "Default")
         ]
