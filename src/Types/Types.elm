@@ -271,7 +271,7 @@ type alias Project =
     , volumes : WebData (List OSTypes.Volume)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
-    , floatingIps : WebData (List OSTypes.IpAddress)
+    , floatingIps : WebData (List OSTypes.FloatingIp)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
@@ -356,11 +356,11 @@ type ProjectSpecificMsgConstructor
     | ReceiveDeleteKeypair ErrorContext OSTypes.KeypairName (Result Http.Error ())
     | ReceiveNetworks ErrorContext (Result HttpErrorWithBody (List OSTypes.Network))
     | ReceiveAutoAllocatedNetwork ErrorContext (Result HttpErrorWithBody OSTypes.NetworkUuid)
-    | ReceiveFloatingIps (List OSTypes.IpAddress)
+    | ReceiveFloatingIps (List OSTypes.FloatingIp)
     | ReceivePorts ErrorContext (Result HttpErrorWithBody (List OSTypes.Port))
     | ReceiveDeleteFloatingIp OSTypes.IpAddressUuid
-    | ReceiveAssignFloatingIp OSTypes.IpAddress
-    | ReceiveUnassignFloatingIp OSTypes.IpAddress
+    | ReceiveAssignFloatingIp OSTypes.FloatingIp
+    | ReceiveUnassignFloatingIp OSTypes.FloatingIp
     | ReceiveSecurityGroups (List OSTypes.SecurityGroup)
     | ReceiveCreateExoSecurityGroup OSTypes.SecurityGroup
     | ReceiveCreateVolume
@@ -382,7 +382,7 @@ type ServerSpecificMsgConstructor
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
     | ReceiveDeleteServer (Maybe OSTypes.IpAddressValue)
-    | ReceiveCreateFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.IpAddress)
+    | ReceiveCreateFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveServerPassword OSTypes.ServerPassword
     | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))

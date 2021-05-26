@@ -12,11 +12,11 @@ module OpenStack.Types exposing
     , EndpointInterface(..)
     , Flavor
     , FlavorUuid
+    , FloatingIp
     , Image
     , ImageStatus(..)
     , ImageUuid
     , ImageVisibility(..)
-    , IpAddress
     , IpAddressStatus(..)
     , IpAddressType(..)
     , IpAddressUuid
@@ -601,10 +601,9 @@ type alias VolumeQuota =
 -- Neutron
 
 
-type alias IpAddress =
+type alias FloatingIp =
     { uuid : IpAddressUuid
     , address : IpAddressValue
-    , openstackType : IpAddressType
     , status : IpAddressStatus
     , portUuid : Maybe PortUuid
     }

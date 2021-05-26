@@ -34,7 +34,7 @@ import Widget.Style.Material
 floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> Msg) -> Element.Element Msg
 floatingIps context showHeading project viewParams toMsg =
     let
-        renderFloatingIps : List OSTypes.IpAddress -> Element.Element Msg
+        renderFloatingIps : List OSTypes.FloatingIp -> Element.Element Msg
         renderFloatingIps ips =
             let
                 ipsSorted =
@@ -118,7 +118,7 @@ renderFloatingIpCard :
     -> Project
     -> FloatingIpListViewParams
     -> (FloatingIpListViewParams -> Msg)
-    -> OSTypes.IpAddress
+    -> OSTypes.FloatingIp
     -> Element.Element Msg
 renderFloatingIpCard context project viewParams toMsg ip =
     let
@@ -167,7 +167,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.IpAddress -> Element.Element Msg
+actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.FloatingIp -> Element.Element Msg
 actionButtons context project toMsg viewParams ip =
     let
         assignUnassignButton =
@@ -249,7 +249,7 @@ ipsAssignedToServersExpander :
     View.Types.Context
     -> FloatingIpListViewParams
     -> (FloatingIpListViewParams -> Msg)
-    -> List OSTypes.IpAddress
+    -> List OSTypes.FloatingIp
     -> Element.Element Msg
 ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
     let

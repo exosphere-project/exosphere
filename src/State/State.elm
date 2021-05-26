@@ -1651,7 +1651,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             ( newModel, exoSetupStatusMetadataCmd )
 
 
-processNewFloatingIp : Project -> OSTypes.IpAddress -> Project
+processNewFloatingIp : Project -> OSTypes.FloatingIp -> Project
 processNewFloatingIp project floatingIp =
     let
         otherIps =

@@ -501,7 +501,7 @@ receiveNetworks model project networks =
     ( newModel, Cmd.none )
 
 
-receiveFloatingIps : Model -> Project -> List OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveFloatingIps : Model -> Project -> List OSTypes.FloatingIp -> ( Model, Cmd Msg )
 receiveFloatingIps model project floatingIps =
     let
         newProject =
@@ -513,7 +513,7 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.FloatingIp -> ( Model, Cmd Msg )
 receiveCreateFloatingIp model project server ipAddress =
     let
         newServer =
@@ -563,14 +563,14 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
+addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.FloatingIp -> OSTypes.ServerDetails
 addFloatingIpInServerDetails details ipAddress =
     let
         serverIpAddress =
             -- This is an ugly hack, we need to remove the parallel data structure
             OSTypes.ServerIpAddress
                 ipAddress.address
-                ipAddress.openstackType
+                OSTypes.IpAddressFloating
 
         newIps =
             serverIpAddress :: details.ipAddresses
@@ -670,22 +670,21 @@ networkDecoder =
         (Decode.field "router:external" Decode.bool)
 
 
-decodeFloatingIps : Decode.Decoder (List OSTypes.IpAddress)
+decodeFloatingIps : Decode.Decoder (List OSTypes.FloatingIp)
 decodeFloatingIps =
     Decode.field "floatingips" (Decode.list floatingIpDecoder)
 
 
-decodeFloatingIp : Decode.Decoder OSTypes.IpAddress
+decodeFloatingIp : Decode.Decoder OSTypes.FloatingIp
 decodeFloatingIp =
     Decode.field "floatingip" floatingIpDecoder
 
 
-floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
+floatingIpDecoder : Decode.Decoder OSTypes.FloatingIp
 floatingIpDecoder =
-    Decode.map5 OSTypes.IpAddress
+    Decode.map4 OSTypes.FloatingIp
         (Decode.field "id" Decode.string)
         (Decode.field "floating_ip_address" Decode.string)
-        (Decode.succeed OSTypes.IpAddressFloating)
         (Decode.field "status" Decode.string
             |> Decode.andThen ipAddressStatusDecoder
         )

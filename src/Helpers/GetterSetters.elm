@@ -97,7 +97,7 @@ providerLookup model keystoneUrl =
         |> List.head
 
 
-floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.IpAddress
+floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp
 floatingIpLookup project ipUuid =
     List.filter
         (\i -> i.uuid == ipUuid)
