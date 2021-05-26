@@ -1290,7 +1290,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             RemoteData.withDefault [] project.floatingIps
                                 |> List.filter (\i -> i.address == ipAddress)
                                 |> List.head
-                                |> Maybe.andThen .uuid
+                                |> Maybe.map .uuid
                     in
                     case maybeFloatingIpUuid of
                         Nothing ->

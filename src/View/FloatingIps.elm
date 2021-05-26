@@ -147,17 +147,14 @@ renderFloatingIpCard context project viewParams toMsg ip =
 
                 Nothing ->
                     case ip.status of
-                        Just OSTypes.IpAddressActive ->
+                        OSTypes.IpAddressActive ->
                             Element.text "Active"
 
-                        Just OSTypes.IpAddressDown ->
+                        OSTypes.IpAddressDown ->
                             Element.text "Unassigned"
 
-                        Just OSTypes.IpAddressError ->
+                        OSTypes.IpAddressError ->
                             Element.text "Status: Error"
-
-                        Nothing ->
-                            Element.none
     in
     Style.Widgets.Card.exoCard
         context.palette
@@ -176,23 +173,17 @@ actionButtons context project toMsg viewParams ip =
         assignUnassignButton =
             let
                 ( text, onPress ) =
-                    case ( GetterSetters.getFloatingIpServer project ip.address, ip.uuid ) of
-                        ( Nothing, Just ipUuid ) ->
+                    case GetterSetters.getFloatingIpServer project ip.address of
+                        Nothing ->
                             ( "Assign"
                             , Just <|
                                 ProjectMsg project.auth.project.uuid <|
                                     SetProjectView <|
-                                        AssignFloatingIp (AssignFloatingIpViewParams (Just ipUuid) Nothing)
+                                        AssignFloatingIp (AssignFloatingIpViewParams (Just ip.uuid) Nothing)
                             )
 
-                        ( Nothing, Nothing ) ->
-                            ( "Assign", Nothing )
-
-                        ( Just _, Just ipUuid ) ->
-                            ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipUuid )
-
-                        ( Just _, Nothing ) ->
-                            ( "Unassign", Nothing )
+                        Just _ ->
+                            ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ip.uuid )
             in
             Widget.textButton
                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
@@ -211,13 +202,10 @@ actionButtons context project toMsg viewParams ip =
                         (Style.Widgets.Button.dangerButton context.palette)
                         { text = "Delete"
                         , onPress =
-                            ip.uuid
-                                |> Maybe.map
-                                    (\uuid ->
-                                        ProjectMsg
-                                            project.auth.project.uuid
-                                            (RequestDeleteFloatingIp uuid)
-                                    )
+                            Just <|
+                                ProjectMsg
+                                    project.auth.project.uuid
+                                    (RequestDeleteFloatingIp ip.uuid)
                         }
                     , Widget.textButton
                         (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
@@ -379,21 +367,17 @@ assignFloatingIp context project viewParams =
                     )
 
         ipChoices =
-            -- Show only un-assigned IP addresses for which we have a UUID
+            -- Show only un-assigned IP addresses
             project.floatingIps
                 |> RemoteData.withDefault []
                 |> List.sortBy .address
-                |> List.filter (\ip -> ip.status == Just OSTypes.IpAddressDown)
+                |> List.filter (\ip -> ip.status == OSTypes.IpAddressDown)
                 |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip.address == Nothing)
-                |> List.filterMap
-                    (\ip ->
-                        ip.uuid |> Maybe.map (\uuid -> ( uuid, ip.address ))
-                    )
                 |> List.map
-                    (\uuidAddressTuple ->
-                        Input.option (Tuple.first uuidAddressTuple)
+                    (\ip ->
+                        Input.option ip.uuid
                             (Element.el [ Font.family [ Font.monospace ] ] <|
-                                Element.text (Tuple.second uuidAddressTuple)
+                                Element.text ip.address
                             )
                     )
 

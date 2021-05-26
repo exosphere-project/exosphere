@@ -1001,10 +1001,10 @@ resourceUsageCharts context currentTimeAndZone server =
                                 ]
 
 
-renderIpAddresses : View.Types.Context -> ProjectIdentifier -> Server -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
+renderIpAddresses : View.Types.Context -> ProjectIdentifier -> Server -> ServerDetailViewParams -> List OSTypes.ServerIpAddress -> Element.Element Msg
 renderIpAddresses context projectId server serverDetailViewParams ipAddresses =
     let
-        ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
+        ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.ServerIpAddress
         ipAddressesOfType ipAddressType =
             ipAddresses
                 |> List.filter

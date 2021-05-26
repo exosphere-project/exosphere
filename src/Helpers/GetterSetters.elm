@@ -100,7 +100,7 @@ providerLookup model keystoneUrl =
 floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.IpAddress
 floatingIpLookup project ipUuid =
     List.filter
-        (\i -> i.uuid == Just ipUuid)
+        (\i -> i.uuid == ipUuid)
         (RemoteData.withDefault [] project.floatingIps)
         |> List.head
 
@@ -145,7 +145,7 @@ getServerPort project server =
         |> List.head
 
 
-getServerFloatingIp : List OSTypes.IpAddress -> Maybe OSTypes.IpAddressValue
+getServerFloatingIp : List OSTypes.ServerIpAddress -> Maybe OSTypes.IpAddressValue
 getServerFloatingIp ipAddresses =
     let
         isFloating ipAddress =

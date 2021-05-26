@@ -38,6 +38,7 @@ module OpenStack.Types exposing
     , Server
     , ServerDetails
     , ServerEvent
+    , ServerIpAddress
     , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
@@ -398,12 +399,18 @@ type alias ServerDetails =
     , imageUuid : ImageUuid
     , flavorUuid : FlavorUuid
     , keypairName : Maybe String
-    , ipAddresses : List IpAddress
+    , ipAddresses : List ServerIpAddress
     , metadata : List MetadataItem
     , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
     , tags : List ServerTag
     , lockStatus : ServerLockStatus
+    }
+
+
+type alias ServerIpAddress =
+    { address : IpAddressValue
+    , openstackType : IpAddressType
     }
 
 
@@ -595,10 +602,10 @@ type alias VolumeQuota =
 
 
 type alias IpAddress =
-    { uuid : Maybe IpAddressUuid -- IP addresses returned in server details do not show UUIDs :(
+    { uuid : IpAddressUuid
     , address : IpAddressValue
     , openstackType : IpAddressType
-    , status : Maybe IpAddressStatus -- IP addresses returned in server details do not show status :(
+    , status : IpAddressStatus
     }
 
 

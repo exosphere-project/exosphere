@@ -549,7 +549,7 @@ receiveDeleteFloatingIp model project uuid =
         RemoteData.Success floatingIps ->
             let
                 newFloatingIps =
-                    List.filter (\f -> f.uuid /= Just uuid) floatingIps
+                    List.filter (\f -> f.uuid /= uuid) floatingIps
 
                 newProject =
                     { project | floatingIps = RemoteData.Success newFloatingIps }
@@ -566,8 +566,14 @@ receiveDeleteFloatingIp model project uuid =
 addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
 addFloatingIpInServerDetails details ipAddress =
     let
+        serverIpAddress =
+            -- This is an ugly hack, we need to remove the parallel data structure
+            OSTypes.ServerIpAddress
+                ipAddress.address
+                ipAddress.openstackType
+
         newIps =
-            ipAddress :: details.ipAddresses
+            serverIpAddress :: details.ipAddresses
     in
     { details | ipAddresses = newIps }
 
@@ -677,12 +683,11 @@ decodeFloatingIp =
 floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
 floatingIpDecoder =
     Decode.map4 OSTypes.IpAddress
-        (Decode.field "id" Decode.string |> Decode.map (\i -> Just i))
+        (Decode.field "id" Decode.string)
         (Decode.field "floating_ip_address" Decode.string)
         (Decode.succeed OSTypes.IpAddressFloating)
         (Decode.field "status" Decode.string
             |> Decode.andThen ipAddressStatusDecoder
-            |> Decode.map (\s -> Just s)
         )
 
 
