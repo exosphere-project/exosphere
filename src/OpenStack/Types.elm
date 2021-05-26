@@ -606,6 +606,7 @@ type alias IpAddress =
     , address : IpAddressValue
     , openstackType : IpAddressType
     , status : IpAddressStatus
+    , portUuid : Maybe PortUuid
     }
 
 
