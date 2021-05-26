@@ -909,6 +909,8 @@ processProjectSpecificMsg model project msg =
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestNetworks project.auth.project.uuid)
                 |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                |> Helpers.pipelineCmd
                     (ViewStateHelpers.modelUpdateViewState newViewState)
 
         ReceiveNetworks errorContext result ->

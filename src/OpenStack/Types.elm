@@ -18,7 +18,6 @@ module OpenStack.Types exposing
     , ImageUuid
     , ImageVisibility(..)
     , IpAddressStatus(..)
-    , IpAddressType(..)
     , IpAddressUuid
     , IpAddressValue
     , Keypair
@@ -31,6 +30,7 @@ module OpenStack.Types exposing
     , NetworkUuid
     , OpenstackLogin
     , Port
+    , PortUuid
     , PublicKey
     , QuotaItemDetail
     , ScopedAuthToken
@@ -38,7 +38,6 @@ module OpenStack.Types exposing
     , Server
     , ServerDetails
     , ServerEvent
-    , ServerIpAddress
     , ServerLockStatus(..)
     , ServerPassword
     , ServerPowerState(..)
@@ -399,18 +398,11 @@ type alias ServerDetails =
     , imageUuid : ImageUuid
     , flavorUuid : FlavorUuid
     , keypairName : Maybe String
-    , ipAddresses : List ServerIpAddress
     , metadata : List MetadataItem
     , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
     , tags : List ServerTag
     , lockStatus : ServerLockStatus
-    }
-
-
-type alias ServerIpAddress =
-    { address : IpAddressValue
-    , openstackType : IpAddressType
     }
 
 
@@ -617,11 +609,6 @@ type alias IpAddressUuid =
     HelperTypes.Uuid
 
 
-type IpAddressType
-    = IpAddressFixed
-    | IpAddressFloating
-
-
 type IpAddressStatus
     = IpAddressActive
     | IpAddressDown
@@ -646,6 +633,7 @@ type alias Port =
     , deviceUuid : ServerUuid
     , adminStateUp : Bool
     , status : String
+    , fixedIps : List IpAddressValue
     }
 
 

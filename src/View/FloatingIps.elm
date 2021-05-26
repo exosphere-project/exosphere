@@ -41,7 +41,7 @@ floatingIps context showHeading project viewParams toMsg =
                     List.sortBy .address ips
 
                 ipAssignedToServersWeKnowAbout ip =
-                    case GetterSetters.getFloatingIpServer project ip.address of
+                    case GetterSetters.getFloatingIpServer project ip of
                         Just _ ->
                             True
 
@@ -126,7 +126,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
             actionButtons context project toMsg viewParams ip
 
         cardBody =
-            case GetterSetters.getFloatingIpServer project ip.address of
+            case GetterSetters.getFloatingIpServer project ip of
                 Just server ->
                     Element.row [ Element.spacing 5 ]
                         [ Element.text <|
@@ -173,7 +173,7 @@ actionButtons context project toMsg viewParams ip =
         assignUnassignButton =
             let
                 ( text, onPress ) =
-                    case GetterSetters.getFloatingIpServer project ip.address of
+                    case GetterSetters.getFloatingIpServer project ip of
                         Nothing ->
                             ( "Assign"
                             , Just <|
@@ -356,9 +356,7 @@ assignFloatingIp context project viewParams =
                     )
                 |> List.filter
                     (\s ->
-                        s.osProps.details.ipAddresses
-                            |> List.filter (\ip -> ip.openstackType == OSTypes.IpAddressFloating)
-                            |> List.isEmpty
+                        GetterSetters.getServerFloatingIps project s.osProps.uuid |> List.isEmpty
                     )
                 |> List.map
                     (\s ->
@@ -372,7 +370,7 @@ assignFloatingIp context project viewParams =
                 |> RemoteData.withDefault []
                 |> List.sortBy .address
                 |> List.filter (\ip -> ip.status == OSTypes.IpAddressDown)
-                |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip.address == Nothing)
+                |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip == Nothing)
                 |> List.map
                     (\ip ->
                         Input.option ip.uuid
@@ -455,15 +453,16 @@ assignFloatingIp context project viewParams =
                             ( Just server, Just floatingIp ) ->
                                 let
                                     ipAssignedToServer =
-                                        case GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses of
-                                            Just serverFloatingIp ->
-                                                serverFloatingIp == floatingIp.address
-
-                                            _ ->
+                                        case GetterSetters.getServerFloatingIps project server.osProps.uuid of
+                                            [] ->
                                                 False
 
+                                            serverFloatingIps ->
+                                                List.member floatingIp serverFloatingIps
+
                                     maybePort =
-                                        GetterSetters.getServerPort project server
+                                        GetterSetters.getServerPorts project server.osProps.uuid
+                                            |> List.head
                                 in
                                 case ( ipAssignedToServer, maybePort ) of
                                     ( True, _ ) ->

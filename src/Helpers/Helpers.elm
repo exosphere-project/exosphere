@@ -143,21 +143,21 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
-checkFloatingIpState : OSTypes.ServerDetails -> FloatingIpState -> FloatingIpState
-checkFloatingIpState serverDetails floatingIpState =
+checkFloatingIpState : Project -> OSTypes.Server -> FloatingIpState -> FloatingIpState
+checkFloatingIpState project osServer floatingIpState =
     let
-        hasFixedIp =
-            List.filter (\a -> a.openstackType == OSTypes.IpAddressFixed) serverDetails.ipAddresses
+        hasPort =
+            GetterSetters.getServerPorts project osServer.uuid
                 |> List.isEmpty
                 |> not
 
         hasFloatingIp =
-            List.filter (\a -> a.openstackType == OSTypes.IpAddressFloating) serverDetails.ipAddresses
+            GetterSetters.getServerFloatingIps project osServer.uuid
                 |> List.isEmpty
                 |> not
 
         isActive =
-            serverDetails.openstackStatus == OSTypes.ServerActive
+            osServer.details.openstackStatus == OSTypes.ServerActive
     in
     case floatingIpState of
         RequestedWaiting ->
@@ -177,7 +177,7 @@ checkFloatingIpState serverDetails floatingIpState =
             if hasFloatingIp then
                 Success
 
-            else if hasFixedIp && isActive then
+            else if hasPort && isActive then
                 Requestable
 
             else

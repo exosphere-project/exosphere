@@ -1,6 +1,5 @@
 module Rest.Neutron exposing
-    ( addFloatingIpInServerDetails
-    , decodeFloatingIp
+    ( decodeFloatingIp
     , decodeNetworks
     , decodePorts
     , ipAddressStatusDecoder
@@ -514,28 +513,30 @@ receiveFloatingIps model project floatingIps =
 
 
 receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.FloatingIp -> ( Model, Cmd Msg )
-receiveCreateFloatingIp model project server ipAddress =
+receiveCreateFloatingIp model project server floatingIp =
     let
         newServer =
             let
-                oldOSProps =
-                    server.osProps
-
                 oldExoProps =
                     server.exoProps
-
-                details =
-                    addFloatingIpInServerDetails
-                        server.osProps.details
-                        ipAddress
             in
             { server
-                | osProps = { oldOSProps | details = details }
-                , exoProps = { oldExoProps | priorFloatingIpState = Success }
+                | exoProps = { oldExoProps | priorFloatingIpState = Success }
             }
 
-        newProject =
+        projectUpdatedServer =
             GetterSetters.projectUpdateServer project newServer
+
+        newFloatingIps =
+            floatingIp
+                :: (project.floatingIps
+                        |> RemoteData.withDefault []
+                   )
+
+        newProject =
+            { projectUpdatedServer
+                | floatingIps = RemoteData.Success newFloatingIps
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -561,21 +562,6 @@ receiveDeleteFloatingIp model project uuid =
 
         _ ->
             ( model, Cmd.none )
-
-
-addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.FloatingIp -> OSTypes.ServerDetails
-addFloatingIpInServerDetails details ipAddress =
-    let
-        serverIpAddress =
-            -- This is an ugly hack, we need to remove the parallel data structure
-            OSTypes.ServerIpAddress
-                ipAddress.address
-                OSTypes.IpAddressFloating
-
-        newIps =
-            serverIpAddress :: details.ipAddresses
-    in
-    { details | ipAddresses = newIps }
 
 
 receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> List OSTypes.SecurityGroup -> ( Model, Cmd Msg )
@@ -714,11 +700,14 @@ decodePorts =
 
 portDecoder : Decode.Decoder OSTypes.Port
 portDecoder =
-    Decode.map4 OSTypes.Port
+    Decode.map5 OSTypes.Port
         (Decode.field "id" Decode.string)
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
+        (Decode.field "fixed_ips"
+            (Decode.list (Decode.field "ip_address" Decode.string))
+        )
 
 
 decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)

@@ -5,7 +5,6 @@ module Rest.Nova exposing
     , decodeServerDetails
     , decodeServers
     , flavorDecoder
-    , ipAddressOpenstackTypeDecoder
     , keypairDecoder
     , receiveConsoleUrl
     , receiveFlavors
@@ -24,7 +23,6 @@ module Rest.Nova exposing
     , requestServers
     , requestSetServerMetadata
     , requestSetServerName
-    , serverIpAddressDecoder
     , serverPowerStateDecoder
     )
 
@@ -437,9 +435,12 @@ requestCreateServer project createServerRequest =
 requestDeleteServer : Project -> Server -> Cmd Msg
 requestDeleteServer project server =
     let
-        getFloatingIp =
-            server.osProps.details.ipAddresses
-                |> GetterSetters.getServerFloatingIp
+        maybeFloatingIp =
+            -- Future TODO: if deleting a server with multiple floating IPs, this will only delete one of the floating IPs.
+            -- This only becomes a problem if we start supporting servers with multiple ports/floating IPs.
+            GetterSetters.getServerFloatingIps project server.osProps.uuid
+                |> List.map .address
+                |> List.head
 
         errorContext =
             ErrorContext
@@ -453,7 +454,7 @@ requestDeleteServer project server =
                 (\_ ->
                     ProjectMsg project.auth.project.uuid <|
                         ServerMsg server.osProps.uuid <|
-                            ReceiveDeleteServer getFloatingIp
+                            ReceiveDeleteServer maybeFloatingIp
                 )
     in
     openstackCredentialedRequest
@@ -704,7 +705,8 @@ receiveServer_ project osServer =
                     let
                         floatingIpState_ =
                             Helpers.checkFloatingIpState
-                                osServer.details
+                                project
+                                osServer
                                 exoServer.exoProps.priorFloatingIpState
 
                         oldOSProps =
@@ -922,14 +924,6 @@ decodeServer =
 
 decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
 decodeServerDetails =
-    let
-        flattenAddressesObject kVPairs =
-            {- Takes a list of key-value pairs, the keys being network names and the values being OSTypes.IpAddress
-               Returns a flat list of OSTypes.IpAddress
-            -}
-            List.foldl (\kVPair resultList -> Tuple.second kVPair :: resultList) [] kVPairs
-                |> List.concat
-    in
     Decode.succeed OSTypes.ServerDetails
         |> Pipeline.required "status" (Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
         |> Pipeline.required "created" Decode.string
@@ -937,7 +931,6 @@ decodeServerDetails =
         |> Pipeline.optionalAt [ "image", "id" ] Decode.string ""
         |> Pipeline.requiredAt [ "flavor", "id" ] Decode.string
         |> Pipeline.optional "key_name" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
-        |> Pipeline.optional "addresses" (Decode.map flattenAddressesObject (Decode.keyValuePairs (Decode.list serverIpAddressDecoder))) []
         |> Pipeline.required "metadata" metadataDecoder
         |> Pipeline.required "user_id" Decode.string
         |> Pipeline.required "os-extended-volumes:volumes_attached" (Decode.list (Decode.at [ "id" ] Decode.string))
@@ -1014,28 +1007,6 @@ serverPowerStateDecoder int =
 
         _ ->
             Decode.fail "Ooooooops, unrecognised server power state"
-
-
-serverIpAddressDecoder : Decode.Decoder OSTypes.ServerIpAddress
-serverIpAddressDecoder =
-    Decode.map2 OSTypes.ServerIpAddress
-        (Decode.field "addr" Decode.string)
-        (Decode.field "OS-EXT-IPS:type" Decode.string
-            |> Decode.andThen ipAddressOpenstackTypeDecoder
-        )
-
-
-ipAddressOpenstackTypeDecoder : String -> Decode.Decoder OSTypes.IpAddressType
-ipAddressOpenstackTypeDecoder string =
-    case string of
-        "fixed" ->
-            Decode.succeed OSTypes.IpAddressFixed
-
-        "floating" ->
-            Decode.succeed OSTypes.IpAddressFloating
-
-        _ ->
-            Decode.fail "oooooooops, unrecognised IP address type"
 
 
 metadataDecoder : Decode.Decoder (List OSTypes.MetadataItem)

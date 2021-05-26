@@ -17,18 +17,21 @@ import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
 import Types.Types
     exposing
-        ( Server
+        ( Project
+        , Server
         , ServerOrigin(..)
         , UserAppProxyHostname
         )
 import View.Types
 
 
-interactionStatus : Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
-interactionStatus server interaction context currentTime tlsReverseProxyHostname =
+interactionStatus : Project -> Server -> ITypes.Interaction -> View.Types.Context -> Time.Posix -> Maybe UserAppProxyHostname -> ITypes.InteractionStatus
+interactionStatus project server interaction context currentTime tlsReverseProxyHostname =
     let
-        maybeFloatingIp =
-            GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
+        maybeFloatingIpAddress =
+            GetterSetters.getServerFloatingIps project server.osProps.uuid
+                |> List.map .address
+                |> List.head
 
         guac : GuacType -> ITypes.InteractionStatus
         guac guacType =
@@ -121,7 +124,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                             else
                                 case guacProps.authToken.data of
                                     RDPP.DoHave token _ ->
-                                        case ( tlsReverseProxyHostname, maybeFloatingIp ) of
+                                        case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
                                             ( Just proxyHostname, Just floatingIp ) ->
                                                 ITypes.Ready <|
                                                     UrlHelpers.buildProxyUrl
@@ -155,7 +158,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                                         else
                                             case
                                                 ( tlsReverseProxyHostname
-                                                , maybeFloatingIp
+                                                , maybeFloatingIpAddress
                                                 , GetterSetters.getServerExouserPassword server.osProps.details
                                                 )
                                             of
@@ -216,7 +219,7 @@ interactionStatus server interaction context currentTime tlsReverseProxyHostname
                     guac Desktop
 
                 ITypes.NativeSSH ->
-                    case maybeFloatingIp of
+                    case maybeFloatingIpAddress of
                         Nothing ->
                             ITypes.Unavailable <|
                                 String.join " "
