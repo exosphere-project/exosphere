@@ -909,6 +909,8 @@ processProjectSpecificMsg model project msg =
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestNetworks project.auth.project.uuid)
                 |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                |> Helpers.pipelineCmd
                     (ViewStateHelpers.modelUpdateViewState newViewState)
 
         ReceiveNetworks errorContext result ->
@@ -1290,7 +1292,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             RemoteData.withDefault [] project.floatingIps
                                 |> List.filter (\i -> i.address == ipAddress)
                                 |> List.head
-                                |> Maybe.andThen .uuid
+                                |> Maybe.map .uuid
                     in
                     case maybeFloatingIpUuid of
                         Nothing ->
@@ -1651,7 +1653,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             ( newModel, exoSetupStatusMetadataCmd )
 
 
-processNewFloatingIp : Project -> OSTypes.IpAddress -> Project
+processNewFloatingIp : Project -> OSTypes.FloatingIp -> Project
 processNewFloatingIp project floatingIp =
     let
         otherIps =

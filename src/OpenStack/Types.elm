@@ -12,13 +12,12 @@ module OpenStack.Types exposing
     , EndpointInterface(..)
     , Flavor
     , FlavorUuid
+    , FloatingIp
     , Image
     , ImageStatus(..)
     , ImageUuid
     , ImageVisibility(..)
-    , IpAddress
     , IpAddressStatus(..)
-    , IpAddressType(..)
     , IpAddressUuid
     , IpAddressValue
     , Keypair
@@ -31,6 +30,7 @@ module OpenStack.Types exposing
     , NetworkUuid
     , OpenstackLogin
     , Port
+    , PortUuid
     , PublicKey
     , QuotaItemDetail
     , ScopedAuthToken
@@ -398,7 +398,6 @@ type alias ServerDetails =
     , imageUuid : ImageUuid
     , flavorUuid : FlavorUuid
     , keypairName : Maybe String
-    , ipAddresses : List IpAddress
     , metadata : List MetadataItem
     , userUuid : UserUuid
     , volumesAttached : List VolumeUuid
@@ -594,11 +593,11 @@ type alias VolumeQuota =
 -- Neutron
 
 
-type alias IpAddress =
-    { uuid : Maybe IpAddressUuid -- IP addresses returned in server details do not show UUIDs :(
+type alias FloatingIp =
+    { uuid : IpAddressUuid
     , address : IpAddressValue
-    , openstackType : IpAddressType
-    , status : Maybe IpAddressStatus -- IP addresses returned in server details do not show status :(
+    , status : IpAddressStatus
+    , portUuid : Maybe PortUuid
     }
 
 
@@ -608,11 +607,6 @@ type alias IpAddressValue =
 
 type alias IpAddressUuid =
     HelperTypes.Uuid
-
-
-type IpAddressType
-    = IpAddressFixed
-    | IpAddressFloating
 
 
 type IpAddressStatus
@@ -639,6 +633,7 @@ type alias Port =
     , deviceUuid : ServerUuid
     , adminStateUp : Bool
     , status : String
+    , fixedIps : List IpAddressValue
     }
 
 

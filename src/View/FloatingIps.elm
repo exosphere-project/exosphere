@@ -34,14 +34,14 @@ import Widget.Style.Material
 floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> Msg) -> Element.Element Msg
 floatingIps context showHeading project viewParams toMsg =
     let
-        renderFloatingIps : List OSTypes.IpAddress -> Element.Element Msg
+        renderFloatingIps : List OSTypes.FloatingIp -> Element.Element Msg
         renderFloatingIps ips =
             let
                 ipsSorted =
                     List.sortBy .address ips
 
                 ipAssignedToServersWeKnowAbout ip =
-                    case GetterSetters.getFloatingIpServer project ip.address of
+                    case GetterSetters.getFloatingIpServer project ip of
                         Just _ ->
                             True
 
@@ -118,7 +118,7 @@ renderFloatingIpCard :
     -> Project
     -> FloatingIpListViewParams
     -> (FloatingIpListViewParams -> Msg)
-    -> OSTypes.IpAddress
+    -> OSTypes.FloatingIp
     -> Element.Element Msg
 renderFloatingIpCard context project viewParams toMsg ip =
     let
@@ -126,7 +126,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
             actionButtons context project toMsg viewParams ip
 
         cardBody =
-            case GetterSetters.getFloatingIpServer project ip.address of
+            case GetterSetters.getFloatingIpServer project ip of
                 Just server ->
                     Element.row [ Element.spacing 5 ]
                         [ Element.text <|
@@ -147,17 +147,14 @@ renderFloatingIpCard context project viewParams toMsg ip =
 
                 Nothing ->
                     case ip.status of
-                        Just OSTypes.IpAddressActive ->
+                        OSTypes.IpAddressActive ->
                             Element.text "Active"
 
-                        Just OSTypes.IpAddressDown ->
+                        OSTypes.IpAddressDown ->
                             Element.text "Unassigned"
 
-                        Just OSTypes.IpAddressError ->
+                        OSTypes.IpAddressError ->
                             Element.text "Status: Error"
-
-                        Nothing ->
-                            Element.none
     in
     Style.Widgets.Card.exoCard
         context.palette
@@ -170,29 +167,23 @@ renderFloatingIpCard context project viewParams toMsg ip =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.IpAddress -> Element.Element Msg
+actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.FloatingIp -> Element.Element Msg
 actionButtons context project toMsg viewParams ip =
     let
         assignUnassignButton =
             let
                 ( text, onPress ) =
-                    case ( GetterSetters.getFloatingIpServer project ip.address, ip.uuid ) of
-                        ( Nothing, Just ipUuid ) ->
+                    case GetterSetters.getFloatingIpServer project ip of
+                        Nothing ->
                             ( "Assign"
                             , Just <|
                                 ProjectMsg project.auth.project.uuid <|
                                     SetProjectView <|
-                                        AssignFloatingIp (AssignFloatingIpViewParams (Just ipUuid) Nothing)
+                                        AssignFloatingIp (AssignFloatingIpViewParams (Just ip.uuid) Nothing)
                             )
 
-                        ( Nothing, Nothing ) ->
-                            ( "Assign", Nothing )
-
-                        ( Just _, Just ipUuid ) ->
-                            ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipUuid )
-
-                        ( Just _, Nothing ) ->
-                            ( "Unassign", Nothing )
+                        Just _ ->
+                            ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ip.uuid )
             in
             Widget.textButton
                 (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
@@ -211,13 +202,10 @@ actionButtons context project toMsg viewParams ip =
                         (Style.Widgets.Button.dangerButton context.palette)
                         { text = "Delete"
                         , onPress =
-                            ip.uuid
-                                |> Maybe.map
-                                    (\uuid ->
-                                        ProjectMsg
-                                            project.auth.project.uuid
-                                            (RequestDeleteFloatingIp uuid)
-                                    )
+                            Just <|
+                                ProjectMsg
+                                    project.auth.project.uuid
+                                    (RequestDeleteFloatingIp ip.uuid)
                         }
                     , Widget.textButton
                         (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
@@ -261,7 +249,7 @@ ipsAssignedToServersExpander :
     View.Types.Context
     -> FloatingIpListViewParams
     -> (FloatingIpListViewParams -> Msg)
-    -> List OSTypes.IpAddress
+    -> List OSTypes.FloatingIp
     -> Element.Element Msg
 ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
     let
@@ -368,9 +356,7 @@ assignFloatingIp context project viewParams =
                     )
                 |> List.filter
                     (\s ->
-                        s.osProps.details.ipAddresses
-                            |> List.filter (\ip -> ip.openstackType == OSTypes.IpAddressFloating)
-                            |> List.isEmpty
+                        GetterSetters.getServerFloatingIps project s.osProps.uuid |> List.isEmpty
                     )
                 |> List.map
                     (\s ->
@@ -379,21 +365,17 @@ assignFloatingIp context project viewParams =
                     )
 
         ipChoices =
-            -- Show only un-assigned IP addresses for which we have a UUID
+            -- Show only un-assigned IP addresses
             project.floatingIps
                 |> RemoteData.withDefault []
                 |> List.sortBy .address
-                |> List.filter (\ip -> ip.status == Just OSTypes.IpAddressDown)
-                |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip.address == Nothing)
-                |> List.filterMap
-                    (\ip ->
-                        ip.uuid |> Maybe.map (\uuid -> ( uuid, ip.address ))
-                    )
+                |> List.filter (\ip -> ip.status == OSTypes.IpAddressDown)
+                |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip == Nothing)
                 |> List.map
-                    (\uuidAddressTuple ->
-                        Input.option (Tuple.first uuidAddressTuple)
+                    (\ip ->
+                        Input.option ip.uuid
                             (Element.el [ Font.family [ Font.monospace ] ] <|
-                                Element.text (Tuple.second uuidAddressTuple)
+                                Element.text ip.address
                             )
                     )
 
@@ -471,15 +453,16 @@ assignFloatingIp context project viewParams =
                             ( Just server, Just floatingIp ) ->
                                 let
                                     ipAssignedToServer =
-                                        case GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses of
-                                            Just serverFloatingIp ->
-                                                serverFloatingIp == floatingIp.address
-
-                                            _ ->
+                                        case GetterSetters.getServerFloatingIps project server.osProps.uuid of
+                                            [] ->
                                                 False
 
+                                            serverFloatingIps ->
+                                                List.member floatingIp serverFloatingIps
+
                                     maybePort =
-                                        GetterSetters.getServerPort project server
+                                        GetterSetters.getServerPorts project server.osProps.uuid
+                                            |> List.head
                                 in
                                 case ( ipAssignedToServer, maybePort ) of
                                     ( True, _ ) ->

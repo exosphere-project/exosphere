@@ -1,6 +1,5 @@
 module Rest.Neutron exposing
-    ( addFloatingIpInServerDetails
-    , decodeFloatingIp
+    ( decodeFloatingIp
     , decodeNetworks
     , decodePorts
     , ipAddressStatusDecoder
@@ -501,7 +500,7 @@ receiveNetworks model project networks =
     ( newModel, Cmd.none )
 
 
-receiveFloatingIps : Model -> Project -> List OSTypes.IpAddress -> ( Model, Cmd Msg )
+receiveFloatingIps : Model -> Project -> List OSTypes.FloatingIp -> ( Model, Cmd Msg )
 receiveFloatingIps model project floatingIps =
     let
         newProject =
@@ -513,29 +512,31 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.IpAddress -> ( Model, Cmd Msg )
-receiveCreateFloatingIp model project server ipAddress =
+receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.FloatingIp -> ( Model, Cmd Msg )
+receiveCreateFloatingIp model project server floatingIp =
     let
         newServer =
             let
-                oldOSProps =
-                    server.osProps
-
                 oldExoProps =
                     server.exoProps
-
-                details =
-                    addFloatingIpInServerDetails
-                        server.osProps.details
-                        ipAddress
             in
             { server
-                | osProps = { oldOSProps | details = details }
-                , exoProps = { oldExoProps | priorFloatingIpState = Success }
+                | exoProps = { oldExoProps | priorFloatingIpState = Success }
             }
 
-        newProject =
+        projectUpdatedServer =
             GetterSetters.projectUpdateServer project newServer
+
+        newFloatingIps =
+            floatingIp
+                :: (project.floatingIps
+                        |> RemoteData.withDefault []
+                   )
+
+        newProject =
+            { projectUpdatedServer
+                | floatingIps = RemoteData.Success newFloatingIps
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -549,7 +550,7 @@ receiveDeleteFloatingIp model project uuid =
         RemoteData.Success floatingIps ->
             let
                 newFloatingIps =
-                    List.filter (\f -> f.uuid /= Just uuid) floatingIps
+                    List.filter (\f -> f.uuid /= uuid) floatingIps
 
                 newProject =
                     { project | floatingIps = RemoteData.Success newFloatingIps }
@@ -561,15 +562,6 @@ receiveDeleteFloatingIp model project uuid =
 
         _ ->
             ( model, Cmd.none )
-
-
-addFloatingIpInServerDetails : OSTypes.ServerDetails -> OSTypes.IpAddress -> OSTypes.ServerDetails
-addFloatingIpInServerDetails details ipAddress =
-    let
-        newIps =
-            ipAddress :: details.ipAddresses
-    in
-    { details | ipAddresses = newIps }
 
 
 receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> List OSTypes.SecurityGroup -> ( Model, Cmd Msg )
@@ -664,26 +656,25 @@ networkDecoder =
         (Decode.field "router:external" Decode.bool)
 
 
-decodeFloatingIps : Decode.Decoder (List OSTypes.IpAddress)
+decodeFloatingIps : Decode.Decoder (List OSTypes.FloatingIp)
 decodeFloatingIps =
     Decode.field "floatingips" (Decode.list floatingIpDecoder)
 
 
-decodeFloatingIp : Decode.Decoder OSTypes.IpAddress
+decodeFloatingIp : Decode.Decoder OSTypes.FloatingIp
 decodeFloatingIp =
     Decode.field "floatingip" floatingIpDecoder
 
 
-floatingIpDecoder : Decode.Decoder OSTypes.IpAddress
+floatingIpDecoder : Decode.Decoder OSTypes.FloatingIp
 floatingIpDecoder =
-    Decode.map4 OSTypes.IpAddress
-        (Decode.field "id" Decode.string |> Decode.map (\i -> Just i))
+    Decode.map4 OSTypes.FloatingIp
+        (Decode.field "id" Decode.string)
         (Decode.field "floating_ip_address" Decode.string)
-        (Decode.succeed OSTypes.IpAddressFloating)
         (Decode.field "status" Decode.string
             |> Decode.andThen ipAddressStatusDecoder
-            |> Decode.map (\s -> Just s)
         )
+        (Decode.field "port_id" <| Decode.nullable Decode.string)
 
 
 ipAddressStatusDecoder : String -> Decode.Decoder OSTypes.IpAddressStatus
@@ -709,11 +700,14 @@ decodePorts =
 
 portDecoder : Decode.Decoder OSTypes.Port
 portDecoder =
-    Decode.map4 OSTypes.Port
+    Decode.map5 OSTypes.Port
         (Decode.field "id" Decode.string)
         (Decode.field "device_id" Decode.string)
         (Decode.field "admin_state_up" Decode.bool)
         (Decode.field "status" Decode.string)
+        (Decode.field "fixed_ips"
+            (Decode.list (Decode.field "ip_address" Decode.string))
+        )
 
 
 decodeSecurityGroups : Decode.Decoder (List OSTypes.SecurityGroup)

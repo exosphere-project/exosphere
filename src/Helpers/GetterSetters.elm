@@ -6,8 +6,9 @@ module Helpers.GetterSetters exposing
     , getFloatingIpServer
     , getPublicEndpointFromService
     , getServerExouserPassword
-    , getServerFloatingIp
-    , getServerPort
+    , getServerFixedIps
+    , getServerFloatingIps
+    , getServerPorts
     , getServersWithVolAttached
     , getServicePublicUrl
     , getVolsAttachedToServer
@@ -97,10 +98,10 @@ providerLookup model keystoneUrl =
         |> List.head
 
 
-floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.IpAddress
+floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp
 floatingIpLookup project ipUuid =
     List.filter
-        (\i -> i.uuid == Just ipUuid)
+        (\i -> i.uuid == ipUuid)
         (RemoteData.withDefault [] project.floatingIps)
         |> List.head
 
@@ -138,38 +139,65 @@ getExternalNetwork project =
             Nothing
 
 
-getServerPort : Project -> Server -> Maybe OSTypes.Port
-getServerPort project server =
+getServerPorts : Project -> OSTypes.ServerUuid -> List OSTypes.Port
+getServerPorts project serverUuid =
     RDPP.withDefault [] project.ports
-        |> List.filter (\port_ -> port_.deviceUuid == server.osProps.uuid)
-        |> List.head
+        |> List.filter (\port_ -> port_.deviceUuid == serverUuid)
 
 
-getServerFloatingIp : List OSTypes.IpAddress -> Maybe OSTypes.IpAddressValue
-getServerFloatingIp ipAddresses =
-    let
-        isFloating ipAddress =
-            ipAddress.openstackType == OSTypes.IpAddressFloating
-    in
-    List.filter isFloating ipAddresses
-        |> List.head
-        |> Maybe.map .address
-
-
-getFloatingIpServer : Project -> OSTypes.IpAddressValue -> Maybe Server
-getFloatingIpServer project ipAddressValue =
-    let
-        serverFilter : Server -> Bool
-        serverFilter server =
-            getServerFloatingIp server.osProps.details.ipAddresses
-                |> Maybe.map
-                    (\floatingIp -> floatingIp == ipAddressValue)
-                |> Maybe.withDefault False
-    in
+getPortServer : Project -> OSTypes.Port -> Maybe Server
+getPortServer project port_ =
     project.servers
         |> RDPP.withDefault []
-        |> List.filter serverFilter
+        |> List.filter (\server -> server.osProps.uuid == port_.deviceUuid)
         |> List.head
+
+
+getFloatingIpPort : Project -> OSTypes.FloatingIp -> Maybe OSTypes.Port
+getFloatingIpPort project floatingIp =
+    floatingIp.portUuid
+        |> Maybe.andThen
+            (\portUuid ->
+                project.ports
+                    |> RDPP.withDefault []
+                    |> List.filter (\p -> p.uuid == portUuid)
+                    |> List.head
+            )
+
+
+getServerFixedIps : Project -> OSTypes.ServerUuid -> List OSTypes.IpAddressValue
+getServerFixedIps project serverUuid =
+    project.ports
+        |> RDPP.withDefault []
+        |> List.filter (\p -> p.deviceUuid == serverUuid)
+        |> List.map .fixedIps
+        |> List.concat
+
+
+getServerFloatingIps : Project -> OSTypes.ServerUuid -> List OSTypes.FloatingIp
+getServerFloatingIps project serverUuid =
+    let
+        serverPorts =
+            getServerPorts project serverUuid
+    in
+    project.floatingIps
+        |> RemoteData.withDefault []
+        |> List.filter
+            (\ip ->
+                case ip.portUuid of
+                    Just portUuid ->
+                        List.member portUuid (List.map .uuid serverPorts)
+
+                    Nothing ->
+                        False
+            )
+
+
+getFloatingIpServer : Project -> OSTypes.FloatingIp -> Maybe Server
+getFloatingIpServer project ip =
+    ip
+        |> getFloatingIpPort project
+        |> Maybe.andThen (getPortServer project)
 
 
 getServerExouserPassword : OSTypes.ServerDetails -> Maybe String

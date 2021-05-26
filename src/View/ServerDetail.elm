@@ -318,10 +318,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , VH.compactKVRow "IP addresses"
                 (renderIpAddresses
                     context
-                    project.auth.project.uuid
+                    project
                     server
                     serverDetailViewParams
-                    details.ipAddresses
                 )
             , Element.el VH.heading3
                 (Element.text <|
@@ -376,8 +375,8 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , Element.el VH.heading2 (Element.text "Interactions")
             , interactions
                 context
+                project
                 server
-                project.auth.project.uuid
                 (Tuple.first currentTimeAndZone)
                 (VH.userAppProxyLookup context project)
                 serverDetailViewParams
@@ -539,8 +538,8 @@ serverStatus context projectId serverDetailViewParams server =
             ]
 
 
-interactions : View.Types.Context -> Server -> ProjectIdentifier -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
-interactions context server projectId currentTime tlsReverseProxyHostname serverDetailViewParams =
+interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
+interactions context project server currentTime tlsReverseProxyHostname serverDetailViewParams =
     let
         renderInteraction interaction =
             let
@@ -549,6 +548,7 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
 
                 interactionStatus =
                     IHelpers.interactionStatus
+                        project
                         server
                         interaction
                         context
@@ -633,7 +633,7 @@ interactions context server projectId currentTime tlsReverseProxyHostname server
                                 Nothing ->
                                     Just <| tooltip
                     in
-                    ProjectMsg projectId <|
+                    ProjectMsg project.auth.project.uuid <|
                         SetProjectView <|
                             ServerDetail server.osProps.uuid
                                 { serverDetailViewParams | activeTooltip = newValue }
@@ -1001,28 +1001,20 @@ resourceUsageCharts context currentTimeAndZone server =
                                 ]
 
 
-renderIpAddresses : View.Types.Context -> ProjectIdentifier -> Server -> ServerDetailViewParams -> List OSTypes.IpAddress -> Element.Element Msg
-renderIpAddresses context projectId server serverDetailViewParams ipAddresses =
+renderIpAddresses : View.Types.Context -> Project -> Server -> ServerDetailViewParams -> Element.Element Msg
+renderIpAddresses context project server serverDetailViewParams =
     let
-        ipAddressesOfType : OSTypes.IpAddressType -> List OSTypes.IpAddress
-        ipAddressesOfType ipAddressType =
-            ipAddresses
-                |> List.filter
-                    (\ipAddress ->
-                        ipAddress.openstackType == ipAddressType
-                    )
-
         fixedIpAddressRows =
-            ipAddressesOfType OSTypes.IpAddressFixed
+            GetterSetters.getServerFixedIps project server.osProps.uuid
                 |> List.map
                     (\ipAddress ->
                         VH.compactKVSubRow
                             (Helpers.String.toTitleCase context.localization.nonFloatingIpAddress)
-                            (Element.text ipAddress.address)
+                            (Element.text ipAddress)
                     )
 
         floatingIpAddressRows =
-            if List.isEmpty (ipAddressesOfType OSTypes.IpAddressFloating) then
+            if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
                 if List.member server.exoProps.priorFloatingIpState [ Success, Failed ] then
                     -- Floating IP creation tasks associated with initial server launch have either finished or failed, and the server doesn't have any, so give user option to assign one
                     [ Element.text <|
@@ -1038,7 +1030,7 @@ renderIpAddresses context projectId server serverDetailViewParams ipAddresses =
                                 [ "Assign a", context.localization.floatingIpAddress ]
                         , onPress =
                             Just <|
-                                ProjectMsg projectId <|
+                                ProjectMsg project.auth.project.uuid <|
                                     SetProjectView <|
                                         AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
                         }
@@ -1055,7 +1047,7 @@ renderIpAddresses context projectId server serverDetailViewParams ipAddresses =
                     ]
 
             else
-                ipAddressesOfType OSTypes.IpAddressFloating
+                GetterSetters.getServerFloatingIps project server.osProps.uuid
                     |> List.map
                         (\ipAddress ->
                             VH.compactKVSubRow
@@ -1076,7 +1068,7 @@ renderIpAddresses context projectId server serverDetailViewParams ipAddresses =
                     ]
                     { onPress =
                         Just <|
-                            ProjectMsg projectId <|
+                            ProjectMsg project.auth.project.uuid <|
                                 SetProjectView <|
                                     ServerDetail
                                         server.osProps.uuid

@@ -152,7 +152,7 @@ stepServerRequestNetworks time project server =
             && (server.osProps.details.openstackStatus
                     == OSTypes.ServerActive
                )
-            && (Helpers.checkFloatingIpState server.osProps.details server.exoProps.priorFloatingIpState
+            && (Helpers.checkFloatingIpState project server.osProps server.exoProps.priorFloatingIpState
                     == Requestable
                )
     then
@@ -192,9 +192,9 @@ stepServerRequestPorts time project server =
             && (server.osProps.details.openstackStatus
                     == OSTypes.ServerActive
                )
-            && (Helpers.checkFloatingIpState server.osProps.details server.exoProps.priorFloatingIpState
-                    == Requestable
-               )
+            && List.member
+                (Helpers.checkFloatingIpState project server.osProps server.exoProps.priorFloatingIpState)
+                [ Unknown, NotRequestable, Requestable ]
     then
         case project.ports.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
@@ -238,11 +238,12 @@ stepServerRequestFloatingIp _ project server =
                     && (server.osProps.details.openstackStatus
                             == OSTypes.ServerActive
                        )
-                    && (Helpers.checkFloatingIpState server.osProps.details server.exoProps.priorFloatingIpState
+                    && (Helpers.checkFloatingIpState project server.osProps server.exoProps.priorFloatingIpState
                             == Requestable
                        )
             then
-                GetterSetters.getServerPort project server
+                GetterSetters.getServerPorts project server.osProps.uuid
+                    |> List.head
 
             else
                 Nothing
@@ -535,7 +536,9 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
 
                 GuacTypes.LaunchedWithGuacamole launchedWithGuacProps ->
                     case
-                        ( GetterSetters.getServerFloatingIp server.osProps.details.ipAddresses
+                        ( GetterSetters.getServerFloatingIps project server.osProps.uuid
+                            |> List.map .address
+                            |> List.head
                         , GetterSetters.getServerExouserPassword server.osProps.details
                         , maybeUserAppProxy
                         )
