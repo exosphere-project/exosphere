@@ -635,7 +635,8 @@ type
 type
     FloatingIpCreationStatus
     -- We need an active server with a port and an external network before we can create a floating IP address
-    = WaitingForResources
+    = Unknown
+    | WaitingForResources
     | Attemptable
     | AttemptedWaiting
 
