@@ -17,8 +17,7 @@ import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequ
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
-        ( FloatingIpState(..)
-        , HttpRequestMethod(..)
+        ( HttpRequestMethod(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)

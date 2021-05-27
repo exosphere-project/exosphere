@@ -18,7 +18,6 @@ import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
-        , FloatingIpState(..)
         , HttpRequestMethod(..)
         , JetstreamCreds
         , JetstreamProvider(..)

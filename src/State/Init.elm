@@ -23,7 +23,6 @@ import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , Flags
-        , FloatingIpState(..)
         , HttpRequestMethod(..)
         , LoginView(..)
         , Model

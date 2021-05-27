@@ -43,7 +43,6 @@ import Types.Types
     exposing
         ( Endpoints
         , ExoSetupStatus(..)
-        , FloatingIpState(..)
         , HttpRequestMethod(..)
         , LoginView(..)
         , Model

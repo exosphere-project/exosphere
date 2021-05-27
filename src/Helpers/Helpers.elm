@@ -1,7 +1,7 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , checkFloatingIpState
     , getBootVol
+    , getNewFloatingIpCreationOption
     , httpErrorToString
     , isBootVol
     , naiveUuidParser
@@ -40,7 +40,8 @@ import Types.Types
         ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
-        , FloatingIpState(..)
+        , FloatingIpCreationOption(..)
+        , FloatingIpCreationStatus(..)
         , JetstreamProvider(..)
         , Model
         , Msg(..)
@@ -143,8 +144,8 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
-checkFloatingIpState : Project -> OSTypes.Server -> FloatingIpState -> FloatingIpState
-checkFloatingIpState project osServer floatingIpState =
+getNewFloatingIpCreationOption : Project -> OSTypes.Server -> FloatingIpCreationOption -> FloatingIpCreationOption
+getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
     let
         hasPort =
             GetterSetters.getServerPorts project osServer.uuid
@@ -159,29 +160,58 @@ checkFloatingIpState project osServer floatingIpState =
         isActive =
             osServer.details.openstackStatus == OSTypes.ServerActive
     in
-    case floatingIpState of
-        RequestedWaiting ->
-            if hasFloatingIp then
-                Success
+    if hasFloatingIp then
+        DoNotCreateFloatingIp
+
+    else
+        case floatingIpCreationOption of
+            Automatic ->
+                if isActive && hasPort then
+                    if
+                        GetterSetters.getServerFixedIps project osServer.uuid
+                            |> List.map ipInRfc1918Space
+                            |> List.any (\i -> i == Ok True)
+                    then
+                        DoNotCreateFloatingIp
+
+                    else
+                        CreateFloatingIp Attemptable
+
+                else
+                    Automatic
+
+            CreateFloatingIp _ ->
+                if isActive && hasPort then
+                    CreateFloatingIp Attemptable
+
+                else
+                    CreateFloatingIp WaitingForResources
+
+            DoNotCreateFloatingIp ->
+                -- This is a terminal state
+                DoNotCreateFloatingIp
+
+
+ipInRfc1918Space : OSTypes.IpAddressValue -> Result String Bool
+ipInRfc1918Space ipValue =
+    let
+        octets =
+            String.split "." ipValue
+    in
+    case List.map String.toInt octets of
+        [ Just octet1, Just octet2, Just _, Just _ ] ->
+            if
+                (octet1 == 10)
+                    || (octet1 == 172 && (16 <= octet2 || octet2 <= 31))
+                    || (octet1 == 192 && octet2 == 168)
+            then
+                Ok True
 
             else
-                RequestedWaiting
-
-        Failed ->
-            Failed
-
-        Success ->
-            Success
+                Ok False
 
         _ ->
-            if hasFloatingIp then
-                Success
-
-            else if hasPort && isActive then
-                Requestable
-
-            else
-                NotRequestable
+            Err "Could not parse IP address"
 
 
 renderUserDataTemplate :

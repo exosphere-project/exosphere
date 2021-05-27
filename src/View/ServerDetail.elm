@@ -27,7 +27,7 @@ import Types.Interaction as ITypes
 import Types.Types
     exposing
         ( AssignFloatingIpViewParams
-        , FloatingIpState(..)
+        , FloatingIpCreationOption(..)
         , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -1015,8 +1015,8 @@ renderIpAddresses context project server serverDetailViewParams =
 
         floatingIpAddressRows =
             if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
-                if List.member server.exoProps.priorFloatingIpState [ Success, Failed ] then
-                    -- Floating IP creation tasks associated with initial server launch have either finished or failed, and the server doesn't have any, so give user option to assign one
+                if server.exoProps.floatingIpCreationOption == DoNotCreateFloatingIp then
+                    -- The server doesn't have a floating IP and we aren't waiting to create one, so give user option to assign one
                     [ Element.text <|
                         String.join " "
                             [ "No"

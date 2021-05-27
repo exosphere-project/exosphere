@@ -42,7 +42,7 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
-        ( FloatingIpState(..)
+        ( FloatingIpCreationOption(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -521,7 +521,7 @@ receiveCreateFloatingIp model project server floatingIp =
                     server.exoProps
             in
             { server
-                | exoProps = { oldExoProps | priorFloatingIpState = Success }
+                | exoProps = { oldExoProps | floatingIpCreationOption = DoNotCreateFloatingIp }
             }
 
         projectUpdatedServer =
