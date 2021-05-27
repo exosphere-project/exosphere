@@ -515,6 +515,7 @@ receiveFloatingIps model project floatingIps =
 receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.FloatingIp -> ( Model, Cmd Msg )
 receiveCreateFloatingIp model project server floatingIp =
     let
+        -- TODO fire API call to remove floating IP creation option from server metadata
         newServer =
             let
                 oldExoProps =

@@ -510,6 +510,7 @@ type alias CreateServerViewParams =
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
+    , floatingIpCreationOption : FloatingIpCreationOption
     }
 
 

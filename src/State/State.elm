@@ -665,6 +665,7 @@ processProjectSpecificMsg model project msg =
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
                             viewParams.deployDesktopEnvironment
                             project.auth.user.name
+                            viewParams.floatingIpCreationOption
                     }
             in
             ( model, Rest.Nova.requestCreateServer project createServerRequest )

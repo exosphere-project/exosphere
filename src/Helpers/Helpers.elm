@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
+    , floatingIpCreationOptionFromServerMetadata
     , getBootVol
     , getNewFloatingIpCreationOption
     , httpErrorToString
@@ -180,12 +181,16 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                 else
                     Automatic
 
-            CreateFloatingIp _ ->
-                if isActive && hasPort then
-                    CreateFloatingIp Attemptable
+            CreateFloatingIp status ->
+                if List.member status [ Unknown, WaitingForResources ] then
+                    if isActive && hasPort then
+                        CreateFloatingIp Attemptable
+
+                    else
+                        CreateFloatingIp WaitingForResources
 
                 else
-                    CreateFloatingIp WaitingForResources
+                    CreateFloatingIp status
 
             DoNotCreateFloatingIp ->
                 -- This is a terminal state
@@ -281,8 +286,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpCreationOption -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption =
     let
         guacMetadata =
             if deployGuacamole then
@@ -313,6 +318,18 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             )
           , ( "exoSetup"
             , Json.Encode.string "waiting"
+            )
+          , ( "exoCreateFloatingIp"
+            , Json.Encode.string <|
+                case floatingIpCreationOption of
+                    CreateFloatingIp _ ->
+                        "createFloatingIp"
+
+                    Automatic ->
+                        "automatic"
+
+                    DoNotCreateFloatingIp ->
+                        "doNotCreateFloatingIp"
             )
           ]
         ]
@@ -522,6 +539,29 @@ serverOrigin serverDetails =
 
         Nothing ->
             ServerNotFromExo
+
+
+floatingIpCreationOptionFromServerMetadata : OSTypes.ServerDetails -> FloatingIpCreationOption
+floatingIpCreationOptionFromServerMetadata serverDetails =
+    List.filter (\i -> i.key == "exoCreateFloatingIp") serverDetails.metadata
+        |> List.head
+        |> Maybe.map .value
+        |> Maybe.map
+            (\s ->
+                case s of
+                    "createFloatingIp" ->
+                        CreateFloatingIp Unknown
+
+                    "automatic" ->
+                        Automatic
+
+                    "doNotCreateFloatingIp" ->
+                        DoNotCreateFloatingIp
+
+                    _ ->
+                        DoNotCreateFloatingIp
+            )
+        |> Maybe.withDefault DoNotCreateFloatingIp
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool

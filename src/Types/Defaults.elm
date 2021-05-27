@@ -126,6 +126,7 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
+    , floatingIpCreationOption = Types.Automatic
     }
 
 

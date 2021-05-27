@@ -692,8 +692,7 @@ receiveServer_ project osServer =
                     let
                         defaultExoProps =
                             ExoServerProps
-                                DoNotCreateFloatingIp
-                                -- TODO decode this from metadata
+                                (Helpers.floatingIpCreationOptionFromServerMetadata osServer.details)
                                 False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
@@ -704,6 +703,7 @@ receiveServer_ project osServer =
 
                 Just exoServer ->
                     let
+                        -- TODO fire API call to remove floating IP creation option from server metadata, now that we are storing it in the app
                         floatingIpCreationOption =
                             Helpers.getNewFloatingIpCreationOption
                                 project
