@@ -828,19 +828,20 @@ floatingIpPicker context project viewParams =
         picker =
             let
                 options =
-                    [ Input.option Automatic (Element.text "Automatic creation if needed")
+                    [ Input.option Automatic (Element.text "Automatic")
                     , Input.option (CreateFloatingIp Unknown)
                         (Element.text <|
-                            String.join " "
-                                [ "Create a floating IP address for this"
+                            String.concat
+                                [ "Always assign a floating IP address to this "
                                 , context.localization.virtualComputer
+                                , " (creating one if needed)"
                                 ]
                         )
-                    , Input.option DoNotCreateFloatingIp (Element.text "Do not create floating IP address")
+                    , Input.option DoNotCreateFloatingIp (Element.text "Do not create or assign a floating IP address")
                     ]
             in
             Input.radio []
-                { label = Input.labelHidden "Choose a floating IP address creation option"
+                { label = Input.labelHidden "Choose a floating IP address option"
                 , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = option }
                 , options =
                     options
