@@ -1023,6 +1023,8 @@ renderIpAddresses context project server serverDetailViewParams =
                             , context.localization.floatingIpAddress
                             , "assigned."
                             ]
+
+                    -- TODO only show this button if server is active.
                     , Widget.textButton
                         (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
                         { text =

@@ -824,6 +824,7 @@ networkPicker context project viewParams =
 
 floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 floatingIpPicker context project viewParams =
+    -- TODO use nomenclature of public vs. floating
     let
         picker =
             let
