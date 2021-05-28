@@ -1442,6 +1442,37 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             errorContext
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
 
+        ReceiveDeleteServerMetadata metadataKey errorContext result ->
+            case result of
+                Err e ->
+                    -- Error from API
+                    State.Error.processSynchronousApiError model errorContext e
+
+                Ok _ ->
+                    let
+                        oldServerDetails =
+                            server.osProps.details
+
+                        newServerDetails =
+                            { oldServerDetails | metadata = List.filter (\i -> i.key /= metadataKey) oldServerDetails.metadata }
+
+                        oldOsProps =
+                            server.osProps
+
+                        newOsProps =
+                            { oldOsProps | details = newServerDetails }
+
+                        newServer =
+                            { server | osProps = newOsProps }
+
+                        newProject =
+                            GetterSetters.projectUpdateServer project newServer
+
+                        newModel =
+                            GetterSetters.modelUpdateProject model newProject
+                    in
+                    ( newModel, Cmd.none )
+
         ReceiveGuacamoleAuthToken result ->
             let
                 errorContext =

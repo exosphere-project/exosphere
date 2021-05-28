@@ -25,6 +25,8 @@ module OpenStack.Types exposing
     , KeypairName
     , KeystoneUrl
     , MetadataItem
+    , MetadataKey
+    , MetadataValue
     , NameAndUuid
     , Network
     , NetworkUuid
@@ -78,9 +80,17 @@ import Types.HelperTypes as HelperTypes
 
 
 type alias MetadataItem =
-    { key : String
-    , value : String
+    { key : MetadataKey
+    , value : MetadataValue
     }
+
+
+type alias MetadataKey =
+    String
+
+
+type alias MetadataValue =
+    String
 
 
 type alias QuotaItemDetail =

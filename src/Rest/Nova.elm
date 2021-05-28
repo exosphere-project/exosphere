@@ -588,6 +588,35 @@ requestSetServerMetadata project serverUuid metadataItem =
         )
 
 
+requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd Msg
+requestDeleteServerMetadata project serverUuid metadataKey =
+    let
+        errorContext =
+            ErrorContext
+                (String.concat
+                    [ "delete metadata with key \""
+                    , metadataKey
+                    , "\" for server with UUID "
+                    , serverUuid
+                    ]
+                )
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveDeleteServerMetadata metadataKey errorContext result
+    in
+    openstackCredentialedRequest
+        project
+        Delete
+        Nothing
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)
+        Http.emptyBody
+        (expectStringWithErrorBody resultToMsg)
+
+
 
 {- HTTP Response Handling -}
 
@@ -703,7 +732,6 @@ receiveServer_ project osServer =
 
                 Just exoServer ->
                     let
-                        -- TODO fire API call to remove floating IP creation option from server metadata, now that we are storing it in the app
                         floatingIpCreationOption =
                             Helpers.getNewFloatingIpCreationOption
                                 project
@@ -796,8 +824,31 @@ receiveServer_ project osServer =
                         _ ->
                             Cmd.none
 
+        deleteFloatingIpMetadataOptionCmd =
+            -- The exoCreateFloatingIp metadata property is only used temporarily so that Exosphere knows the user's
+            -- choice of whether to create a floating IP address with a new server. Once it is stored in the model,
+            -- we can delete the metadata property.
+            let
+                metadataKey =
+                    "exoCreateFloatingIp"
+            in
+            case newServer.exoProps.serverOrigin of
+                ServerFromExo _ ->
+                    if
+                        List.member metadataKey (List.map .key newServer.osProps.details.metadata)
+                            && newServer.osProps.details.openstackStatus
+                            == OSTypes.ServerActive
+                    then
+                        requestDeleteServerMetadata project newServer.osProps.uuid metadataKey
+
+                    else
+                        Cmd.none
+
+                ServerNotFromExo ->
+                    Cmd.none
+
         allCmds =
-            [ consoleUrlCmd, passwordCmd ]
+            [ consoleUrlCmd, passwordCmd, deleteFloatingIpMetadataOptionCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )
