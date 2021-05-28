@@ -171,7 +171,7 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                     if
                         GetterSetters.getServerFixedIps project osServer.uuid
                             |> List.map ipInRfc1918Space
-                            |> List.any (\i -> i == Ok True)
+                            |> List.any (\i -> i == Ok False)
                     then
                         DoNotCreateFloatingIp
 
