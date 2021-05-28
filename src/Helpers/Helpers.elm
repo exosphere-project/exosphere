@@ -170,7 +170,7 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                 if isActive && hasPort then
                     if
                         GetterSetters.getServerFixedIps project osServer.uuid
-                            |> List.map ipInRfc1918Space
+                            |> List.map ipv4AddressInRfc1918Space
                             |> List.any (\i -> i == Ok False)
                     then
                         DoNotCreateFloatingIp
@@ -197,8 +197,8 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                 DoNotCreateFloatingIp
 
 
-ipInRfc1918Space : OSTypes.IpAddressValue -> Result String Bool
-ipInRfc1918Space ipValue =
+ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String Bool
+ipv4AddressInRfc1918Space ipValue =
     let
         octets =
             String.split "." ipValue
@@ -216,7 +216,7 @@ ipInRfc1918Space ipValue =
                 Ok False
 
         _ ->
-            Err "Could not parse IP address"
+            Err "Could not parse IPv4 address, it may be IPv6?"
 
 
 renderUserDataTemplate :
