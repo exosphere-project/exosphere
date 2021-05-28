@@ -21,6 +21,8 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( CreateServerViewParams
+        , FloatingIpCreationOption(..)
+        , FloatingIpCreationStatus(..)
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
@@ -178,6 +180,7 @@ createServer context project viewParams =
                             [ skipOperatingSystemUpdatesPicker context project viewParams
                             , guacamolePicker context project viewParams
                             , networkPicker context project viewParams
+                            , floatingIpPicker context project viewParams
                             , keypairPicker context project viewParams
                             , userDataInput context project viewParams
                             ]
@@ -815,6 +818,38 @@ networkPicker context project viewParams =
         VH.exoColumnAttributes
         [ Element.el [ Font.bold ] <| Element.text "Network"
         , guidance
+        , picker
+        ]
+
+
+floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+floatingIpPicker context project viewParams =
+    let
+        picker =
+            let
+                options =
+                    [ Input.option Automatic (Element.text "Automatic creation if needed")
+                    , Input.option (CreateFloatingIp Unknown)
+                        (Element.text <|
+                            String.join " "
+                                [ "Create a floating IP address for this"
+                                , context.localization.virtualComputer
+                                ]
+                        )
+                    , Input.option DoNotCreateFloatingIp (Element.text "Do not create floating IP address")
+                    ]
+            in
+            Input.radio []
+                { label = Input.labelHidden "Choose a floating IP address creation option"
+                , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = option }
+                , options =
+                    options
+                , selected = Just viewParams.floatingIpCreationOption
+                }
+    in
+    Element.column
+        VH.exoColumnAttributes
+        [ Element.el [ Font.bold ] <| Element.text "Floating IP address"
         , picker
         ]
 
