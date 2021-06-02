@@ -634,10 +634,9 @@ type
     | DoNotCreateFloatingIp
 
 
-type
-    FloatingIpCreationStatus
-    -- We need an active server with a port and an external network before we can create a floating IP address
+type FloatingIpCreationStatus
     = Unknown
+      -- We need an active server with a port and an external network before we can create a floating IP address
     | WaitingForResources
     | Attemptable
     | AttemptedWaiting
