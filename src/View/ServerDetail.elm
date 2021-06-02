@@ -1023,19 +1023,21 @@ renderIpAddresses context project server serverDetailViewParams =
                             , context.localization.floatingIpAddress
                             , "assigned."
                             ]
+                    , if server.osProps.details.openstackStatus == OSTypes.ServerActive then
+                        Widget.textButton
+                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            { text =
+                                String.join " "
+                                    [ "Assign a", context.localization.floatingIpAddress ]
+                            , onPress =
+                                Just <|
+                                    ProjectMsg project.auth.project.uuid <|
+                                        SetProjectView <|
+                                            AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
+                            }
 
-                    -- TODO only show this button if server is active.
-                    , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                        { text =
-                            String.join " "
-                                [ "Assign a", context.localization.floatingIpAddress ]
-                        , onPress =
-                            Just <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
-                        }
+                      else
+                        Element.none
                     ]
 
                 else
