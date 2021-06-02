@@ -171,7 +171,7 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                     if
                         GetterSetters.getServerFixedIps project osServer.uuid
                             |> List.map ipv4AddressInRfc1918Space
-                            |> List.any (\i -> i == Ok False)
+                            |> List.any (\i -> i == Ok HelperTypes.PublicNonRfc1918Space)
                     then
                         DoNotCreateFloatingIp
 
@@ -197,7 +197,7 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                 DoNotCreateFloatingIp
 
 
-ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String Bool
+ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String HelperTypes.IPv4AddressPublicRoutability
 ipv4AddressInRfc1918Space ipValue =
     let
         octets =
@@ -210,10 +210,10 @@ ipv4AddressInRfc1918Space ipValue =
                     || (octet1 == 172 && (16 <= octet2 || octet2 <= 31))
                     || (octet1 == 192 && octet2 == 168)
             then
-                Ok True
+                Ok HelperTypes.PrivateRfc1918Space
 
             else
-                Ok False
+                Ok HelperTypes.PublicNonRfc1918Space
 
         _ ->
             Err "Could not parse IPv4 address, it may be IPv6?"

@@ -1,4 +1,4 @@
-module Types.HelperTypes exposing (Hostname, Password, Url, Uuid)
+module Types.HelperTypes exposing (Hostname, IPv4AddressPublicRoutability(..), Password, Url, Uuid)
 
 
 type alias Url =
@@ -15,3 +15,8 @@ type alias Uuid =
 
 type alias Password =
     String
+
+
+type IPv4AddressPublicRoutability
+    = PrivateRfc1918Space
+    | PublicNonRfc1918Space
