@@ -1,6 +1,6 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , floatingIpCreationOptionFromServerMetadata
+    , decodeFloatingIpCreationOption
     , getBootVol
     , getNewFloatingIpCreationOption
     , httpErrorToString
@@ -321,15 +321,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             )
           , ( "exoCreateFloatingIp"
             , Json.Encode.string <|
-                case floatingIpCreationOption of
-                    CreateFloatingIp _ ->
-                        "createFloatingIp"
-
-                    Automatic ->
-                        "automatic"
-
-                    DoNotCreateFloatingIp ->
-                        "doNotCreateFloatingIp"
+                encodeFloatingIpCreationOption floatingIpCreationOption
             )
           ]
         ]
@@ -541,8 +533,21 @@ serverOrigin serverDetails =
             ServerNotFromExo
 
 
-floatingIpCreationOptionFromServerMetadata : OSTypes.ServerDetails -> FloatingIpCreationOption
-floatingIpCreationOptionFromServerMetadata serverDetails =
+encodeFloatingIpCreationOption : FloatingIpCreationOption -> String
+encodeFloatingIpCreationOption option =
+    case option of
+        CreateFloatingIp _ ->
+            "createFloatingIp"
+
+        Automatic ->
+            "automatic"
+
+        DoNotCreateFloatingIp ->
+            "doNotCreateFloatingIp"
+
+
+decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpCreationOption
+decodeFloatingIpCreationOption serverDetails =
     List.filter (\i -> i.key == "exoCreateFloatingIp") serverDetails.metadata
         |> List.head
         |> Maybe.map .value

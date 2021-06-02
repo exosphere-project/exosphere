@@ -721,7 +721,7 @@ receiveServer_ project osServer =
                     let
                         defaultExoProps =
                             ExoServerProps
-                                (Helpers.floatingIpCreationOptionFromServerMetadata osServer.details)
+                                (Helpers.decodeFloatingIpCreationOption osServer.details)
                                 False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
