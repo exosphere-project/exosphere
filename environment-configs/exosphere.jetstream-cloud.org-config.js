@@ -34,6 +34,7 @@ var config = {
     blockDevice: "volume",
     nonFloatingIpAddress: "internal IP address",
     floatingIpAddress: "public IP address",
+    publiclyRoutableIpAddress: "public IP address",
     graphicalDesktopEnvironment: "web desktop"
   },
   clouds: [

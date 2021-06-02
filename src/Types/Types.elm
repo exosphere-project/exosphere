@@ -200,6 +200,7 @@ type alias Localization =
     , blockDevice : String
     , nonFloatingIpAddress : String
     , floatingIpAddress : String
+    , publiclyRoutableIpAddress : String
     , graphicalDesktopEnvironment : String
     }
 

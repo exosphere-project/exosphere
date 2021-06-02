@@ -824,7 +824,6 @@ networkPicker context project viewParams =
 
 floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 floatingIpPicker context project viewParams =
-    -- TODO use nomenclature of public vs. floating
     let
         picker =
             let
@@ -832,17 +831,31 @@ floatingIpPicker context project viewParams =
                     [ Input.option Automatic (Element.text "Automatic")
                     , Input.option (CreateFloatingIp Unknown)
                         (Element.text <|
-                            String.concat
-                                [ "Always assign a floating IP address to this "
+                            String.join " "
+                                [ "Always assign a"
+                                , context.localization.floatingIpAddress
+                                , "to this"
                                 , context.localization.virtualComputer
-                                , " (creating one if needed)"
+                                , "(creating one if needed)"
                                 ]
                         )
-                    , Input.option DoNotCreateFloatingIp (Element.text "Do not create or assign a floating IP address")
+                    , Input.option DoNotCreateFloatingIp
+                        (Element.text <|
+                            String.join " "
+                                [ "Do not create or assign a"
+                                , context.localization.floatingIpAddress
+                                ]
+                        )
                     ]
             in
             Input.radio []
-                { label = Input.labelHidden "Choose a floating IP address option"
+                { label =
+                    Input.labelHidden <|
+                        String.join " "
+                            [ "Choose a"
+                            , context.localization.floatingIpAddress
+                            , "option"
+                            ]
                 , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = option }
                 , options =
                     options
@@ -851,7 +864,9 @@ floatingIpPicker context project viewParams =
     in
     Element.column
         VH.exoColumnAttributes
-        [ Element.el [ Font.bold ] <| Element.text "Floating IP address"
+        [ Element.el [ Font.bold ] <|
+            Element.text <|
+                Helpers.String.toTitleCase context.localization.floatingIpAddress
         , picker
         ]
 
