@@ -184,7 +184,7 @@ requestCreateFloatingIp project network port_ server =
 
         errorContext =
             ErrorContext
-                ("create a floating IP address on network " ++ network.name ++ "for port " ++ port_.uuid)
+                ("create a floating IP address on network " ++ network.name ++ " for port " ++ port_.uuid)
                 ErrorCrit
                 (Just "It's possible your cloud has run out of public IP address space; ask your cloud administrator.")
 
@@ -252,7 +252,7 @@ requestAssignFloatingIp project port_ floatingIpUuid =
 
         errorContext =
             ErrorContext
-                ("Assign floating IP address " ++ floatingIpUuid ++ "to port " ++ port_.uuid)
+                ("Assign floating IP address " ++ floatingIpUuid ++ " to port " ++ port_.uuid)
                 ErrorCrit
                 Nothing
 
