@@ -563,10 +563,10 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                 Nothing ->
                                                     doRequestToken_
 
-                                                Just ( _, recTime ) ->
+                                                Just ( _, receivedTime ) ->
                                                     let
                                                         whenToRetryMillis =
-                                                            Time.posixToMillis recTime + errorRetryIntervalMillis
+                                                            Time.posixToMillis receivedTime + errorRetryIntervalMillis
                                                     in
                                                     if curTimeMillis <= whenToRetryMillis then
                                                         doNothing
@@ -574,10 +574,10 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                     else
                                                         doRequestToken_
 
-                                        RDPP.DoHave _ recTime ->
+                                        RDPP.DoHave _ receivedTime ->
                                             let
                                                 whenToRefreshMillis =
-                                                    Time.posixToMillis recTime + maxGuacTokenLifetimeMillis
+                                                    Time.posixToMillis receivedTime + maxGuacTokenLifetimeMillis
                                             in
                                             if curTimeMillis <= whenToRefreshMillis then
                                                 doNothing
