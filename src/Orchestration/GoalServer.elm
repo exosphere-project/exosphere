@@ -469,6 +469,9 @@ stepServerGuacamoleAuth : Time.Posix -> Maybe Types.Types.UserAppProxyHostname -
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     -- TODO ensure server is active
     let
+        curTimeMillis =
+            Time.posixToMillis time
+
         -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
         maxGuacTokenLifetimeMillis =
             3300000
@@ -561,14 +564,22 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                     doRequestToken_
 
                                                 Just ( _, recTime ) ->
-                                                    if Time.posixToMillis recTime + errorRetryIntervalMillis > Time.posixToMillis time then
+                                                    let
+                                                        whenToRetryMillis =
+                                                            Time.posixToMillis recTime + errorRetryIntervalMillis
+                                                    in
+                                                    if curTimeMillis <= whenToRetryMillis then
                                                         doNothing
 
                                                     else
                                                         doRequestToken_
 
                                         RDPP.DoHave _ recTime ->
-                                            if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
+                                            let
+                                                whenToRefreshMillis =
+                                                    Time.posixToMillis recTime + maxGuacTokenLifetimeMillis
+                                            in
+                                            if curTimeMillis <= whenToRefreshMillis then
                                                 doNothing
 
                                             else
