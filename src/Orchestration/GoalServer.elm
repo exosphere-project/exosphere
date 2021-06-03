@@ -469,6 +469,9 @@ stepServerGuacamoleAuth : Time.Posix -> Maybe Types.Types.UserAppProxyHostname -
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     -- TODO ensure server is active
     let
+        curTimeMillis =
+            Time.posixToMillis time
+
         -- Default value in Guacamole is 60 minutes, using 55 minutes for safety
         maxGuacTokenLifetimeMillis =
             3300000
@@ -560,15 +563,23 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                                 Nothing ->
                                                     doRequestToken_
 
-                                                Just ( _, recTime ) ->
-                                                    if Time.posixToMillis recTime + errorRetryIntervalMillis > Time.posixToMillis time then
+                                                Just ( _, receivedTime ) ->
+                                                    let
+                                                        whenToRetryMillis =
+                                                            Time.posixToMillis receivedTime + errorRetryIntervalMillis
+                                                    in
+                                                    if curTimeMillis <= whenToRetryMillis then
                                                         doNothing
 
                                                     else
                                                         doRequestToken_
 
-                                        RDPP.DoHave _ recTime ->
-                                            if Time.posixToMillis recTime + maxGuacTokenLifetimeMillis > Time.posixToMillis time then
+                                        RDPP.DoHave _ receivedTime ->
+                                            let
+                                                whenToRefreshMillis =
+                                                    Time.posixToMillis receivedTime + maxGuacTokenLifetimeMillis
+                                            in
+                                            if curTimeMillis <= whenToRefreshMillis then
                                                 doNothing
 
                                             else
