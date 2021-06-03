@@ -1,6 +1,7 @@
 module View.FloatingIps exposing (assignFloatingIp, floatingIps)
 
 import Element
+import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -37,6 +38,11 @@ floatingIps context showHeading project viewParams toMsg =
         renderFloatingIps : List OSTypes.FloatingIp -> Element.Element Msg
         renderFloatingIps ips =
             let
+                -- Warn the user when their project has at least this many unassigned floating IPs.
+                -- Perhaps in the future this behavior becomes configurable at runtime.
+                ipScarcityWarningThreshold =
+                    2
+
                 ipsSorted =
                     List.sortBy .address ips
 
@@ -75,7 +81,12 @@ floatingIps context showHeading project viewParams toMsg =
                     )
                 <|
                     List.concat
-                        [ List.map
+                        [ if List.length ipsNotAssignedToServers >= ipScarcityWarningThreshold then
+                            [ ipScarcityWarning context ]
+
+                          else
+                            []
+                        , List.map
                             (renderFloatingIpCard context project viewParams toMsg)
                             ipsNotAssignedToServers
                         , [ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers ]
@@ -93,7 +104,7 @@ floatingIps context showHeading project viewParams toMsg =
                 |> List.length
     in
     Element.column
-        [ Element.spacing 20, Element.width Element.fill ]
+        [ Element.spacing 15, Element.width Element.fill ]
         [ if showHeading then
             Element.el VH.heading2 <|
                 Element.text
@@ -110,6 +121,26 @@ floatingIps context showHeading project viewParams toMsg =
             project.floatingIps
             (Helpers.String.pluralize context.localization.floatingIpAddress)
             renderFloatingIps
+        ]
+
+
+ipScarcityWarning : View.Types.Context -> Element.Element Msg
+ipScarcityWarning context =
+    Element.paragraph
+        [ Element.padding 10
+        , Background.color (context.palette.warn |> SH.toElementColor)
+        , Font.color (context.palette.on.warn |> SH.toElementColor)
+        ]
+        [ Element.text <|
+            String.join " "
+                [ context.localization.floatingIpAddress
+                    |> Helpers.String.toTitleCase
+                    |> Helpers.String.pluralize
+                , "are a scarce resource. Please delete your unassigned"
+                , context.localization.floatingIpAddress
+                    |> Helpers.String.pluralize
+                , "to free them up for other cloud users, unless you are saving them for a specific purpose."
+                ]
         ]
 
 
