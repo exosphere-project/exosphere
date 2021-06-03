@@ -7,7 +7,6 @@ import Time
 import Types.Types
     exposing
         ( CloudSpecificConfig
-        , FloatingIpState(..)
         , Model
         , Msg
         , Project

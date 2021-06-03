@@ -19,7 +19,8 @@ import Types.Types
     exposing
         ( CloudSpecificConfig
         , ExoSetupStatus(..)
-        , FloatingIpState(..)
+        , FloatingIpCreationOption(..)
+        , FloatingIpCreationStatus(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -152,8 +153,8 @@ stepServerRequestNetworks time project server =
             && (server.osProps.details.openstackStatus
                     == OSTypes.ServerActive
                )
-            && (Helpers.checkFloatingIpState project server.osProps server.exoProps.priorFloatingIpState
-                    == Requestable
+            && (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                    == CreateFloatingIp Attemptable
                )
     then
         case project.networks.refreshStatus of
@@ -193,8 +194,8 @@ stepServerRequestPorts time project server =
                     == OSTypes.ServerActive
                )
             && List.member
-                (Helpers.checkFloatingIpState project server.osProps server.exoProps.priorFloatingIpState)
-                [ Unknown, NotRequestable, Requestable ]
+                (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption)
+                [ Automatic, CreateFloatingIp WaitingForResources ]
     then
         case project.ports.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
@@ -238,8 +239,8 @@ stepServerRequestFloatingIp _ project server =
                     && (server.osProps.details.openstackStatus
                             == OSTypes.ServerActive
                        )
-                    && (Helpers.checkFloatingIpState project server.osProps server.exoProps.priorFloatingIpState
-                            == Requestable
+                    && (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                            == CreateFloatingIp Attemptable
                        )
             then
                 GetterSetters.getServerPorts project server.osProps.uuid
@@ -260,7 +261,7 @@ stepServerRequestFloatingIp _ project server =
                         oldExoProps =
                             server.exoProps
                     in
-                    { server | exoProps = { oldExoProps | priorFloatingIpState = RequestedWaiting } }
+                    { server | exoProps = { oldExoProps | floatingIpCreationOption = CreateFloatingIp AttemptedWaiting } }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

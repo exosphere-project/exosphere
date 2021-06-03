@@ -37,8 +37,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
-        ( FloatingIpState(..)
-        , HttpRequestMethod(..)
+        ( HttpRequestMethod(..)
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project

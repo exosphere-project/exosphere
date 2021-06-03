@@ -1,7 +1,8 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , checkFloatingIpState
+    , decodeFloatingIpCreationOption
     , getBootVol
+    , getNewFloatingIpCreationOption
     , httpErrorToString
     , isBootVol
     , naiveUuidParser
@@ -40,7 +41,8 @@ import Types.Types
         ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
-        , FloatingIpState(..)
+        , FloatingIpCreationOption(..)
+        , FloatingIpCreationStatus(..)
         , JetstreamProvider(..)
         , Model
         , Msg(..)
@@ -143,8 +145,8 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
-checkFloatingIpState : Project -> OSTypes.Server -> FloatingIpState -> FloatingIpState
-checkFloatingIpState project osServer floatingIpState =
+getNewFloatingIpCreationOption : Project -> OSTypes.Server -> FloatingIpCreationOption -> FloatingIpCreationOption
+getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
     let
         hasPort =
             GetterSetters.getServerPorts project osServer.uuid
@@ -159,29 +161,62 @@ checkFloatingIpState project osServer floatingIpState =
         isActive =
             osServer.details.openstackStatus == OSTypes.ServerActive
     in
-    case floatingIpState of
-        RequestedWaiting ->
-            if hasFloatingIp then
-                Success
+    if hasFloatingIp then
+        DoNotCreateFloatingIp
+
+    else
+        case floatingIpCreationOption of
+            Automatic ->
+                if isActive && hasPort then
+                    if
+                        GetterSetters.getServerFixedIps project osServer.uuid
+                            |> List.map ipv4AddressInRfc1918Space
+                            |> List.any (\i -> i == Ok HelperTypes.PublicNonRfc1918Space)
+                    then
+                        DoNotCreateFloatingIp
+
+                    else
+                        CreateFloatingIp Attemptable
+
+                else
+                    Automatic
+
+            CreateFloatingIp status ->
+                if List.member status [ Unknown, WaitingForResources ] then
+                    if isActive && hasPort then
+                        CreateFloatingIp Attemptable
+
+                    else
+                        CreateFloatingIp WaitingForResources
+
+                else
+                    CreateFloatingIp status
+
+            DoNotCreateFloatingIp ->
+                -- This is a terminal state
+                DoNotCreateFloatingIp
+
+
+ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String HelperTypes.IPv4AddressPublicRoutability
+ipv4AddressInRfc1918Space ipValue =
+    let
+        octets =
+            String.split "." ipValue
+    in
+    case List.map String.toInt octets of
+        [ Just octet1, Just octet2, Just _, Just _ ] ->
+            if
+                (octet1 == 10)
+                    || (octet1 == 172 && (16 <= octet2 || octet2 <= 31))
+                    || (octet1 == 192 && octet2 == 168)
+            then
+                Ok HelperTypes.PrivateRfc1918Space
 
             else
-                RequestedWaiting
-
-        Failed ->
-            Failed
-
-        Success ->
-            Success
+                Ok HelperTypes.PublicNonRfc1918Space
 
         _ ->
-            if hasFloatingIp then
-                Success
-
-            else if hasPort && isActive then
-                Requestable
-
-            else
-                NotRequestable
+            Err "Could not parse IPv4 address, it may be IPv6?"
 
 
 renderUserDataTemplate :
@@ -251,8 +286,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpCreationOption -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption =
     let
         guacMetadata =
             if deployGuacamole then
@@ -283,6 +318,10 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             )
           , ( "exoSetup"
             , Json.Encode.string "waiting"
+            )
+          , ( "exoCreateFloatingIp"
+            , Json.Encode.string <|
+                encodeFloatingIpCreationOption floatingIpCreationOption
             )
           ]
         ]
@@ -492,6 +531,42 @@ serverOrigin serverDetails =
 
         Nothing ->
             ServerNotFromExo
+
+
+encodeFloatingIpCreationOption : FloatingIpCreationOption -> String
+encodeFloatingIpCreationOption option =
+    case option of
+        CreateFloatingIp _ ->
+            "createFloatingIp"
+
+        Automatic ->
+            "automatic"
+
+        DoNotCreateFloatingIp ->
+            "doNotCreateFloatingIp"
+
+
+decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpCreationOption
+decodeFloatingIpCreationOption serverDetails =
+    List.filter (\i -> i.key == "exoCreateFloatingIp") serverDetails.metadata
+        |> List.head
+        |> Maybe.map .value
+        |> Maybe.map
+            (\s ->
+                case s of
+                    "createFloatingIp" ->
+                        CreateFloatingIp Unknown
+
+                    "automatic" ->
+                        Automatic
+
+                    "doNotCreateFloatingIp" ->
+                        DoNotCreateFloatingIp
+
+                    _ ->
+                        DoNotCreateFloatingIp
+            )
+        |> Maybe.withDefault DoNotCreateFloatingIp
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool

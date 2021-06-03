@@ -52,7 +52,7 @@ import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( ExoServerProps
-        , FloatingIpState(..)
+        , FloatingIpCreationOption(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -588,6 +588,35 @@ requestSetServerMetadata project serverUuid metadataItem =
         )
 
 
+requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd Msg
+requestDeleteServerMetadata project serverUuid metadataKey =
+    let
+        errorContext =
+            ErrorContext
+                (String.concat
+                    [ "delete metadata with key \""
+                    , metadataKey
+                    , "\" for server with UUID "
+                    , serverUuid
+                    ]
+                )
+                ErrorCrit
+                Nothing
+
+        resultToMsg result =
+            ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    ReceiveDeleteServerMetadata metadataKey errorContext result
+    in
+    openstackCredentialedRequest
+        project
+        Delete
+        Nothing
+        (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)
+        Http.emptyBody
+        (expectStringWithErrorBody resultToMsg)
+
+
 
 {- HTTP Response Handling -}
 
@@ -692,7 +721,7 @@ receiveServer_ project osServer =
                     let
                         defaultExoProps =
                             ExoServerProps
-                                Unknown
+                                (Helpers.decodeFloatingIpCreationOption osServer.details)
                                 False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
@@ -703,11 +732,11 @@ receiveServer_ project osServer =
 
                 Just exoServer ->
                     let
-                        floatingIpState_ =
-                            Helpers.checkFloatingIpState
+                        floatingIpCreationOption =
+                            Helpers.getNewFloatingIpCreationOption
                                 project
                                 osServer
-                                exoServer.exoProps.priorFloatingIpState
+                                exoServer.exoProps.floatingIpCreationOption
 
                         oldOSProps =
                             exoServer.osProps
@@ -763,7 +792,7 @@ receiveServer_ project osServer =
                         | osProps = { oldOSProps | details = osServer.details }
                         , exoProps =
                             { oldExoProps
-                                | priorFloatingIpState = floatingIpState_
+                                | floatingIpCreationOption = floatingIpCreationOption
                                 , targetOpenstackStatus = newTargetOpenstackStatus
                                 , serverOrigin = newServerOrigin
                             }
@@ -795,8 +824,31 @@ receiveServer_ project osServer =
                         _ ->
                             Cmd.none
 
+        deleteFloatingIpMetadataOptionCmd =
+            -- The exoCreateFloatingIp metadata property is only used temporarily so that Exosphere knows the user's
+            -- choice of whether to create a floating IP address with a new server. Once it is stored in the model,
+            -- we can delete the metadata property.
+            let
+                metadataKey =
+                    "exoCreateFloatingIp"
+            in
+            case newServer.exoProps.serverOrigin of
+                ServerFromExo _ ->
+                    if
+                        List.member metadataKey (List.map .key newServer.osProps.details.metadata)
+                            && newServer.osProps.details.openstackStatus
+                            == OSTypes.ServerActive
+                    then
+                        requestDeleteServerMetadata project newServer.osProps.uuid metadataKey
+
+                    else
+                        Cmd.none
+
+                ServerNotFromExo ->
+                    Cmd.none
+
         allCmds =
-            [ consoleUrlCmd, passwordCmd ]
+            [ consoleUrlCmd, passwordCmd, deleteFloatingIpMetadataOptionCmd ]
                 |> Cmd.batch
     in
     ( newServer, allCmds )

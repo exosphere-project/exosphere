@@ -21,6 +21,8 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( CreateServerViewParams
+        , FloatingIpCreationOption(..)
+        , FloatingIpCreationStatus(..)
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
@@ -178,6 +180,7 @@ createServer context project viewParams =
                             [ skipOperatingSystemUpdatesPicker context project viewParams
                             , guacamolePicker context project viewParams
                             , networkPicker context project viewParams
+                            , floatingIpPicker context project viewParams
                             , keypairPicker context project viewParams
                             , userDataInput context project viewParams
                             ]
@@ -815,6 +818,55 @@ networkPicker context project viewParams =
         VH.exoColumnAttributes
         [ Element.el [ Font.bold ] <| Element.text "Network"
         , guidance
+        , picker
+        ]
+
+
+floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+floatingIpPicker context project viewParams =
+    let
+        picker =
+            let
+                options =
+                    [ Input.option Automatic (Element.text "Automatic")
+                    , Input.option (CreateFloatingIp Unknown)
+                        (Element.text <|
+                            String.join " "
+                                [ "Always assign a"
+                                , context.localization.floatingIpAddress
+                                , "to this"
+                                , context.localization.virtualComputer
+                                , "(creating one if needed)"
+                                ]
+                        )
+                    , Input.option DoNotCreateFloatingIp
+                        (Element.text <|
+                            String.join " "
+                                [ "Do not create or assign a"
+                                , context.localization.floatingIpAddress
+                                ]
+                        )
+                    ]
+            in
+            Input.radio []
+                { label =
+                    Input.labelHidden <|
+                        String.join " "
+                            [ "Choose a"
+                            , context.localization.floatingIpAddress
+                            , "option"
+                            ]
+                , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = option }
+                , options =
+                    options
+                , selected = Just viewParams.floatingIpCreationOption
+                }
+    in
+    Element.column
+        VH.exoColumnAttributes
+        [ Element.el [ Font.bold ] <|
+            Element.text <|
+                Helpers.String.toTitleCase context.localization.floatingIpAddress
         , picker
         ]
 

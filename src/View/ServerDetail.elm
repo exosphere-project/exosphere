@@ -27,7 +27,7 @@ import Types.Interaction as ITypes
 import Types.Types
     exposing
         ( AssignFloatingIpViewParams
-        , FloatingIpState(..)
+        , FloatingIpCreationOption(..)
         , IPInfoLevel(..)
         , Msg(..)
         , NonProjectViewConstructor(..)
@@ -1015,25 +1015,29 @@ renderIpAddresses context project server serverDetailViewParams =
 
         floatingIpAddressRows =
             if List.isEmpty (GetterSetters.getServerFloatingIps project server.osProps.uuid) then
-                if List.member server.exoProps.priorFloatingIpState [ Success, Failed ] then
-                    -- Floating IP creation tasks associated with initial server launch have either finished or failed, and the server doesn't have any, so give user option to assign one
+                if server.exoProps.floatingIpCreationOption == DoNotCreateFloatingIp then
+                    -- The server doesn't have a floating IP and we aren't waiting to create one, so give user option to assign one
                     [ Element.text <|
                         String.join " "
                             [ "No"
                             , context.localization.floatingIpAddress
                             , "assigned."
                             ]
-                    , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                        { text =
-                            String.join " "
-                                [ "Assign a", context.localization.floatingIpAddress ]
-                        , onPress =
-                            Just <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
-                        }
+                    , if server.osProps.details.openstackStatus == OSTypes.ServerActive then
+                        Widget.textButton
+                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            { text =
+                                String.join " "
+                                    [ "Assign a", context.localization.floatingIpAddress ]
+                            , onPress =
+                                Just <|
+                                    ProjectMsg project.auth.project.uuid <|
+                                        SetProjectView <|
+                                            AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
+                            }
+
+                      else
+                        Element.none
                     ]
 
                 else

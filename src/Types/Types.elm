@@ -11,8 +11,9 @@ module Types.Types exposing
     , ExoServerVersion
     , ExoSetupStatus(..)
     , Flags
+    , FloatingIpCreationOption(..)
+    , FloatingIpCreationStatus(..)
     , FloatingIpListViewParams
-    , FloatingIpState(..)
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
@@ -199,6 +200,7 @@ type alias Localization =
     , blockDevice : String
     , nonFloatingIpAddress : String
     , floatingIpAddress : String
+    , publiclyRoutableIpAddress : String
     , graphicalDesktopEnvironment : String
     }
 
@@ -386,6 +388,7 @@ type ServerSpecificMsgConstructor
     | ReceiveServerPassword OSTypes.ServerPassword
     | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
+    | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
@@ -509,6 +512,7 @@ type alias CreateServerViewParams =
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
+    , floatingIpCreationOption : FloatingIpCreationOption
     }
 
 
@@ -586,7 +590,7 @@ type alias Server =
 
 
 type alias ExoServerProps =
-    { priorFloatingIpState : FloatingIpState
+    { floatingIpCreationOption : FloatingIpCreationOption
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
@@ -622,13 +626,21 @@ currentExoServerVersion =
     4
 
 
-type FloatingIpState
+type
+    FloatingIpCreationOption
+    -- Wait to see if server gets a fixed IP in publicly routable space
+    = Automatic
+      -- Create a floating IP as soon as we are able to do so
+    | CreateFloatingIp FloatingIpCreationStatus
+    | DoNotCreateFloatingIp
+
+
+type FloatingIpCreationStatus
     = Unknown
-    | NotRequestable
-    | Requestable
-    | RequestedWaiting
-    | Success
-    | Failed
+      -- We need an active server with a port and an external network before we can create a floating IP address
+    | WaitingForResources
+    | Attemptable
+    | AttemptedWaiting
 
 
 type ServerUiStatus

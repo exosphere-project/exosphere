@@ -265,7 +265,8 @@ localization: {
     staticRepresentationOfBlockDeviceContents: "image",
     blockDevice: "volume",
     nonFloatingIpAddress: "internal IP address",
-    floatingIpAddress: "public IP address",
+    floatingIpAddress: "floating IP address",
+    publiclyRoutableIpAddress: "public IP address",
     graphicalDesktopEnvironment: "graphical desktop environment"
     }
 ```
