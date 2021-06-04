@@ -435,13 +435,6 @@ requestCreateServer project createServerRequest =
 requestDeleteServer : Project -> Server -> Cmd Msg
 requestDeleteServer project server =
     let
-        maybeFloatingIp =
-            -- Future TODO: if deleting a server with multiple floating IPs, this will only delete one of the floating IPs.
-            -- This only becomes a problem if we start supporting servers with multiple ports/floating IPs.
-            GetterSetters.getServerFloatingIps project server.osProps.uuid
-                |> List.map .address
-                |> List.head
-
         errorContext =
             ErrorContext
                 ("delete server with UUID " ++ server.osProps.uuid)
@@ -454,7 +447,7 @@ requestDeleteServer project server =
                 (\_ ->
                     ProjectMsg project.auth.project.uuid <|
                         ServerMsg server.osProps.uuid <|
-                            ReceiveDeleteServer maybeFloatingIp
+                            ReceiveDeleteServer
                 )
     in
     openstackCredentialedRequest

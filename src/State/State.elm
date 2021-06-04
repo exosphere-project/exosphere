@@ -1243,7 +1243,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl model project server url
 
-        ReceiveDeleteServer maybeIpAddress ->
+        ReceiveDeleteServer ->
             let
                 ( serverDeletedModel, urlCmd ) =
                     let
@@ -1282,36 +1282,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                     in
                     ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
             in
-            case maybeIpAddress of
-                Nothing ->
-                    ( serverDeletedModel, urlCmd )
-
-                Just ipAddress ->
-                    let
-                        maybeFloatingIpUuid =
-                            RemoteData.withDefault [] project.floatingIps
-                                |> List.filter (\i -> i.address == ipAddress)
-                                |> List.head
-                                |> Maybe.map .uuid
-                    in
-                    case maybeFloatingIpUuid of
-                        Nothing ->
-                            let
-                                errorContext =
-                                    ErrorContext
-                                        "Look for a floating IP address to delete now that we have just deleted its server"
-                                        ErrorDebug
-                                        Nothing
-                            in
-                            State.Error.processStringError
-                                serverDeletedModel
-                                errorContext
-                                ("Could not find a UUID for floating IP address from deleted server with UUID " ++ server.osProps.uuid)
-
-                        Just uuid ->
-                            ( serverDeletedModel
-                            , Cmd.batch [ urlCmd, Rest.Neutron.requestDeleteFloatingIp project uuid ]
-                            )
+            ( serverDeletedModel, urlCmd )
 
         ReceiveCreateFloatingIp errorContext result ->
             case result of
@@ -1789,7 +1760,18 @@ requestDeleteServer project serverUuid =
                 newServer =
                     { server | exoProps = { oldExoProps | deletionAttempted = True } }
 
+                -- TODO don't do this if user wants to retain floating IPs
+                deleteFloatingIpCmds =
+                    GetterSetters.getServerFloatingIps project server.osProps.uuid
+                        |> List.map .uuid
+                        |> List.map (Rest.Neutron.requestDeleteFloatingIp project)
+
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
             in
-            ( newProject, Rest.Nova.requestDeleteServer newProject newServer )
+            ( newProject
+            , Cmd.batch
+                [ Rest.Nova.requestDeleteServer newProject newServer
+                , Cmd.batch deleteFloatingIpCmds
+                ]
+            )
