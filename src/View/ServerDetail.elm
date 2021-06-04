@@ -385,7 +385,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
             [ Element.el VH.heading3 (Element.text "Actions")
-            , viewServerActions context project.auth.project.uuid serverDetailViewParams server
+            , viewServerActions context project serverDetailViewParams server
             , Element.el VH.heading3 (Element.text "System Resource Usage")
             , resourceUsageCharts context currentTimeAndZone server
             ]
@@ -788,15 +788,15 @@ serverPassword context projectId serverDetailViewParams server =
         ]
 
 
-viewServerActions : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
-viewServerActions context projectId serverDetailViewParams server =
+viewServerActions : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> Element.Element Msg
+viewServerActions context project serverDetailViewParams server =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
                 List.map
-                    (renderServerActionButton context projectId serverDetailViewParams server)
+                    (renderServerActionButton context project serverDetailViewParams server)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
@@ -808,8 +808,8 @@ viewServerActions context projectId serverDetailViewParams server =
                 []
 
 
-renderServerActionButton : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
-renderServerActionButton context projectId serverDetailViewParams server serverAction =
+renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton context project serverDetailViewParams server serverAction =
     let
         displayConfirmation =
             case serverDetailViewParams.serverActionNamePendingConfirmation of
@@ -824,7 +824,7 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
             let
                 updateAction =
                     ProjectMsg
-                        projectId
+                        project.auth.project.uuid
                         (SetProjectView
                             (ServerDetail
                                 server.osProps.uuid
@@ -836,9 +836,47 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
 
         ( ServerActions.CmdAction cmdAction, True, True ) ->
             let
+                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
+                renderKeepFloatingIpCheckbox =
+                    if
+                        serverAction.name
+                            == "Delete"
+                            && (not <| List.isEmpty <| GetterSetters.getServerFloatingIps project server.osProps.uuid)
+                    then
+                        [ Input.checkbox
+                            []
+                            { onChange =
+                                \new ->
+                                    ProjectMsg
+                                        project.auth.project.uuid
+                                        (SetProjectView
+                                            (ServerDetail
+                                                server.osProps.uuid
+                                                { serverDetailViewParams | keepFloatingIpWhenDeleting = new }
+                                            )
+                                        )
+                            , icon = Input.defaultCheckbox
+                            , checked = serverDetailViewParams.keepFloatingIpWhenDeleting
+                            , label =
+                                Input.labelRight []
+                                    (Element.text <|
+                                        String.join " "
+                                            [ "Keep the"
+                                            , context.localization.floatingIpAddress
+                                            , "of this"
+                                            , context.localization.virtualComputer
+                                            , "for future use"
+                                            ]
+                                    )
+                            }
+                        ]
+
+                    else
+                        []
+
                 actionMsg =
                     Just <|
-                        ProjectMsg projectId <|
+                        ProjectMsg project.auth.project.uuid <|
                             ServerMsg server.osProps.uuid <|
                                 RequestServerAction
                                     cmdAction
@@ -847,7 +885,7 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
                 cancelMsg =
                     Just <|
                         ProjectMsg
-                            projectId
+                            project.auth.project.uuid
                             (SetProjectView
                                 (ServerDetail
                                     server.osProps.uuid
@@ -858,13 +896,19 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
                 title =
                     confirmationMessage serverAction
             in
-            renderConfirmationButton context serverAction actionMsg cancelMsg title
+            Element.column
+                [ Element.spacing 5 ]
+            <|
+                List.concat
+                    [ [ renderConfirmationButton context serverAction actionMsg cancelMsg title ]
+                    , renderKeepFloatingIpCheckbox
+                    ]
 
         ( ServerActions.CmdAction cmdAction, False, _ ) ->
             let
                 actionMsg =
                     Just <|
-                        ProjectMsg projectId <|
+                        ProjectMsg project.auth.project.uuid <|
                             ServerMsg server.osProps.uuid <|
                                 RequestServerAction
                                     cmdAction
@@ -878,7 +922,7 @@ renderServerActionButton context projectId serverDetailViewParams server serverA
         ( ServerActions.UpdateAction updateAction, _, _ ) ->
             let
                 actionMsg =
-                    Just <| updateAction projectId server
+                    Just <| updateAction project.auth.project.uuid server
 
                 title =
                     serverAction.name
