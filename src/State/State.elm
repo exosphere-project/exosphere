@@ -724,7 +724,7 @@ processProjectSpecificMsg model project msg =
                 applyDelete serverUuid projCmdTuple =
                     let
                         ( delServerProj, delServerCmd ) =
-                            requestDeleteServer (Tuple.first projCmdTuple) serverUuid
+                            requestDeleteServer (Tuple.first projCmdTuple) serverUuid False
                     in
                     ( delServerProj, Cmd.batch [ Tuple.second projCmdTuple, delServerCmd ] )
 
@@ -1192,10 +1192,10 @@ processServerSpecificMsg model project server serverMsgConstructor =
         RequestServer ->
             ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid model
 
-        RequestDeleteServer ->
+        RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =
-                    requestDeleteServer project server.osProps.uuid
+                    requestDeleteServer project server.osProps.uuid retainFloatingIps
             in
             ( GetterSetters.modelUpdateProject model newProject, cmd )
 
@@ -1745,8 +1745,8 @@ createUnscopedProvider model authToken authUrl =
     )
 
 
-requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
-requestDeleteServer project serverUuid =
+requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd Msg )
+requestDeleteServer project serverUuid retainFloatingIps =
     case GetterSetters.serverLookup project serverUuid of
         Nothing ->
             -- Server likely deleted already, do nothing
@@ -1760,11 +1760,14 @@ requestDeleteServer project serverUuid =
                 newServer =
                     { server | exoProps = { oldExoProps | deletionAttempted = True } }
 
-                -- TODO don't do this if user wants to retain floating IPs
                 deleteFloatingIpCmds =
-                    GetterSetters.getServerFloatingIps project server.osProps.uuid
-                        |> List.map .uuid
-                        |> List.map (Rest.Neutron.requestDeleteFloatingIp project)
+                    if retainFloatingIps then
+                        []
+
+                    else
+                        GetterSetters.getServerFloatingIps project server.osProps.uuid
+                            |> List.map .uuid
+                            |> List.map (Rest.Neutron.requestDeleteFloatingIp project)
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
