@@ -875,12 +875,20 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                         []
 
                 actionMsg =
-                    Just <|
-                        ProjectMsg project.auth.project.uuid <|
-                            ServerMsg server.osProps.uuid <|
-                                RequestServerAction
-                                    cmdAction
-                                    serverAction.targetStatus
+                    if serverAction.name == "Delete" then
+                        -- Override action so that we can pass through user's choice of whether to retain floating IPs
+                        Just <|
+                            ProjectMsg project.auth.project.uuid <|
+                                ServerMsg server.osProps.uuid <|
+                                    RequestDeleteServer serverDetailViewParams.keepFloatingIpWhenDeleting
+
+                    else
+                        Just <|
+                            ProjectMsg project.auth.project.uuid <|
+                                ServerMsg server.osProps.uuid <|
+                                    RequestServerAction
+                                        cmdAction
+                                        serverAction.targetStatus
 
                 cancelMsg =
                     Just <|
