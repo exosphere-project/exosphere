@@ -278,16 +278,6 @@ actions maybeWordForServer maybeWordForImage =
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
             CmdAction <| Rest.Nova.requestDeleteServer
-
-      {-
-         UpdateAction <|
-             \projectId server ->
-                 ProjectMsg
-                     projectId
-                     (ServerMsg server.osProps.uuid
-                         RequestDeleteServer
-                     )
-      -}
       , selectMod = Danger
       , targetStatus = Just [ OSTypes.ServerSoftDeleted ]
       , confirmable = True
