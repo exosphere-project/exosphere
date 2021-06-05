@@ -484,7 +484,7 @@ type alias ServerDetailViewParams =
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , activeTooltip : Maybe ServerDetailActiveTooltip
-    , keepFloatingIpWhenDeleting : Bool
+    , retainFloatingIpsWhenDeleting : Bool
     }
 
 

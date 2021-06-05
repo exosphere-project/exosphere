@@ -852,11 +852,11 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                                         (SetProjectView
                                             (ServerDetail
                                                 server.osProps.uuid
-                                                { serverDetailViewParams | keepFloatingIpWhenDeleting = new }
+                                                { serverDetailViewParams | retainFloatingIpsWhenDeleting = new }
                                             )
                                         )
                             , icon = Input.defaultCheckbox
-                            , checked = serverDetailViewParams.keepFloatingIpWhenDeleting
+                            , checked = serverDetailViewParams.retainFloatingIpsWhenDeleting
                             , label =
                                 Input.labelRight []
                                     (Element.text <|
@@ -880,7 +880,7 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                         Just <|
                             ProjectMsg project.auth.project.uuid <|
                                 ServerMsg server.osProps.uuid <|
-                                    RequestDeleteServer serverDetailViewParams.keepFloatingIpWhenDeleting
+                                    RequestDeleteServer serverDetailViewParams.retainFloatingIpsWhenDeleting
 
                     else
                         Just <|
