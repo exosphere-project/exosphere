@@ -377,13 +377,13 @@ type ProjectSpecificMsgConstructor
 
 type ServerSpecificMsgConstructor
     = RequestServer
-    | RequestDeleteServer
+    | RequestDeleteServer Bool
     | RequestSetServerName String
     | RequestAttachVolume OSTypes.VolumeUuid
     | RequestCreateServerImage String
     | ReceiveServerEvents ErrorContext (Result HttpErrorWithBody (List OSTypes.ServerEvent))
     | ReceiveConsoleUrl (Result HttpErrorWithBody OSTypes.ConsoleUrl)
-    | ReceiveDeleteServer (Maybe OSTypes.IpAddressValue)
+    | ReceiveDeleteServer
     | ReceiveCreateFloatingIp ErrorContext (Result HttpErrorWithBody OSTypes.FloatingIp)
     | ReceiveServerPassword OSTypes.ServerPassword
     | ReceiveSetServerName String ErrorContext (Result HttpErrorWithBody String)
@@ -484,6 +484,7 @@ type alias ServerDetailViewParams =
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
     , activeTooltip : Maybe ServerDetailActiveTooltip
+    , retainFloatingIpsWhenDeleting : Bool
     }
 
 

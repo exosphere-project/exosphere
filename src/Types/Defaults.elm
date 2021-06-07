@@ -109,6 +109,7 @@ serverDetailViewParams =
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , activeTooltip = Nothing
+    , retainFloatingIpsWhenDeleting = False
     }
 
 

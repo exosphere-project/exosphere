@@ -724,7 +724,7 @@ processProjectSpecificMsg model project msg =
                 applyDelete serverUuid projCmdTuple =
                     let
                         ( delServerProj, delServerCmd ) =
-                            requestDeleteServer (Tuple.first projCmdTuple) serverUuid
+                            requestDeleteServer (Tuple.first projCmdTuple) serverUuid False
                     in
                     ( delServerProj, Cmd.batch [ Tuple.second projCmdTuple, delServerCmd ] )
 
@@ -1192,10 +1192,10 @@ processServerSpecificMsg model project server serverMsgConstructor =
         RequestServer ->
             ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid model
 
-        RequestDeleteServer ->
+        RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =
-                    requestDeleteServer project server.osProps.uuid
+                    requestDeleteServer project server.osProps.uuid retainFloatingIps
             in
             ( GetterSetters.modelUpdateProject model newProject, cmd )
 
@@ -1243,7 +1243,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
         ReceiveConsoleUrl url ->
             Rest.Nova.receiveConsoleUrl model project server url
 
-        ReceiveDeleteServer maybeIpAddress ->
+        ReceiveDeleteServer ->
             let
                 ( serverDeletedModel, urlCmd ) =
                     let
@@ -1282,36 +1282,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                     in
                     ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
             in
-            case maybeIpAddress of
-                Nothing ->
-                    ( serverDeletedModel, urlCmd )
-
-                Just ipAddress ->
-                    let
-                        maybeFloatingIpUuid =
-                            RemoteData.withDefault [] project.floatingIps
-                                |> List.filter (\i -> i.address == ipAddress)
-                                |> List.head
-                                |> Maybe.map .uuid
-                    in
-                    case maybeFloatingIpUuid of
-                        Nothing ->
-                            let
-                                errorContext =
-                                    ErrorContext
-                                        "Look for a floating IP address to delete now that we have just deleted its server"
-                                        ErrorDebug
-                                        Nothing
-                            in
-                            State.Error.processStringError
-                                serverDeletedModel
-                                errorContext
-                                ("Could not find a UUID for floating IP address from deleted server with UUID " ++ server.osProps.uuid)
-
-                        Just uuid ->
-                            ( serverDeletedModel
-                            , Cmd.batch [ urlCmd, Rest.Neutron.requestDeleteFloatingIp project uuid ]
-                            )
+            ( serverDeletedModel, urlCmd )
 
         ReceiveCreateFloatingIp errorContext result ->
             case result of
@@ -1774,8 +1745,8 @@ createUnscopedProvider model authToken authUrl =
     )
 
 
-requestDeleteServer : Project -> OSTypes.ServerUuid -> ( Project, Cmd Msg )
-requestDeleteServer project serverUuid =
+requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd Msg )
+requestDeleteServer project serverUuid retainFloatingIps =
     case GetterSetters.serverLookup project serverUuid of
         Nothing ->
             -- Server likely deleted already, do nothing
@@ -1789,7 +1760,21 @@ requestDeleteServer project serverUuid =
                 newServer =
                     { server | exoProps = { oldExoProps | deletionAttempted = True } }
 
+                deleteFloatingIpCmds =
+                    if retainFloatingIps then
+                        []
+
+                    else
+                        GetterSetters.getServerFloatingIps project server.osProps.uuid
+                            |> List.map .uuid
+                            |> List.map (Rest.Neutron.requestDeleteFloatingIp project)
+
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
             in
-            ( newProject, Rest.Nova.requestDeleteServer newProject newServer )
+            ( newProject
+            , Cmd.batch
+                [ Rest.Nova.requestDeleteServer newProject newServer
+                , Cmd.batch deleteFloatingIpCmds
+                ]
+            )

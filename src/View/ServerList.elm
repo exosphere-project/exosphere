@@ -343,7 +343,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                             Just <|
                                 ProjectMsg projectId <|
                                     ServerMsg server.osProps.uuid <|
-                                        RequestDeleteServer
+                                        RequestDeleteServer False
                         }
                     , Widget.iconButton
                         (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
