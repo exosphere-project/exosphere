@@ -1754,6 +1754,8 @@ createProject model authToken endpoints =
     )
         |> Helpers.pipelineCmd
             (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
+        |> Helpers.pipelineCmd
+            (ApiModelHelpers.requestPorts newProject.auth.project.uuid)
         |> Helpers.pipelineCmd newViewStateFunc
 
 
