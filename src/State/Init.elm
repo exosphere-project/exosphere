@@ -229,18 +229,24 @@ init flags urlKey =
                 |> List.map ApiModelHelpers.requestFloatingIps
                 |> List.foldl Helpers.pipelineCmd ( requestServersModel, requestServersCmd )
 
+        ( requestServersIpsPortsModel, requestServersIpsPortsCmd ) =
+            requestServersAndIpsModel.projects
+                |> List.map (\p -> p.auth.project.uuid)
+                |> List.map ApiModelHelpers.requestPorts
+                |> List.foldl Helpers.pipelineCmd ( requestServersAndIpsModel, requestServersAndIpsCmd )
+
         ( setViewModel, setViewCmd ) =
             case viewState of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView nonProjectViewConstructor requestServersAndIpsModel
+                    setNonProjectView nonProjectViewConstructor requestServersIpsPortsModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-                    case GetterSetters.projectLookup requestServersAndIpsModel projectId of
+                    case GetterSetters.projectLookup requestServersIpsPortsModel projectId of
                         Just project ->
-                            setProjectView project projectViewConstructor requestServersAndIpsModel
+                            setProjectView project projectViewConstructor requestServersIpsPortsModel
 
                         Nothing ->
-                            ( requestServersAndIpsModel, Cmd.none )
+                            ( requestServersIpsPortsModel, Cmd.none )
     in
-    ( setViewModel, Cmd.batch [ requestServersAndIpsCmd, setViewCmd ] )
+    ( setViewModel, Cmd.batch [ requestServersIpsPortsCmd, setViewCmd ] )
