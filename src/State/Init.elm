@@ -218,7 +218,7 @@ init flags urlKey =
             ]
                 |> Cmd.batch
 
-        ( requestStuffModel, requestStuffCmd ) =
+        ( requestResourcesModel, requestResourcesCmd ) =
             let
                 applyRequestsToProject : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
                 applyRequestsToProject projectId model =
@@ -238,15 +238,15 @@ init flags urlKey =
         ( setViewModel, setViewCmd ) =
             case viewState of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView nonProjectViewConstructor requestStuffModel
+                    setNonProjectView nonProjectViewConstructor requestResourcesModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-                    case GetterSetters.projectLookup requestStuffModel projectId of
+                    case GetterSetters.projectLookup requestResourcesModel projectId of
                         Just project ->
-                            setProjectView project projectViewConstructor requestStuffModel
+                            setProjectView project projectViewConstructor requestResourcesModel
 
                         Nothing ->
-                            ( requestStuffModel, Cmd.none )
+                            ( requestResourcesModel, Cmd.none )
     in
-    ( setViewModel, Cmd.batch [ requestStuffCmd, setViewCmd ] )
+    ( setViewModel, Cmd.batch [ requestResourcesCmd, setViewCmd ] )
