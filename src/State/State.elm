@@ -52,6 +52,12 @@ import Types.View
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import Types.Workflow
+    exposing
+        ( CustomWorkflow
+        , CustomWorkflowTokenRDPP
+        , ServerCustomWorkflowStatus(..)
+        )
 
 
 update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -744,6 +750,7 @@ processProjectSpecificMsg outerModel project msg =
                             viewParams.keypairName
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
                             viewParams.deployDesktopEnvironment
+                            viewParams.customWorkflowSource
                             viewParams.installOperatingSystemUpdates
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
@@ -755,6 +762,7 @@ processProjectSpecificMsg outerModel project msg =
                             viewParams.deployDesktopEnvironment
                             project.auth.user.name
                             viewParams.floatingIpCreationOption
+                            viewParams.customWorkflowSource
                     }
             in
             ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
@@ -1833,10 +1841,45 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                         )
                                         (RDPP.NotLoading Nothing)
 
+                        newWorkflowToken : CustomWorkflow -> CustomWorkflowTokenRDPP
+                        newWorkflowToken currentWorkflow =
+                            case result of
+                                Err httpError ->
+                                    RDPP.RemoteDataPlusPlus
+                                        RDPP.DontHave
+                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+
+                                Ok consoleLog ->
+                                    let
+                                        maybeParsedToken =
+                                            Helpers.parseConsoleLogForWorkflowToken consoleLog
+                                    in
+                                    case maybeParsedToken of
+                                        Just parsedToken ->
+                                            RDPP.RemoteDataPlusPlus
+                                                (RDPP.DoHave
+                                                    parsedToken
+                                                    model.clientCurrentTime
+                                                )
+                                                (RDPP.NotLoading Nothing)
+
+                                        Nothing ->
+                                            currentWorkflow.authToken
+
+                        newWorkflowStatus : ServerCustomWorkflowStatus
+                        newWorkflowStatus =
+                            case exoOriginProps.customWorkflowStatus of
+                                NotLaunchedWithCustomWorkflow ->
+                                    exoOriginProps.customWorkflowStatus
+
+                                LaunchedWithCustomWorkflow customWorkflow ->
+                                    LaunchedWithCustomWorkflow { customWorkflow | authToken = newWorkflowToken customWorkflow }
+
                         newOriginProps =
                             { exoOriginProps
                                 | resourceUsage = newResourceUsage
                                 , exoSetupStatus = newExoSetupStatusRDPP
+                                , customWorkflowStatus = newWorkflowStatus
                             }
 
                         oldExoProps =

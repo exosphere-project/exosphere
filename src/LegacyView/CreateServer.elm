@@ -30,6 +30,12 @@ import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..))
+import Types.Workflow
+    exposing
+        ( CustomWorkflowSource
+        , CustomWorkflowSourceRepository(..)
+        )
+import Url
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
@@ -116,8 +122,19 @@ createServer context project viewParams =
 
                         Nothing ->
                             False
+
+                invalidWorkflowTextInput =
+                    case ( viewParams.customWorkflowSourceInput, viewParams.customWorkflowSource ) of
+                        ( Just _, Nothing ) ->
+                            True
+
+                        ( _, _ ) ->
+                            False
+
+                invalidInputs =
+                    invalidVolSizeTextInput || invalidWorkflowTextInput
             in
-            case ( invalidNameReasons, invalidVolSizeTextInput, viewParams.networkUuid ) of
+            case ( invalidNameReasons, invalidInputs, viewParams.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
                     Just <| SharedMsg (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams netUuid))
 
@@ -182,6 +199,7 @@ createServer context project viewParams =
                             , floatingIpPicker context project viewParams
                             , keypairPicker context project viewParams
                             , userDataInput context project viewParams
+                            , customWorkflowInput context project viewParams
                             ]
                        )
             , renderNetworkGuidance
@@ -597,6 +615,98 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
                     Element.none
             ]
         ]
+
+
+customWorkflowInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+customWorkflowInput context project viewParams =
+    let
+        clearButton =
+            Widget.textButton
+                (SH.materialStyle context.palette).button
+                { text = "Remove workflow"
+                , onPress =
+                    viewParams.customWorkflowSource
+                        |> Maybe.map
+                            (\_ ->
+                                updateCreateServerRequest project
+                                    { viewParams
+                                        | customWorkflowSourceInput = Nothing
+                                        , customWorkflowSource = Nothing
+                                    }
+                            )
+                }
+
+        workFlowInputToWorkflow : String -> Maybe CustomWorkflowSource
+        workFlowInputToWorkflow workflowInputString =
+            Url.fromString workflowInputString
+                |> Maybe.map
+                    (\url ->
+                        { repository =
+                            GitRepository
+                                url
+                                Nothing
+                        , path = Nothing
+                        }
+                    )
+
+        workflowInput =
+            Input.text
+                (VH.inputItemAttributes context.palette.background)
+                { text = viewParams.customWorkflowSourceInput |> Maybe.withDefault ""
+                , placeholder =
+                    Just
+                        (Input.placeholder
+                            []
+                            (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                        )
+                , onChange =
+                    \n ->
+                        if n == "" then
+                            updateCreateServerRequest project
+                                { viewParams
+                                    | customWorkflowSourceInput = Nothing
+                                    , customWorkflowSource = Nothing
+                                }
+
+                        else
+                            updateCreateServerRequest project
+                                { viewParams
+                                    | customWorkflowSourceInput = Just n
+                                    , customWorkflowSource = workFlowInputToWorkflow n
+                                }
+                , label = Input.labelLeft [] (Element.text "Git repository URL")
+                }
+
+        warning =
+            Element.paragraph
+                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
+                    ++ VH.exoElementAttributes
+                )
+                [ Element.text "Note: Workflows is an experimental feature"
+                ]
+    in
+    Element.column
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    <|
+        [ Input.radioRow [ Element.spacing 10 ]
+            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Build and launch a workflow")
+            , onChange = \new -> updateCreateServerRequest project { viewParams | showCustomWorkflowOptions = new }
+            , options =
+                [ Input.option False (Element.text "Hide")
+                , Input.option True (Element.text "Show")
+                ]
+            , selected = Just viewParams.showCustomWorkflowOptions
+            }
+        ]
+            ++ (if not viewParams.showCustomWorkflowOptions then
+                    [ Element.none ]
+
+                else
+                    [ warning
+                    , workflowInput
+                    , clearButton
+                    ]
+               )
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg

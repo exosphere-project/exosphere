@@ -1,5 +1,6 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
+    , customWorkflowSourceRepoToAnsibleVarString
     , decodeFloatingIpOption
     , getBootVol
     , getNewFloatingIpOption
@@ -9,6 +10,7 @@ module Helpers.Helpers exposing
     , naiveUuidParser
     , newServerMetadata
     , newServerNetworkOptions
+    , parseConsoleLogForWorkflowToken
     , pipelineCmd
     , renderUserDataTemplate
     , serverFromThisExoClient
@@ -55,7 +57,16 @@ import Types.Server
         )
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
+import Types.Workflow
+    exposing
+        ( CustomWorkflowAuthToken
+        , CustomWorkflowSource
+        , CustomWorkflowSourceRepository(..)
+        , ServerCustomWorkflowStatus(..)
+        , SourceRepositoryPath(..)
+        )
 import UUID
+import Url
 
 
 alwaysRegex : String -> Regex.Regex
@@ -294,11 +305,12 @@ renderUserDataTemplate :
     -> Maybe String
     -> Bool
     -> Bool
+    -> Maybe CustomWorkflowSource
     -> Bool
     -> String
     -> String
     -> String
-renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout =
+renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole deployDesktopEnvironment maybeCustomWorkflowSource installOperatingSystemUpdates instanceConfigMgtRepoUrl instanceConfigMgtRepoCheckout =
     -- Configure cloud-init user data based on user's choice for SSH keypair and Guacamole
     let
         getPublicKeyFromKeypairName : String -> Maybe String
@@ -335,6 +347,22 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
 
                   else
                     "false"
+                , case maybeCustomWorkflowSource of
+                    Nothing ->
+                        ""
+
+                    Just customWorkflowSource ->
+                        """,\\"workflow_source_repository\\":"""
+                            ++ """\\\""""
+                            ++ customWorkflowSourceRepoToAnsibleVarString customWorkflowSource.repository
+                            ++ """\\\""""
+                            ++ (case customWorkflowSource.repository of
+                                    GitRepository _ (Just sourceRepositoryReference) ->
+                                        """,\\"workflow_repo_version\\":""" ++ """\\\"""" ++ sourceRepositoryReference ++ """\\\""""
+
+                                    _ ->
+                                        ""
+                               )
                 , """}"""
                 ]
 
@@ -355,8 +383,8 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> List ( String, Json.Encode.Value )
-newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption =
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> Maybe CustomWorkflowSource -> List ( String, Json.Encode.Value )
+newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption maybeCustomWorkflowSource =
     let
         guacMetadata =
             if deployGuacamole then
@@ -390,6 +418,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             )
           ]
         , encodeFloatingIpOption floatingIpCreationOption
+        , Maybe.map encodeCustomWorkflowSource maybeCustomWorkflowSource |> Maybe.withDefault []
         ]
 
 
@@ -585,6 +614,58 @@ serverOrigin serverDetails =
                         Err _ ->
                             GuacTypes.NotLaunchedWithGuacamole
 
+        fromMaybe : Maybe a -> Decode.Decoder a
+        fromMaybe result =
+            case result of
+                Just a ->
+                    Decode.succeed a
+
+                Nothing ->
+                    Decode.fail "Not a valid URL"
+
+        decodeCustomWorkflowProps : Decode.Decoder CustomWorkflowSource
+        decodeCustomWorkflowProps =
+            let
+                -- Note: Some of the logic paths below are not active. Will be used when implementing:
+                -- https://gitlab.com/exosphere/exosphere/-/issues/564
+                gitRepoDecoder : Decode.Decoder CustomWorkflowSourceRepository
+                gitRepoDecoder =
+                    Decode.map2 GitRepository (Decode.field "gitRepo" Decode.string |> Decode.andThen (fromMaybe << Url.fromString)) (Decode.maybe (Decode.field "ref" Decode.string))
+
+                doiRepoDecoder : Decode.Decoder CustomWorkflowSourceRepository
+                doiRepoDecoder =
+                    Decode.map Doi (Decode.field "doiRepo" Decode.string)
+            in
+            Decode.map2
+                CustomWorkflowSource
+                (Decode.oneOf [ gitRepoDecoder, doiRepoDecoder ])
+                (Decode.maybe
+                    (Decode.oneOf
+                        [ Decode.map FilePath (Decode.field "filePath" Decode.string)
+                        , Decode.map UrlPath (Decode.field "urlPath" Decode.string)
+                        ]
+                    )
+                )
+
+        customWorkflowStatus =
+            case
+                List.filter (\i -> i.key == "exoCustomWorkflow") serverDetails.metadata
+                    |> List.head
+            of
+                Nothing ->
+                    NotLaunchedWithCustomWorkflow
+
+                Just item ->
+                    case Decode.decodeString decodeCustomWorkflowProps item.value of
+                        Ok launchedWithCustomWorkflowPropsProps ->
+                            LaunchedWithCustomWorkflow
+                                { source = launchedWithCustomWorkflowPropsProps
+                                , authToken = RDPP.empty
+                                }
+
+                        Err _ ->
+                            NotLaunchedWithCustomWorkflow
+
         creatorName =
             List.filter (\i -> i.key == "exoCreatorUsername") serverDetails.metadata
                 |> List.head
@@ -593,10 +674,85 @@ serverOrigin serverDetails =
     case exoServerVersion of
         Just v ->
             ServerFromExo <|
-                ServerFromExoProps v exoSetupStatusRDPP RDPP.empty guacamoleStatus creatorName
+                ServerFromExoProps v exoSetupStatusRDPP RDPP.empty guacamoleStatus customWorkflowStatus creatorName
 
         Nothing ->
             ServerNotFromExo
+
+
+encodeCustomWorkflowSource : CustomWorkflowSource -> List ( String, Json.Encode.Value )
+encodeCustomWorkflowSource customWorkflowSource =
+    let
+        -- Note: Some of the logic paths below are not active. Will be used when implementing:
+        -- https://gitlab.com/exosphere/exosphere/-/issues/564
+        ( repoTypeString, workflowRepository ) =
+            case customWorkflowSource.repository of
+                GitRepository url _ ->
+                    ( "gitRepo", Url.toString url )
+
+                Doi repoDoi ->
+                    ( "doiRepo", repoDoi )
+
+        workflowRef =
+            case customWorkflowSource.repository of
+                GitRepository _ (Just sourceRepositoryReference) ->
+                    [ ( "ref", Json.Encode.string sourceRepositoryReference ) ]
+
+                _ ->
+                    []
+
+        workflowPath =
+            case customWorkflowSource.path of
+                Nothing ->
+                    []
+
+                Just workflowSourcePath ->
+                    case workflowSourcePath of
+                        FilePath filePath ->
+                            [ ( "filePath", Json.Encode.string filePath ) ]
+
+                        UrlPath urlPath ->
+                            [ ( "urlPath", Json.Encode.string urlPath ) ]
+    in
+    [ ( "exoCustomWorkflow"
+      , Json.Encode.string <|
+            Json.Encode.encode 0 <|
+                Json.Encode.object
+                    (List.concat
+                        [ [ ( "v", Json.Encode.int 1 )
+                          , ( repoTypeString, Json.Encode.string workflowRepository )
+                          ]
+                        , workflowRef
+                        , workflowPath
+                        ]
+                    )
+      )
+    ]
+
+
+parseConsoleLogForWorkflowToken : String -> Maybe CustomWorkflowAuthToken
+parseConsoleLogForWorkflowToken consoleLog =
+    let
+        loglines =
+            String.split "\n" consoleLog
+
+        decodedData =
+            List.filterMap
+                (\l -> Decode.decodeString decodeWorkflowToken l |> Result.toMaybe)
+                loglines
+
+        maybeLastToken =
+            List.reverse decodedData
+                |> List.head
+    in
+    maybeLastToken
+
+
+decodeWorkflowToken : Decode.Decoder CustomWorkflowAuthToken
+decodeWorkflowToken =
+    Decode.field
+        "exoWorkflowToken"
+        Decode.string
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool
@@ -688,3 +844,15 @@ httpErrorToString httpError =
 
         Http.BadBody string ->
             "BadBody: " ++ string
+
+
+customWorkflowSourceRepoToAnsibleVarString : CustomWorkflowSourceRepository -> String
+customWorkflowSourceRepoToAnsibleVarString customWorkflowSourceRepo =
+    case customWorkflowSourceRepo of
+        GitRepository url _ ->
+            Url.toString url
+
+        Doi doi ->
+            -- Note: Doi type not currently used. Will be used when implementing:
+            -- https://gitlab.com/exosphere/exosphere/-/issues/564
+            doi
