@@ -30,6 +30,7 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
         , Project
+        , ProjectIdentifier
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
@@ -217,36 +218,35 @@ init flags urlKey =
             ]
                 |> Cmd.batch
 
-        ( requestServersModel, requestServersCmd ) =
+        ( requestStuffModel, requestStuffCmd ) =
+            let
+                applyRequestsToProject : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+                applyRequestsToProject projectId model =
+                    ( model, otherCmds )
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
+                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
+            in
             hydratedModel.projects
                 |> List.map (\p -> p.auth.project.uuid)
-                |> List.map ApiModelHelpers.requestServers
-                |> List.foldl Helpers.pipelineCmd ( hydratedModel, otherCmds )
-
-        ( requestServersAndIpsModel, requestServersAndIpsCmd ) =
-            requestServersModel.projects
-                |> List.map (\p -> p.auth.project.uuid)
-                |> List.map ApiModelHelpers.requestFloatingIps
-                |> List.foldl Helpers.pipelineCmd ( requestServersModel, requestServersCmd )
-
-        ( requestServersIpsPortsModel, requestServersIpsPortsCmd ) =
-            requestServersAndIpsModel.projects
-                |> List.map (\p -> p.auth.project.uuid)
-                |> List.map ApiModelHelpers.requestPorts
-                |> List.foldl Helpers.pipelineCmd ( requestServersAndIpsModel, requestServersAndIpsCmd )
+                |> List.foldl
+                    (\uuid modelCmdTuple ->
+                        Helpers.pipelineCmd (applyRequestsToProject uuid) modelCmdTuple
+                    )
+                    ( hydratedModel, Cmd.none )
 
         ( setViewModel, setViewCmd ) =
             case viewState of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView nonProjectViewConstructor requestServersIpsPortsModel
+                    setNonProjectView nonProjectViewConstructor requestStuffModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-                    case GetterSetters.projectLookup requestServersIpsPortsModel projectId of
+                    case GetterSetters.projectLookup requestStuffModel projectId of
                         Just project ->
-                            setProjectView project projectViewConstructor requestServersIpsPortsModel
+                            setProjectView project projectViewConstructor requestStuffModel
 
                         Nothing ->
-                            ( requestServersIpsPortsModel, Cmd.none )
+                            ( requestStuffModel, Cmd.none )
     in
-    ( setViewModel, Cmd.batch [ requestServersIpsPortsCmd, setViewCmd ] )
+    ( setViewModel, Cmd.batch [ requestStuffCmd, setViewCmd ] )
