@@ -1,6 +1,6 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , decodeFloatingIpCreationOption
+    , decodeFloatingIpOption
     , getBootVol
     , getNewFloatingIpCreationOption
     , httpErrorToString
@@ -321,7 +321,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
             , Json.Encode.string "waiting"
             )
           ]
-        , encodeFloatingIpCreationOption floatingIpCreationOption
+        , encodeFloatingIpOption floatingIpCreationOption
         ]
 
 
@@ -531,12 +531,8 @@ serverOrigin serverDetails =
             ServerNotFromExo
 
 
-
--- TODO rename these functions
-
-
-encodeFloatingIpCreationOption : FloatingIpOption -> List ( String, Json.Encode.Value )
-encodeFloatingIpCreationOption option =
+encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )
+encodeFloatingIpOption option =
     case option of
         UseFloatingIp reuseOption _ ->
             let
@@ -561,8 +557,8 @@ encodeFloatingIpCreationOption option =
             ]
 
 
-decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpOption
-decodeFloatingIpCreationOption serverDetails =
+decodeFloatingIpOption : OSTypes.ServerDetails -> FloatingIpOption
+decodeFloatingIpOption serverDetails =
     let
         maybeFloatingIpOptionStr =
             List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
