@@ -710,7 +710,16 @@ processProjectSpecificMsg model project msg =
             ( model, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
 
         RequestAssignFloatingIp port_ floatingIpUuid ->
-            ( model, Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid )
+            let
+                ( newModel, setViewCmd ) =
+                    ViewStateHelpers.setProjectView project (ListFloatingIps Defaults.floatingIpListViewParams) model
+            in
+            ( newModel
+            , Cmd.batch
+                [ setViewCmd
+                , Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid
+                ]
+            )
 
         RequestUnassignFloatingIp floatingIpUuid ->
             ( model, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
@@ -1044,7 +1053,6 @@ processProjectSpecificMsg model project msg =
 
         ReceiveAssignFloatingIp floatingIp ->
             -- TODO update servers so that new assignment is reflected in the UI
-            -- TODO don't change view state here because we get here as part of creating a new server. Instead, change view state when user clicks button to assign floating IP in assignment view.
             let
                 newProject =
                     processNewFloatingIp project floatingIp
@@ -1052,9 +1060,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
             in
-            ViewStateHelpers.setProjectView newProject
-                (ListFloatingIps Defaults.floatingIpListViewParams)
-                newModel
+            ( newModel, Cmd.none )
 
         ReceiveUnassignFloatingIp floatingIp ->
             -- TODO update servers so that unassignment is reflected in the UI
