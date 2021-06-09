@@ -881,7 +881,9 @@ floatingIpPicker context project viewParams =
                             List.concat
                                 [ [ Input.option
                                         CreateNewFloatingIp
-                                        (Element.text "Create a new floating IP address")
+                                        (Element.text <|
+                                            String.join " " [ "Create a new", context.localization.floatingIpAddress ]
+                                        )
                                   ]
                                 , unassignedFloatingIpOptions
                                 ]
