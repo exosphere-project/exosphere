@@ -21,6 +21,7 @@ import Types.Types
         , ExoSetupStatus(..)
         , FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
+        , FloatingIpReuseOption(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -153,8 +154,14 @@ stepServerRequestNetworks time project server =
             && (server.osProps.details.openstackStatus
                     == OSTypes.ServerActive
                )
-            && (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
-                    == UseFloatingIp Attemptable
+            && (case
+                    Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                of
+                    UseFloatingIp _ Attemptable ->
+                        True
+
+                    _ ->
+                        False
                )
     then
         case project.networks.refreshStatus of
@@ -193,9 +200,18 @@ stepServerRequestPorts time project server =
             && (server.osProps.details.openstackStatus
                     == OSTypes.ServerActive
                )
-            && List.member
-                (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption)
-                [ Automatic, UseFloatingIp WaitingForResources ]
+            && (case
+                    Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                of
+                    Automatic ->
+                        True
+
+                    UseFloatingIp _ WaitingForResources ->
+                        True
+
+                    _ ->
+                        False
+               )
     then
         case project.ports.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
@@ -239,8 +255,14 @@ stepServerRequestFloatingIp _ project server =
                     && (server.osProps.details.openstackStatus
                             == OSTypes.ServerActive
                        )
-                    && (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
-                            == UseFloatingIp Attemptable
+                    && (case
+                            Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                        of
+                            UseFloatingIp _ Attemptable ->
+                                True
+
+                            _ ->
+                                False
                        )
             then
                 GetterSetters.getServerPorts project server.osProps.uuid
@@ -261,7 +283,8 @@ stepServerRequestFloatingIp _ project server =
                         oldExoProps =
                             server.exoProps
                     in
-                    { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp AttemptedWaiting } }
+                    -- TODO parameterize the reuse option
+                    { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp CreateNewFloatingIp AttemptedWaiting } }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

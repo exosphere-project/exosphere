@@ -23,6 +23,7 @@ import Types.Types
         ( CreateServerViewParams
         , FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
+        , FloatingIpReuseOption(..)
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
@@ -829,7 +830,9 @@ floatingIpPicker context project viewParams =
             let
                 options =
                     [ Input.option Automatic (Element.text "Automatic")
-                    , Input.option (UseFloatingIp Unknown)
+
+                    -- TODO reuse option picker
+                    , Input.option (UseFloatingIp CreateNewFloatingIp Unknown)
                         (Element.text <|
                             String.join " "
                                 [ "Always assign a"

@@ -14,6 +14,7 @@ module Types.Types exposing
     , FloatingIpAssignmentStatus(..)
     , FloatingIpListViewParams
     , FloatingIpOption(..)
+    , FloatingIpReuseOption(..)
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
@@ -632,8 +633,13 @@ type
     -- Wait to see if server gets a fixed IP in publicly routable space
     = Automatic
       -- Use a floating IP as soon as we are able to do so
-    | UseFloatingIp FloatingIpAssignmentStatus
+    | UseFloatingIp FloatingIpReuseOption FloatingIpAssignmentStatus
     | DoNotUseFloatingIp
+
+
+type FloatingIpReuseOption
+    = CreateNewFloatingIp
+    | UseExistingFloatingIp OSTypes.IpAddressUuid
 
 
 type FloatingIpAssignmentStatus
