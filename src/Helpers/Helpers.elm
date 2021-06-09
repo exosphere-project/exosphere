@@ -319,7 +319,7 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
           , ( "exoSetup"
             , Json.Encode.string "waiting"
             )
-          , ( "exoCreateFloatingIp"
+          , ( "exoFloatingIpOption"
             , Json.Encode.string <|
                 encodeFloatingIpCreationOption floatingIpCreationOption
             )
@@ -548,7 +548,7 @@ encodeFloatingIpCreationOption option =
 
 decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpOption
 decodeFloatingIpCreationOption serverDetails =
-    List.filter (\i -> i.key == "exoCreateFloatingIp") serverDetails.metadata
+    List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
         |> List.head
         |> Maybe.map .value
         |> Maybe.map
