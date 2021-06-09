@@ -1044,6 +1044,7 @@ processProjectSpecificMsg model project msg =
 
         ReceiveAssignFloatingIp floatingIp ->
             -- TODO update servers so that new assignment is reflected in the UI
+            -- TODO don't change view state here because we get here as part of creating a new server. Instead, change view state when user clicks button to assign floating IP in assignment view.
             let
                 newProject =
                     processNewFloatingIp project floatingIp

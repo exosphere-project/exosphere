@@ -155,7 +155,7 @@ stepServerRequestNetworks time project server =
                     == OSTypes.ServerActive
                )
             && (case
-                    Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                    Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption
                 of
                     UseFloatingIp _ Attemptable ->
                         True
@@ -201,7 +201,7 @@ stepServerRequestPorts time project server =
                     == OSTypes.ServerActive
                )
             && (case
-                    Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
+                    Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption
                 of
                     Automatic ->
                         True
@@ -246,56 +246,51 @@ stepServerRequestPorts time project server =
 
 stepServerRequestFloatingIp : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
 stepServerRequestFloatingIp _ project server =
-    -- Request floating IP address for new server
-    let
-        serverDoWeRequestFloatingIp : Maybe OSTypes.Port
-        serverDoWeRequestFloatingIp =
-            if
-                not server.exoProps.deletionAttempted
-                    && (server.osProps.details.openstackStatus
-                            == OSTypes.ServerActive
-                       )
-                    && (case
-                            Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
-                        of
-                            UseFloatingIp _ Attemptable ->
-                                True
+    -- Request to create/assign floating IP address to new server
+    if
+        not server.exoProps.deletionAttempted
+            && (server.osProps.details.openstackStatus
+                    == OSTypes.ServerActive
+               )
+    then
+        case
+            ( GetterSetters.getServerPorts project server.osProps.uuid
+                |> List.head
+            , GetterSetters.getExternalNetwork project
+            )
+        of
+            ( Just port_, Just network ) ->
+                case Helpers.getNewFloatingIpOption project server.osProps server.exoProps.floatingIpCreationOption of
+                    UseFloatingIp reuseOption Attemptable ->
+                        let
+                            cmd =
+                                case reuseOption of
+                                    CreateNewFloatingIp ->
+                                        Rest.Neutron.requestCreateFloatingIp project network port_ server
 
-                            _ ->
-                                False
-                       )
-            then
-                GetterSetters.getServerPorts project server.osProps.uuid
-                    |> List.head
+                                    UseExistingFloatingIp ipUuid ->
+                                        Rest.Neutron.requestAssignFloatingIp project port_ ipUuid
 
-            else
-                Nothing
+                            newServer =
+                                let
+                                    oldExoProps =
+                                        server.exoProps
+                                in
+                                { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp reuseOption AttemptedWaiting } }
 
-        maybeExtNet =
-            GetterSetters.getExternalNetwork project
-    in
-    -- TODO if we don't find an external network, how do we indicate that to user? Fire a Cmd that shows an error? Or just wait until we have one?
-    case ( serverDoWeRequestFloatingIp, maybeExtNet ) of
-        ( Just port_, Just extNet ) ->
-            let
-                newServer =
-                    let
-                        oldExoProps =
-                            server.exoProps
-                    in
-                    -- TODO parameterize the reuse option
-                    { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp CreateNewFloatingIp AttemptedWaiting } }
+                            newProject =
+                                GetterSetters.projectUpdateServer project newServer
+                        in
+                        ( newProject, cmd )
 
-                newProject =
-                    GetterSetters.projectUpdateServer project newServer
+                    _ ->
+                        ( project, Cmd.none )
 
-                newCmd =
-                    Rest.Neutron.requestCreateFloatingIp project extNet port_ server
-            in
-            ( newProject, newCmd )
+            _ ->
+                ( project, Cmd.none )
 
-        _ ->
-            ( project, Cmd.none )
+    else
+        ( project, Cmd.none )
 
 
 stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
