@@ -826,7 +826,7 @@ networkPicker context project viewParams =
 floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
 floatingIpPicker context project viewParams =
     let
-        picker =
+        optionPicker =
             let
                 options =
                     [ Input.option Automatic (Element.text "Automatic")
@@ -835,11 +835,10 @@ floatingIpPicker context project viewParams =
                     , Input.option (UseFloatingIp CreateNewFloatingIp Unknown)
                         (Element.text <|
                             String.join " "
-                                [ "Always assign a"
+                                [ "Assign a"
                                 , context.localization.floatingIpAddress
                                 , "to this"
                                 , context.localization.virtualComputer
-                                , "(creating one if needed)"
                                 ]
                         )
                     , Input.option DoNotUseFloatingIp
@@ -864,13 +863,64 @@ floatingIpPicker context project viewParams =
                     options
                 , selected = Just viewParams.floatingIpCreationOption
                 }
+
+        reuseOptionPicker =
+            case viewParams.floatingIpCreationOption of
+                UseFloatingIp reuseOption _ ->
+                    let
+                        unassignedFloatingIpOptions =
+                            project.floatingIps
+                                |> RemoteData.withDefault []
+                                |> List.filter (\ip -> ip.portUuid == Nothing)
+                                |> List.map
+                                    (\ip ->
+                                        Input.option
+                                            (UseExistingFloatingIp ip.uuid)
+                                            (Element.text <| String.join " " [ "Use existing", ip.address ])
+                                    )
+
+                        options =
+                            List.concat
+                                [ [ Input.option
+                                        CreateNewFloatingIp
+                                        (Element.text "Create a new floating IP address")
+                                  ]
+                                , unassignedFloatingIpOptions
+                                ]
+                    in
+                    Element.column
+                        [ Element.paddingXY 0 10, Element.spacingXY 0 10 ]
+                        [ Element.el [ Font.bold ] <|
+                            Element.text <|
+                                String.join " "
+                                    [ Helpers.String.toTitleCase context.localization.floatingIpAddress
+                                    , "Reuse Option"
+                                    ]
+                        , Input.radio []
+                            { label =
+                                Input.labelHidden <|
+                                    String.join " "
+                                        [ "Choose whether to create a new"
+                                        , context.localization.floatingIpAddress
+                                        , "or re-use an existing one"
+                                        ]
+                            , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = UseFloatingIp option Unknown }
+                            , options = options
+                            , selected =
+                                Just reuseOption
+                            }
+                        ]
+
+                _ ->
+                    Element.none
     in
     Element.column
         VH.exoColumnAttributes
         [ Element.el [ Font.bold ] <|
             Element.text <|
                 Helpers.String.toTitleCase context.localization.floatingIpAddress
-        , picker
+        , optionPicker
+        , reuseOptionPicker
         ]
 
 
