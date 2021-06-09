@@ -830,8 +830,6 @@ floatingIpPicker context project viewParams =
             let
                 options =
                     [ Input.option Automatic (Element.text "Automatic")
-
-                    -- TODO reuse option picker
                     , Input.option (UseFloatingIp CreateNewFloatingIp Unknown)
                         (Element.text <|
                             String.join " "
