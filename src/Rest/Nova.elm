@@ -726,7 +726,7 @@ receiveServer_ project osServer =
                 Just exoServer ->
                     let
                         floatingIpCreationOption =
-                            Helpers.getNewFloatingIpCreationOption
+                            Helpers.getNewFloatingIpOption
                                 project
                                 osServer
                                 exoServer.exoProps.floatingIpCreationOption

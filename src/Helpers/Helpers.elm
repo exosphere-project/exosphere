@@ -2,7 +2,7 @@ module Helpers.Helpers exposing
     ( alwaysRegex
     , decodeFloatingIpOption
     , getBootVol
-    , getNewFloatingIpCreationOption
+    , getNewFloatingIpOption
     , httpErrorToString
     , isBootVol
     , naiveUuidParser
@@ -146,8 +146,8 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
-getNewFloatingIpCreationOption : Project -> OSTypes.Server -> FloatingIpOption -> FloatingIpOption
-getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
+getNewFloatingIpOption : Project -> OSTypes.Server -> FloatingIpOption -> FloatingIpOption
+getNewFloatingIpOption project osServer floatingIpOption =
     let
         hasPort =
             GetterSetters.getServerPorts project osServer.uuid
@@ -166,7 +166,7 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
         DoNotUseFloatingIp
 
     else
-        case floatingIpCreationOption of
+        case floatingIpOption of
             Automatic ->
                 if isActive && hasPort then
                     if
