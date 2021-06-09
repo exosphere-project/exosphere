@@ -52,7 +52,7 @@ import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( ExoServerProps
-        , FloatingIpCreationOption(..)
+        , FloatingIpOption(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)

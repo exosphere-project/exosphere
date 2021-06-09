@@ -19,8 +19,8 @@ import Types.Types
     exposing
         ( CloudSpecificConfig
         , ExoSetupStatus(..)
-        , FloatingIpCreationOption(..)
-        , FloatingIpCreationStatus(..)
+        , FloatingIpAssignmentStatus(..)
+        , FloatingIpOption(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -154,7 +154,7 @@ stepServerRequestNetworks time project server =
                     == OSTypes.ServerActive
                )
             && (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
-                    == CreateFloatingIp Attemptable
+                    == UseFloatingIp Attemptable
                )
     then
         case project.networks.refreshStatus of
@@ -195,7 +195,7 @@ stepServerRequestPorts time project server =
                )
             && List.member
                 (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption)
-                [ Automatic, CreateFloatingIp WaitingForResources ]
+                [ Automatic, UseFloatingIp WaitingForResources ]
     then
         case project.ports.refreshStatus of
             RDPP.NotLoading (Just ( _, receivedTime )) ->
@@ -240,7 +240,7 @@ stepServerRequestFloatingIp _ project server =
                             == OSTypes.ServerActive
                        )
                     && (Helpers.getNewFloatingIpCreationOption project server.osProps server.exoProps.floatingIpCreationOption
-                            == CreateFloatingIp Attemptable
+                            == UseFloatingIp Attemptable
                        )
             then
                 GetterSetters.getServerPorts project server.osProps.uuid
@@ -261,7 +261,7 @@ stepServerRequestFloatingIp _ project server =
                         oldExoProps =
                             server.exoProps
                     in
-                    { server | exoProps = { oldExoProps | floatingIpCreationOption = CreateFloatingIp AttemptedWaiting } }
+                    { server | exoProps = { oldExoProps | floatingIpCreationOption = UseFloatingIp AttemptedWaiting } }
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer

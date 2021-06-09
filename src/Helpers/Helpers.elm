@@ -41,8 +41,8 @@ import Types.Types
         ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
-        , FloatingIpCreationOption(..)
-        , FloatingIpCreationStatus(..)
+        , FloatingIpAssignmentStatus(..)
+        , FloatingIpOption(..)
         , JetstreamProvider(..)
         , Model
         , Msg(..)
@@ -145,7 +145,7 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
-getNewFloatingIpCreationOption : Project -> OSTypes.Server -> FloatingIpCreationOption -> FloatingIpCreationOption
+getNewFloatingIpCreationOption : Project -> OSTypes.Server -> FloatingIpOption -> FloatingIpOption
 getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
     let
         hasPort =
@@ -162,7 +162,7 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
             osServer.details.openstackStatus == OSTypes.ServerActive
     in
     if hasFloatingIp then
-        DoNotCreateFloatingIp
+        DoNotUseFloatingIp
 
     else
         case floatingIpCreationOption of
@@ -173,28 +173,28 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                             |> List.map ipv4AddressInRfc1918Space
                             |> List.any (\i -> i == Ok HelperTypes.PublicNonRfc1918Space)
                     then
-                        DoNotCreateFloatingIp
+                        DoNotUseFloatingIp
 
                     else
-                        CreateFloatingIp Attemptable
+                        UseFloatingIp Attemptable
 
                 else
                     Automatic
 
-            CreateFloatingIp status ->
+            UseFloatingIp status ->
                 if List.member status [ Unknown, WaitingForResources ] then
                     if isActive && hasPort then
-                        CreateFloatingIp Attemptable
+                        UseFloatingIp Attemptable
 
                     else
-                        CreateFloatingIp WaitingForResources
+                        UseFloatingIp WaitingForResources
 
                 else
-                    CreateFloatingIp status
+                    UseFloatingIp status
 
-            DoNotCreateFloatingIp ->
+            DoNotUseFloatingIp ->
                 -- This is a terminal state
-                DoNotCreateFloatingIp
+                DoNotUseFloatingIp
 
 
 ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String HelperTypes.IPv4AddressPublicRoutability
@@ -286,7 +286,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpCreationOption -> List ( String, Json.Encode.Value )
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> List ( String, Json.Encode.Value )
 newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption =
     let
         guacMetadata =
@@ -533,20 +533,20 @@ serverOrigin serverDetails =
             ServerNotFromExo
 
 
-encodeFloatingIpCreationOption : FloatingIpCreationOption -> String
+encodeFloatingIpCreationOption : FloatingIpOption -> String
 encodeFloatingIpCreationOption option =
     case option of
-        CreateFloatingIp _ ->
-            "createFloatingIp"
+        UseFloatingIp _ ->
+            "useFloatingIp"
 
         Automatic ->
             "automatic"
 
-        DoNotCreateFloatingIp ->
-            "doNotCreateFloatingIp"
+        DoNotUseFloatingIp ->
+            "doNotUseFloatingIp"
 
 
-decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpCreationOption
+decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpOption
 decodeFloatingIpCreationOption serverDetails =
     List.filter (\i -> i.key == "exoCreateFloatingIp") serverDetails.metadata
         |> List.head
@@ -554,19 +554,19 @@ decodeFloatingIpCreationOption serverDetails =
         |> Maybe.map
             (\s ->
                 case s of
-                    "createFloatingIp" ->
-                        CreateFloatingIp Unknown
+                    "useFloatingIp" ->
+                        UseFloatingIp Unknown
 
                     "automatic" ->
                         Automatic
 
-                    "doNotCreateFloatingIp" ->
-                        DoNotCreateFloatingIp
+                    "doNotUseFloatingIp" ->
+                        DoNotUseFloatingIp
 
                     _ ->
-                        DoNotCreateFloatingIp
+                        DoNotUseFloatingIp
             )
-        |> Maybe.withDefault DoNotCreateFloatingIp
+        |> Maybe.withDefault DoNotUseFloatingIp
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool

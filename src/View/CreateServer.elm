@@ -21,8 +21,8 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Types
     exposing
         ( CreateServerViewParams
-        , FloatingIpCreationOption(..)
-        , FloatingIpCreationStatus(..)
+        , FloatingIpAssignmentStatus(..)
+        , FloatingIpOption(..)
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
@@ -829,7 +829,7 @@ floatingIpPicker context project viewParams =
             let
                 options =
                     [ Input.option Automatic (Element.text "Automatic")
-                    , Input.option (CreateFloatingIp Unknown)
+                    , Input.option (UseFloatingIp Unknown)
                         (Element.text <|
                             String.join " "
                                 [ "Always assign a"
@@ -839,7 +839,7 @@ floatingIpPicker context project viewParams =
                                 , "(creating one if needed)"
                                 ]
                         )
-                    , Input.option DoNotCreateFloatingIp
+                    , Input.option DoNotUseFloatingIp
                         (Element.text <|
                             String.join " "
                                 [ "Do not create or assign a"
