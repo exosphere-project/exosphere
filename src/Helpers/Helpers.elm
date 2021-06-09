@@ -598,30 +598,6 @@ decodeFloatingIpOption serverDetails =
                     Automatic
 
 
-
-{-
-   List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
-       |> List.head
-       |> Maybe.map .value
-       |> Maybe.map
-           (\s ->
-               case s of
-                   "useFloatingIp" ->
-                       UseFloatingIp Unknown
-
-                   "automatic" ->
-                       Automatic
-
-                   "doNotUseFloatingIp" ->
-                       DoNotUseFloatingIp
-
-                   _ ->
-                       DoNotUseFloatingIp
-           )
-       |> Maybe.withDefault DoNotUseFloatingIp
--}
-
-
 serverFromThisExoClient : UUID.UUID -> Server -> Bool
 serverFromThisExoClient clientUuid server =
     -- Determine if server was created by this Exosphere client
