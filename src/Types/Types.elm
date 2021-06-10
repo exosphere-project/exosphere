@@ -11,9 +11,10 @@ module Types.Types exposing
     , ExoServerVersion
     , ExoSetupStatus(..)
     , Flags
-    , FloatingIpCreationOption(..)
-    , FloatingIpCreationStatus(..)
+    , FloatingIpAssignmentStatus(..)
     , FloatingIpListViewParams
+    , FloatingIpOption(..)
+    , FloatingIpReuseOption(..)
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
@@ -513,7 +514,7 @@ type alias CreateServerViewParams =
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
-    , floatingIpCreationOption : FloatingIpCreationOption
+    , floatingIpCreationOption : FloatingIpOption
     }
 
 
@@ -591,7 +592,7 @@ type alias Server =
 
 
 type alias ExoServerProps =
-    { floatingIpCreationOption : FloatingIpCreationOption
+    { floatingIpCreationOption : FloatingIpOption
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
@@ -628,17 +629,22 @@ currentExoServerVersion =
 
 
 type
-    FloatingIpCreationOption
+    FloatingIpOption
     -- Wait to see if server gets a fixed IP in publicly routable space
     = Automatic
-      -- Create a floating IP as soon as we are able to do so
-    | CreateFloatingIp FloatingIpCreationStatus
-    | DoNotCreateFloatingIp
+      -- Use a floating IP as soon as we are able to do so
+    | UseFloatingIp FloatingIpReuseOption FloatingIpAssignmentStatus
+    | DoNotUseFloatingIp
 
 
-type FloatingIpCreationStatus
+type FloatingIpReuseOption
+    = CreateNewFloatingIp
+    | UseExistingFloatingIp OSTypes.IpAddressUuid
+
+
+type FloatingIpAssignmentStatus
     = Unknown
-      -- We need an active server with a port and an external network before we can create a floating IP address
+      -- We need an active server with a port and an external network before we can assign a floating IP address
     | WaitingForResources
     | Attemptable
     | AttemptedWaiting

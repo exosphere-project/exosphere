@@ -1,8 +1,8 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , decodeFloatingIpCreationOption
+    , decodeFloatingIpOption
     , getBootVol
-    , getNewFloatingIpCreationOption
+    , getNewFloatingIpOption
     , httpErrorToString
     , isBootVol
     , naiveUuidParser
@@ -41,8 +41,9 @@ import Types.Types
         ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
-        , FloatingIpCreationOption(..)
-        , FloatingIpCreationStatus(..)
+        , FloatingIpAssignmentStatus(..)
+        , FloatingIpOption(..)
+        , FloatingIpReuseOption(..)
         , JetstreamProvider(..)
         , Model
         , Msg(..)
@@ -145,8 +146,8 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
-getNewFloatingIpCreationOption : Project -> OSTypes.Server -> FloatingIpCreationOption -> FloatingIpCreationOption
-getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
+getNewFloatingIpOption : Project -> OSTypes.Server -> FloatingIpOption -> FloatingIpOption
+getNewFloatingIpOption project osServer floatingIpOption =
     let
         hasPort =
             GetterSetters.getServerPorts project osServer.uuid
@@ -162,10 +163,10 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
             osServer.details.openstackStatus == OSTypes.ServerActive
     in
     if hasFloatingIp then
-        DoNotCreateFloatingIp
+        DoNotUseFloatingIp
 
     else
-        case floatingIpCreationOption of
+        case floatingIpOption of
             Automatic ->
                 if isActive && hasPort then
                     if
@@ -173,28 +174,28 @@ getNewFloatingIpCreationOption project osServer floatingIpCreationOption =
                             |> List.map ipv4AddressInRfc1918Space
                             |> List.any (\i -> i == Ok HelperTypes.PublicNonRfc1918Space)
                     then
-                        DoNotCreateFloatingIp
+                        DoNotUseFloatingIp
 
                     else
-                        CreateFloatingIp Attemptable
+                        UseFloatingIp CreateNewFloatingIp Attemptable
 
                 else
                     Automatic
 
-            CreateFloatingIp status ->
+            UseFloatingIp reuseOption status ->
                 if List.member status [ Unknown, WaitingForResources ] then
                     if isActive && hasPort then
-                        CreateFloatingIp Attemptable
+                        UseFloatingIp reuseOption Attemptable
 
                     else
-                        CreateFloatingIp WaitingForResources
+                        UseFloatingIp reuseOption WaitingForResources
 
                 else
-                    CreateFloatingIp status
+                    UseFloatingIp reuseOption status
 
-            DoNotCreateFloatingIp ->
+            DoNotUseFloatingIp ->
                 -- This is a terminal state
-                DoNotCreateFloatingIp
+                DoNotUseFloatingIp
 
 
 ipv4AddressInRfc1918Space : OSTypes.IpAddressValue -> Result String HelperTypes.IPv4AddressPublicRoutability
@@ -286,7 +287,7 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
         |> List.foldl (\t -> String.replace (Tuple.first t) (Tuple.second t)) userDataTemplate
 
 
-newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpCreationOption -> List ( String, Json.Encode.Value )
+newServerMetadata : ExoServerVersion -> UUID.UUID -> Bool -> Bool -> String -> FloatingIpOption -> List ( String, Json.Encode.Value )
 newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEnvironment exoCreatorUsername floatingIpCreationOption =
     let
         guacMetadata =
@@ -319,11 +320,8 @@ newServerMetadata exoServerVersion exoClientUuid deployGuacamole deployDesktopEn
           , ( "exoSetup"
             , Json.Encode.string "waiting"
             )
-          , ( "exoCreateFloatingIp"
-            , Json.Encode.string <|
-                encodeFloatingIpCreationOption floatingIpCreationOption
-            )
           ]
+        , encodeFloatingIpOption floatingIpCreationOption
         ]
 
 
@@ -533,40 +531,71 @@ serverOrigin serverDetails =
             ServerNotFromExo
 
 
-encodeFloatingIpCreationOption : FloatingIpCreationOption -> String
-encodeFloatingIpCreationOption option =
+encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )
+encodeFloatingIpOption option =
     case option of
-        CreateFloatingIp _ ->
-            "createFloatingIp"
+        UseFloatingIp reuseOption _ ->
+            let
+                reuseOptionStr =
+                    case reuseOption of
+                        CreateNewFloatingIp ->
+                            "create"
+
+                        UseExistingFloatingIp floatingIpUuid ->
+                            floatingIpUuid
+            in
+            [ ( "exoFloatingIpOption", Json.Encode.string "useFloatingIp" )
+            , ( "exoFloatingIpReuseOption", Json.Encode.string reuseOptionStr )
+            ]
 
         Automatic ->
-            "automatic"
+            [ ( "exoFloatingIpOption", Json.Encode.string "automatic" )
+            ]
 
-        DoNotCreateFloatingIp ->
-            "doNotCreateFloatingIp"
+        DoNotUseFloatingIp ->
+            [ ( "exoFloatingIpOption", Json.Encode.string "doNotUseFloatingIp" )
+            ]
 
 
-decodeFloatingIpCreationOption : OSTypes.ServerDetails -> FloatingIpCreationOption
-decodeFloatingIpCreationOption serverDetails =
-    List.filter (\i -> i.key == "exoCreateFloatingIp") serverDetails.metadata
-        |> List.head
-        |> Maybe.map .value
-        |> Maybe.map
-            (\s ->
-                case s of
-                    "createFloatingIp" ->
-                        CreateFloatingIp Unknown
+decodeFloatingIpOption : OSTypes.ServerDetails -> FloatingIpOption
+decodeFloatingIpOption serverDetails =
+    let
+        maybeFloatingIpOptionStr =
+            List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
 
-                    "automatic" ->
-                        Automatic
+        maybeReuseOptionStr =
+            List.filter (\i -> i.key == "exoFloatingIpReuseOption") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+    in
+    case maybeFloatingIpOptionStr of
+        Nothing ->
+            Automatic
 
-                    "doNotCreateFloatingIp" ->
-                        DoNotCreateFloatingIp
+        Just floatingIpOptionStr ->
+            case floatingIpOptionStr of
+                "useFloatingIp" ->
+                    case maybeReuseOptionStr of
+                        Nothing ->
+                            UseFloatingIp CreateNewFloatingIp Unknown
 
-                    _ ->
-                        DoNotCreateFloatingIp
-            )
-        |> Maybe.withDefault DoNotCreateFloatingIp
+                        Just reuseOptionStr ->
+                            if reuseOptionStr == "create" then
+                                UseFloatingIp CreateNewFloatingIp Unknown
+
+                            else
+                                UseFloatingIp (UseExistingFloatingIp reuseOptionStr) Unknown
+
+                "automatic" ->
+                    Automatic
+
+                "doNotUseFloatingIp" ->
+                    DoNotUseFloatingIp
+
+                _ ->
+                    Automatic
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool

@@ -52,7 +52,7 @@ import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( ExoServerProps
-        , FloatingIpCreationOption(..)
+        , FloatingIpOption(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
@@ -714,7 +714,7 @@ receiveServer_ project osServer =
                     let
                         defaultExoProps =
                             ExoServerProps
-                                (Helpers.decodeFloatingIpCreationOption osServer.details)
+                                (Helpers.decodeFloatingIpOption osServer.details)
                                 False
                                 Nothing
                                 (Helpers.serverOrigin osServer.details)
@@ -726,7 +726,7 @@ receiveServer_ project osServer =
                 Just exoServer ->
                     let
                         floatingIpCreationOption =
-                            Helpers.getNewFloatingIpCreationOption
+                            Helpers.getNewFloatingIpOption
                                 project
                                 osServer
                                 exoServer.exoProps.floatingIpCreationOption

@@ -710,7 +710,16 @@ processProjectSpecificMsg model project msg =
             ( model, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
 
         RequestAssignFloatingIp port_ floatingIpUuid ->
-            ( model, Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid )
+            let
+                ( newModel, setViewCmd ) =
+                    ViewStateHelpers.setProjectView project (ListFloatingIps Defaults.floatingIpListViewParams) model
+            in
+            ( newModel
+            , Cmd.batch
+                [ setViewCmd
+                , Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid
+                ]
+            )
 
         RequestUnassignFloatingIp floatingIpUuid ->
             ( model, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
@@ -1051,9 +1060,7 @@ processProjectSpecificMsg model project msg =
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
             in
-            ViewStateHelpers.setProjectView newProject
-                (ListFloatingIps Defaults.floatingIpListViewParams)
-                newModel
+            ( newModel, Cmd.none )
 
         ReceiveUnassignFloatingIp floatingIp ->
             -- TODO update servers so that unassignment is reflected in the UI
