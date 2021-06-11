@@ -5,7 +5,7 @@ var config = {
   cloudCorsProxyUrl: "https://exosphere.jetstream-cloud.org/proxy",
   urlPathPrefix: "exosphere",
   palette: {primary: {r: 155, g: 33, b: 35}, secondary: {r: 52, g: 122, b: 140}},
-  logo: "assets/img/jetstream-logo.svg",
+  logo: "assets/img/jetstream-logo-white.svg",
   favicon: "assets/img/jetstream-favicon.ico",
   appTitle: "Jetstream Cloud",
   defaultLoginView: "jetstream",
