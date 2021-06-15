@@ -1089,7 +1089,7 @@ renderIpAddresses context project server serverDetailViewParams =
                     ]
 
                 else
-                    -- Floating IP is not yet created as part of server launch, but it will be.
+                    -- Floating IP is not yet created as part of server launch, but it might be.
                     [ Element.text <|
                         String.join " "
                             [ "No"
