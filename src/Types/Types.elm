@@ -274,7 +274,7 @@ type alias Project =
     , volumes : WebData (List OSTypes.Volume)
     , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
     , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
-    , floatingIps : WebData (List OSTypes.FloatingIp)
+    , floatingIps : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.FloatingIp)
     , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota

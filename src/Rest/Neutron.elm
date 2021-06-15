@@ -31,7 +31,6 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import OpenStack.SecurityGroupRule as SecurityGroupRule exposing (SecurityGroupRule, securityGroupRuleDecoder)
 import OpenStack.Types as OSTypes
-import RemoteData
 import Rest.Helpers
     exposing
         ( expectJsonWithErrorBody
@@ -504,7 +503,12 @@ receiveFloatingIps : Model -> Project -> List OSTypes.FloatingIp -> ( Model, Cmd
 receiveFloatingIps model project floatingIps =
     let
         newProject =
-            { project | floatingIps = RemoteData.Success floatingIps }
+            { project
+                | floatingIps =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave floatingIps model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
+            }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
@@ -530,12 +534,15 @@ receiveCreateFloatingIp model project server floatingIp =
         newFloatingIps =
             floatingIp
                 :: (project.floatingIps
-                        |> RemoteData.withDefault []
+                        |> RDPP.withDefault []
                    )
 
         newProject =
             { projectUpdatedServer
-                | floatingIps = RemoteData.Success newFloatingIps
+                | floatingIps =
+                    RDPP.RemoteDataPlusPlus
+                        (RDPP.DoHave newFloatingIps model.clientCurrentTime)
+                        (RDPP.NotLoading Nothing)
             }
 
         newModel =
@@ -546,14 +553,19 @@ receiveCreateFloatingIp model project server floatingIp =
 
 receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> ( Model, Cmd Msg )
 receiveDeleteFloatingIp model project uuid =
-    case project.floatingIps of
-        RemoteData.Success floatingIps ->
+    case project.floatingIps.data of
+        RDPP.DoHave floatingIps _ ->
             let
                 newFloatingIps =
                     List.filter (\f -> f.uuid /= uuid) floatingIps
 
                 newProject =
-                    { project | floatingIps = RemoteData.Success newFloatingIps }
+                    { project
+                        | floatingIps =
+                            RDPP.RemoteDataPlusPlus
+                                (RDPP.DoHave newFloatingIps model.clientCurrentTime)
+                                (RDPP.NotLoading Nothing)
+                    }
 
                 newModel =
                     GetterSetters.modelUpdateProject model newProject

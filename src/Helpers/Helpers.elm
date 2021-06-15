@@ -4,6 +4,7 @@ module Helpers.Helpers exposing
     , getBootVol
     , getNewFloatingIpOption
     , httpErrorToString
+    , httpErrorWithBodyToString
     , isBootVol
     , naiveUuidParser
     , newServerMetadata
@@ -34,6 +35,7 @@ import Parser exposing ((|.))
 import Regex
 import RemoteData
 import Time
+import Types.Error
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.Types
@@ -669,6 +671,11 @@ pipelineCmd fn ( model, cmd ) =
             fn model
     in
     ( newModel, Cmd.batch [ cmd, newCmd ] )
+
+
+httpErrorWithBodyToString : Types.Error.HttpErrorWithBody -> String
+httpErrorWithBodyToString errorWithBody =
+    httpErrorToString errorWithBody.error
 
 
 httpErrorToString : Http.Error -> String

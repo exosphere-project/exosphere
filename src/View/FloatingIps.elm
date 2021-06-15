@@ -9,7 +9,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
-import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card
@@ -100,7 +99,7 @@ floatingIps context showHeading project viewParams toMsg =
         floatingIpsUsedCount =
             project.floatingIps
                 -- Defaulting to 0 if not loaded yet, not the greatest factoring
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.length
     in
     Element.column
@@ -116,7 +115,7 @@ floatingIps context showHeading project viewParams toMsg =
           else
             Element.none
         , View.QuotaUsage.floatingIpQuotaDetails context project.computeQuota floatingIpsUsedCount
-        , VH.renderWebData
+        , VH.renderRDPP
             context
             project.floatingIps
             (Helpers.String.pluralize context.localization.floatingIpAddress)
@@ -398,7 +397,7 @@ assignFloatingIp context project viewParams =
         ipChoices =
             -- Show only un-assigned IP addresses
             project.floatingIps
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.sortBy .address
                 |> List.filter (\ip -> ip.status == OSTypes.IpAddressDown)
                 |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip == Nothing)

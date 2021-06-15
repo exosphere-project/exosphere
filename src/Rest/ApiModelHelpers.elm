@@ -112,9 +112,7 @@ requestFloatingIps : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
 requestFloatingIps projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( { project
-                | floatingIps = RemoteData.Loading
-              }
+            ( GetterSetters.projectSetFloatingIpsLoading model.clientCurrentTime project
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestFloatingIps project
             )
