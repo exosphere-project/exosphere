@@ -1104,7 +1104,17 @@ renderIpAddresses context project server serverDetailViewParams =
                         (\ipAddress ->
                             VH.compactKVSubRow
                                 (Helpers.String.toTitleCase context.localization.floatingIpAddress)
-                                (copyableText context.palette [] ipAddress.address)
+                                (Element.column VH.exoColumnAttributes
+                                    [ copyableText context.palette [] ipAddress.address
+                                    , Widget.textButton
+                                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                        { text =
+                                            "Unassign"
+                                        , onPress =
+                                            Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipAddress.uuid
+                                        }
+                                    ]
+                                )
                         )
 
         ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg
