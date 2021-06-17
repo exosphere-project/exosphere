@@ -67,7 +67,7 @@ pollRDPP rdpp time pollIntervalMs =
                         _ ->
                             False
 
-        dontPollBecauseLoading =
+        loading =
             case rdpp.refreshStatus of
                 RDPP.Loading _ ->
                     True
@@ -75,4 +75,4 @@ pollRDPP rdpp time pollIntervalMs =
                 _ ->
                     False
     in
-    receivedRecentlyEnough || dontPollBecauseLoading
+    not receivedRecentlyEnough && not loading

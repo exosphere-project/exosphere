@@ -47,10 +47,10 @@ stepPollFloatingIps time project =
             120000
     in
     if pollRDPP project.floatingIps time pollIntervalMs then
-        ( project, Cmd.none )
+        requestStuff
 
     else
-        requestStuff
+        ( project, Cmd.none )
 
 
 stepPollPorts : Time.Posix -> Project -> ( Project, Cmd Msg )
