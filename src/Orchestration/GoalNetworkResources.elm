@@ -6,19 +6,15 @@ import Rest.Neutron
 import Time
 import Types.Types
     exposing
-        ( CloudSpecificConfig
-        , ExoSetupStatus(..)
+        ( ExoSetupStatus(..)
         , FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , Server
-        , ServerFromExoProps
         , ServerOrigin(..)
         , ServerSpecificMsgConstructor(..)
-        , UserAppProxyHostname
         )
 
 
