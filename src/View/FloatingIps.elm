@@ -203,8 +203,7 @@ actionButtons context project toMsg viewParams ip =
         assignUnassignButton =
             let
                 ( text, onPress ) =
-                    -- TODO show unassign button if floating IP has any port, not only if it's assigned to a server
-                    case GetterSetters.getFloatingIpServer project ip of
+                    case ip.portUuid of
                         Nothing ->
                             ( "Assign"
                             , Just <|
