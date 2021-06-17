@@ -178,6 +178,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
                 Nothing ->
                     case ip.status of
                         OSTypes.IpAddressActive ->
+                            -- TODO maybe say what it is assigned to?
                             Element.text "Active"
 
                         OSTypes.IpAddressDown ->
@@ -288,29 +289,24 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
 
         statusText =
             let
-                ( ipsPluralization, serversPluralization ) =
+                ( ipsPluralization, resourcesPluralization ) =
                     if numIpsAssignedToServers == 1 then
                         ( context.localization.floatingIpAddress
-                        , String.join " "
-                            [ context.localization.virtualComputer
-                                |> Helpers.String.indefiniteArticle
-                            , context.localization.virtualComputer
-                            ]
+                        , "a resource"
                         )
 
                     else
                         ( Helpers.String.pluralize context.localization.floatingIpAddress
-                        , Helpers.String.pluralize context.localization.virtualComputer
+                        , "resources"
                         )
             in
             if viewParams.hideAssignedIps then
-                String.concat
-                    [ "Hiding "
+                String.join " "
+                    [ "Hiding"
                     , String.fromInt numIpsAssignedToServers
-                    , " "
                     , ipsPluralization
-                    , " assigned to "
-                    , serversPluralization
+                    , "assigned to"
+                    , resourcesPluralization
                     ]
 
             else
@@ -318,9 +314,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
                     [ context.localization.floatingIpAddress
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
-                    , "assigned to"
-                    , context.localization.virtualComputer
-                        |> Helpers.String.pluralize
+                    , "assigned to resources"
                     ]
 
         ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
