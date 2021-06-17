@@ -156,35 +156,32 @@ renderFloatingIpCard context project viewParams toMsg ip =
             actionButtons context project toMsg viewParams ip
 
         cardBody =
-            case GetterSetters.getFloatingIpServer project ip of
-                Just server ->
-                    Element.row [ Element.spacing 5 ]
-                        [ Element.text <|
-                            String.join " "
-                                [ "Assigned to"
-                                , context.localization.virtualComputer
-                                , server.osProps.name
+            case ip.portUuid of
+                Just _ ->
+                    case GetterSetters.getFloatingIpServer project ip of
+                        Just server ->
+                            Element.row [ Element.spacing 5 ]
+                                [ Element.text <|
+                                    String.join " "
+                                        [ "Assigned to"
+                                        , context.localization.virtualComputer
+                                        , server.osProps.name
+                                        ]
+                                , Style.Widgets.IconButton.goToButton
+                                    context.palette
+                                    (Just
+                                        (ProjectMsg project.auth.project.uuid <|
+                                            SetProjectView <|
+                                                ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
+                                        )
+                                    )
                                 ]
-                        , Style.Widgets.IconButton.goToButton
-                            context.palette
-                            (Just
-                                (ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
-                                )
-                            )
-                        ]
 
-                Nothing ->
-                    case ip.status of
-                        OSTypes.IpAddressActive ->
+                        Nothing ->
                             Element.text "Assigned to a resource that Exosphere cannot represent"
 
-                        OSTypes.IpAddressDown ->
-                            Element.text "Unassigned"
-
-                        OSTypes.IpAddressError ->
-                            Element.text "Status: Error"
+                Nothing ->
+                    Element.text "Unassigned"
     in
     Style.Widgets.Card.exoCard
         context.palette
