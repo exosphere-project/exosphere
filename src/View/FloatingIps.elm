@@ -178,7 +178,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
                 Nothing ->
                     case ip.status of
                         OSTypes.IpAddressActive ->
-                            Element.text "Active"
+                            Element.text "Assigned to a resource that Exosphere cannot represent"
 
                         OSTypes.IpAddressDown ->
                             Element.text "Unassigned"
