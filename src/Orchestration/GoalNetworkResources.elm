@@ -1,8 +1,7 @@
 module Orchestration.GoalNetworkResources exposing (goalPollNetworkResources)
 
 import Helpers.GetterSetters as GetterSetters
-import Helpers.RemoteDataPlusPlus as RDPP
-import Orchestration.Helpers exposing (applyProjectStep)
+import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
 import Rest.Neutron
 import Time
 import Types.Types
@@ -50,28 +49,8 @@ stepPollFloatingIps time project =
 
         pollIntervalMs =
             120000
-
-        receivedRecentlyEnough =
-            let
-                receivedTime =
-                    case project.floatingIps.data of
-                        RDPP.DoHave _ receivedTime_ ->
-                            receivedTime_
-
-                        RDPP.DontHave ->
-                            Time.millisToPosix 0
-            in
-            Time.posixToMillis time < (Time.posixToMillis receivedTime + pollIntervalMs)
-
-        dontPollBecauseLoading =
-            case project.floatingIps.refreshStatus of
-                RDPP.Loading _ ->
-                    True
-
-                _ ->
-                    False
     in
-    if receivedRecentlyEnough || dontPollBecauseLoading then
+    if pollRDPP project.floatingIps time pollIntervalMs then
         ( project, Cmd.none )
 
     else
@@ -88,29 +67,9 @@ stepPollPorts time project =
 
         pollIntervalMs =
             120000
-
-        receivedRecentlyEnough =
-            let
-                receivedTime =
-                    case project.ports.data of
-                        RDPP.DoHave _ receivedTime_ ->
-                            receivedTime_
-
-                        RDPP.DontHave ->
-                            Time.millisToPosix 0
-            in
-            Time.posixToMillis time < (Time.posixToMillis receivedTime + pollIntervalMs)
-
-        dontPollBecauseLoading =
-            case project.ports.refreshStatus of
-                RDPP.Loading _ ->
-                    True
-
-                _ ->
-                    False
     in
-    if receivedRecentlyEnough || dontPollBecauseLoading then
-        ( project, Cmd.none )
+    if pollRDPP project.ports time pollIntervalMs then
+        requestStuff
 
     else
-        requestStuff
+        ( project, Cmd.none )

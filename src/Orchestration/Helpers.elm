@@ -1,7 +1,8 @@
-module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers)
+module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, pollRDPP)
 
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
+import Time
 import Types.Types exposing (Msg, Project, Server)
 import UUID
 
@@ -46,3 +47,32 @@ applyStepToAllServers maybeExoClientUuid step ( project, cmds ) =
 
         _ ->
             ( project, cmds )
+
+
+pollRDPP : RDPP.RemoteDataPlusPlus e a -> Time.Posix -> Int -> Bool
+pollRDPP rdpp time pollIntervalMs =
+    let
+        receivedRecentlyEnough =
+            case rdpp.data of
+                RDPP.DoHave _ receivedTime ->
+                    Time.posixToMillis time < (Time.posixToMillis receivedTime + pollIntervalMs)
+
+                RDPP.DontHave ->
+                    case rdpp.refreshStatus of
+                        RDPP.NotLoading (Just ( _, errorReceivedTime )) ->
+                            -- Wait the poll interval if we don't have data,
+                            -- but we do have an error from last time we requested it
+                            Time.posixToMillis time < (Time.posixToMillis errorReceivedTime + pollIntervalMs)
+
+                        _ ->
+                            False
+
+        dontPollBecauseLoading =
+            case rdpp.refreshStatus of
+                RDPP.Loading _ ->
+                    True
+
+                _ ->
+                    False
+    in
+    receivedRecentlyEnough || dontPollBecauseLoading
