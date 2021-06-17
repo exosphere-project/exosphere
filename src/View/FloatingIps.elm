@@ -45,16 +45,16 @@ floatingIps context showHeading project viewParams toMsg =
                 ipsSorted =
                     List.sortBy .address ips
 
-                ipAssignedToServersWeKnowAbout ip =
-                    case GetterSetters.getFloatingIpServer project ip of
+                ipAssignedToAResource ip =
+                    case ip.portUuid of
                         Just _ ->
                             True
 
                         Nothing ->
                             False
 
-                ( ipsAssignedToServers, ipsNotAssignedToServers ) =
-                    List.partition ipAssignedToServersWeKnowAbout ipsSorted
+                ( ipsAssignedToResources, ipsNotAssignedToResources ) =
+                    List.partition ipAssignedToAResource ipsSorted
             in
             if List.isEmpty ipsSorted then
                 Element.column
@@ -80,20 +80,20 @@ floatingIps context showHeading project viewParams toMsg =
                     )
                 <|
                     List.concat
-                        [ if List.length ipsNotAssignedToServers >= ipScarcityWarningThreshold then
+                        [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then
                             [ ipScarcityWarning context ]
 
                           else
                             []
                         , List.map
                             (renderFloatingIpCard context project viewParams toMsg)
-                            ipsNotAssignedToServers
-                        , [ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers ]
+                            ipsNotAssignedToResources
+                        , [ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources ]
                         , if viewParams.hideAssignedIps then
                             []
 
                           else
-                            List.map (renderFloatingIpCard context project viewParams toMsg) ipsAssignedToServers
+                            List.map (renderFloatingIpCard context project viewParams toMsg) ipsAssignedToResources
                         ]
 
         floatingIpsUsedCount =
@@ -204,6 +204,7 @@ actionButtons context project toMsg viewParams ip =
         assignUnassignButton =
             let
                 ( text, onPress ) =
+                    -- TODO show unassign button if floating IP has any port, not only if it's assigned to a server
                     case GetterSetters.getFloatingIpServer project ip of
                         Nothing ->
                             ( "Assign"
@@ -276,21 +277,21 @@ actionButtons context project toMsg viewParams ip =
 -- TODO factor this out with onlyOwnExpander in ServerList.elm
 
 
-ipsAssignedToServersExpander :
+ipsAssignedToResourcesExpander :
     View.Types.Context
     -> FloatingIpListViewParams
     -> (FloatingIpListViewParams -> Msg)
     -> List OSTypes.FloatingIp
     -> Element.Element Msg
-ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
+ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
     let
-        numIpsAssignedToServers =
-            List.length ipsAssignedToServers
+        numIpsAssignedToResources =
+            List.length ipsAssignedToResources
 
         statusText =
             let
                 ( ipsPluralization, resourcesPluralization ) =
-                    if numIpsAssignedToServers == 1 then
+                    if numIpsAssignedToResources == 1 then
                         ( context.localization.floatingIpAddress
                         , "a resource"
                         )
@@ -303,7 +304,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
             if viewParams.hideAssignedIps then
                 String.join " "
                     [ "Hiding"
-                    , String.fromInt numIpsAssignedToServers
+                    , String.fromInt numIpsAssignedToResources
                     , ipsPluralization
                     , "assigned to"
                     , resourcesPluralization
@@ -317,7 +318,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
                     , "assigned to resources"
                     ]
 
-        ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
+        ( ( changeActionVerb, changeActionIcon ), newViewParams ) =
             if viewParams.hideAssignedIps then
                 ( ( "Show", FeatherIcons.chevronDown )
                 , { viewParams
@@ -334,7 +335,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
 
         changeOnlyOwnMsg : Msg
         changeOnlyOwnMsg =
-            toMsg newServerListViewParams
+            toMsg newViewParams
 
         changeButton =
             Widget.button
@@ -348,7 +349,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
                 , text = changeActionVerb
                 }
     in
-    if numIpsAssignedToServers == 0 then
+    if numIpsAssignedToResources == 0 then
         Element.none
 
     else
