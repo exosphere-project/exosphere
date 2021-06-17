@@ -178,7 +178,6 @@ renderFloatingIpCard context project viewParams toMsg ip =
                 Nothing ->
                     case ip.status of
                         OSTypes.IpAddressActive ->
-                            -- TODO maybe say what it is assigned to?
                             Element.text "Active"
 
                         OSTypes.IpAddressDown ->
