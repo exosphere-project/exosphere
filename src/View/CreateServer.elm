@@ -868,7 +868,7 @@ floatingIpPicker context project viewParams =
                     let
                         unassignedFloatingIpOptions =
                             project.floatingIps
-                                |> RemoteData.withDefault []
+                                |> RDPP.withDefault []
                                 |> List.filter (\ip -> ip.portUuid == Nothing)
                                 |> List.map
                                     (\ip ->

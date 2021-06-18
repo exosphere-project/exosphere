@@ -1,6 +1,7 @@
 module Orchestration.Orchestration exposing (orchModel)
 
 import Helpers.GetterSetters
+import Orchestration.GoalNetworkResources exposing (goalPollNetworkResources)
 import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
@@ -33,6 +34,7 @@ orchProject exoClientUuid time maybeCloudSpecificConfig project =
             [ goalDummy exoClientUuid time
             , goalNewServer exoClientUuid time
             , goalPollServers time maybeCloudSpecificConfig
+            , goalPollNetworkResources time
             ]
 
         ( newProject, newCmds ) =

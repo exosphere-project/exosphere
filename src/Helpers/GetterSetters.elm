@@ -18,6 +18,7 @@ module Helpers.GetterSetters exposing
     , projectDeleteServer
     , projectLookup
     , projectSetAutoAllocatedNetworkUuidLoading
+    , projectSetFloatingIpsLoading
     , projectSetNetworksLoading
     , projectSetPortsLoading
     , projectSetServerLoading
@@ -102,7 +103,7 @@ floatingIpLookup : Project -> OSTypes.IpAddressUuid -> Maybe OSTypes.FloatingIp
 floatingIpLookup project ipUuid =
     List.filter
         (\i -> i.uuid == ipUuid)
-        (RemoteData.withDefault [] project.floatingIps)
+        (RDPP.withDefault [] project.floatingIps)
         |> List.head
 
 
@@ -181,7 +182,7 @@ getServerFloatingIps project serverUuid =
             getServerPorts project serverUuid
     in
     project.floatingIps
-        |> RemoteData.withDefault []
+        |> RDPP.withDefault []
         |> List.filter
             (\ip ->
                 case ip.portUuid of
@@ -373,6 +374,11 @@ projectSetServerLoading project serverUuid =
 projectSetNetworksLoading : Time.Posix -> Project -> Project
 projectSetNetworksLoading time project =
     { project | networks = RDPP.setLoading project.networks time }
+
+
+projectSetFloatingIpsLoading : Time.Posix -> Project -> Project
+projectSetFloatingIpsLoading time project =
+    { project | floatingIps = RDPP.setLoading project.floatingIps time }
 
 
 projectSetPortsLoading : Time.Posix -> Project -> Project

@@ -9,7 +9,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
-import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card
@@ -46,16 +45,16 @@ floatingIps context showHeading project viewParams toMsg =
                 ipsSorted =
                     List.sortBy .address ips
 
-                ipAssignedToServersWeKnowAbout ip =
-                    case GetterSetters.getFloatingIpServer project ip of
+                ipAssignedToAResource ip =
+                    case ip.portUuid of
                         Just _ ->
                             True
 
                         Nothing ->
                             False
 
-                ( ipsAssignedToServers, ipsNotAssignedToServers ) =
-                    List.partition ipAssignedToServersWeKnowAbout ipsSorted
+                ( ipsAssignedToResources, ipsNotAssignedToResources ) =
+                    List.partition ipAssignedToAResource ipsSorted
             in
             if List.isEmpty ipsSorted then
                 Element.column
@@ -81,26 +80,26 @@ floatingIps context showHeading project viewParams toMsg =
                     )
                 <|
                     List.concat
-                        [ if List.length ipsNotAssignedToServers >= ipScarcityWarningThreshold then
+                        [ if List.length ipsNotAssignedToResources >= ipScarcityWarningThreshold then
                             [ ipScarcityWarning context ]
 
                           else
                             []
                         , List.map
                             (renderFloatingIpCard context project viewParams toMsg)
-                            ipsNotAssignedToServers
-                        , [ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers ]
+                            ipsNotAssignedToResources
+                        , [ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources ]
                         , if viewParams.hideAssignedIps then
                             []
 
                           else
-                            List.map (renderFloatingIpCard context project viewParams toMsg) ipsAssignedToServers
+                            List.map (renderFloatingIpCard context project viewParams toMsg) ipsAssignedToResources
                         ]
 
         floatingIpsUsedCount =
             project.floatingIps
                 -- Defaulting to 0 if not loaded yet, not the greatest factoring
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.length
     in
     Element.column
@@ -116,7 +115,7 @@ floatingIps context showHeading project viewParams toMsg =
           else
             Element.none
         , View.QuotaUsage.floatingIpQuotaDetails context project.computeQuota floatingIpsUsedCount
-        , VH.renderWebData
+        , VH.renderRDPP
             context
             project.floatingIps
             (Helpers.String.pluralize context.localization.floatingIpAddress)
@@ -157,35 +156,32 @@ renderFloatingIpCard context project viewParams toMsg ip =
             actionButtons context project toMsg viewParams ip
 
         cardBody =
-            case GetterSetters.getFloatingIpServer project ip of
-                Just server ->
-                    Element.row [ Element.spacing 5 ]
-                        [ Element.text <|
-                            String.join " "
-                                [ "Assigned to"
-                                , context.localization.virtualComputer
-                                , server.osProps.name
+            case ip.portUuid of
+                Just _ ->
+                    case GetterSetters.getFloatingIpServer project ip of
+                        Just server ->
+                            Element.row [ Element.spacing 5 ]
+                                [ Element.text <|
+                                    String.join " "
+                                        [ "Assigned to"
+                                        , context.localization.virtualComputer
+                                        , server.osProps.name
+                                        ]
+                                , Style.Widgets.IconButton.goToButton
+                                    context.palette
+                                    (Just
+                                        (ProjectMsg project.auth.project.uuid <|
+                                            SetProjectView <|
+                                                ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
+                                        )
+                                    )
                                 ]
-                        , Style.Widgets.IconButton.goToButton
-                            context.palette
-                            (Just
-                                (ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
-                                )
-                            )
-                        ]
+
+                        Nothing ->
+                            Element.text "Assigned to a resource that Exosphere cannot represent"
 
                 Nothing ->
-                    case ip.status of
-                        OSTypes.IpAddressActive ->
-                            Element.text "Active"
-
-                        OSTypes.IpAddressDown ->
-                            Element.text "Unassigned"
-
-                        OSTypes.IpAddressError ->
-                            Element.text "Status: Error"
+                    Element.text "Unassigned"
     in
     Style.Widgets.Card.exoCard
         context.palette
@@ -204,7 +200,7 @@ actionButtons context project toMsg viewParams ip =
         assignUnassignButton =
             let
                 ( text, onPress ) =
-                    case GetterSetters.getFloatingIpServer project ip of
+                    case ip.portUuid of
                         Nothing ->
                             ( "Assign"
                             , Just <|
@@ -276,42 +272,37 @@ actionButtons context project toMsg viewParams ip =
 -- TODO factor this out with onlyOwnExpander in ServerList.elm
 
 
-ipsAssignedToServersExpander :
+ipsAssignedToResourcesExpander :
     View.Types.Context
     -> FloatingIpListViewParams
     -> (FloatingIpListViewParams -> Msg)
     -> List OSTypes.FloatingIp
     -> Element.Element Msg
-ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
+ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
     let
-        numIpsAssignedToServers =
-            List.length ipsAssignedToServers
+        numIpsAssignedToResources =
+            List.length ipsAssignedToResources
 
         statusText =
             let
-                ( ipsPluralization, serversPluralization ) =
-                    if numIpsAssignedToServers == 1 then
+                ( ipsPluralization, resourcesPluralization ) =
+                    if numIpsAssignedToResources == 1 then
                         ( context.localization.floatingIpAddress
-                        , String.join " "
-                            [ context.localization.virtualComputer
-                                |> Helpers.String.indefiniteArticle
-                            , context.localization.virtualComputer
-                            ]
+                        , "a resource"
                         )
 
                     else
                         ( Helpers.String.pluralize context.localization.floatingIpAddress
-                        , Helpers.String.pluralize context.localization.virtualComputer
+                        , "resources"
                         )
             in
             if viewParams.hideAssignedIps then
-                String.concat
-                    [ "Hiding "
-                    , String.fromInt numIpsAssignedToServers
-                    , " "
+                String.join " "
+                    [ "Hiding"
+                    , String.fromInt numIpsAssignedToResources
                     , ipsPluralization
-                    , " assigned to "
-                    , serversPluralization
+                    , "assigned to"
+                    , resourcesPluralization
                     ]
 
             else
@@ -319,12 +310,10 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
                     [ context.localization.floatingIpAddress
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
-                    , "assigned to"
-                    , context.localization.virtualComputer
-                        |> Helpers.String.pluralize
+                    , "assigned to resources"
                     ]
 
-        ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
+        ( ( changeActionVerb, changeActionIcon ), newViewParams ) =
             if viewParams.hideAssignedIps then
                 ( ( "Show", FeatherIcons.chevronDown )
                 , { viewParams
@@ -341,7 +330,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
 
         changeOnlyOwnMsg : Msg
         changeOnlyOwnMsg =
-            toMsg newServerListViewParams
+            toMsg newViewParams
 
         changeButton =
             Widget.button
@@ -355,7 +344,7 @@ ipsAssignedToServersExpander context viewParams toMsg ipsAssignedToServers =
                 , text = changeActionVerb
                 }
     in
-    if numIpsAssignedToServers == 0 then
+    if numIpsAssignedToResources == 0 then
         Element.none
 
     else
@@ -398,7 +387,7 @@ assignFloatingIp context project viewParams =
         ipChoices =
             -- Show only un-assigned IP addresses
             project.floatingIps
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.sortBy .address
                 |> List.filter (\ip -> ip.status == OSTypes.IpAddressDown)
                 |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip == Nothing)

@@ -1055,7 +1055,7 @@ processProjectSpecificMsg model project msg =
             -- TODO update servers so that new assignment is reflected in the UI
             let
                 newProject =
-                    processNewFloatingIp project floatingIp
+                    processNewFloatingIp model.clientCurrentTime project floatingIp
 
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
@@ -1066,7 +1066,7 @@ processProjectSpecificMsg model project msg =
             -- TODO update servers so that unassignment is reflected in the UI
             let
                 newProject =
-                    processNewFloatingIp project floatingIp
+                    processNewFloatingIp model.clientCurrentTime project floatingIp
             in
             ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
 
@@ -1662,18 +1662,23 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             ( newModel, exoSetupStatusMetadataCmd )
 
 
-processNewFloatingIp : Project -> OSTypes.FloatingIp -> Project
-processNewFloatingIp project floatingIp =
+processNewFloatingIp : Time.Posix -> Project -> OSTypes.FloatingIp -> Project
+processNewFloatingIp time project floatingIp =
     let
         otherIps =
             project.floatingIps
-                |> RemoteData.withDefault []
+                |> RDPP.withDefault []
                 |> List.filter (\i -> i.uuid /= floatingIp.uuid)
 
         newIps =
             floatingIp :: otherIps
     in
-    { project | floatingIps = RemoteData.Success newIps }
+    { project
+        | floatingIps =
+            RDPP.RemoteDataPlusPlus
+                (RDPP.DoHave newIps time)
+                (RDPP.NotLoading Nothing)
+    }
 
 
 createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
@@ -1692,7 +1697,7 @@ createProject model authToken endpoints =
             , volumes = RemoteData.NotAsked
             , networks = RDPP.empty
             , autoAllocatedNetworkUuid = RDPP.empty
-            , floatingIps = RemoteData.NotAsked
+            , floatingIps = RDPP.empty
             , ports = RDPP.empty
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked

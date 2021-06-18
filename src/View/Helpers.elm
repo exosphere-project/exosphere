@@ -22,6 +22,7 @@ module View.Helpers exposing
     , renderMarkdown
     , renderMessageAsElement
     , renderMessageAsString
+    , renderRDPP
     , renderWebData
     , sortProjects
     , titleFromHostname
@@ -323,29 +324,30 @@ titleFromHostname hostname =
             hostname
 
 
+loadingStuff : View.Types.Context -> String -> Element.Element Msg
+loadingStuff context resourceWord =
+    Element.row [ Element.spacing 15 ]
+        [ Widget.circularProgressIndicator
+            (SH.materialStyle context.palette).progressIndicator
+            Nothing
+        , Element.text <|
+            String.concat
+                [ "Loading "
+                , resourceWord
+                , "..."
+                ]
+        ]
+
+
 renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
 renderWebData context remoteData resourceWord renderSuccessCase =
-    let
-        loadingStuff =
-            Element.row [ Element.spacing 15 ]
-                [ Widget.circularProgressIndicator
-                    (SH.materialStyle context.palette).progressIndicator
-                    Nothing
-                , Element.text <|
-                    String.concat
-                        [ "Loading "
-                        , resourceWord
-                        , "..."
-                        ]
-                ]
-    in
     case remoteData of
         RemoteData.NotAsked ->
             -- This is an ugly hack because some of our API calls don't set RemoteData to "Loading" when they should.
-            loadingStuff
+            loadingStuff context resourceWord
 
         RemoteData.Loading ->
-            loadingStuff
+            loadingStuff context resourceWord
 
         RemoteData.Failure error ->
             Element.text <|
@@ -358,6 +360,32 @@ renderWebData context remoteData resourceWord renderSuccessCase =
 
         RemoteData.Success resource ->
             renderSuccessCase resource
+
+
+renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
+renderRDPP context remoteData resourceWord renderSuccessCase =
+    case remoteData.data of
+        RDPP.DoHave data _ ->
+            renderSuccessCase data
+
+        RDPP.DontHave ->
+            case remoteData.refreshStatus of
+                RDPP.Loading _ ->
+                    loadingStuff context resourceWord
+
+                RDPP.NotLoading maybeErrorTuple ->
+                    case maybeErrorTuple of
+                        Just ( error, _ ) ->
+                            Element.text <|
+                                String.join " "
+                                    [ "Could not load"
+                                    , resourceWord
+                                    , "because:"
+                                    , Helpers.httpErrorWithBodyToString error
+                                    ]
+
+                        Nothing ->
+                            loadingStuff context resourceWord
 
 
 getServerUiStatus : Server -> ServerUiStatus
