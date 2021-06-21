@@ -1,0 +1,42 @@
+---
+
+- fail:
+    msg: "workflow_source_repository is a mandatory value"
+  when: 'workflow_source_repository is not defined or workflow_source_repository == ""'
+
+# Write to console that workflow provisioning has started
+- shell: 'echo ''{"exoWorkflowSetup":"started"}'' > /dev/console'
+
+- name: 'repo cloned locally if needed'
+  git:
+    repo: '{{ workflow_source_repository }}'
+    version: '{{ workflow_repo_version }}'
+    dest: '/opt/workflow'
+  when: 'workflow_local_download == true'
+
+- name: 'data directory created'
+  file:
+    path: '/data'
+    state: 'directory'
+
+
+# We are assuming that virtualenv is installed, should already be done by cloud-init.
+- name: 'repo2docker installed'
+  pip:
+    name: 'jupyter-repo2docker'
+    virtualenv: '/opt/repo2docker-venv'
+
+- set_fact:
+    repo2docker_repo_arg: '{{ ''/opt/workflow'' if workflow_local_download == true else workflow_source_repository }}'
+
+- name: 'repo2docker called'
+  command:
+    argv:
+      - '/opt/repo2docker-venv/bin/jupyter-repo2docker'
+      - '{{ repo2docker_repo_arg }}'
+      - '--volume /data:/data'
+      - '{{ ''--ref'' if workflow_repo_version is defined else '''' }}'
+      - '{{ workflow_repo_version | default('''') }}'
+
+# Write to console that workflow provisioning is complete
+- shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
