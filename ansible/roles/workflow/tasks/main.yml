@@ -40,6 +40,9 @@
       - '--json-logs'
       - '--volume'
       - '/data:/data'
+      - '--image-name'
+      - 'exosphere-workflow'
+      - '--no-run'
       - '{{ repo2docker_repo_arg }}'
 # TODO fix these
 #      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
