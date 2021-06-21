@@ -39,8 +39,8 @@
       - '/opt/repo2docker-venv/bin/jupyter-repo2docker'
       - '--json-logs'
       - '--volume /data:/data'
-      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
-      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
+#      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
+#      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
       - '{{ repo2docker_repo_arg }}'
 
 # Write to console that workflow provisioning is complete
