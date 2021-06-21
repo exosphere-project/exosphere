@@ -17,6 +17,8 @@
       when: 'gui_enabled is defined and gui_enabled == true'
     - role: 'guacamole'
       when: 'guac_enabled is defined and guac_enabled == true'
+    - role: 'workflow'
+      when: 'workflow_enabled is defined and workflow_enabled == true'
   tasks:
     - name: 'ensure hosts are reachable'
       ping:
