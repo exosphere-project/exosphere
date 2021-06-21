@@ -17,3 +17,10 @@
     name: 'docker'
     enabled: true
     state: 'started'
+
+- name: 'exouser added to docker user group'
+  user:
+    name: 'exouser'
+    append: 'yes'
+    groups:
+      - 'docker'
