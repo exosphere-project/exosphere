@@ -23,7 +23,9 @@
 # We are assuming that virtualenv is installed, should already be done by cloud-init.
 - name: 'repo2docker installed'
   pip:
-    name: 'jupyter-repo2docker'
+    name:
+      - 'six'
+      - 'jupyter-repo2docker'
     virtualenv: '/opt/repo2docker-venv'
 
 - set_fact:
