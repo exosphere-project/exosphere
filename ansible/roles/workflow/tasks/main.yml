@@ -40,8 +40,8 @@
       - '{{ repo2docker_repo_arg }}'
       - '--json-logs'
       - '--volume /data:/data'
-      - '{{ ''--ref'' if workflow_repo_version is defined else '''' }}'
-      - '{{ workflow_repo_version | default('''') }}'
+      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
+      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
 
 # Write to console that workflow provisioning is complete
 - shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
