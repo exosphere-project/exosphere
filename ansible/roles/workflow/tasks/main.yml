@@ -31,22 +31,25 @@
 - set_fact:
     repo2docker_repo_arg: '{{ ''/opt/workflow'' if workflow_local_download == true else workflow_source_repository }}'
 
-- name: 'repo2docker called'
+- name: 'repo2docker called to build container image'
   become: 'yes'
   become_user: 'exouser'
   command:
     argv:
       - '/opt/repo2docker-venv/bin/jupyter-repo2docker'
       - '--json-logs'
-      - '--volume'
-      - '/data:/data'
       - '--image-name'
       - 'exosphere-workflow'
       - '--no-run'
       - '{{ repo2docker_repo_arg }}'
-# TODO fix these
+
+# TODO fix these. Volume should be mounted when we actually run the container
 #      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
 #      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
+#      - '--volume'
+#      - '/data:/data'
+
+# TODO run the container
 
 # Write to console that workflow provisioning is complete
 - shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
