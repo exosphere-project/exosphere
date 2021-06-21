@@ -32,6 +32,8 @@
     repo2docker_repo_arg: '{{ ''/opt/workflow'' if workflow_local_download == true else workflow_source_repository }}'
 
 - name: 'repo2docker called'
+  become: 'yes'
+  become_user: 'exouser'
   command:
     argv:
       - '/opt/repo2docker-venv/bin/jupyter-repo2docker'
