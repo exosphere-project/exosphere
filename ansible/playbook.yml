@@ -18,6 +18,8 @@
     - role: 'guacamole'
       when: 'guac_enabled is defined and guac_enabled == true'
     - role: 'workflow'
+      tags:
+        - 'workflow'
       when: 'workflow_source_repository is defined'
   tasks:
     - name: 'ensure hosts are reachable'
