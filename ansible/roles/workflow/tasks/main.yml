@@ -18,6 +18,7 @@
   file:
     path: '/data'
     state: 'directory'
+    owner: 'exouser'
 
 
 # We are assuming that virtualenv is installed, should already be done by cloud-init.
