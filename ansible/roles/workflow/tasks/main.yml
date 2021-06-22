@@ -43,13 +43,31 @@
       - '--no-run'
       - '{{ repo2docker_repo_arg }}'
 
-# TODO fix these. Volume should be mounted when we actually run the container
+# TODO fix these.
 #      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
 #      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
-#      - '--volume'
-#      - '/data:/data'
 
-# TODO run the container
+- name: 'docker container created from new image'
+  command:
+    argv:
+      - 'docker'
+      - 'run'
+      - '--detach'
+      - '--restart'
+      - 'always'
+      - '--name'
+      - 'workflow'
+      - '--volume'
+      - '/data:/data:rw'
+      - '-p'
+      - '8888:8888'
+      - 'exosphere-workflow'
+      - 'jupyter'
+      - 'notebook'
+      - '--ip'
+      - '0.0.0.0'
+
+# TODO determine token somehow and write it to console. (scrape docker logs?)
 
 # Write to console that workflow provisioning is complete
 - shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
