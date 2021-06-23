@@ -42,7 +42,7 @@
       - 'exosphere-workflow'
       - '--no-run'
       - '--ref'
-      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
+      - '{{ workflow_repo_version }}'
       - '{{ repo2docker_repo_arg }}'
 
 - name: 'docker container created from new image'
