@@ -20,7 +20,6 @@
     state: 'directory'
     owner: 'exouser'
 
-
 # We are assuming that virtualenv is installed, should already be done by cloud-init.
 - name: 'repo2docker installed'
   pip:
@@ -42,11 +41,9 @@
       - '--image-name'
       - 'exosphere-workflow'
       - '--no-run'
+      - '--ref'
+      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
       - '{{ repo2docker_repo_arg }}'
-
-# TODO fix these.
-#      - '{{ ''--ref'' if workflow_repo_version != ''HEAD'' else '''' }}'
-#      - '{{ workflow_repo_version if workflow_repo_version != ''HEAD'' else '''' }}'
 
 - name: 'docker container created from new image'
   command:
