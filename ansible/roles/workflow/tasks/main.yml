@@ -74,7 +74,7 @@
   check_mode: false
   no_log: true
 
-# Write to console that workflow provisioning is complete
+# Write cookie secret to console
 - shell: 'echo ''{"exoWorkflowCookieSecret":"{{ workflow_cookie_secret.stdout }}"}'' > /dev/console'
   check_mode: false
   no_log: true
