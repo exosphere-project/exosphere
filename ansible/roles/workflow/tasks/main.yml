@@ -45,6 +45,8 @@
       - '{{ workflow_repo_version }}'
       - '{{ repo2docker_repo_arg }}'
 
+# This is allowed to fail because container may already exist
+
 - name: 'docker container created from new image'
   command:
     argv:
@@ -64,6 +66,7 @@
       - 'notebook'
       - '--ip'
       - '0.0.0.0'
+  failed_when: false
 
 - name: 'Jupyter notebook cookie secret determined'
   shell: 'docker exec workflow jupyter notebook list | grep -m 1 -Po ''(token=)\K[a-f0-9]+'''
