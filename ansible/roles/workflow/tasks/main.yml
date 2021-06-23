@@ -65,7 +65,16 @@
       - '--ip'
       - '0.0.0.0'
 
-# TODO determine token somehow and write it to console. (scrape docker logs?)
+- name: 'Jupyter notebook cookie secret determined'
+  shell: 'docker exec workflow jupyter notebook list | grep -m 1 -Po ''(token=)\K[a-f0-9]+'''
+  register: 'workflow_cookie_secret'
+  check_mode: false
+  no_log: true
+
+# Write to console that workflow provisioning is complete
+- shell: 'echo ''{"exoWorkflowCookieSecret":"{{ workflow_cookie_secret.stdout }}"}'' > /dev/console'
+  check_mode: false
+  no_log: true
 
 # Write to console that workflow provisioning is complete
 - shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
