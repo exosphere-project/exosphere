@@ -4,7 +4,7 @@
 - Fills the gap between interfaces built for system administrators like OpenStack Horizon, and intuitive-but-proprietary services like DigitalOcean
 - Enables cloud operators to deliver a user-friendly, powerful interface to their community with customized branding, nomenclature, and single sign-on integration
 
-[![screenshot of Exosphere](docs/screenshot-for-readme.png)](docs/screenshot-for-readme.png)
+[![screenshot of Exosphere](docs/assets/screenshot-for-readme.png)](docs/assets/screenshot-for-readme.png)
 
 ## Video presentation and demo
 
