@@ -49,6 +49,7 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
+        , OpenstackLoginViewParams
         , Project
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
@@ -325,7 +326,7 @@ updateUnderlying msg model =
                     State.Auth.processOpenRc openstackCreds openRc
 
                 newViewState =
-                    NonProjectView <| Login <| LoginOpenstack newCreds
+                    NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc
             in
             ViewStateHelpers.modelUpdateViewState newViewState model
 

@@ -29,6 +29,7 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
+        , OpenstackLoginViewParams
         , Project
         , ProjectIdentifier
         , ProjectSecret(..)
@@ -75,7 +76,7 @@ init flags urlKey =
                     (\viewStr ->
                         case viewStr of
                             "openstack" ->
-                                Just <| LoginOpenstack Defaults.openstackCreds
+                                Just <| LoginOpenstack <| OpenstackLoginViewParams Defaults.openstackCreds ""
 
                             "jetstream" ->
                                 Just <| LoginJetstream Defaults.jetstreamCreds

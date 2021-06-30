@@ -62,11 +62,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         [ "login"
                         , "openstack"
                         ]
-                        [ UB.string "authurl" openstackLogin.authUrl
-                        , UB.string "pdomain" openstackLogin.projectDomain
-                        , UB.string "pname" openstackLogin.projectName
-                        , UB.string "udomain" openstackLogin.userDomain
-                        , UB.string "uname" openstackLogin.username
+                        [ UB.string "authurl" openstackLogin.creds.authUrl
+                        , UB.string "pdomain" openstackLogin.creds.projectDomain
+                        , UB.string "pname" openstackLogin.creds.projectName
+                        , UB.string "udomain" openstackLogin.creds.userDomain
+                        , UB.string "uname" openstackLogin.creds.username
 
                         -- Not encoding password!
                         ]

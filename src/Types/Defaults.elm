@@ -8,6 +8,7 @@ module Types.Defaults exposing
     , jetstreamCreds
     , keypairListViewParams
     , localization
+    , openStackLoginViewParams
     , openstackCreds
     , projectViewParams
     , serverDetailViewParams
@@ -40,6 +41,13 @@ localization =
     , floatingIpAddress = "floating IP address"
     , publiclyRoutableIpAddress = "public IP address"
     , graphicalDesktopEnvironment = "graphical desktop"
+    }
+
+
+openStackLoginViewParams : Types.OpenstackLoginViewParams
+openStackLoginViewParams =
+    { creds = openstackCreds
+    , openRc = ""
     }
 
 
