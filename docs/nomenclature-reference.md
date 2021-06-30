@@ -16,11 +16,11 @@ Note for developers: some code in the Exosphere codebase (e.g. variable and func
 | PKI public key used for SSH auth                    | SSH public key             | keypair             | SSH public key         | key pair                   |
 | virtual computer                                    | instance?                  | server, (instance)  | instance               | instance                   |
 | hardware configuration of a virtual computer        | size                       | size, flavor        | flavor                 | instance type and size     |
+| console for troubleshooting a broken instance       | console                    | console             | console                | EC2 console                |
 | buffer passed to cloud-init on first boot           | boot script                | user data           | boot script            | user data                  |
-| text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |
 | static representation of hard drive contents        | image                      | image               | image                  | Amazon Machine Image (AMI) |
 | storage block device                                | volume                     | volume              | volume                 | volume                     |
 | non-floating IP address                             | internal IP address        | fixed IP address    | internal IP address    | private IPv4 address       |
 | floating IP address                                 | public IP address          | floating IP address | public IP address      | Elastic IP Address         |
+| text-based user interface served in a web browser   | terminal                   | N/A                 | web shell              | N/A                        |
 | graphical desktop interface served in a web browser | graphical environment      | N/A                 | web desktop            | N/A                        |
-| console for troubleshooting a broken instance       | console                    | console             | console                | EC2 console                |
