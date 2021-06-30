@@ -44,12 +44,6 @@ To start a conversation or ask for help, talk to us in real-time on [Matrix / El
 
 We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
 
-See [contributing.md](contributing.md) for contributor guidelines.
-
-Architecture decisions are documented in [docs/adr/README.md](docs/adr/README.md).
-
-If you want to work on the application UI and styling, see [style.md](docs/style.md) for an orientation.
-
 ## Documentation
 
 ### For Users and anyone else
