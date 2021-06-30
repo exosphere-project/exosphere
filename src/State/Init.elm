@@ -29,7 +29,6 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginViewParams
         , Project
         , ProjectIdentifier
         , ProjectSecret(..)
