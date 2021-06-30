@@ -76,7 +76,7 @@ init flags urlKey =
                     (\viewStr ->
                         case viewStr of
                             "openstack" ->
-                                Just <| LoginOpenstack <| OpenstackLoginViewParams Defaults.openstackCreds ""
+                                Just <| LoginOpenstack <| Defaults.openStackLoginViewParams
 
                             "jetstream" ->
                                 Just <| LoginJetstream Defaults.jetstreamCreds
