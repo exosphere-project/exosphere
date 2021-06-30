@@ -4,7 +4,7 @@
 
 The User Application proxy (UAP) facilitates encrypted, server-authenticated connections between the Exosphere client and web-based services that are hosted on users' cloud instances. These web services include Guacamole for shell and streaming desktop sessions, and data science workbenches like JupyterLab and RStudio Server. In order to securely deliver these services to the user's web browser, they must be served using Transport Layer Security (TLS) with an x.509 certificate that has been signed by a certificate authority like Let's Encrypt. For reasons detailed below in "Background" section, it appears infeasible to obtain a CA-signed cert for each server that a user creates in an automatic and scalable way. UAP is a solution to this problem: it re-terminates TLS connections between users and instance-hosted web applications at each OpenStack cloud using a wildcard certificate from Let's Encrypt.
 
-![Exosphere architecture diagram](architecture.png)
+![Exosphere architecture diagram](assets/architecture.png)
 
 URL parts diagram showing how a client connects to a service running :
 ```

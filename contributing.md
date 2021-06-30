@@ -35,7 +35,7 @@ Ask the maintainers for testing credentials if you don't have a Jetstream alloca
 
 How to add TACC credentials as environment variables to your GitLab repository settings:
 
-![Environment variables for end-to-end browser tests](docs/environment-variables-e2e-browser-tests.png)
+![Environment variables for end-to-end browser tests](docs/assets/environment-variables-e2e-browser-tests.png)
 
 The CI pipeline's end-to-end browser tests have special behavior for `master` and `dev` branches, as opposed to all other git repository branches.
 

@@ -4,7 +4,7 @@
 - Fills the gap between interfaces built for system administrators like OpenStack Horizon, and intuitive-but-proprietary services like DigitalOcean
 - Enables cloud operators to deliver a user-friendly, powerful interface to their community with customized branding, nomenclature, and single sign-on integration
 
-[![screenshot of Exosphere](docs/screenshot-for-readme.png)](docs/screenshot-for-readme.png)
+[![screenshot of Exosphere](docs/assets/screenshot-for-readme.png)](docs/assets/screenshot-for-readme.png)
 
 ## Video presentation and demo
 
@@ -44,11 +44,34 @@ To start a conversation or ask for help, talk to us in real-time on [Matrix / El
 
 We use GitLab to track issues and contributions. To request a new feature or report a bug, [create a new issue](https://gitlab.com/exosphere/exosphere/-/issues/new) on our GitLab project.
 
-See [contributing.md](contributing.md) for contributor guidelines.
+## Documentation
 
-Architecture decisions are documented in [docs/adr/README.md](docs/adr/README.md).
+### For Users and Anyone Else
 
-If you want to work on the application UI and styling, see [style.md](docs/style.md) for an orientation.
+- [Nomenclature Reference](docs/nomenclature-reference.md)
+- [Values and Goals of the Exosphere Project](values-goals.md)
+- [Cockpit Deprecation and Manual Installation](docs/cockpit.md)
+- [Installing Exosphere Progressive Web Application](docs/pwa-install.md)
+
+### For Cloud Operators
+
+- [User Application Proxy (UAP)](docs/user-app-proxy.md)
+- [Solving the CORS Problem (Cloud CORS Proxy)](docs/solving-cors-problem.md)
+- [Federated Login Support](docs/federated-login.md)
+
+### For Exosphere Contributors
+
+- [Contributing to Exosphere](contributing.md)
+- [UI, Layout, and Style](docs/style.md)
+- [Architecture Decision Records](docs/adr/README.md)
+- [Exosphere Tests](tests/README.md)
+- [Browser Integration Tests](integration-tests/README.md)
+
+### Legal Docs
+
+- [Exosphere Project License](LICENSE)
+- [Acceptable Use Policy for Exosphere Hosted Sites](docs/acceptable-use-policy.md)
+- [Privacy Policy for Exosphere Hosted Sites](docs/privacy-policy.md)
 
 ## Advanced Topics
 

@@ -10,7 +10,7 @@ Both of these sites are Progressive Web Applications, so if you wish, you can in
 
 Go to [try.exosphere.app](https://try.exosphere.app) or [exosphere.jetstream-cloud.org](https://exosphere.jetstream-cloud.org) in a regular (non-incognito) window. Look for the install button in your address bar, or choose "Install Exosphere..." from the 'three dots' (hamburger) menu.
 
-![installing PWA on desktop via Chromium](desktop-chromium-pwa-install.png)
+![installing PWA on desktop via Chromium](assets/desktop-chromium-pwa-install.png)
 
 You will be prompted to install Exosphere. After this, it will appear
 
@@ -20,7 +20,7 @@ You will be prompted to install Exosphere. After this, it will appear
 
 When you open Exosphere from these places, it will look and feel like a desktop application.
 
-![using PWA on desktop via Chromium](desktop-chromium-pwa.png)
+![using PWA on desktop via Chromium](assets/desktop-chromium-pwa.png)
 
 You can manage all of your installed PWAs, including Exosphere, by browsing to `chrome://apps`.
 
@@ -30,15 +30,15 @@ Android users can install the PWA with either Chrome/Chromium or Firefox. In eit
 
 If using Chromium, tap the 'three dots' (hamburger) menu, tap "Add to...", then tap "Home screen".
 
-![installing PWA on Android via Chromium](android-chromium-pwa-install.jpeg)
+![installing PWA on Android via Chromium](assets/android-chromium-pwa-install.jpeg)
 
 If using Firefox, tap the 'three dots' (hamburger) menu, and tap "Install".
 
-![installing PWA on Android via Firefox](android-firefox-pwa-install.jpeg)
+![installing PWA on Android via Firefox](assets/android-firefox-pwa-install.jpeg)
 
 In either case, you will be invited to place an Exosphere icon on your home screen, and it will look approximately like this.
 
-![PWA installed on Android](android-pwa.png)
+![PWA installed on Android](assets/android-pwa.png)
 
 
 ## Installing PWA on iOS
@@ -47,4 +47,4 @@ Open Safari, and browse to [try.exosphere.app](https://try.exosphere.app) or [ex
 
 Per [these](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Developer_guide/Installing#safari_for_ios_iphoneos_ipados) instructions, Tap the sharing button at the bottom of the screen, and tap "Add to Home Screen". You will be prompted to confirm, and then an Exosphere icon will appear on your home screen.
 
-![PWA installed on iOS](ios-pwa.jpg)
+![PWA installed on iOS](assets/ios-pwa.jpg)
