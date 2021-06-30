@@ -17,6 +17,7 @@ import Types.Types
         , Msg(..)
         , NonProjectViewConstructor(..)
         , OpenIdConnectLoginConfig
+        , OpenstackLoginViewParams
         )
 import View.Helpers as VH
 import View.Types
@@ -46,7 +47,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
                                 SetNonProjectView <|
                                     Login <|
                                         LoginOpenstack <|
-                                            Defaults.openstackCreds
+                                            Defaults.openStackLoginViewParams
                         }
               , description =
                     ""
@@ -138,16 +139,16 @@ loginPickerButton context =
         }
 
 
-viewLoginOpenstack : View.Types.Context -> OSTypes.OpenstackLogin -> Element.Element Msg
-viewLoginOpenstack context openstackCreds =
+viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
+viewLoginOpenstack context viewParams =
     Element.column VH.exoColumnAttributes
         [ Element.el
             VH.heading2
             (Element.text "Add an OpenStack Account")
         , Element.wrappedRow
             VH.exoRowAttributes
-            [ loginOpenstackCredsEntry context openstackCreds
-            , loginOpenstackOpenRcEntry context openstackCreds
+            [ loginOpenstackCredsEntry context viewParams
+            , loginOpenstackOpenRcEntry context viewParams
             ]
         , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
             [ Element.el [] (loginPickerButton context)
@@ -156,19 +157,22 @@ viewLoginOpenstack context openstackCreds =
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                     { text = "Log In"
                     , onPress =
-                        Just <| RequestUnscopedToken openstackCreds
+                        Just <| RequestUnscopedToken viewParams.creds
                     }
                 )
             ]
         ]
 
 
-loginOpenstackCredsEntry : View.Types.Context -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackCredsEntry context openstackCreds =
+loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
+loginOpenstackCredsEntry context viewParams =
     let
+        creds =
+            viewParams.creds
+
         updateCreds : OSTypes.OpenstackLogin -> Msg
         updateCreds newCreds =
-            SetNonProjectView <| Login <| LoginOpenstack newCreds
+            SetNonProjectView <| Login <| LoginOpenstack { viewParams | creds = newCreds }
 
         textField text placeholderText onChange labelText =
             Input.text
@@ -187,33 +191,33 @@ loginOpenstackCredsEntry context openstackCreds =
         )
         [ Element.el [] (Element.text "Either enter your credentials...")
         , textField
-            openstackCreds.authUrl
+            creds.authUrl
             "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
-            (\u -> updateCreds { openstackCreds | authUrl = u })
+            (\u -> updateCreds { creds | authUrl = u })
             "Keystone auth URL"
         , textField
-            openstackCreds.userDomain
+            creds.userDomain
             "User domain e.g. default"
-            (\d -> updateCreds { openstackCreds | userDomain = d })
+            (\d -> updateCreds { creds | userDomain = d })
             "User Domain (name or ID)"
         , textField
-            openstackCreds.username
+            creds.username
             "User name e.g. demo"
-            (\u -> updateCreds { openstackCreds | username = u })
+            (\u -> updateCreds { creds | username = u })
             "User Name"
         , Input.currentPassword
             (VH.inputItemAttributes context.palette.surface)
-            { text = openstackCreds.password
+            { text = creds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
-            , onChange = \p -> updateCreds { openstackCreds | password = p }
+            , onChange = \p -> updateCreds { creds | password = p }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
             }
         ]
 
 
-loginOpenstackOpenRcEntry : View.Types.Context -> OSTypes.OpenstackLogin -> Element.Element Msg
-loginOpenstackOpenRcEntry context openstackCreds =
+loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
+loginOpenstackOpenRcEntry context viewParams =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 15
@@ -236,8 +240,8 @@ loginOpenstackOpenRcEntry context openstackCreds =
                    , Font.size 12
                    ]
             )
-            { onChange = \o -> InputOpenRc openstackCreds o
-            , text = ""
+            { onChange = \o -> InputOpenRc viewParams.creds o
+            , text = viewParams.openRc
             , placeholder = Nothing
             , label = Input.labelLeft [] Element.none
             , spellcheck = False

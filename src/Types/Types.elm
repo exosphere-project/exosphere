@@ -31,6 +31,7 @@ module Types.Types exposing
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
     , OpenIdConnectLoginConfig
+    , OpenstackLoginViewParams
     , PasswordVisibility(..)
     , Project
     , ProjectIdentifier
@@ -422,8 +423,14 @@ type
 
 
 type LoginView
-    = LoginOpenstack OSTypes.OpenstackLogin
+    = LoginOpenstack OpenstackLoginViewParams
     | LoginJetstream JetstreamCreds
+
+
+type alias OpenstackLoginViewParams =
+    { creds : OSTypes.OpenstackLogin
+    , openRc : String
+    }
 
 
 type alias ImageListViewParams =
