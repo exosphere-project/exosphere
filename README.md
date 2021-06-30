@@ -50,6 +50,35 @@ Architecture decisions are documented in [docs/adr/README.md](docs/adr/README.md
 
 If you want to work on the application UI and styling, see [style.md](docs/style.md) for an orientation.
 
+## Documentation
+
+### For Users and anyone else
+
+- [Nomenclature Reference](docs/nomenclature-reference.md)
+- [Values and Goals of the Exosphere Project](values-goals.md)
+- [Cockpit Deprecation and Manual Installation](docs/cockpit.md)
+- [Installing Exosphere Progressive Web Application](docs/pwa-install.md)
+
+### For Cloud Operators
+
+- [User Application Proxy (UAP)](docs/user-app-proxy.md)
+- [Solving the CORS Problem (Cloud CORS Proxy)](docs/solving-cors-problem.md)
+- [Federated Login Support](docs/federated-login.md)
+
+### For Exosphere Contributors
+
+- [Contributing to Exosphere](contributing.md)
+- [UI, Layout, and Style](docs/style.md)
+- [Architecture Decision Records](docs/adr/README.md)
+- [Exosphere Tests](tests/README.md)
+- [Browser Integration Tests](integration-tests/README.md)
+
+### Legal Docs
+
+- [Exosphere Project License](LICENSE)
+- [Acceptable Use Policy for Exosphere Hosted Sites](docs/acceptable-use-policy.md)
+- [Privacy Policy for Exosphere Hosted Sites](docs/privacy-policy.md)
+
 ## Advanced Topics
 
 The following techniques are intended for cloud operators, advanced users, and for development purposes. We suggest that new users start with one of the hosted applications linked above.
