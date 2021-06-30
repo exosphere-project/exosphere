@@ -46,7 +46,7 @@ We use GitLab to track issues and contributions. To request a new feature or rep
 
 ## Documentation
 
-### For Users and anyone else
+### For Users and Anyone Else
 
 - [Nomenclature Reference](docs/nomenclature-reference.md)
 - [Values and Goals of the Exosphere Project](values-goals.md)
