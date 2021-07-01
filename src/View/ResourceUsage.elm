@@ -1,4 +1,4 @@
-module View.ResourceUsageCharts exposing (charts)
+module View.ResourceUsage exposing (charts)
 
 import Dict
 import Element
