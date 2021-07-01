@@ -67,18 +67,12 @@ warnings context ( currentTime, timeZone ) timeSeries =
 charts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
 charts context ( currentTime, timeZone ) timeSeriesDict =
     let
-        timeSeriesList =
-            Dict.toList timeSeriesDict
-
         timeSeriesListLast30m =
             let
                 thirtyMinMillis =
                     1800000
-
-                thirtyMinAgo =
-                    Time.posixToMillis currentTime - thirtyMinMillis
             in
-            List.filter (\t -> Tuple.first t > thirtyMinAgo) timeSeriesList
+            timeSeriesRecentDataPoints timeSeriesDict currentTime thirtyMinMillis
 
         getTime : ( Int, DataPoint ) -> Float
         getTime dataPointTuple =
@@ -144,7 +138,7 @@ charts context ( currentTime, timeZone ) timeSeriesDict =
                 context.palette.primary
                 Dots.circle
                 ""
-                timeSeriesListLast30m
+                (Dict.toList timeSeriesListLast30m)
             ]
     in
     Element.column VH.exoColumnAttributes
