@@ -27,21 +27,6 @@ import View.Helpers as VH
 import View.Types
 
 
-timeSeriesRecentDataPoints : TimeSeries -> Time.Posix -> Int -> Dict.Dict Int DataPoint
-timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
-    let
-        timeSeriesList =
-            Dict.toList timeSeries
-
-        durationAgo =
-            Time.posixToMillis currentTime - timeIntervalDurationMillis
-
-        recentDataPoints =
-            List.filter (\t -> Tuple.first t > durationAgo) timeSeriesList
-    in
-    Dict.fromList recentDataPoints
-
-
 warnings : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
 warnings context ( currentTime, timeZone ) timeSeries =
     let
@@ -152,3 +137,18 @@ charts context ( currentTime, timeZone ) timeSeriesDict =
         , Element.html <|
             LineChart.viewCustom (chartConfig (getMetricUsedPct .rootfsPctUsed)) series
         ]
+
+
+timeSeriesRecentDataPoints : TimeSeries -> Time.Posix -> Int -> Dict.Dict Int DataPoint
+timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
+    let
+        timeSeriesList =
+            Dict.toList timeSeries
+
+        durationAgo =
+            Time.posixToMillis currentTime - timeIntervalDurationMillis
+
+        recentDataPoints =
+            List.filter (\t -> Tuple.first t > durationAgo) timeSeriesList
+    in
+    Dict.fromList recentDataPoints
