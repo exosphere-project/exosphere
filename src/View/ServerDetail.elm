@@ -1033,7 +1033,11 @@ resourceUsageCharts context currentTimeAndZone server =
                             Element.text "No chart data to show."
 
                     else
-                        View.ResourceUsage.charts context currentTimeAndZone history.timeSeries
+                        Element.column []
+                            [ -- TODO fix alignment of these elements
+                              View.ResourceUsage.warnings context currentTimeAndZone history.timeSeries
+                            , View.ResourceUsage.charts context currentTimeAndZone history.timeSeries
+                            ]
 
                 _ ->
                     if exoOriginProps.exoServerVersion < 2 then

@@ -1,4 +1,4 @@
-module View.ResourceUsage exposing (charts)
+module View.ResourceUsage exposing (charts, warnings)
 
 import Dict
 import Element
@@ -25,6 +25,43 @@ import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
 import Types.Types exposing (Msg)
 import View.Helpers as VH
 import View.Types
+
+
+timeSeriesRecentDataPoints : TimeSeries -> Time.Posix -> Int -> Dict.Dict Int DataPoint
+timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
+    let
+        timeSeriesList =
+            Dict.toList timeSeries
+
+        durationAgo =
+            Time.posixToMillis currentTime - timeIntervalDurationMillis
+
+        recentDataPoints =
+            List.filter (\t -> Tuple.first t > durationAgo) timeSeriesList
+    in
+    Dict.fromList recentDataPoints
+
+
+warnings : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+warnings context ( currentTime, timeZone ) timeSeries =
+    let
+        -- Get most recent data point, it must be <60 minutes old
+        newestDataPoint =
+            let
+                sixtyMinMillis =
+                    3600000
+
+                recentDataPoints =
+                    timeSeriesRecentDataPoints timeSeries currentTime sixtyMinMillis
+            in
+            Dict.toList recentDataPoints
+                |> List.sortBy Tuple.first
+                -- Sort time series chronologically, oldest to newest
+                |> List.reverse
+                -- Order by newest first
+                |> List.head
+    in
+    Element.text "TODO"
 
 
 charts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
