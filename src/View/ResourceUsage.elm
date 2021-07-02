@@ -21,10 +21,14 @@ import LineChart.Legends as Legends
 import LineChart.Line as Line
 import Time
 import Tuple
-import Types.ServerResourceUsage exposing (DataPoint, TimeSeries)
+import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
 import Types.Types exposing (Msg)
 import View.Helpers as VH
 import View.Types
+
+
+
+-- TODO rename to "alerts"
 
 
 warnings : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
@@ -157,3 +161,38 @@ timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
             List.filter (\t -> Tuple.first t > durationAgo) timeSeriesList
     in
     Dict.fromList recentDataPoints
+
+
+alerts : View.Types.Context -> DataPoint -> List Alert
+alerts context dataPoint =
+    let
+        cpuAlerts =
+            if dataPoint.cpuPctUsed > 95 then
+                [ Alert Info "CPU usage is high." ]
+
+            else
+                []
+
+        memAlerts =
+            if dataPoint.memPctUsed > 95 then
+                [ Alert Warn ("Your " ++ context.localization.virtualComputer ++ " is running out of memory (RAM).") ]
+
+            else
+                []
+
+        diskAlerts =
+            if dataPoint.rootfsPctUsed > 90 then
+                [ Alert Warn "Your root disk is getting full. Be careful not to use up all the space." ]
+
+            else if dataPoint.rootfsPctUsed > 95 then
+                [ Alert Crit
+                    ("Root disk is nearly full! Please free up some space now, or your "
+                        ++ context.localization.virtualComputer
+                        ++ " will stop working."
+                    )
+                ]
+
+            else
+                []
+    in
+    List.concat [ cpuAlerts, memAlerts, diskAlerts ]
