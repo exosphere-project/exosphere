@@ -1,4 +1,4 @@
-module View.ResourceUsage exposing (charts, warnings)
+module View.ResourceUsage exposing (alerts, charts)
 
 import Dict
 import Element
@@ -32,12 +32,8 @@ import View.Helpers as VH
 import View.Types
 
 
-
--- TODO rename to "alerts"
-
-
-warnings : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
-warnings context ( currentTime, timeZone ) timeSeries =
+alerts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+alerts context ( currentTime, timeZone ) timeSeries =
     let
         -- Get most recent data point, it must be <60 minutes old
         maybeNewestDataPoint =
@@ -58,7 +54,7 @@ warnings context ( currentTime, timeZone ) timeSeries =
     in
     case maybeNewestDataPoint of
         Just newestDataPoint ->
-            alerts context newestDataPoint
+            dataPointToAlerts context newestDataPoint
                 |> List.map (renderAlert context)
                 |> Element.column [ Element.paddingXY 0 5, Element.spacing 8 ]
 
@@ -171,8 +167,8 @@ timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
     Dict.fromList recentDataPoints
 
 
-alerts : View.Types.Context -> DataPoint -> List Alert
-alerts context dataPoint =
+dataPointToAlerts : View.Types.Context -> DataPoint -> List Alert
+dataPointToAlerts context dataPoint =
     let
         diskAlerts =
             if dataPoint.rootfsPctUsed > 95 then
