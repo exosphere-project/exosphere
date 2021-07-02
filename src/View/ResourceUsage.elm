@@ -2,6 +2,10 @@ module View.ResourceUsage exposing (charts, warnings)
 
 import Dict
 import Element
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import FeatherIcons
 import LineChart
 import LineChart.Area as Area
 import LineChart.Axis as Axis
@@ -19,6 +23,7 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
+import Style.Helpers as SH
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
@@ -49,10 +54,13 @@ warnings context ( currentTime, timeZone ) timeSeries =
                 |> List.reverse
                 -- Order by newest first
                 |> List.head
+                |> Maybe.map Tuple.second
     in
     case maybeNewestDataPoint of
         Just newestDataPoint ->
-            Element.text <| Debug.toString newestDataPoint
+            alerts context newestDataPoint
+                |> List.map (renderAlert context)
+                |> Element.column [ Element.paddingXY 0 5, Element.spacing 8 ]
 
         Nothing ->
             Element.none
@@ -196,3 +204,33 @@ alerts context dataPoint =
                 []
     in
     List.concat [ cpuAlerts, memAlerts, diskAlerts ]
+
+
+renderAlert : View.Types.Context -> Alert -> Element.Element Msg
+renderAlert context alert =
+    let
+        ( icon, color, onColor ) =
+            case alert.level of
+                Info ->
+                    ( FeatherIcons.info, context.palette.primary, context.palette.on.primary )
+
+                Warn ->
+                    ( FeatherIcons.alertTriangle, context.palette.warn, context.palette.on.warn )
+
+                Crit ->
+                    ( FeatherIcons.alertOctagon, context.palette.error, context.palette.on.error )
+    in
+    Element.row
+        [ Element.padding 0, Element.spacing 8 ]
+        [ Element.el
+            [ Element.padding 3
+            , Border.rounded 4
+            , Background.color (SH.toElementColor color)
+            , Font.color (SH.toElementColor onColor)
+            ]
+            (icon
+                |> FeatherIcons.toHtml []
+                |> Element.html
+            )
+        , Element.text alert.text
+        ]
