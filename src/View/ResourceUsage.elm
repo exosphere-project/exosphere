@@ -31,7 +31,7 @@ warnings : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Elem
 warnings context ( currentTime, timeZone ) timeSeries =
     let
         -- Get most recent data point, it must be <60 minutes old
-        newestDataPoint =
+        maybeNewestDataPoint =
             let
                 sixtyMinMillis =
                     3600000
@@ -46,7 +46,12 @@ warnings context ( currentTime, timeZone ) timeSeries =
                 -- Order by newest first
                 |> List.head
     in
-    Element.text "TODO"
+    case maybeNewestDataPoint of
+        Just newestDataPoint ->
+            Element.text <| Debug.toString newestDataPoint
+
+        Nothing ->
+            Element.none
 
 
 charts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
