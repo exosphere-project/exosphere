@@ -174,20 +174,6 @@ timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
 alerts : View.Types.Context -> DataPoint -> List Alert
 alerts context dataPoint =
     let
-        cpuAlerts =
-            if dataPoint.cpuPctUsed > 95 then
-                [ Alert Info "CPU usage is high." ]
-
-            else
-                []
-
-        memAlerts =
-            if dataPoint.memPctUsed > 95 then
-                [ Alert Warn "Available memory (RAM) is nearly exhausted." ]
-
-            else
-                []
-
         diskAlerts =
             if dataPoint.rootfsPctUsed > 95 then
                 [ Alert Crit
@@ -202,8 +188,22 @@ alerts context dataPoint =
 
             else
                 []
+
+        memAlerts =
+            if dataPoint.memPctUsed > 95 then
+                [ Alert Warn "Available memory (RAM) is nearly exhausted." ]
+
+            else
+                []
+
+        cpuAlerts =
+            if dataPoint.cpuPctUsed > 95 then
+                [ Alert Info "CPU usage is high." ]
+
+            else
+                []
     in
-    List.concat [ cpuAlerts, memAlerts, diskAlerts ]
+    List.concat [ diskAlerts, memAlerts, cpuAlerts ]
 
 
 renderAlert : View.Types.Context -> Alert -> Element.Element Msg
