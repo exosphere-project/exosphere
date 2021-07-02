@@ -45,7 +45,7 @@ import Types.Types
         , ViewState(..)
         )
 import View.Helpers as VH exposing (edges)
-import View.ResourceUsageCharts
+import View.ResourceUsage
 import View.Types
 import Widget
 import Widget.Style.Material
@@ -1033,7 +1033,11 @@ resourceUsageCharts context currentTimeAndZone server =
                             Element.text "No chart data to show."
 
                     else
-                        View.ResourceUsageCharts.charts context currentTimeAndZone history.timeSeries
+                        Element.column []
+                            [ -- TODO fix alignment of these elements
+                              View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
+                            , View.ResourceUsage.charts context currentTimeAndZone history.timeSeries
+                            ]
 
                 _ ->
                     if exoOriginProps.exoServerVersion < 2 then

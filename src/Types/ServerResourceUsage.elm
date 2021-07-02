@@ -1,4 +1,11 @@
-module Types.ServerResourceUsage exposing (DataPoint, History, TimeSeries, emptyResourceUsageHistory)
+module Types.ServerResourceUsage exposing
+    ( Alert
+    , AlertLevel(..)
+    , DataPoint
+    , History
+    , TimeSeries
+    , emptyResourceUsageHistory
+    )
 
 import Dict
 
@@ -27,3 +34,15 @@ type alias DataPoint =
     , memPctUsed : Int
     , rootfsPctUsed : Int
     }
+
+
+type alias Alert =
+    { level : AlertLevel
+    , text : String
+    }
+
+
+type AlertLevel
+    = Info
+    | Warn
+    | Crit
