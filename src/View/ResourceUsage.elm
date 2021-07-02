@@ -183,22 +183,22 @@ alerts context dataPoint =
 
         memAlerts =
             if dataPoint.memPctUsed > 95 then
-                [ Alert Warn ("Your " ++ context.localization.virtualComputer ++ " is running out of memory (RAM).") ]
+                [ Alert Warn "Available memory (RAM) is nearly exhausted." ]
 
             else
                 []
 
         diskAlerts =
-            if dataPoint.rootfsPctUsed > 90 then
-                [ Alert Warn "Your root disk is getting full. Be careful not to use up all the space." ]
-
-            else if dataPoint.rootfsPctUsed > 95 then
+            if dataPoint.rootfsPctUsed > 95 then
                 [ Alert Crit
-                    ("Root disk is nearly full! Please free up some space now, or your "
+                    ("Root disk is full! Please free some space now, else "
                         ++ context.localization.virtualComputer
                         ++ " will stop working."
                     )
                 ]
+
+            else if dataPoint.rootfsPctUsed > 90 then
+                [ Alert Warn "Root disk is nearly full. Be careful not to use up all the space." ]
 
             else
                 []
