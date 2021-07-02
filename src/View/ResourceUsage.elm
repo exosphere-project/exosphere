@@ -32,8 +32,8 @@ import View.Helpers as VH
 import View.Types
 
 
-alerts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
-alerts context ( currentTime, timeZone ) timeSeries =
+alerts : View.Types.Context -> Time.Posix -> TimeSeries -> Element.Element Msg
+alerts context currentTime timeSeries =
     let
         -- Get most recent data point, it must be <60 minutes old
         maybeNewestDataPoint =

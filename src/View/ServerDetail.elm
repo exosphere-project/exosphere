@@ -1035,7 +1035,7 @@ resourceUsageCharts context currentTimeAndZone server =
                     else
                         Element.column []
                             [ -- TODO fix alignment of these elements
-                              View.ResourceUsage.alerts context currentTimeAndZone history.timeSeries
+                              View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
                             , View.ResourceUsage.charts context currentTimeAndZone history.timeSeries
                             ]
 
