@@ -161,20 +161,11 @@ viewLoginOpenstack context viewParams =
             VH.exoElementAttributes
             (case viewParams.formEntryType of
                 LoginViewCredsEntry ->
-                    loginOpenstackCredsEntry context viewParams
+                    loginOpenstackCredsEntry context viewParams allCredsEntered
 
                 LoginViewOpenRcEntry ->
                     loginOpenstackOpenRcEntry context viewParams
             )
-        , if allCredsEntered then
-            Element.none
-
-          else
-            Element.el
-                [ Element.alignRight
-                , Font.color (context.palette.error |> SH.toElementColor)
-                ]
-                (Element.text "All fields are required.")
         , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
             (case viewParams.formEntryType of
                 LoginViewCredsEntry ->
@@ -184,7 +175,7 @@ viewLoginOpenstack context viewParams =
                         { text = "Use OpenRC File"
                         , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewOpenRcEntry }
                         }
-                    , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                    , Element.el [ Element.alignRight ]
                         (Widget.textButton
                             (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                             { text = "Log In"
@@ -218,8 +209,8 @@ viewLoginOpenstack context viewParams =
         ]
 
 
-loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
-loginOpenstackCredsEntry context viewParams =
+loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element Msg
+loginOpenstackCredsEntry context viewParams allCredsEntered =
     let
         creds =
             viewParams.creds
@@ -267,6 +258,17 @@ loginOpenstackCredsEntry context viewParams =
             , onChange = \p -> updateCreds { creds | password = p }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
             }
+        , if allCredsEntered then
+            Element.none
+
+          else
+            Element.el
+                (VH.exoElementAttributes
+                    ++ [ Element.alignRight
+                       , Font.color (context.palette.error |> SH.toElementColor)
+                       ]
+                )
+                (Element.text "All fields are required.")
         ]
 
 
