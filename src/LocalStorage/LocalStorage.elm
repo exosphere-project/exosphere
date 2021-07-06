@@ -8,7 +8,7 @@ import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
 import Json.Encode as Encode
-import LocalStorage.Types exposing (StoredProject, StoredProject1, StoredProject2, StoredState)
+import LocalStorage.Types exposing (StoredProject, StoredProject2, StoredState)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Types
@@ -101,11 +101,6 @@ encodeStoredState projects clientUuid styleMode =
         secretEncode secret =
             case secret of
                 Types.NoProjectSecret ->
-                    Encode.object
-                        [ ( "secretType", Encode.string "noProjectSecret" ) ]
-
-                Types.OpenstackPassword _ ->
-                    -- No longer storing user passwords persistently
                     Encode.object
                         [ ( "secretType", Encode.string "noProjectSecret" ) ]
 
@@ -283,52 +278,9 @@ decodeStoredState =
     Decode.map3 StoredState projects clientUuid styleMode
 
 
-strToNameAndUuid : String -> OSTypes.NameAndUuid
-strToNameAndUuid s =
-    if Helpers.stringIsUuidOrDefault s then
-        OSTypes.NameAndUuid "" s
-
-    else
-        OSTypes.NameAndUuid s ""
-
-
-storedProject1ToStoredProject : StoredProject1 -> Decode.Decoder StoredProject
-storedProject1ToStoredProject sp =
-    let
-        authToken =
-            OSTypes.ScopedAuthToken
-                sp.auth.catalog
-                sp.auth.project
-                sp.projDomain
-                sp.auth.user
-                sp.userDomain
-                sp.auth.expiresAt
-                sp.auth.tokenValue
-    in
-    case Helpers.serviceCatalogToEndpoints sp.auth.catalog of
-        Ok endpoints ->
-            Decode.succeed <|
-                StoredProject
-                    (Types.OpenstackPassword sp.password)
-                    authToken
-                    endpoints
-
-        Err e ->
-            Decode.fail ("Could not decode endpoints from service catalog because: " ++ e)
-
-
 storedProjectDecode1 : Decode.Decoder StoredProject
 storedProjectDecode1 =
-    Decode.map4 StoredProject1
-        (Decode.at [ "creds", "password" ] Decode.string)
-        (Decode.field "auth" decodeStoredAuthTokenDetails1)
-        (Decode.map strToNameAndUuid <|
-            Decode.at [ "creds", "projectDomain" ] Decode.string
-        )
-        (Decode.map strToNameAndUuid <|
-            Decode.at [ "creds", "userDomain" ] Decode.string
-        )
-        |> Decode.andThen storedProject1ToStoredProject
+    Decode.fail "Stored projects with a hard-coded password are no longer supported."
 
 
 storedProject2ToStoredProject : StoredProject2 -> Decode.Decoder StoredProject
@@ -363,11 +315,6 @@ decodeProjectSecret =
                 "noProjectSecret" ->
                     Decode.succeed Types.NoProjectSecret
 
-                "password" ->
-                    -- This should be very seldom used, now only for first launch of Exosphere since mid-November 2019
-                    -- with projects created prior to then
-                    Decode.field "password" Decode.string |> Decode.map Types.OpenstackPassword
-
                 "applicationCredential" ->
                     Decode.map2
                         OSTypes.ApplicationCredential
@@ -387,30 +334,6 @@ storedProjectDecode =
         (Decode.field "secret" decodeProjectSecret)
         (Decode.field "auth" decodeStoredAuthTokenDetails)
         (Decode.field "endpoints" decodeEndpoints)
-
-
-decodeStoredAuthTokenDetails1 : Decode.Decoder OSTypes.ScopedAuthToken
-decodeStoredAuthTokenDetails1 =
-    Decode.map7 OSTypes.ScopedAuthToken
-        (Decode.field "catalog" (Decode.list openstackStoredServiceDecoder))
-        (Decode.map2
-            OSTypes.NameAndUuid
-            (Decode.field "projectName" Decode.string)
-            (Decode.field "projectUuid" Decode.string)
-        )
-        -- Can't determine project domain name/uuid here so we populate empty
-        (Decode.succeed <| OSTypes.NameAndUuid "" "")
-        (Decode.map2
-            OSTypes.NameAndUuid
-            (Decode.field "username" Decode.string)
-            (Decode.field "userUuid" Decode.string)
-        )
-        -- Can't determine user domain name/uuid here so we populate empty
-        (Decode.succeed <| OSTypes.NameAndUuid "" "")
-        (Decode.field "expiresAt" Decode.int
-            |> Decode.map Time.millisToPosix
-        )
-        (Decode.field "tokenValue" Decode.string)
 
 
 decodeStoredAuthTokenDetails : Decode.Decoder OSTypes.ScopedAuthToken

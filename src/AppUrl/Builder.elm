@@ -63,8 +63,6 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         , "openstack"
                         ]
                         [ UB.string "authurl" openstackLogin.creds.authUrl
-                        , UB.string "pdomain" openstackLogin.creds.projectDomain
-                        , UB.string "pname" openstackLogin.creds.projectName
                         , UB.string "udomain" openstackLogin.creds.userDomain
                         , UB.string "uname" openstackLogin.creds.username
 
@@ -89,7 +87,6 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         , "jetstream"
                         ]
                         [ UB.string "provider" jsProvider
-                        , UB.string "pname" jsLogin.jetstreamProjectName
                         , UB.string "taccuname" jsLogin.taccUsername
 
                         -- Not encoding password!

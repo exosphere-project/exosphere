@@ -55,8 +55,6 @@ openStackLoginViewParams =
 openstackCreds : OSTypes.OpenstackLogin
 openstackCreds =
     { authUrl = ""
-    , projectDomain = ""
-    , projectName = ""
     , userDomain = ""
     , username = ""
     , password = ""
@@ -66,7 +64,6 @@ openstackCreds =
 jetstreamCreds : Types.JetstreamCreds
 jetstreamCreds =
     { jetstreamProviderChoice = Types.BothJetstreamClouds
-    , jetstreamProjectName = ""
     , taccUsername = ""
     , taccPassword = ""
     }

@@ -153,55 +153,8 @@ requestScopedAuthToken maybeProxyUrl input =
                           )
                         ]
 
-                OSTypes.PasswordCreds creds ->
-                    -- This should be very seldom used, now only for first launch of Exosphere since mid-November 2019
-                    -- with projects created prior to then
-                    Encode.object
-                        [ ( "auth"
-                          , Encode.object
-                                [ ( "identity"
-                                  , Encode.object
-                                        [ ( "methods", Encode.list Encode.string [ "password" ] )
-                                        , ( "password"
-                                          , Encode.object
-                                                [ ( "user"
-                                                  , Encode.object
-                                                        [ ( "name", Encode.string creds.username )
-                                                        , ( "domain"
-                                                          , Encode.object
-                                                                [ ( idOrName creds.userDomain, Encode.string creds.userDomain )
-                                                                ]
-                                                          )
-                                                        , ( "password", Encode.string creds.password )
-                                                        ]
-                                                  )
-                                                ]
-                                          )
-                                        ]
-                                  )
-                                , ( "scope"
-                                  , Encode.object
-                                        [ ( "project"
-                                          , Encode.object
-                                                [ ( "name", Encode.string creds.projectName )
-                                                , ( "domain"
-                                                  , Encode.object
-                                                        [ ( idOrName creds.projectDomain, Encode.string creds.projectDomain )
-                                                        ]
-                                                  )
-                                                ]
-                                          )
-                                        ]
-                                  )
-                                ]
-                          )
-                        ]
-
         inputUrl =
             case input of
-                OSTypes.PasswordCreds creds ->
-                    creds.authUrl
-
                 OSTypes.TokenCreds url _ _ ->
                     url
 
@@ -217,9 +170,6 @@ requestScopedAuthToken maybeProxyUrl input =
 
                         OSTypes.TokenCreds _ _ projectId ->
                             projectId
-
-                        OSTypes.PasswordCreds creds ->
-                            creds.projectName
             in
             ErrorContext
                 ("log into OpenStack project \"" ++ projectLabel ++ "\"")

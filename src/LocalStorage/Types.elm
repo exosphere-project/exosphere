@@ -1,6 +1,5 @@
 module LocalStorage.Types exposing
     ( StoredProject
-    , StoredProject1
     , StoredProject2
     , StoredState
     )
@@ -21,14 +20,6 @@ type alias StoredProject =
 type alias StoredProject2 =
     { secret : ProjectSecret
     , auth : OSTypes.ScopedAuthToken
-    }
-
-
-type alias StoredProject1 =
-    { password : String
-    , auth : OSTypes.ScopedAuthToken
-    , projDomain : OSTypes.NameAndUuid
-    , userDomain : OSTypes.NameAndUuid
     }
 
 

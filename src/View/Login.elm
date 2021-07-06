@@ -64,7 +64,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
                                 SetNonProjectView <|
                                     Login <|
                                         LoginJetstream <|
-                                            JetstreamCreds BothJetstreamClouds "" "" ""
+                                            JetstreamCreds BothJetstreamClouds "" ""
                         }
               , description =
                     "Recommended login method for Jetstream Cloud"
