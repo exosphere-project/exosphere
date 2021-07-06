@@ -141,6 +141,22 @@ loginPickerButton context =
 
 viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
 viewLoginOpenstack context viewParams =
+    let
+        onPress =
+            if
+                -- These fields must be populated before login can be attempted
+                [ viewParams.creds.authUrl
+                , viewParams.creds.userDomain
+                , viewParams.creds.username
+                , viewParams.creds.password
+                ]
+                    |> List.any (\x -> x == "")
+            then
+                Nothing
+
+            else
+                Just <| RequestUnscopedToken viewParams.creds
+    in
     Element.column VH.exoColumnAttributes
         [ Element.el
             VH.heading2
@@ -156,8 +172,7 @@ viewLoginOpenstack context viewParams =
                 (Widget.textButton
                     (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                     { text = "Log In"
-                    , onPress =
-                        Just <| RequestUnscopedToken viewParams.creds
+                    , onPress = onPress
                     }
                 )
             ]
