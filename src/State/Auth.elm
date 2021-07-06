@@ -203,7 +203,7 @@ processOpenRc existingCreds openRc =
         (parseVar "OS_USER_DOMAIN_NAME"
             |> Maybe.withDefault
                 (parseVar "OS_USER_DOMAIN_ID"
-                    |> Maybe.withDefault existingCreds.projectDomain
+                    |> Maybe.withDefault existingCreds.userDomain
                 )
         )
         (parseVar "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
