@@ -48,6 +48,7 @@ openStackLoginViewParams : Types.OpenstackLoginViewParams
 openStackLoginViewParams =
     { creds = openstackCreds
     , openRc = ""
+    , formEntryType = Types.LoginViewCredsEntry
     }
 
 

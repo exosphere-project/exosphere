@@ -9,6 +9,7 @@ import Types.Types
         , JetstreamProvider(..)
         , LoginView(..)
         , NonProjectViewConstructor(..)
+        , OpenstackLoginFormEntryType(..)
         , OpenstackLoginViewParams
         , ProjectViewConstructor(..)
         , ViewState(..)
@@ -54,7 +55,7 @@ pathParsers defaultViewState =
     [ -- Non-project-specific views
       map defaultViewState top
     , map
-        (\creds -> NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams creds "")
+        (\creds -> NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams creds "" LoginViewCredsEntry)
         (let
             queryParser =
                 Query.map6

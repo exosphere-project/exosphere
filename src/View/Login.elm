@@ -17,6 +17,7 @@ import Types.Types
         , Msg(..)
         , NonProjectViewConstructor(..)
         , OpenIdConnectLoginConfig
+        , OpenstackLoginFormEntryType(..)
         , OpenstackLoginViewParams
         )
 import View.Helpers as VH
@@ -133,7 +134,7 @@ loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
     Widget.textButton
         (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-        { text = "See Other Login Methods"
+        { text = "Other Login Methods"
         , onPress =
             Just <| SetNonProjectView <| LoginPicker
         }
@@ -141,31 +142,75 @@ loginPickerButton context =
 
 viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
 viewLoginOpenstack context viewParams =
+    let
+        allCredsEntered =
+            -- These fields must be populated before login can be attempted
+            [ viewParams.creds.authUrl
+            , viewParams.creds.userDomain
+            , viewParams.creds.username
+            , viewParams.creds.password
+            ]
+                |> List.any (\x -> String.isEmpty x)
+                |> not
+    in
     Element.column VH.exoColumnAttributes
         [ Element.el
             VH.heading2
             (Element.text "Add an OpenStack Account")
-        , Element.wrappedRow
-            VH.exoRowAttributes
-            [ loginOpenstackCredsEntry context viewParams
-            , loginOpenstackOpenRcEntry context viewParams
-            ]
+        , Element.el
+            VH.exoElementAttributes
+            (case viewParams.formEntryType of
+                LoginViewCredsEntry ->
+                    loginOpenstackCredsEntry context viewParams allCredsEntered
+
+                LoginViewOpenRcEntry ->
+                    loginOpenstackOpenRcEntry context viewParams
+            )
         , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-            [ Element.el [] (loginPickerButton context)
-            , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                (Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                    { text = "Log In"
-                    , onPress =
-                        Just <| RequestUnscopedToken viewParams.creds
-                    }
-                )
-            ]
+            (case viewParams.formEntryType of
+                LoginViewCredsEntry ->
+                    [ Element.el [] (loginPickerButton context)
+                    , Widget.textButton
+                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        { text = "Use OpenRC File"
+                        , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewOpenRcEntry }
+                        }
+                    , Element.el [ Element.alignRight ]
+                        (Widget.textButton
+                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            { text = "Log In"
+                            , onPress =
+                                if allCredsEntered then
+                                    Just <| RequestUnscopedToken viewParams.creds
+
+                                else
+                                    Nothing
+                            }
+                        )
+                    ]
+
+                LoginViewOpenRcEntry ->
+                    [ Element.el VH.exoPaddingSpacingAttributes
+                        (Widget.textButton
+                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            { text = "Cancel"
+                            , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewCredsEntry }
+                            }
+                        )
+                    , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                        (Widget.textButton
+                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            { text = "Submit"
+                            , onPress = Just <| SubmitOpenRc viewParams.creds viewParams.openRc
+                            }
+                        )
+                    ]
+            )
         ]
 
 
-loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
-loginOpenstackCredsEntry context viewParams =
+loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element Msg
+loginOpenstackCredsEntry context viewParams allCredsEntered =
     let
         creds =
             viewParams.creds
@@ -189,7 +234,7 @@ loginOpenstackCredsEntry context viewParams =
                , Element.alignTop
                ]
         )
-        [ Element.el [] (Element.text "Either enter your credentials...")
+        [ Element.el [] (Element.text "Enter your credentials")
         , textField
             creds.authUrl
             "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
@@ -213,6 +258,17 @@ loginOpenstackCredsEntry context viewParams =
             , onChange = \p -> updateCreds { creds | password = p }
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
             }
+        , if allCredsEntered then
+            Element.none
+
+          else
+            Element.el
+                (VH.exoElementAttributes
+                    ++ [ Element.alignRight
+                       , Font.color (context.palette.error |> SH.toElementColor)
+                       ]
+                )
+                (Element.text "All fields are required.")
         ]
 
 
@@ -225,7 +281,7 @@ loginOpenstackOpenRcEntry context viewParams =
                ]
         )
         [ Element.paragraph []
-            [ Element.text "...or paste an "
+            [ Element.text "Paste an "
             , VH.browserLink
                 context
                 "https://docs.openstack.org/newton/install-guide-rdo/keystone-openrc.html"
@@ -235,12 +291,12 @@ loginOpenstackOpenRcEntry context viewParams =
             ]
         , Input.multiline
             (VH.inputItemAttributes context.palette.background
-                ++ [ Element.width (Element.px 300)
+                ++ [ Element.width (Element.px 500)
                    , Element.height Element.fill
                    , Font.size 12
                    ]
             )
-            { onChange = \o -> InputOpenRc viewParams.creds o
+            { onChange = \o -> SetNonProjectView <| Login <| LoginOpenstack { viewParams | openRc = o }
             , text = viewParams.openRc
             , placeholder = Nothing
             , label = Input.labelLeft [] Element.none

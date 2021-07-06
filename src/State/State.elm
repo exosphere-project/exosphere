@@ -49,6 +49,7 @@ import Types.Types
         , Msg(..)
         , NewServerNetworkOptions(..)
         , NonProjectViewConstructor(..)
+        , OpenstackLoginFormEntryType(..)
         , OpenstackLoginViewParams
         , Project
         , ProjectSecret(..)
@@ -320,13 +321,13 @@ updateUnderlying msg model =
                     processProjectSpecificMsg model project innerMsg
 
         {- Form inputs -}
-        InputOpenRc openstackCreds openRc ->
+        SubmitOpenRc openstackCreds openRc ->
             let
                 newCreds =
                     State.Auth.processOpenRc openstackCreds openRc
 
                 newViewState =
-                    NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc
+                    NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc LoginViewCredsEntry
             in
             ViewStateHelpers.modelUpdateViewState newViewState model
 

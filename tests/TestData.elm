@@ -3,6 +3,7 @@ module TestData exposing
     , cinderQuotaSetDetail
     , novaLimits
     , novaQuotaSetDetail
+    , openrcNoExportKeyword
     , openrcPreV3
     , openrcV3
     , openrcV3withComments
@@ -90,6 +91,22 @@ export OS_AUTH_URL="https://cell.alliance.rebel:35357/v3"
 export OS_PROJECT_DOMAIN_NAME="default"
 export OS_REGION_NAME="CellOne"
 export OS_PASSWORD=$OS_PASSWORD_INPUT
+    """
+
+
+openrcNoExportKeyword : String
+openrcNoExportKeyword =
+    """
+OS_REGION_NAME=redacted
+OS_PROJECT_DOMAIN_ID=deadbeef
+OS_INTERFACE=public
+OS_AUTH_URL=https://mycloud.whatever:5000/v3/
+OS_USERNAME=redactedusername
+OS_PROJECT_ID=deadbeef
+OS_USER_DOMAIN_NAME=Default
+OS_PROJECT_NAME=redactedprojectname
+OS_PASSWORD=redactedpassword
+OS_IDENTITY_API_VERSION=3
     """
 
 
