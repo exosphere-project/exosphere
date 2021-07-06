@@ -270,6 +270,19 @@ processOpenRcSuite =
                             "enfysnest"
                             ""
                         )
+        , test "ensure that export keyword is optional" <|
+            \() ->
+                TestData.openrcNoExportKeyword
+                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> Expect.equal
+                        (OpenstackLogin
+                            "https://mycloud.whatever:5000/v3/"
+                            "deadbeef"
+                            "redactedprojectname"
+                            "Default"
+                            "redactedusername"
+                            "redactedpassword"
+                        )
         ]
 
 
