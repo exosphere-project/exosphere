@@ -31,6 +31,7 @@ module Types.Types exposing
     , NewServerNetworkOptions(..)
     , NonProjectViewConstructor(..)
     , OpenIdConnectLoginConfig
+    , OpenstackLoginFormEntryType(..)
     , OpenstackLoginViewParams
     , PasswordVisibility(..)
     , Project
@@ -317,7 +318,7 @@ type Msg
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
     | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
-    | InputOpenRc OSTypes.OpenstackLogin String
+    | SubmitOpenRc OSTypes.OpenstackLogin String
     | OpenNewWindow String
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
@@ -430,7 +431,13 @@ type LoginView
 type alias OpenstackLoginViewParams =
     { creds : OSTypes.OpenstackLogin
     , openRc : String
+    , formEntryType : OpenstackLoginFormEntryType
     }
+
+
+type OpenstackLoginFormEntryType
+    = LoginViewCredsEntry
+    | LoginViewOpenRcEntry
 
 
 type alias ImageListViewParams =
