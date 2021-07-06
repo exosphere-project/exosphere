@@ -291,7 +291,7 @@ loginOpenstackOpenRcEntry context viewParams =
             ]
         , Input.multiline
             (VH.inputItemAttributes context.palette.background
-                ++ [ Element.width (Element.px 300)
+                ++ [ Element.width (Element.px 500)
                    , Element.height Element.fill
                    , Font.size 12
                    ]
