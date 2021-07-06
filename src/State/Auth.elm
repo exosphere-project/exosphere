@@ -9,11 +9,10 @@ module State.Auth exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
-import Maybe.Extra
 import OpenStack.Types as OSTypes
-import Regex
+import Parser exposing ((|.), (|=))
 import Rest.Keystone
+import Set
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -159,33 +158,56 @@ jetstreamToOpenstackCreds jetstreamCreds =
 processOpenRc : OSTypes.OpenstackLogin -> String -> OSTypes.OpenstackLogin
 processOpenRc existingCreds openRc =
     let
-        regexes =
-            { authUrl = Helpers.alwaysRegex "export OS_AUTH_URL=\"?([^\"\n]*)\"?"
-            , projectDomain = Helpers.alwaysRegex "export OS_PROJECT_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
-            , projectName = Helpers.alwaysRegex "export OS_PROJECT_NAME=\"?([^\"\n]*)\"?"
-            , userDomain = Helpers.alwaysRegex "export OS_USER_DOMAIN(?:_NAME|_ID)=\"?([^\"\n]*)\"?"
-            , username = Helpers.alwaysRegex "export OS_USERNAME=\"?([^\"\n]*)\"?"
-            , password = Helpers.alwaysRegex "export OS_PASSWORD=\"(.*)\""
-            }
+        parseVar : String -> Maybe String
+        parseVar varName =
+            let
+                parseOptionalDoubleQuote =
+                    -- Why does this need to be Parser.succeed () instead of Parser.succeed identity?
+                    Parser.oneOf [ Parser.symbol "\"", Parser.succeed () ]
 
-        getMatch text regex =
-            Regex.findAtMost 1 regex text
+                varParser : Parser.Parser String
+                varParser =
+                    -- Why does this need to be Parser.succeed identity instead of Parser.succeed ()?
+                    Parser.succeed identity
+                        |. Parser.spaces
+                        |. Parser.oneOf [ Parser.keyword "export", Parser.succeed () ]
+                        |. Parser.spaces
+                        |. Parser.keyword varName
+                        |. Parser.symbol "="
+                        |. parseOptionalDoubleQuote
+                        |= Parser.variable
+                            -- This discards any bash variables defined with other bash variables, e.g. $OS_PASSWORD_INPUT
+                            { start = \c -> c /= '$'
+                            , inner = \c -> not (List.member c [ '\n', '"' ])
+                            , reserved = Set.empty
+                            }
+                        |. parseOptionalDoubleQuote
+                        |. Parser.oneOf [ Parser.symbol "\n", Parser.end ]
+            in
+            openRc
+                |> String.split "\n"
+                |> List.map (\line -> Parser.run varParser line)
+                |> List.map Result.toMaybe
+                |> List.filterMap identity
                 |> List.head
-                |> Maybe.map (\x -> x.submatches)
-                |> Maybe.andThen List.head
-                |> Maybe.Extra.join
-
-        newField regex oldField =
-            getMatch openRc regex
-                |> Maybe.withDefault oldField
     in
     OSTypes.OpenstackLogin
-        (newField regexes.authUrl existingCreds.authUrl)
-        (newField regexes.projectDomain existingCreds.projectDomain)
-        (newField regexes.projectName existingCreds.projectName)
-        (newField regexes.userDomain existingCreds.userDomain)
-        (newField regexes.username existingCreds.username)
-        (newField regexes.password existingCreds.password)
+        (parseVar "OS_AUTH_URL" |> Maybe.withDefault existingCreds.authUrl)
+        (parseVar "OS_PROJECT_DOMAIN_NAME"
+            |> Maybe.withDefault
+                (parseVar "OS_PROJECT_DOMAIN_ID"
+                    |> Maybe.withDefault existingCreds.projectDomain
+                )
+        )
+        (parseVar "OS_PROJECT_NAME" |> Maybe.withDefault existingCreds.projectName)
+        (parseVar "OS_USER_DOMAIN_NAME"
+            |> Maybe.withDefault
+                (parseVar "OS_USER_DOMAIN_ID"
+                    |> Maybe.withDefault existingCreds.projectDomain
+                )
+        )
+        (parseVar "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
+        (parseVar "OS_PASSWORD" |> Maybe.withDefault existingCreds.password)
 
 
 authUrlWithPortAndVersion : HelperTypes.Url -> HelperTypes.Url
