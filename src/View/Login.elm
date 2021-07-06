@@ -143,20 +143,15 @@ loginPickerButton context =
 viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
 viewLoginOpenstack context viewParams =
     let
-        onPress =
-            if
-                -- These fields must be populated before login can be attempted
-                [ viewParams.creds.authUrl
-                , viewParams.creds.userDomain
-                , viewParams.creds.username
-                , viewParams.creds.password
-                ]
-                    |> List.any (\x -> x == "")
-            then
-                Nothing
-
-            else
-                Just <| RequestUnscopedToken viewParams.creds
+        allCredsEntered =
+            -- These fields must be populated before login can be attempted
+            [ viewParams.creds.authUrl
+            , viewParams.creds.userDomain
+            , viewParams.creds.username
+            , viewParams.creds.password
+            ]
+                |> List.any (\x -> String.isEmpty x)
+                |> not
     in
     Element.column VH.exoColumnAttributes
         [ Element.el
@@ -171,6 +166,15 @@ viewLoginOpenstack context viewParams =
                 LoginViewOpenRcEntry ->
                     loginOpenstackOpenRcEntry context viewParams
             )
+        , if allCredsEntered then
+            Element.none
+
+          else
+            Element.el
+                [ Element.alignRight
+                , Font.color (context.palette.error |> SH.toElementColor)
+                ]
+                (Element.text "All fields are required.")
         , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
             (case viewParams.formEntryType of
                 LoginViewCredsEntry ->
@@ -184,7 +188,12 @@ viewLoginOpenstack context viewParams =
                         (Widget.textButton
                             (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
                             { text = "Log In"
-                            , onPress = onPress
+                            , onPress =
+                                if allCredsEntered then
+                                    Just <| RequestUnscopedToken viewParams.creds
+
+                                else
+                                    Nothing
                             }
                         )
                     ]
