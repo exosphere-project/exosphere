@@ -146,10 +146,7 @@ heading4 palette =
     [ Region.heading 4
     , Font.bold
     , Font.size 16
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Border.color (palette.muted |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 5, left = 0, right = 0, top = 0 }
     ]
 
 
