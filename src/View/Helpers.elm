@@ -35,7 +35,7 @@ import Color
 import Dict
 import Element
 import Element.Background as Background
-import Element.Border
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input
 import Element.Region as Region
@@ -621,9 +621,9 @@ elmUiRenderer context =
     , blockQuote =
         \children ->
             Element.column
-                [ Element.Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
+                [ Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
                 , Element.padding 10
-                , Element.Border.color (SH.toElementColor context.palette.on.background)
+                , Border.color (SH.toElementColor context.palette.on.background)
                 , Background.color (SH.toElementColor context.palette.surface)
                 ]
                 children
