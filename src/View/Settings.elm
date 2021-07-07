@@ -14,7 +14,7 @@ import View.Types
 settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element Msg
 settings context styleMode =
     Element.column
-        VH.exoColumnAttributes
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette) <| Element.text "Settings"
         , Input.radio
             VH.exoColumnAttributes

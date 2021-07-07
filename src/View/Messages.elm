@@ -24,7 +24,7 @@ messageLog context logMessages showDebugMsgs =
                 |> List.filter filter
     in
     Element.column
-        VH.exoColumnAttributes
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
             (VH.heading2 context.palette)
             (Element.text "Recent Messages")

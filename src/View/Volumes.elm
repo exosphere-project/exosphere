@@ -388,7 +388,7 @@ createVolume context project volName volSizeInput =
                 Nothing ->
                     ( True, Nothing )
     in
-    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20 ])
+    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20, Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text <|
                 String.join " "
@@ -396,65 +396,69 @@ createVolume context project volName volSizeInput =
                     , context.localization.blockDevice |> Helpers.String.toTitleCase
                     ]
             )
-        , Input.text
-            (VH.inputItemAttributes context.palette.background)
-            { text = volName
-            , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
-            , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume n volSizeInput
-            , label = Input.labelAbove [] (Element.text "Name")
-            }
-        , Element.text <|
-            String.join " "
-                [ "(Suggestion: choose a good name that describes what the"
-                , context.localization.blockDevice
-                , "will store.)"
+
+        -- TODO this input box is too wide
+        , Element.column VH.exoColumnAttributes
+            [ Input.text
+                (VH.inputItemAttributes context.palette.background)
+                { text = volName
+                , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
+                , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume n volSizeInput
+                , label = Input.labelAbove [] (Element.text "Name")
+                }
+            , Element.text <|
+                String.join " "
+                    [ "(Suggestion: choose a good name that describes what the"
+                    , context.localization.blockDevice
+                    , "will store.)"
+                    ]
+            , numericTextInput
+                context.palette
+                (VH.inputItemAttributes context.palette.background)
+                volSizeInput
+                { labelText = "Size in GB"
+                , minVal = Just 1
+                , maxVal = volGbAvail
+                , defaultVal = Just 2
+                }
+                (\newInput -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume volName newInput)
+            , let
+                ( onPress, quotaWarnText ) =
+                    if canAttemptCreateVol then
+                        case volSizeInput of
+                            ValidNumericTextInput volSizeGb ->
+                                ( Just (ProjectMsg project.auth.project.uuid (RequestCreateVolume volName volSizeGb))
+                                , Nothing
+                                )
+
+                            InvalidNumericTextInput _ ->
+                                ( Nothing, Nothing )
+
+                    else
+                        ( Nothing
+                        , Just <|
+                            String.concat
+                                [ "Your "
+                                , context.localization.maxResourcesPerProject
+                                , " does not allow for creation of another "
+                                , context.localization.blockDevice
+                                , "."
+                                ]
+                        )
+              in
+              Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
+                [ case quotaWarnText of
+                    Just text ->
+                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text text
+
+                    Nothing ->
+                        Element.none
+                , Element.el [ Element.alignRight ] <|
+                    Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        { text = "Create"
+                        , onPress = onPress
+                        }
                 ]
-        , numericTextInput
-            context.palette
-            (VH.inputItemAttributes context.palette.background)
-            volSizeInput
-            { labelText = "Size in GB"
-            , minVal = Just 1
-            , maxVal = volGbAvail
-            , defaultVal = Just 2
-            }
-            (\newInput -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume volName newInput)
-        , let
-            ( onPress, quotaWarnText ) =
-                if canAttemptCreateVol then
-                    case volSizeInput of
-                        ValidNumericTextInput volSizeGb ->
-                            ( Just (ProjectMsg project.auth.project.uuid (RequestCreateVolume volName volSizeGb))
-                            , Nothing
-                            )
-
-                        InvalidNumericTextInput _ ->
-                            ( Nothing, Nothing )
-
-                else
-                    ( Nothing
-                    , Just <|
-                        String.concat
-                            [ "Your "
-                            , context.localization.maxResourcesPerProject
-                            , " does not allow for creation of another "
-                            , context.localization.blockDevice
-                            , "."
-                            ]
-                    )
-          in
-          Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
-            [ case quotaWarnText of
-                Just text ->
-                    Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text text
-
-                Nothing ->
-                    Element.none
-            , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                    { text = "Create"
-                    , onPress = onPress
-                    }
             ]
         ]

@@ -66,7 +66,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                             )
                     )
     in
-    Element.column VH.exoColumnAttributes
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
                 String.join " "

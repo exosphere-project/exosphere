@@ -39,7 +39,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 30
-               , Element.width <| Element.maximum 680 Element.fill
+               , Element.width Element.fill
                ]
         )
         [ Element.el (VH.heading2 context.palette) <| Element.text ("Get Support for " ++ model.style.appTitle)

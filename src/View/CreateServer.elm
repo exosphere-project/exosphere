@@ -195,53 +195,49 @@ createServer context project viewParams =
                     }
             ]
     in
-    Element.row VH.exoRowAttributes
-        [ Element.column
-            (VH.exoColumnAttributes
-                ++ [ Element.width (Element.px 600) ]
+    Element.column
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+    <|
+        [ Element.el
+            (VH.heading2 context.palette)
+            (Element.text <|
+                String.join " "
+                    [ "Create"
+                    , context.localization.virtualComputer
+                        |> Helpers.String.toTitleCase
+                    ]
             )
-          <|
-            [ Element.el
-                (VH.heading2 context.palette)
-                (Element.text <|
-                    String.join " "
-                        [ "Create"
-                        , context.localization.virtualComputer
-                            |> Helpers.String.toTitleCase
-                        ]
+        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.px 680) ]) <|
+            case
+                ( GetterSetters.flavorLookup project viewParams.flavorUuid
+                , project.computeQuota
+                , project.volumeQuota
                 )
-            ]
-                ++ (case
-                        ( GetterSetters.flavorLookup project viewParams.flavorUuid
-                        , project.computeQuota
-                        , project.volumeQuota
-                        )
-                    of
-                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
-                            contents flavor computeQuota volumeQuota
+            of
+                ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+                    contents flavor computeQuota volumeQuota
 
-                        ( _, _, RemoteData.Loading ) ->
-                            -- TODO deduplicate this with code below
-                            [ Element.row [ Element.spacing 15 ]
-                                [ Widget.circularProgressIndicator
-                                    (SH.materialStyle context.palette).progressIndicator
-                                    Nothing
-                                , Element.text "Loading..."
-                                ]
-                            ]
+                ( _, _, RemoteData.Loading ) ->
+                    -- TODO deduplicate this with code below
+                    [ Element.row [ Element.spacing 15 ]
+                        [ Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+                        , Element.text "Loading..."
+                        ]
+                    ]
 
-                        ( _, RemoteData.Loading, _ ) ->
-                            [ Element.row [ Element.spacing 15 ]
-                                [ Widget.circularProgressIndicator
-                                    (SH.materialStyle context.palette).progressIndicator
-                                    Nothing
-                                , Element.text "Loading..."
-                                ]
-                            ]
+                ( _, RemoteData.Loading, _ ) ->
+                    [ Element.row [ Element.spacing 15 ]
+                        [ Widget.circularProgressIndicator
+                            (SH.materialStyle context.palette).progressIndicator
+                            Nothing
+                        , Element.text "Loading..."
+                        ]
+                    ]
 
-                        ( _, _, _ ) ->
-                            [ Element.text "oops, we shouldn't be here" ]
-                   )
+                ( _, _, _ ) ->
+                    [ Element.text "oops, we shouldn't be here" ]
         ]
 
 

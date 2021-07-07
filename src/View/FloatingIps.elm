@@ -413,7 +413,7 @@ assignFloatingIp context project viewParams =
                 , context.localization.virtualComputer
                 ]
     in
-    Element.column VH.exoColumnAttributes
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
                 String.join " "
@@ -421,125 +421,127 @@ assignFloatingIp context project viewParams =
                     , context.localization.floatingIpAddress
                         |> Helpers.String.toTitleCase
                     ]
-        , Element.el [ Font.bold ] <| Element.text selectServerText
-        , if List.isEmpty serverChoices then
-            Element.text <|
-                String.join " "
-                    [ "You don't have any"
-                    , context.localization.virtualComputer
-                        |> Helpers.String.pluralize
-                    , "that don't already have a"
-                    , context.localization.floatingIpAddress
-                    , "assigned."
-                    ]
+        , Element.column VH.exoColumnAttributes
+            [ Element.el [ Font.bold ] <| Element.text selectServerText
+            , if List.isEmpty serverChoices then
+                Element.text <|
+                    String.join " "
+                        [ "You don't have any"
+                        , context.localization.virtualComputer
+                            |> Helpers.String.pluralize
+                        , "that don't already have a"
+                        , context.localization.floatingIpAddress
+                        , "assigned."
+                        ]
 
-          else
-            Input.radio []
-                { label =
-                    Input.labelHidden selectServerText
-                , onChange =
-                    \new ->
-                        ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | serverUuid = Just new }))
-                , options = serverChoices
-                , selected = viewParams.serverUuid
-                }
-        , Element.el [ Font.bold ] <| Element.text selectIpText
-        , if List.isEmpty ipChoices then
-            -- TODO suggest user create a floating IP and provide link to that view (once we build it)
-            Element.text <|
-                String.concat
-                    [ "You don't have any "
-                    , context.localization.floatingIpAddress
-                        |> Helpers.String.pluralize
-                    , " that aren't already assigned to a "
-                    , context.localization.virtualComputer
-                    , "."
-                    ]
+              else
+                Input.radio []
+                    { label =
+                        Input.labelHidden selectServerText
+                    , onChange =
+                        \new ->
+                            ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | serverUuid = Just new }))
+                    , options = serverChoices
+                    , selected = viewParams.serverUuid
+                    }
+            , Element.el [ Font.bold ] <| Element.text selectIpText
+            , if List.isEmpty ipChoices then
+                -- TODO suggest user create a floating IP and provide link to that view (once we build it)
+                Element.text <|
+                    String.concat
+                        [ "You don't have any "
+                        , context.localization.floatingIpAddress
+                            |> Helpers.String.pluralize
+                        , " that aren't already assigned to a "
+                        , context.localization.virtualComputer
+                        , "."
+                        ]
 
-          else
-            Input.radio []
-                { label = Input.labelHidden selectIpText
-                , onChange =
-                    \new ->
-                        ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | ipUuid = Just new }))
-                , options = ipChoices
-                , selected = viewParams.ipUuid
-                }
-        , let
-            params =
-                case ( viewParams.serverUuid, viewParams.ipUuid ) of
-                    ( Just serverUuid, Just ipUuid ) ->
-                        case ( GetterSetters.serverLookup project serverUuid, GetterSetters.floatingIpLookup project ipUuid ) of
-                            ( Just server, Just floatingIp ) ->
-                                let
-                                    ipAssignedToServer =
-                                        case GetterSetters.getServerFloatingIps project server.osProps.uuid of
-                                            [] ->
-                                                False
+              else
+                Input.radio []
+                    { label = Input.labelHidden selectIpText
+                    , onChange =
+                        \new ->
+                            ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | ipUuid = Just new }))
+                    , options = ipChoices
+                    , selected = viewParams.ipUuid
+                    }
+            , let
+                params =
+                    case ( viewParams.serverUuid, viewParams.ipUuid ) of
+                        ( Just serverUuid, Just ipUuid ) ->
+                            case ( GetterSetters.serverLookup project serverUuid, GetterSetters.floatingIpLookup project ipUuid ) of
+                                ( Just server, Just floatingIp ) ->
+                                    let
+                                        ipAssignedToServer =
+                                            case GetterSetters.getServerFloatingIps project server.osProps.uuid of
+                                                [] ->
+                                                    False
 
-                                            serverFloatingIps ->
-                                                List.member floatingIp serverFloatingIps
+                                                serverFloatingIps ->
+                                                    List.member floatingIp serverFloatingIps
 
-                                    maybePort =
-                                        GetterSetters.getServerPorts project server.osProps.uuid
-                                            |> List.head
-                                in
-                                case ( ipAssignedToServer, maybePort ) of
-                                    ( True, _ ) ->
-                                        { onPress = Nothing
-                                        , warnText =
-                                            Just <|
-                                                String.join " "
-                                                    [ "This"
-                                                    , context.localization.floatingIpAddress
-                                                    , "is already assigned to this"
-                                                    , context.localization.virtualComputer
-                                                    ]
-                                        }
+                                        maybePort =
+                                            GetterSetters.getServerPorts project server.osProps.uuid
+                                                |> List.head
+                                    in
+                                    case ( ipAssignedToServer, maybePort ) of
+                                        ( True, _ ) ->
+                                            { onPress = Nothing
+                                            , warnText =
+                                                Just <|
+                                                    String.join " "
+                                                        [ "This"
+                                                        , context.localization.floatingIpAddress
+                                                        , "is already assigned to this"
+                                                        , context.localization.virtualComputer
+                                                        ]
+                                            }
 
-                                    ( _, Nothing ) ->
-                                        { onPress = Nothing
-                                        , warnText = Just <| "Error: cannot resolve port"
-                                        }
+                                        ( _, Nothing ) ->
+                                            { onPress = Nothing
+                                            , warnText = Just <| "Error: cannot resolve port"
+                                            }
 
-                                    ( False, Just port_ ) ->
-                                        -- Conditions are perfect
-                                        { onPress =
-                                            Just <|
-                                                ProjectMsg project.auth.project.uuid (RequestAssignFloatingIp port_ ipUuid)
-                                        , warnText = Nothing
-                                        }
+                                        ( False, Just port_ ) ->
+                                            -- Conditions are perfect
+                                            { onPress =
+                                                Just <|
+                                                    ProjectMsg project.auth.project.uuid (RequestAssignFloatingIp port_ ipUuid)
+                                            , warnText = Nothing
+                                            }
 
-                            _ ->
-                                {- Either server or floating IP cannot be resolved in the model -}
-                                { onPress = Nothing
-                                , warnText =
-                                    Just <|
-                                        String.join " "
-                                            [ "Error: cannot resolve", context.localization.virtualComputer, "or", context.localization.floatingIpAddress ]
-                                }
+                                _ ->
+                                    {- Either server or floating IP cannot be resolved in the model -}
+                                    { onPress = Nothing
+                                    , warnText =
+                                        Just <|
+                                            String.join " "
+                                                [ "Error: cannot resolve", context.localization.virtualComputer, "or", context.localization.floatingIpAddress ]
+                                    }
 
-                    _ ->
-                        {- User hasn't selected a server or floating IP yet so we keep the button disabled but don't yell at them -}
-                        { onPress = Nothing
-                        , warnText = Nothing
-                        }
+                        _ ->
+                            {- User hasn't selected a server or floating IP yet so we keep the button disabled but don't yell at them -}
+                            { onPress = Nothing
+                            , warnText = Nothing
+                            }
 
-            button =
-                Element.el [ Element.alignRight ] <|
-                    Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                        { text = "Assign"
-                        , onPress = params.onPress
-                        }
-          in
-          Element.row [ Element.width Element.fill ]
-            [ case params.warnText of
-                Just warnText ->
-                    Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
+                button =
+                    Element.el [ Element.alignRight ] <|
+                        Widget.textButton
+                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            { text = "Assign"
+                            , onPress = params.onPress
+                            }
+              in
+              Element.row [ Element.width Element.fill ]
+                [ case params.warnText of
+                    Just warnText ->
+                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
 
-                Nothing ->
-                    Element.none
-            , button
+                    Nothing ->
+                        Element.none
+                , button
+                ]
             ]
         ]

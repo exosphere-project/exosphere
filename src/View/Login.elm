@@ -153,59 +153,61 @@ viewLoginOpenstack context viewParams =
                 |> List.any (\x -> String.isEmpty x)
                 |> not
     in
-    Element.column VH.exoColumnAttributes
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
             (VH.heading2 context.palette)
             (Element.text "Add an OpenStack Account")
-        , Element.el
-            VH.exoElementAttributes
-            (case viewParams.formEntryType of
-                LoginViewCredsEntry ->
-                    loginOpenstackCredsEntry context viewParams allCredsEntered
+        , Element.column VH.exoColumnAttributes
+            [ Element.el
+                VH.exoElementAttributes
+                (case viewParams.formEntryType of
+                    LoginViewCredsEntry ->
+                        loginOpenstackCredsEntry context viewParams allCredsEntered
 
-                LoginViewOpenRcEntry ->
-                    loginOpenstackOpenRcEntry context viewParams
-            )
-        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-            (case viewParams.formEntryType of
-                LoginViewCredsEntry ->
-                    [ Element.el [] (loginPickerButton context)
-                    , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                        { text = "Use OpenRC File"
-                        , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewOpenRcEntry }
-                        }
-                    , Element.el [ Element.alignRight ]
-                        (Widget.textButton
-                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                            { text = "Log In"
-                            , onPress =
-                                if allCredsEntered then
-                                    Just <| RequestUnscopedToken viewParams.creds
-
-                                else
-                                    Nothing
-                            }
-                        )
-                    ]
-
-                LoginViewOpenRcEntry ->
-                    [ Element.el VH.exoPaddingSpacingAttributes
-                        (Widget.textButton
+                    LoginViewOpenRcEntry ->
+                        loginOpenstackOpenRcEntry context viewParams
+                )
+            , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
+                (case viewParams.formEntryType of
+                    LoginViewCredsEntry ->
+                        [ Element.el [] (loginPickerButton context)
+                        , Widget.textButton
                             (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                            { text = "Cancel"
-                            , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewCredsEntry }
+                            { text = "Use OpenRC File"
+                            , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewOpenRcEntry }
                             }
-                        )
-                    , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                        (Widget.textButton
-                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                            { text = "Submit"
-                            , onPress = Just <| SubmitOpenRc viewParams.creds viewParams.openRc
-                            }
-                        )
-                    ]
-            )
+                        , Element.el [ Element.alignRight ]
+                            (Widget.textButton
+                                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                                { text = "Log In"
+                                , onPress =
+                                    if allCredsEntered then
+                                        Just <| RequestUnscopedToken viewParams.creds
+
+                                    else
+                                        Nothing
+                                }
+                            )
+                        ]
+
+                    LoginViewOpenRcEntry ->
+                        [ Element.el VH.exoPaddingSpacingAttributes
+                            (Widget.textButton
+                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                { text = "Cancel"
+                                , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewCredsEntry }
+                                }
+                            )
+                        , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
+                            (Widget.textButton
+                                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                                { text = "Submit"
+                                , onPress = Just <| SubmitOpenRc viewParams.creds viewParams.openRc
+                                }
+                            )
+                        ]
+                )
+            ]
         ]
 
 
@@ -312,7 +314,7 @@ viewLoginJetstream context jetstreamCreds =
         updateCreds newCreds =
             SetNonProjectView <| Login <| LoginJetstream newCreds
     in
-    Element.column VH.exoColumnAttributes
+    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream Cloud Account")
         , jetstreamLoginText context
