@@ -117,27 +117,36 @@ inputItemAttributes backgroundColor =
     ]
 
 
-heading2 : List (Element.Attribute Msg)
-heading2 =
+heading2 : ExoPalette -> List (Element.Attribute Msg)
+heading2 palette =
     [ Region.heading 2
     , Font.bold
     , Font.size 24
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    , Border.color (palette.muted |> SH.toElementColor)
+    , Element.width Element.fill
     ]
 
 
-heading3 : List (Element.Attribute Msg)
-heading3 =
+heading3 : ExoPalette -> List (Element.Attribute Msg)
+heading3 palette =
     [ Region.heading 3
     , Font.bold
     , Font.size 20
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    , Border.color (palette.muted |> SH.toElementColor)
+    , Element.width Element.fill
     ]
 
 
-heading4 : List (Element.Attribute Msg)
-heading4 =
+heading4 : ExoPalette -> List (Element.Attribute Msg)
+heading4 palette =
     [ Region.heading 4
     , Font.bold
     , Font.size 16
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    , Border.color (palette.muted |> SH.toElementColor)
+    , Element.width Element.fill
     ]
 
 
@@ -584,7 +593,7 @@ renderMarkdown context markdown =
 elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element Msg)
 elmUiRenderer context =
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
-    { heading = heading
+    { heading = heading context.palette
     , paragraph =
         Element.paragraph
             []
@@ -683,25 +692,27 @@ elmUiRenderer context =
 
 
 heading :
-    { level : Markdown.Block.HeadingLevel
-    , rawText : String
-    , children : List (Element.Element Msg)
-    }
+    ExoPalette
+    ->
+        { level : Markdown.Block.HeadingLevel
+        , rawText : String
+        , children : List (Element.Element Msg)
+        }
     -> Element.Element Msg
-heading { level, children } =
+heading exoPalette { level, children } =
     Element.paragraph
         (case level of
             Markdown.Block.H2 ->
-                heading2
+                heading2 exoPalette
 
             Markdown.Block.H3 ->
-                heading3
+                heading3 exoPalette
 
             Markdown.Block.H4 ->
-                heading4
+                heading4 exoPalette
 
             _ ->
-                heading2
+                heading2 exoPalette
         )
         children
 

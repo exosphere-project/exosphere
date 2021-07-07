@@ -29,7 +29,7 @@ createKeypair : View.Types.Context -> Project -> String -> String -> Element.Ele
 createKeypair context project name publicKey =
     Element.column
         VH.exoColumnAttributes
-        [ Element.el VH.heading2 <|
+        [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
                 String.join " "
                     [ "Upload"
@@ -153,7 +153,7 @@ listKeypairs context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
-            Element.el VH.heading2 <|
+            Element.el (VH.heading2 context.palette) <|
                 Element.text
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.pluralize

@@ -10,7 +10,7 @@ import View.Types
 helpAbout : Model -> View.Types.Context -> Element.Element Msg
 helpAbout model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30 ])
-        [ Element.el VH.heading2 <| Element.text <| "About " ++ model.style.appTitle
+        [ Element.el (VH.heading2 context.palette) <| Element.text <| "About " ++ model.style.appTitle
         , case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
                 Element.column [] <|
@@ -18,7 +18,7 @@ helpAbout model context =
 
             Nothing ->
                 defaultHelpAboutText context
-        , Element.el VH.heading2 <| Element.text "App Config Info"
+        , Element.el (VH.heading2 context.palette) <| Element.text "App Config Info"
         , Element.paragraph [] <|
             case model.cloudCorsProxyUrl of
                 Nothing ->

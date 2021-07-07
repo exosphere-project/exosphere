@@ -23,7 +23,7 @@ createServerImage : View.Types.Context -> Project -> OSTypes.ServerUuid -> Strin
 createServerImage context project serverUuid imageName =
     Element.column VH.exoColumnAttributes
         [ Element.el
-            VH.heading2
+            (VH.heading2 context.palette)
             (Element.text <|
                 String.join
                     " "

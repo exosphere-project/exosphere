@@ -155,7 +155,7 @@ viewLoginOpenstack context viewParams =
     in
     Element.column VH.exoColumnAttributes
         [ Element.el
-            VH.heading2
+            (VH.heading2 context.palette)
             (Element.text "Add an OpenStack Account")
         , Element.el
             VH.exoElementAttributes
@@ -313,7 +313,7 @@ viewLoginJetstream context jetstreamCreds =
             SetNonProjectView <| Login <| LoginJetstream newCreds
     in
     Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading2
+        [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream Cloud Account")
         , jetstreamLoginText context
         , Element.column VH.exoColumnAttributes

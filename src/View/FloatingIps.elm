@@ -105,7 +105,7 @@ floatingIps context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
         [ if showHeading then
-            Element.el VH.heading2 <|
+            Element.el (VH.heading2 context.palette) <|
                 Element.text
                     (context.localization.floatingIpAddress
                         |> Helpers.String.pluralize
@@ -414,7 +414,7 @@ assignFloatingIp context project viewParams =
                 ]
     in
     Element.column VH.exoColumnAttributes
-        [ Element.el VH.heading2 <|
+        [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
                 String.join " "
                     [ "Assign"

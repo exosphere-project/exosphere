@@ -34,7 +34,7 @@ allResources context p viewParams =
         renderHeaderLink : String -> Msg -> Element.Element Msg
         renderHeaderLink str msg =
             Element.el
-                (VH.heading3
+                (VH.heading3 context.palette
                     ++ [ Events.onClick msg
                        , Element.mouseOver
                             [ Font.color

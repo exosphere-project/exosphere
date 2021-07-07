@@ -62,7 +62,7 @@ volumes context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
-            Element.el VH.heading2
+            Element.el (VH.heading2 context.palette)
                 (Element.text
                     (context.localization.blockDevice
                         |> Helpers.String.pluralize
@@ -255,7 +255,7 @@ volumeDetailView :
 volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el VH.heading2 <|
+        [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
                 String.join " "
                     [ context.localization.blockDevice
@@ -389,7 +389,7 @@ createVolume context project volName volSizeInput =
                     ( True, Nothing )
     in
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20 ])
-        [ Element.el VH.heading2
+        [ Element.el (VH.heading2 context.palette)
             (Element.text <|
                 String.join " "
                     [ "Create"

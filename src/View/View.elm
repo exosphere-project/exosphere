@@ -109,7 +109,7 @@ elementView maybeWindowSize model context =
                                 View.Messages.messageLog context model.logMessages showDebugMsgs
 
                             Settings ->
-                                View.Settings.settings model.style.styleMode
+                                View.Settings.settings context model.style.styleMode
 
                             GetSupport maybeSupportableItem requestDescription isSubmitted ->
                                 View.GetSupport.getSupport

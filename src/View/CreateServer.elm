@@ -202,7 +202,7 @@ createServer context project viewParams =
             )
           <|
             [ Element.el
-                VH.heading2
+                (VH.heading2 context.palette)
                 (Element.text <|
                     String.join " "
                         [ "Create"

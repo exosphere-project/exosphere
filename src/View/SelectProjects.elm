@@ -51,7 +51,7 @@ selectProjects model context keystoneUrl selectedProjects =
                             ]
             in
             Element.column VH.exoColumnAttributes
-                [ Element.el VH.heading2
+                [ Element.el (VH.heading2 context.palette)
                     (Element.text <|
                         String.join " "
                             [ "Choose"

@@ -8,13 +8,14 @@ import Types.Types
         ( Msg(..)
         )
 import View.Helpers as VH
+import View.Types
 
 
-settings : Style.Types.StyleMode -> Element.Element Msg
-settings styleMode =
+settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element Msg
+settings context styleMode =
     Element.column
         VH.exoColumnAttributes
-        [ Element.el VH.heading2 <| Element.text "Settings"
+        [ Element.el (VH.heading2 context.palette) <| Element.text "Settings"
         , Input.radio
             VH.exoColumnAttributes
             { onChange =

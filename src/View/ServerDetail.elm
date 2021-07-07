@@ -287,7 +287,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 :: VH.exoColumnAttributes
             )
             [ Element.el
-                VH.heading2
+                (VH.heading2 context.palette)
                 (Element.text <|
                     String.join " "
                         [ context.localization.virtualComputer
@@ -322,7 +322,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     server
                     serverDetailViewParams
                 )
-            , Element.el VH.heading3
+            , Element.el (VH.heading3 context.palette)
                 (Element.text <|
                     String.concat
                         [ context.localization.blockDevice
@@ -372,7 +372,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
               else
                 Element.none
-            , Element.el VH.heading2 (Element.text "Interactions")
+            , Element.el (VH.heading2 context.palette) (Element.text "Interactions")
             , interactions
                 context
                 project
@@ -380,13 +380,13 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 (Tuple.first currentTimeAndZone)
                 (VH.userAppProxyLookup context project)
                 serverDetailViewParams
-            , Element.el VH.heading3 (Element.text "Password")
+            , Element.el (VH.heading3 context.palette) (Element.text "Password")
             , serverPassword context project.auth.project.uuid serverDetailViewParams server
             ]
         , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
-            [ Element.el VH.heading3 (Element.text "Actions")
+            [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
             , viewServerActions context project serverDetailViewParams server
-            , Element.el VH.heading3 (Element.text "System Resource Usage")
+            , Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
             , resourceUsageCharts context currentTimeAndZone server
             ]
         ]

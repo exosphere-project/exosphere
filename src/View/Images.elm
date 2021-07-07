@@ -272,7 +272,7 @@ images context project imageListViewParams sortTableParams =
         (VH.exoColumnAttributes
             ++ [ Element.width Element.fill ]
         )
-        [ Element.el VH.heading2
+        [ Element.el (VH.heading2 context.palette)
             (Element.text <|
                 String.join " "
                     [ "Choose"

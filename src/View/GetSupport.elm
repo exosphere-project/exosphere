@@ -42,7 +42,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                , Element.width <| Element.maximum 680 Element.fill
                ]
         )
-        [ Element.el VH.heading2 <| Element.text ("Get Support for " ++ model.style.appTitle)
+        [ Element.el (VH.heading2 context.palette) <| Element.text ("Get Support for " ++ model.style.appTitle)
         , case model.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column [] <|

@@ -150,7 +150,7 @@ projectNav context p viewParams =
     in
     Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
         [ Element.el
-            VH.heading2
+            (VH.heading2 context.palette)
           <|
             Element.text <|
                 UrlHelpers.hostnameFromUrl p.endpoints.keystone
