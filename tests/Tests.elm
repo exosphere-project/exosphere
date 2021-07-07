@@ -213,24 +213,6 @@ processOpenRcSuite =
                     |> State.Auth.processOpenRc Defaults.openstackCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
-        , test "that project domain name is still matched" <|
-            \() ->
-                """
-                # newer OpenStack release seem to use _ID suffix
-                export OS_PROJECT_DOMAIN_NAME="super-specific"
-                """
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
-                    |> .projectDomain
-                    |> Expect.equal "super-specific"
-        , test "that project domain ID is still matched" <|
-            \() ->
-                """
-                # newer OpenStack release seem to use _ID suffix
-                export OS_PROJECT_DOMAIN_ID="DEFAULT"
-                """
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
-                    |> .projectDomain
-                    |> Expect.equal "DEFAULT"
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 TestData.openrcPreV3
@@ -238,8 +220,6 @@ processOpenRcSuite =
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:35357/v3"
-                            "default"
-                            "cloud-riders"
                             "default"
                             "enfysnest"
                             ""
@@ -251,8 +231,6 @@ processOpenRcSuite =
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
-                            "default"
-                            "cloud-riders"
                             "Default"
                             "enfysnest"
                             ""
@@ -264,8 +242,6 @@ processOpenRcSuite =
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
-                            "default"
-                            "cloud-riders"
                             "Default"
                             "enfysnest"
                             ""
@@ -277,8 +253,6 @@ processOpenRcSuite =
                     |> Expect.equal
                         (OpenstackLogin
                             "https://mycloud.whatever:5000/v3/"
-                            "deadbeef"
-                            "redactedprojectname"
                             "Default"
                             "redactedusername"
                             "redactedpassword"

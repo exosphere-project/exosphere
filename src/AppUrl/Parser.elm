@@ -58,15 +58,9 @@ pathParsers defaultViewState =
         (\creds -> NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams creds "" LoginViewCredsEntry)
         (let
             queryParser =
-                Query.map6
+                Query.map4
                     OSTypes.OpenstackLogin
                     (Query.string "authurl"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "pdomain"
-                        |> Query.map (Maybe.withDefault "")
-                    )
-                    (Query.string "pname"
                         |> Query.map (Maybe.withDefault "")
                     )
                     (Query.string "udomain"
@@ -93,13 +87,10 @@ pathParsers defaultViewState =
                     ]
 
             queryParser =
-                Query.map4
+                Query.map3
                     JetstreamCreds
                     (Query.enum "provider" providerEnumDict
                         |> Query.map (Maybe.withDefault BothJetstreamClouds)
-                    )
-                    (Query.string "pname"
-                        |> Query.map (Maybe.withDefault "")
                     )
                     (Query.string "taccuname"
                         |> Query.map (Maybe.withDefault "")

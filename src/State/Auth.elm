@@ -94,31 +94,6 @@ requestAuthToken model project =
                 Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl <|
                     OSTypes.AppCreds project.endpoints.keystone project.auth.project.name appCred
 
-        OpenstackPassword password ->
-            let
-                creds =
-                    OSTypes.PasswordCreds <|
-                        OSTypes.OpenstackLogin
-                            project.endpoints.keystone
-                            (if String.isEmpty project.auth.projectDomain.name then
-                                project.auth.projectDomain.uuid
-
-                             else
-                                project.auth.projectDomain.name
-                            )
-                            project.auth.project.name
-                            (if String.isEmpty project.auth.userDomain.name then
-                                project.auth.userDomain.uuid
-
-                             else
-                                project.auth.userDomain.name
-                            )
-                            project.auth.user.name
-                            password
-            in
-            Ok <|
-                Rest.Keystone.requestScopedAuthToken model.cloudCorsProxyUrl creds
-
 
 jetstreamToOpenstackCreds : JetstreamCreds -> List OSTypes.OpenstackLogin
 jetstreamToOpenstackCreds jetstreamCreds =
@@ -146,8 +121,6 @@ jetstreamToOpenstackCreds jetstreamCreds =
         (\authUrl ->
             OSTypes.OpenstackLogin
                 authUrl
-                "tacc"
-                jetstreamCreds.jetstreamProjectName
                 "tacc"
                 jetstreamCreds.taccUsername
                 jetstreamCreds.taccPassword
@@ -193,13 +166,6 @@ processOpenRc existingCreds openRc =
     in
     OSTypes.OpenstackLogin
         (parseVar "OS_AUTH_URL" |> Maybe.withDefault existingCreds.authUrl)
-        (parseVar "OS_PROJECT_DOMAIN_NAME"
-            |> Maybe.withDefault
-                (parseVar "OS_PROJECT_DOMAIN_ID"
-                    |> Maybe.withDefault existingCreds.projectDomain
-                )
-        )
-        (parseVar "OS_PROJECT_NAME" |> Maybe.withDefault existingCreds.projectName)
         (parseVar "OS_USER_DOMAIN_NAME"
             |> Maybe.withDefault
                 (parseVar "OS_USER_DOMAIN_ID"

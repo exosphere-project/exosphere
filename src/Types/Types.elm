@@ -291,8 +291,7 @@ type alias ProjectIdentifier =
 
 
 type ProjectSecret
-    = OpenstackPassword HelperTypes.Password
-    | ApplicationCredential OSTypes.ApplicationCredential
+    = ApplicationCredential OSTypes.ApplicationCredential
     | NoProjectSecret
 
 
@@ -311,7 +310,6 @@ type Msg
     | SetNonProjectView NonProjectViewConstructor
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | RequestUnscopedToken OSTypes.OpenstackLogin
-    | RequestNewProjectToken OSTypes.OpenstackLogin
     | JetstreamLogin JetstreamCreds
     | ReceiveScopedAuthToken ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
@@ -582,7 +580,6 @@ type PasswordVisibility
 
 type alias JetstreamCreds =
     { jetstreamProviderChoice : JetstreamProvider
-    , jetstreamProjectName : String
     , taccUsername : String
     , taccPassword : String
     }

@@ -189,8 +189,6 @@ type EndpointInterface
 
 type alias OpenstackLogin =
     { authUrl : KeystoneUrl
-    , projectDomain : String
-    , projectName : String
     , userDomain : String
     , username : String
     , password : String
@@ -198,8 +196,7 @@ type alias OpenstackLogin =
 
 
 type CredentialsForAuthToken
-    = PasswordCreds OpenstackLogin
-    | TokenCreds KeystoneUrl UnscopedAuthToken ProjectUuid
+    = TokenCreds KeystoneUrl UnscopedAuthToken ProjectUuid
     | AppCreds KeystoneUrl String ApplicationCredential
 
 
