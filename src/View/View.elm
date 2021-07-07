@@ -3,6 +3,7 @@ module View.View exposing (view)
 import Browser
 import Element
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
@@ -169,7 +170,11 @@ elementView maybeWindowSize model context =
                     Nothing ->
                         Element.fill
             ]
-            [ View.Nav.navBar model context
+            [ Element.el
+                [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
+                , Element.width Element.fill
+                ]
+                (View.Nav.navBar model context)
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
