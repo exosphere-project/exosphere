@@ -58,23 +58,18 @@ view_ model context =
         , Font.color <| SH.toElementColor <| context.palette.on.background
         , Background.color <| SH.toElementColor <| context.palette.background
         ]
-        (elementView model.maybeWindowSize model context)
+        (elementView model.windowSize model context)
 
 
-elementView : Maybe WindowSize -> Model -> View.Types.Context -> Element.Element Msg
-elementView maybeWindowSize model context =
+elementView : WindowSize -> Model -> View.Types.Context -> Element.Element Msg
+elementView windowSize model context =
     let
         mainContentContainerView =
             Element.column
                 [ Element.padding 10
                 , Element.alignTop
                 , Element.width <|
-                    case maybeWindowSize of
-                        Just windowSize ->
-                            Element.px (windowSize.width - View.Nav.navMenuWidth)
-
-                        Nothing ->
-                            Element.fill
+                    Element.px (windowSize.width - View.Nav.navMenuWidth)
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
@@ -151,24 +146,14 @@ elementView maybeWindowSize model context =
         , Element.spacing 0
         , Element.width Element.fill
         , Element.height <|
-            case maybeWindowSize of
-                Just windowSize ->
-                    Element.px windowSize.height
-
-                Nothing ->
-                    Element.fill
+            Element.px windowSize.height
         ]
         [ Element.column
             [ Element.padding 0
             , Element.spacing 0
             , Element.width Element.fill
             , Element.height <|
-                case maybeWindowSize of
-                    Just windowSize ->
-                        Element.px windowSize.height
-
-                    Nothing ->
-                        Element.fill
+                Element.px windowSize.height
             ]
             [ Element.el
                 [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
@@ -180,12 +165,7 @@ elementView maybeWindowSize model context =
                 , Element.spacing 0
                 , Element.width Element.fill
                 , Element.height <|
-                    case maybeWindowSize of
-                        Just windowSize ->
-                            Element.px (windowSize.height - View.Nav.navBarHeight)
-
-                        Nothing ->
-                            Element.fill
+                    Element.px (windowSize.height - View.Nav.navBarHeight)
                 ]
                 [ View.Nav.navMenu model context
                 , mainContentContainerView
