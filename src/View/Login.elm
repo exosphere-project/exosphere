@@ -157,7 +157,7 @@ viewLoginOpenstack context viewParams =
         [ Element.el
             (VH.heading2 context.palette)
             (Element.text "Add an OpenStack Account")
-        , Element.column VH.exoColumnAttributes
+        , Element.column VH.contentContainer
             [ Element.el
                 VH.exoElementAttributes
                 (case viewParams.formEntryType of
@@ -232,7 +232,7 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
     in
     Element.column
         (VH.exoColumnAttributes
-            ++ [ Element.width (Element.px 500)
+            ++ [ Element.width (Element.px 600)
                , Element.alignTop
                ]
         )
@@ -293,7 +293,7 @@ loginOpenstackOpenRcEntry context viewParams =
             ]
         , Input.multiline
             (VH.inputItemAttributes context.palette.background
-                ++ [ Element.width (Element.px 500)
+                ++ [ Element.width (Element.px 600)
                    , Element.height Element.fill
                    , Font.size 12
                    ]
