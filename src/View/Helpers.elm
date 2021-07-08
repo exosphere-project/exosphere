@@ -143,7 +143,7 @@ heading3 palette =
 
 
 heading4 : ExoPalette -> List (Element.Attribute Msg)
-heading4 palette =
+heading4 _ =
     [ Region.heading 4
     , Font.bold
     , Font.size 16
