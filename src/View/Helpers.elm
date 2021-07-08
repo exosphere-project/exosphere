@@ -2,6 +2,7 @@ module View.Helpers exposing
     ( browserLink
     , compactKVRow
     , compactKVSubRow
+    , contentContainer
     , edges
     , exoColumnAttributes
     , exoElementAttributes
@@ -148,6 +149,15 @@ heading4 _ =
     , Font.bold
     , Font.size 16
     , Element.width Element.fill
+    ]
+
+
+contentContainer : List (Element.Attribute Msg)
+contentContainer =
+    -- Keeps the width from getting too wide for single column
+    [ Element.width (Element.maximum 800 Element.fill)
+    , Element.spacing 15
+    , Element.paddingXY 0 10
     ]
 
 

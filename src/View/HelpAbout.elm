@@ -9,30 +9,32 @@ import View.Types
 
 helpAbout : Model -> View.Types.Context -> Element.Element Msg
 helpAbout model context =
-    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30 ])
+    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30, Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette) <| Element.text <| "About " ++ model.style.appTitle
         , case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
-                Element.column [] <|
+                Element.column VH.contentContainer <|
                     VH.renderMarkdown context aboutAppMarkdown
 
             Nothing ->
                 defaultHelpAboutText context
         , Element.el (VH.heading2 context.palette) <| Element.text "App Config Info"
-        , Element.paragraph [] <|
-            case model.cloudCorsProxyUrl of
-                Nothing ->
-                    [ Element.text "You are not using a proxy server." ]
+        , Element.column VH.contentContainer
+            [ Element.paragraph [] <|
+                case model.cloudCorsProxyUrl of
+                    Nothing ->
+                        [ Element.text "You are not using a proxy server." ]
 
-                Just proxyUrl ->
-                    [ Element.text ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
-        , Element.paragraph [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
+                    Just proxyUrl ->
+                        [ Element.text ("You are using a cloud CORS proxy server at " ++ proxyUrl ++ ". All communication between Exosphere and OpenStack APIs pass through this server.") ]
+            , Element.paragraph [] [ Element.text ("Exosphere client UUID: " ++ UUID.toString model.clientUuid) ]
+            ]
         ]
 
 
 defaultHelpAboutText : View.Types.Context -> Element.Element Msg
 defaultHelpAboutText context =
-    Element.column [ Element.spacing 20 ]
+    Element.column VH.contentContainer
         [ Element.paragraph []
             [ Element.text "Exosphere is a user-friendly, extensible client for cloud computing. Check out our "
             , VH.browserLink
