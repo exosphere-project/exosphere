@@ -39,5 +39,5 @@ messageLog context logMessages showDebugMsgs =
             Element.text "(No Messages)"
 
           else
-            Element.column VH.exoColumnAttributes (List.map (VH.renderMessageAsElement context) shownMessages)
+            Element.column VH.contentContainer (List.map (VH.renderMessageAsElement context) shownMessages)
         ]

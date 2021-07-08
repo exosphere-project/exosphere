@@ -72,12 +72,14 @@ volumes context showHeading project viewParams toMsg =
 
           else
             Element.none
-        , View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
-        , VH.renderWebData
-            context
-            project.volumes
-            (Helpers.String.pluralize context.localization.blockDevice)
-            renderSuccessCase
+        , Element.column VH.contentContainer
+            [ View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
+            , VH.renderWebData
+                context
+                project.volumes
+                (Helpers.String.pluralize context.localization.blockDevice)
+                renderSuccessCase
+            ]
         ]
 
 
@@ -286,7 +288,7 @@ volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
         << Maybe.map
             (\volume ->
                 Element.column
-                    (VH.exoColumnAttributes ++ [ Element.width Element.fill, Element.spacing 10 ])
+                    VH.contentContainer
                     [ VH.compactKVRow "Name:" <| Element.text <| VH.possiblyUntitledResource volume.name context.localization.blockDevice
                     , VH.compactKVRow "Status:" <| Element.text <| OSTypes.volumeStatusToString volume.status
                     , renderAttachments context project volume
@@ -398,7 +400,7 @@ createVolume context project volName volSizeInput =
             )
 
         -- TODO this input box is too wide
-        , Element.column VH.exoColumnAttributes
+        , Element.column VH.contentContainer
             [ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = volName

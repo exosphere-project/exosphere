@@ -207,7 +207,7 @@ createServer context project viewParams =
                         |> Helpers.String.toTitleCase
                     ]
             )
-        , Element.column (VH.exoColumnAttributes ++ [ Element.width (Element.px 680) ]) <|
+        , Element.column VH.contentContainer <|
             case
                 ( GetterSetters.flavorLookup project viewParams.flavorUuid
                 , project.computeQuota
@@ -365,7 +365,7 @@ flavorPicker context project viewParams computeQuota =
                 |> not
     in
     Element.column
-        VH.exoColumnAttributes
+        (VH.exoColumnAttributes ++ [ Element.width <| Element.px 600 ])
         [ Element.el
             [ Font.bold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)

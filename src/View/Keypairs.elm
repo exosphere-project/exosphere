@@ -36,7 +36,7 @@ createKeypair context project name publicKey =
                     , context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     ]
-        , Element.column VH.exoColumnAttributes
+        , Element.column VH.contentContainer
             [ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = name
@@ -59,8 +59,8 @@ createKeypair context project name publicKey =
                 }
             , Input.multiline
                 (VH.inputItemAttributes context.palette.background
-                    ++ [ Element.width (Element.px 500)
-                       , Element.height (Element.px 400)
+                    ++ [ Element.width Element.fill
+                       , Element.height (Element.px 300)
                        , Element.padding 7
                        , Element.spacing 5
                        , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
@@ -144,9 +144,7 @@ listKeypairs context showHeading project viewParams toMsg =
 
             else
                 Element.column
-                    (VH.exoColumnAttributes
-                        ++ [ Element.paddingXY 10 0, Element.width Element.fill ]
-                    )
+                    VH.contentContainer
                     (List.map
                         (renderKeypairCard context project viewParams toMsg)
                         keypairs_

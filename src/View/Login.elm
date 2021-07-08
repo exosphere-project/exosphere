@@ -317,9 +317,9 @@ viewLoginJetstream context jetstreamCreds =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream Cloud Account")
-        , jetstreamLoginText context
-        , Element.column VH.exoColumnAttributes
-            [ Input.text
+        , Element.column VH.contentContainer
+            [ jetstreamLoginText context
+            , Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = jetstreamCreds.taccUsername
                 , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
@@ -344,17 +344,17 @@ viewLoginJetstream context jetstreamCreds =
                     ]
                 , selected = Just jetstreamCreds.jetstreamProviderChoice
                 }
-            ]
-        , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-            [ Element.el [] (loginPickerButton context)
-            , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
-                (Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                    { text = "Log In"
-                    , onPress =
-                        Just (JetstreamLogin jetstreamCreds)
-                    }
-                )
+            , Element.row [ Element.width Element.fill ]
+                [ Element.el [] (loginPickerButton context)
+                , Element.el [ Element.alignRight ]
+                    (Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        { text = "Log In"
+                        , onPress =
+                            Just (JetstreamLogin jetstreamCreds)
+                        }
+                    )
+                ]
             ]
         ]
 

@@ -155,7 +155,7 @@ heading4 _ =
 contentContainer : List (Element.Attribute Msg)
 contentContainer =
     -- Keeps the width from getting too wide for single column
-    [ Element.width (Element.maximum 800 Element.fill)
+    [ Element.width (Element.maximum 900 Element.fill)
     , Element.spacing 15
     , Element.paddingXY 0 10
     ]

@@ -37,7 +37,7 @@ createServerImage context project serverUuid imageName =
                         |> Helpers.String.toTitleCase
                     ]
             )
-        , Element.column VH.exoColumnAttributes
+        , Element.column VH.contentContainer
             [ Input.text
                 [ Element.spacing 12 ]
                 { text = imageName
@@ -53,14 +53,18 @@ createServerImage context project serverUuid imageName =
                                 ]
                         )
                 }
-            , Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                { text = "Create"
-                , onPress =
-                    Just <|
-                        ProjectMsg project.auth.project.uuid <|
-                            ServerMsg serverUuid <|
-                                RequestCreateServerImage imageName
-                }
+            , Element.row [ Element.width Element.fill ]
+                [ Element.el [ Element.alignRight ]
+                    (Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        { text = "Create"
+                        , onPress =
+                            Just <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    ServerMsg serverUuid <|
+                                        RequestCreateServerImage imageName
+                        }
+                    )
+                ]
             ]
         ]

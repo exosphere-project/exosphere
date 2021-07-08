@@ -114,12 +114,14 @@ floatingIps context showHeading project viewParams toMsg =
 
           else
             Element.none
-        , View.QuotaUsage.floatingIpQuotaDetails context project.computeQuota floatingIpsUsedCount
-        , VH.renderRDPP
-            context
-            project.floatingIps
-            (Helpers.String.pluralize context.localization.floatingIpAddress)
-            renderFloatingIps
+        , Element.column VH.contentContainer
+            [ View.QuotaUsage.floatingIpQuotaDetails context project.computeQuota floatingIpsUsedCount
+            , VH.renderRDPP
+                context
+                project.floatingIps
+                (Helpers.String.pluralize context.localization.floatingIpAddress)
+                renderFloatingIps
+            ]
         ]
 
 
@@ -421,7 +423,7 @@ assignFloatingIp context project viewParams =
                     , context.localization.floatingIpAddress
                         |> Helpers.String.toTitleCase
                     ]
-        , Element.column VH.exoColumnAttributes
+        , Element.column VH.contentContainer
             [ Element.el [ Font.bold ] <| Element.text selectServerText
             , if List.isEmpty serverChoices then
                 Element.text <|
