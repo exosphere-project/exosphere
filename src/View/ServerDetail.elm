@@ -400,15 +400,17 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 ( True, colWidthPx |> Element.px, colWidthPx - 30 )
     in
     if dualColumn then
-        Element.row [ Element.width Element.fill ]
+        Element.row [ Element.width Element.fill, Element.spacing 5 ]
             [ Element.column
                 (Element.alignTop
+                    :: Element.centerX
                     :: Element.width columnWidth
                     :: VH.exoColumnAttributes
                 )
                 firstColumnContents
             , Element.column
                 (Element.alignTop
+                    :: Element.centerX
                     :: Element.width columnWidth
                     :: VH.exoColumnAttributes
                 )
