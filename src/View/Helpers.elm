@@ -75,6 +75,7 @@ toViewContext : Model -> View.Types.Context
 toViewContext model =
     { palette = toExoPalette model.style
     , localization = model.style.localization
+    , windowSize = model.windowSize
     , cloudSpecificConfigs = model.cloudSpecificConfigs
     }
 

@@ -279,13 +279,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
                 Nothing ->
                     serverNameViewPlain
-    in
-    Element.wrappedRow []
-        [ Element.column
-            (Element.alignTop
-                :: Element.width (Element.px 585)
-                :: VH.exoColumnAttributes
-            )
+
+        firstColumnContents : List (Element.Element Msg)
+        firstColumnContents =
             [ Element.el
                 (VH.heading2 context.palette)
                 (Element.text <|
@@ -383,13 +379,46 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , Element.el (VH.heading3 context.palette) (Element.text "Password")
             , serverPassword context project.auth.project.uuid serverDetailViewParams server
             ]
-        , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
+
+        secondColumnContents : List (Element.Element Msg)
+        secondColumnContents =
             [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
             , viewServerActions context project serverDetailViewParams server
             , Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
-            , resourceUsageCharts context currentTimeAndZone server
+            , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
             ]
-        ]
+
+        ( dualColumn, columnWidth, chartsWidthPx ) =
+            if context.windowSize.width < 1402 then
+                ( False, Element.fill, context.windowSize.width - 250 )
+
+            else
+                let
+                    colWidthPx =
+                        (context.windowSize.width - 220) // 2
+                in
+                ( True, colWidthPx |> Element.px, colWidthPx - 30 )
+    in
+    if dualColumn then
+        Element.row [ Element.width Element.fill ]
+            [ Element.column
+                (Element.alignTop
+                    :: Element.width columnWidth
+                    :: VH.exoColumnAttributes
+                )
+                firstColumnContents
+            , Element.column
+                (Element.alignTop
+                    :: Element.width columnWidth
+                    :: VH.exoColumnAttributes
+                )
+                secondColumnContents
+            ]
+
+    else
+        Element.column
+            (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+            (List.append firstColumnContents secondColumnContents)
 
 
 passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
@@ -1002,8 +1031,8 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts context currentTimeAndZone server =
+resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
     let
         thirtyMinMillis =
             1000 * 60 * 30
@@ -1033,10 +1062,9 @@ resourceUsageCharts context currentTimeAndZone server =
                             Element.text "No chart data to show."
 
                     else
-                        Element.column []
-                            [ -- TODO fix alignment of these elements
-                              View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
-                            , View.ResourceUsage.charts context currentTimeAndZone history.timeSeries
+                        Element.column [ Element.width Element.fill ]
+                            [ View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
+                            , View.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
                             ]
 
                 _ ->
