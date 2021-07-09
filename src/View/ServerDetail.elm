@@ -293,15 +293,16 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
-            [ Element.el
-                (VH.heading2 context.palette)
-                (Element.text <|
+            [ Element.row
+                (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.text <|
                     String.join " "
                         [ context.localization.virtualComputer
                             |> Helpers.String.toTitleCase
                         , "Details"
                         ]
-                )
+                ]
             , passwordVulnWarning context server
             , VH.compactKVRow "Name" serverNameView
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
