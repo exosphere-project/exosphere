@@ -15,6 +15,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
+import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -203,9 +204,10 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                 ( _, True ) ->
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
-                        , Widget.textButton
+                        , Widget.iconButton
                             (Style.Widgets.Button.dangerButton context.palette)
-                            { text = "Delete"
+                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                            , text = "Delete"
                             , onPress =
                                 Just <|
                                     ProjectMsg
@@ -214,7 +216,8 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                             }
                         , Widget.textButton
                             (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                            { text = "Cancel"
+                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                            , text = "Cancel"
                             , onPress =
                                 Just <|
                                     toMsg
@@ -224,16 +227,18 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
 
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
-                        Widget.textButton
+                        Widget.iconButton
                             (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                            { text = "Delete"
+                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                            , text = "Delete"
                             , onPress = Nothing
                             }
 
                     else
-                        Widget.textButton
+                        Widget.iconButton
                             (Style.Widgets.Button.dangerButton context.palette)
-                            { text = "Delete"
+                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                            , text = "Delete"
                             , onPress =
                                 Just <|
                                     toMsg

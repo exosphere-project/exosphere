@@ -227,9 +227,10 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                 , label = Input.labelRight [] (Element.text "Select All")
                 }
         , Element.el [ Element.alignRight ] <|
-            Widget.textButton
+            Widget.iconButton
                 (Style.Widgets.Button.dangerButton context.palette)
-                { text = "Delete"
+                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                , text = "Delete"
                 , onPress = deleteButtonOnPress
                 }
         ]

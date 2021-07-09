@@ -13,6 +13,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText
+import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Types.Defaults as Defaults
 import Types.Types
@@ -229,9 +230,10 @@ actionButtons context project toMsg viewParams ip =
             if confirmationNeeded then
                 Element.row [ Element.spacing 10 ]
                     [ Element.text "Confirm delete?"
-                    , Widget.textButton
+                    , Widget.iconButton
                         (Style.Widgets.Button.dangerButton context.palette)
-                        { text = "Delete"
+                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                        , text = "Delete"
                         , onPress =
                             Just <|
                                 ProjectMsg
@@ -254,9 +256,10 @@ actionButtons context project toMsg viewParams ip =
                     ]
 
             else
-                Widget.textButton
+                Widget.iconButton
                     (Style.Widgets.Button.dangerButton context.palette)
-                    { text = "Delete"
+                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                    , text = "Delete"
                     , onPress =
                         Just <|
                             toMsg
