@@ -280,6 +280,17 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 Nothing ->
                     serverNameViewPlain
 
+        ( dualColumn, columnWidth, chartsWidthPx ) =
+            if context.windowSize.width < 1402 then
+                ( False, Element.fill, context.windowSize.width - 250 )
+
+            else
+                let
+                    colWidthPx =
+                        (context.windowSize.width - 220) // 2
+                in
+                ( True, colWidthPx |> Element.px, colWidthPx - 30 )
+
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
             [ Element.el
@@ -387,17 +398,6 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
             , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
             ]
-
-        ( dualColumn, columnWidth, chartsWidthPx ) =
-            if context.windowSize.width < 1402 then
-                ( False, Element.fill, context.windowSize.width - 250 )
-
-            else
-                let
-                    colWidthPx =
-                        (context.windowSize.width - 220) // 2
-                in
-                ( True, colWidthPx |> Element.px, colWidthPx - 30 )
     in
     if dualColumn then
         Element.row [ Element.width Element.fill, Element.spacing 5 ]
