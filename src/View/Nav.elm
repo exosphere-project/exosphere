@@ -60,7 +60,7 @@ navMenu model context =
             MenuItem.menuItem
                 context.palette
                 status
-                Nothing
+                (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
                     (ProjectMsg project.auth.project.uuid
