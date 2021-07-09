@@ -3,6 +3,7 @@ module View.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volu
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.String
@@ -62,13 +63,14 @@ volumes context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
-            Element.el (VH.heading2 context.palette)
-                (Element.text
+            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.text
                     (context.localization.blockDevice
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
-                )
+                ]
 
           else
             Element.none

@@ -153,12 +153,14 @@ listKeypairs context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
-            Element.el (VH.heading2 context.palette) <|
-                Element.text
+            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.text
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
+                ]
 
           else
             Element.none

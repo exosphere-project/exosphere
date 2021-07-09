@@ -103,13 +103,14 @@ serverList context showHeading project serverListViewParams toMsg =
     in
     Element.column [ Element.width Element.fill ]
         [ if showHeading then
-            Element.el (VH.heading2 context.palette)
-                (Element.text <|
+            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.text <|
                     (context.localization.virtualComputer
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
-                )
+                ]
 
           else
             Element.none
