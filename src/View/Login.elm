@@ -157,16 +157,13 @@ viewLoginOpenstack context viewParams =
         [ Element.el
             (VH.heading2 context.palette)
             (Element.text "Add an OpenStack Account")
-        , Element.column VH.contentContainer
-            [ Element.el
-                VH.exoElementAttributes
-                (case viewParams.formEntryType of
-                    LoginViewCredsEntry ->
-                        loginOpenstackCredsEntry context viewParams allCredsEntered
+        , Element.column VH.formContainer
+            [ case viewParams.formEntryType of
+                LoginViewCredsEntry ->
+                    loginOpenstackCredsEntry context viewParams allCredsEntered
 
-                    LoginViewOpenRcEntry ->
-                        loginOpenstackOpenRcEntry context viewParams
-                )
+                LoginViewOpenRcEntry ->
+                    loginOpenstackOpenRcEntry context viewParams
             , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
                 (case viewParams.formEntryType of
                     LoginViewCredsEntry ->
@@ -231,11 +228,7 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
                 }
     in
     Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.width (Element.px 600)
-               , Element.alignTop
-               ]
-        )
+        VH.formContainer
         [ Element.el [] (Element.text "Enter your credentials")
         , textField
             creds.authUrl
@@ -277,11 +270,7 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
 loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
 loginOpenstackOpenRcEntry context viewParams =
     Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.spacing 15
-               , Element.height (Element.fill |> Element.minimum 250)
-               ]
-        )
+        VH.formContainer
         [ Element.paragraph []
             [ Element.text "Paste an "
             , VH.browserLink
@@ -293,8 +282,8 @@ loginOpenstackOpenRcEntry context viewParams =
             ]
         , Input.multiline
             (VH.inputItemAttributes context.palette.background
-                ++ [ Element.width (Element.px 600)
-                   , Element.height Element.fill
+                ++ [ Element.width Element.fill
+                   , Element.height (Element.px 250)
                    , Font.size 12
                    ]
             )
@@ -319,41 +308,43 @@ viewLoginJetstream context jetstreamCreds =
             (Element.text "Add a Jetstream Cloud Account")
         , Element.column VH.contentContainer
             [ jetstreamLoginText context
-            , Input.text
-                (VH.inputItemAttributes context.palette.background)
-                { text = jetstreamCreds.taccUsername
-                , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
-                , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
-                }
-            , Input.currentPassword
-                (VH.inputItemAttributes context.palette.background)
-                { text = jetstreamCreds.taccPassword
-                , placeholder = Nothing
-                , onChange = \pw -> updateCreds { jetstreamCreds | taccPassword = pw }
-                , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
-                , show = False
-                }
-            , Input.radio []
-                { label = Input.labelAbove [] (Element.text "Provider")
-                , onChange = \x -> updateCreds { jetstreamCreds | jetstreamProviderChoice = x }
-                , options =
-                    [ Input.option IUCloud (Element.text "IU Cloud")
-                    , Input.option TACCCloud (Element.text "TACC Cloud")
-                    , Input.option BothJetstreamClouds (Element.text "Both Clouds")
+            , Element.column VH.formContainer
+                [ Input.text
+                    (VH.inputItemAttributes context.palette.background)
+                    { text = jetstreamCreds.taccUsername
+                    , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
+                    , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
+                    , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
+                    }
+                , Input.currentPassword
+                    (VH.inputItemAttributes context.palette.background)
+                    { text = jetstreamCreds.taccPassword
+                    , placeholder = Nothing
+                    , onChange = \pw -> updateCreds { jetstreamCreds | taccPassword = pw }
+                    , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
+                    , show = False
+                    }
+                , Input.radio []
+                    { label = Input.labelAbove [] (Element.text "Provider")
+                    , onChange = \x -> updateCreds { jetstreamCreds | jetstreamProviderChoice = x }
+                    , options =
+                        [ Input.option IUCloud (Element.text "IU Cloud")
+                        , Input.option TACCCloud (Element.text "TACC Cloud")
+                        , Input.option BothJetstreamClouds (Element.text "Both Clouds")
+                        ]
+                    , selected = Just jetstreamCreds.jetstreamProviderChoice
+                    }
+                , Element.row [ Element.width Element.fill ]
+                    [ Element.el [] (loginPickerButton context)
+                    , Element.el [ Element.alignRight ]
+                        (Widget.textButton
+                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            { text = "Log In"
+                            , onPress =
+                                Just (JetstreamLogin jetstreamCreds)
+                            }
+                        )
                     ]
-                , selected = Just jetstreamCreds.jetstreamProviderChoice
-                }
-            , Element.row [ Element.width Element.fill ]
-                [ Element.el [] (loginPickerButton context)
-                , Element.el [ Element.alignRight ]
-                    (Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                        { text = "Log In"
-                        , onPress =
-                            Just (JetstreamLogin jetstreamCreds)
-                        }
-                    )
                 ]
             ]
         ]

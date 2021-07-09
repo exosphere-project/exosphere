@@ -36,7 +36,7 @@ createKeypair context project name publicKey =
                     , context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     ]
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
             [ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = name

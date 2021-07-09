@@ -50,7 +50,8 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
 
             Nothing ->
                 Element.none
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
+            -- TODO make textareas fill this width
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =

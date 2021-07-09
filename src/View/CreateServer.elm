@@ -207,7 +207,7 @@ createServer context project viewParams =
                         |> Helpers.String.toTitleCase
                     ]
             )
-        , Element.column VH.contentContainer <|
+        , Element.column VH.formContainer <|
             case
                 ( GetterSetters.flavorLookup project viewParams.flavorUuid
                 , project.computeQuota
@@ -365,7 +365,7 @@ flavorPicker context project viewParams computeQuota =
                 |> not
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.width <| Element.px 600 ])
+        VH.exoColumnAttributes
         [ Element.el
             [ Font.bold ]
             (Element.text <| Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -1002,7 +1002,7 @@ userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Eleme
 userDataInput context project viewParams =
     Input.multiline
         (VH.inputItemAttributes context.palette.background
-            ++ [ Element.width (Element.px 600)
+            ++ [ Element.width Element.fill
                , Element.height (Element.px 500)
                , Element.spacing 3
                ]

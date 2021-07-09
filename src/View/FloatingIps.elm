@@ -423,7 +423,7 @@ assignFloatingIp context project viewParams =
                     , context.localization.floatingIpAddress
                         |> Helpers.String.toTitleCase
                     ]
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
             [ Element.el [ Font.bold ] <| Element.text selectServerText
             , if List.isEmpty serverChoices then
                 Element.text <|

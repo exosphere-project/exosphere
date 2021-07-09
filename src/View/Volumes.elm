@@ -398,9 +398,7 @@ createVolume context project volName volSizeInput =
                     , context.localization.blockDevice |> Helpers.String.toTitleCase
                     ]
             )
-
-        -- TODO this input box is too wide
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
             [ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = volName

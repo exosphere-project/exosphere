@@ -9,6 +9,7 @@ module View.Helpers exposing
     , exoPaddingSpacingAttributes
     , exoRowAttributes
     , featuredImageNamePrefixLookup
+    , formContainer
     , friendlyProjectTitle
     , getServerUiStatus
     , getServerUiStatusColor
@@ -114,7 +115,8 @@ exoPaddingSpacingAttributes =
 
 inputItemAttributes : Color.Color -> List (Element.Attribute Msg)
 inputItemAttributes backgroundColor =
-    [ Element.spacing 12
+    [ Element.width Element.fill
+    , Element.spacing 12
     , Background.color <| SH.toElementColor <| backgroundColor
     ]
 
@@ -156,6 +158,15 @@ contentContainer : List (Element.Attribute Msg)
 contentContainer =
     -- Keeps the width from getting too wide for single column
     [ Element.width (Element.maximum 900 Element.fill)
+    , Element.spacing 15
+    , Element.paddingXY 0 10
+    ]
+
+
+formContainer : List (Element.Attribute Msg)
+formContainer =
+    -- Keeps form fields from displaying too wide
+    [ Element.width (Element.maximum 600 Element.fill)
     , Element.spacing 15
     , Element.paddingXY 0 10
     ]

@@ -74,7 +74,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                     , context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     ]
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
             [ Input.radio []
                 { label =
                     Input.labelAbove

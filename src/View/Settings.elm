@@ -16,7 +16,7 @@ settings context styleMode =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette) <| Element.text "Settings"
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =

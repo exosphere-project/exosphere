@@ -37,7 +37,7 @@ createServerImage context project serverUuid imageName =
                         |> Helpers.String.toTitleCase
                     ]
             )
-        , Element.column VH.contentContainer
+        , Element.column VH.formContainer
             [ Input.text
                 [ Element.spacing 12 ]
                 { text = imageName
