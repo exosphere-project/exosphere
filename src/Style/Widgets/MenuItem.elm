@@ -22,17 +22,15 @@ type MenuItemState
 menuItem : Style.Types.ExoPalette -> MenuItemState -> Maybe (Element msg) -> String -> Maybe msg -> Element msg
 menuItem palette state icon itemLabel onPress =
     let
-        ( fontWeight, fontColor, backgroundColor ) =
+        ( fontWeight, backgroundColor ) =
             case state of
                 Active ->
                     ( Font.bold
-                    , palette.menu.on.surface
                     , palette.menu.surface
                     )
 
                 Inactive ->
                     ( Font.regular
-                    , palette.menu.on.background
                     , palette.menu.background
                     )
 
@@ -43,7 +41,7 @@ menuItem palette state icon itemLabel onPress =
             , Element.spacing 15
             , Element.paddingXY 15 24
             , Background.color (SH.toElementColor backgroundColor)
-            , Font.color (SH.toElementColor fontColor)
+            , Font.color (SH.toElementColor palette.menu.on.surface)
             ]
 
         menuItemElementAttrs =
@@ -68,7 +66,13 @@ menuItem palette state icon itemLabel onPress =
                 []
                 [ Element.row
                     [ Element.spacing 8 ]
-                    [ icon |> Maybe.withDefault Element.none
+                    [ icon
+                        |> Maybe.map
+                            (Element.el
+                                [ Font.color (SH.toElementColor palette.menu.on.background)
+                                ]
+                            )
+                        |> Maybe.withDefault Element.none
                     , Element.paragraph
                         [ Font.size 15
                         , fontWeight
