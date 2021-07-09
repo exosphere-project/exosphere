@@ -19,8 +19,8 @@ type MenuItemState
     menuItem Active "Add Provider" Nothing
 
 -}
-menuItem : Style.Types.ExoPalette -> MenuItemState -> String -> Maybe msg -> Element msg
-menuItem palette state itemLabel onPress =
+menuItem : Style.Types.ExoPalette -> MenuItemState -> Maybe (Element msg) -> String -> Maybe msg -> Element msg
+menuItem palette state icon itemLabel onPress =
     let
         ( fontWeight, fontColor, backgroundColor ) =
             case state of
@@ -67,12 +67,14 @@ menuItem palette state itemLabel onPress =
             Element.column
                 []
                 [ Element.row
-                    []
-                    [ Element.paragraph
+                    [ Element.spacing 8 ]
+                    [ icon |> Maybe.withDefault Element.none
+                    , Element.paragraph
                         [ Font.size 15
                         , fontWeight
                         ]
-                        [ Element.text itemLabel ]
+                        [ Element.text itemLabel
+                        ]
                     ]
                 ]
     in
