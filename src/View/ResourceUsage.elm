@@ -140,13 +140,13 @@ charts context widthPx ( currentTime, timeZone ) timeSeriesDict =
             ]
     in
     Element.column VH.exoColumnAttributes
-        [ Element.el (VH.heading4 context.palette) (Element.text "CPU Usage")
+        [ Element.el VH.heading4 (Element.text "CPU Usage")
         , Element.html <|
             LineChart.viewCustom (chartConfig (getMetricUsedPct .cpuPctUsed)) series
-        , Element.el (VH.heading4 context.palette) (Element.text "Memory Usage")
+        , Element.el VH.heading4 (Element.text "Memory Usage")
         , Element.html <|
             LineChart.viewCustom (chartConfig (getMetricUsedPct .memPctUsed)) series
-        , Element.el (VH.heading4 context.palette) (Element.text "Root Filesystem Usage")
+        , Element.el VH.heading4 (Element.text "Root Filesystem Usage")
         , Element.html <|
             LineChart.viewCustom (chartConfig (getMetricUsedPct .rootfsPctUsed)) series
         ]

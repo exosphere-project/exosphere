@@ -145,8 +145,8 @@ heading3 palette =
     ]
 
 
-heading4 : ExoPalette -> List (Element.Attribute Msg)
-heading4 _ =
+heading4 : List (Element.Attribute Msg)
+heading4 =
     [ Region.heading 4
     , Font.bold
     , Font.size 16
@@ -731,7 +731,7 @@ heading exoPalette { level, children } =
                 heading3 exoPalette
 
             Markdown.Block.H4 ->
-                heading4 exoPalette
+                heading4
 
             _ ->
                 heading2 exoPalette
