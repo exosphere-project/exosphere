@@ -190,6 +190,21 @@ projectNav context p viewParams =
 createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element Msg
 createButton context projectId expanded =
     let
+        renderButton : Element.Element Never -> String -> Maybe Msg -> Element.Element Msg
+        renderButton icon_ text onPress =
+            Widget.iconButton
+                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                { icon =
+                    Element.row [ Element.spacing 10 ]
+                        [ icon_ |> Element.el []
+                        , Element.text text
+                        ]
+                , text =
+                    text
+                , onPress =
+                    onPress
+                }
+
         ( attribs, icon ) =
             if expanded then
                 ( [ Element.below <|
@@ -214,45 +229,45 @@ createButton context projectId expanded =
                             , Border.color <| SH.toElementColor context.palette.muted
                             , Border.rounded 4
                             ]
-                            [ Widget.textButton
-                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                                { text =
-                                    context.localization.virtualComputer
-                                        |> Helpers.String.toTitleCase
-                                , onPress =
-                                    Just <|
-                                        ProjectMsg projectId <|
-                                            SetProjectView <|
-                                                ListImages
-                                                    { searchText = ""
-                                                    , tags = Set.empty
-                                                    , onlyOwnImages = False
-                                                    , expandImageDetails = Set.empty
-                                                    }
-                                                    { title = "Name"
-                                                    , asc = True
-                                                    }
-                                }
-
-                            {- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm -}
-                            , Widget.textButton
-                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                                { text = Helpers.String.toTitleCase context.localization.blockDevice
-                                , onPress =
-                                    Just <|
-                                        ProjectMsg projectId <|
-                                            SetProjectView <|
-                                                CreateVolume "" (ValidNumericTextInput 10)
-                                }
-                            , Widget.textButton
-                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                                { text = Helpers.String.toTitleCase context.localization.pkiPublicKeyForSsh
-                                , onPress =
-                                    Just <|
-                                        ProjectMsg projectId <|
-                                            SetProjectView <|
-                                                CreateKeypair "" ""
-                                }
+                            [ renderButton
+                                (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html)
+                                (context.localization.virtualComputer
+                                    |> Helpers.String.toTitleCase
+                                )
+                                (Just <|
+                                    ProjectMsg projectId <|
+                                        SetProjectView <|
+                                            ListImages
+                                                { searchText = ""
+                                                , tags = Set.empty
+                                                , onlyOwnImages = False
+                                                , expandImageDetails = Set.empty
+                                                }
+                                                { title = "Name"
+                                                , asc = True
+                                                }
+                                )
+                            , renderButton
+                                (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
+                                (context.localization.blockDevice
+                                    |> Helpers.String.toTitleCase
+                                )
+                                (Just <|
+                                    ProjectMsg projectId <|
+                                        SetProjectView <|
+                                            -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
+                                            CreateVolume "" (ValidNumericTextInput 10)
+                                )
+                            , renderButton
+                                (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
+                                (context.localization.pkiPublicKeyForSsh
+                                    |> Helpers.String.toTitleCase
+                                )
+                                (Just <|
+                                    ProjectMsg projectId <|
+                                        SetProjectView <|
+                                            CreateKeypair "" ""
+                                )
                             ]
                   ]
                 , FeatherIcons.chevronUp
