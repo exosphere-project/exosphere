@@ -400,20 +400,20 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             ]
     in
     if dualColumn then
+        let
+            columnAttributes =
+                VH.exoColumnAttributes
+                    ++ [ Element.alignTop
+                       , Element.centerX
+                       , Element.width columnWidth
+                       ]
+        in
         Element.row [ Element.width Element.fill, Element.spacing 5 ]
             [ Element.column
-                (Element.alignTop
-                    :: Element.centerX
-                    :: Element.width columnWidth
-                    :: VH.exoColumnAttributes
-                )
+                columnAttributes
                 firstColumnContents
             , Element.column
-                (Element.alignTop
-                    :: Element.centerX
-                    :: Element.width columnWidth
-                    :: VH.exoColumnAttributes
-                )
+                columnAttributes
                 secondColumnContents
             ]
 
