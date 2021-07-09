@@ -161,12 +161,20 @@ projectNav context p viewParams =
                     ++ " - "
                     ++ p.auth.project.name
         , Element.el
-            -- TODO replace these
             [ Element.alignRight ]
           <|
-            Widget.textButton
+            Widget.iconButton
                 (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                { text =
+                { icon =
+                    Element.row [ Element.spacing 10 ]
+                        [ Element.text <|
+                            String.join " "
+                                [ "Remove"
+                                , Helpers.String.toTitleCase context.localization.unitOfTenancy
+                                ]
+                        , FeatherIcons.logOut |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                        ]
+                , text =
                     String.join " "
                         [ "Remove"
                         , Helpers.String.toTitleCase context.localization.unitOfTenancy
