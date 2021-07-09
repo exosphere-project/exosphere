@@ -215,7 +215,6 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                         }
                 ]
             , if isSubmitted then
-                -- TODO build support request body, show it to user with a "copy to clipboard" button, ask them to paste it into an email message to the email address passed in via flags.
                 Element.column
                     [ Element.spacing 10, Element.width Element.fill ]
                     [ Element.paragraph
