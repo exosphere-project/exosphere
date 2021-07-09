@@ -41,7 +41,7 @@ menuItem palette state icon itemLabel onPress =
             , Border.color (SH.toElementColor palette.on.background)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
-            , Element.paddingXY 15 24
+            , Element.paddingXY 10 24
             , Background.color (SH.toElementColor backgroundColor)
             , Font.color (SH.toElementColor palette.menu.on.surface)
             ]
