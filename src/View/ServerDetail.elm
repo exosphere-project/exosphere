@@ -279,15 +279,22 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
                 Nothing ->
                     serverNameViewPlain
-    in
-    Element.wrappedRow []
-        [ Element.column
-            (Element.alignTop
-                :: Element.width (Element.px 585)
-                :: VH.exoColumnAttributes
-            )
+
+        ( dualColumn, columnWidth, chartsWidthPx ) =
+            if context.windowSize.width < 1402 then
+                ( False, Element.fill, context.windowSize.width - 250 )
+
+            else
+                let
+                    colWidthPx =
+                        (context.windowSize.width - 220) // 2
+                in
+                ( True, colWidthPx |> Element.px, colWidthPx - 30 )
+
+        firstColumnContents : List (Element.Element Msg)
+        firstColumnContents =
             [ Element.el
-                VH.heading2
+                (VH.heading2 context.palette)
                 (Element.text <|
                     String.join " "
                         [ context.localization.virtualComputer
@@ -322,7 +329,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     server
                     serverDetailViewParams
                 )
-            , Element.el VH.heading3
+            , Element.el (VH.heading3 context.palette)
                 (Element.text <|
                     String.concat
                         [ context.localization.blockDevice
@@ -372,7 +379,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
               else
                 Element.none
-            , Element.el VH.heading2 (Element.text "Interactions")
+            , Element.el (VH.heading2 context.palette) (Element.text "Interactions")
             , interactions
                 context
                 project
@@ -380,16 +387,40 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 (Tuple.first currentTimeAndZone)
                 (VH.userAppProxyLookup context project)
                 serverDetailViewParams
-            , Element.el VH.heading3 (Element.text "Password")
+            , Element.el (VH.heading3 context.palette) (Element.text "Password")
             , serverPassword context project.auth.project.uuid serverDetailViewParams server
             ]
-        , Element.column (Element.alignTop :: Element.width (Element.px 585) :: VH.exoColumnAttributes)
-            [ Element.el VH.heading3 (Element.text "Actions")
+
+        secondColumnContents : List (Element.Element Msg)
+        secondColumnContents =
+            [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
             , viewServerActions context project serverDetailViewParams server
-            , Element.el VH.heading3 (Element.text "System Resource Usage")
-            , resourceUsageCharts context currentTimeAndZone server
+            , Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
+            , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
             ]
-        ]
+    in
+    if dualColumn then
+        let
+            columnAttributes =
+                VH.exoColumnAttributes
+                    ++ [ Element.alignTop
+                       , Element.centerX
+                       , Element.width columnWidth
+                       ]
+        in
+        Element.row [ Element.width Element.fill, Element.spacing 5 ]
+            [ Element.column
+                columnAttributes
+                firstColumnContents
+            , Element.column
+                columnAttributes
+                secondColumnContents
+            ]
+
+    else
+        Element.column
+            (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+            (List.append firstColumnContents secondColumnContents)
 
 
 passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
@@ -1002,8 +1033,8 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
-resourceUsageCharts context currentTimeAndZone server =
+resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
     let
         thirtyMinMillis =
             1000 * 60 * 30
@@ -1033,10 +1064,9 @@ resourceUsageCharts context currentTimeAndZone server =
                             Element.text "No chart data to show."
 
                     else
-                        Element.column []
-                            [ -- TODO fix alignment of these elements
-                              View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
-                            , View.ResourceUsage.charts context currentTimeAndZone history.timeSeries
+                        Element.column [ Element.width Element.fill ]
+                            [ View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
+                            , View.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
                             ]
 
                 _ ->

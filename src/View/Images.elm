@@ -272,7 +272,7 @@ images context project imageListViewParams sortTableParams =
         (VH.exoColumnAttributes
             ++ [ Element.width Element.fill ]
         )
-        [ Element.el VH.heading2
+        [ Element.el (VH.heading2 context.palette)
             (Element.text <|
                 String.join " "
                     [ "Choose"
@@ -280,70 +280,72 @@ images context project imageListViewParams sortTableParams =
                     , context.localization.staticRepresentationOfBlockDeviceContents
                     ]
             )
-        , Input.text (VH.inputItemAttributes context.palette.background)
-            { text = imageListViewParams.searchText
-            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-            , onChange =
-                \t ->
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            ListImages
-                                { imageListViewParams | searchText = t }
-                                sortTableParams
-            , label =
-                Input.labelAbove [ Font.size 14 ]
-                    (Element.text <|
-                        String.join " "
-                            [ "Filter on"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            , "name:"
-                            ]
-                    )
-            }
-        , tagsView
-        , Input.checkbox []
-            { checked = imageListViewParams.onlyOwnImages
-            , onChange =
-                \new ->
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            ListImages { imageListViewParams | onlyOwnImages = new }
-                                sortTableParams
-            , icon = Input.defaultCheckbox
-            , label =
-                Input.labelRight [] <|
-                    Element.text <|
-                        String.join
-                            " "
-                            [ "Show only"
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                                |> Helpers.String.pluralize
-                            , "owned by this"
-                            , context.localization.unitOfTenancy
-                            ]
-            }
-        , Widget.textButton
-            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-            { text = "Clear filters (show all)"
-            , onPress =
-                Just <|
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            ListImages
-                                { searchText = ""
-                                , tags = Set.empty
-                                , onlyOwnImages = False
-                                , expandImageDetails = Set.empty
-                                }
-                                sortTableParams
-            }
-        , if noMatchWarning then
-            Element.text "No matches found. Broaden your search terms, or clear the search filter."
+        , Element.column VH.contentContainer
+            [ Input.text (VH.inputItemAttributes context.palette.background)
+                { text = imageListViewParams.searchText
+                , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+                , onChange =
+                    \t ->
+                        ProjectMsg project.auth.project.uuid <|
+                            SetProjectView <|
+                                ListImages
+                                    { imageListViewParams | searchText = t }
+                                    sortTableParams
+                , label =
+                    Input.labelAbove [ Font.size 14 ]
+                        (Element.text <|
+                            String.join " "
+                                [ "Filter on"
+                                , context.localization.staticRepresentationOfBlockDeviceContents
+                                , "name:"
+                                ]
+                        )
+                }
+            , tagsView
+            , Input.checkbox []
+                { checked = imageListViewParams.onlyOwnImages
+                , onChange =
+                    \new ->
+                        ProjectMsg project.auth.project.uuid <|
+                            SetProjectView <|
+                                ListImages { imageListViewParams | onlyOwnImages = new }
+                                    sortTableParams
+                , icon = Input.defaultCheckbox
+                , label =
+                    Input.labelRight [] <|
+                        Element.text <|
+                            String.join
+                                " "
+                                [ "Show only"
+                                , context.localization.staticRepresentationOfBlockDeviceContents
+                                    |> Helpers.String.pluralize
+                                , "owned by this"
+                                , context.localization.unitOfTenancy
+                                ]
+                }
+            , Widget.textButton
+                (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                { text = "Clear filters (show all)"
+                , onPress =
+                    Just <|
+                        ProjectMsg project.auth.project.uuid <|
+                            SetProjectView <|
+                                ListImages
+                                    { searchText = ""
+                                    , tags = Set.empty
+                                    , onlyOwnImages = False
+                                    , expandImageDetails = Set.empty
+                                    }
+                                    sortTableParams
+                }
+            , if noMatchWarning then
+                Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
-          else
-            Element.none
-        , List.map (renderImage context project imageListViewParams sortTableParams) combinedImages
-            |> imagesColumnView
+              else
+                Element.none
+            , List.map (renderImage context project imageListViewParams sortTableParams) combinedImages
+                |> imagesColumnView
+            ]
         ]
 
 

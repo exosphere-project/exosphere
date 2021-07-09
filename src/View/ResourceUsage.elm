@@ -62,8 +62,8 @@ alerts context currentTime timeSeries =
             Element.none
 
 
-charts : View.Types.Context -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
-charts context ( currentTime, timeZone ) timeSeriesDict =
+charts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+charts context widthPx ( currentTime, timeZone ) timeSeriesDict =
     let
         timeSeriesListLast30m =
             let
@@ -108,7 +108,7 @@ charts context ( currentTime, timeZone ) timeSeriesDict =
             Axis.custom
                 { title = Title.default ""
                 , variable = Just << getDataFunc
-                , pixels = 550
+                , pixels = widthPx
                 , range = Range.default
                 , axisLine = AxisLine.full context.palette.on.background
                 , ticks = Ticks.time timeZone 6

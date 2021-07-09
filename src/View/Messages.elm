@@ -24,9 +24,9 @@ messageLog context logMessages showDebugMsgs =
                 |> List.filter filter
     in
     Element.column
-        VH.exoColumnAttributes
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el
-            VH.heading2
+            (VH.heading2 context.palette)
             (Element.text "Recent Messages")
         , Input.checkbox
             []
@@ -39,5 +39,5 @@ messageLog context logMessages showDebugMsgs =
             Element.text "(No Messages)"
 
           else
-            Element.column VH.exoColumnAttributes (List.map (VH.renderMessageAsElement context) shownMessages)
+            Element.column VH.contentContainer (List.map (VH.renderMessageAsElement context) shownMessages)
         ]

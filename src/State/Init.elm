@@ -93,7 +93,7 @@ init flags urlKey =
             , viewState =
                 -- This is will get replaced with the appropriate login view
                 NonProjectView LoginPicker
-            , maybeWindowSize = Just { width = flags.width, height = flags.height }
+            , windowSize = { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
             , toasties = Toasty.initialState

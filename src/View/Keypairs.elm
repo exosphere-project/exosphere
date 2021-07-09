@@ -28,69 +28,71 @@ import Widget.Style.Material
 createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element Msg
 createKeypair context project name publicKey =
     Element.column
-        VH.exoColumnAttributes
-        [ Element.el VH.heading2 <|
+        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
                 String.join " "
                     [ "Upload"
                     , context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     ]
-        , Input.text
-            (VH.inputItemAttributes context.palette.background)
-            { text = name
-            , placeholder =
-                Just
-                    (Input.placeholder []
-                        (Element.text <|
-                            String.join " "
-                                [ "My", context.localization.pkiPublicKeyForSsh ]
+        , Element.column VH.formContainer
+            [ Input.text
+                (VH.inputItemAttributes context.palette.background)
+                { text = name
+                , placeholder =
+                    Just
+                        (Input.placeholder []
+                            (Element.text <|
+                                String.join " "
+                                    [ "My", context.localization.pkiPublicKeyForSsh ]
+                            )
                         )
-                    )
-            , onChange =
-                \newName ->
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            CreateKeypair
-                                newName
-                                publicKey
-            , label = Input.labelAbove [] (Element.text "Name")
-            }
-        , Input.multiline
-            (VH.inputItemAttributes context.palette.background
-                ++ [ Element.width (Element.px 500)
-                   , Element.height (Element.px 400)
-                   , Element.padding 7
-                   , Element.spacing 5
-                   , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
-                   , Font.family [ Font.monospace ]
-                   , Font.size 12
-                   ]
-            )
-            { text = publicKey
-            , placeholder = Just (Input.placeholder [] (Element.text "ssh-rsa ..."))
-            , onChange =
-                \newPublicKey ->
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            CreateKeypair
-                                name
-                                newPublicKey
-            , label =
-                Input.labelAbove
-                    [ Element.paddingXY 0 10
-                    , Font.family [ Font.sansSerif ]
-                    , Font.size 17
-                    ]
-                    (Element.text "Public Key Value")
-            , spellcheck = False
-            }
-        , Element.el [ Element.alignRight ] <|
-            Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                { text = "Create"
-                , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
+                , onChange =
+                    \newName ->
+                        ProjectMsg project.auth.project.uuid <|
+                            SetProjectView <|
+                                CreateKeypair
+                                    newName
+                                    publicKey
+                , label = Input.labelAbove [] (Element.text "Name")
                 }
+            , Input.multiline
+                (VH.inputItemAttributes context.palette.background
+                    ++ [ Element.width Element.fill
+                       , Element.height (Element.px 300)
+                       , Element.padding 7
+                       , Element.spacing 5
+                       , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
+                       , Font.family [ Font.monospace ]
+                       , Font.size 12
+                       ]
+                )
+                { text = publicKey
+                , placeholder = Just (Input.placeholder [] (Element.text "ssh-rsa ..."))
+                , onChange =
+                    \newPublicKey ->
+                        ProjectMsg project.auth.project.uuid <|
+                            SetProjectView <|
+                                CreateKeypair
+                                    name
+                                    newPublicKey
+                , label =
+                    Input.labelAbove
+                        [ Element.paddingXY 0 10
+                        , Font.family [ Font.sansSerif ]
+                        , Font.size 17
+                        ]
+                        (Element.text "Public Key Value")
+                , spellcheck = False
+                }
+            , Element.el [ Element.alignRight ] <|
+                Widget.textButton
+                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                    { text = "Create"
+                    , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
+                    }
+            ]
         ]
 
 
@@ -142,9 +144,7 @@ listKeypairs context showHeading project viewParams toMsg =
 
             else
                 Element.column
-                    (VH.exoColumnAttributes
-                        ++ [ Element.paddingXY 10 0, Element.width Element.fill ]
-                    )
+                    VH.contentContainer
                     (List.map
                         (renderKeypairCard context project viewParams toMsg)
                         keypairs_
@@ -153,7 +153,7 @@ listKeypairs context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
-            Element.el VH.heading2 <|
+            Element.el (VH.heading2 context.palette) <|
                 Element.text
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.pluralize

@@ -35,7 +35,7 @@ selectProjects model context keystoneUrl selectedProjects =
 
                 renderSuccessCase : List UnscopedProviderProject -> Element.Element Msg
                 renderSuccessCase projects =
-                    Element.column VH.exoColumnAttributes <|
+                    Element.column VH.formContainer <|
                         List.append
                             (List.map
                                 (renderProject keystoneUrl selectedProjects)
@@ -50,8 +50,8 @@ selectProjects model context keystoneUrl selectedProjects =
                                 }
                             ]
             in
-            Element.column VH.exoColumnAttributes
-                [ Element.el VH.heading2
+            Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+                [ Element.el (VH.heading2 context.palette)
                     (Element.text <|
                         String.join " "
                             [ "Choose"

@@ -150,7 +150,11 @@ projectNav context p viewParams =
     in
     Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
         [ Element.el
-            VH.heading2
+            (VH.heading2 context.palette
+                -- Removing bottom border from this heading because it runs into buttons to the right and looks weird
+                ++ [ Border.width 0
+                   ]
+            )
           <|
             Element.text <|
                 UrlHelpers.hostnameFromUrl p.endpoints.keystone

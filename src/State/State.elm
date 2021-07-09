@@ -103,7 +103,7 @@ updateUnderlying msg model =
             Toasty.update Style.Toast.toastConfig ToastyMsg subMsg model
 
         MsgChangeWindowSize x y ->
-            ( { model | maybeWindowSize = Just { width = x, height = y } }, Cmd.none )
+            ( { model | windowSize = { width = x, height = y } }, Cmd.none )
 
         Tick interval time ->
             processTick model interval time

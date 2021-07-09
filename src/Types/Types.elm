@@ -165,7 +165,7 @@ type alias Model =
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
     , prevUrl : String
     , viewState : ViewState
-    , maybeWindowSize : Maybe WindowSize
+    , windowSize : WindowSize
     , unscopedProviders : List UnscopedProvider
     , projects : List Project
     , toasties : Toasty.Stack Toast
