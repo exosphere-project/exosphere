@@ -51,7 +51,6 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
             Nothing ->
                 Element.none
         , Element.column VH.formContainer
-            -- TODO make textareas fill this width
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =
@@ -191,7 +190,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
             , Input.multiline
                 (VH.exoElementAttributes
                     ++ [ Element.height <| Element.px 200
-                       , Element.width <| Element.maximum 500 Element.fill
+                       , Element.width Element.fill
                        ]
                 )
                 { onChange =
@@ -201,20 +200,24 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                 , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
                 , spellcheck = True
                 }
-            , Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
-                { text = "Build Support Request"
-                , onPress =
-                    if String.isEmpty requestDescription then
-                        Nothing
+            , Element.row
+                [ Element.width Element.fill ]
+                [ Element.el [ Element.alignRight ] <|
+                    Widget.textButton
+                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        { text = "Build Support Request"
+                        , onPress =
+                            if String.isEmpty requestDescription then
+                                Nothing
 
-                    else
-                        Just <| SetNonProjectView <| GetSupport maybeSupportableResource requestDescription True
-                }
+                            else
+                                Just <| SetNonProjectView <| GetSupport maybeSupportableResource requestDescription True
+                        }
+                ]
             , if isSubmitted then
                 -- TODO build support request body, show it to user with a "copy to clipboard" button, ask them to paste it into an email message to the email address passed in via flags.
                 Element.column
-                    [ Element.spacing 10 ]
+                    [ Element.spacing 10, Element.width Element.fill ]
                     [ Element.paragraph
                         [ Element.spacing 10 ]
                         [ Element.text "Please copy all of the text below and paste it into an email message to: "
@@ -225,7 +228,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                     , Input.multiline
                         (VH.exoElementAttributes
                             ++ [ Element.height <| Element.px 200
-                               , Element.width <| Element.maximum 500 Element.fill
+                               , Element.width Element.fill
                                , Element.spacing 5
                                , Font.family [ Font.monospace ]
                                , Font.size 10
