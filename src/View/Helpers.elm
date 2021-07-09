@@ -127,7 +127,7 @@ heading2 palette =
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
     , Border.color (palette.muted |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 5, left = 0, right = 0, top = 0 }
+    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
     ]
 
 
@@ -139,7 +139,7 @@ heading3 palette =
     , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
     , Border.color (palette.muted |> SH.toElementColor)
     , Element.width Element.fill
-    , Element.paddingEach { bottom = 5, left = 0, right = 0, top = 0 }
+    , Element.paddingEach { bottom = 8, left = 0, right = 0, top = 0 }
     ]
 
 
