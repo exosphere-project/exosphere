@@ -340,14 +340,17 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
             toMsg newViewParams
 
         changeButton =
-            Widget.button
+            Widget.iconButton
                 (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
-                    changeActionIcon
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el []
+                    Element.row [ Element.spacing 5 ]
+                        [ Element.text changeActionVerb
+                        , changeActionIcon
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                        ]
                 , text = changeActionVerb
                 }
     in
