@@ -3,6 +3,7 @@ module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import RemoteData
@@ -42,7 +43,14 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                , Element.width Element.fill
                ]
         )
-        [ Element.el (VH.heading2 context.palette) <| Element.text ("Get Support for " ++ model.style.appTitle)
+        [ Element.row
+            (VH.heading2 context.palette ++ [ Element.spacing 12 ])
+            [ FeatherIcons.helpCircle
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , Element.text ("Get Support for " ++ model.style.appTitle)
+            ]
         , case model.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column VH.contentContainer <|

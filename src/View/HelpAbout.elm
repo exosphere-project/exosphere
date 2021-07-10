@@ -1,6 +1,7 @@
 module View.HelpAbout exposing (helpAbout)
 
 import Element
+import FeatherIcons
 import Types.Types exposing (Model, Msg(..))
 import UUID
 import View.Helpers as VH
@@ -10,7 +11,13 @@ import View.Types
 helpAbout : Model -> View.Types.Context -> Element.Element Msg
 helpAbout model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30, Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette) <| Element.text <| "About " ++ model.style.appTitle
+        [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
+            [ FeatherIcons.info
+                |> FeatherIcons.toHtml []
+                |> Element.html
+                |> Element.el []
+            , Element.text <| "About " ++ model.style.appTitle
+            ]
         , case model.style.aboutAppMarkdown of
             Just aboutAppMarkdown ->
                 Element.column VH.contentContainer <|
