@@ -147,6 +147,12 @@ projectNav context p viewParams =
     let
         edges =
             VH.edges
+
+        removeText =
+            String.join " "
+                [ "Remove"
+                , Helpers.String.toTitleCase context.localization.unitOfTenancy
+                ]
     in
     Element.row [ Element.width Element.fill, Element.spacing 10, Element.paddingEach { edges | bottom = 10 } ]
         [ Element.el
@@ -167,18 +173,10 @@ projectNav context p viewParams =
                 (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                 { icon =
                     Element.row [ Element.spacing 10 ]
-                        [ Element.text <|
-                            String.join " "
-                                [ "Remove"
-                                , Helpers.String.toTitleCase context.localization.unitOfTenancy
-                                ]
+                        [ Element.text removeText
                         , FeatherIcons.logOut |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                         ]
-                , text =
-                    String.join " "
-                        [ "Remove"
-                        , Helpers.String.toTitleCase context.localization.unitOfTenancy
-                        ]
+                , text = removeText
                 , onPress =
                     Just <| ProjectMsg p.auth.project.uuid RemoveProject
                 }
