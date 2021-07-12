@@ -107,7 +107,7 @@ floatingIps context showHeading project viewParams toMsg =
         [ Element.spacing 15, Element.width Element.fill ]
         [ if showHeading then
             Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
-                [ FeatherIcons.tag |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                [ Icon.ipAddress (SH.toElementColor context.palette.on.background) 24
                 , Element.text
                     (context.localization.floatingIpAddress
                         |> Helpers.String.pluralize

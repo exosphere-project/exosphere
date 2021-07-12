@@ -6,6 +6,7 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.String
 import Style.Helpers as SH
+import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.Types
     exposing
@@ -32,7 +33,7 @@ allResources :
     -> Element.Element Msg
 allResources context p viewParams =
     let
-        renderHeaderLink : FeatherIcons.Icon -> String -> Msg -> Element.Element Msg
+        renderHeaderLink : Element.Element Msg -> String -> Msg -> Element.Element Msg
         renderHeaderLink icon str msg =
             Element.row
                 (VH.heading3 context.palette
@@ -48,9 +49,6 @@ allResources context p viewParams =
                        ]
                 )
                 [ icon
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-                    |> Element.el []
                 , Element.text str
                 ]
     in
@@ -59,7 +57,11 @@ allResources context p viewParams =
         [ Element.column
             [ Element.width Element.fill ]
             [ renderHeaderLink
-                FeatherIcons.server
+                (FeatherIcons.server
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                )
                 (context.localization.virtualComputer
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -82,7 +84,11 @@ allResources context p viewParams =
         , Element.column
             [ Element.width Element.fill ]
             [ renderHeaderLink
-                FeatherIcons.hardDrive
+                (FeatherIcons.hardDrive
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                )
                 (context.localization.blockDevice
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -105,7 +111,7 @@ allResources context p viewParams =
         , Element.column
             [ Element.width Element.fill ]
             [ renderHeaderLink
-                FeatherIcons.tag
+                (Icon.ipAddress (SH.toElementColor context.palette.on.background) 24)
                 (context.localization.floatingIpAddress
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
@@ -130,7 +136,11 @@ allResources context p viewParams =
             , Element.spacingXY 0 15 -- Because no quota view taking up space
             ]
             [ renderHeaderLink
-                FeatherIcons.key
+                (FeatherIcons.key
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+                    |> Element.el []
+                )
                 (context.localization.pkiPublicKeyForSsh
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
