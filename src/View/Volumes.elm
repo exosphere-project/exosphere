@@ -216,8 +216,7 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                             }
                         , Widget.textButton
                             (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
-                            { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
-                            , text = "Cancel"
+                            { text = "Cancel"
                             , onPress =
                                 Just <|
                                     toMsg
