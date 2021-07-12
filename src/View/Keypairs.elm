@@ -11,6 +11,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
+import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
         ( KeypairListViewParams
@@ -153,12 +154,14 @@ listKeypairs context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
         [ if showHeading then
-            Element.el (VH.heading2 context.palette) <|
-                Element.text
+            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.text
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
+                ]
 
           else
             Element.none
@@ -236,9 +239,10 @@ actionButtons context project toMsg viewParams keypair =
             if confirmationNeeded then
                 Element.row [ Element.spacing 10 ]
                     [ Element.text "Confirm delete?"
-                    , Widget.textButton
+                    , Widget.iconButton
                         (Style.Widgets.Button.dangerButton context.palette)
-                        { text = "Delete"
+                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                        , text = "Delete"
                         , onPress =
                             Just <|
                                 ProjectMsg
@@ -261,9 +265,10 @@ actionButtons context project toMsg viewParams keypair =
                     ]
 
             else
-                Widget.textButton
+                Widget.iconButton
                     (Style.Widgets.Button.dangerButton context.palette)
-                    { text = "Delete"
+                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                    , text = "Delete"
                     , onPress =
                         Just <|
                             toMsg

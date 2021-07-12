@@ -60,6 +60,7 @@ navMenu model context =
             MenuItem.menuItem
                 context.palette
                 status
+                (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
                     (ProjectMsg project.auth.project.uuid
@@ -93,6 +94,7 @@ navMenu model context =
             in
             MenuItem.menuItem context.palette
                 active
+                (FeatherIcons.plusCircle |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 ("Add " ++ Helpers.String.toTitleCase context.localization.unitOfTenancy)
                 (Just destination)
     in

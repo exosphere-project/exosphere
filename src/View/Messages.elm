@@ -2,6 +2,8 @@ module View.Messages exposing (messageLog)
 
 import Element
 import Element.Input as Input
+import Style.Helpers as SH
+import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
 import Types.Types exposing (LogMessage, Msg(..), NonProjectViewConstructor(..))
 import View.Helpers as VH
@@ -25,9 +27,11 @@ messageLog context logMessages showDebugMsgs =
     in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el
-            (VH.heading2 context.palette)
-            (Element.text "Recent Messages")
+        [ Element.row
+            (VH.heading2 context.palette ++ [ Element.spacing 12 ])
+            [ Icon.bell (SH.toElementColor context.palette.on.background) 20
+            , Element.text "Recent Messages"
+            ]
         , Input.checkbox
             []
             { label = Input.labelRight [] (Element.text "Show low-level debug messages")

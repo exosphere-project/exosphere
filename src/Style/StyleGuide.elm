@@ -11,7 +11,7 @@ import Style.Widgets.Button exposing (dangerButton, warningButton)
 import Style.Widgets.Card exposing (badge, exoCard, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
-import Style.Widgets.Icon exposing (bell, remove, roundRect, timesCircle)
+import Style.Widgets.Icon exposing (bell, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
 import Widget
@@ -34,16 +34,17 @@ type Msg
 widgets : (Msg -> msg) -> Style.Types.ExoPalette -> Model -> List (Element.Element msg)
 widgets msgMapper palette model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
-    , menuItem palette Active "Active menu item" Nothing
-    , menuItem palette Inactive "Inactive menu item" Nothing
+    , menuItem palette Active Nothing "Active menu item" Nothing
+    , menuItem palette Inactive Nothing "Inactive menu item" Nothing
     , Element.text "Style.Widgets.Icon.roundRect"
     , roundRect (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.bell"
     , bell (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.remove"
     , remove (palette.on.background |> SH.toElementColor) 40
-    , Element.text "Style.Widgets.Icon.timesCircle"
     , timesCircle (palette.on.background |> SH.toElementColor) 40
+    , Element.text "Style.Widgets.Icon.ipAddress"
+    , ipAddress (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Card.exoCard"
     , exoCard palette (Element.text "Title") (Element.text "Subtitle") (Element.text "Lorem ipsum dolor sit amet.")
     , Element.text "Style.Widgets.Card.expandoCard"

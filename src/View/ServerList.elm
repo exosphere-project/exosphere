@@ -103,13 +103,14 @@ serverList context showHeading project serverListViewParams toMsg =
     in
     Element.column [ Element.width Element.fill ]
         [ if showHeading then
-            Element.el (VH.heading2 context.palette)
-                (Element.text <|
+            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                , Element.text <|
                     (context.localization.virtualComputer
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
-                )
+                ]
 
           else
             Element.none
@@ -226,9 +227,10 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                 , label = Input.labelRight [] (Element.text "Select All")
                 }
         , Element.el [ Element.alignRight ] <|
-            Widget.textButton
+            Widget.iconButton
                 (Style.Widgets.Button.dangerButton context.palette)
-                { text = "Delete"
+                { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                , text = "Delete"
                 , onPress = deleteButtonOnPress
                 }
         ]
@@ -467,14 +469,17 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
             toMsg newServerListViewParams
 
         changeButton =
-            Widget.button
+            Widget.iconButton
                 (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
-                    changeActionIcon
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el []
+                    Element.row [ Element.spacing 5 ]
+                        [ Element.text changeActionVerb
+                        , changeActionIcon
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                        ]
                 , text = changeActionVerb
                 }
     in

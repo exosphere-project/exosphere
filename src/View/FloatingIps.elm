@@ -13,6 +13,7 @@ import Style.Helpers as SH
 import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText
+import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Types.Defaults as Defaults
 import Types.Types
@@ -105,12 +106,14 @@ floatingIps context showHeading project viewParams toMsg =
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
         [ if showHeading then
-            Element.el (VH.heading2 context.palette) <|
-                Element.text
+            Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                [ Icon.ipAddress (SH.toElementColor context.palette.on.background) 24
+                , Element.text
                     (context.localization.floatingIpAddress
                         |> Helpers.String.pluralize
                         |> Helpers.String.toTitleCase
                     )
+                ]
 
           else
             Element.none
@@ -227,9 +230,10 @@ actionButtons context project toMsg viewParams ip =
             if confirmationNeeded then
                 Element.row [ Element.spacing 10 ]
                     [ Element.text "Confirm delete?"
-                    , Widget.textButton
+                    , Widget.iconButton
                         (Style.Widgets.Button.dangerButton context.palette)
-                        { text = "Delete"
+                        { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                        , text = "Delete"
                         , onPress =
                             Just <|
                                 ProjectMsg
@@ -252,9 +256,10 @@ actionButtons context project toMsg viewParams ip =
                     ]
 
             else
-                Widget.textButton
+                Widget.iconButton
                     (Style.Widgets.Button.dangerButton context.palette)
-                    { text = "Delete"
+                    { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
+                    , text = "Delete"
                     , onPress =
                         Just <|
                             toMsg
@@ -335,14 +340,17 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
             toMsg newViewParams
 
         changeButton =
-            Widget.button
+            Widget.iconButton
                 (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
-                    changeActionIcon
-                        |> FeatherIcons.toHtml []
-                        |> Element.html
-                        |> Element.el []
+                    Element.row [ Element.spacing 5 ]
+                        [ Element.text changeActionVerb
+                        , changeActionIcon
+                            |> FeatherIcons.toHtml []
+                            |> Element.html
+                            |> Element.el []
+                        ]
                 , text = changeActionVerb
                 }
     in

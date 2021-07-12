@@ -19,10 +19,10 @@ type MenuItemState
     menuItem Active "Add Provider" Nothing
 
 -}
-menuItem : Style.Types.ExoPalette -> MenuItemState -> String -> Maybe msg -> Element msg
-menuItem palette state itemLabel onPress =
+menuItem : Style.Types.ExoPalette -> MenuItemState -> Maybe (Element msg) -> String -> Maybe msg -> Element msg
+menuItem palette state icon itemLabel onPress =
     let
-        ( fontWeight, fontColor, backgroundColor ) =
+        ( fontWeight, iconColor, backgroundColor ) =
             case state of
                 Active ->
                     ( Font.bold
@@ -41,9 +41,9 @@ menuItem palette state itemLabel onPress =
             , Border.color (SH.toElementColor palette.on.background)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Element.spacing 15
-            , Element.paddingXY 15 24
+            , Element.paddingXY 10 24
             , Background.color (SH.toElementColor backgroundColor)
-            , Font.color (SH.toElementColor fontColor)
+            , Font.color (SH.toElementColor palette.menu.on.surface)
             ]
 
         menuItemElementAttrs =
@@ -67,12 +67,20 @@ menuItem palette state itemLabel onPress =
             Element.column
                 []
                 [ Element.row
-                    []
-                    [ Element.paragraph
+                    [ Element.spacing 8 ]
+                    [ icon
+                        |> Maybe.map
+                            (Element.el
+                                [ Font.color (SH.toElementColor iconColor)
+                                ]
+                            )
+                        |> Maybe.withDefault Element.none
+                    , Element.paragraph
                         [ Font.size 15
                         , fontWeight
                         ]
-                        [ Element.text itemLabel ]
+                        [ Element.text itemLabel
+                        ]
                     ]
                 ]
     in
