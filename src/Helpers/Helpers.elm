@@ -189,7 +189,7 @@ decodeFloatingIpOption serverDetails =
     in
     case maybeFloatingIpOptionStr of
         Nothing ->
-            Automatic
+            DoNotUseFloatingIp
 
         Just floatingIpOptionStr ->
             case floatingIpOptionStr of
