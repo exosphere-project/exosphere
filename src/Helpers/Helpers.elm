@@ -148,6 +148,73 @@ serviceCatalogToEndpoints catalog =
                 )
 
 
+encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )
+encodeFloatingIpOption option =
+    case option of
+        UseFloatingIp reuseOption _ ->
+            let
+                reuseOptionStr =
+                    case reuseOption of
+                        CreateNewFloatingIp ->
+                            "create"
+
+                        UseExistingFloatingIp floatingIpUuid ->
+                            floatingIpUuid
+            in
+            [ ( "exoFloatingIpOption", Json.Encode.string "useFloatingIp" )
+            , ( "exoFloatingIpReuseOption", Json.Encode.string reuseOptionStr )
+            ]
+
+        Automatic ->
+            [ ( "exoFloatingIpOption", Json.Encode.string "automatic" )
+            ]
+
+        DoNotUseFloatingIp ->
+            [ ( "exoFloatingIpOption", Json.Encode.string "doNotUseFloatingIp" )
+            ]
+
+
+decodeFloatingIpOption : OSTypes.ServerDetails -> FloatingIpOption
+decodeFloatingIpOption serverDetails =
+    let
+        maybeFloatingIpOptionStr =
+            List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+
+        maybeReuseOptionStr =
+            List.filter (\i -> i.key == "exoFloatingIpReuseOption") serverDetails.metadata
+                |> List.head
+                |> Maybe.map .value
+    in
+    case maybeFloatingIpOptionStr of
+        Nothing ->
+            Automatic
+
+        Just floatingIpOptionStr ->
+            case floatingIpOptionStr of
+                "useFloatingIp" ->
+                    case maybeReuseOptionStr of
+                        Nothing ->
+                            UseFloatingIp CreateNewFloatingIp Unknown
+
+                        Just reuseOptionStr ->
+                            if reuseOptionStr == "create" then
+                                UseFloatingIp CreateNewFloatingIp Unknown
+
+                            else
+                                UseFloatingIp (UseExistingFloatingIp reuseOptionStr) Unknown
+
+                "automatic" ->
+                    Automatic
+
+                "doNotUseFloatingIp" ->
+                    DoNotUseFloatingIp
+
+                _ ->
+                    Automatic
+
+
 getNewFloatingIpOption : Project -> OSTypes.Server -> FloatingIpOption -> FloatingIpOption
 getNewFloatingIpOption project osServer floatingIpOption =
     let
@@ -531,73 +598,6 @@ serverOrigin serverDetails =
 
         Nothing ->
             ServerNotFromExo
-
-
-encodeFloatingIpOption : FloatingIpOption -> List ( String, Json.Encode.Value )
-encodeFloatingIpOption option =
-    case option of
-        UseFloatingIp reuseOption _ ->
-            let
-                reuseOptionStr =
-                    case reuseOption of
-                        CreateNewFloatingIp ->
-                            "create"
-
-                        UseExistingFloatingIp floatingIpUuid ->
-                            floatingIpUuid
-            in
-            [ ( "exoFloatingIpOption", Json.Encode.string "useFloatingIp" )
-            , ( "exoFloatingIpReuseOption", Json.Encode.string reuseOptionStr )
-            ]
-
-        Automatic ->
-            [ ( "exoFloatingIpOption", Json.Encode.string "automatic" )
-            ]
-
-        DoNotUseFloatingIp ->
-            [ ( "exoFloatingIpOption", Json.Encode.string "doNotUseFloatingIp" )
-            ]
-
-
-decodeFloatingIpOption : OSTypes.ServerDetails -> FloatingIpOption
-decodeFloatingIpOption serverDetails =
-    let
-        maybeFloatingIpOptionStr =
-            List.filter (\i -> i.key == "exoFloatingIpOption") serverDetails.metadata
-                |> List.head
-                |> Maybe.map .value
-
-        maybeReuseOptionStr =
-            List.filter (\i -> i.key == "exoFloatingIpReuseOption") serverDetails.metadata
-                |> List.head
-                |> Maybe.map .value
-    in
-    case maybeFloatingIpOptionStr of
-        Nothing ->
-            Automatic
-
-        Just floatingIpOptionStr ->
-            case floatingIpOptionStr of
-                "useFloatingIp" ->
-                    case maybeReuseOptionStr of
-                        Nothing ->
-                            UseFloatingIp CreateNewFloatingIp Unknown
-
-                        Just reuseOptionStr ->
-                            if reuseOptionStr == "create" then
-                                UseFloatingIp CreateNewFloatingIp Unknown
-
-                            else
-                                UseFloatingIp (UseExistingFloatingIp reuseOptionStr) Unknown
-
-                "automatic" ->
-                    Automatic
-
-                "doNotUseFloatingIp" ->
-                    DoNotUseFloatingIp
-
-                _ ->
-                    Automatic
 
 
 serverFromThisExoClient : UUID.UUID -> Server -> Bool
