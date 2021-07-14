@@ -971,7 +971,7 @@ decodeServerDetails : Decode.Decoder OSTypes.ServerDetails
 decodeServerDetails =
     Decode.succeed OSTypes.ServerDetails
         |> Pipeline.required "status" (Decode.string |> Decode.andThen serverOpenstackStatusDecoder)
-        |> Pipeline.required "created" Decode.string
+        |> Pipeline.required "created" (Decode.string |> Decode.andThen iso8601StringToPosixDecodeError)
         |> Pipeline.required "OS-EXT-STS:power_state" (Decode.int |> Decode.andThen serverPowerStateDecoder)
         |> Pipeline.optionalAt [ "image", "id" ] Decode.string ""
         |> Pipeline.requiredAt [ "flavor", "id" ] Decode.string

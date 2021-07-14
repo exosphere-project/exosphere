@@ -26,7 +26,6 @@ module Helpers.Helpers exposing
 import Dict
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
-import Helpers.Time exposing (iso8601StringToPosix)
 import Http
 import Json.Decode as Decode
 import Json.Encode
@@ -653,13 +652,7 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
         curTimeMillis =
             Time.posixToMillis currentTime
     in
-    case iso8601StringToPosix server.osProps.details.created of
-        -- Defaults to False if cannot determine server created time
-        Err _ ->
-            False
-
-        Ok createdTime ->
-            (curTimeMillis - Time.posixToMillis createdTime) < maxServerAgeMillis
+    (curTimeMillis - Time.posixToMillis server.osProps.details.created) < maxServerAgeMillis
 
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places

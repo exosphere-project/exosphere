@@ -400,7 +400,7 @@ type ServerLockStatus
 
 type alias ServerDetails =
     { openstackStatus : ServerStatus
-    , created : String
+    , created : Time.Posix
     , powerState : ServerPowerState
     , imageUuid : ImageUuid
     , flavorUuid : FlavorUuid
