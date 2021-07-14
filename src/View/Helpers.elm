@@ -57,6 +57,7 @@ import Regex
 import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.Tooltip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
@@ -786,10 +787,13 @@ createdAgoBy currentTime createdTime maybeWhoCreated =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
+
+        createdTimeFormatted =
+            Helpers.Time.humanReadableTime createdTime
     in
     Element.paragraph []
         [ Element.text "Created "
-        , Element.text timeDistanceStr
+        , Style.Widgets.Tooltip.tooltip (Element.text timeDistanceStr) (Element.text createdTimeFormatted) True (\_ -> NoOp)
         , case maybeWhoCreated of
             Just whoCreated ->
                 Element.text (" by " ++ whoCreated)

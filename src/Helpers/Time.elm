@@ -56,8 +56,6 @@ humanReadableTime posix =
     , Time.toMinute Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
     , ":"
     , Time.toSecond Time.utc posix |> String.fromInt |> String.padLeft 2 '0'
-    , "."
-    , Time.toMillis Time.utc posix |> String.fromInt |> String.padLeft 3 '0'
     , " UTC"
     ]
         |> String.concat
