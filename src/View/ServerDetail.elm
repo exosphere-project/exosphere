@@ -81,18 +81,18 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         details =
             server.osProps.details
 
-        creatorNameView =
+        creatorName =
             case server.exoProps.serverOrigin of
                 ServerFromExo exoOriginProps ->
                     case exoOriginProps.exoCreatorUsername of
-                        Just creatorUsername ->
-                            VH.compactKVRow "Created by" (Element.text creatorUsername)
+                        Just creatorName_ ->
+                            creatorName_
 
-                        _ ->
-                            Element.none
+                        Nothing ->
+                            "unknown user"
 
                 _ ->
-                    Element.none
+                    "unknown user"
 
         flavorText =
             GetterSetters.flavorLookup project details.flavorUuid
@@ -307,8 +307,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , VH.compactKVRow "Name" serverNameView
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
-            , VH.compactKVRow "Created on" (Element.text details.created)
-            , creatorNameView
+            , Element.text <| VH.createdAgoBy (Tuple.first currentTimeAndZone) details.created (Just creatorName)
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
                 (Element.text imageText)

@@ -3,6 +3,7 @@ module View.Helpers exposing
     , compactKVRow
     , compactKVSubRow
     , contentContainer
+    , createdAgoBy
     , edges
     , exoColumnAttributes
     , exoElementAttributes
@@ -34,6 +35,7 @@ module View.Helpers exposing
     )
 
 import Color
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -55,6 +57,7 @@ import Regex
 import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Types
@@ -776,6 +779,28 @@ friendlyProjectTitle model project =
 
     else
         providerTitle
+
+
+createdAgoBy : Time.Posix -> Time.Posix -> Maybe String -> String
+createdAgoBy currentTime createdTime maybeWhoCreated =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime createdTime
+    in
+    String.join " " <|
+        List.concat
+            [ [ "Created"
+              , timeDistanceStr
+              ]
+            , case maybeWhoCreated of
+                Just whoCreated ->
+                    [ "by"
+                    , whoCreated
+                    ]
+
+                Nothing ->
+                    []
+            ]
 
 
 imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
