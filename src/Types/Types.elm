@@ -491,11 +491,14 @@ type alias ServerListViewParams =
 
 
 type alias ServerDetailViewParams =
-    { verboseStatus : VerboseStatus
+    { showCreatedTimeTooltip : Bool
+    , verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
+
+    -- TODO rename this because now we have other tooltips in this view
     , activeTooltip : Maybe ServerDetailActiveTooltip
     , retainFloatingIpsWhenDeleting : Bool
     }

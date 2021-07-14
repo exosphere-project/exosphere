@@ -782,8 +782,15 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-createdAgoBy : View.Types.Context -> Time.Posix -> Time.Posix -> Maybe String -> Element.Element Msg
-createdAgoBy context currentTime createdTime maybeWhoCreated =
+createdAgoBy :
+    View.Types.Context
+    -> Time.Posix
+    -> Time.Posix
+    -> Maybe String
+    -> Bool
+    -> (Bool -> Msg)
+    -> Element.Element Msg
+createdAgoBy context currentTime createdTime maybeWhoCreated showTooltip toShowHideTooltipMsg =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
@@ -797,8 +804,8 @@ createdAgoBy context currentTime createdTime maybeWhoCreated =
             context.palette
             (Element.text timeDistanceStr)
             (Element.text createdTimeFormatted)
-            True
-            (\_ -> NoOp)
+            showTooltip
+            toShowHideTooltipMsg
         , case maybeWhoCreated of
             Just whoCreated ->
                 Element.text (" by " ++ whoCreated)

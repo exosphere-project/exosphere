@@ -313,6 +313,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     (Tuple.first currentTimeAndZone)
                     details.created
                     (Just ("user " ++ creatorName))
+                    serverDetailViewParams.showCreatedTimeTooltip
+                    (\shown ->
+                        updateServerDetail project { serverDetailViewParams | showCreatedTimeTooltip = shown } server
+                    )
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
