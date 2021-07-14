@@ -782,8 +782,8 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-createdAgoBy : Time.Posix -> Time.Posix -> Maybe String -> Element.Element Msg
-createdAgoBy currentTime createdTime maybeWhoCreated =
+createdAgoBy : View.Types.Context -> Time.Posix -> Time.Posix -> Maybe String -> Element.Element Msg
+createdAgoBy context currentTime createdTime maybeWhoCreated =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
@@ -791,9 +791,14 @@ createdAgoBy currentTime createdTime maybeWhoCreated =
         createdTimeFormatted =
             Helpers.Time.humanReadableTime createdTime
     in
-    Element.paragraph []
+    Element.row []
         [ Element.text "Created "
-        , Style.Widgets.Tooltip.tooltip (Element.text timeDistanceStr) (Element.text createdTimeFormatted) True (\_ -> NoOp)
+        , Style.Widgets.Tooltip.tooltip
+            context.palette
+            (Element.text timeDistanceStr)
+            (Element.text createdTimeFormatted)
+            True
+            (\_ -> NoOp)
         , case maybeWhoCreated of
             Just whoCreated ->
                 Element.text (" by " ++ whoCreated)

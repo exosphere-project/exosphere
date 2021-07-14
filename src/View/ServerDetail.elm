@@ -308,7 +308,11 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 , Font.color (context.palette.muted |> SH.toElementColor)
                 ]
               <|
-                VH.createdAgoBy (Tuple.first currentTimeAndZone) details.created (Just ("user " ++ creatorName))
+                VH.createdAgoBy
+                    context
+                    (Tuple.first currentTimeAndZone)
+                    details.created
+                    (Just ("user " ++ creatorName))
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
