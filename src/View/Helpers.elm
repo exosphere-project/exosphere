@@ -781,26 +781,22 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-createdAgoBy : Time.Posix -> Time.Posix -> Maybe String -> String
+createdAgoBy : Time.Posix -> Time.Posix -> Maybe String -> Element.Element Msg
 createdAgoBy currentTime createdTime maybeWhoCreated =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
     in
-    String.join " " <|
-        List.concat
-            [ [ "Created"
-              , timeDistanceStr
-              ]
-            , case maybeWhoCreated of
-                Just whoCreated ->
-                    [ "by"
-                    , whoCreated
-                    ]
+    Element.paragraph []
+        [ Element.text "Created "
+        , Element.text timeDistanceStr
+        , case maybeWhoCreated of
+            Just whoCreated ->
+                Element.text (" by " ++ whoCreated)
 
-                Nothing ->
-                    []
-            ]
+            Nothing ->
+                Element.none
+        ]
 
 
 imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
