@@ -294,20 +294,24 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
             [ Element.row
-                (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.text <|
-                    String.join " "
-                        [ context.localization.virtualComputer
-                            |> Helpers.String.toTitleCase
-                        , "Details"
-                        ]
+                , Element.text
+                    (context.localization.virtualComputer
+                        |> Helpers.String.toTitleCase
+                    )
+                , serverNameView
                 ]
             , passwordVulnWarning context server
-            , VH.compactKVRow "Name" serverNameView
+            , Element.el
+                [ Element.paddingXY 0 5
+                , Font.color (context.palette.muted |> SH.toElementColor)
+                ]
+              <|
+                Element.text <|
+                    VH.createdAgoBy (Tuple.first currentTimeAndZone) details.created (Just ("user " ++ creatorName))
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
-            , Element.text <| VH.createdAgoBy (Tuple.first currentTimeAndZone) details.created (Just creatorName)
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
                 (Element.text imageText)
