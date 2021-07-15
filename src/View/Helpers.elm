@@ -57,7 +57,7 @@ import Regex
 import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
-import Style.Widgets.Tooltip
+import Style.Widgets.ToggleTip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
@@ -790,7 +790,7 @@ createdAgoBy :
     -> Bool
     -> (Bool -> Msg)
     -> Element.Element Msg
-createdAgoBy context currentTime createdTime maybeWhoCreated showTooltip toShowHideTooltipMsg =
+createdAgoBy context currentTime createdTime maybeWhoCreated showToggleTip toShowHideTipMsg =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
@@ -800,12 +800,12 @@ createdAgoBy context currentTime createdTime maybeWhoCreated showTooltip toShowH
     in
     Element.row []
         [ Element.text "Created "
-        , Style.Widgets.Tooltip.tooltip
+        , Style.Widgets.ToggleTip.toggleTip
             context.palette
             (Element.text timeDistanceStr)
-            (Element.text createdTimeFormatted)
-            showTooltip
-            toShowHideTooltipMsg
+            createdTimeFormatted
+            showToggleTip
+            toShowHideTipMsg
         , case maybeWhoCreated of
             Just whoCreated ->
                 Element.text (" by " ++ whoCreated)

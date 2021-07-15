@@ -109,7 +109,7 @@ serverListViewParams =
 
 serverDetailViewParams : Types.ServerDetailViewParams
 serverDetailViewParams =
-    { showCreatedTimeTooltip = False
+    { showCreatedTimeToggleTip = False
     , verboseStatus = False
     , passwordVisibility = Types.PasswordHidden
     , ipInfoLevel = Types.IPSummary

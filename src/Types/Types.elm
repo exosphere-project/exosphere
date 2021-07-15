@@ -491,7 +491,7 @@ type alias ServerListViewParams =
 
 
 type alias ServerDetailViewParams =
-    { showCreatedTimeTooltip : Bool
+    { showCreatedTimeToggleTip : Bool
     , verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
