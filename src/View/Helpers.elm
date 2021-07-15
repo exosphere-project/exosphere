@@ -3,6 +3,7 @@ module View.Helpers exposing
     , compactKVRow
     , compactKVSubRow
     , contentContainer
+    , createdAgoByFrom
     , edges
     , exoColumnAttributes
     , exoElementAttributes
@@ -34,6 +35,7 @@ module View.Helpers exposing
     )
 
 import Color
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -55,6 +57,8 @@ import Regex
 import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.ToggleTip
+import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Types
@@ -776,6 +780,66 @@ friendlyProjectTitle model project =
 
     else
         providerTitle
+
+
+createdAgoByFrom :
+    View.Types.Context
+    -> Time.Posix
+    -> Time.Posix
+    -> Maybe ( String, String )
+    -> Maybe ( String, String )
+    -> Bool
+    -> Msg
+    -> Element.Element Msg
+createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple showToggleTip showHideTipMsg =
+    let
+        timeDistanceStr =
+            DateFormat.Relative.relativeTime currentTime createdTime
+
+        createdTimeFormatted =
+            Helpers.Time.humanReadableTime createdTime
+
+        muted =
+            Font.color (context.palette.muted |> SH.toElementColor)
+
+        separator =
+            Element.el
+                [ Element.paddingXY 10 0
+                , muted
+                ]
+                (Element.text "/")
+    in
+    Element.wrappedRow [ Element.spacingXY 0 10 ] <|
+        [ Element.row []
+            [ Element.el [ muted ] (Element.text "Created ")
+            , Element.text timeDistanceStr
+            , Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.text createdTimeFormatted)
+                showToggleTip
+                showHideTipMsg
+            ]
+        , case maybeWhoCreatedTuple of
+            Just ( creatorAdjective, whoCreated ) ->
+                Element.row []
+                    [ separator
+                    , Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
+                    , Element.text whoCreated
+                    ]
+
+            Nothing ->
+                Element.none
+        , case maybeFromTuple of
+            Just ( fromAdjective, whereFrom ) ->
+                Element.row []
+                    [ separator
+                    , Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
+                    , Element.text whereFrom
+                    ]
+
+            Nothing ->
+                Element.none
+        ]
 
 
 imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter

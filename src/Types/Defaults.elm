@@ -109,12 +109,13 @@ serverListViewParams =
 
 serverDetailViewParams : Types.ServerDetailViewParams
 serverDetailViewParams =
-    { verboseStatus = False
+    { showCreatedTimeToggleTip = False
+    , verboseStatus = False
     , passwordVisibility = Types.PasswordHidden
     , ipInfoLevel = Types.IPSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
-    , activeTooltip = Nothing
+    , activeInteractionToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
     }
 

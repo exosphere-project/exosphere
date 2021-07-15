@@ -44,7 +44,6 @@ module Types.Types exposing
     , ProjectViewParams
     , ResourceUsageRDPP
     , Server
-    , ServerDetailActiveTooltip(..)
     , ServerDetailViewParams
     , ServerFromExoProps
     , ServerListViewParams
@@ -491,19 +490,15 @@ type alias ServerListViewParams =
 
 
 type alias ServerDetailViewParams =
-    { verboseStatus : VerboseStatus
+    { showCreatedTimeToggleTip : Bool
+    , verboseStatus : VerboseStatus
     , passwordVisibility : PasswordVisibility
     , ipInfoLevel : IPInfoLevel
     , serverActionNamePendingConfirmation : Maybe String
     , serverNamePendingConfirmation : Maybe String
-    , activeTooltip : Maybe ServerDetailActiveTooltip
+    , activeInteractionToggleTip : Maybe Interaction
     , retainFloatingIpsWhenDeleting : Bool
     }
-
-
-type ServerDetailActiveTooltip
-    = InteractionTooltip Interaction
-    | InteractionStatusTooltip Interaction
 
 
 type alias VolumeListViewParams =

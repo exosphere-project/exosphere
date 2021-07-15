@@ -8,7 +8,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
-import Helpers.Time as TimeHelpers
 import Helpers.Url as UrlHelpers
 import Http
 import LocalStorage.LocalStorage as LocalStorage
@@ -1574,11 +1573,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                             Helpers.ExoSetupStatus.parseConsoleLogExoSetupStatus
                                                 oldExoSetupStatus
                                                 consoleLog
-                                                (TimeHelpers.iso8601StringToPosix
-                                                    server.osProps.details.created
-                                                    |> Result.withDefault
-                                                        (Time.millisToPosix 0)
-                                                )
+                                                server.osProps.details.created
                                                 model.clientCurrentTime
 
                                         cmd =

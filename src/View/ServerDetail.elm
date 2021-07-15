@@ -4,7 +4,6 @@ import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -22,6 +21,7 @@ import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
+import Style.Widgets.ToggleTip
 import Time
 import Types.Interaction as ITypes
 import Types.Types
@@ -37,7 +37,6 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
-        , ServerDetailActiveTooltip(..)
         , ServerDetailViewParams
         , ServerOrigin(..)
         , ServerSpecificMsgConstructor(..)
@@ -81,18 +80,18 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         details =
             server.osProps.details
 
-        creatorNameView =
+        creatorName =
             case server.exoProps.serverOrigin of
                 ServerFromExo exoOriginProps ->
                     case exoOriginProps.exoCreatorUsername of
-                        Just creatorUsername ->
-                            VH.compactKVRow "Created by" (Element.text creatorUsername)
+                        Just creatorName_ ->
+                            creatorName_
 
-                        _ ->
-                            Element.none
+                        Nothing ->
+                            "unknown user"
 
                 _ ->
-                    Element.none
+                    "unknown user"
 
         flavorText =
             GetterSetters.flavorLookup project details.flavorUuid
@@ -294,24 +293,29 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
         firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
             [ Element.row
-                (VH.heading2 context.palette ++ [ Element.spacing 15 ])
+                (VH.heading2 context.palette ++ [ Element.spacing 10 ])
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
-                , Element.text <|
-                    String.join " "
-                        [ context.localization.virtualComputer
-                            |> Helpers.String.toTitleCase
-                        , "Details"
-                        ]
+                , Element.text
+                    (context.localization.virtualComputer
+                        |> Helpers.String.toTitleCase
+                    )
+                , serverNameView
                 ]
             , passwordVulnWarning context server
-            , VH.compactKVRow "Name" serverNameView
+            , Element.el
+                [ Element.paddingXY 0 5
+                ]
+              <|
+                VH.createdAgoByFrom
+                    context
+                    (Tuple.first currentTimeAndZone)
+                    details.created
+                    (Just ( "user", creatorName ))
+                    (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
+                    serverDetailViewParams.showCreatedTimeToggleTip
+                    (updateServerDetail project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
-            , VH.compactKVRow "Created on" (Element.text details.created)
-            , creatorNameView
-            , VH.compactKVRow
-                (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
-                (Element.text imageText)
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
                 (Element.text flavorText)
@@ -575,9 +579,6 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
     let
         renderInteraction interaction =
             let
-                interactionDetails =
-                    IHelpers.interactionDetails interaction context
-
                 interactionStatus =
                     IHelpers.interactionStatus
                         project
@@ -590,85 +591,81 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                 ( statusWord, statusColor ) =
                     IHelpers.interactionStatusWordColor context.palette interactionStatus
 
-                statusTooltip =
-                    -- TODO deduplicate with below function?
-                    case serverDetailViewParams.activeTooltip of
-                        Just (InteractionStatusTooltip interaction_) ->
-                            if interaction == interaction_ then
-                                Element.el
-                                    [ Element.paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
-                                <|
-                                    Element.column
-                                        [ Element.padding 5
+                interactionDetails =
+                    IHelpers.interactionDetails interaction context
 
-                                        -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| SH.toElementColor <| context.palette.surface
-                                        , Font.color <| SH.toElementColor <| context.palette.on.surface
-                                        ]
-                                        [ Element.text statusWord
-                                        , case interactionStatus of
-                                            ITypes.Unavailable reason ->
-                                                Element.text reason
-
-                                            ITypes.Error reason ->
-                                                Element.text reason
-
-                                            ITypes.Warn _ reason ->
-                                                Element.text reason
-
-                                            _ ->
-                                                Element.none
-                                        ]
-
-                            else
-                                Element.none
-
-                        _ ->
-                            Element.none
-
-                interactionTooltip =
-                    -- TODO deduplicate with above function?
-                    case serverDetailViewParams.activeTooltip of
-                        Just (InteractionTooltip interaction_) ->
-                            if interaction == interaction_ then
-                                Element.el
-                                    [ Element.paddingEach { top = 0, right = 0, left = 10, bottom = 0 } ]
-                                <|
-                                    Element.column
-                                        [ Element.padding 5
-
-                                        -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| SH.toElementColor <| context.palette.surface
-                                        , Font.color <| SH.toElementColor <| context.palette.on.surface
-                                        , Element.width (Element.maximum 300 Element.shrink)
-                                        ]
-                                        [ Element.paragraph
-                                            -- Ugh? https://github.com/mdgriffith/elm-ui/issues/157
-                                            [ Element.width (Element.minimum 200 Element.fill) ]
-                                            [ Element.text interactionDetails.description ]
-                                        ]
-
-                            else
-                                Element.none
-
-                        _ ->
-                            Element.none
-
-                showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
-                showHideTooltipMsg tooltip =
+                interactionToggleTip =
                     let
-                        newValue =
-                            case serverDetailViewParams.activeTooltip of
-                                Just _ ->
-                                    Nothing
+                        status =
+                            Element.row []
+                                [ Element.el [ Font.bold ] <| Element.text "Status: "
+                                , Element.text statusWord
+                                ]
 
-                                Nothing ->
-                                    Just <| tooltip
+                        statusReason =
+                            let
+                                renderReason reason =
+                                    Element.text <| "(" ++ reason ++ ")"
+                            in
+                            case interactionStatus of
+                                ITypes.Unavailable reason ->
+                                    renderReason reason
+
+                                ITypes.Error reason ->
+                                    renderReason reason
+
+                                ITypes.Warn _ reason ->
+                                    renderReason reason
+
+                                _ ->
+                                    Element.none
+
+                        description =
+                            Element.paragraph []
+                                [ Element.el [ Font.bold ] <| Element.text "Description: "
+                                , Element.text interactionDetails.description
+                                ]
+
+                        contents =
+                            Element.column
+                                [ Element.width (Element.shrink |> Element.minimum 200)
+                                , Element.spacing 10
+                                , Element.padding 5
+                                ]
+                                [ status
+                                , statusReason
+                                , description
+                                ]
+
+                        shown =
+                            case serverDetailViewParams.activeInteractionToggleTip of
+                                Just interaction_ ->
+                                    interaction == interaction_
+
+                                _ ->
+                                    False
+
+                        showHideMsg : ITypes.Interaction -> Msg
+                        showHideMsg interaction_ =
+                            let
+                                newValue =
+                                    case serverDetailViewParams.activeInteractionToggleTip of
+                                        Just _ ->
+                                            Nothing
+
+                                        Nothing ->
+                                            Just <| interaction_
+                            in
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    ServerDetail server.osProps.uuid
+                                        { serverDetailViewParams | activeInteractionToggleTip = newValue }
                     in
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            ServerDetail server.osProps.uuid
-                                { serverDetailViewParams | activeTooltip = newValue }
+                    Style.Widgets.ToggleTip.toggleTip
+                        context.palette
+                        contents
+                        shown
+                        (showHideMsg interaction)
             in
             case interactionStatus of
                 ITypes.Hidden ->
@@ -677,11 +674,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                 _ ->
                     Element.row
                         VH.exoRowAttributes
-                        [ Element.el
-                            [ Element.below statusTooltip
-                            , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
-                            ]
-                            (Icon.roundRect statusColor 14)
+                        [ Icon.roundRect statusColor 14
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
                                 Widget.button
@@ -748,11 +741,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                         _ ->
                                             Element.none
                                     ]
-                        , Element.el
-                            [ Element.onRight interactionTooltip
-                            , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
-                            ]
-                            (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
+                        , interactionToggleTip
                         ]
     in
     [ ITypes.GuacTerminal
