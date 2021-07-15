@@ -37,7 +37,6 @@ import Types.Types
         , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , Server
-        , ServerDetailActiveTooltip(..)
         , ServerDetailViewParams
         , ServerOrigin(..)
         , ServerSpecificMsgConstructor(..)
@@ -597,27 +596,27 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                 ( statusWord, statusColor ) =
                     IHelpers.interactionStatusWordColor context.palette interactionStatus
 
-                showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
-                showHideTooltipMsg tooltip =
+                showHideTooltipMsg : ITypes.Interaction -> Msg
+                showHideTooltipMsg interaction_ =
                     let
                         newValue =
-                            case serverDetailViewParams.activeTooltip of
+                            case serverDetailViewParams.activeInteractionToggleTip of
                                 Just _ ->
                                     Nothing
 
                                 Nothing ->
-                                    Just <| tooltip
+                                    Just <| interaction_
                     in
                     ProjectMsg project.auth.project.uuid <|
                         SetProjectView <|
                             ServerDetail server.osProps.uuid
-                                { serverDetailViewParams | activeTooltip = newValue }
+                                { serverDetailViewParams | activeInteractionToggleTip = newValue }
 
                 interactionToggleTip =
                     let
                         shown =
-                            case serverDetailViewParams.activeTooltip of
-                                Just (InteractionTooltip interaction_) ->
+                            case serverDetailViewParams.activeInteractionToggleTip of
+                                Just interaction_ ->
                                     if interaction == interaction_ then
                                         True
 
@@ -672,7 +671,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                         context.palette
                         contents
                         shown
-                        (showHideTooltipMsg (InteractionTooltip interaction))
+                        (showHideTooltipMsg interaction)
             in
             case interactionStatus of
                 ITypes.Hidden ->
