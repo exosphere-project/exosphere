@@ -306,18 +306,16 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 [ Element.paddingXY 0 5
                 ]
               <|
-                VH.createdAgoBy
+                VH.createdAgoByFrom
                     context
                     (Tuple.first currentTimeAndZone)
                     details.created
-                    (Just ("user " ++ creatorName))
+                    (Just ( "user", creatorName ))
+                    (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                     serverDetailViewParams.showCreatedTimeToggleTip
                     (updateServerDetail project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
-            , VH.compactKVRow
-                (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
-                (Element.text imageText)
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
                 (Element.text flavorText)

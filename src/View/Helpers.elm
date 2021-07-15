@@ -3,7 +3,7 @@ module View.Helpers exposing
     , compactKVRow
     , compactKVSubRow
     , contentContainer
-    , createdAgoBy
+    , createdAgoByFrom
     , edges
     , exoColumnAttributes
     , exoElementAttributes
@@ -782,36 +782,64 @@ friendlyProjectTitle model project =
         providerTitle
 
 
-createdAgoBy :
+createdAgoByFrom :
     View.Types.Context
     -> Time.Posix
     -> Time.Posix
-    -> Maybe String
+    -> Maybe ( String, String )
+    -> Maybe ( String, String )
     -> Bool
     -> Msg
     -> Element.Element Msg
-createdAgoBy context currentTime createdTime maybeWhoCreated showToggleTip showHideTipMsg =
+createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple showToggleTip showHideTipMsg =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
 
         createdTimeFormatted =
             Helpers.Time.humanReadableTime createdTime
-    in
-    Element.row []
-        [ Element.text ("Created " ++ timeDistanceStr)
-        , Style.Widgets.ToggleTip.toggleTip
-            context.palette
-            (Element.text createdTimeFormatted)
-            showToggleTip
-            showHideTipMsg
-        , case maybeWhoCreated of
-            Just whoCreated ->
-                Element.text ("by " ++ whoCreated)
 
-            Nothing ->
-                Element.none
-        ]
+        muted =
+            Font.color (context.palette.muted |> SH.toElementColor)
+
+        separator =
+            Element.el
+                [ Element.paddingXY 10 0
+                , muted
+                ]
+                (Element.text "/")
+    in
+    Element.row [] <|
+        List.concat
+            [ [ Element.row []
+                    [ Element.el [ muted ] (Element.text "Created ")
+                    , Element.text timeDistanceStr
+                    , Style.Widgets.ToggleTip.toggleTip
+                        context.palette
+                        (Element.text createdTimeFormatted)
+                        showToggleTip
+                        showHideTipMsg
+                    ]
+              ]
+            , case maybeWhoCreatedTuple of
+                Just ( creatorAdjective, whoCreated ) ->
+                    [ separator
+                    , Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
+                    , Element.text whoCreated
+                    ]
+
+                Nothing ->
+                    []
+            , case maybeFromTuple of
+                Just ( fromAdjective, whereFrom ) ->
+                    [ separator
+                    , Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
+                    , Element.text whereFrom
+                    ]
+
+                Nothing ->
+                    []
+            ]
 
 
 imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
