@@ -809,37 +809,37 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
                 ]
                 (Element.text "/")
     in
-    Element.row [] <|
-        List.concat
-            [ [ Element.row []
-                    [ Element.el [ muted ] (Element.text "Created ")
-                    , Element.text timeDistanceStr
-                    , Style.Widgets.ToggleTip.toggleTip
-                        context.palette
-                        (Element.text createdTimeFormatted)
-                        showToggleTip
-                        showHideTipMsg
-                    ]
-              ]
-            , case maybeWhoCreatedTuple of
-                Just ( creatorAdjective, whoCreated ) ->
+    Element.wrappedRow [ Element.spacingXY 0 10 ] <|
+        [ Element.row []
+            [ Element.el [ muted ] (Element.text "Created ")
+            , Element.text timeDistanceStr
+            , Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.text createdTimeFormatted)
+                showToggleTip
+                showHideTipMsg
+            ]
+        , case maybeWhoCreatedTuple of
+            Just ( creatorAdjective, whoCreated ) ->
+                Element.row []
                     [ separator
                     , Element.el [ muted ] (Element.text <| "by " ++ creatorAdjective ++ " ")
                     , Element.text whoCreated
                     ]
 
-                Nothing ->
-                    []
-            , case maybeFromTuple of
-                Just ( fromAdjective, whereFrom ) ->
+            Nothing ->
+                Element.none
+        , case maybeFromTuple of
+            Just ( fromAdjective, whereFrom ) ->
+                Element.row []
                     [ separator
                     , Element.el [ muted ] (Element.text <| "from " ++ fromAdjective ++ " ")
                     , Element.text whereFrom
                     ]
 
-                Nothing ->
-                    []
-            ]
+            Nothing ->
+                Element.none
+        ]
 
 
 imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
