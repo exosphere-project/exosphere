@@ -640,11 +640,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                         shown =
                             case serverDetailViewParams.activeInteractionToggleTip of
                                 Just interaction_ ->
-                                    if interaction == interaction_ then
-                                        True
-
-                                    else
-                                        False
+                                    interaction == interaction_
 
                                 _ ->
                                     False
