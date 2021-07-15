@@ -799,16 +799,15 @@ createdAgoBy context currentTime createdTime maybeWhoCreated showToggleTip toSho
             Helpers.Time.humanReadableTime createdTime
     in
     Element.row []
-        [ Element.text "Created "
+        [ Element.text ("Created " ++ timeDistanceStr)
         , Style.Widgets.ToggleTip.toggleTip
             context.palette
-            (Element.text timeDistanceStr)
             createdTimeFormatted
             showToggleTip
             toShowHideTipMsg
         , case maybeWhoCreated of
             Just whoCreated ->
-                Element.text (" by " ++ whoCreated)
+                Element.text ("by " ++ whoCreated)
 
             Nothing ->
                 Element.none

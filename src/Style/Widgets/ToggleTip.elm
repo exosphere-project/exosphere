@@ -11,8 +11,8 @@ import Style.Helpers as SH
 import Style.Types
 
 
-toggleTip : Style.Types.ExoPalette -> Element.Element msg -> String -> Bool -> (Bool -> msg) -> Element.Element msg
-toggleTip palette anchorContent tipText shown toShowHideTipMsg =
+toggleTip : Style.Types.ExoPalette -> String -> Bool -> (Bool -> msg) -> Element.Element msg
+toggleTip palette tipText shown toShowHideTipMsg =
     let
         whileShownAttributes =
             [ Element.above <|
@@ -37,24 +37,21 @@ toggleTip palette anchorContent tipText shown toShowHideTipMsg =
                         (Element.text tipText)
             ]
     in
-    Element.row
-        [ Element.spacing 5 ]
-        [ anchorContent
-        , FeatherIcons.info
-            |> FeatherIcons.withSize 20
-            |> FeatherIcons.toHtml []
-            |> Element.html
-            |> Element.el
-                (List.concat
-                    [ [ Events.onClick (not shown |> toShowHideTipMsg)
-                      , Element.pointer
-                      , Font.color (palette.muted |> SH.toElementColor)
-                      ]
-                    , if shown then
-                        whileShownAttributes
+    FeatherIcons.info
+        |> FeatherIcons.withSize 20
+        |> FeatherIcons.toHtml []
+        |> Element.html
+        |> Element.el
+            (List.concat
+                [ [ Element.paddingXY 5 0
+                  , Events.onClick (not shown |> toShowHideTipMsg)
+                  , Element.pointer
+                  , Font.color (palette.muted |> SH.toElementColor)
+                  ]
+                , if shown then
+                    whileShownAttributes
 
-                      else
-                        []
-                    ]
-                )
-        ]
+                  else
+                    []
+                ]
+            )
