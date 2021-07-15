@@ -581,9 +581,6 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
     let
         renderInteraction interaction =
             let
-                interactionDetails =
-                    IHelpers.interactionDetails interaction context
-
                 interactionStatus =
                     IHelpers.interactionStatus
                         project
@@ -596,36 +593,11 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                 ( statusWord, statusColor ) =
                     IHelpers.interactionStatusWordColor context.palette interactionStatus
 
-                showHideTooltipMsg : ITypes.Interaction -> Msg
-                showHideTooltipMsg interaction_ =
-                    let
-                        newValue =
-                            case serverDetailViewParams.activeInteractionToggleTip of
-                                Just _ ->
-                                    Nothing
-
-                                Nothing ->
-                                    Just <| interaction_
-                    in
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            ServerDetail server.osProps.uuid
-                                { serverDetailViewParams | activeInteractionToggleTip = newValue }
+                interactionDetails =
+                    IHelpers.interactionDetails interaction context
 
                 interactionToggleTip =
                     let
-                        shown =
-                            case serverDetailViewParams.activeInteractionToggleTip of
-                                Just interaction_ ->
-                                    if interaction == interaction_ then
-                                        True
-
-                                    else
-                                        False
-
-                                _ ->
-                                    False
-
                         status =
                             Element.row []
                                 [ Element.el [ Font.bold ] <| Element.text "Status: "
@@ -666,12 +638,40 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                 , statusReason
                                 , description
                                 ]
+
+                        shown =
+                            case serverDetailViewParams.activeInteractionToggleTip of
+                                Just interaction_ ->
+                                    if interaction == interaction_ then
+                                        True
+
+                                    else
+                                        False
+
+                                _ ->
+                                    False
+
+                        showHideMsg : ITypes.Interaction -> Msg
+                        showHideMsg interaction_ =
+                            let
+                                newValue =
+                                    case serverDetailViewParams.activeInteractionToggleTip of
+                                        Just _ ->
+                                            Nothing
+
+                                        Nothing ->
+                                            Just <| interaction_
+                            in
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    ServerDetail server.osProps.uuid
+                                        { serverDetailViewParams | activeInteractionToggleTip = newValue }
                     in
                     Style.Widgets.ToggleTip.toggleTip
                         context.palette
                         contents
                         shown
-                        (showHideTooltipMsg interaction)
+                        (showHideMsg interaction)
             in
             case interactionStatus of
                 ITypes.Hidden ->
