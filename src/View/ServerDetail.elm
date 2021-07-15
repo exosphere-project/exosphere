@@ -305,7 +305,8 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , passwordVulnWarning context server
             , Element.el
                 [ Element.paddingXY 0 5
-                , Font.color (context.palette.muted |> SH.toElementColor)
+
+                -- , Font.color (context.palette.muted |> SH.toElementColor)
                 ]
               <|
                 VH.createdAgoBy

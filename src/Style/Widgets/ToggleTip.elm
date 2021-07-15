@@ -4,6 +4,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
+import Element.Font as Font
 import FeatherIcons
 import Html.Attributes
 import Style.Helpers as SH
@@ -31,6 +32,7 @@ toggleTip palette anchorContent tipText shown toShowHideTipMsg =
                         , Border.color (SH.toElementColor palette.muted)
                         , Border.shadow
                             { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
+                        , Font.color (palette.on.surface |> SH.toElementColor)
                         ]
                         (Element.text tipText)
             ]
@@ -39,12 +41,14 @@ toggleTip palette anchorContent tipText shown toShowHideTipMsg =
         [ Element.spacing 5 ]
         [ anchorContent
         , FeatherIcons.info
+            |> FeatherIcons.withSize 20
             |> FeatherIcons.toHtml []
             |> Element.html
             |> Element.el
                 (List.concat
                     [ [ Events.onClick (not shown |> toShowHideTipMsg)
                       , Element.pointer
+                      , Font.color (palette.muted |> SH.toElementColor)
                       ]
                     , if shown then
                         whileShownAttributes
