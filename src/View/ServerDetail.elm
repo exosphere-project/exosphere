@@ -22,6 +22,7 @@ import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
+import Style.Widgets.ToggleTip
 import Time
 import Types.Interaction as ITypes
 import Types.Types
@@ -313,9 +314,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     details.created
                     (Just ("user " ++ creatorName))
                     serverDetailViewParams.showCreatedTimeToggleTip
-                    (\shown ->
-                        updateServerDetail project { serverDetailViewParams | showCreatedTimeToggleTip = shown } server
-                    )
+                    (updateServerDetail project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
@@ -635,34 +634,6 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                         _ ->
                             Element.none
 
-                interactionTooltip =
-                    -- TODO deduplicate with above function?
-                    case serverDetailViewParams.activeTooltip of
-                        Just (InteractionTooltip interaction_) ->
-                            if interaction == interaction_ then
-                                Element.el
-                                    [ Element.paddingEach { top = 0, right = 0, left = 10, bottom = 0 } ]
-                                <|
-                                    Element.column
-                                        [ Element.padding 5
-
-                                        -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| SH.toElementColor <| context.palette.surface
-                                        , Font.color <| SH.toElementColor <| context.palette.on.surface
-                                        , Element.width (Element.maximum 300 Element.shrink)
-                                        ]
-                                        [ Element.paragraph
-                                            -- Ugh? https://github.com/mdgriffith/elm-ui/issues/157
-                                            [ Element.width (Element.minimum 200 Element.fill) ]
-                                            [ Element.text interactionDetails.description ]
-                                        ]
-
-                            else
-                                Element.none
-
-                        _ ->
-                            Element.none
-
                 showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
                 showHideTooltipMsg tooltip =
                     let
@@ -678,6 +649,29 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                         SetProjectView <|
                             ServerDetail server.osProps.uuid
                                 { serverDetailViewParams | activeTooltip = newValue }
+
+                interactionToggleTip =
+                    let
+                        shown =
+                            case serverDetailViewParams.activeTooltip of
+                                Just (InteractionTooltip interaction_) ->
+                                    if interaction == interaction_ then
+                                        True
+
+                                    else
+                                        False
+
+                                _ ->
+                                    False
+                    in
+                    Style.Widgets.ToggleTip.toggleTip
+                        context.palette
+                        (Element.paragraph
+                            [ Element.width (Element.shrink |> Element.minimum 200) ]
+                            [ Element.text interactionDetails.description ]
+                        )
+                        shown
+                        (showHideTooltipMsg (InteractionTooltip interaction))
             in
             case interactionStatus of
                 ITypes.Hidden ->
@@ -757,11 +751,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                         _ ->
                                             Element.none
                                     ]
-                        , Element.el
-                            [ Element.onRight interactionTooltip
-                            , Events.onClick <| showHideTooltipMsg (InteractionTooltip interaction)
-                            ]
-                            (FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html)
+                        , interactionToggleTip
                         ]
     in
     [ ITypes.GuacTerminal

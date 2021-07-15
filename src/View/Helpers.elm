@@ -788,9 +788,9 @@ createdAgoBy :
     -> Time.Posix
     -> Maybe String
     -> Bool
-    -> (Bool -> Msg)
+    -> Msg
     -> Element.Element Msg
-createdAgoBy context currentTime createdTime maybeWhoCreated showToggleTip toShowHideTipMsg =
+createdAgoBy context currentTime createdTime maybeWhoCreated showToggleTip showHideTipMsg =
     let
         timeDistanceStr =
             DateFormat.Relative.relativeTime currentTime createdTime
@@ -802,9 +802,9 @@ createdAgoBy context currentTime createdTime maybeWhoCreated showToggleTip toSho
         [ Element.text ("Created " ++ timeDistanceStr)
         , Style.Widgets.ToggleTip.toggleTip
             context.palette
-            createdTimeFormatted
+            (Element.text createdTimeFormatted)
             showToggleTip
-            toShowHideTipMsg
+            showHideTipMsg
         , case maybeWhoCreated of
             Just whoCreated ->
                 Element.text ("by " ++ whoCreated)

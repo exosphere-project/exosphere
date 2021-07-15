@@ -11,8 +11,8 @@ import Style.Helpers as SH
 import Style.Types
 
 
-toggleTip : Style.Types.ExoPalette -> String -> Bool -> (Bool -> msg) -> Element.Element msg
-toggleTip palette tipText shown toShowHideTipMsg =
+toggleTip : Style.Types.ExoPalette -> Element.Element msg -> Bool -> msg -> Element.Element msg
+toggleTip palette content shown showHideTipMsg =
     let
         whileShownAttributes =
             [ Element.above <|
@@ -34,7 +34,7 @@ toggleTip palette tipText shown toShowHideTipMsg =
                             { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
                         , Font.color (palette.on.surface |> SH.toElementColor)
                         ]
-                        (Element.text tipText)
+                        content
             ]
     in
     FeatherIcons.info
@@ -44,7 +44,7 @@ toggleTip palette tipText shown toShowHideTipMsg =
         |> Element.el
             (List.concat
                 [ [ Element.paddingXY 5 0
-                  , Events.onClick (not shown |> toShowHideTipMsg)
+                  , Events.onClick showHideTipMsg
                   , Element.pointer
                   , Font.color (palette.muted |> SH.toElementColor)
                   ]
