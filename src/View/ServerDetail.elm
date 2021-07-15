@@ -4,7 +4,6 @@ import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -598,42 +597,6 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                 ( statusWord, statusColor ) =
                     IHelpers.interactionStatusWordColor context.palette interactionStatus
 
-                statusTooltip =
-                    -- TODO deduplicate with below function?
-                    case serverDetailViewParams.activeTooltip of
-                        Just (InteractionStatusTooltip interaction_) ->
-                            if interaction == interaction_ then
-                                Element.el
-                                    [ Element.paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
-                                <|
-                                    Element.column
-                                        [ Element.padding 5
-
-                                        -- TODO this should use the same border/shadow as the server name change tooltip, turn it into a widget
-                                        , Background.color <| SH.toElementColor <| context.palette.surface
-                                        , Font.color <| SH.toElementColor <| context.palette.on.surface
-                                        ]
-                                        [ Element.text statusWord
-                                        , case interactionStatus of
-                                            ITypes.Unavailable reason ->
-                                                Element.text reason
-
-                                            ITypes.Error reason ->
-                                                Element.text reason
-
-                                            ITypes.Warn _ reason ->
-                                                Element.text reason
-
-                                            _ ->
-                                                Element.none
-                                        ]
-
-                            else
-                                Element.none
-
-                        _ ->
-                            Element.none
-
                 showHideTooltipMsg : ServerDetailActiveTooltip -> Msg
                 showHideTooltipMsg tooltip =
                     let
@@ -663,13 +626,51 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
 
                                 _ ->
                                     False
+
+                        status =
+                            Element.row []
+                                [ Element.el [ Font.bold ] <| Element.text "Status: "
+                                , Element.text statusWord
+                                ]
+
+                        statusReason =
+                            let
+                                renderReason reason =
+                                    Element.text <| "(" ++ reason ++ ")"
+                            in
+                            case interactionStatus of
+                                ITypes.Unavailable reason ->
+                                    renderReason reason
+
+                                ITypes.Error reason ->
+                                    renderReason reason
+
+                                ITypes.Warn _ reason ->
+                                    renderReason reason
+
+                                _ ->
+                                    Element.none
+
+                        description =
+                            Element.paragraph []
+                                [ Element.el [ Font.bold ] <| Element.text "Description: "
+                                , Element.text interactionDetails.description
+                                ]
+
+                        contents =
+                            Element.column
+                                [ Element.width (Element.shrink |> Element.minimum 200)
+                                , Element.spacing 10
+                                , Element.padding 5
+                                ]
+                                [ status
+                                , statusReason
+                                , description
+                                ]
                     in
                     Style.Widgets.ToggleTip.toggleTip
                         context.palette
-                        (Element.paragraph
-                            [ Element.width (Element.shrink |> Element.minimum 200) ]
-                            [ Element.text interactionDetails.description ]
-                        )
+                        contents
                         shown
                         (showHideTooltipMsg (InteractionTooltip interaction))
             in
@@ -680,11 +681,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                 _ ->
                     Element.row
                         VH.exoRowAttributes
-                        [ Element.el
-                            [ Element.below statusTooltip
-                            , Events.onClick <| showHideTooltipMsg (InteractionStatusTooltip interaction)
-                            ]
-                            (Icon.roundRect statusColor 14)
+                        [ Icon.roundRect statusColor 14
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
                                 Widget.button
