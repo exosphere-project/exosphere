@@ -12,8 +12,7 @@ import Types.Types
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Time.every (1 * 1000) (Tick 1)
-        , Time.every (5 * 1000) (Tick 5)
+        [ Time.every (5 * 1000) (Tick 5)
         , Time.every (10 * 1000) (Tick 10)
         , Time.every (60 * 1000) (Tick 60)
         , Time.every (300 * 1000) (Tick 300)

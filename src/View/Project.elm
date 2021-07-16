@@ -196,6 +196,7 @@ projectNav context p viewParams =
 createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element Msg
 createButton context projectId expanded =
     let
+        -- consider refactoring
         renderButton : Element.Element Never -> String -> Maybe Msg -> Element.Element Msg
         renderButton icon_ text onPress =
             Widget.iconButton
