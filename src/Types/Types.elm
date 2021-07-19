@@ -98,6 +98,7 @@ type alias Flags =
     , cloudCorsProxyUrl : Maybe HelperTypes.Url
     , urlPathPrefix : Maybe String
     , appTitle : Maybe String
+    , topBarShowAppTitle : Bool
     , palette :
         Maybe
             { primary :
@@ -213,6 +214,7 @@ type alias Style =
     , secondaryColor : Color.Color
     , styleMode : Style.Types.StyleMode
     , appTitle : String
+    , topBarShowAppTitle : Bool
     , defaultLoginView : Maybe LoginView
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String

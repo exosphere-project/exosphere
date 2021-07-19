@@ -212,7 +212,8 @@ These options are primarily intended for cloud operators who wish to offer a cus
 | palette                       | null, JSON object          | Pass custom colors to style Exosphere, see example below               |
 | logo                          | null, string               | Path to custom logo to show in top-left corner of app                  |
 | favicon                       | null, string               | Path to custom favicon                                                 |
-| appTitle                      | null, string               | Title to show in top-left corner of app                                |
+| appTitle                      | null, string               | Title to show throughout the app                                       |
+| topBarShowAppTitle            | true (default), false      | Whether to show or hide appTitle in the top navigation bar             |
 | defaultLoginView              | null, openstack, jetstream | Which login view to display by default                                 |
 | aboutAppMarkdown              | null, string (markdown)    | What to show in the "About the app" section of Help/About view         |
 | supportInfoMarkdown           | null, string (markdown)    | What to show when user clicks "Get support" button                     |

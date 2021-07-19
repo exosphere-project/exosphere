@@ -127,17 +127,21 @@ navBar model context =
 
         navBarBrand =
             Element.row
-                [ Element.padding 10
+                [ Element.padding 5
                 , Element.spacing 20
                 ]
-                [ Element.el
-                    [ Region.heading 1
-                    , Font.bold
-                    , Font.size 26
-                    , Font.color (SH.toElementColor context.palette.menu.on.surface)
-                    ]
-                    (Element.text model.style.appTitle)
-                , Element.image [ Element.height (Element.px 31), Element.padding 6 ] { src = model.style.logo, description = "" }
+                [ Element.image [ Element.height (Element.px 50) ] { src = model.style.logo, description = "" }
+                , if model.style.topBarShowAppTitle then
+                    Element.el
+                        [ Region.heading 1
+                        , Font.bold
+                        , Font.size 26
+                        , Font.color (SH.toElementColor context.palette.menu.on.surface)
+                        ]
+                        (Element.text model.style.appTitle)
+
+                  else
+                    Element.none
                 ]
 
         navBarRight =
