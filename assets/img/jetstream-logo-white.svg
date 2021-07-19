@@ -1,26 +1,124 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="277px" height="81px" viewBox="0 0 277 81" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <!-- Generator: Sketch 56.3 (81716) - https://sketch.com -->
-    <title>jetstream-logo-white</title>
-    <desc>Created with Sketch.</desc>
-    <defs>
-        <linearGradient x1="-0.0963903878%" y1="50.1481854%" x2="100.106274%" y2="49.912992%" id="linearGradient-1">
-            <stop stop-color="#4AAFC8" offset="25%"></stop>
-            <stop stop-color="#97D5CC" offset="75%"></stop>
-        </linearGradient>
-    </defs>
-    <g id="jetstream-logo-white" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="jetstream-logo" fill-rule="nonzero">
-            <path d="M0,50.7 C65.4,33.5 49,-4 127.5,26.9 C224.2,64.9 273.5,13.9 273.5,13.9 C267.8,18.9 253.3,33.9 228.1,44 C220.7,46.9 199.6,61.5 126.4,37.4 C51.5,12.6 60.8,43.2 0,50.7 Z" id="Path" fill="url(#linearGradient-1)"></path>
-            <path d="M131.9,40 C131.9,42.3 131.3,44.6 130.1,46.8 C128.8,49 127,50.8 125,52.2 C122.6,53.7 120.1,54.5 117.6,54.5 L105.1,54.5 L106.5,46.4 L119,46.4 C121.4,46.4 122.7,44.4 123,43.9 C123.4,43.3 124.3,41.3 122.8,39.6 L113.4,28.9 C111.9,27.1 111,24.9 111,22.4 C110.9,20.1 111.6,17.8 112.8,15.6 C114.1,13.4 115.8,11.6 117.9,10.2 C120.3,8.7 122.7,8 125.3,8 L135.6,8 L134.2,16.1 L123.9,16.1 C121.5,16.1 120.2,18 119.9,18.5 C119.5,19.1 118.6,21.1 120.1,22.8 L129.5,33.4 C131,35.4 131.8,37.6 131.9,40 Z" id="Path" fill="#FFFFFF"></path>
-            <path d="M147.5,16.2 L142.5,44.7 C142.3,45.6 143,46.3 143.8,46.3 L150.4,46.3 L149,54.4 L140.8,54.4 C136.3,54.4 133.3,50.8 134.1,46.3 L142.2,0 L150.3,0 L148.9,8.1 L157.1,8.1 L155.7,16.2 C155.7,16.2 147.5,16.2 147.5,16.2 Z" id="Path" fill="#FFFFFF"></path>
-            <path d="M176.6,16.2 L170,16.2 C169.1,16.2 168.3,16.9 168.1,17.8 L161.7,54.4 L153.6,54.4 L160.3,16.2 C161.1,11.7 165.3,8.1 169.8,8.1 L178,8.1 L176.6,16.2 Z" id="Path" fill="#FFFFFF"></path>
-            <path d="M204.1,16.2 L200.7,35.3 L184.4,35.3 L182.7,44.8 C182.5,45.6 183.1,46.3 183.9,46.3 L196.7,46.3 L195.3,54.4 L181,54.4 C176.5,54.4 173.5,50.7 174.3,46.3 L179.6,16.2 C180.4,11.7 184.6,8.1 189.1,8.1 L197.3,8.1 C201.9,8.1 204.9,11.7 204.1,16.2 Z M195.7,17.7 C195.9,16.9 195.3,16.3 194.5,16.3 L189.1,16.3 C188.3,16.3 187.6,16.9 187.4,17.7 L185.7,27.2 L193.9,27.2 L195.7,17.7 Z" id="Shape" fill="#FFFFFF"></path>
-            <path d="M231.8,16.2 L225.1,54.4 L208.8,54.4 C204.3,54.4 201.3,50.7 202.1,46.3 L204.5,32.4 C205.3,27.9 209.5,24.3 214,24.3 L222.2,24.3 L223.3,17.8 C223.5,16.9 222.9,16.2 222,16.2 L210.8,16.2 L212.2,8.1 L225,8.1 C229.6,8.1 232.5,11.7 231.8,16.2 Z M220.8,32.5 L214.2,32.5 C213.3,32.5 212.5,33.1 212.3,34.1 L210.4,44.8 C210.2,45.7 210.9,46.4 211.7,46.4 L218.3,46.4 L220.8,32.5 Z" id="Shape" fill="#FFFFFF"></path>
-            <path d="M269.8,8.1 C274.3,8.1 277.3,11.7 276.5,16.2 L269.8,54.4 L261.7,54.4 L268.1,17.8 C268.3,16.9 267.7,16.2 266.8,16.2 L260.2,16.2 L253.5,54.4 L245.4,54.4 L251.8,17.8 C252,16.9 251.4,16.2 250.5,16.2 L243.9,16.2 L237.2,54.4 L229.1,54.4 L235.8,16.2 L237.2,8.1 C237.2,8.1 269.8,8.1 269.8,8.1 Z" id="Path" fill="#FFFFFF"></path>
-            <path d="M87.6,16.2 L84.2,35.3 L67.9,35.3 L66.2,44.8 C66,45.6 66.6,46.3 67.4,46.3 L80.2,46.3 L78.8,54.4 L64.6,54.4 C60.1,54.4 57.1,50.7 57.9,46.3 L63.2,16.2 C64,11.7 68.2,8.1 72.7,8.1 L80.9,8.1 C85.4,8.1 88.4,11.7 87.6,16.2 Z M79.2,17.7 C79.4,16.9 78.8,16.3 78,16.3 L72.6,16.3 C71.8,16.3 71.1,16.9 70.9,17.7 L69.2,27.2 L77.6,27.2 L79.2,17.7 Z" id="Shape" fill="#FFFFFF"></path>
-            <path d="M99.7,16.2 L94.7,44.7 C94.5,45.6 95.2,46.3 96,46.3 L102.6,46.3 L101.2,54.4 L93,54.4 C88.5,54.4 85.5,50.8 86.3,46.3 L94.4,0 L102.5,0 L101.1,8.1 L109.3,8.1 L107.9,16.2 C107.9,16.2 99.7,16.2 99.7,16.2 Z" id="Path" fill="#FFFFFF"></path>
-            <path d="M61.2,0 L49,69.7 C47.6,77.5 40.2,80.5 32.4,80.5 L22.3,80.5 L24.8,69.7 L36.3,69.7 C37.8,69.7 39.2,68.5 39.5,67 L51.2,0 L61.2,0 Z" id="Path" fill="#FFFFFF"></path>
-        </g>
-    </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="277"
+   height="99"
+   viewBox="0 0 277 99"
+   version="1.1"
+   id="svg113"
+   sodipodi:docname="jetstream-logo-white.svg"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
+  <metadata
+     id="metadata117">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>jetstream-logo-white</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="3840"
+     inkscape:window-height="1535"
+     id="namedview115"
+     showgrid="false"
+     inkscape:zoom="10"
+     inkscape:cx="189.45819"
+     inkscape:cy="45.176378"
+     inkscape:window-x="0"
+     inkscape:window-y="28"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg113" />
+  <!-- Generator: Sketch 56.3 (81716) - https://sketch.com -->
+  <title
+     id="title82">jetstream-logo-white</title>
+  <desc
+     id="desc84">Created with Sketch.</desc>
+  <defs
+     id="defs91">
+    <linearGradient
+       x1="-0.097134925"
+       y1="88.260643"
+       x2="100.87951"
+       y2="88.023628"
+       id="linearGradient-1"
+       gradientTransform="matrix(2.7140363,0,0,0.36845491,0,18)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         stop-color="#4AAFC8"
+         offset="25%"
+         id="stop86" />
+      <stop
+         stop-color="#97D5CC"
+         offset="75%"
+         id="stop88" />
+    </linearGradient>
+  </defs>
+  <path
+     d="M 0,68.7 C 65.4,51.5 49,14 127.5,44.9 c 96.7,38 146,-13 146,-13 -5.7,5 -20.2,20 -45.4,30.1 -7.4,2.9 -28.5,17.5 -101.7,-6.6 C 51.5,30.6 60.8,61.2 0,68.7 Z"
+     id="Path"
+     style="fill:url(#linearGradient-1);fill-rule:nonzero;stroke:none;stroke-width:1"
+     inkscape:connector-curvature="0" />
+  <path
+     d="m 131.9,58 c 0,2.3 -0.6,4.6 -1.8,6.8 -1.3,2.2 -3.1,4 -5.1,5.4 -2.4,1.5 -4.9,2.3 -7.4,2.3 h -12.5 l 1.4,-8.1 H 119 c 2.4,0 3.7,-2 4,-2.5 0.4,-0.6 1.3,-2.6 -0.2,-4.3 l -9.4,-10.7 c -1.5,-1.8 -2.4,-4 -2.4,-6.5 -0.1,-2.3 0.6,-4.6 1.8,-6.8 1.3,-2.2 3,-4 5.1,-5.4 2.4,-1.5 4.8,-2.2 7.4,-2.2 h 10.3 l -1.4,8.1 h -10.3 c -2.4,0 -3.7,1.9 -4,2.4 -0.4,0.6 -1.3,2.6 0.2,4.3 l 9.4,10.6 c 1.5,2 2.3,4.2 2.4,6.6 z"
+     id="path94"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="m 147.5,34.2 -5,28.5 c -0.2,0.9 0.5,1.6 1.3,1.6 h 6.6 l -1.4,8.1 h -8.2 c -4.5,0 -7.5,-3.6 -6.7,-8.1 L 142.2,18 h 8.1 l -1.4,8.1 h 8.2 l -1.4,8.1 c 0,0 -8.2,0 -8.2,0 z"
+     id="path96"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="M 176.6,34.2 H 170 c -0.9,0 -1.7,0.7 -1.9,1.6 l -6.4,36.6 h -8.1 l 6.7,-38.2 c 0.8,-4.5 5,-8.1 9.5,-8.1 h 8.2 z"
+     id="path98"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="m 204.1,34.2 -3.4,19.1 h -16.3 l -1.7,9.5 c -0.2,0.8 0.4,1.5 1.2,1.5 h 12.8 l -1.4,8.1 H 181 c -4.5,0 -7.5,-3.7 -6.7,-8.1 l 5.3,-30.1 c 0.8,-4.5 5,-8.1 9.5,-8.1 h 8.2 c 4.6,0 7.6,3.6 6.8,8.1 z m -8.4,1.5 c 0.2,-0.8 -0.4,-1.4 -1.2,-1.4 h -5.4 c -0.8,0 -1.5,0.6 -1.7,1.4 l -1.7,9.5 h 8.2 z"
+     id="Shape"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="m 231.8,34.2 -6.7,38.2 h -16.3 c -4.5,0 -7.5,-3.7 -6.7,-8.1 l 2.4,-13.9 c 0.8,-4.5 5,-8.1 9.5,-8.1 h 8.2 l 1.1,-6.5 c 0.2,-0.9 -0.4,-1.6 -1.3,-1.6 h -11.2 l 1.4,-8.1 H 225 c 4.6,0 7.5,3.6 6.8,8.1 z m -11,16.3 h -6.6 c -0.9,0 -1.7,0.6 -1.9,1.6 l -1.9,10.7 c -0.2,0.9 0.5,1.6 1.3,1.6 h 6.6 z"
+     id="path101"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="m 269.8,26.1 c 4.5,0 7.5,3.6 6.7,8.1 l -6.7,38.2 h -8.1 l 6.4,-36.6 c 0.2,-0.9 -0.4,-1.6 -1.3,-1.6 h -6.6 l -6.7,38.2 h -8.1 l 6.4,-36.6 c 0.2,-0.9 -0.4,-1.6 -1.3,-1.6 h -6.6 l -6.7,38.2 h -8.1 l 6.7,-38.2 1.4,-8.1 c 0,0 32.6,0 32.6,0 z"
+     id="path103"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="M 87.6,34.2 84.2,53.3 H 67.9 l -1.7,9.5 c -0.2,0.8 0.4,1.5 1.2,1.5 h 12.8 l -1.4,8.1 H 64.6 c -4.5,0 -7.5,-3.7 -6.7,-8.1 l 5.3,-30.1 c 0.8,-4.5 5,-8.1 9.5,-8.1 h 8.2 c 4.5,0 7.5,3.6 6.7,8.1 z m -8.4,1.5 C 79.4,34.9 78.8,34.3 78,34.3 h -5.4 c -0.8,0 -1.5,0.6 -1.7,1.4 l -1.7,9.5 h 8.4 z"
+     id="path105"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="m 99.7,34.2 -5,28.5 c -0.2,0.9 0.5,1.6 1.3,1.6 h 6.6 l -1.4,8.1 H 93 c -4.5,0 -7.5,-3.6 -6.7,-8.1 L 94.4,18 h 8.1 l -1.4,8.1 h 8.2 l -1.4,8.1 c 0,0 -8.2,0 -8.2,0 z"
+     id="path107"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
+  <path
+     d="M 61.2,18 49,87.7 C 47.6,95.5 40.2,98.5 32.4,98.5 H 22.3 l 2.5,-10.8 h 11.5 c 1.5,0 2.9,-1.2 3.2,-2.7 L 51.2,18 Z"
+     id="path109"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff;fill-rule:nonzero;stroke:none;stroke-width:1" />
 </svg>
