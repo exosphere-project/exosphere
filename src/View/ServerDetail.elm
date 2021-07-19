@@ -21,7 +21,6 @@ import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
-import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip
 import Time
 import Types.Interaction as ITypes
@@ -484,15 +483,6 @@ serverStatus context projectId serverDetailViewParams server =
             OSTypes.serverPowerStateToString details.powerState
                 |> String.dropLeft 5
 
-        serverUiStatus =
-            VH.getServerUiStatus server
-
-        serverUiStatusText =
-            VH.getServerUiStatusStr serverUiStatus
-
-        statusBadge =
-            StatusBadge.statusBadge context.palette (VH.getServerUiStatusBadgeState serverUiStatus) serverUiStatusText
-
         statusGraphic =
             let
                 spinner =
@@ -509,7 +499,7 @@ serverStatus context projectId serverDetailViewParams server =
                             spinner
 
                         ( _, Nothing ) ->
-                            statusBadge
+                            VH.serverStatusBadge context.palette server
             in
             Element.el
                 [ Element.paddingEach { edges | right = 15 } ]

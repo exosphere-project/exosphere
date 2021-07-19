@@ -28,6 +28,7 @@ module View.Helpers exposing
     , renderMessageAsString
     , renderRDPP
     , renderWebData
+    , serverStatusBadge
     , sortProjects
     , titleFromHostname
     , toExoPalette
@@ -423,6 +424,14 @@ renderRDPP context remoteData resourceWord renderSuccessCase =
 
                         Nothing ->
                             loadingStuff context resourceWord
+
+
+serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element Msg
+serverStatusBadge palette server =
+    StatusBadge.statusBadge
+        palette
+        (server |> getServerUiStatus |> getServerUiStatusBadgeState)
+        (server |> getServerUiStatus |> getServerUiStatusStr)
 
 
 getServerUiStatus : Server -> ServerUiStatus
