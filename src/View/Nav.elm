@@ -127,10 +127,10 @@ navBar model context =
 
         navBarBrand =
             Element.row
-                [ Element.padding 10
+                [ Element.padding 5
                 , Element.spacing 20
                 ]
-                [ Element.image [ Element.height (Element.px 40) ] { src = model.style.logo, description = "" }
+                [ Element.image [ Element.height (Element.px 50) ] { src = model.style.logo, description = "" }
                 , if model.style.topBarShowAppTitle then
                     Element.el
                         [ Region.heading 1
