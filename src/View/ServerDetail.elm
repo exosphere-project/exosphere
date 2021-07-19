@@ -523,45 +523,40 @@ serverStatus context projectId serverDetailViewParams server =
                     <|
                         Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
 
-        verboseStatus =
-            if serverDetailViewParams.verboseStatus then
-                [ Element.text "Detailed status"
-                , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                , VH.compactKVSubRow "Lock status" <|
-                    case server.osProps.details.lockStatus of
-                        OSTypes.ServerLocked ->
-                            Element.text "Locked"
+        verboseStatusToggleTip =
+            let
+                contents =
+                    -- TODO nicer layout here?
+                    Element.column []
+                        [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus)
+                        , Element.text ("Power State: " ++ friendlyPowerState)
+                        , Element.text
+                            ("Lock Status: "
+                                ++ (case server.osProps.details.lockStatus of
+                                        OSTypes.ServerLocked ->
+                                            "Locked"
 
-                        OSTypes.ServerUnlocked ->
-                            Element.text "Unlocked"
-                ]
-
-            else
-                [ Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                    { text = "See detail"
-                    , onPress =
-                        Just <|
-                            ProjectMsg projectId <|
-                                SetProjectView <|
-                                    ServerDetail
-                                        server.osProps.uuid
-                                        { serverDetailViewParams | verboseStatus = True }
-                    }
-                ]
+                                        OSTypes.ServerUnlocked ->
+                                            "Unlocked"
+                                   )
+                            )
+                        ]
+            in
+            Style.Widgets.ToggleTip.toggleTip context.palette
+                contents
+                serverDetailViewParams.verboseStatus
+                (ProjectMsg projectId <|
+                    SetProjectView <|
+                        ServerDetail
+                            server.osProps.uuid
+                            { serverDetailViewParams | verboseStatus = not serverDetailViewParams.verboseStatus }
+                )
     in
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.padding 0, Element.spacing 5 ])
-    <|
-        List.concat
-            [ [ Element.row []
-                    [ statusGraphic
-                    , lockStatus server.osProps.details.lockStatus
-                    ]
-              ]
-            , verboseStatus
-            ]
+    Element.row []
+        [ statusGraphic
+        , lockStatus server.osProps.details.lockStatus
+        , verboseStatusToggleTip
+        ]
 
 
 interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
