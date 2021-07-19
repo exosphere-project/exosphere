@@ -22,7 +22,7 @@ statusBadge palette state statusStr =
             toColors palette state
     in
     Element.el
-        [ Element.paddingXY 10 6
+        [ Element.paddingXY 8 6
         , Border.rounded 4
         , Border.shadow
             { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }

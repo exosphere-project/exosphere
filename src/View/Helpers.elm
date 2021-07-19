@@ -14,7 +14,6 @@ module View.Helpers exposing
     , friendlyProjectTitle
     , getServerUiStatus
     , getServerUiStatusBadgeState
-    , getServerUiStatusColor
     , getServerUiStatusStr
     , heading2
     , heading3
@@ -552,55 +551,6 @@ getServerUiStatusStr status =
 
         ServerUiStatusDeleted ->
             "Deleted"
-
-
-getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
-getServerUiStatusColor palette status =
-    -- TODO delete this function once no longer needed
-    case status of
-        ServerUiStatusUnknown ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusBuilding ->
-            SH.toElementColor palette.warn
-
-        ServerUiStatusPartiallyActive ->
-            SH.toElementColor palette.warn
-
-        ServerUiStatusReady ->
-            SH.toElementColor palette.readyGood
-
-        ServerUiStatusReboot ->
-            SH.toElementColor palette.warn
-
-        ServerUiStatusPaused ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusSuspended ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusShutoff ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusStopped ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusSoftDeleted ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusError ->
-            -- red
-            SH.toElementColor palette.error
-
-        ServerUiStatusRescued ->
-            -- red
-            SH.toElementColor palette.error
-
-        ServerUiStatusShelved ->
-            SH.toElementColor palette.muted
-
-        ServerUiStatusDeleted ->
-            SH.toElementColor palette.muted
 
 
 getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState

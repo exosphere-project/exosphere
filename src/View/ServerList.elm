@@ -32,7 +32,7 @@ import Types.Types
         , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
-import View.Helpers as VH exposing (edges)
+import View.Helpers as VH
 import View.QuotaUsage
 import View.Types
 import Widget
@@ -246,11 +246,6 @@ renderServer :
     -> Element.Element Msg
 renderServer context projectId serverListViewParams toMsg isMyServer server =
     let
-        statusIcon =
-            Element.el
-                [ Element.paddingEach { edges | right = 15 } ]
-                (Icon.roundRect (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor context.palette) 16)
-
         creatorNameView =
             case ( isMyServer, server.exoProps.serverOrigin ) of
                 ( False, ServerFromExo exoOriginProps ) ->
@@ -301,8 +296,8 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 
         serverLabelName : Server -> Element.Element Msg
         serverLabelName aServer =
-            Element.row [ Element.width Element.fill ]
-                [ statusIcon
+            Element.row [ Element.width Element.fill, Element.spacing 10 ]
+                [ VH.serverStatusBadge context.palette aServer
                 , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
 
