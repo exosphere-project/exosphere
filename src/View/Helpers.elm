@@ -13,6 +13,7 @@ module View.Helpers exposing
     , formContainer
     , friendlyProjectTitle
     , getServerUiStatus
+    , getServerUiStatusBadgeState
     , getServerUiStatusColor
     , getServerUiStatusStr
     , heading2
@@ -57,6 +58,7 @@ import Regex
 import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
@@ -545,6 +547,7 @@ getServerUiStatusStr status =
 
 getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
 getServerUiStatusColor palette status =
+    -- TODO delete this function once no longer needed
     case status of
         ServerUiStatusUnknown ->
             SH.toElementColor palette.muted
@@ -589,6 +592,53 @@ getServerUiStatusColor palette status =
 
         ServerUiStatusDeleted ->
             SH.toElementColor palette.muted
+
+
+getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState
+getServerUiStatusBadgeState status =
+    -- TODO delete this function once no longer needed
+    case status of
+        ServerUiStatusUnknown ->
+            StatusBadge.Muted
+
+        ServerUiStatusBuilding ->
+            StatusBadge.Warning
+
+        ServerUiStatusPartiallyActive ->
+            StatusBadge.Warning
+
+        ServerUiStatusReady ->
+            StatusBadge.ReadyGood
+
+        ServerUiStatusReboot ->
+            StatusBadge.Warning
+
+        ServerUiStatusPaused ->
+            StatusBadge.Muted
+
+        ServerUiStatusSuspended ->
+            StatusBadge.Muted
+
+        ServerUiStatusShutoff ->
+            StatusBadge.Muted
+
+        ServerUiStatusStopped ->
+            StatusBadge.Muted
+
+        ServerUiStatusSoftDeleted ->
+            StatusBadge.Muted
+
+        ServerUiStatusError ->
+            StatusBadge.Error
+
+        ServerUiStatusRescued ->
+            StatusBadge.Error
+
+        ServerUiStatusShelved ->
+            StatusBadge.Muted
+
+        ServerUiStatusDeleted ->
+            StatusBadge.Muted
 
 
 renderMarkdown : View.Types.Context -> String -> List (Element.Element Msg)
