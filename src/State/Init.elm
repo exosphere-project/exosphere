@@ -115,6 +115,7 @@ init flags urlKey =
                 , styleMode = Style.Types.LightMode
                 , appTitle =
                     flags.appTitle |> Maybe.withDefault "Exosphere"
+                , topBarShowAppTitle = flags.topBarShowAppTitle
                 , defaultLoginView = defaultLoginView
                 , aboutAppMarkdown = flags.aboutAppMarkdown
                 , supportInfoMarkdown = flags.supportInfoMarkdown
