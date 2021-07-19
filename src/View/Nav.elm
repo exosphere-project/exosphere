@@ -130,7 +130,8 @@ navBar model context =
                 [ Element.padding 10
                 , Element.spacing 20
                 ]
-                [ if model.style.topBarShowAppTitle then
+                [ Element.image [ Element.height (Element.px 40) ] { src = model.style.logo, description = "" }
+                , if model.style.topBarShowAppTitle then
                     Element.el
                         [ Region.heading 1
                         , Font.bold
@@ -141,7 +142,6 @@ navBar model context =
 
                   else
                     Element.none
-                , Element.image [ Element.height (Element.px 40) ] { src = model.style.logo, description = "" }
                 ]
 
         navBarRight =
