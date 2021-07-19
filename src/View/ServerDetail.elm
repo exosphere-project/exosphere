@@ -492,6 +492,7 @@ serverStatus context projectId serverDetailViewParams server =
 
                 g =
                     case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
+                        -- TODO better display of transitional status
                         ( OSTypes.ServerBuilding, _ ) ->
                             spinner
 
@@ -509,32 +510,31 @@ serverStatus context projectId serverDetailViewParams server =
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
-                    Element.row
-                        []
-                        [ Element.el
-                            [ Element.paddingEach { edges | right = 15 } ]
-                          <|
-                            Icon.lock (SH.toElementColor context.palette.on.background) 28
-                        , Element.text "Locked"
-                        ]
+                    Element.el
+                        [ Element.paddingEach { edges | right = 15 } ]
+                    <|
+                        Icon.lock (SH.toElementColor context.palette.on.background) 28
 
                 OSTypes.ServerUnlocked ->
-                    Element.row
-                        []
-                        [ Element.el
-                            [ Element.paddingEach
-                                { edges | right = 15 }
-                            ]
-                          <|
-                            Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
-                        , Element.text "Unlocked"
+                    Element.el
+                        [ Element.paddingEach
+                            { edges | right = 15 }
                         ]
+                    <|
+                        Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
 
         verboseStatus =
             if serverDetailViewParams.verboseStatus then
                 [ Element.text "Detailed status"
                 , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
                 , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
+                , VH.compactKVSubRow "Lock status" <|
+                    case server.osProps.details.lockStatus of
+                        OSTypes.ServerLocked ->
+                            Element.text "Locked"
+
+                        OSTypes.ServerUnlocked ->
+                            Element.text "Unlocked"
                 ]
 
             else
@@ -555,11 +555,11 @@ serverStatus context projectId serverDetailViewParams server =
         (VH.exoColumnAttributes ++ [ Element.padding 0, Element.spacing 5 ])
     <|
         List.concat
-            [ [ Element.row [ Font.bold ]
+            [ [ Element.row []
                     [ statusGraphic
+                    , lockStatus server.osProps.details.lockStatus
                     ]
               ]
-            , [ lockStatus server.osProps.details.lockStatus ]
             , verboseStatus
             ]
 
