@@ -7,7 +7,7 @@ var config = {
   palette: {primary: {r: 155, g: 33, b: 35}, secondary: {r: 52, g: 122, b: 140}},
   logo: "assets/img/jetstream-logo-white.svg",
   favicon: "assets/img/jetstream-favicon.ico",
-  appTitle: "Jetstream Cloud",
+  appTitle: "Exosphere for Jetstream Cloud",
   topBarShowAppTitle: false,
   defaultLoginView: "jetstream",
   aboutAppMarkdown: "This is the Exosphere interface for [Jetstream Cloud](https://jetstream-cloud.org), currently in beta. If you require assistance, please email help@jetstream-cloud.org and specify you are using Exosphere.\\\n\\\nUse of this site is subject to the Exosphere hosted sites [Privacy Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/privacy-policy.md) and [Acceptable Use Policy](https://gitlab.com/exosphere/exosphere/-/blob/master/docs/acceptable-use-policy.md).",
