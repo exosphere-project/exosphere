@@ -196,14 +196,25 @@ projectNav context p viewParams =
 createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element Msg
 createButton context projectId expanded =
     let
-        -- consider refactoring
+        materialStyle =
+            Widget.Style.Material.textButton
+                (SH.toMaterialPalette context.palette)
+
+        buttonStyle =
+            { materialStyle
+                | container = Element.width Element.fill :: materialStyle.container
+            }
+
         renderButton : Element.Element Never -> String -> Maybe Msg -> Element.Element Msg
         renderButton icon_ text onPress =
             Widget.iconButton
-                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                buttonStyle
                 { icon =
-                    Element.row [ Element.spacing 10 ]
-                        [ icon_ |> Element.el []
+                    Element.row
+                        [ Element.spacing 10
+                        , Element.width Element.fill
+                        ]
+                        [ Element.el [] icon_
                         , Element.text text
                         ]
                 , text =
@@ -212,71 +223,72 @@ createButton context projectId expanded =
                     onPress
                 }
 
+        dropdown =
+            Element.column
+                [ Element.alignRight
+                , Element.moveDown 5
+                , Element.spacing 5
+                , Element.paddingEach
+                    { top = 5
+                    , right = 6
+                    , bottom = 5
+                    , left = 6
+                    }
+                , Background.color <| SH.toElementColor context.palette.background
+                , Border.shadow
+                    { blur = 10
+                    , color = SH.toElementColorWithOpacity context.palette.muted 0.2
+                    , offset = ( 0, 2 )
+                    , size = 1
+                    }
+                , Border.width 1
+                , Border.color <| SH.toElementColor context.palette.muted
+                , Border.rounded 4
+                ]
+                [ renderButton
+                    (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html)
+                    (context.localization.virtualComputer
+                        |> Helpers.String.toTitleCase
+                    )
+                    (Just <|
+                        ProjectMsg projectId <|
+                            SetProjectView <|
+                                ListImages
+                                    { searchText = ""
+                                    , tags = Set.empty
+                                    , onlyOwnImages = False
+                                    , expandImageDetails = Set.empty
+                                    }
+                                    { title = "Name"
+                                    , asc = True
+                                    }
+                    )
+                , renderButton
+                    (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
+                    (context.localization.blockDevice
+                        |> Helpers.String.toTitleCase
+                    )
+                    (Just <|
+                        ProjectMsg projectId <|
+                            SetProjectView <|
+                                -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
+                                CreateVolume "" (ValidNumericTextInput 10)
+                    )
+                , renderButton
+                    (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
+                    (context.localization.pkiPublicKeyForSsh
+                        |> Helpers.String.toTitleCase
+                    )
+                    (Just <|
+                        ProjectMsg projectId <|
+                            SetProjectView <|
+                                CreateKeypair "" ""
+                    )
+                ]
+
         ( attribs, icon ) =
             if expanded then
-                ( [ Element.below <|
-                        Element.column
-                            [ Element.alignRight
-                            , Element.moveDown 5
-                            , Element.spacing 5
-                            , Element.paddingEach
-                                { top = 5
-                                , right = 6
-                                , bottom = 5
-                                , left = 6
-                                }
-                            , Background.color <| SH.toElementColor context.palette.background
-                            , Border.shadow
-                                { blur = 10
-                                , color = SH.toElementColorWithOpacity context.palette.muted 0.2
-                                , offset = ( 0, 2 )
-                                , size = 1
-                                }
-                            , Border.width 1
-                            , Border.color <| SH.toElementColor context.palette.muted
-                            , Border.rounded 4
-                            ]
-                            [ renderButton
-                                (FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html)
-                                (context.localization.virtualComputer
-                                    |> Helpers.String.toTitleCase
-                                )
-                                (Just <|
-                                    ProjectMsg projectId <|
-                                        SetProjectView <|
-                                            ListImages
-                                                { searchText = ""
-                                                , tags = Set.empty
-                                                , onlyOwnImages = False
-                                                , expandImageDetails = Set.empty
-                                                }
-                                                { title = "Name"
-                                                , asc = True
-                                                }
-                                )
-                            , renderButton
-                                (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
-                                (context.localization.blockDevice
-                                    |> Helpers.String.toTitleCase
-                                )
-                                (Just <|
-                                    ProjectMsg projectId <|
-                                        SetProjectView <|
-                                            -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
-                                            CreateVolume "" (ValidNumericTextInput 10)
-                                )
-                            , renderButton
-                                (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
-                                (context.localization.pkiPublicKeyForSsh
-                                    |> Helpers.String.toTitleCase
-                                )
-                                (Just <|
-                                    ProjectMsg projectId <|
-                                        SetProjectView <|
-                                            CreateKeypair "" ""
-                                )
-                            ]
-                  ]
+                ( [ Element.below dropdown ]
                 , FeatherIcons.chevronUp
                 )
 
