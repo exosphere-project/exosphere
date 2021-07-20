@@ -10,6 +10,7 @@ var config = {
   logo: null,
   favicon: null,
   appTitle: null,
+  topBarShowAppTitle: true,
   defaultLoginView: null,
   aboutAppMarkdown: null,
   supportInfoMarkdown: null,
