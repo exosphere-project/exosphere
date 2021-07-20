@@ -504,7 +504,7 @@ serverStatus context projectId serverDetailViewParams server =
                         , Element.text ("Power State: " ++ friendlyPowerState)
                         , Element.text
                             ("Lock Status: "
-                                ++ (case server.osProps.details.lockStatus of
+                                ++ (case details.lockStatus of
                                         OSTypes.ServerLocked ->
                                             "Locked"
 
@@ -532,7 +532,7 @@ serverStatus context projectId serverDetailViewParams server =
     in
     Element.row [ Element.spacing 15 ]
         [ statusBadge
-        , lockStatus server.osProps.details.lockStatus
+        , lockStatus details.lockStatus
         , verboseStatusToggleTip
         ]
 
