@@ -28,7 +28,6 @@ statusBadge palette state statusStr =
             { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
         , Background.color backgroundColor
         , Font.color textColor
-        , Font.bold
         ]
         (Element.text statusStr)
 

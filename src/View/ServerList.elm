@@ -296,7 +296,13 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 
         serverLabelName : Server -> Element.Element Msg
         serverLabelName aServer =
-            Element.row [ Element.width Element.fill, Element.spacing 10 ]
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacing 10
+
+                -- Overriding Font.bold in ancestor element
+                , Font.regular
+                ]
                 [ VH.serverStatusBadge context.palette aServer
                 , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
