@@ -1527,13 +1527,13 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         errorContext
                         "Server does not appear to have been launched from Exosphere"
 
-        RequestServerAction func targetStatus ->
+        RequestServerAction func targetStatuses ->
             let
                 oldExoProps =
                     server.exoProps
 
                 newServer =
-                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatus } server.events
+                    Server server.osProps { oldExoProps | targetOpenstackStatus = targetStatuses } server.events
 
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
