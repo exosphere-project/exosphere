@@ -15,8 +15,8 @@ type StatusBadgeState
     | Error
 
 
-statusBadge : Style.Types.ExoPalette -> StatusBadgeState -> String -> Element.Element msg
-statusBadge palette state statusStr =
+statusBadge : Style.Types.ExoPalette -> StatusBadgeState -> Element.Element msg -> Element.Element msg
+statusBadge palette state status =
     let
         ( backgroundColor, textColor ) =
             toColors palette state
@@ -29,7 +29,7 @@ statusBadge palette state statusStr =
         , Background.color backgroundColor
         , Font.color textColor
         ]
-        (Element.text statusStr)
+        status
 
 
 toColors : Style.Types.ExoPalette -> StatusBadgeState -> ( Element.Color, Element.Color )

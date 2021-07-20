@@ -489,8 +489,9 @@ serverStatus context projectId serverDetailViewParams server =
 
         verboseStatusToggleTip =
             let
-                friendlyOpenstackStatus =
-                    OSTypes.serverStatusToString details.openstackStatus
+                friendlyOpenstackStatus : OSTypes.ServerStatus -> String
+                friendlyOpenstackStatus osStatus =
+                    OSTypes.serverStatusToString osStatus
                         |> String.dropLeft 6
 
                 friendlyPowerState =
@@ -500,7 +501,19 @@ serverStatus context projectId serverDetailViewParams server =
                 contents =
                     -- TODO nicer layout here?
                     Element.column []
-                        [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus)
+                        [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
+                        , case server.exoProps.targetOpenstackStatus of
+                            Just expectedStatusList ->
+                                let
+                                    listStr =
+                                        expectedStatusList
+                                            |> List.map friendlyOpenstackStatus
+                                            |> String.join ", "
+                                in
+                                Element.text ("Transitioning to: " ++ listStr)
+
+                            Nothing ->
+                                Element.none
                         , Element.text ("Power State: " ++ friendlyPowerState)
                         , Element.text
                             ("Lock Status: "

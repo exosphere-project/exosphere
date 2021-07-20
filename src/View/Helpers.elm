@@ -428,10 +428,20 @@ renderRDPP context remoteData resourceWord renderSuccessCase =
 
 serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element Msg
 serverStatusBadge palette server =
+    let
+        contents =
+            case server.exoProps.targetOpenstackStatus of
+                Just _ ->
+                    -- TODO a better job of this
+                    Widget.circularProgressIndicator (SH.materialStyle palette).progressIndicator Nothing
+
+                Nothing ->
+                    server |> getServerUiStatus |> getServerUiStatusStr |> Element.text
+    in
     StatusBadge.statusBadge
         palette
         (server |> getServerUiStatus |> getServerUiStatusBadgeState)
-        (server |> getServerUiStatus |> getServerUiStatusStr)
+        contents
 
 
 getServerUiStatus : Server -> ServerUiStatus
