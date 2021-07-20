@@ -664,14 +664,21 @@ type ServerUiStatus
     | ServerUiStatusPartiallyActive
     | ServerUiStatusReady
     | ServerUiStatusPaused
+    | ServerUiStatusUnpausing
     | ServerUiStatusReboot
+    | ServerUiStatusSuspending
     | ServerUiStatusSuspended
+    | ServerUiStatusResuming
     | ServerUiStatusShutoff
     | ServerUiStatusStopped
+    | ServerUiStatusStarting
+    | ServerUiStatusDeleting
     | ServerUiStatusSoftDeleted
     | ServerUiStatusError
     | ServerUiStatusRescued
+    | ServerUiStatusShelving
     | ServerUiStatusShelved
+    | ServerUiStatusUnshelving
     | ServerUiStatusDeleted
 
 

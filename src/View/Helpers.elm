@@ -430,13 +430,7 @@ serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element Msg
 serverStatusBadge palette server =
     let
         contents =
-            case server.exoProps.targetOpenstackStatus of
-                Just _ ->
-                    -- TODO a better job of this
-                    Widget.circularProgressIndicator (SH.materialStyle palette).progressIndicator Nothing
-
-                Nothing ->
-                    server |> getServerUiStatus |> getServerUiStatusStr |> Element.text
+            server |> getServerUiStatus |> getServerUiStatusStr |> Element.text
     in
     StatusBadge.statusBadge
         palette
@@ -446,55 +440,100 @@ serverStatusBadge palette server =
 
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
+    let
+        maybeFirstTargetStatus =
+            server.exoProps.targetOpenstackStatus
+                |> Maybe.andThen List.head
+
+        targetStatusActive =
+            maybeFirstTargetStatus == Just OSTypes.ServerActive
+    in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
-            case server.exoProps.serverOrigin of
-                ServerFromExo serverFromExoProps ->
-                    if serverFromExoProps.exoServerVersion < 4 then
-                        ServerUiStatusReady
+            let
+                whenNoTargetStatus =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo serverFromExoProps ->
+                            if serverFromExoProps.exoServerVersion < 4 then
+                                ServerUiStatusReady
 
-                    else
-                        case serverFromExoProps.exoSetupStatus.data of
-                            RDPP.DoHave status _ ->
-                                case status of
-                                    ExoSetupWaiting ->
-                                        ServerUiStatusBuilding
+                            else
+                                case serverFromExoProps.exoSetupStatus.data of
+                                    RDPP.DoHave status _ ->
+                                        case status of
+                                            ExoSetupWaiting ->
+                                                ServerUiStatusBuilding
 
-                                    ExoSetupRunning ->
-                                        ServerUiStatusPartiallyActive
+                                            ExoSetupRunning ->
+                                                ServerUiStatusPartiallyActive
 
-                                    ExoSetupComplete ->
-                                        ServerUiStatusReady
+                                            ExoSetupComplete ->
+                                                ServerUiStatusReady
 
-                                    ExoSetupError ->
-                                        ServerUiStatusError
+                                            ExoSetupError ->
+                                                ServerUiStatusError
 
-                                    ExoSetupTimeout ->
-                                        ServerUiStatusError
+                                            ExoSetupTimeout ->
+                                                ServerUiStatusError
 
-                                    ExoSetupUnknown ->
+                                            ExoSetupUnknown ->
+                                                ServerUiStatusUnknown
+
+                                    RDPP.DontHave ->
                                         ServerUiStatusUnknown
 
-                            RDPP.DontHave ->
-                                ServerUiStatusUnknown
+                        ServerNotFromExo ->
+                            ServerUiStatusReady
+            in
+            case maybeFirstTargetStatus of
+                Just OSTypes.ServerSuspended ->
+                    ServerUiStatusSuspending
 
-                ServerNotFromExo ->
-                    ServerUiStatusReady
+                Just OSTypes.ServerShelved ->
+                    ServerUiStatusShelving
+
+                Just OSTypes.ServerShelvedOffloaded ->
+                    ServerUiStatusShelving
+
+                Just OSTypes.ServerSoftDeleted ->
+                    ServerUiStatusDeleting
+
+                Just OSTypes.ServerDeleted ->
+                    ServerUiStatusDeleting
+
+                _ ->
+                    whenNoTargetStatus
 
         OSTypes.ServerPaused ->
-            ServerUiStatusPaused
+            if targetStatusActive then
+                ServerUiStatusUnpausing
+
+            else
+                ServerUiStatusPaused
 
         OSTypes.ServerReboot ->
             ServerUiStatusReboot
 
         OSTypes.ServerSuspended ->
-            ServerUiStatusSuspended
+            if targetStatusActive then
+                ServerUiStatusResuming
+
+            else
+                ServerUiStatusSuspended
 
         OSTypes.ServerShutoff ->
-            ServerUiStatusShutoff
+            if targetStatusActive then
+                ServerUiStatusStarting
+
+            else
+                ServerUiStatusShutoff
 
         OSTypes.ServerStopped ->
-            ServerUiStatusStopped
+            if targetStatusActive then
+                ServerUiStatusStarting
+
+            else
+                ServerUiStatusStopped
 
         OSTypes.ServerSoftDeleted ->
             ServerUiStatusSoftDeleted
@@ -509,10 +548,18 @@ getServerUiStatus server =
             ServerUiStatusRescued
 
         OSTypes.ServerShelved ->
-            ServerUiStatusShelved
+            if targetStatusActive then
+                ServerUiStatusUnshelving
+
+            else
+                ServerUiStatusShelved
 
         OSTypes.ServerShelvedOffloaded ->
-            ServerUiStatusShelved
+            if targetStatusActive then
+                ServerUiStatusUnshelving
+
+            else
+                ServerUiStatusShelved
 
         OSTypes.ServerDeleted ->
             ServerUiStatusDeleted
@@ -568,17 +615,32 @@ getServerUiStatusStr status =
         ServerUiStatusPaused ->
             "Paused"
 
+        ServerUiStatusUnpausing ->
+            "Unpausing"
+
         ServerUiStatusReboot ->
             "Reboot"
 
+        ServerUiStatusSuspending ->
+            "Suspending"
+
         ServerUiStatusSuspended ->
             "Suspended"
+
+        ServerUiStatusResuming ->
+            "Resuming"
 
         ServerUiStatusShutoff ->
             "Shut off"
 
         ServerUiStatusStopped ->
             "Stopped"
+
+        ServerUiStatusStarting ->
+            "Starting"
+
+        ServerUiStatusDeleting ->
+            "Deleting"
 
         ServerUiStatusSoftDeleted ->
             "Soft-deleted"
@@ -589,8 +651,14 @@ getServerUiStatusStr status =
         ServerUiStatusRescued ->
             "Rescued"
 
+        ServerUiStatusShelving ->
+            "Shelving"
+
         ServerUiStatusShelved ->
             "Shelved"
+
+        ServerUiStatusUnshelving ->
+            "Unshelving"
 
         ServerUiStatusDeleted ->
             "Deleted"
@@ -618,13 +686,28 @@ getServerUiStatusBadgeState status =
         ServerUiStatusPaused ->
             StatusBadge.Muted
 
+        ServerUiStatusUnpausing ->
+            StatusBadge.Warning
+
+        ServerUiStatusSuspending ->
+            StatusBadge.Muted
+
         ServerUiStatusSuspended ->
             StatusBadge.Muted
+
+        ServerUiStatusResuming ->
+            StatusBadge.Warning
 
         ServerUiStatusShutoff ->
             StatusBadge.Muted
 
         ServerUiStatusStopped ->
+            StatusBadge.Muted
+
+        ServerUiStatusStarting ->
+            StatusBadge.Warning
+
+        ServerUiStatusDeleting ->
             StatusBadge.Muted
 
         ServerUiStatusSoftDeleted ->
@@ -636,8 +719,14 @@ getServerUiStatusBadgeState status =
         ServerUiStatusRescued ->
             StatusBadge.Error
 
+        ServerUiStatusShelving ->
+            StatusBadge.Muted
+
         ServerUiStatusShelved ->
             StatusBadge.Muted
+
+        ServerUiStatusUnshelving ->
+            StatusBadge.Warning
 
         ServerUiStatusDeleted ->
             StatusBadge.Muted
