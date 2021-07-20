@@ -43,7 +43,7 @@ import Types.Types
         , UserAppProxyHostname
         , ViewState(..)
         )
-import View.Helpers as VH exposing (edges)
+import View.Helpers as VH
 import View.ResourceUsage
 import View.Types
 import Widget
@@ -483,45 +483,17 @@ serverStatus context projectId serverDetailViewParams server =
             OSTypes.serverPowerStateToString details.powerState
                 |> String.dropLeft 5
 
-        statusGraphic =
-            let
-                spinner =
-                    Widget.circularProgressIndicator
-                        (SH.materialStyle context.palette).progressIndicator
-                        Nothing
-
-                g =
-                    case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
-                        -- TODO better display of transitional status
-                        ( OSTypes.ServerBuilding, _ ) ->
-                            spinner
-
-                        ( _, Just _ ) ->
-                            spinner
-
-                        ( _, Nothing ) ->
-                            VH.serverStatusBadge context.palette server
-            in
-            Element.el
-                [ Element.paddingEach { edges | right = 15 } ]
-                g
+        statusBadge =
+            VH.serverStatusBadge context.palette server
 
         lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
-                    Element.el
-                        [ Element.paddingEach { edges | right = 15 } ]
-                    <|
-                        Icon.lock (SH.toElementColor context.palette.on.background) 28
+                    Icon.lock (SH.toElementColor context.palette.on.background) 28
 
                 OSTypes.ServerUnlocked ->
-                    Element.el
-                        [ Element.paddingEach
-                            { edges | right = 15 }
-                        ]
-                    <|
-                        Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
+                    Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
 
         verboseStatusToggleTip =
             let
@@ -558,8 +530,8 @@ serverStatus context projectId serverDetailViewParams server =
                             { serverDetailViewParams | verboseStatus = not serverDetailViewParams.verboseStatus }
                 )
     in
-    Element.row []
-        [ statusGraphic
+    Element.row [ Element.spacing 15 ]
+        [ statusBadge
         , lockStatus server.osProps.details.lockStatus
         , verboseStatusToggleTip
         ]
