@@ -540,6 +540,12 @@ serverStatus context projectId serverDetailViewParams server =
                                             "Unlocked"
                                    )
                             )
+                        , case VH.getExoSetupStatusStr server of
+                            Just setupStatusStr ->
+                                Element.text ("Exosphere Setup Status: " ++ setupStatusStr)
+
+                            Nothing ->
+                                Element.none
                         ]
             in
             Style.Widgets.ToggleTip.toggleTip context.palette

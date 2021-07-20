@@ -12,6 +12,7 @@ module View.Helpers exposing
     , featuredImageNamePrefixLookup
     , formContainer
     , friendlyProjectTitle
+    , getExoSetupStatusStr
     , getServerUiStatus
     , getServerUiStatusBadgeState
     , getServerUiStatusStr
@@ -505,6 +506,38 @@ getServerUiStatus server =
 
         OSTypes.ServerDeleted ->
             ServerUiStatusDeleted
+
+
+getExoSetupStatusStr : Server -> Maybe String
+getExoSetupStatusStr server =
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Nothing
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.exoSetupStatus.data of
+                RDPP.DoHave exoSetupStatus _ ->
+                    case exoSetupStatus of
+                        ExoSetupWaiting ->
+                            Just "Waiting"
+
+                        ExoSetupRunning ->
+                            Just "Running"
+
+                        ExoSetupComplete ->
+                            Just "Complete"
+
+                        ExoSetupError ->
+                            Just "Error"
+
+                        ExoSetupTimeout ->
+                            Just "Timeout"
+
+                        ExoSetupUnknown ->
+                            Just "Unknown"
+
+                RDPP.DontHave ->
+                    Nothing
 
 
 getServerUiStatusStr : ServerUiStatus -> String
