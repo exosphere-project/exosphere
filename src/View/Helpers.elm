@@ -666,7 +666,6 @@ getServerUiStatusStr status =
 
 getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState
 getServerUiStatusBadgeState status =
-    -- TODO delete this function once no longer needed
     case status of
         ServerUiStatusUnknown ->
             StatusBadge.Muted
