@@ -475,14 +475,6 @@ serverStatus context projectId serverDetailViewParams server =
         details =
             server.osProps.details
 
-        friendlyOpenstackStatus =
-            OSTypes.serverStatusToString details.openstackStatus
-                |> String.dropLeft 6
-
-        friendlyPowerState =
-            OSTypes.serverPowerStateToString details.powerState
-                |> String.dropLeft 5
-
         statusBadge =
             VH.serverStatusBadge context.palette server
 
@@ -497,6 +489,14 @@ serverStatus context projectId serverDetailViewParams server =
 
         verboseStatusToggleTip =
             let
+                friendlyOpenstackStatus =
+                    OSTypes.serverStatusToString details.openstackStatus
+                        |> String.dropLeft 6
+
+                friendlyPowerState =
+                    OSTypes.serverPowerStateToString details.powerState
+                        |> String.dropLeft 5
+
                 contents =
                     -- TODO nicer layout here?
                     Element.column []
