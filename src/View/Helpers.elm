@@ -512,7 +512,7 @@ getServerUiStatus server =
                 ServerUiStatusPaused
 
         OSTypes.ServerReboot ->
-            ServerUiStatusReboot
+            ServerUiStatusRebooting
 
         OSTypes.ServerSuspended ->
             if targetStatusActive then
@@ -618,8 +618,8 @@ getServerUiStatusStr status =
         ServerUiStatusUnpausing ->
             "Unpausing"
 
-        ServerUiStatusReboot ->
-            "Reboot"
+        ServerUiStatusRebooting ->
+            "Rebooting"
 
         ServerUiStatusSuspending ->
             "Suspending"
@@ -680,7 +680,7 @@ getServerUiStatusBadgeState status =
         ServerUiStatusReady ->
             StatusBadge.ReadyGood
 
-        ServerUiStatusReboot ->
+        ServerUiStatusRebooting ->
             StatusBadge.Warning
 
         ServerUiStatusPaused ->

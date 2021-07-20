@@ -665,7 +665,7 @@ type ServerUiStatus
     | ServerUiStatusReady
     | ServerUiStatusPaused
     | ServerUiStatusUnpausing
-    | ServerUiStatusReboot
+    | ServerUiStatusRebooting
     | ServerUiStatusSuspending
     | ServerUiStatusSuspended
     | ServerUiStatusResuming
