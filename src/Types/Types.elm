@@ -661,7 +661,7 @@ type FloatingIpAssignmentStatus
 type ServerUiStatus
     = ServerUiStatusUnknown
     | ServerUiStatusBuilding
-    | ServerUiStatusPartiallyActive
+    | ServerUiStatusRunningSetup
     | ServerUiStatusReady
     | ServerUiStatusPaused
     | ServerUiStatusUnpausing

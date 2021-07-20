@@ -465,7 +465,7 @@ getServerUiStatus server =
                                                 ServerUiStatusBuilding
 
                                             ExoSetupRunning ->
-                                                ServerUiStatusPartiallyActive
+                                                ServerUiStatusRunningSetup
 
                                             ExoSetupComplete ->
                                                 ServerUiStatusReady
@@ -606,8 +606,8 @@ getServerUiStatusStr status =
         ServerUiStatusBuilding ->
             "Building"
 
-        ServerUiStatusPartiallyActive ->
-            "Partially Active"
+        ServerUiStatusRunningSetup ->
+            "Running Setup"
 
         ServerUiStatusReady ->
             "Ready"
@@ -674,7 +674,7 @@ getServerUiStatusBadgeState status =
         ServerUiStatusBuilding ->
             StatusBadge.Warning
 
-        ServerUiStatusPartiallyActive ->
+        ServerUiStatusRunningSetup ->
             StatusBadge.Warning
 
         ServerUiStatusReady ->
