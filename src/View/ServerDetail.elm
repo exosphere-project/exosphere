@@ -398,11 +398,18 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
-            [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
-            , viewServerActions context project serverDetailViewParams server
-            , Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
-            , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
-            ]
+            List.concat
+                [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
+                  , viewServerActions context project serverDetailViewParams server
+                  ]
+                , if details.openstackStatus == OSTypes.ServerActive then
+                    [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
+                    , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
+                    ]
+
+                  else
+                    []
+                ]
     in
     if dualColumn then
         let
