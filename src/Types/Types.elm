@@ -661,17 +661,24 @@ type FloatingIpAssignmentStatus
 type ServerUiStatus
     = ServerUiStatusUnknown
     | ServerUiStatusBuilding
-    | ServerUiStatusPartiallyActive
+    | ServerUiStatusRunningSetup
     | ServerUiStatusReady
     | ServerUiStatusPaused
-    | ServerUiStatusReboot
+    | ServerUiStatusUnpausing
+    | ServerUiStatusRebooting
+    | ServerUiStatusSuspending
     | ServerUiStatusSuspended
+    | ServerUiStatusResuming
     | ServerUiStatusShutoff
     | ServerUiStatusStopped
+    | ServerUiStatusStarting
+    | ServerUiStatusDeleting
     | ServerUiStatusSoftDeleted
     | ServerUiStatusError
     | ServerUiStatusRescued
+    | ServerUiStatusShelving
     | ServerUiStatusShelved
+    | ServerUiStatusUnshelving
     | ServerUiStatusDeleted
 
 

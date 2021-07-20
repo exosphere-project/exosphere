@@ -12,8 +12,9 @@ module View.Helpers exposing
     , featuredImageNamePrefixLookup
     , formContainer
     , friendlyProjectTitle
+    , getExoSetupStatusStr
     , getServerUiStatus
-    , getServerUiStatusColor
+    , getServerUiStatusBadgeState
     , getServerUiStatusStr
     , heading2
     , heading3
@@ -27,6 +28,7 @@ module View.Helpers exposing
     , renderMessageAsString
     , renderRDPP
     , renderWebData
+    , serverStatusBadge
     , sortProjects
     , titleFromHostname
     , toExoPalette
@@ -57,6 +59,7 @@ import Regex
 import RemoteData
 import Style.Helpers as SH
 import Style.Types exposing (ExoPalette)
+import Style.Widgets.StatusBadge as StatusBadge
 import Style.Widgets.ToggleTip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
@@ -423,57 +426,114 @@ renderRDPP context remoteData resourceWord renderSuccessCase =
                             loadingStuff context resourceWord
 
 
+serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element Msg
+serverStatusBadge palette server =
+    let
+        contents =
+            server |> getServerUiStatus |> getServerUiStatusStr |> Element.text
+    in
+    StatusBadge.statusBadge
+        palette
+        (server |> getServerUiStatus |> getServerUiStatusBadgeState)
+        contents
+
+
 getServerUiStatus : Server -> ServerUiStatus
 getServerUiStatus server =
+    let
+        maybeFirstTargetStatus =
+            server.exoProps.targetOpenstackStatus
+                |> Maybe.andThen List.head
+
+        targetStatusActive =
+            maybeFirstTargetStatus == Just OSTypes.ServerActive
+    in
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
-            case server.exoProps.serverOrigin of
-                ServerFromExo serverFromExoProps ->
-                    if serverFromExoProps.exoServerVersion < 4 then
-                        ServerUiStatusReady
+            let
+                whenNoTargetStatus =
+                    case server.exoProps.serverOrigin of
+                        ServerFromExo serverFromExoProps ->
+                            if serverFromExoProps.exoServerVersion < 4 then
+                                ServerUiStatusReady
 
-                    else
-                        case serverFromExoProps.exoSetupStatus.data of
-                            RDPP.DoHave status _ ->
-                                case status of
-                                    ExoSetupWaiting ->
-                                        ServerUiStatusBuilding
+                            else
+                                case serverFromExoProps.exoSetupStatus.data of
+                                    RDPP.DoHave status _ ->
+                                        case status of
+                                            ExoSetupWaiting ->
+                                                ServerUiStatusBuilding
 
-                                    ExoSetupRunning ->
-                                        ServerUiStatusPartiallyActive
+                                            ExoSetupRunning ->
+                                                ServerUiStatusRunningSetup
 
-                                    ExoSetupComplete ->
-                                        ServerUiStatusReady
+                                            ExoSetupComplete ->
+                                                ServerUiStatusReady
 
-                                    ExoSetupError ->
-                                        ServerUiStatusError
+                                            ExoSetupError ->
+                                                ServerUiStatusError
 
-                                    ExoSetupTimeout ->
-                                        ServerUiStatusError
+                                            ExoSetupTimeout ->
+                                                ServerUiStatusError
 
-                                    ExoSetupUnknown ->
+                                            ExoSetupUnknown ->
+                                                ServerUiStatusUnknown
+
+                                    RDPP.DontHave ->
                                         ServerUiStatusUnknown
 
-                            RDPP.DontHave ->
-                                ServerUiStatusUnknown
+                        ServerNotFromExo ->
+                            ServerUiStatusReady
+            in
+            case maybeFirstTargetStatus of
+                Just OSTypes.ServerSuspended ->
+                    ServerUiStatusSuspending
 
-                ServerNotFromExo ->
-                    ServerUiStatusReady
+                Just OSTypes.ServerShelved ->
+                    ServerUiStatusShelving
+
+                Just OSTypes.ServerShelvedOffloaded ->
+                    ServerUiStatusShelving
+
+                Just OSTypes.ServerSoftDeleted ->
+                    ServerUiStatusDeleting
+
+                Just OSTypes.ServerDeleted ->
+                    ServerUiStatusDeleting
+
+                _ ->
+                    whenNoTargetStatus
 
         OSTypes.ServerPaused ->
-            ServerUiStatusPaused
+            if targetStatusActive then
+                ServerUiStatusUnpausing
+
+            else
+                ServerUiStatusPaused
 
         OSTypes.ServerReboot ->
-            ServerUiStatusReboot
+            ServerUiStatusRebooting
 
         OSTypes.ServerSuspended ->
-            ServerUiStatusSuspended
+            if targetStatusActive then
+                ServerUiStatusResuming
+
+            else
+                ServerUiStatusSuspended
 
         OSTypes.ServerShutoff ->
-            ServerUiStatusShutoff
+            if targetStatusActive then
+                ServerUiStatusStarting
+
+            else
+                ServerUiStatusShutoff
 
         OSTypes.ServerStopped ->
-            ServerUiStatusStopped
+            if targetStatusActive then
+                ServerUiStatusStarting
+
+            else
+                ServerUiStatusStopped
 
         OSTypes.ServerSoftDeleted ->
             ServerUiStatusSoftDeleted
@@ -488,13 +548,53 @@ getServerUiStatus server =
             ServerUiStatusRescued
 
         OSTypes.ServerShelved ->
-            ServerUiStatusShelved
+            if targetStatusActive then
+                ServerUiStatusUnshelving
+
+            else
+                ServerUiStatusShelved
 
         OSTypes.ServerShelvedOffloaded ->
-            ServerUiStatusShelved
+            if targetStatusActive then
+                ServerUiStatusUnshelving
+
+            else
+                ServerUiStatusShelved
 
         OSTypes.ServerDeleted ->
             ServerUiStatusDeleted
+
+
+getExoSetupStatusStr : Server -> Maybe String
+getExoSetupStatusStr server =
+    case server.exoProps.serverOrigin of
+        ServerNotFromExo ->
+            Nothing
+
+        ServerFromExo exoOriginProps ->
+            case exoOriginProps.exoSetupStatus.data of
+                RDPP.DoHave exoSetupStatus _ ->
+                    case exoSetupStatus of
+                        ExoSetupWaiting ->
+                            Just "Waiting"
+
+                        ExoSetupRunning ->
+                            Just "Running"
+
+                        ExoSetupComplete ->
+                            Just "Complete"
+
+                        ExoSetupError ->
+                            Just "Error"
+
+                        ExoSetupTimeout ->
+                            Just "Timeout"
+
+                        ExoSetupUnknown ->
+                            Just "Unknown"
+
+                RDPP.DontHave ->
+                    Nothing
 
 
 getServerUiStatusStr : ServerUiStatus -> String
@@ -506,8 +606,8 @@ getServerUiStatusStr status =
         ServerUiStatusBuilding ->
             "Building"
 
-        ServerUiStatusPartiallyActive ->
-            "Partially Active"
+        ServerUiStatusRunningSetup ->
+            "Running Setup"
 
         ServerUiStatusReady ->
             "Ready"
@@ -515,17 +615,32 @@ getServerUiStatusStr status =
         ServerUiStatusPaused ->
             "Paused"
 
-        ServerUiStatusReboot ->
-            "Reboot"
+        ServerUiStatusUnpausing ->
+            "Unpausing"
+
+        ServerUiStatusRebooting ->
+            "Rebooting"
+
+        ServerUiStatusSuspending ->
+            "Suspending"
 
         ServerUiStatusSuspended ->
             "Suspended"
+
+        ServerUiStatusResuming ->
+            "Resuming"
 
         ServerUiStatusShutoff ->
             "Shut off"
 
         ServerUiStatusStopped ->
             "Stopped"
+
+        ServerUiStatusStarting ->
+            "Starting"
+
+        ServerUiStatusDeleting ->
+            "Deleting"
 
         ServerUiStatusSoftDeleted ->
             "Soft-deleted"
@@ -536,59 +651,84 @@ getServerUiStatusStr status =
         ServerUiStatusRescued ->
             "Rescued"
 
+        ServerUiStatusShelving ->
+            "Shelving"
+
         ServerUiStatusShelved ->
             "Shelved"
+
+        ServerUiStatusUnshelving ->
+            "Unshelving"
 
         ServerUiStatusDeleted ->
             "Deleted"
 
 
-getServerUiStatusColor : ExoPalette -> ServerUiStatus -> Element.Color
-getServerUiStatusColor palette status =
+getServerUiStatusBadgeState : ServerUiStatus -> StatusBadge.StatusBadgeState
+getServerUiStatusBadgeState status =
     case status of
         ServerUiStatusUnknown ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
 
         ServerUiStatusBuilding ->
-            SH.toElementColor palette.warn
+            StatusBadge.Warning
 
-        ServerUiStatusPartiallyActive ->
-            SH.toElementColor palette.warn
+        ServerUiStatusRunningSetup ->
+            StatusBadge.Warning
 
         ServerUiStatusReady ->
-            SH.toElementColor palette.readyGood
+            StatusBadge.ReadyGood
 
-        ServerUiStatusReboot ->
-            SH.toElementColor palette.warn
+        ServerUiStatusRebooting ->
+            StatusBadge.Warning
 
         ServerUiStatusPaused ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
+
+        ServerUiStatusUnpausing ->
+            StatusBadge.Warning
+
+        ServerUiStatusSuspending ->
+            StatusBadge.Muted
 
         ServerUiStatusSuspended ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
+
+        ServerUiStatusResuming ->
+            StatusBadge.Warning
 
         ServerUiStatusShutoff ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
 
         ServerUiStatusStopped ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
+
+        ServerUiStatusStarting ->
+            StatusBadge.Warning
+
+        ServerUiStatusDeleting ->
+            StatusBadge.Muted
 
         ServerUiStatusSoftDeleted ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
 
         ServerUiStatusError ->
-            -- red
-            SH.toElementColor palette.error
+            StatusBadge.Error
 
         ServerUiStatusRescued ->
-            -- red
-            SH.toElementColor palette.error
+            StatusBadge.Error
+
+        ServerUiStatusShelving ->
+            StatusBadge.Muted
 
         ServerUiStatusShelved ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
+
+        ServerUiStatusUnshelving ->
+            StatusBadge.Warning
 
         ServerUiStatusDeleted ->
-            SH.toElementColor palette.muted
+            StatusBadge.Muted
 
 
 renderMarkdown : View.Types.Context -> String -> List (Element.Element Msg)

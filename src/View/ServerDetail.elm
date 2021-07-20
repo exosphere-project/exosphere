@@ -43,7 +43,7 @@ import Types.Types
         , UserAppProxyHostname
         , ViewState(..)
         )
-import View.Helpers as VH exposing (edges)
+import View.Helpers as VH
 import View.ResourceUsage
 import View.Types
 import Widget
@@ -398,11 +398,18 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
 
         secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
-            [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
-            , viewServerActions context project serverDetailViewParams server
-            , Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
-            , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
-            ]
+            List.concat
+                [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
+                  , viewServerActions context project serverDetailViewParams server
+                  ]
+                , if details.openstackStatus == OSTypes.ServerActive then
+                    [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
+                    , resourceUsageCharts context chartsWidthPx currentTimeAndZone server
+                    ]
+
+                  else
+                    []
+                ]
     in
     if dualColumn then
         let
@@ -475,103 +482,79 @@ serverStatus context projectId serverDetailViewParams server =
         details =
             server.osProps.details
 
-        friendlyOpenstackStatus =
-            OSTypes.serverStatusToString details.openstackStatus
-                |> String.dropLeft 6
-
-        friendlyPowerState =
-            OSTypes.serverPowerStateToString details.powerState
-                |> String.dropLeft 5
-
-        statusGraphic =
-            let
-                spinner =
-                    Widget.circularProgressIndicator
-                        (SH.materialStyle context.palette).progressIndicator
-                        Nothing
-
-                g =
-                    case ( details.openstackStatus, server.exoProps.targetOpenstackStatus ) of
-                        ( OSTypes.ServerBuilding, _ ) ->
-                            spinner
-
-                        ( _, Just _ ) ->
-                            spinner
-
-                        ( _, Nothing ) ->
-                            Icon.roundRect
-                                (server |> VH.getServerUiStatus |> VH.getServerUiStatusColor context.palette)
-                                28
-            in
-            Element.el
-                [ Element.paddingEach { edges | right = 15 } ]
-                g
+        statusBadge =
+            VH.serverStatusBadge context.palette server
 
         lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
-                    Element.row
-                        []
-                        [ Element.el
-                            [ Element.paddingEach { edges | right = 15 } ]
-                          <|
-                            Icon.lock (SH.toElementColor context.palette.on.background) 28
-                        , Element.text "Locked"
-                        ]
+                    Icon.lock (SH.toElementColor context.palette.on.background) 28
 
                 OSTypes.ServerUnlocked ->
-                    Element.row
-                        []
-                        [ Element.el
-                            [ Element.paddingEach
-                                { edges | right = 15 }
-                            ]
-                          <|
-                            Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
-                        , Element.text "Unlocked"
+                    Icon.lockOpen (SH.toElementColor context.palette.on.background) 28
+
+        verboseStatusToggleTip =
+            let
+                friendlyOpenstackStatus : OSTypes.ServerStatus -> String
+                friendlyOpenstackStatus osStatus =
+                    OSTypes.serverStatusToString osStatus
+                        |> String.dropLeft 6
+
+                friendlyPowerState =
+                    OSTypes.serverPowerStateToString details.powerState
+                        |> String.dropLeft 5
+
+                contents =
+                    -- TODO nicer layout here?
+                    Element.column []
+                        [ Element.text ("OpenStack Status: " ++ friendlyOpenstackStatus details.openstackStatus)
+                        , case server.exoProps.targetOpenstackStatus of
+                            Just expectedStatusList ->
+                                let
+                                    listStr =
+                                        expectedStatusList
+                                            |> List.map friendlyOpenstackStatus
+                                            |> String.join ", "
+                                in
+                                Element.text ("Transitioning to: " ++ listStr)
+
+                            Nothing ->
+                                Element.none
+                        , Element.text ("Power State: " ++ friendlyPowerState)
+                        , Element.text
+                            ("Lock Status: "
+                                ++ (case details.lockStatus of
+                                        OSTypes.ServerLocked ->
+                                            "Locked"
+
+                                        OSTypes.ServerUnlocked ->
+                                            "Unlocked"
+                                   )
+                            )
+                        , case VH.getExoSetupStatusStr server of
+                            Just setupStatusStr ->
+                                Element.text ("Exosphere Setup Status: " ++ setupStatusStr)
+
+                            Nothing ->
+                                Element.none
                         ]
-
-        verboseStatus =
-            if serverDetailViewParams.verboseStatus then
-                [ Element.text "Detailed status"
-                , VH.compactKVSubRow "OpenStack status" (Element.text friendlyOpenstackStatus)
-                , VH.compactKVSubRow "Power state" (Element.text friendlyPowerState)
-                ]
-
-            else
-                [ Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
-                    { text = "See detail"
-                    , onPress =
-                        Just <|
-                            ProjectMsg projectId <|
-                                SetProjectView <|
-                                    ServerDetail
-                                        server.osProps.uuid
-                                        { serverDetailViewParams | verboseStatus = True }
-                    }
-                ]
-
-        statusString =
-            Element.text
-                (server
-                    |> VH.getServerUiStatus
-                    |> VH.getServerUiStatusStr
+            in
+            Style.Widgets.ToggleTip.toggleTip context.palette
+                contents
+                serverDetailViewParams.verboseStatus
+                (ProjectMsg projectId <|
+                    SetProjectView <|
+                        ServerDetail
+                            server.osProps.uuid
+                            { serverDetailViewParams | verboseStatus = not serverDetailViewParams.verboseStatus }
                 )
     in
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.padding 0, Element.spacing 5 ])
-    <|
-        List.concat
-            [ [ Element.row [ Font.bold ]
-                    [ statusGraphic
-                    , statusString
-                    ]
-              ]
-            , [ lockStatus server.osProps.details.lockStatus ]
-            , verboseStatus
-            ]
+    Element.row [ Element.spacing 15 ]
+        [ statusBadge
+        , lockStatus details.lockStatus
+        , verboseStatusToggleTip
+        ]
 
 
 interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg

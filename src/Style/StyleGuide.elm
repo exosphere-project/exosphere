@@ -14,6 +14,7 @@ import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon exposing (bell, ipAddress, remove, roundRect, timesCircle)
 import Style.Widgets.IconButton exposing (chip)
 import Style.Widgets.MenuItem exposing (MenuItemState(..), menuItem)
+import Style.Widgets.StatusBadge exposing (StatusBadgeState(..), statusBadge)
 import Widget
 
 
@@ -75,6 +76,8 @@ widgets msgMapper palette model =
         (ChipsFilterMsg >> msgMapper)
         (SH.materialStyle palette)
         model.chipFilterModel
+    , Element.text "Style.Widgets.StatusBadge.statusBadge"
+    , statusBadge palette ReadyGood "Ready"
     ]
 
 

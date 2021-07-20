@@ -49,12 +49,8 @@ Feature: Text presence
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
         And I should see an element with xpath "//div[contains(string(),'Building')]" within 10 seconds
-        When I click the "See detail" button
-        Then I should see "Detailed status"
-        And I should see "OpenStack status"
-        And I should see "Power state"
         # Now we wait for the instance to become ready...
-        Then I should see an element with xpath "//div[contains(string(),'Partially Active')]" within 500 seconds
+        Then I should see an element with xpath "//div[contains(string(),'Running Setup')]" within 500 seconds
         Then I should see an element with xpath "//div[contains(string(),'Ready')]" within 300 seconds
 
 
@@ -70,10 +66,6 @@ Feature: Text presence
         Then I should see the unique instance name within 30 seconds
         When I press on the unique instance name
         Then I should see an element with xpath "//h2[contains(string(),'Instance')]" within 2 seconds
-        When I click the "See detail" button
-        Then I should see "Detailed status"
-        And I should see "OpenStack status"
-        And I should see "Power state"
         When I click the "Delete" button
         Then I should see "Are you sure you want to delete?" within 5 seconds
         When I click the "Yes" button
