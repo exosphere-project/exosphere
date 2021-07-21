@@ -1,19 +1,30 @@
-## Contributor guidelines
+## Contributor Guidelines
 
 - Be respectful
 - Be constructive
 - Be kind
 
+## About GitLab
 
-## Submitting Code
+Exosphere is hosted on [gitlab.com](https://gitlab.com), an open-source service which is similar to GitHub in many ways. One difference is that a code contribution on GitLab is called a _merge request_ instead of a _pull request_ -- but the concept is the same, as is the contribution workflow:
 
-Our CI pipeline runs:
+1. Create your own fork of the [exosphere/exosphere](https://gitlab.com/exosphere/exosphere) project
+2. On that fork project, create a branch for your work, and push one or more commits to that branch
+3. Submit a merge request back to the upstream project
+
+If you have used GitHub, this should feel familiar. If not, feel free to ask the maintainers for help. We are happy to provide an orientation.
+
+## Continuous Integration
+
+Our continuous integration (CI) pipeline runs:
 
 - [elm-format](https://github.com/avh4/elm-format) (to ensure that contributions comply with the   
-  [Elm Style Guide](https://elm-lang.org/docs/style-guide)
+  [Elm Style Guide](https://elm-lang.org/docs/style-guide))
 - [elm-analyse](https://stil4m.github.io/elm-analyse/)
-  
- Please use `elm-format` and `elm-analyse` before you submit a merge request:
+- [unit tests](tests/README.md)
+- End-to-end tests which exercise the application in real web browsers 
+
+The most frequent cause of CI pipeline failure is due to issues found by `elm-analyse`. To avoid this, please use `elm-format` and `elm-analyse` before you submit a merge request, e.g. with these commands run from the root of your repo:
  
  ```bash
  npm install
@@ -22,20 +33,44 @@ Our CI pipeline runs:
  npm run elm:analyse
  ```
 
+### Enabling CI On Your Fork
 
-## End-to-end browser tests
+Before submitting a merge request, we request that you *enable GitLab CI/CD on your fork project*. It is easier and safer for us to accept contributions that show passing tests!
 
-Our CI pipeline also runs end-to-end tests with real browsers. For these tests to work you need:
+1. On GitLab, go to your fork's CI/CD settings (at `https://gitlab.com/your-gitlab-username-here/exosphere/edit`)
+2. Expand the "Visibility, project features, permissions" section
+3. Ensure your Project Visibility is "Public"
+4. Enable CI/CD for "Everyone With Access"
+
+![Enable CI/CD in project settings](docs/assets/gitlab-enable-ci-cd.png)
+
+5. Scroll down and click "Save changes" (it's easy to miss this button)
+
+![Enable CI/CD in project settings](docs/assets/gitlab-enable-ci-cd-save-changes.png)
+
+The CI/CD pipeline should run the next time you push a commit to your fork project on GitLab. Pipeline status should be visible at `https://gitlab.com/your-gitlab-username-here/exosphere/-/pipelines`, and also in any merge request that you submit to the upstream Exosphere project.
+
+### End-to-end browser tests
+
+Our CI pipeline also runs end-to-end tests with real browsers.  If you are a regular contributor, we request that you enable browser tests to run from your fork project.
+
+For these tests to work, you will need:
 
 1. Access to a Jetstream allocation
 2. Valid TACC (Texas Advanced Computing Center) credentials
 3. Set `taccusername` and `taccpass` environment variables in the GitLab CI/CD settings of your own fork of Exosphere
 
-Ask the maintainers for testing credentials if you don't have a Jetstream allocation.
+If you do not have items 1 or 2, please ask the maintainers for a set of testing credentials.
 
-How to add TACC credentials as environment variables to your GitLab repository settings:
+Here is how to add TACC credentials as environment variables to your GitLab repository settings:
 
 ![Environment variables for end-to-end browser tests](docs/assets/environment-variables-e2e-browser-tests.png)
+
+Note that the variables are _masked, but not protected_.
+
+The next time you push a commit to your fork project, the browser tests should run in the CI pipeline.
+
+#### Special Branch Behavior
 
 The CI pipeline's end-to-end browser tests have special behavior for `master` and `dev` branches, as opposed to all other git repository branches.
 
