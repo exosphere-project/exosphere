@@ -1,5 +1,6 @@
 module View.Keypairs exposing (createKeypair, listKeypairs)
 
+import Color
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -22,6 +23,7 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
+import Widget.Style.Material
 
 
 createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element Msg
@@ -86,13 +88,40 @@ createKeypair context project name publicKey =
                 , spellcheck = False
                 }
             , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (SH.materialStyle context.palette).primaryButton
-                    { text = "Create"
-                    , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
-                    }
+                createKeyPairButton context project name publicKey
             ]
         ]
+
+
+createKeyPairButton : View.Types.Context -> Project -> String -> String -> Element.Element Msg
+createKeyPairButton context project name publicKey =
+    let
+        isValid =
+            List.all
+                identity
+                [ String.length name > 0
+                , String.length publicKey > 0
+                ]
+
+        enabledPalette =
+            SH.materialStyle context.palette
+
+        disabledPalette =
+            enabledPalette
+    in
+    if isValid then
+        Widget.textButton
+            (SH.materialStyle context.palette).primaryButton
+            { text = "Create"
+            , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
+            }
+
+    else
+        Widget.textButton
+            (SH.materialStyle context.palette).primaryButton
+            { text = "Please enter a name and a key"
+            , onPress = Nothing
+            }
 
 
 listKeypairs :
