@@ -16,7 +16,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 createServerImage : View.Types.Context -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
@@ -56,7 +55,7 @@ createServerImage context project serverUuid imageName =
             , Element.row [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ]
                     (Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).primaryButton
                         { text = "Create"
                         , onPress =
                             Just <|

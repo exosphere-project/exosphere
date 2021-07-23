@@ -26,7 +26,6 @@ import UUID
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 getSupport :
@@ -212,7 +211,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                 [ Element.width Element.fill ]
                 [ Element.el [ Element.alignRight ] <|
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).primaryButton
                         { text = "Build Support Request"
                         , onPress =
                             if String.isEmpty requestDescription then

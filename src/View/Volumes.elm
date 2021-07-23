@@ -12,7 +12,6 @@ import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import RemoteData
 import Style.Helpers as SH
-import Style.Widgets.Button
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -35,7 +34,6 @@ import View.Helpers as VH
 import View.QuotaUsage
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 volumes :
@@ -158,7 +156,7 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
             case volume.status of
                 OSTypes.Available ->
                     Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).button
                         { text = "Attach"
                         , onPress =
                             Just
@@ -173,14 +171,14 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                 OSTypes.InUse ->
                     if Helpers.isBootVol Nothing volume then
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).button
                             { text = "Detach"
                             , onPress = Nothing
                             }
 
                     else
                         Widget.textButton
-                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).button
                             { text = "Detach"
                             , onPress =
                                 Just
@@ -205,7 +203,7 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                     Element.row [ Element.spacing 10 ]
                         [ Element.text "Confirm delete?"
                         , Widget.iconButton
-                            (Style.Widgets.Button.dangerButton context.palette)
+                            (SH.materialStyle context.palette).dangerButton
                             { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                             , text = "Delete"
                             , onPress =
@@ -215,7 +213,7 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                                         (RequestDeleteVolume volume.uuid)
                             }
                         , Widget.textButton
-                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).button
                             { text = "Cancel"
                             , onPress =
                                 Just <|
@@ -227,7 +225,7 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                 ( _, False ) ->
                     if volume.status == OSTypes.InUse then
                         Widget.iconButton
-                            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).button
                             { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                             , text = "Delete"
                             , onPress = Nothing
@@ -235,7 +233,7 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
 
                     else
                         Widget.iconButton
-                            (Style.Widgets.Button.dangerButton context.palette)
+                            (SH.materialStyle context.palette).dangerButton
                             { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                             , text = "Delete"
                             , onPress =
@@ -461,7 +459,7 @@ createVolume context project volName volSizeInput =
                         Element.none
                 , Element.el [ Element.alignRight ] <|
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).primaryButton
                         { text = "Create"
                         , onPress = onPress
                         }

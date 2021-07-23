@@ -10,7 +10,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
@@ -29,7 +28,6 @@ import View.Helpers as VH
 import View.QuotaUsage
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> Msg) -> Element.Element Msg
@@ -218,7 +216,7 @@ actionButtons context project toMsg viewParams ip =
                             ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ip.uuid )
             in
             Widget.textButton
-                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).button
                 { text = text
                 , onPress = onPress
                 }
@@ -231,7 +229,7 @@ actionButtons context project toMsg viewParams ip =
                 Element.row [ Element.spacing 10 ]
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton context.palette)
+                        (SH.materialStyle context.palette).dangerButton
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
@@ -241,7 +239,7 @@ actionButtons context project toMsg viewParams ip =
                                     (RequestDeleteFloatingIp ip.uuid)
                         }
                     , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).button
                         { text = "Cancel"
                         , onPress =
                             Just <|
@@ -257,7 +255,7 @@ actionButtons context project toMsg viewParams ip =
 
             else
                 Widget.iconButton
-                    (Style.Widgets.Button.dangerButton context.palette)
+                    (SH.materialStyle context.palette).dangerButton
                     { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                     , text = "Delete"
                     , onPress =
@@ -341,7 +339,7 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
 
         changeButton =
             Widget.iconButton
-                (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).button
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
                     Element.row [ Element.spacing 5 ]
@@ -539,7 +537,7 @@ assignFloatingIp context project viewParams =
                 button =
                     Element.el [ Element.alignRight ] <|
                         Widget.textButton
-                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).primaryButton
                             { text = "Assign"
                             , onPress = params.onPress
                             }

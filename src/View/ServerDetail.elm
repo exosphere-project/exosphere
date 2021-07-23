@@ -17,7 +17,6 @@ import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Style.Widgets.Button
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
@@ -132,7 +131,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 [ Element.spacing 10 ]
                 [ Element.text server.osProps.name
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).button
                     { text = "Edit"
                     , icon =
                         FeatherIcons.edit3
@@ -240,7 +239,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         }
                     )
                 , Widget.iconButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).button
                     { text = "Save"
                     , icon =
                         FeatherIcons.save
@@ -252,7 +251,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         saveOnPress
                     }
                 , Widget.iconButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).button
                     { text = "Cancel"
                     , icon =
                         FeatherIcons.xCircle
@@ -371,7 +370,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         ]
               then
                 Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).button
                     { text = "Attach " ++ context.localization.blockDevice
                     , onPress =
                         Just <|
@@ -661,7 +660,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                         , case interactionDetails.type_ of
                             ITypes.UrlInteraction ->
                                 Widget.button
-                                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                    (SH.materialStyle context.palette).button
                                     { text = interactionDetails.name
                                     , icon =
                                         Element.el
@@ -768,7 +767,7 @@ serverPassword context projectId serverDetailViewParams server =
                                 )
                   in
                   Widget.textButton
-                    (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).button
                     { text = buttonText
                     , onPress = Just onPressMsg
                     }
@@ -951,16 +950,16 @@ serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (
 serverActionSelectModButton context selectMod =
     case selectMod of
         ServerActions.NoMod ->
-            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+            Widget.textButton (SH.materialStyle context.palette).button
 
         ServerActions.Primary ->
-            Widget.textButton (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+            Widget.textButton (SH.materialStyle context.palette).primaryButton
 
         ServerActions.Warning ->
-            Widget.textButton (Style.Widgets.Button.warningButton context.palette)
+            Widget.textButton (SH.materialStyle context.palette).warningButton
 
         ServerActions.Danger ->
-            Widget.textButton (Style.Widgets.Button.dangerButton context.palette)
+            Widget.textButton (SH.materialStyle context.palette).dangerButton
 
 
 renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
@@ -997,7 +996,7 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         , Element.el
             []
           <|
-            Widget.textButton (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+            Widget.textButton (SH.materialStyle context.palette).button
                 { text = "No"
                 , onPress = cancelMsg
                 }
@@ -1083,7 +1082,7 @@ renderIpAddresses context project server serverDetailViewParams =
                             , "assigned."
                             ]
                     , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).button
                         { text =
                             String.join " "
                                 [ "Assign a", context.localization.floatingIpAddress ]
@@ -1114,7 +1113,7 @@ renderIpAddresses context project server serverDetailViewParams =
                                 (Element.column VH.exoColumnAttributes
                                     [ copyableText context.palette [] ipAddress.address
                                     , Widget.textButton
-                                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                        (SH.materialStyle context.palette).button
                                         { text =
                                             "Unassign"
                                         , onPress =

@@ -24,7 +24,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
@@ -143,7 +142,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                 button =
                     Element.el [ Element.alignRight ] <|
                         Widget.textButton
-                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).primaryButton
                             { text = "Attach"
                             , onPress = params.onPress
                             }
@@ -211,7 +210,7 @@ mountVolInstructions context project attachment =
                                 ]
                 ]
             , Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).primaryButton
                 { text = "Go to my " ++ context.localization.virtualComputer
                 , onPress =
                     Just <|

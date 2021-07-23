@@ -28,7 +28,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
 import Widget
-import Widget.Style.Material
 
 
 imagesIfLoaded : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
@@ -324,7 +323,7 @@ images context project imageListViewParams sortTableParams =
                                 ]
                 }
             , Widget.textButton
-                (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).button
                 { text = "Clear filters (show all)"
                 , onPress =
                     Just <|
@@ -386,7 +385,7 @@ renderImage context project imageListViewParams sortTableParams image =
 
         chooseButton =
             Widget.textButton
-                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).primaryButton
                 { text = "Choose"
                 , onPress =
                     case image.status of

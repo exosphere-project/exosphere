@@ -11,7 +11,6 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
-import Style.Widgets.Button
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
@@ -36,7 +35,6 @@ import View.Helpers as VH
 import View.QuotaUsage
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 serverList :
@@ -228,7 +226,7 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                 }
         , Element.el [ Element.alignRight ] <|
             Widget.iconButton
-                (Style.Widgets.Button.dangerButton context.palette)
+                (SH.materialStyle context.palette).dangerButton
                 { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                 , text = "Delete"
                 , onPress = deleteButtonOnPress
@@ -341,7 +339,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 ( False, OSTypes.ServerUnlocked, True ) ->
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton context.palette)
+                        (SH.materialStyle context.palette).dangerButton
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
@@ -351,7 +349,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                                         RequestDeleteServer False
                         }
                     , Widget.iconButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).button
                         { icon = Icon.windowClose (SH.toElementColor context.palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
@@ -367,7 +365,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 
                 ( False, OSTypes.ServerUnlocked, False ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton context.palette)
+                        (SH.materialStyle context.palette).dangerButton
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
@@ -379,7 +377,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 
                 ( False, OSTypes.ServerLocked, _ ) ->
                     [ Widget.iconButton
-                        (Style.Widgets.Button.dangerButton context.palette)
+                        (SH.materialStyle context.palette).dangerButton
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress = Nothing
@@ -471,7 +469,7 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
 
         changeButton =
             Widget.iconButton
-                (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).button
                 { onPress = Just changeOnlyOwnMsg
                 , icon =
                     Element.row [ Element.spacing 5 ]
