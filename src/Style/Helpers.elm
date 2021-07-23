@@ -8,6 +8,8 @@ module Style.Helpers exposing
 
 import Color
 import Element
+import Element.Font as Font
+import Html.Attributes
 import Style.Types exposing (ElmUiWidgetStyle, ExoPalette, StyleMode(..))
 import Widget.Style.Material as Material
 
@@ -81,24 +83,59 @@ toExoPalette primaryColor secondaryColor styleMode =
 materialStyle : ExoPalette -> ElmUiWidgetStyle {} msg
 materialStyle exoPalette =
     let
-        palette =
+        regularPalette =
             toMaterialPalette exoPalette
+
+        warningPalette =
+            { regularPalette | primary = exoPalette.warn }
+
+        dangerPalette =
+            { regularPalette | primary = exoPalette.error }
+
+        exoButtonAttributes =
+            [ Element.htmlAttribute <| Html.Attributes.style "text-transform" "none"
+            , Font.bold
+            ]
+
+        outlinedButton palette_ =
+            let
+                ob =
+                    Material.outlinedButton palette_
+            in
+            { ob
+                | container =
+                    ob.container
+                        ++ exoButtonAttributes
+            }
+
+        containedButton palette_ =
+            let
+                cb =
+                    Material.containedButton palette_
+            in
+            { cb
+                | container =
+                    cb.container
+                        ++ exoButtonAttributes
+            }
     in
-    { textInput = Material.textInput palette
+    { textInput = Material.textInput regularPalette
     , column = Material.column
     , cardColumn =
         let
             style =
-                Material.cardColumn palette
+                Material.cardColumn regularPalette
         in
         { style
             | element = style.element ++ [ Element.paddingXY 8 6 ]
         }
-    , primaryButton = Material.containedButton palette
-    , button = Material.outlinedButton palette
-    , chipButton = Material.chip palette
+    , primaryButton = containedButton regularPalette
+    , button = outlinedButton regularPalette
+    , warningButton = containedButton warningPalette
+    , dangerButton = containedButton dangerPalette
+    , chipButton = Material.chip regularPalette
     , row = Material.row
-    , progressIndicator = Material.progressIndicator palette
+    , progressIndicator = Material.progressIndicator regularPalette
     }
 
 

@@ -34,7 +34,6 @@ import View.ServerList
 import View.Types
 import View.Volumes
 import Widget
-import Widget.Style.Material
 
 
 project : Model -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
@@ -170,7 +169,7 @@ projectNav context p viewParams =
             [ Element.alignRight ]
           <|
             Widget.iconButton
-                (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                (SH.materialStyle context.palette).button
                 { icon =
                     Element.row [ Element.spacing 10 ]
                         [ Element.text removeText
@@ -197,8 +196,7 @@ createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Elemen
 createButton context projectId expanded =
     let
         materialStyle =
-            Widget.Style.Material.textButton
-                (SH.toMaterialPalette context.palette)
+            (SH.materialStyle context.palette).button
 
         buttonStyle =
             { materialStyle
@@ -300,7 +298,7 @@ createButton context projectId expanded =
     Element.column
         attribs
         [ Widget.iconButton
-            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+            (SH.materialStyle context.palette).primaryButton
             { text = "Create"
             , icon =
                 Element.row

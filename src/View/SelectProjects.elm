@@ -17,7 +17,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 selectProjects :
@@ -42,7 +41,7 @@ selectProjects model context keystoneUrl selectedProjects =
                                 (VH.sortProjects projects)
                             )
                             [ Widget.textButton
-                                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                                (SH.materialStyle context.palette).primaryButton
                                 { text = "Choose"
                                 , onPress =
                                     Just <|

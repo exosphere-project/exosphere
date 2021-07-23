@@ -33,7 +33,6 @@ import Types.Types
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 updateCreateServerRequest : Project -> CreateServerViewParams -> Msg
@@ -189,7 +188,7 @@ createServer context project viewParams =
             , renderNetworkGuidance
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).primaryButton
                     { text = "Create"
                     , onPress = createOnPress
                     }
@@ -977,7 +976,7 @@ keypairPicker context project viewParams =
                 String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
           in
           Widget.iconButton
-            (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+            (SH.materialStyle context.palette).button
             { text = text
             , icon =
                 Element.row

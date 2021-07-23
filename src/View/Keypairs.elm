@@ -8,7 +8,6 @@ import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Style.Widgets.Button
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
@@ -23,7 +22,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element Msg
@@ -89,7 +87,7 @@ createKeypair context project name publicKey =
                 }
             , Element.el [ Element.alignRight ] <|
                 Widget.textButton
-                    (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).primaryButton
                     { text = "Create"
                     , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
                     }
@@ -123,7 +121,7 @@ listKeypairs context showHeading project viewParams toMsg =
                             String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
                       in
                       Widget.iconButton
-                        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).button
                         { text = text
                         , icon =
                             Element.row
@@ -240,7 +238,7 @@ actionButtons context project toMsg viewParams keypair =
                 Element.row [ Element.spacing 10 ]
                     [ Element.text "Confirm delete?"
                     , Widget.iconButton
-                        (Style.Widgets.Button.dangerButton context.palette)
+                        (SH.materialStyle context.palette).dangerButton
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
@@ -250,7 +248,7 @@ actionButtons context project toMsg viewParams keypair =
                                     (RequestDeleteKeypair keypair.name)
                         }
                     , Widget.textButton
-                        (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).button
                         { text = "Cancel"
                         , onPress =
                             Just <|
@@ -266,7 +264,7 @@ actionButtons context project toMsg viewParams keypair =
 
             else
                 Widget.iconButton
-                    (Style.Widgets.Button.dangerButton context.palette)
+                    (SH.materialStyle context.palette).dangerButton
                     { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                     , text = "Delete"
                     , onPress =

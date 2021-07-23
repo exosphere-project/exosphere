@@ -24,6 +24,8 @@ type alias ElmUiWidgetStyle style msg =
         , cardColumn : ColumnStyle msg
         , primaryButton : ButtonStyle msg
         , button : ButtonStyle msg
+        , warningButton : ButtonStyle msg
+        , dangerButton : ButtonStyle msg
         , chipButton : ButtonStyle msg
         , row : RowStyle msg
         , progressIndicator : ProgressIndicatorStyle msg

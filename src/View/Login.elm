@@ -23,7 +23,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 type alias LoginMethod =
@@ -41,7 +40,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
                     Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
               , button =
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).primaryButton
                         { text = "Add OpenStack Account"
                         , onPress =
                             Just <|
@@ -57,7 +56,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
                     Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
               , button =
                     Widget.textButton
-                        (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                        (SH.materialStyle context.palette).primaryButton
                         { text = "Add Jetstream Account"
                         , onPress =
                             Just <|
@@ -82,7 +81,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
                     }
             , button =
                 Widget.textButton
-                    (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                    (SH.materialStyle context.palette).button
                     { text = oidcLoginConfig.oidcLoginButtonLabel
                     , onPress =
                         let
@@ -144,7 +143,7 @@ viewLoginPicker context maybeOpenIdConnectLoginConfig =
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
     Widget.textButton
-        (Widget.Style.Material.textButton (SH.toMaterialPalette context.palette))
+        (SH.materialStyle context.palette).button
         { text = "Other Login Methods"
         , onPress =
             Just <| SetNonProjectView <| LoginPicker
@@ -180,13 +179,13 @@ viewLoginOpenstack context viewParams =
                     LoginViewCredsEntry ->
                         [ Element.el [] (loginPickerButton context)
                         , Widget.textButton
-                            (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).button
                             { text = "Use OpenRC File"
                             , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewOpenRcEntry }
                             }
                         , Element.el [ Element.alignRight ]
                             (Widget.textButton
-                                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                                (SH.materialStyle context.palette).primaryButton
                                 { text = "Log In"
                                 , onPress =
                                     if allCredsEntered then
@@ -201,14 +200,14 @@ viewLoginOpenstack context viewParams =
                     LoginViewOpenRcEntry ->
                         [ Element.el VH.exoPaddingSpacingAttributes
                             (Widget.textButton
-                                (Widget.Style.Material.outlinedButton (SH.toMaterialPalette context.palette))
+                                (SH.materialStyle context.palette).button
                                 { text = "Cancel"
                                 , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewCredsEntry }
                                 }
                             )
                         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                             (Widget.textButton
-                                (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                                (SH.materialStyle context.palette).primaryButton
                                 { text = "Submit"
                                 , onPress = Just <| SubmitOpenRc viewParams.creds viewParams.openRc
                                 }
@@ -349,7 +348,7 @@ viewLoginJetstream context jetstreamCreds =
                     [ Element.el [] (loginPickerButton context)
                     , Element.el [ Element.alignRight ]
                         (Widget.textButton
-                            (Widget.Style.Material.containedButton (SH.toMaterialPalette context.palette))
+                            (SH.materialStyle context.palette).primaryButton
                             { text = "Log In"
                             , onPress =
                                 Just (JetstreamLogin jetstreamCreds)
