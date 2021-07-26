@@ -1,6 +1,5 @@
 module View.Keypairs exposing (createKeypair, listKeypairs)
 
-import Color
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -11,6 +10,7 @@ import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
+import Style.Widgets.FormValidation as FormValidation
 import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
@@ -38,7 +38,7 @@ createKeypair context project name publicKey =
                         |> Helpers.String.toTitleCase
                     ]
         , Element.column VH.formContainer
-            [ Input.text
+            ([ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = name
                 , placeholder =
@@ -58,7 +58,7 @@ createKeypair context project name publicKey =
                                     publicKey
                 , label = Input.labelAbove [] (Element.text "Name")
                 }
-            , Input.multiline
+             , Input.multiline
                 (VH.inputItemAttributes context.palette.background
                     ++ [ Element.width Element.fill
                        , Element.height (Element.px 300)
@@ -87,13 +87,13 @@ createKeypair context project name publicKey =
                         (Element.text "Public Key Value")
                 , spellcheck = False
                 }
-            , Element.el [ Element.alignRight ] <|
-                createKeyPairButton context project name publicKey
-            ]
+             ]
+                ++ createKeyPairButton context project name publicKey
+            )
         ]
 
 
-createKeyPairButton : View.Types.Context -> Project -> String -> String -> Element.Element Msg
+createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element Msg)
 createKeyPairButton context project name publicKey =
     let
         isValid =
@@ -103,25 +103,28 @@ createKeyPairButton context project name publicKey =
                 , String.length publicKey > 0
                 ]
 
-        enabledPalette =
-            SH.materialStyle context.palette
+        ( maybeCmd, validation ) =
+            if isValid then
+                ( Just <|
+                    ProjectMsg project.auth.project.uuid <|
+                        RequestCreateKeypair name publicKey
+                , Element.none
+                )
 
-        disabledPalette =
-            enabledPalette
+            else
+                ( Nothing
+                , FormValidation.renderValidationError context "All fields are required"
+                )
     in
-    if isValid then
+    [ Element.el [ Element.alignRight ] <|
         Widget.textButton
             (SH.materialStyle context.palette).primaryButton
             { text = "Create"
-            , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
+            , onPress = maybeCmd
             }
-
-    else
-        Widget.textButton
-            (SH.materialStyle context.palette).primaryButton
-            { text = "Please enter a name and a key"
-            , onPress = Nothing
-            }
+    , Element.el [ Element.alignRight ] <|
+        validation
+    ]
 
 
 listKeypairs :
