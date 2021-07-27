@@ -405,8 +405,6 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                   , serverEventHistory
                         context
                         (Tuple.first currentTimeAndZone)
-                        serverDetailViewParams
-                        updateViewParams
                         server.events
                   ]
                 , if details.openstackStatus == OSTypes.ServerActive then
@@ -822,11 +820,9 @@ viewServerActions context project serverDetailViewParams server =
 serverEventHistory :
     View.Types.Context
     -> Time.Posix
-    -> ServerDetailViewParams
-    -> (ServerDetailViewParams -> Msg)
     -> RemoteData.WebData (List OSTypes.ServerEvent)
     -> Element.Element Msg
-serverEventHistory context currentTime viewParams toMsg serverEventsWebData =
+serverEventHistory context currentTime serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
