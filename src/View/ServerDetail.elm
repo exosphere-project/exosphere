@@ -838,7 +838,14 @@ serverEventHistory context currentTime viewParams toMsg serverEventsWebData =
                 columns =
                     [ { header = renderTableHeader "Action"
                       , width = Element.px 180
-                      , view = \event -> Element.paragraph [] [ Element.text event.action ]
+                      , view =
+                            \event ->
+                                let
+                                    actionStr =
+                                        event.action
+                                            |> String.replace "_" " "
+                                in
+                                Element.paragraph [] [ Element.text actionStr ]
                       }
                     , { header = renderTableHeader "Time"
                       , width = Element.px 180
