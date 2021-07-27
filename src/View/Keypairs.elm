@@ -23,7 +23,6 @@ import Types.Types
 import View.Helpers as VH
 import View.Types
 import Widget
-import Widget.Style.Material
 
 
 createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element Msg
