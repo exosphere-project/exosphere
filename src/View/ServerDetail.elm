@@ -1,5 +1,6 @@
 module View.ServerDetail exposing (serverDetail)
 
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -12,6 +13,7 @@ import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Helpers.Time
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -400,7 +402,12 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             List.concat
                 [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
                   , viewServerActions context project serverDetailViewParams server
-                  , serverEventHistory context serverDetailViewParams updateViewParams server.events
+                  , serverEventHistory
+                        context
+                        (Tuple.first currentTimeAndZone)
+                        serverDetailViewParams
+                        updateViewParams
+                        server.events
                   ]
                 , if details.openstackStatus == OSTypes.ServerActive then
                     [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
@@ -814,23 +821,61 @@ viewServerActions context project serverDetailViewParams server =
 
 serverEventHistory :
     View.Types.Context
+    -> Time.Posix
     -> ServerDetailViewParams
     -> (ServerDetailViewParams -> Msg)
     -> RemoteData.WebData (List OSTypes.ServerEvent)
     -> Element.Element Msg
-serverEventHistory context viewParams toMsg serverEventsWebData =
+serverEventHistory context currentTime viewParams toMsg serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
-                renderEvent : OSTypes.ServerEvent -> Element.Element Msg
-                renderEvent event =
-                    -- Show action, start time (relative with toggle tip for absolute), and maybe error message
-                    Debug.toString event
-                        |> Element.text
+                renderTableHeader : String -> Element.Element Msg
+                renderTableHeader headerText =
+                    Element.el [ Font.bold ] <| Element.text headerText
+
+                columns : List (Element.Column OSTypes.ServerEvent Msg)
+                columns =
+                    [ { header = renderTableHeader "Action"
+                      , width = Element.px 180
+                      , view = \event -> Element.paragraph [] [ Element.text event.action ]
+                      }
+                    , { header = renderTableHeader "Time"
+                      , width = Element.px 180
+                      , view =
+                            \event ->
+                                let
+                                    relativeTime =
+                                        DateFormat.Relative.relativeTime currentTime event.startTime
+                                in
+                                Element.text <|
+                                    relativeTime
+                      }
+                    , { header = Element.none
+                      , width = Element.px 200
+                      , view =
+                            \event ->
+                                let
+                                    absoluteTime =
+                                        Helpers.Time.humanReadableTime event.startTime
+                                in
+                                Element.text <|
+                                    "("
+                                        ++ absoluteTime
+                                        ++ ")"
+                      }
+                    ]
             in
             Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
                 [ Element.el VH.heading4 <| Element.text "Action History"
-                , Element.column [] <| List.map renderEvent serverEvents
+                , Element.table
+                    (VH.formContainer
+                        ++ [ Element.spacingXY 0 7
+                           , Border.widthEach { top = 1, bottom = 1, left = 0, right = 0 }
+                           , Border.color (context.palette.muted |> SH.toElementColor)
+                           ]
+                    )
+                    { data = serverEvents, columns = columns }
                 ]
 
         _ ->
