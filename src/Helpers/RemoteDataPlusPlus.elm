@@ -31,7 +31,7 @@ type Haveness data
 
 type RefreshStatus e
     = NotLoading (Maybe ( e, ReceivedTime ))
-    | Loading RequestedTime
+    | Loading
 
 
 type alias RequestedTime =
@@ -62,6 +62,6 @@ empty =
     RemoteDataPlusPlus DontHave (NotLoading Nothing)
 
 
-setLoading : RemoteDataPlusPlus x y -> Time.Posix -> RemoteDataPlusPlus x y
-setLoading rdpp time =
-    { rdpp | refreshStatus = Loading time }
+setLoading : RemoteDataPlusPlus x y -> RemoteDataPlusPlus x y
+setLoading rdpp =
+    { rdpp | refreshStatus = Loading }

@@ -1680,7 +1680,7 @@ createProject model authToken endpoints =
             -- Maybe todo, eliminate parallel data structures in auth and endpoints?
             , endpoints = endpoints
             , images = []
-            , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave (RDPP.Loading model.clientCurrentTime)
+            , servers = RDPP.RemoteDataPlusPlus RDPP.DontHave RDPP.Loading
             , flavors = []
             , keypairs = RemoteData.NotAsked
             , volumes = RemoteData.NotAsked

@@ -69,7 +69,7 @@ serverList context showHeading project serverListViewParams toMsg =
                                 ]
                         ]
 
-                ( RDPP.DontHave, RDPP.Loading _ ) ->
+                ( RDPP.DontHave, RDPP.Loading ) ->
                     Element.row [ Element.spacing 15 ]
                         [ Widget.circularProgressIndicator
                             (SH.materialStyle context.palette).progressIndicator

@@ -69,10 +69,10 @@ pollRDPP rdpp time pollIntervalMs =
 
         loading =
             case rdpp.refreshStatus of
-                RDPP.Loading _ ->
+                RDPP.Loading ->
                     True
 
-                _ ->
+                RDPP.NotLoading _ ->
                     False
     in
     not receivedRecentlyEnough && not loading

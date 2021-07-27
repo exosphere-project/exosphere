@@ -39,7 +39,7 @@ stepPollFloatingIps : Time.Posix -> Project -> ( Project, Cmd Msg )
 stepPollFloatingIps time project =
     let
         requestStuff =
-            ( GetterSetters.projectSetFloatingIpsLoading time project
+            ( GetterSetters.projectSetFloatingIpsLoading project
             , Rest.Neutron.requestFloatingIps project
             )
 
@@ -57,7 +57,7 @@ stepPollPorts : Time.Posix -> Project -> ( Project, Cmd Msg )
 stepPollPorts time project =
     let
         requestStuff =
-            ( GetterSetters.projectSetPortsLoading time project
+            ( GetterSetters.projectSetPortsLoading project
             , Rest.Neutron.requestPorts project
             )
 

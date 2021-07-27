@@ -426,7 +426,7 @@ newServerNetworkOptions project =
 
         RDPP.DontHave ->
             case project.autoAllocatedNetworkUuid.refreshStatus of
-                RDPP.Loading _ ->
+                RDPP.Loading ->
                     NetworksLoading
 
                 RDPP.NotLoading maybeError ->
@@ -452,7 +452,7 @@ newServerNetworkOptions project =
 
                                         Nothing ->
                                             case project.networks.refreshStatus of
-                                                RDPP.Loading _ ->
+                                                RDPP.Loading ->
                                                     NetworksLoading
 
                                                 RDPP.NotLoading _ ->

@@ -109,10 +109,10 @@ stepServerPoll time project server =
         dontPollBecauseServerIsLoading : Bool
         dontPollBecauseServerIsLoading =
             case project.servers.refreshStatus of
-                RDPP.Loading _ ->
+                RDPP.Loading ->
                     True
 
-                _ ->
+                RDPP.NotLoading _ ->
                     server.exoProps.loadingSeparately
     in
     if serverReceivedRecentlyEnough then
@@ -145,7 +145,7 @@ stepServerRequestNetworks time project server =
     -- TODO DRY with function below?
     let
         requestStuff =
-            ( { project | networks = RDPP.setLoading project.networks time }
+            ( { project | networks = RDPP.setLoading project.networks }
             , Rest.Neutron.requestNetworks project
             )
     in
@@ -193,7 +193,7 @@ stepServerRequestPorts time project server =
     -- TODO DRY with function above?
     let
         requestStuff =
-            ( { project | ports = RDPP.setLoading project.ports time }, Rest.Neutron.requestPorts project )
+            ( { project | ports = RDPP.setLoading project.ports }, Rest.Neutron.requestPorts project )
     in
     if
         not server.exoProps.deletionAttempted
@@ -452,10 +452,10 @@ stepServerPollConsoleLog time project server =
                 Just pollLines ->
                     let
                         newExoSetupStatus =
-                            RDPP.setLoading exoOriginProps.exoSetupStatus time
+                            RDPP.setLoading exoOriginProps.exoSetupStatus
 
                         newResourceUsage =
-                            RDPP.setLoading exoOriginProps.resourceUsage time
+                            RDPP.setLoading exoOriginProps.resourceUsage
 
                         newExoOriginProps =
                             { exoOriginProps
@@ -510,7 +510,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                     oldGuacProps.authToken
 
                 newAuthToken =
-                    { oldAuthToken | refreshStatus = RDPP.Loading time }
+                    { oldAuthToken | refreshStatus = RDPP.Loading }
 
                 newGuacProps =
                     { oldGuacProps | authToken = newAuthToken }
@@ -571,7 +571,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
                                     doRequestToken floatingIp password tlsReverseProxyHostname exoOriginProps launchedWithGuacProps
                             in
                             case launchedWithGuacProps.authToken.refreshStatus of
-                                RDPP.Loading _ ->
+                                RDPP.Loading ->
                                     doNothing
 
                                 RDPP.NotLoading maybeErrorTimeTuple ->

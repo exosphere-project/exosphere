@@ -37,7 +37,6 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
-import Time
 import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
@@ -342,9 +341,9 @@ projectDeleteServer project serverUuid =
             { project | servers = newServersRDPP }
 
 
-projectSetServersLoading : Time.Posix -> Project -> Project
-projectSetServersLoading time project =
-    { project | servers = RDPP.setLoading project.servers time }
+projectSetServersLoading : Project -> Project
+projectSetServersLoading project =
+    { project | servers = RDPP.setLoading project.servers }
 
 
 projectSetServerLoading : Project -> OSTypes.ServerUuid -> Project
@@ -370,24 +369,24 @@ projectSetServerLoading project serverUuid =
             projectUpdateServer project newServer
 
 
-projectSetNetworksLoading : Time.Posix -> Project -> Project
-projectSetNetworksLoading time project =
-    { project | networks = RDPP.setLoading project.networks time }
+projectSetNetworksLoading : Project -> Project
+projectSetNetworksLoading project =
+    { project | networks = RDPP.setLoading project.networks }
 
 
-projectSetFloatingIpsLoading : Time.Posix -> Project -> Project
-projectSetFloatingIpsLoading time project =
-    { project | floatingIps = RDPP.setLoading project.floatingIps time }
+projectSetFloatingIpsLoading : Project -> Project
+projectSetFloatingIpsLoading project =
+    { project | floatingIps = RDPP.setLoading project.floatingIps }
 
 
-projectSetPortsLoading : Time.Posix -> Project -> Project
-projectSetPortsLoading time project =
-    { project | ports = RDPP.setLoading project.ports time }
+projectSetPortsLoading : Project -> Project
+projectSetPortsLoading project =
+    { project | ports = RDPP.setLoading project.ports }
 
 
-projectSetAutoAllocatedNetworkUuidLoading : Time.Posix -> Project -> Project
-projectSetAutoAllocatedNetworkUuidLoading time project =
-    { project | autoAllocatedNetworkUuid = RDPP.setLoading project.autoAllocatedNetworkUuid time }
+projectSetAutoAllocatedNetworkUuidLoading : Project -> Project
+projectSetAutoAllocatedNetworkUuidLoading project =
+    { project | autoAllocatedNetworkUuid = RDPP.setLoading project.autoAllocatedNetworkUuid }
 
 
 modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model

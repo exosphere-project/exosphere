@@ -27,7 +27,7 @@ requestServers projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( project
-                |> GetterSetters.projectSetServersLoading model.clientCurrentTime
+                |> GetterSetters.projectSetServersLoading
                 |> GetterSetters.modelUpdateProject model
             , Rest.Nova.requestServers project
             )
@@ -55,7 +55,7 @@ requestNetworks projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( project
-                |> (\p -> GetterSetters.projectSetNetworksLoading model.clientCurrentTime p)
+                |> GetterSetters.projectSetNetworksLoading
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestNetworks project
             )
@@ -69,7 +69,7 @@ requestAutoAllocatedNetwork projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
             ( project
-                |> (\p -> GetterSetters.projectSetAutoAllocatedNetworkUuidLoading model.clientCurrentTime p)
+                |> GetterSetters.projectSetAutoAllocatedNetworkUuidLoading
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestAutoAllocatedNetwork project
             )
@@ -112,7 +112,7 @@ requestFloatingIps : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
 requestFloatingIps projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( GetterSetters.projectSetFloatingIpsLoading model.clientCurrentTime project
+            ( GetterSetters.projectSetFloatingIpsLoading project
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestFloatingIps project
             )
@@ -125,7 +125,7 @@ requestPorts : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
 requestPorts projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
-            ( GetterSetters.projectSetPortsLoading model.clientCurrentTime project
+            ( GetterSetters.projectSetPortsLoading project
                 |> GetterSetters.modelUpdateProject model
             , Rest.Neutron.requestPorts project
             )
