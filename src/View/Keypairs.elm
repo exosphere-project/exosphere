@@ -10,6 +10,7 @@ import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
+import Style.Widgets.FormValidation as FormValidation
 import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
@@ -36,7 +37,7 @@ createKeypair context project name publicKey =
                         |> Helpers.String.toTitleCase
                     ]
         , Element.column VH.formContainer
-            [ Input.text
+            ([ Input.text
                 (VH.inputItemAttributes context.palette.background)
                 { text = name
                 , placeholder =
@@ -56,7 +57,7 @@ createKeypair context project name publicKey =
                                     publicKey
                 , label = Input.labelAbove [] (Element.text "Name")
                 }
-            , Input.multiline
+             , Input.multiline
                 (VH.inputItemAttributes context.palette.background
                     ++ [ Element.width Element.fill
                        , Element.height (Element.px 300)
@@ -85,14 +86,44 @@ createKeypair context project name publicKey =
                         (Element.text "Public Key Value")
                 , spellcheck = False
                 }
-            , Element.el [ Element.alignRight ] <|
-                Widget.textButton
-                    (SH.materialStyle context.palette).primaryButton
-                    { text = "Create"
-                    , onPress = Just <| ProjectMsg project.auth.project.uuid <| RequestCreateKeypair name publicKey
-                    }
-            ]
+             ]
+                ++ createKeyPairButton context project name publicKey
+            )
         ]
+
+
+createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element Msg)
+createKeyPairButton context project name publicKey =
+    let
+        isValid =
+            List.all
+                identity
+                [ String.length name > 0
+                , String.length publicKey > 0
+                ]
+
+        ( maybeCmd, validation ) =
+            if isValid then
+                ( Just <|
+                    ProjectMsg project.auth.project.uuid <|
+                        RequestCreateKeypair name publicKey
+                , Element.none
+                )
+
+            else
+                ( Nothing
+                , FormValidation.renderValidationError context "All fields are required"
+                )
+    in
+    [ Element.el [ Element.alignRight ] <|
+        Widget.textButton
+            (SH.materialStyle context.palette).primaryButton
+            { text = "Create"
+            , onPress = maybeCmd
+            }
+    , Element.el [ Element.alignRight ] <|
+        validation
+    ]
 
 
 listKeypairs :
