@@ -117,7 +117,15 @@ updateUnderlying msg model =
             State.Error.processSynchronousApiError model errorContext error
 
         RequestUnscopedToken openstackLoginUnscoped ->
-            ( model, Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl openstackLoginUnscoped )
+            let
+                creds =
+                    -- Ensure auth URL includes port number and version
+                    { openstackLoginUnscoped
+                        | authUrl =
+                            State.Auth.authUrlWithPortAndVersion openstackLoginUnscoped.authUrl
+                    }
+            in
+            ( model, Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl creds )
 
         JetstreamLogin jetstreamCreds ->
             let
