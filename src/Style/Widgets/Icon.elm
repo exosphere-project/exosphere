@@ -2,7 +2,6 @@ module Style.Widgets.Icon exposing
     ( bell
     , console
     , copyToClipboard
-    , gauge
     , ipAddress
     , lock
     , lockOpen
@@ -203,29 +202,6 @@ lockOpen_ cl size =
 
             -- From view-source:https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/svg/unlock.svg
             , SA.d "M1728 576v256q0 26-19 45t-45 19h-64q-26 0-45-19t-19-45v-256q0-106-75-181t-181-75-181 75-75 181v192h96q40 0 68 28t28 68v576q0 40-28 68t-68 28h-960q-40 0-68-28t-28-68v-576q0-40 28-68t68-28h672v-192q0-185 131.5-316.5t316.5-131.5 316.5 131.5 131.5 316.5z"
-            ]
-            []
-        ]
-
-
-gauge : Element.Color -> Int -> Element.Element msg
-gauge cl size =
-    Element.el [] <|
-        Element.html <|
-            gauge_ cl size
-
-
-gauge_ : Element.Color -> Int -> Html.Html msg
-gauge_ cl size =
-    Svg.svg
-        [ SA.viewBox "0 0 576 512"
-        , SA.height <| String.fromInt size
-        ]
-        [ Svg.path
-            [ SA.fill (elementColorToSvgColor cl)
-
-            -- From https://fontawesome.com/icons/tachometer-alt?style=solid
-            , SA.d "M288 32C128.94 32 0 160.94 0 320c0 52.8 14.25 102.26 39.06 144.8 5.61 9.62 16.3 15.2 27.44 15.2h443c11.14 0 21.83-5.58 27.44-15.2C561.75 422.26 576 372.8 576 320c0-159.06-128.94-288-288-288zm0 64c14.71 0 26.58 10.13 30.32 23.65-1.11 2.26-2.64 4.23-3.45 6.67l-9.22 27.67c-5.13 3.49-10.97 6.01-17.64 6.01-17.67 0-32-14.33-32-32S270.33 96 288 96zM96 384c-17.67 0-32-14.33-32-32s14.33-32 32-32 32 14.33 32 32-14.33 32-32 32zm48-160c-17.67 0-32-14.33-32-32s14.33-32 32-32 32 14.33 32 32-14.33 32-32 32zm246.77-72.41l-61.33 184C343.13 347.33 352 364.54 352 384c0 11.72-3.38 22.55-8.88 32H232.88c-5.5-9.45-8.88-20.28-8.88-32 0-33.94 26.5-61.43 59.9-63.59l61.34-184.01c4.17-12.56 17.73-19.45 30.36-15.17 12.57 4.19 19.35 17.79 15.17 30.36zm14.66 57.2l15.52-46.55c3.47-1.29 7.13-2.23 11.05-2.23 17.67 0 32 14.33 32 32s-14.33 32-32 32c-11.38-.01-20.89-6.28-26.57-15.22zM480 384c-17.67 0-32-14.33-32-32s14.33-32 32-32 32 14.33 32 32-14.33 32-32 32z"
             ]
             []
         ]

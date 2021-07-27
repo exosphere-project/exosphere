@@ -1,10 +1,8 @@
 module State.Auth exposing
-    ( authUrlWithPortAndVersion
-    , jetstreamToOpenstackCreds
+    ( jetstreamToOpenstackCreds
     , processOpenRc
     , projectUpdateAuthToken
     , requestAuthToken
-    , sendPendingRequests
     , unscopedProviderUpdateAuthToken
     )
 
@@ -13,7 +11,6 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.), (|=))
 import Rest.Keystone
 import Set
-import Types.HelperTypes as HelperTypes
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
@@ -32,7 +29,6 @@ import Types.Types
         , UnscopedProvider
         , ViewState(..)
         )
-import Url
 
 
 projectUpdateAuthToken : Model -> Project -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
@@ -174,55 +170,3 @@ processOpenRc existingCreds openRc =
         )
         (parseVar "OS_USERNAME" |> Maybe.withDefault existingCreds.username)
         (parseVar "OS_PASSWORD" |> Maybe.withDefault existingCreds.password)
-
-
-authUrlWithPortAndVersion : HelperTypes.Url -> HelperTypes.Url
-authUrlWithPortAndVersion authUrlStr =
-    -- If user does not provide a port and path in OpenStack auth URL then we guess port 5000 and path "/v3"
-    let
-        authUrlStrWithProto =
-            -- If user doesn't provide a protocol then we add one so that the URL will actually parse
-            if String.startsWith "http://" authUrlStr || String.startsWith "https://" authUrlStr then
-                authUrlStr
-
-            else
-                "https://" ++ authUrlStr
-
-        maybeAuthUrl =
-            Url.fromString authUrlStrWithProto
-    in
-    case maybeAuthUrl of
-        Nothing ->
-            -- We can't parse this URL so we just return it unmodified
-            authUrlStr
-
-        Just authUrl ->
-            let
-                port_ =
-                    case authUrl.port_ of
-                        Just _ ->
-                            authUrl.port_
-
-                        Nothing ->
-                            Just 5000
-
-                path =
-                    case authUrl.path of
-                        "" ->
-                            "/v3"
-
-                        "/" ->
-                            "/v3"
-
-                        _ ->
-                            authUrl.path
-            in
-            Url.toString <|
-                Url.Url
-                    authUrl.protocol
-                    authUrl.host
-                    port_
-                    path
-                    -- Query and fragment may not be needed / accepted by OpenStack
-                    authUrl.query
-                    authUrl.fragment

@@ -1,17 +1,9 @@
 module Rest.Nova exposing
-    ( decodeFlavors
-    , decodeKeypairs
-    , decodeServer
-    , decodeServerDetails
-    , decodeServers
-    , flavorDecoder
-    , keypairDecoder
-    , receiveConsoleUrl
+    ( receiveConsoleUrl
     , receiveFlavors
     , receiveKeypairs
     , receiveServer
     , receiveServers
-    , requestConsoleUrls
     , requestCreateKeypair
     , requestCreateServer
     , requestCreateServerImage
@@ -23,7 +15,6 @@ module Rest.Nova exposing
     , requestServers
     , requestSetServerMetadata
     , requestSetServerName
-    , serverPowerStateDecoder
     )
 
 import Array

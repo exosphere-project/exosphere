@@ -3,9 +3,6 @@ module OpenStack.SecurityGroupRule exposing
     , SecurityGroupRuleDirection(..)
     , SecurityGroupRuleEthertype(..)
     , SecurityGroupRuleProtocol(..)
-    , buildRuleExposeAllIncomingPorts
-    , buildRuleIcmp
-    , buildRuleTCP
     , defaultExosphereRules
     , encode
     , matchRule

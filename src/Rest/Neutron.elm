@@ -1,11 +1,5 @@
 module Rest.Neutron exposing
-    ( decodeFloatingIp
-    , decodeNetworks
-    , decodePorts
-    , ipAddressStatusDecoder
-    , networkDecoder
-    , portDecoder
-    , receiveCreateExoSecurityGroupAndRequestCreateRules
+    ( receiveCreateExoSecurityGroupAndRequestCreateRules
     , receiveCreateFloatingIp
     , receiveDeleteFloatingIp
     , receiveFloatingIps
@@ -13,7 +7,6 @@ module Rest.Neutron exposing
     , receiveSecurityGroupsAndEnsureExoGroup
     , requestAssignFloatingIp
     , requestAutoAllocatedNetwork
-    , requestCreateExoSecurityGroupRules
     , requestCreateFloatingIp
     , requestDeleteFloatingIp
     , requestFloatingIps
