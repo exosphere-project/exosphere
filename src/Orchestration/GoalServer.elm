@@ -145,7 +145,7 @@ stepServerRequestNetworks time project server =
     -- TODO DRY with function below?
     let
         requestStuff =
-            ( { project | networks = RDPP.setLoading project.networks time }
+            ( { project | networks = RDPP.setLoading project.networks }
             , Rest.Neutron.requestNetworks project
             )
     in
@@ -193,7 +193,7 @@ stepServerRequestPorts time project server =
     -- TODO DRY with function above?
     let
         requestStuff =
-            ( { project | ports = RDPP.setLoading project.ports time }, Rest.Neutron.requestPorts project )
+            ( { project | ports = RDPP.setLoading project.ports }, Rest.Neutron.requestPorts project )
     in
     if
         not server.exoProps.deletionAttempted
@@ -452,10 +452,10 @@ stepServerPollConsoleLog time project server =
                 Just pollLines ->
                     let
                         newExoSetupStatus =
-                            RDPP.setLoading exoOriginProps.exoSetupStatus time
+                            RDPP.setLoading exoOriginProps.exoSetupStatus
 
                         newResourceUsage =
-                            RDPP.setLoading exoOriginProps.resourceUsage time
+                            RDPP.setLoading exoOriginProps.resourceUsage
 
                         newExoOriginProps =
                             { exoOriginProps
