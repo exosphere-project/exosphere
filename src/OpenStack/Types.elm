@@ -58,6 +58,7 @@ module OpenStack.Types exposing
     , VolumeSize
     , VolumeStatus(..)
     , VolumeUuid
+    , imageVisibilityToString
     , serverPowerStateToString
     , serverStatusToString
     , volumeStatusToString
@@ -238,6 +239,22 @@ type ImageVisibility
     | ImageCommunity
     | ImageShared
     | ImagePrivate
+
+
+imageVisibilityToString : ImageVisibility -> String
+imageVisibilityToString imageVisibility =
+    case imageVisibility of
+        ImagePublic ->
+            "Public"
+
+        ImageCommunity ->
+            "Community"
+
+        ImageShared ->
+            "Shared"
+
+        ImagePrivate ->
+            "Private"
 
 
 
