@@ -448,6 +448,15 @@ renderImage context project imageListViewParams sortTableParams image =
                 [ Element.wrappedRow
                     [ Element.width Element.fill
                     ]
+                    [ Element.el
+                        [ Font.color <| SH.toElementColor <| context.palette.muted
+                        , Element.padding 5
+                        ]
+                        (Element.text <| "Visibility: " ++ OSTypes.imageVisibilityToString image.visibility)
+                    ]
+                , Element.wrappedRow
+                    [ Element.width Element.fill
+                    ]
                     (Element.el
                         [ Font.color <| SH.toElementColor <| context.palette.muted
                         , Element.padding 5
