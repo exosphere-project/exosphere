@@ -184,7 +184,7 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
                                                 ( Just _, Just _, Just _ ) ->
                                                     case guacProps.authToken.refreshStatus of
-                                                        RDPP.Loading _ ->
+                                                        RDPP.Loading ->
                                                             ITypes.Loading
 
                                                         RDPP.NotLoading maybeErrorTuple ->

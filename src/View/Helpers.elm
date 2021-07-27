@@ -408,7 +408,7 @@ renderRDPP context remoteData resourceWord renderSuccessCase =
 
         RDPP.DontHave ->
             case remoteData.refreshStatus of
-                RDPP.Loading _ ->
+                RDPP.Loading ->
                     loadingStuff context resourceWord
 
                 RDPP.NotLoading maybeErrorTuple ->
