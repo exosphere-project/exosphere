@@ -49,8 +49,8 @@ import Widget
 import Widget.Style.Material
 
 
-updateServerDetail : Project -> ServerDetailViewParams -> Server -> Msg
-updateServerDetail project serverDetailViewParams server =
+updateViewParams : Project -> ServerDetailViewParams -> Server -> Msg
+updateViewParams project serverDetailViewParams server =
     ProjectMsg project.auth.project.uuid <|
         SetProjectView <|
             ServerDetail server.osProps.uuid serverDetailViewParams
@@ -141,7 +141,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.el []
                     , onPress =
                         Just
-                            (updateServerDetail project
+                            (updateViewParams project
                                 { serverDetailViewParams
                                     | serverNamePendingConfirmation = Just server.osProps.name
                                 }
@@ -231,7 +231,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         , label = "Name"
                         , onChange =
                             \n ->
-                                updateServerDetail project
+                                updateViewParams project
                                     { serverDetailViewParams
                                         | serverNamePendingConfirmation = Just n
                                     }
@@ -261,7 +261,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.el []
                     , onPress =
                         Just
-                            (updateServerDetail project
+                            (updateViewParams project
                                 { serverDetailViewParams
                                     | serverNamePendingConfirmation = Nothing
                                 }
@@ -312,7 +312,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     (Just ( "user", creatorName ))
                     (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                     serverDetailViewParams.showCreatedTimeToggleTip
-                    (updateServerDetail project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
+                    (updateViewParams project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
