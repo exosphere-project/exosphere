@@ -400,6 +400,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             List.concat
                 [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
                   , viewServerActions context project serverDetailViewParams server
+                  , serverEventHistory context serverDetailViewParams updateViewParams server.events
                   ]
                 , if details.openstackStatus == OSTypes.ServerActive then
                     [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
@@ -809,6 +810,31 @@ viewServerActions context project serverDetailViewParams server =
 
             Just _ ->
                 []
+
+
+serverEventHistory :
+    View.Types.Context
+    -> ServerDetailViewParams
+    -> (ServerDetailViewParams -> Msg)
+    -> RemoteData.WebData (List OSTypes.ServerEvent)
+    -> Element.Element Msg
+serverEventHistory context viewParams toMsg serverEventsWebData =
+    case serverEventsWebData of
+        RemoteData.Success serverEvents ->
+            let
+                renderEvent : OSTypes.ServerEvent -> Element.Element Msg
+                renderEvent event =
+                    -- Show action, start time (relative with toggle tip for absolute), and maybe error message
+                    Debug.toString event
+                        |> Element.text
+            in
+            Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
+                [ Element.el VH.heading4 <| Element.text "Action History"
+                , Element.column [] <| List.map renderEvent serverEvents
+                ]
+
+        _ ->
+            Element.none
 
 
 renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
