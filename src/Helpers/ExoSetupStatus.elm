@@ -1,6 +1,5 @@
 module Helpers.ExoSetupStatus exposing
-    ( decodeLogLine
-    , exoSetupStatusToStr
+    ( exoSetupStatusToStr
     , parseConsoleLogExoSetupStatus
     )
 

@@ -1,9 +1,5 @@
 module Rest.Glance exposing
-    ( decodeImages
-    , imageDecoder
-    , imageStatusDecoder
-    , imageVisibilityDecoder
-    , receiveImages
+    ( receiveImages
     , requestImages
     )
 

@@ -1,16 +1,7 @@
 module Rest.Keystone exposing
-    ( authTokenFromHeader
-    , decodeAppCredential
-    , decodeAuthTokenHelper
-    , decodeScopedAuthToken
-    , decodeScopedAuthTokenDetails
+    ( decodeScopedAuthToken
     , decodeUnscopedAuthToken
-    , decodeUnscopedAuthTokenDetails
-    , openstackEndpointDecoder
-    , openstackEndpointInterfaceDecoder
-    , openstackServiceDecoder
     , requestAppCredential
-    , requestAuthTokenHelper
     , requestScopedAuthToken
     , requestUnscopedAuthToken
     , requestUnscopedProjects

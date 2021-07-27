@@ -4,7 +4,6 @@ module Helpers.GetterSetters exposing
     , floatingIpLookup
     , getExternalNetwork
     , getFloatingIpServer
-    , getPublicEndpointFromService
     , getServerExouserPassword
     , getServerFixedIps
     , getServerFloatingIps
