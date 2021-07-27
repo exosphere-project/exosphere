@@ -1,5 +1,6 @@
 module View.ServerDetail exposing (serverDetail)
 
+import DateFormat.Relative
 import Dict
 import Element
 import Element.Background as Background
@@ -12,6 +13,7 @@ import Helpers.Helpers as Helpers
 import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Helpers.Time
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -49,13 +51,6 @@ import Widget
 import Widget.Style.Material
 
 
-updateServerDetail : Project -> ServerDetailViewParams -> Server -> Msg
-updateServerDetail project serverDetailViewParams server =
-    ProjectMsg project.auth.project.uuid <|
-        SetProjectView <|
-            ServerDetail server.osProps.uuid serverDetailViewParams
-
-
 serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
 serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
@@ -78,6 +73,12 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
     let
         details =
             server.osProps.details
+
+        updateViewParams : ServerDetailViewParams -> Msg
+        updateViewParams newViewParams =
+            ProjectMsg project.auth.project.uuid <|
+                SetProjectView <|
+                    ServerDetail server.osProps.uuid newViewParams
 
         creatorName =
             case server.exoProps.serverOrigin of
@@ -141,11 +142,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.el []
                     , onPress =
                         Just
-                            (updateServerDetail project
+                            (updateViewParams
                                 { serverDetailViewParams
                                     | serverNamePendingConfirmation = Just server.osProps.name
                                 }
-                                server
                             )
                     }
                 ]
@@ -231,11 +231,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         , label = "Name"
                         , onChange =
                             \n ->
-                                updateServerDetail project
+                                updateViewParams
                                     { serverDetailViewParams
                                         | serverNamePendingConfirmation = Just n
                                     }
-                                    server
                         }
                     )
                 , Widget.iconButton
@@ -261,11 +260,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.el []
                     , onPress =
                         Just
-                            (updateServerDetail project
+                            (updateViewParams
                                 { serverDetailViewParams
                                     | serverNamePendingConfirmation = Nothing
                                 }
-                                server
                             )
                     }
                 ]
@@ -312,7 +310,11 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     (Just ( "user", creatorName ))
                     (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                     serverDetailViewParams.showCreatedTimeToggleTip
-                    (updateServerDetail project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
+                    (updateViewParams
+                        { serverDetailViewParams
+                            | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip
+                        }
+                    )
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
@@ -400,6 +402,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             List.concat
                 [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
                   , viewServerActions context project serverDetailViewParams server
+                  , serverEventHistory
+                        context
+                        (Tuple.first currentTimeAndZone)
+                        server.events
                   ]
                 , if details.openstackStatus == OSTypes.ServerActive then
                     [ Element.el (VH.heading3 context.palette) (Element.text "System Resource Usage")
@@ -809,6 +815,74 @@ viewServerActions context project serverDetailViewParams server =
 
             Just _ ->
                 []
+
+
+serverEventHistory :
+    View.Types.Context
+    -> Time.Posix
+    -> RemoteData.WebData (List OSTypes.ServerEvent)
+    -> Element.Element Msg
+serverEventHistory context currentTime serverEventsWebData =
+    case serverEventsWebData of
+        RemoteData.Success serverEvents ->
+            let
+                renderTableHeader : String -> Element.Element Msg
+                renderTableHeader headerText =
+                    Element.el [ Font.bold ] <| Element.text headerText
+
+                columns : List (Element.Column OSTypes.ServerEvent Msg)
+                columns =
+                    [ { header = renderTableHeader "Action"
+                      , width = Element.px 180
+                      , view =
+                            \event ->
+                                let
+                                    actionStr =
+                                        event.action
+                                            |> String.replace "_" " "
+                                in
+                                Element.paragraph [] [ Element.text actionStr ]
+                      }
+                    , { header = renderTableHeader "Time"
+                      , width = Element.px 180
+                      , view =
+                            \event ->
+                                let
+                                    relativeTime =
+                                        DateFormat.Relative.relativeTime currentTime event.startTime
+                                in
+                                Element.text <|
+                                    relativeTime
+                      }
+                    , { header = Element.none
+                      , width = Element.px 200
+                      , view =
+                            \event ->
+                                let
+                                    absoluteTime =
+                                        Helpers.Time.humanReadableTime event.startTime
+                                in
+                                Element.text <|
+                                    "("
+                                        ++ absoluteTime
+                                        ++ ")"
+                      }
+                    ]
+            in
+            Element.column [ Element.paddingXY 0 10, Element.spacing 10, Element.width Element.fill ]
+                [ Element.el VH.heading4 <| Element.text "Action History"
+                , Element.table
+                    (VH.formContainer
+                        ++ [ Element.spacingXY 0 7
+                           , Border.widthEach { top = 1, bottom = 1, left = 0, right = 0 }
+                           , Border.color (context.palette.muted |> SH.toElementColor)
+                           ]
+                    )
+                    { data = serverEvents, columns = columns }
+                ]
+
+        _ ->
+            Element.none
 
 
 renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
