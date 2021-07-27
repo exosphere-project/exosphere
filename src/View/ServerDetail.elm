@@ -49,13 +49,6 @@ import Widget
 import Widget.Style.Material
 
 
-updateViewParams : Project -> ServerDetailViewParams -> Server -> Msg
-updateViewParams project serverDetailViewParams server =
-    ProjectMsg project.auth.project.uuid <|
-        SetProjectView <|
-            ServerDetail server.osProps.uuid serverDetailViewParams
-
-
 serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
 serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
@@ -78,6 +71,12 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
     let
         details =
             server.osProps.details
+
+        updateViewParams : ServerDetailViewParams -> Msg
+        updateViewParams newViewParams =
+            ProjectMsg project.auth.project.uuid <|
+                SetProjectView <|
+                    ServerDetail server.osProps.uuid newViewParams
 
         creatorName =
             case server.exoProps.serverOrigin of
@@ -141,11 +140,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.el []
                     , onPress =
                         Just
-                            (updateViewParams project
+                            (updateViewParams
                                 { serverDetailViewParams
                                     | serverNamePendingConfirmation = Just server.osProps.name
                                 }
-                                server
                             )
                     }
                 ]
@@ -231,11 +229,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         , label = "Name"
                         , onChange =
                             \n ->
-                                updateViewParams project
+                                updateViewParams
                                     { serverDetailViewParams
                                         | serverNamePendingConfirmation = Just n
                                     }
-                                    server
                         }
                     )
                 , Widget.iconButton
@@ -261,11 +258,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.el []
                     , onPress =
                         Just
-                            (updateViewParams project
+                            (updateViewParams
                                 { serverDetailViewParams
                                     | serverNamePendingConfirmation = Nothing
                                 }
-                                server
                             )
                     }
                 ]
@@ -312,7 +308,11 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     (Just ( "user", creatorName ))
                     (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
                     serverDetailViewParams.showCreatedTimeToggleTip
-                    (updateViewParams project { serverDetailViewParams | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip } server)
+                    (updateViewParams
+                        { serverDetailViewParams
+                            | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip
+                        }
+                    )
             , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
