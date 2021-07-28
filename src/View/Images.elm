@@ -17,6 +17,7 @@ import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( ImageListViewParams
+        , ImageListVisibilityFilter
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -86,6 +87,20 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
+filterByVisibility : ImageListVisibilityFilter -> List OSTypes.Image -> List OSTypes.Image
+filterByVisibility filter someImages =
+    let
+        include i =
+            List.any identity
+                [ i.visibility == OSTypes.ImagePublic && filter.public
+                , i.visibility == OSTypes.ImagePrivate && filter.private
+                , i.visibility == OSTypes.ImageCommunity && filter.community
+                , i.visibility == OSTypes.ImageShared && filter.shared
+                ]
+    in
+    List.filter include someImages
+
+
 isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
 isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
     case maybeFeaturedImageNamePrefix of
@@ -102,6 +117,7 @@ filterImages imageListViewParams project someImages =
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
+        |> filterByVisibility imageListViewParams.visibilityFilter
 
 
 images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
@@ -229,6 +245,97 @@ images context project imageListViewParams sortTableParams =
                             }
                        )
                 )
+
+        visibilityFilters =
+            Element.row
+                [ Element.spacing 10 ]
+                [ Element.text <|
+                    String.join " "
+                        [ "Filter on"
+                        , context.localization.staticRepresentationOfBlockDeviceContents
+                        , "visibility:"
+                        ]
+                , Input.checkbox []
+                    { checked = imageListViewParams.visibilityFilter.public
+                    , onChange =
+                        \new ->
+                            let
+                                oldVisibilityFilter =
+                                    imageListViewParams.visibilityFilter
+
+                                newVisibilityFilter =
+                                    { oldVisibilityFilter | public = new }
+                            in
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
+                                        sortTableParams
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [] <|
+                            Element.text "Public"
+                    }
+                , Input.checkbox []
+                    { checked = imageListViewParams.visibilityFilter.community
+                    , onChange =
+                        \new ->
+                            let
+                                oldVisibilityFilter =
+                                    imageListViewParams.visibilityFilter
+
+                                newVisibilityFilter =
+                                    { oldVisibilityFilter | community = new }
+                            in
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
+                                        sortTableParams
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [] <|
+                            Element.text "Community"
+                    }
+                , Input.checkbox []
+                    { checked = imageListViewParams.visibilityFilter.shared
+                    , onChange =
+                        \new ->
+                            let
+                                oldVisibilityFilter =
+                                    imageListViewParams.visibilityFilter
+
+                                newVisibilityFilter =
+                                    { oldVisibilityFilter | shared = new }
+                            in
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
+                                        sortTableParams
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [] <|
+                            Element.text "Shared"
+                    }
+                , Input.checkbox []
+                    { checked = imageListViewParams.visibilityFilter.private
+                    , onChange =
+                        \new ->
+                            let
+                                oldVisibilityFilter =
+                                    imageListViewParams.visibilityFilter
+
+                                newVisibilityFilter =
+                                    { oldVisibilityFilter | private = new }
+                            in
+                            ProjectMsg project.auth.project.uuid <|
+                                SetProjectView <|
+                                    ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
+                                        sortTableParams
+                    , icon = Input.defaultCheckbox
+                    , label =
+                        Input.labelRight [] <|
+                            Element.text "Private"
+                    }
+                ]
     in
     Element.column
         (VH.exoColumnAttributes
@@ -254,7 +361,7 @@ images context project imageListViewParams sortTableParams =
                                     { imageListViewParams | searchText = t }
                                     sortTableParams
                 , label =
-                    Input.labelAbove [ Font.size 14 ]
+                    Input.labelAbove []
                         (Element.text <|
                             String.join " "
                                 [ "Filter on"
@@ -263,6 +370,7 @@ images context project imageListViewParams sortTableParams =
                                 ]
                         )
                 }
+            , visibilityFilters
             , tagsView
             , Input.checkbox []
                 { checked = imageListViewParams.onlyOwnImages
@@ -293,11 +401,7 @@ images context project imageListViewParams sortTableParams =
                         ProjectMsg project.auth.project.uuid <|
                             SetProjectView <|
                                 ListImages
-                                    { searchText = ""
-                                    , tags = Set.empty
-                                    , onlyOwnImages = False
-                                    , expandImageDetails = Set.empty
-                                    }
+                                    Defaults.imageListViewParams
                                     sortTableParams
                 }
             , if noMatchWarning then
