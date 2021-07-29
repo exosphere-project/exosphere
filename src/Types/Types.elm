@@ -18,6 +18,7 @@ module Types.Types exposing
     , HttpRequestMethod(..)
     , IPInfoLevel(..)
     , ImageListViewParams
+    , ImageListVisibilityFilter
     , JetstreamCreds
     , JetstreamProvider(..)
     , KeypairIdentifier
@@ -444,6 +445,15 @@ type alias ImageListViewParams =
     , tags : Set.Set String
     , onlyOwnImages : Bool
     , expandImageDetails : Set.Set OSTypes.ImageUuid
+    , visibilityFilter : ImageListVisibilityFilter
+    }
+
+
+type alias ImageListVisibilityFilter =
+    { public : Bool
+    , community : Bool
+    , shared : Bool
+    , private : Bool
     }
 
 

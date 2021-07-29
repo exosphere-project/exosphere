@@ -6,9 +6,9 @@ import Element.Border as Border
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
-import Set
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Types.Defaults as Defaults
 import Types.Types
     exposing
         ( Model
@@ -252,11 +252,7 @@ createButton context projectId expanded =
                         ProjectMsg projectId <|
                             SetProjectView <|
                                 ListImages
-                                    { searchText = ""
-                                    , tags = Set.empty
-                                    , onlyOwnImages = False
-                                    , expandImageDetails = Set.empty
-                                    }
+                                    Defaults.imageListViewParams
                                     { title = "Name"
                                     , asc = True
                                     }

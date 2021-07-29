@@ -80,6 +80,16 @@ imageListViewParams =
     , tags = Set.empty
     , onlyOwnImages = False
     , expandImageDetails = Set.empty
+    , visibilityFilter = imageListVisibilityFilter
+    }
+
+
+imageListVisibilityFilter : Types.ImageListVisibilityFilter
+imageListVisibilityFilter =
+    { public = True
+    , community = True
+    , shared = True
+    , private = True
     }
 
 
