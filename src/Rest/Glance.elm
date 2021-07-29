@@ -5,6 +5,7 @@ module Rest.Glance exposing
 
 import Dict
 import Helpers.GetterSetters as GetterSetters
+import Helpers.Url as UrlHelpers
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -13,7 +14,8 @@ import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequ
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Types
     exposing
-        ( HttpRequestMethod(..)
+        ( ExcludeFilter
+        , HttpRequestMethod(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
@@ -29,9 +31,17 @@ import Types.Types
 {- HTTP Requests -}
 
 
-requestImages : Project -> Cmd Msg
-requestImages project =
+requestImages : Model -> Project -> Cmd Msg
+requestImages model project =
     let
+        projectKeystoneHostname =
+            UrlHelpers.hostnameFromUrl project.endpoints.keystone
+
+        maybeExcludeFilter : Maybe ExcludeFilter
+        maybeExcludeFilter =
+            Dict.get projectKeystoneHostname model.cloudSpecificConfigs
+                |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
+
         errorContext =
             ErrorContext
                 ("get a list of images for project \"" ++ project.auth.project.name ++ "\"")
@@ -51,7 +61,7 @@ requestImages project =
         Http.emptyBody
         (expectJsonWithErrorBody
             resultToMsg_
-            decodeImages
+            (decodeImages maybeExcludeFilter)
         )
 
 
@@ -75,9 +85,14 @@ receiveImages model project images =
 {- JSON Decoders -}
 
 
-decodeImages : Decode.Decoder (List OSTypes.Image)
-decodeImages =
-    Decode.field "images" (Decode.list imageDecoder)
+catMaybes : List (Maybe a) -> List a
+catMaybes =
+    List.filterMap identity
+
+
+decodeImages : Maybe ExcludeFilter -> Decode.Decoder (List OSTypes.Image)
+decodeImages maybeExcludeFilter =
+    Decode.field "images" (Decode.map catMaybes (Decode.list <| imageDecoder maybeExcludeFilter))
 
 
 decodeAdditionalProperties : List String -> Decode.Decoder (Dict.Dict String String)
@@ -107,8 +122,31 @@ decodeAdditionalProperties basePropertyNames =
             )
 
 
-imageDecoder : Decode.Decoder OSTypes.Image
-imageDecoder =
+imageDecoder : Maybe ExcludeFilter -> Decode.Decoder (Maybe OSTypes.Image)
+imageDecoder maybeExcludeFilter =
+    case maybeExcludeFilter of
+        Nothing ->
+            Decode.map Just imageDecoderHelper
+
+        Just excludeFilter ->
+            Decode.andThen
+                (\maybeFilterValue ->
+                    case maybeFilterValue of
+                        Nothing ->
+                            Decode.map Just imageDecoderHelper
+
+                        Just filterValue ->
+                            if filterValue == excludeFilter.filterValue then
+                                Decode.succeed Nothing
+
+                            else
+                                Decode.map Just imageDecoderHelper
+                )
+                (Decode.maybe (Decode.field excludeFilter.filterKey Decode.string))
+
+
+imageDecoderHelper : Decode.Decoder OSTypes.Image
+imageDecoderHelper =
     let
         -- Currently hard-coded. TODO: Load these from Glance image schema endpoint
         basePropertyNames =
@@ -145,7 +183,8 @@ imageDecoder =
             , "visibility"
             ]
     in
-    Decode.succeed OSTypes.Image
+    Decode.succeed
+        OSTypes.Image
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "status" (Decode.string |> Decode.andThen imageStatusDecoder)
         |> Pipeline.required "id" Decode.string

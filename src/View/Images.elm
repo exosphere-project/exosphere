@@ -1,6 +1,5 @@
 module View.Images exposing (imagesIfLoaded)
 
-import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -17,8 +16,7 @@ import Style.Widgets.IconButton exposing (chip)
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( ExcludeFilter
-        , ImageListViewParams
+        ( ImageListViewParams
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
@@ -88,26 +86,6 @@ filterBySearchText searchText someImages =
         List.filter (\i -> String.contains (String.toUpper searchText) (String.toUpper i.name)) someImages
 
 
-isImageExcludedByDeployer : ExcludeFilter -> OSTypes.Image -> Bool
-isImageExcludedByDeployer excludeFilter image =
-    let
-        maybeActualValue =
-            Dict.get excludeFilter.filterKey image.additionalProperties
-    in
-    case maybeActualValue of
-        Nothing ->
-            False
-
-        Just actualValue ->
-            excludeFilter.filterValue == actualValue
-
-
-isNotExcludedByDeployer : ExcludeFilter -> OSTypes.Image -> Bool
-isNotExcludedByDeployer excludeFilter image =
-    isImageExcludedByDeployer excludeFilter image
-        |> not
-
-
 isImageFeaturedByDeployer : Maybe String -> OSTypes.Image -> Bool
 isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
     case maybeFeaturedImageNamePrefix of
@@ -118,27 +96,12 @@ isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
             String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
 
 
-filterByNotExcludedByDeployer : Maybe ExcludeFilter -> List OSTypes.Image -> List OSTypes.Image
-filterByNotExcludedByDeployer maybeExcludeFilter someImages =
-    case maybeExcludeFilter of
-        Nothing ->
-            someImages
-
-        Just excludeFilter ->
-            List.filter (isNotExcludedByDeployer excludeFilter) someImages
-
-
-filterImages : View.Types.Context -> ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages context imageListViewParams project someImages =
-    let
-        imageExcludeFilter =
-            VH.imageExcludeFilterLookup context project
-    in
+filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages imageListViewParams project someImages =
     someImages
         |> filterByOwner imageListViewParams.onlyOwnImages project
         |> filterByTags imageListViewParams.tags
         |> filterBySearchText imageListViewParams.searchText
-        |> filterByNotExcludedByDeployer imageExcludeFilter
 
 
 images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element Msg
@@ -155,7 +118,7 @@ images context project imageListViewParams sortTableParams =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages context imageListViewParams project
+            project.images |> filterImages imageListViewParams project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
