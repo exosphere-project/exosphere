@@ -1004,6 +1004,7 @@ userDataInput context project viewParams =
             ++ [ Element.width Element.fill
                , Element.height (Element.px 500)
                , Element.spacing 3
+               , Font.family [ Font.monospace ]
                ]
         )
         { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
