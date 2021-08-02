@@ -7,7 +7,6 @@ import Element.Region as Region
 import Set exposing (Set)
 import Style.Helpers as SH
 import Style.Types
-import Style.Widgets.Button exposing (dangerButton, warningButton)
 import Style.Widgets.Card exposing (badge, exoCard, expandoCard)
 import Style.Widgets.ChipsFilter exposing (chipsFilter)
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -57,13 +56,13 @@ widgets msgMapper palette model =
         (Element.text "contents")
     , Element.text "Style.Widgets.Card.badge"
     , badge "belongs to this project"
-    , Element.text "Style.Widgets.Button.dangerButton"
+    , Element.text "Widgets.textButton (dangerButton)"
     , Widget.textButton
-        (dangerButton palette)
+        (SH.materialStyle palette).dangerButton
         { text = "Danger button", onPress = Just (msgMapper NoOp) }
-    , Element.text "Style.Widgets.Button.warningButton"
+    , Element.text "Widgets.textButton (warningButton)"
     , Widget.textButton
-        (warningButton palette)
+        (SH.materialStyle palette).warningButton
         { text = "Warning button", onPress = Just (msgMapper NoOp) }
     , Element.text "Style.Widgets.CopyableText.CopyableText"
     , copyableText palette [] "foobar"
@@ -77,7 +76,7 @@ widgets msgMapper palette model =
         (SH.materialStyle palette)
         model.chipFilterModel
     , Element.text "Style.Widgets.StatusBadge.statusBadge"
-    , statusBadge palette ReadyGood "Ready"
+    , statusBadge palette ReadyGood (Element.text "Ready")
     ]
 
 
