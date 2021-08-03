@@ -17,29 +17,28 @@ import OpenStack.Types as OSTypes
 import Task
 import Time
 import Types.Error exposing (ErrorContext, HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types as TT
 import Url
 
 
-httpRequestMethodStr : TT.HttpRequestMethod -> String
+httpRequestMethodStr : HttpRequestMethod -> String
 httpRequestMethodStr method =
     case method of
-        TT.Get ->
+        Get ->
             "GET"
 
-        TT.Post ->
+        Post ->
             "POST"
 
-        TT.Put ->
+        Put ->
             "PUT"
 
-        TT.Delete ->
+        Delete ->
             "DELETE"
 
 
-openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect Msg -> Cmd Msg
+openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect Msg -> Cmd Msg
 openstackCredentialedRequest projectId method maybeMicroversion origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.

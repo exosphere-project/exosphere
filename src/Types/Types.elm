@@ -2,7 +2,6 @@ module Types.Types exposing
     ( CloudSpecificConfig
     , ExcludeFilter
     , Flags
-    , HttpRequestMethod(..)
     , KeystoneHostname
     , Localization
     , LogMessage
@@ -188,14 +187,3 @@ type alias LogMessage =
     , context : ErrorContext
     , timestamp : Time.Posix
     }
-
-
-
--- REST Types
-
-
-type HttpRequestMethod
-    = Get
-    | Post
-    | Put
-    | Delete

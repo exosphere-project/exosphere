@@ -29,6 +29,7 @@ type Msg
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
+      -- TODO This should be a view-specific msg
     | SubmitOpenRc OSTypes.OpenstackLogin String
     | OpenNewWindow String
     | NavigateToUrl String
@@ -47,6 +48,7 @@ type ProjectSpecificMsgConstructor
     = SetProjectView ViewTypes.ProjectViewConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
+      -- TODO this should be a view-specific msg?
     | ToggleCreatePopup
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor

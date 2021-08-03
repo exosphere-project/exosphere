@@ -5,10 +5,10 @@ import Json.Decode
 import Json.Encode
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
-import Types.Types exposing (HttpRequestMethod(..))
 
 
 requestConsoleLog : Project -> Server -> Maybe Int -> Cmd Msg

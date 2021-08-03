@@ -40,11 +40,11 @@ import Rest.Helpers
 import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
-import Types.HelperTypes exposing (ProjectIdentifier, Url)
+import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
-import Types.Types exposing (HttpRequestMethod(..), Model)
+import Types.Types exposing (Model)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 

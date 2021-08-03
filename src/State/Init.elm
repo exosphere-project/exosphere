@@ -19,13 +19,12 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
-import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
     exposing
         ( Flags
-        , HttpRequestMethod(..)
         , Model
         )
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))

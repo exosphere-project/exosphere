@@ -12,10 +12,9 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (ProjectIdentifier, Url)
+import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Server exposing (Server)
-import Types.Types exposing (HttpRequestMethod(..))
 import Types.View exposing (ProjectViewConstructor(..))
 
 

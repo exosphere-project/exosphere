@@ -32,11 +32,11 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (FloatingIpOption(..))
+import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server, ServerOrigin(..))
-import Types.Types exposing (HttpRequestMethod(..), Model)
+import Types.Types exposing (Model)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 

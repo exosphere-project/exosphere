@@ -3,6 +3,7 @@ module Types.HelperTypes exposing
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
     , Hostname
+    , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
     , Password
     , ProjectIdentifier
@@ -77,3 +78,10 @@ type FloatingIpAssignmentStatus
     | WaitingForResources
     | Attemptable
     | AttemptedWaiting
+
+
+type HttpRequestMethod
+    = Get
+    | Post
+    | Put
+    | Delete

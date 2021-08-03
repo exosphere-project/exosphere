@@ -12,14 +12,10 @@ import Json.Decode.Pipeline as Pipeline
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
+import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
-import Types.Types
-    exposing
-        ( ExcludeFilter
-        , HttpRequestMethod(..)
-        , Model
-        )
+import Types.Types exposing (ExcludeFilter, Model)
 
 
 
