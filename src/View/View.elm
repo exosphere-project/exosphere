@@ -17,7 +17,8 @@ import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewSt
 import View.GetSupport
 import View.HelpAbout
 import View.Helpers as VH
-import View.Login
+import View.LoginJetstream
+import View.LoginOpenstack
 import View.LoginPicker
 import View.Messages
 import View.Nav
@@ -77,10 +78,10 @@ elementView windowSize model context =
                             Login loginView ->
                                 case loginView of
                                     LoginOpenstack openstackCreds ->
-                                        View.Login.viewLoginOpenstack context openstackCreds
+                                        View.LoginOpenstack.viewLoginOpenstack context openstackCreds
 
                                     LoginJetstream jetstreamCreds ->
-                                        View.Login.viewLoginJetstream context jetstreamCreds
+                                        View.LoginJetstream.viewLoginJetstream context jetstreamCreds
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here
