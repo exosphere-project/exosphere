@@ -18,6 +18,7 @@ import View.GetSupport
 import View.HelpAbout
 import View.Helpers as VH
 import View.Login
+import View.LoginPicker
 import View.Messages
 import View.Nav
 import View.PageTitle
@@ -71,7 +72,7 @@ elementView windowSize model context =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.Login.viewLoginPicker context model.openIdConnectLoginConfig
+                                View.LoginPicker.loginPicker context model.openIdConnectLoginConfig
 
                             Login loginView ->
                                 case loginView of
