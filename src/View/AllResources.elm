@@ -20,7 +20,7 @@ import Types.Types
         )
 import View.FloatingIps
 import View.Helpers as VH
-import View.Keypairs
+import View.ListKeypairs
 import View.ServerList
 import View.Types
 import View.Volumes
@@ -150,7 +150,7 @@ allResources context p viewParams =
                         ListKeypairs
                             Defaults.keypairListViewParams
                 )
-            , View.Keypairs.listKeypairs context
+            , View.ListKeypairs.listKeypairs context
                 False
                 p
                 viewParams.keypairListViewParams

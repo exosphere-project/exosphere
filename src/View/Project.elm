@@ -23,12 +23,13 @@ import Types.Types
         )
 import View.AllResources
 import View.AttachVolume
+import View.CreateKeypair
 import View.CreateServer
 import View.CreateServerImage
 import View.FloatingIps
 import View.Helpers as VH
 import View.Images
-import View.Keypairs
+import View.ListKeypairs
 import View.ServerDetail
 import View.ServerList
 import View.Types
@@ -116,7 +117,7 @@ project model context p viewParams viewConstructor =
                         assignFloatingIpViewParams
 
                 ListKeypairs keypairListViewParams ->
-                    View.Keypairs.listKeypairs context
+                    View.ListKeypairs.listKeypairs context
                         True
                         p
                         keypairListViewParams
@@ -127,7 +128,7 @@ project model context p viewParams viewConstructor =
                         )
 
                 CreateKeypair keypairName publicKey ->
-                    View.Keypairs.createKeypair context p keypairName publicKey
+                    View.CreateKeypair.createKeypair context p keypairName publicKey
 
                 CreateServerImage serverUuid imageName ->
                     View.CreateServerImage.createServerImage context p serverUuid imageName
