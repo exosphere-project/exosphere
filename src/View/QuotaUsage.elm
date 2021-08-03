@@ -12,10 +12,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
 import Style.Helpers as SH
-import Types.Types
-    exposing
-        ( Msg(..)
-        )
+import Types.Msg exposing (Msg(..))
 import View.Helpers as VH
 import View.Types
 

@@ -2,10 +2,10 @@ module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
 import Time
+import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
         ( Model
-        , Msg(..)
         )
 
 

@@ -13,13 +13,11 @@ import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRe
 import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (ProjectIdentifier, Url)
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
-        , Msg(..)
-        , ProjectSpecificMsgConstructor(..)
         , Server
-        , ServerSpecificMsgConstructor(..)
         )
 import Types.View exposing (ProjectViewConstructor(..))
 

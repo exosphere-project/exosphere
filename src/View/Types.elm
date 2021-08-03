@@ -7,7 +7,8 @@ module View.Types exposing
 import Dict
 import Element
 import Style.Types exposing (ExoPalette)
-import Types.Types exposing (Localization, Msg, WindowSize)
+import Types.Msg exposing (Msg)
+import Types.Types exposing (Localization, WindowSize)
 
 
 type alias Context =

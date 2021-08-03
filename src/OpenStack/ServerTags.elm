@@ -4,7 +4,8 @@ import Http
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project)
+import Types.Msg exposing (Msg(..))
+import Types.Types exposing (HttpRequestMethod(..), Project)
 
 
 requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd Msg

@@ -3,7 +3,8 @@ module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, 
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Time
-import Types.Types exposing (Msg, Project, Server)
+import Types.Msg exposing (Msg)
+import Types.Types exposing (Project, Server)
 import UUID
 
 

@@ -3,7 +3,7 @@ module Rest.Guacamole exposing (requestLoginToken)
 import Http
 import Json.Decode as Decode
 import Types.HelperTypes exposing (Url)
-import Types.Types exposing (Msg)
+import Types.Msg exposing (Msg)
 
 
 requestLoginToken : Url -> String -> String -> (Result Http.Error String -> Msg) -> Cmd Msg

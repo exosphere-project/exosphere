@@ -4,7 +4,8 @@ import Browser exposing (application)
 import State.Init
 import State.State as State
 import State.Subscriptions
-import Types.Types exposing (Flags, Model, Msg(..))
+import Types.Msg exposing (Msg(..))
+import Types.Types exposing (Flags, Model)
 import View.View exposing (view)
 
 

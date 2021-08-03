@@ -64,12 +64,12 @@ import Style.Widgets.ToggleTip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
+import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , LogMessage
         , Model
-        , Msg(..)
         , Project
         , Server
         , ServerOrigin(..)

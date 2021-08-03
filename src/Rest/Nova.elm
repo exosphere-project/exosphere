@@ -41,18 +41,16 @@ import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (ProjectIdentifier, Url)
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( ExoServerProps
         , HttpRequestMethod(..)
         , Model
-        , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
-        , ProjectSpecificMsgConstructor(..)
         , Server
         , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
         )
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 

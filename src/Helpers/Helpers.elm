@@ -42,13 +42,13 @@ import Types.HelperTypes as HelperTypes
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
         )
+import Types.Msg exposing (Msg)
 import Types.Types
     exposing
         ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
         , Model
-        , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , Server

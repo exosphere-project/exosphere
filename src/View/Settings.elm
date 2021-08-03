@@ -4,10 +4,7 @@ import Element
 import Element.Input as Input
 import FeatherIcons
 import Style.Types
-import Types.Types
-    exposing
-        ( Msg(..)
-        )
+import Types.Msg exposing (Msg(..))
 import View.Helpers as VH
 import View.Types
 

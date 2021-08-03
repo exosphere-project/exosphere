@@ -20,17 +20,16 @@ import Time
 import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , Flags
         , HttpRequestMethod(..)
         , Model
-        , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSecret(..)
-        , ProjectSpecificMsgConstructor(..)
         , ServerOrigin(..)
         )
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))

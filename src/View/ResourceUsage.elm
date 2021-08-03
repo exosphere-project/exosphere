@@ -26,8 +26,8 @@ import LineChart.Line as Line
 import Style.Helpers as SH
 import Time
 import Tuple
+import Types.Msg exposing (Msg(..))
 import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
-import Types.Types exposing (Msg)
 import View.Helpers as VH
 import View.Types
 

@@ -7,11 +7,10 @@ import Helpers.String
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Widgets.FormValidation as FormValidation
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Types
     exposing
-        ( Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
+        ( Project
         )
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH

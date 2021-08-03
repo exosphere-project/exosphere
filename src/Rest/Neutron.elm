@@ -33,17 +33,15 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..))
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
         , Model
-        , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
-        , ProjectSpecificMsgConstructor(..)
         , Server
         , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
         )
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 

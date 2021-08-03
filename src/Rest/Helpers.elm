@@ -18,6 +18,7 @@ import Task
 import Time
 import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Types as TT
 import Url
 
@@ -38,7 +39,7 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
+openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect Msg -> Cmd Msg
 openstackCredentialedRequest projectId method maybeMicroversion origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
@@ -49,7 +50,7 @@ openstackCredentialedRequest projectId method maybeMicroversion origUrl requestB
 
     -}
     let
-        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd TT.Msg
+        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg
         requestProto maybeProxyUrl token =
             let
                 ( url, headers ) =
@@ -82,7 +83,7 @@ openstackCredentialedRequest projectId method maybeMicroversion origUrl requestB
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg projectId (TT.PrepareCredentialedRequest requestProto posixTime))
+        (\posixTime -> ProjectMsg projectId (PrepareCredentialedRequest requestProto posixTime))
         Time.now
 
 
@@ -128,14 +129,14 @@ proxyifyRequest proxyServerUrl requestUrlStr =
     )
 
 
-resultToMsgErrorBody : ErrorContext -> (a -> TT.Msg) -> Result HttpErrorWithBody a -> TT.Msg
+resultToMsgErrorBody : ErrorContext -> (a -> Msg) -> Result HttpErrorWithBody a -> Msg
 resultToMsgErrorBody errorContext successMsg result =
     -- Generates Msg to deal with result of API call
     -- TODO this is a _transitional_ function that should be removed when
     -- TODO https://gitlab.com/exosphere/exosphere/-/issues/339 is fixed
     case result of
         Err error ->
-            TT.HandleApiErrorWithBody errorContext error
+            HandleApiErrorWithBody errorContext error
 
         Ok stuff ->
             successMsg stuff

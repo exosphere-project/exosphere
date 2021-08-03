@@ -8,11 +8,8 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Types.HelperTypes exposing (UnscopedProviderProject)
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        )
+import Types.Msg exposing (Msg(..))
+import Types.Types exposing (Model)
 import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

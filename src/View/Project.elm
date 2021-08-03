@@ -10,13 +10,8 @@ import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        )
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Types exposing (Model, Project)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.AllResources
 import View.AttachVolume

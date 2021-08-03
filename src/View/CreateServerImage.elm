@@ -5,12 +5,10 @@ import Element.Input as Input
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Types
     exposing
-        ( Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ServerSpecificMsgConstructor(..)
+        ( Project
         )
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH

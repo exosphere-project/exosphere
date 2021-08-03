@@ -2,7 +2,8 @@ module View.HelpAbout exposing (helpAbout)
 
 import Element
 import FeatherIcons
-import Types.Types exposing (Model, Msg(..))
+import Types.Msg exposing (Msg(..))
+import Types.Types exposing (Model)
 import UUID
 import View.Helpers as VH
 import View.Types

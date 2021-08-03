@@ -8,12 +8,8 @@ import Helpers.String
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        )
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Types exposing (Project)
 import Types.View
     exposing
         ( AllResourcesListViewParams

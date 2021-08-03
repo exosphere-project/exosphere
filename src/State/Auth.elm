@@ -13,16 +13,15 @@ import Parser exposing ((|.), (|=))
 import Rest.Keystone
 import Set
 import Types.HelperTypes as HelperTypes exposing (UnscopedProvider)
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , HttpRequestMethod(..)
         , Model
-        , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSecret(..)
-        , ProjectSpecificMsgConstructor(..)
         , ServerOrigin(..)
         )
 import Types.View

@@ -11,13 +11,8 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ServerSpecificMsgConstructor(..)
-        )
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Types exposing (Project)
 import Types.View
     exposing
         ( IPInfoLevel(..)

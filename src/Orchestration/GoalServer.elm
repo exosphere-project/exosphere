@@ -15,18 +15,16 @@ import Rest.Nova
 import Time
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
         ( CloudSpecificConfig
         , ExoSetupStatus(..)
-        , Msg(..)
         , Project
-        , ProjectSpecificMsgConstructor(..)
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
         , UserAppProxyHostname
         )
 import UUID

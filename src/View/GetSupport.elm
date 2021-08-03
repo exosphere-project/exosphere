@@ -12,10 +12,10 @@ import Style.Helpers as SH
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
+import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
         ( Model
-        , Msg(..)
         )
 import Types.View
     exposing

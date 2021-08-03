@@ -9,11 +9,8 @@ import Element.Input as Input
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Msg(..)
-        , OpenIdConnectLoginConfig
-        )
+import Types.Msg exposing (Msg(..))
+import Types.Types exposing (OpenIdConnectLoginConfig)
 import Types.View
     exposing
         ( JetstreamCreds

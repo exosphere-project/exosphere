@@ -25,12 +25,11 @@ import Time
 import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.HelperTypes exposing (UnscopedProvider)
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( Model
-        , Msg(..)
         , Project
-        , ProjectSpecificMsgConstructor(..)
         , ServerOrigin(..)
         )
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))

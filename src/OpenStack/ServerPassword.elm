@@ -11,13 +11,11 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
-        , Msg(..)
         , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ServerSpecificMsgConstructor(..)
         )
 
 

@@ -6,8 +6,8 @@ import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Style.Helpers as SH
-import Types.Error exposing (ErrorLevel(..))
-import Types.Types exposing (Msg, Toast)
+import Types.Error exposing (ErrorLevel(..), Toast)
+import Types.Msg exposing (Msg(..))
 import View.Types
 
 

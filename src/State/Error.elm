@@ -8,13 +8,12 @@ import OpenStack.Error as OSError
 import Parser exposing ((|.), (|=))
 import Style.Toast exposing (toastConfig)
 import Toasty
-import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
+import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
         ( LogMessage
         , Model
-        , Msg(..)
-        , Toast
         )
 
 

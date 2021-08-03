@@ -37,6 +37,7 @@ import Types.Defaults as Defaults
 import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), TickInterval)
 import Types.ServerResourceUsage
 import Types.Types
     exposing
@@ -44,16 +45,12 @@ import Types.Types
         , ExoSetupStatus(..)
         , HttpRequestMethod(..)
         , Model
-        , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSecret(..)
-        , ProjectSpecificMsgConstructor(..)
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
-        , TickInterval
         , currentExoServerVersion
         )
 import Types.View

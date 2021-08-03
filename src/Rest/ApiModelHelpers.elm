@@ -16,7 +16,8 @@ import RemoteData
 import Rest.Neutron
 import Rest.Nova
 import Types.HelperTypes exposing (ProjectIdentifier)
-import Types.Types exposing (Model, Msg)
+import Types.Msg exposing (Msg)
+import Types.Types exposing (Model)
 
 
 

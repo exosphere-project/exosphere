@@ -14,12 +14,8 @@ import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        )
+import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Types exposing (Project)
 import Types.View exposing (ImageListViewParams, ImageListVisibilityFilter, ProjectViewConstructor(..), SortTableParams)
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
