@@ -49,7 +49,7 @@ requestAttachVolume project serverUuid volumeUuid =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
@@ -79,7 +79,7 @@ requestDetachVolume project serverUuid volumeUuid =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)

@@ -40,7 +40,7 @@ requestServerPassword project serverUuid =
                             ReceiveServerPassword serverPassword
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
@@ -58,7 +58,7 @@ requestClearServerPassword project serverUuid =
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")

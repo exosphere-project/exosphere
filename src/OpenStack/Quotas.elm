@@ -45,7 +45,7 @@ requestComputeQuota project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.nova ++ "/limits")
@@ -100,7 +100,7 @@ requestVolumeQuota project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.cinder ++ "/limits")

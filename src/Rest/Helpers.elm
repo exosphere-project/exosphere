@@ -38,8 +38,8 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
-openstackCredentialedRequest project method maybeMicroversion origUrl requestBody expect =
+openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
+openstackCredentialedRequest projectId method maybeMicroversion origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
 
@@ -82,7 +82,7 @@ openstackCredentialedRequest project method maybeMicroversion origUrl requestBod
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg project.auth.project.uuid (TT.PrepareCredentialedRequest requestProto posixTime))
+        (\posixTime -> TT.ProjectMsg projectId (TT.PrepareCredentialedRequest requestProto posixTime))
         Time.now
 
 

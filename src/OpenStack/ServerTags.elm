@@ -17,7 +17,7 @@ requestCreateServerTag project serverUuid tag =
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Put
         (Just "compute 2.26")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)

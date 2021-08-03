@@ -53,7 +53,7 @@ requestImages model project =
                 (\images -> ProjectMsg project.auth.project.uuid <| ReceiveImages images)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.glance ++ "/v2/images?limit=999999")

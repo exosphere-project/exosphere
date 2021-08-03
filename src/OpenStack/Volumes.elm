@@ -57,7 +57,7 @@ requestCreateVolume project createVolumeRequest =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.cinder ++ "/volumes")
@@ -87,7 +87,7 @@ requestVolumes project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.cinder ++ "/volumes/detail")
@@ -113,7 +113,7 @@ requestDeleteVolume project volumeUuid =
                 (\_ -> ProjectMsg project.auth.project.uuid ReceiveDeleteVolume)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
@@ -145,7 +145,7 @@ requestUpdateVolumeName project volumeUuid name =
                 (\_ -> ProjectMsg project.auth.project.uuid ReceiveUpdateVolumeName)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Put
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)

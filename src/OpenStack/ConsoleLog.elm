@@ -50,7 +50,7 @@ requestConsoleLog project server maybeLength =
                     ReceiveConsoleLog errorContext result
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
