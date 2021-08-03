@@ -12,7 +12,6 @@ import Types.View
         , LoginView(..)
         , NonProjectViewConstructor(..)
         , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
         )
 import View.Helpers as VH
 import View.Login

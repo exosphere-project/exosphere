@@ -19,7 +19,7 @@ import Json.Decode as Decode
 import Style.Types
 import Time
 import Toasty
-import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
+import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.View as ViewTypes

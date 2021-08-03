@@ -5,12 +5,10 @@ import Style.Helpers as SH
 import Types.Msg exposing (Msg(..))
 import Types.View
     exposing
-        ( JetstreamCreds
-        , JetstreamProvider(..)
+        ( JetstreamProvider(..)
         , LoginView(..)
         , NonProjectViewConstructor(..)
         , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
         )
 import View.Types
 import Widget
