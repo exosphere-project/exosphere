@@ -12,23 +12,25 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.), (|=))
 import Rest.Keystone
 import Set
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (UnscopedProvider)
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , HttpRequestMethod(..)
-        , JetstreamCreds
-        , JetstreamProvider(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , NonProjectViewConstructor(..)
         , Project
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerOrigin(..)
-        , UnscopedProvider
+        )
+import Types.View
+    exposing
+        ( JetstreamCreds
+        , JetstreamProvider(..)
+        , NonProjectViewConstructor(..)
+        , ProjectViewConstructor(..)
         , ViewState(..)
         )
 import Url

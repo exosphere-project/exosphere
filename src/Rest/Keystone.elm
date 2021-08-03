@@ -25,7 +25,7 @@ import Rest.Helpers
         )
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (UnscopedProvider, UnscopedProviderProject)
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
@@ -33,12 +33,9 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerOrigin(..)
-        , UnscopedProvider
-        , UnscopedProviderProject
-        , ViewState(..)
         )
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
 

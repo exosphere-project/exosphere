@@ -14,21 +14,25 @@ import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
+import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Types
     exposing
-        ( IPInfoLevel(..)
-        , Msg(..)
+        ( Msg(..)
+        , Project
+        , ProjectSpecificMsgConstructor(..)
+        , Server
+        , ServerOrigin(..)
+        , ServerSpecificMsgConstructor(..)
+        )
+import Types.View
+    exposing
+        ( -- TODO This shouldn't be here
+          IPInfoLevel(..)
         , NonProjectViewConstructor(..)
         , PasswordVisibility(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , Server
         , ServerListViewParams
-        , ServerOrigin(..)
         , ServerSelection
-        , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
 import View.Helpers as VH

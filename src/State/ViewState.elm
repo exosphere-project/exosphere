@@ -24,18 +24,16 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Time
 import Types.Defaults as Defaults
 import Types.Error as Error
+import Types.HelperTypes exposing (UnscopedProvider)
 import Types.Types
     exposing
         ( Model
         , Msg(..)
-        , NonProjectViewConstructor(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerOrigin(..)
-        , UnscopedProvider
-        , ViewState(..)
         )
+import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
 import View.PageTitle
 

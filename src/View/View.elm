@@ -13,13 +13,11 @@ import Style.Toast
 import Toasty
 import Types.Types
     exposing
-        ( LoginView(..)
-        , Model
+        ( Model
         , Msg(..)
-        , NonProjectViewConstructor(..)
-        , ViewState(..)
         , WindowSize
         )
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.HelpAbout
 import View.Helpers as VH

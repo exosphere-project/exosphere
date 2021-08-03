@@ -21,10 +21,9 @@ import Types.Types
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerOrigin(..)
-        , ViewState(..)
         )
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 

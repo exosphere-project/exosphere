@@ -10,9 +10,9 @@ import Types.Types
         ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerSpecificMsgConstructor(..)
         )
+import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 import Widget

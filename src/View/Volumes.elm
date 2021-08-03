@@ -21,12 +21,17 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( DeleteVolumeConfirmation
-        , IPInfoLevel(..)
-        , Msg(..)
-        , PasswordVisibility(..)
+        ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
+        )
+import Types.View
+    exposing
+        ( DeleteVolumeConfirmation
+        , -- TODO this shouldn't be here
+          IPInfoLevel(..)
+          -- TODO this shouldn't be here
+        , PasswordVisibility(..)
         , ProjectViewConstructor(..)
         , VolumeListViewParams
         )

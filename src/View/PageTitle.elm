@@ -6,13 +6,10 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Types.Types
     exposing
-        ( LoginView(..)
-        , Model
-        , NonProjectViewConstructor(..)
+        ( Model
         , Project
-        , ProjectViewConstructor(..)
-        , ViewState(..)
         )
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
 

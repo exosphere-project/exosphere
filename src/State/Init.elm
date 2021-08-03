@@ -19,24 +19,21 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
+import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
         , Flags
         , HttpRequestMethod(..)
-        , LoginView(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , NonProjectViewConstructor(..)
         , Project
-        , ProjectIdentifier
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerOrigin(..)
-        , ViewState(..)
         )
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
 

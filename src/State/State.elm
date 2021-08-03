@@ -36,32 +36,34 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (UnscopedProviderProject)
 import Types.ServerResourceUsage
 import Types.Types
     exposing
         ( Endpoints
         , ExoSetupStatus(..)
         , HttpRequestMethod(..)
-        , LoginView(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
-        , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
         , Project
         , ProjectSecret(..)
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerSpecificMsgConstructor(..)
         , TickInterval
-        , UnscopedProviderProject
-        , ViewState(..)
         , currentExoServerVersion
+        )
+import Types.View
+    exposing
+        ( LoginView(..)
+        , NonProjectViewConstructor(..)
+        , OpenstackLoginFormEntryType(..)
+        , OpenstackLoginViewParams
+        , ProjectViewConstructor(..)
+        , ViewState(..)
         )
 
 

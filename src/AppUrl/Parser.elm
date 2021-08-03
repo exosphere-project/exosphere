@@ -3,7 +3,7 @@ module AppUrl.Parser exposing (urlToViewState)
 import Dict
 import OpenStack.Types as OSTypes
 import Types.Defaults as Defaults
-import Types.Types
+import Types.View
     exposing
         ( JetstreamCreds
         , JetstreamProvider(..)

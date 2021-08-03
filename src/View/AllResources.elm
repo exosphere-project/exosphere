@@ -10,11 +10,15 @@ import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( AllResourcesListViewParams
-        , Msg(..)
-        , NonProjectViewConstructor(..)
+        ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
+        )
+import Types.View
+    exposing
+        ( AllResourcesListViewParams
+        , LoginView(..)
+        , NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ViewState(..)
         )

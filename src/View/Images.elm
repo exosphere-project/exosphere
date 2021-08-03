@@ -16,14 +16,11 @@ import Style.Widgets.IconButton exposing (chip)
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( ImageListViewParams
-        , ImageListVisibilityFilter
-        , Msg(..)
+        ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , SortTableParams
         )
+import Types.View exposing (ImageListViewParams, ImageListVisibilityFilter, ProjectViewConstructor(..), SortTableParams)
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
 import Widget

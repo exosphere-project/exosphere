@@ -1,68 +1,34 @@
 module Types.Types exposing
-    ( AllResourcesListViewParams
-    , AssignFloatingIpViewParams
-    , CloudSpecificConfig
-    , CreateServerViewParams
-    , DeleteConfirmation
-    , DeleteVolumeConfirmation
+    ( CloudSpecificConfig
     , Endpoints
     , ExcludeFilter
     , ExoServerProps
     , ExoServerVersion
     , ExoSetupStatus(..)
     , Flags
-    , FloatingIpAssignmentStatus(..)
-    , FloatingIpListViewParams
-    , FloatingIpOption(..)
-    , FloatingIpReuseOption(..)
     , HttpRequestMethod(..)
-    , IPInfoLevel(..)
-    , ImageListViewParams
-    , ImageListVisibilityFilter
-    , JetstreamCreds
-    , JetstreamProvider(..)
-    , KeypairIdentifier
-    , KeypairListViewParams
     , KeystoneHostname
     , Localization
     , LogMessage
-    , LoginView(..)
     , Model
     , Msg(..)
     , NewServerNetworkOptions(..)
-    , NonProjectViewConstructor(..)
     , OpenIdConnectLoginConfig
-    , OpenstackLoginFormEntryType(..)
-    , OpenstackLoginViewParams
-    , PasswordVisibility(..)
     , Project
-    , ProjectIdentifier
     , ProjectName
     , ProjectSecret(..)
     , ProjectSpecificMsgConstructor(..)
     , ProjectTitle
-    , ProjectViewConstructor(..)
-    , ProjectViewParams
     , ResourceUsageRDPP
     , Server
-    , ServerDetailViewParams
     , ServerFromExoProps
-    , ServerListViewParams
     , ServerOrigin(..)
-    , ServerSelection
     , ServerSpecificMsgConstructor(..)
     , ServerUiStatus(..)
-    , SortTableParams
     , Style
-    , SupportableItemType(..)
     , TickInterval
     , Toast
-    , UnscopedProvider
-    , UnscopedProviderProject
     , UserAppProxyHostname
-    , VerboseStatus
-    , ViewState(..)
-    , VolumeListViewParams
     , WindowSize
     , currentExoServerVersion
     )
@@ -75,16 +41,14 @@ import Http
 import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
-import Set
 import Style.Types
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Time
 import Toasty
 import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
-import Types.Interaction exposing (Interaction)
 import Types.ServerResourceUsage
+import Types.View as ViewTypes
 import UUID
 import Url
 
@@ -165,9 +129,9 @@ type alias Model =
 
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
     , prevUrl : String
-    , viewState : ViewState
+    , viewState : ViewTypes.ViewState
     , windowSize : WindowSize
-    , unscopedProviders : List UnscopedProvider
+    , unscopedProviders : List HelperTypes.UnscopedProvider
     , projects : List Project
     , toasties : Toasty.Stack Toast
     , cloudCorsProxyUrl : Maybe CloudCorsProxyUrl
@@ -216,7 +180,7 @@ type alias Style =
     , styleMode : Style.Types.StyleMode
     , appTitle : String
     , topBarShowAppTitle : Bool
-    , defaultLoginView : Maybe LoginView
+    , defaultLoginView : Maybe ViewTypes.LoginView
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
@@ -253,25 +217,6 @@ type alias LogMessage =
 
 
 
-{- Unscoped provider types -}
-
-
-type alias UnscopedProvider =
-    { authUrl : OSTypes.KeystoneUrl
-    , token : OSTypes.UnscopedAuthToken
-    , projectsAvailable : WebData (List UnscopedProviderProject)
-    }
-
-
-type alias UnscopedProviderProject =
-    { project : OSTypes.NameAndUuid
-    , description : String
-    , domainId : HelperTypes.Uuid
-    , enabled : Bool
-    }
-
-
-
 {- Project types -}
 
 
@@ -295,11 +240,6 @@ type alias Project =
     }
 
 
-type alias ProjectIdentifier =
-    -- We use this when referencing a Project in a Msg (or otherwise passing through the runtime)
-    HelperTypes.Uuid
-
-
 type ProjectSecret
     = ApplicationCredential OSTypes.ApplicationCredential
     | NoProjectSecret
@@ -321,15 +261,15 @@ type alias Endpoints =
 type Msg
     = Tick TickInterval Time.Posix
     | DoOrchestration Time.Posix
-    | SetNonProjectView NonProjectViewConstructor
+    | SetNonProjectView ViewTypes.NonProjectViewConstructor
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | RequestUnscopedToken OSTypes.OpenstackLogin
-    | JetstreamLogin JetstreamCreds
+    | JetstreamLogin ViewTypes.JetstreamCreds
     | ReceiveScopedAuthToken ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
-    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | ProjectMsg ProjectIdentifier ProjectSpecificMsgConstructor
+    | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
+    | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | SubmitOpenRc OSTypes.OpenstackLogin String
     | OpenNewWindow String
     | NavigateToUrl String
@@ -345,14 +285,14 @@ type alias TickInterval =
 
 
 type ProjectSpecificMsgConstructor
-    = SetProjectView ProjectViewConstructor
+    = SetProjectView ViewTypes.ProjectViewConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
     | ToggleCreatePopup
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers
-    | RequestCreateServer CreateServerViewParams OSTypes.NetworkUuid
+    | RequestCreateServer ViewTypes.CreateServerViewParams OSTypes.NetworkUuid
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
@@ -410,211 +350,6 @@ type ServerSpecificMsgConstructor
 
 
 
-{- View state types -}
-
-
-type ViewState
-    = NonProjectView NonProjectViewConstructor
-    | ProjectView ProjectIdentifier ProjectViewParams ProjectViewConstructor
-
-
-type NonProjectViewConstructor
-    = LoginPicker
-    | Login LoginView
-    | LoadingUnscopedProjects OSTypes.AuthTokenString
-    | SelectProjects OSTypes.KeystoneUrl (List UnscopedProviderProject)
-    | MessageLog Bool
-    | Settings
-    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
-    | HelpAbout
-    | PageNotFound
-
-
-type
-    SupportableItemType
-    -- Ideally this would be in View.Types, eh
-    = SupportableProject
-    | SupportableImage
-    | SupportableServer
-    | SupportableVolume
-
-
-type LoginView
-    = LoginOpenstack OpenstackLoginViewParams
-    | LoginJetstream JetstreamCreds
-
-
-type alias OpenstackLoginViewParams =
-    { creds : OSTypes.OpenstackLogin
-    , openRc : String
-    , formEntryType : OpenstackLoginFormEntryType
-    }
-
-
-type OpenstackLoginFormEntryType
-    = LoginViewCredsEntry
-    | LoginViewOpenRcEntry
-
-
-type alias ImageListViewParams =
-    { searchText : String
-    , tags : Set.Set String
-    , onlyOwnImages : Bool
-    , expandImageDetails : Set.Set OSTypes.ImageUuid
-    , visibilityFilter : ImageListVisibilityFilter
-    }
-
-
-type alias ImageListVisibilityFilter =
-    { public : Bool
-    , community : Bool
-    , shared : Bool
-    , private : Bool
-    }
-
-
-type alias SortTableParams =
-    { title : String
-    , asc : Bool
-    }
-
-
-type alias ProjectViewParams =
-    { createPopup : Bool
-    }
-
-
-type ProjectViewConstructor
-    = AllResources AllResourcesListViewParams
-    | ListImages ImageListViewParams SortTableParams
-    | ListProjectServers ServerListViewParams
-    | ListProjectVolumes VolumeListViewParams
-    | ListFloatingIps FloatingIpListViewParams
-    | AssignFloatingIp AssignFloatingIpViewParams
-    | ListKeypairs KeypairListViewParams
-    | CreateKeypair String String
-    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
-    | CreateServerImage OSTypes.ServerUuid String
-    | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
-    | CreateServer CreateServerViewParams
-    | CreateVolume OSTypes.VolumeName NumericTextInput
-    | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
-    | MountVolInstructions OSTypes.VolumeAttachment
-
-
-type alias AllResourcesListViewParams =
-    { serverListViewParams : ServerListViewParams
-    , volumeListViewParams : VolumeListViewParams
-    , keypairListViewParams : KeypairListViewParams
-    , floatingIpListViewParams : FloatingIpListViewParams
-    }
-
-
-type alias ServerListViewParams =
-    { onlyOwnServers : Bool
-    , selectedServers : Set.Set ServerSelection
-    , deleteConfirmations : List DeleteConfirmation
-    }
-
-
-type alias ServerDetailViewParams =
-    { showCreatedTimeToggleTip : Bool
-    , verboseStatus : VerboseStatus
-    , passwordVisibility : PasswordVisibility
-    , ipInfoLevel : IPInfoLevel
-    , serverActionNamePendingConfirmation : Maybe String
-    , serverNamePendingConfirmation : Maybe String
-    , activeInteractionToggleTip : Maybe Interaction
-    , retainFloatingIpsWhenDeleting : Bool
-    }
-
-
-type alias VolumeListViewParams =
-    { expandedVols : List OSTypes.VolumeUuid
-    , deleteConfirmations : List DeleteVolumeConfirmation
-    }
-
-
-type alias CreateServerViewParams =
-    { serverName : String
-    , imageUuid : OSTypes.ImageUuid
-    , imageName : String
-    , count : Int
-    , flavorUuid : OSTypes.FlavorUuid
-    , volSizeTextInput : Maybe NumericTextInput
-    , userDataTemplate : String
-    , networkUuid : Maybe OSTypes.NetworkUuid
-    , showAdvancedOptions : Bool
-    , keypairName : Maybe String
-    , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
-    , deployDesktopEnvironment : Bool
-    , installOperatingSystemUpdates : Bool
-    , floatingIpCreationOption : FloatingIpOption
-    }
-
-
-type alias ServerSelection =
-    OSTypes.ServerUuid
-
-
-type alias DeleteConfirmation =
-    OSTypes.ServerUuid
-
-
-type alias DeleteVolumeConfirmation =
-    OSTypes.VolumeUuid
-
-
-type alias FloatingIpListViewParams =
-    { deleteConfirmations : List OSTypes.IpAddressUuid
-    , hideAssignedIps : Bool
-    }
-
-
-type alias AssignFloatingIpViewParams =
-    { ipUuid : Maybe OSTypes.IpAddressUuid
-    , serverUuid : Maybe OSTypes.ServerUuid
-    }
-
-
-type alias KeypairListViewParams =
-    { expandedKeypairs : List KeypairIdentifier
-    , deleteConfirmations : List KeypairIdentifier
-    }
-
-
-type alias KeypairIdentifier =
-    ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
-
-
-type IPInfoLevel
-    = IPDetails
-    | IPSummary
-
-
-type alias VerboseStatus =
-    Bool
-
-
-type PasswordVisibility
-    = PasswordShown
-    | PasswordHidden
-
-
-type alias JetstreamCreds =
-    { jetstreamProviderChoice : JetstreamProvider
-    , taccUsername : String
-    , taccPassword : String
-    }
-
-
-type JetstreamProvider
-    = IUCloud
-    | TACCCloud
-    | BothJetstreamClouds
-
-
-
 {- Resource-Level Types -}
 
 
@@ -626,7 +361,7 @@ type alias Server =
 
 
 type alias ExoServerProps =
-    { floatingIpCreationOption : FloatingIpOption
+    { floatingIpCreationOption : HelperTypes.FloatingIpOption
     , deletionAttempted : Bool
     , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
     , serverOrigin : ServerOrigin
@@ -660,28 +395,6 @@ type alias ExoServerVersion =
 currentExoServerVersion : ExoServerVersion
 currentExoServerVersion =
     4
-
-
-type
-    FloatingIpOption
-    -- Wait to see if server gets a fixed IP in publicly routable space
-    = Automatic
-      -- Use a floating IP as soon as we are able to do so
-    | UseFloatingIp FloatingIpReuseOption FloatingIpAssignmentStatus
-    | DoNotUseFloatingIp
-
-
-type FloatingIpReuseOption
-    = CreateNewFloatingIp
-    | UseExistingFloatingIp OSTypes.IpAddressUuid
-
-
-type FloatingIpAssignmentStatus
-    = Unknown
-      -- We need an active server with a port and an external network before we can assign a floating IP address
-    | WaitingForResources
-    | Attemptable
-    | AttemptedWaiting
 
 
 type ServerUiStatus

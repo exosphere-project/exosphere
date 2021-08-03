@@ -11,13 +11,15 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
 import Types.Types
     exposing
         ( Model
         , Msg(..)
-        , NonProjectViewConstructor(..)
-        , ProjectIdentifier
+        )
+import Types.View
+    exposing
+        ( NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , SupportableItemType(..)
         , ViewState(..)

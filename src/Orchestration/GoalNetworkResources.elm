@@ -4,12 +4,10 @@ import Helpers.GetterSetters as GetterSetters
 import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
 import Rest.Neutron
 import Time
+import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
 import Types.Types
     exposing
         ( ExoSetupStatus(..)
-        , FloatingIpAssignmentStatus(..)
-        , FloatingIpOption(..)
-        , FloatingIpReuseOption(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)

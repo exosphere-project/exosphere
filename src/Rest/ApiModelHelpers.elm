@@ -15,7 +15,8 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Rest.Neutron
 import Rest.Nova
-import Types.Types exposing (Model, Msg, ProjectIdentifier)
+import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.Types exposing (Model, Msg)
 
 
 

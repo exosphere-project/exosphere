@@ -12,12 +12,11 @@ import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
 import Types.Types
     exposing
-        ( KeypairListViewParams
-        , Msg(..)
+        ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         )
+import Types.View exposing (KeypairListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 import Widget

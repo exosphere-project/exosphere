@@ -11,12 +11,15 @@ import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.Types
     exposing
+        ( Msg(..)
+        , OpenIdConnectLoginConfig
+        )
+import Types.View
+    exposing
         ( JetstreamCreds
         , JetstreamProvider(..)
         , LoginView(..)
-        , Msg(..)
         , NonProjectViewConstructor(..)
-        , OpenIdConnectLoginConfig
         , OpenstackLoginFormEntryType(..)
         , OpenstackLoginViewParams
         )

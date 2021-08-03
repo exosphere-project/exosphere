@@ -11,7 +11,6 @@ import Types.Types
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , Server
         , ServerSpecificMsgConstructor(..)
         )

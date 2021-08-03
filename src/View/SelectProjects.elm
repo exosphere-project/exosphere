@@ -7,13 +7,13 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
+import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.Types
     exposing
         ( Model
         , Msg(..)
-        , NonProjectViewConstructor(..)
-        , UnscopedProviderProject
         )
+import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 import Widget

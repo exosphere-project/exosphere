@@ -24,24 +24,26 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.ToggleTip
 import Time
+import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier)
 import Types.Interaction as ITypes
 import Types.Types
     exposing
-        ( AssignFloatingIpViewParams
-        , FloatingIpOption(..)
-        , IPInfoLevel(..)
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , PasswordVisibility(..)
+        ( Msg(..)
         , Project
-        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , Server
-        , ServerDetailViewParams
         , ServerOrigin(..)
         , ServerSpecificMsgConstructor(..)
         , UserAppProxyHostname
+        )
+import Types.View
+    exposing
+        ( AssignFloatingIpViewParams
+        , IPInfoLevel(..)
+        , NonProjectViewConstructor(..)
+        , PasswordVisibility(..)
+        , ProjectViewConstructor(..)
+        , ServerDetailViewParams
         , ViewState(..)
         )
 import View.Helpers as VH

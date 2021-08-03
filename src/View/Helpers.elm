@@ -883,7 +883,7 @@ heading exoPalette { level, children } =
         children
 
 
-sortProjects : List Types.Types.UnscopedProviderProject -> List Types.Types.UnscopedProviderProject
+sortProjects : List Types.HelperTypes.UnscopedProviderProject -> List Types.HelperTypes.UnscopedProviderProject
 sortProjects projects =
     let
         projectComparator a b =

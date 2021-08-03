@@ -37,15 +37,16 @@ import Time
 import Types.Error
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
+    exposing
+        ( FloatingIpAssignmentStatus(..)
+        , FloatingIpOption(..)
+        , FloatingIpReuseOption(..)
+        )
 import Types.Types
     exposing
         ( Endpoints
         , ExoServerVersion
         , ExoSetupStatus(..)
-        , FloatingIpAssignmentStatus(..)
-        , FloatingIpOption(..)
-        , FloatingIpReuseOption(..)
-        , JetstreamProvider(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)

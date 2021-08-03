@@ -1,6 +1,6 @@
 module AppUrl.Builder exposing (viewStateToUrl)
 
-import Types.Types
+import Types.View
     exposing
         ( JetstreamProvider(..)
         , LoginView(..)

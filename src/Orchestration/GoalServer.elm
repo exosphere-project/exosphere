@@ -14,14 +14,12 @@ import Rest.Neutron
 import Rest.Nova
 import Time
 import Types.Guacamole as GuacTypes
+import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
 import Types.ServerResourceUsage exposing (TimeSeries)
 import Types.Types
     exposing
         ( CloudSpecificConfig
         , ExoSetupStatus(..)
-        , FloatingIpAssignmentStatus(..)
-        , FloatingIpOption(..)
-        , FloatingIpReuseOption(..)
         , Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)

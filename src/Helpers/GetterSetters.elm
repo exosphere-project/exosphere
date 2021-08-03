@@ -42,9 +42,7 @@ import Types.Types
     exposing
         ( Model
         , Project
-        , ProjectIdentifier
         , Server
-        , UnscopedProvider
         )
 
 
@@ -58,7 +56,7 @@ serverLookup project serverUuid =
     List.filter (\s -> s.osProps.uuid == serverUuid) (RDPP.withDefault [] project.servers) |> List.head
 
 
-projectLookup : Model -> ProjectIdentifier -> Maybe Project
+projectLookup : Model -> HelperTypes.ProjectIdentifier -> Maybe Project
 projectLookup model projectIdentifier =
     model.projects
         |> List.filter (\p -> p.auth.project.uuid == projectIdentifier)
@@ -89,7 +87,7 @@ volumeLookup project volumeUuid =
         |> List.head
 
 
-providerLookup : Model -> OSTypes.KeystoneUrl -> Maybe UnscopedProvider
+providerLookup : Model -> OSTypes.KeystoneUrl -> Maybe HelperTypes.UnscopedProvider
 providerLookup model keystoneUrl =
     List.filter
         (\uP -> uP.authUrl == keystoneUrl)
@@ -389,7 +387,7 @@ projectSetAutoAllocatedNetworkUuidLoading project =
     { project | autoAllocatedNetworkUuid = RDPP.setLoading project.autoAllocatedNetworkUuid }
 
 
-modelUpdateUnscopedProvider : Model -> UnscopedProvider -> Model
+modelUpdateUnscopedProvider : Model -> HelperTypes.UnscopedProvider -> Model
 modelUpdateUnscopedProvider model newProvider =
     let
         otherProviders =

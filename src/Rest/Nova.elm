@@ -43,19 +43,17 @@ import Types.Guacamole as GuacTypes
 import Types.Types
     exposing
         ( ExoServerProps
-        , FloatingIpOption(..)
         , HttpRequestMethod(..)
         , Model
         , Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , Server
         , ServerOrigin(..)
         , ServerSpecificMsgConstructor(..)
-        , ViewState(..)
         )
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 

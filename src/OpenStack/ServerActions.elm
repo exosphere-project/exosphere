@@ -12,17 +12,17 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
+import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
         , Msg(..)
         , Project
-        , ProjectIdentifier
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , Server
         , ServerSpecificMsgConstructor(..)
         )
+import Types.View exposing (ProjectViewConstructor(..))
 
 
 getAllowed : Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction

@@ -15,12 +15,10 @@ import Types.Types
     exposing
         ( Model
         , Msg(..)
-        , NonProjectViewConstructor(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ViewState(..)
         )
+import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH
 import View.Types

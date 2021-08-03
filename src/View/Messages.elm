@@ -5,7 +5,8 @@ import Element.Input as Input
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
-import Types.Types exposing (LogMessage, Msg(..), NonProjectViewConstructor(..))
+import Types.Types exposing (LogMessage, Msg(..))
+import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 

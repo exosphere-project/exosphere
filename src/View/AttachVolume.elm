@@ -13,13 +13,16 @@ import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.Types
     exposing
-        ( IPInfoLevel(..)
-        , Msg(..)
-        , PasswordVisibility(..)
+        ( Msg(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         , ServerSpecificMsgConstructor(..)
+        )
+import Types.View
+    exposing
+        ( IPInfoLevel(..)
+        , PasswordVisibility(..)
+        , ProjectViewConstructor(..)
         )
 import View.Helpers as VH
 import View.Types

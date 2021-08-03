@@ -18,18 +18,15 @@ import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
 import Types.Types
     exposing
-        ( CreateServerViewParams
-        , FloatingIpAssignmentStatus(..)
-        , FloatingIpOption(..)
-        , FloatingIpReuseOption(..)
-        , Msg(..)
+        ( Msg(..)
         , NewServerNetworkOptions(..)
         , Project
         , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
         )
+import Types.View exposing (CreateServerViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
