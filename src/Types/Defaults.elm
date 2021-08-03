@@ -26,6 +26,7 @@ import Types.Types as Types
 
 localization : Types.Localization
 localization =
+    {- Maybe put this alongside Types.Localization? -}
     { openstackWithOwnKeystone = "cloud"
     , openstackSharingKeystoneWithAnother = "region"
     , unitOfTenancy = "project"
@@ -42,6 +43,10 @@ localization =
     , publiclyRoutableIpAddress = "public IP address"
     , graphicalDesktopEnvironment = "graphical desktop"
     }
+
+
+
+{- Most of the rest of this should be view-specific models -}
 
 
 openStackLoginViewParams : Types.OpenstackLoginViewParams

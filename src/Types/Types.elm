@@ -90,7 +90,7 @@ import Url
 
 
 
-{- App-Level Types -}
+{- Top app-Level Types -}
 
 
 type alias Flags =
@@ -252,6 +252,10 @@ type alias LogMessage =
     }
 
 
+
+{- Unscoped provider types -}
+
+
 type alias UnscopedProvider =
     { authUrl : OSTypes.KeystoneUrl
     , token : OSTypes.UnscopedAuthToken
@@ -265,6 +269,10 @@ type alias UnscopedProviderProject =
     , domainId : HelperTypes.Uuid
     , enabled : Bool
     }
+
+
+
+{- Project types -}
 
 
 type alias Project =
@@ -304,6 +312,10 @@ type alias Endpoints =
     , nova : HelperTypes.Url
     , neutron : HelperTypes.Url
     }
+
+
+
+{- Msg types -}
 
 
 type Msg
@@ -395,6 +407,10 @@ type ServerSpecificMsgConstructor
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
+
+
+
+{- View state types -}
 
 
 type ViewState
@@ -599,7 +615,7 @@ type JetstreamProvider
 
 
 
--- Resource-Level Types
+{- Resource-Level Types -}
 
 
 type alias Server =
@@ -701,12 +717,20 @@ type ExoSetupStatus
     | ExoSetupUnknown
 
 
+
+{- More project-y types -}
+
+
 type alias ProjectName =
     String
 
 
 type alias ProjectTitle =
     String
+
+
+
+{- ??? types -}
 
 
 type NewServerNetworkOptions
