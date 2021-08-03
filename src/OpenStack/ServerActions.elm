@@ -277,7 +277,7 @@ actions maybeWordForServer maybeWordForImage =
                 ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <| Rest.Nova.requestDeleteServer
+            CmdAction <| \project server -> Rest.Nova.requestDeleteServer project.auth.project.uuid project.endpoints.nova server.osProps.uuid
       , selectMod = Danger
       , targetStatus = Just [ OSTypes.ServerSoftDeleted ]
       , confirmable = True

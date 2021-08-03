@@ -1787,7 +1787,10 @@ requestDeleteServer project serverUuid retainFloatingIps =
             in
             ( newProject
             , Cmd.batch
-                [ Rest.Nova.requestDeleteServer newProject newServer
+                [ Rest.Nova.requestDeleteServer
+                    newProject.auth.project.uuid
+                    newProject.endpoints.nova
+                    newServer.osProps.uuid
                 , Cmd.batch deleteFloatingIpCmds
                 ]
             )

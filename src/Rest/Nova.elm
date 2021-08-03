@@ -40,6 +40,7 @@ import Rest.Helpers
 import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
+import Types.HelperTypes exposing (ProjectIdentifier, Url)
 import Types.Types
     exposing
         ( ExoServerProps
@@ -421,12 +422,12 @@ requestCreateServer project createServerRequest =
         )
 
 
-requestDeleteServer : Project -> Server -> Cmd Msg
-requestDeleteServer project server =
+requestDeleteServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd Msg
+requestDeleteServer projectId novaUrl serverId =
     let
         errorContext =
             ErrorContext
-                ("delete server with UUID " ++ server.osProps.uuid)
+                ("delete server with UUID " ++ serverId)
                 ErrorCrit
                 Nothing
 
@@ -434,16 +435,16 @@ requestDeleteServer project server =
             resultToMsgErrorBody
                 errorContext
                 (\_ ->
-                    ProjectMsg project.auth.project.uuid <|
-                        ServerMsg server.osProps.uuid <|
+                    ProjectMsg projectId <|
+                        ServerMsg serverId <|
                             ReceiveDeleteServer
                 )
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        projectId
         Delete
         Nothing
-        (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
+        (novaUrl ++ "/servers/" ++ serverId)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
