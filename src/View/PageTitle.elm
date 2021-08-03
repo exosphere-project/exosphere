@@ -4,11 +4,8 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
-import Types.Types
-    exposing
-        ( Model
-        , Project
-        )
+import Types.Project exposing (Project)
+import Types.Types exposing (Model)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types

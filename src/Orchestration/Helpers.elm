@@ -4,7 +4,8 @@ import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Time
 import Types.Msg exposing (Msg)
-import Types.Types exposing (Project, Server)
+import Types.Project exposing (Project)
+import Types.Server exposing (Server)
 import UUID
 
 

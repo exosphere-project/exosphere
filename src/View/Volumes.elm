@@ -20,7 +20,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types exposing (Project)
+import Types.Project exposing (Project)
 import Types.View
     exposing
         ( DeleteVolumeConfirmation

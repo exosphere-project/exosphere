@@ -9,7 +9,7 @@ import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types exposing (Project)
+import Types.Project exposing (Project)
 import Types.View
     exposing
         ( AllResourcesListViewParams

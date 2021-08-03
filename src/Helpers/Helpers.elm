@@ -43,19 +43,18 @@ import Types.HelperTypes as HelperTypes
         , FloatingIpReuseOption(..)
         )
 import Types.Msg exposing (Msg)
-import Types.Types
+import Types.Project exposing (Endpoints, Project)
+import Types.Server
     exposing
-        ( Endpoints
-        , ExoServerVersion
+        ( ExoServerVersion
         , ExoSetupStatus(..)
-        , Model
         , NewServerNetworkOptions(..)
-        , Project
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
         )
+import Types.Types exposing (Model)
 import UUID
 
 

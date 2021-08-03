@@ -21,16 +21,12 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
     exposing
-        ( ExoSetupStatus(..)
-        , Flags
+        ( Flags
         , HttpRequestMethod(..)
         , Model
-        , NewServerNetworkOptions(..)
-        , Project
-        , ProjectSecret(..)
-        , ServerOrigin(..)
         )
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import UUID

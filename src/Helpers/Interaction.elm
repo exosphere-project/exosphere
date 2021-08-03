@@ -15,12 +15,11 @@ import Style.Widgets.Icon as Icon
 import Time
 import Types.Guacamole as GuacTypes
 import Types.Interaction as ITypes
+import Types.Project exposing (Project)
+import Types.Server exposing (Server, ServerOrigin(..))
 import Types.Types
     exposing
-        ( Project
-        , Server
-        , ServerOrigin(..)
-        , UserAppProxyHostname
+        ( UserAppProxyHostname
         )
 import View.Types
 

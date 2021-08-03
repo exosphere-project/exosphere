@@ -26,12 +26,8 @@ import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.HelperTypes exposing (UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( Model
-        , Project
-        , ServerOrigin(..)
-        )
+import Types.Project exposing (Project)
+import Types.Types exposing (Model)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
 import View.PageTitle

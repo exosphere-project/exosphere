@@ -14,16 +14,8 @@ import Rest.Keystone
 import Set
 import Types.HelperTypes as HelperTypes exposing (UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( ExoSetupStatus(..)
-        , HttpRequestMethod(..)
-        , Model
-        , NewServerNetworkOptions(..)
-        , Project
-        , ProjectSecret(..)
-        , ServerOrigin(..)
-        )
+import Types.Project exposing (Project, ProjectSecret(..))
+import Types.Types exposing (HttpRequestMethod(..), Model)
 import Types.View
     exposing
         ( JetstreamCreds

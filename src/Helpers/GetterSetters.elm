@@ -38,12 +38,9 @@ import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import RemoteData
 import Types.HelperTypes as HelperTypes
-import Types.Types
-    exposing
-        ( Model
-        , Project
-        , Server
-        )
+import Types.Project exposing (Project)
+import Types.Server exposing (Server)
+import Types.Types exposing (Model)
 
 
 

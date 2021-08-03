@@ -8,10 +8,7 @@ import Html.Attributes
 import Style.Helpers as SH
 import Style.Widgets.FormValidation as FormValidation
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( Project
-        )
+import Types.Project exposing (Project)
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

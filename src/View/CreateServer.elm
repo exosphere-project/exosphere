@@ -20,11 +20,8 @@ import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInpu
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( NewServerNetworkOptions(..)
-        , Project
-        )
+import Types.Project exposing (Project)
+import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.View exposing (CreateServerViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH exposing (edges)
 import View.Types

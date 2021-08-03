@@ -12,11 +12,8 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Project
-        )
+import Types.Project exposing (Project)
+import Types.Types exposing (HttpRequestMethod(..))
 
 
 requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg

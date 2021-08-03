@@ -5,12 +5,7 @@ import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
 import Rest.Neutron
 import Time
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( ExoSetupStatus(..)
-        , Project
-        , ServerOrigin(..)
-        )
+import Types.Project exposing (Project)
 
 
 goalPollNetworkResources : Time.Posix -> Project -> ( Project, Cmd Msg )

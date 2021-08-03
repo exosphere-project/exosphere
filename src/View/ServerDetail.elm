@@ -27,13 +27,9 @@ import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier)
 import Types.Interaction as ITypes
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( Project
-        , Server
-        , ServerOrigin(..)
-        , UserAppProxyHostname
-        )
+import Types.Project exposing (Project)
+import Types.Server exposing (Server, ServerOrigin(..))
+import Types.Types exposing (UserAppProxyHostname)
 import Types.View
     exposing
         ( AssignFloatingIpViewParams

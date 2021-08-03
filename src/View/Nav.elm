@@ -12,7 +12,8 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types exposing (Model, Project)
+import Types.Project exposing (Project)
+import Types.Types exposing (Model)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH

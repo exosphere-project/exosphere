@@ -6,10 +6,7 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( Project
-        )
+import Types.Project exposing (Project)
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

@@ -27,13 +27,8 @@ import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (UnscopedProvider, UnscopedProviderProject)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , NewServerNetworkOptions(..)
-        , Project
-        , ServerOrigin(..)
-        )
+import Types.Project exposing (Project)
+import Types.Types exposing (HttpRequestMethod(..))
 import UUID
 import Url
 

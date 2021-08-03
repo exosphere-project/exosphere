@@ -1,48 +1,28 @@
 module Types.Types exposing
     ( CloudSpecificConfig
-    , Endpoints
     , ExcludeFilter
-    , ExoServerProps
-    , ExoServerVersion
-    , ExoSetupStatus(..)
     , Flags
     , HttpRequestMethod(..)
     , KeystoneHostname
     , Localization
     , LogMessage
     , Model
-    , NewServerNetworkOptions(..)
     , OpenIdConnectLoginConfig
-    , Project
-    , ProjectName
-    , ProjectSecret(..)
-    , ProjectTitle
-    , ResourceUsageRDPP
-    , Server
-    , ServerFromExoProps
-    , ServerOrigin(..)
-    , ServerUiStatus(..)
     , Style
     , UserAppProxyHostname
     , WindowSize
-    , currentExoServerVersion
     )
 
 import Browser.Navigation
 import Color
 import Dict
-import Helpers.RemoteDataPlusPlus as RDPP
 import Json.Decode as Decode
-import OpenStack.Types as OSTypes
-import RemoteData exposing (WebData)
 import Style.Types
 import Time
 import Toasty
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
-import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
-import Types.Msg exposing (Msg)
-import Types.ServerResourceUsage
+import Types.Project exposing (Project)
 import Types.View as ViewTypes
 import UUID
 
@@ -208,148 +188,6 @@ type alias LogMessage =
     , context : ErrorContext
     , timestamp : Time.Posix
     }
-
-
-
-{- Project types -}
-
-
-type alias Project =
-    { secret : ProjectSecret
-    , auth : OSTypes.ScopedAuthToken
-    , endpoints : Endpoints
-    , images : List OSTypes.Image
-    , servers : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List Server)
-    , flavors : List OSTypes.Flavor
-    , keypairs : WebData (List OSTypes.Keypair)
-    , volumes : WebData (List OSTypes.Volume)
-    , networks : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Network)
-    , autoAllocatedNetworkUuid : RDPP.RemoteDataPlusPlus HttpErrorWithBody OSTypes.NetworkUuid
-    , floatingIps : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.FloatingIp)
-    , ports : RDPP.RemoteDataPlusPlus HttpErrorWithBody (List OSTypes.Port)
-    , securityGroups : List OSTypes.SecurityGroup
-    , computeQuota : WebData OSTypes.ComputeQuota
-    , volumeQuota : WebData OSTypes.VolumeQuota
-    , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
-    }
-
-
-type ProjectSecret
-    = ApplicationCredential OSTypes.ApplicationCredential
-    | NoProjectSecret
-
-
-type alias Endpoints =
-    { cinder : HelperTypes.Url
-    , glance : HelperTypes.Url
-    , keystone : HelperTypes.Url
-    , nova : HelperTypes.Url
-    , neutron : HelperTypes.Url
-    }
-
-
-
-{- Resource-Level Types -}
-
-
-type alias Server =
-    { osProps : OSTypes.Server
-    , exoProps : ExoServerProps
-    , events : WebData (List OSTypes.ServerEvent)
-    }
-
-
-type alias ExoServerProps =
-    { floatingIpCreationOption : HelperTypes.FloatingIpOption
-    , deletionAttempted : Bool
-    , targetOpenstackStatus : Maybe (List OSTypes.ServerStatus) -- Maybe we have performed an instance action and are waiting for server to reflect that
-    , serverOrigin : ServerOrigin
-    , receivedTime : Maybe Time.Posix -- Used only if this server was polled more recently than the other servers in the project
-    , loadingSeparately : Bool -- Again, used only if server was polled more recently on its own.
-    }
-
-
-type ServerOrigin
-    = ServerFromExo ServerFromExoProps
-    | ServerNotFromExo
-
-
-type alias ServerFromExoProps =
-    { exoServerVersion : ExoServerVersion
-    , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ExoSetupStatus
-    , resourceUsage : ResourceUsageRDPP
-    , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
-    , exoCreatorUsername : Maybe String
-    }
-
-
-type alias ResourceUsageRDPP =
-    RDPP.RemoteDataPlusPlus HttpErrorWithBody Types.ServerResourceUsage.History
-
-
-type alias ExoServerVersion =
-    Int
-
-
-currentExoServerVersion : ExoServerVersion
-currentExoServerVersion =
-    4
-
-
-type ServerUiStatus
-    = ServerUiStatusUnknown
-    | ServerUiStatusBuilding
-    | ServerUiStatusRunningSetup
-    | ServerUiStatusReady
-    | ServerUiStatusPaused
-    | ServerUiStatusUnpausing
-    | ServerUiStatusRebooting
-    | ServerUiStatusSuspending
-    | ServerUiStatusSuspended
-    | ServerUiStatusResuming
-    | ServerUiStatusShutoff
-    | ServerUiStatusStopped
-    | ServerUiStatusStarting
-    | ServerUiStatusDeleting
-    | ServerUiStatusSoftDeleted
-    | ServerUiStatusError
-    | ServerUiStatusRescued
-    | ServerUiStatusShelving
-    | ServerUiStatusShelved
-    | ServerUiStatusUnshelving
-    | ServerUiStatusDeleted
-
-
-type ExoSetupStatus
-    = ExoSetupWaiting
-    | ExoSetupRunning
-    | ExoSetupComplete
-    | ExoSetupError
-    | ExoSetupTimeout
-    | ExoSetupUnknown
-
-
-
-{- More project-y types -}
-
-
-type alias ProjectName =
-    String
-
-
-type alias ProjectTitle =
-    String
-
-
-
-{- ??? types -}
-
-
-type NewServerNetworkOptions
-    = NetworksLoading
-    | AutoSelectedNetwork OSTypes.NetworkUuid
-    | ManualNetworkSelection
-    | NoneAvailable
 
 
 

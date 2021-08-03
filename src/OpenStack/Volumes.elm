@@ -20,11 +20,8 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Project
-        )
+import Types.Project exposing (Project)
+import Types.Types exposing (HttpRequestMethod(..))
 
 
 requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd Msg

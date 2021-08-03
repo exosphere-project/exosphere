@@ -16,17 +16,10 @@ import Time
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Project exposing (Project)
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.ServerResourceUsage exposing (TimeSeries)
-import Types.Types
-    exposing
-        ( CloudSpecificConfig
-        , ExoSetupStatus(..)
-        , Project
-        , Server
-        , ServerFromExoProps
-        , ServerOrigin(..)
-        , UserAppProxyHostname
-        )
+import Types.Types exposing (CloudSpecificConfig, UserAppProxyHostname)
 import UUID
 
 

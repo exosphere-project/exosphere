@@ -16,12 +16,8 @@ import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
-import Types.Types
-    exposing
-        ( Project
-        , Server
-        , ServerOrigin(..)
-        )
+import Types.Project exposing (Project)
+import Types.Server exposing (Server, ServerOrigin(..))
 import Types.View
     exposing
         ( -- TODO This shouldn't be here
