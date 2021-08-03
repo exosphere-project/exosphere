@@ -345,7 +345,7 @@ type ServerSpecificMsgConstructor
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
-    | RequestServerAction (Project -> Server -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
+    | RequestServerAction (HelperTypes.ProjectIdentifier -> HelperTypes.Url -> OSTypes.ServerUuid -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 

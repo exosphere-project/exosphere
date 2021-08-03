@@ -1551,7 +1551,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                 newModel =
                     GetterSetters.modelUpdateProject model newProject
             in
-            ( newModel, func newProject newServer )
+            ( newModel, func newProject.auth.project.uuid newProject.endpoints.nova newServer.osProps.uuid )
 
         ReceiveConsoleLog errorContext result ->
             case server.exoProps.serverOrigin of

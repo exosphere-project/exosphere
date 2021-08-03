@@ -12,12 +12,11 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.HelperTypes exposing (ProjectIdentifier, Url)
 import Types.Types
     exposing
         ( HttpRequestMethod(..)
         , Msg(..)
-        , Project
         , ProjectSpecificMsgConstructor(..)
         , Server
         , ServerSpecificMsgConstructor(..)
@@ -62,7 +61,7 @@ type alias ServerAction =
 
 
 type ActionType
-    = CmdAction (Project -> Server -> Cmd Msg)
+    = CmdAction (ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd Msg)
     | UpdateAction (ProjectIdentifier -> Server -> Msg)
 
 
@@ -277,7 +276,7 @@ actions maybeWordForServer maybeWordForImage =
                 ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <| \project server -> Rest.Nova.requestDeleteServer project.auth.project.uuid project.endpoints.nova server.osProps.uuid
+            CmdAction <| Rest.Nova.requestDeleteServer
       , selectMod = Danger
       , targetStatus = Just [ OSTypes.ServerSoftDeleted ]
       , confirmable = True
@@ -306,27 +305,27 @@ actions maybeWordForServer maybeWordForImage =
     ]
 
 
-doAction : Json.Encode.Value -> Project -> Server -> Cmd Msg
-doAction body project server =
+doAction : Json.Encode.Value -> ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd Msg
+doAction body projectId novaUrl serverId =
     let
         errorContext =
             ErrorContext
-                ("perform action for server " ++ server.osProps.uuid)
+                ("perform action for server " ++ serverId)
                 ErrorCrit
                 Nothing
     in
     openstackCredentialedRequest
-        project.auth.project.uuid
+        projectId
         Post
         Nothing
-        (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
+        (novaUrl ++ "/servers/" ++ serverId ++ "/action")
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody
                 errorContext
                 (\_ ->
-                    ProjectMsg project.auth.project.uuid <|
-                        ServerMsg server.osProps.uuid <|
+                    ProjectMsg projectId <|
+                        ServerMsg serverId <|
                             RequestServer
                 )
             )
