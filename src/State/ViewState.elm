@@ -1,5 +1,6 @@
 module State.ViewState exposing
-    ( defaultViewState
+    ( defaultLoginViewState
+    , defaultViewState
     , modelUpdateViewState
     , setNonProjectView
     , setProjectView
@@ -24,11 +25,11 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Time
 import Types.Defaults as Defaults
 import Types.Error as Error
-import Types.HelperTypes exposing (UnscopedProvider)
+import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Types exposing (Model)
-import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
 import View.PageTitle
 
@@ -441,15 +442,9 @@ modelUpdateViewState viewState model =
 
 defaultViewState : Model -> ViewState
 defaultViewState model =
-    let
-        defaultLoginViewState =
-            model.style.defaultLoginView
-                |> Maybe.map (\loginView -> NonProjectView (Login loginView))
-                |> Maybe.withDefault (NonProjectView LoginPicker)
-    in
     case model.projects of
         [] ->
-            defaultLoginViewState
+            defaultLoginViewState model.style.defaultLoginView
 
         firstProject :: _ ->
             ProjectView
@@ -458,3 +453,19 @@ defaultViewState model =
                 (AllResources
                     Defaults.allResourcesListViewParams
                 )
+
+
+defaultLoginViewState : Maybe DefaultLoginView -> ViewState
+defaultLoginViewState maybeDefaultLoginView =
+    -- TODO deduplicate with same function in View.Nav
+    case maybeDefaultLoginView of
+        Nothing ->
+            NonProjectView LoginPicker
+
+        Just defaultLoginView ->
+            case defaultLoginView of
+                DefaultLoginOpenstack ->
+                    NonProjectView <| Login <| LoginOpenstack Defaults.openStackLoginViewParams
+
+                DefaultLoginJetstream ->
+                    NonProjectView <| Login <| LoginJetstream Defaults.jetstreamCreds

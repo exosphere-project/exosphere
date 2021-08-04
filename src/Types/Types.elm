@@ -153,7 +153,7 @@ type alias Style =
     , styleMode : Style.Types.StyleMode
     , appTitle : String
     , topBarShowAppTitle : Bool
-    , defaultLoginView : Maybe ViewTypes.LoginView
+    , defaultLoginView : Maybe HelperTypes.DefaultLoginView
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String

@@ -19,7 +19,7 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
-import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier)
+import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
@@ -59,17 +59,17 @@ init flags urlKey =
                 Nothing ->
                     ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
 
-        defaultLoginView : Maybe LoginView
+        defaultLoginView : Maybe DefaultLoginView
         defaultLoginView =
             flags.defaultLoginView
                 |> Maybe.andThen
                     (\viewStr ->
                         case viewStr of
                             "openstack" ->
-                                Just <| LoginOpenstack <| Defaults.openStackLoginViewParams
+                                Just DefaultLoginOpenstack
 
                             "jetstream" ->
-                                Just <| LoginJetstream Defaults.jetstreamCreds
+                                Just DefaultLoginJetstream
 
                             _ ->
                                 Nothing

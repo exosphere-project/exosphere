@@ -1,5 +1,6 @@
 module Types.HelperTypes exposing
-    ( FloatingIpAssignmentStatus(..)
+    ( DefaultLoginView(..)
+    , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
     , Hostname
@@ -85,3 +86,8 @@ type HttpRequestMethod
     | Post
     | Put
     | Delete
+
+
+type DefaultLoginView
+    = DefaultLoginOpenstack
+    | DefaultLoginJetstream

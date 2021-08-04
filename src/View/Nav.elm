@@ -11,10 +11,11 @@ import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
+import Types.HelperTypes
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Types exposing (Model)
-import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH
 import View.Types
@@ -82,9 +83,7 @@ navMenu model context =
                             MenuItem.Inactive
 
                 destination =
-                    model.style.defaultLoginView
-                        |> Maybe.map (\loginView -> SetNonProjectView (Login loginView))
-                        |> Maybe.withDefault (SetNonProjectView LoginPicker)
+                    SetNonProjectView <| defaultLoginViewState model.style.defaultLoginView
             in
             MenuItem.menuItem context.palette
                 active
@@ -235,3 +234,19 @@ navBar model context =
     navBarContainerElement
         navBarContainerAttributes
         [ navBarHeaderView ]
+
+
+defaultLoginViewState : Maybe Types.HelperTypes.DefaultLoginView -> NonProjectViewConstructor
+defaultLoginViewState maybeDefaultLoginView =
+    -- TODO deduplicate with same function in View.Nav
+    case maybeDefaultLoginView of
+        Nothing ->
+            LoginPicker
+
+        Just defaultLoginView ->
+            case defaultLoginView of
+                Types.HelperTypes.DefaultLoginOpenstack ->
+                    Login <| LoginOpenstack Defaults.openStackLoginViewParams
+
+                Types.HelperTypes.DefaultLoginJetstream ->
+                    Login <| LoginJetstream Defaults.jetstreamCreds
