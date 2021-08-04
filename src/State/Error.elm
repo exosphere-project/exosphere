@@ -13,11 +13,11 @@ import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
         ( LogMessage
-        , Model
+        , SharedModel
         )
 
 
-processStringError : Model -> ErrorContext -> String -> ( Model, Cmd Msg )
+processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd Msg )
 processStringError model errorContext error =
     let
         logMessage =
@@ -46,7 +46,7 @@ processStringError model errorContext error =
             Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
 
-processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
+processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd Msg )
 processSynchronousApiError model errorContext httpError =
     let
         apiErrorDecodeResult =

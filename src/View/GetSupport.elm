@@ -15,7 +15,7 @@ import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
 import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
-        ( Model
+        ( SharedModel
         )
 import Types.View
     exposing
@@ -31,7 +31,7 @@ import Widget
 
 
 getSupport :
-    Model
+    SharedModel
     -> View.Types.Context
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
@@ -312,7 +312,7 @@ viewStateToSupportableItem viewState =
             Just <| supportableProjectItem projectUuid projectViewConstructor
 
 
-buildSupportRequest : Model -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
+buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
 buildSupportRequest model context maybeSupportableResource requestDescription =
     String.concat
         [ "# Support Request From "

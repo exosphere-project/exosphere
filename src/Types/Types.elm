@@ -5,8 +5,8 @@ module Types.Types exposing
     , KeystoneHostname
     , Localization
     , LogMessage
-    , Model
     , OpenIdConnectLoginConfig
+    , SharedModel
     , Style
     , UserAppProxyHostname
     , WindowSize
@@ -95,7 +95,7 @@ type alias WindowSize =
     }
 
 
-type alias Model =
+type alias SharedModel =
     { logMessages : List LogMessage
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key

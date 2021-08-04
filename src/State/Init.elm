@@ -25,14 +25,14 @@ import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
     exposing
         ( Flags
-        , Model
+        , SharedModel
         )
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
 
 
-init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( Model, Cmd Msg )
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( SharedModel, Cmd Msg )
 init flags urlKey =
     let
         currentTime =
@@ -75,7 +75,7 @@ init flags urlKey =
                                 Nothing
                     )
 
-        emptyModel : Bool -> UUID.UUID -> Model
+        emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
@@ -167,7 +167,7 @@ init flags urlKey =
                         Result.Ok decodedValue ->
                             decodedValue
 
-        hydratedModel : Model
+        hydratedModel : SharedModel
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
@@ -212,7 +212,7 @@ init flags urlKey =
 
         ( requestResourcesModel, requestResourcesCmd ) =
             let
-                applyRequestsToProject : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+                applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
                 applyRequestsToProject projectId model =
                     ( model, otherCmds )
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)

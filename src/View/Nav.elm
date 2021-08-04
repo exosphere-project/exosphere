@@ -14,7 +14,7 @@ import Types.Defaults as Defaults
 import Types.HelperTypes
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH
@@ -31,7 +31,7 @@ navBarHeight =
     70
 
 
-navMenu : Model -> View.Types.Context -> Element.Element Msg
+navMenu : SharedModel -> View.Types.Context -> Element.Element Msg
 navMenu model context =
     let
         projectMenuItem : Project -> Element.Element Msg
@@ -104,7 +104,7 @@ navMenu model context =
         )
 
 
-navBar : Model -> View.Types.Context -> Element.Element Msg
+navBar : SharedModel -> View.Types.Context -> Element.Element Msg
 navBar model context =
     let
         navBarContainerAttributes =

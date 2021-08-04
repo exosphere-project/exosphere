@@ -28,13 +28,13 @@ import Types.Error as Error
 import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
 import View.PageTitle
 
 
-setNonProjectView : NonProjectViewConstructor -> Model -> ( Model, Cmd Msg )
+setNonProjectView : NonProjectViewConstructor -> SharedModel -> ( SharedModel, Cmd Msg )
 setNonProjectView nonProjectViewConstructor model =
     let
         prevNonProjectViewConstructor =
@@ -123,7 +123,7 @@ setNonProjectView nonProjectViewConstructor model =
         |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
 
 
-setProjectView : Project -> ProjectViewConstructor -> Model -> ( Model, Cmd Msg )
+setProjectView : Project -> ProjectViewConstructor -> SharedModel -> ( SharedModel, Cmd Msg )
 setProjectView project projectViewConstructor model =
     let
         prevProjectViewConstructor =
@@ -395,7 +395,7 @@ setProjectView project projectViewConstructor model =
         |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
 
 
-modelUpdateViewState : ViewState -> Model -> ( Model, Cmd Msg )
+modelUpdateViewState : ViewState -> SharedModel -> ( SharedModel, Cmd Msg )
 modelUpdateViewState viewState model =
     -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
     let
@@ -440,7 +440,7 @@ modelUpdateViewState viewState model =
     ( newModel, urlCmd )
 
 
-defaultViewState : Model -> ViewState
+defaultViewState : SharedModel -> ViewState
 defaultViewState model =
     case model.projects of
         [] ->

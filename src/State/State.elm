@@ -41,7 +41,7 @@ import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpe
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
 import Types.ServerResourceUsage
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View
     exposing
         ( LoginView(..)
@@ -53,7 +53,7 @@ import Types.View
         )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> SharedModel -> ( SharedModel, Cmd Msg )
 update msg model =
     {- We want to `setStorage` on every update. This function adds the setStorage
        command for every step of the update function.
@@ -83,7 +83,7 @@ update msg model =
     )
 
 
-updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
+updateUnderlying : Msg -> SharedModel -> ( SharedModel, Cmd Msg )
 updateUnderlying msg model =
     case msg of
         ToastyMsg subMsg ->
@@ -370,7 +370,7 @@ updateUnderlying msg model =
             ( model, Cmd.none )
 
 
-processTick : Model -> TickInterval -> Time.Posix -> ( Model, Cmd Msg )
+processTick : SharedModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd Msg )
 processTick model interval time =
     let
         serverVolsNeedFrequentPoll : Project -> Server -> Bool
@@ -413,7 +413,7 @@ processTick model interval time =
 
                         Just project ->
                             let
-                                pollVolumes : ( Model, Cmd Msg )
+                                pollVolumes : ( SharedModel, Cmd Msg )
                                 pollVolumes =
                                     ( model
                                     , case interval of
@@ -497,7 +497,7 @@ processTick model interval time =
     )
 
 
-processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
+processProjectSpecificMsg : SharedModel -> Project -> ProjectSpecificMsgConstructor -> ( SharedModel, Cmd Msg )
 processProjectSpecificMsg model project msg =
     case msg of
         SetProjectView projectViewConstructor ->
@@ -1182,7 +1182,7 @@ processProjectSpecificMsg model project msg =
             ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
 
 
-processServerSpecificMsg : Model -> Project -> Server -> ServerSpecificMsgConstructor -> ( Model, Cmd Msg )
+processServerSpecificMsg : SharedModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( SharedModel, Cmd Msg )
 processServerSpecificMsg model project server serverMsgConstructor =
     case serverMsgConstructor of
         RequestServer ->
@@ -1448,7 +1448,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         ErrorDebug
                         Nothing
 
-                modelUpdateGuacProps : ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> Model
+                modelUpdateGuacProps : ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> SharedModel
                 modelUpdateGuacProps exoOriginProps guacProps =
                     let
                         newOriginProps =
@@ -1666,7 +1666,7 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
+createProject : SharedModel -> OSTypes.ScopedAuthToken -> Endpoints -> ( SharedModel, Cmd Msg )
 createProject model authToken endpoints =
     let
         newProject =
@@ -1727,7 +1727,7 @@ createProject model authToken endpoints =
         |> Helpers.pipelineCmd newViewStateFunc
 
 
-createUnscopedProvider : Model -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
+createUnscopedProvider : SharedModel -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( SharedModel, Cmd Msg )
 createUnscopedProvider model authToken authUrl =
     let
         newProvider =

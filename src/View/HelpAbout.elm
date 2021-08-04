@@ -3,13 +3,13 @@ module View.HelpAbout exposing (helpAbout)
 import Element
 import FeatherIcons
 import Types.Msg exposing (Msg(..))
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import UUID
 import View.Helpers as VH
 import View.Types
 
 
-helpAbout : Model -> View.Types.Context -> Element.Element Msg
+helpAbout : SharedModel -> View.Types.Context -> Element.Element Msg
 helpAbout model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30, Element.width Element.fill ])
         [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])

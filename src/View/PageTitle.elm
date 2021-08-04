@@ -5,13 +5,13 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Types.Project exposing (Project)
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
 
 
-pageTitle : Model -> View.Types.Context -> String
+pageTitle : SharedModel -> View.Types.Context -> String
 pageTitle model context =
     case model.viewState of
         NonProjectView nonProjectViewConstructor ->

@@ -44,7 +44,7 @@ import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
@@ -595,7 +595,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
 {- HTTP Response Handling -}
 
 
-receiveServers : Model -> Project -> List OSTypes.Server -> ( Model, Cmd Msg )
+receiveServers : SharedModel -> Project -> List OSTypes.Server -> ( SharedModel, Cmd Msg )
 receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
@@ -647,7 +647,7 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
+receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd Msg )
 receiveServer model project osServer =
     let
         ( newServer, cmd ) =
@@ -828,7 +828,7 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-receiveConsoleUrl : Model -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd Msg )
 receiveConsoleUrl model project server result =
     case server.osProps.consoleUrl of
         RemoteData.Success _ ->
@@ -863,7 +863,7 @@ receiveConsoleUrl model project server result =
             ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Project -> List OSTypes.Flavor -> ( Model, Cmd Msg )
+receiveFlavors : SharedModel -> Project -> List OSTypes.Flavor -> ( SharedModel, Cmd Msg )
 receiveFlavors model project flavors =
     let
         newProject =
@@ -914,7 +914,7 @@ receiveFlavors model project flavors =
     ( newModel, Cmd.none )
 
 
-receiveKeypairs : Model -> Project -> List OSTypes.Keypair -> ( Model, Cmd Msg )
+receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd Msg )
 receiveKeypairs model project keypairs =
     let
         newProject =

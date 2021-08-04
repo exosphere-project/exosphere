@@ -36,7 +36,7 @@ import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server, ServerOrigin(..))
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
@@ -378,7 +378,7 @@ requestCreateExoSecurityGroup project =
         )
 
 
-requestCreateExoSecurityGroupRules : Model -> Project -> List SecurityGroupRule -> ( Model, Cmd Msg )
+requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGroupRule -> ( SharedModel, Cmd Msg )
 requestCreateExoSecurityGroupRules model project rules =
     let
         maybeSecurityGroup =
@@ -436,7 +436,7 @@ requestCreateSecurityGroupRules project group rules errorMessage =
 {- HTTP Response Handling -}
 
 
-receiveNetworks : Model -> Project -> List OSTypes.Network -> ( Model, Cmd Msg )
+receiveNetworks : SharedModel -> Project -> List OSTypes.Network -> ( SharedModel, Cmd Msg )
 receiveNetworks model project networks =
     let
         newProject =
@@ -483,7 +483,7 @@ receiveNetworks model project networks =
     ( newModel, Cmd.none )
 
 
-receiveFloatingIps : Model -> Project -> List OSTypes.FloatingIp -> ( Model, Cmd Msg )
+receiveFloatingIps : SharedModel -> Project -> List OSTypes.FloatingIp -> ( SharedModel, Cmd Msg )
 receiveFloatingIps model project floatingIps =
     let
         newProject =
@@ -500,7 +500,7 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receiveCreateFloatingIp : Model -> Project -> Server -> OSTypes.FloatingIp -> ( Model, Cmd Msg )
+receiveCreateFloatingIp : SharedModel -> Project -> Server -> OSTypes.FloatingIp -> ( SharedModel, Cmd Msg )
 receiveCreateFloatingIp model project server floatingIp =
     let
         newServer =
@@ -535,7 +535,7 @@ receiveCreateFloatingIp model project server floatingIp =
     ( newModel, Cmd.none )
 
 
-receiveDeleteFloatingIp : Model -> Project -> OSTypes.IpAddressUuid -> ( Model, Cmd Msg )
+receiveDeleteFloatingIp : SharedModel -> Project -> OSTypes.IpAddressUuid -> ( SharedModel, Cmd Msg )
 receiveDeleteFloatingIp model project uuid =
     case project.floatingIps.data of
         RDPP.DoHave floatingIps _ ->
@@ -560,7 +560,7 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-receiveSecurityGroupsAndEnsureExoGroup : Model -> Project -> List OSTypes.SecurityGroup -> ( Model, Cmd Msg )
+receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd Msg )
 receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     {- Create an "exosphere" security group unless one already exists -}
     let
@@ -615,7 +615,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     ( newModel, Cmd.batch cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : Model -> Project -> OSTypes.SecurityGroup -> ( Model, Cmd Msg )
+receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> ( SharedModel, Cmd Msg )
 receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
     let
         newSecGroups =

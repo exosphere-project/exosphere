@@ -15,14 +15,14 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
-import Types.Types exposing (ExcludeFilter, Model)
+import Types.Types exposing (ExcludeFilter, SharedModel)
 
 
 
 {- HTTP Requests -}
 
 
-requestImages : Model -> Project -> Cmd Msg
+requestImages : SharedModel -> Project -> Cmd Msg
 requestImages model project =
     let
         projectKeystoneHostname =
@@ -60,7 +60,7 @@ requestImages model project =
 {- HTTP Response Handling -}
 
 
-receiveImages : Model -> Project -> List OSTypes.Image -> ( Model, Cmd Msg )
+receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd Msg )
 receiveImages model project images =
     let
         newProject =

@@ -5,11 +5,11 @@ import Time
 import Types.Msg exposing (Msg(..))
 import Types.Types
     exposing
-        ( Model
+        ( SharedModel
         )
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : SharedModel -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Time.every (5 * 1000) (Tick 5)

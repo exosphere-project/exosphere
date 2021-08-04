@@ -18,7 +18,7 @@ import Types.Types as Types
 import UUID
 
 
-generateStoredState : Types.Model -> Encode.Value
+generateStoredState : Types.SharedModel -> Encode.Value
 generateStoredState model =
     let
         strippedProjects =
@@ -35,7 +35,7 @@ generateStoredProject project =
     }
 
 
-hydrateModelFromStoredState : (UUID.UUID -> Types.Model) -> UUID.UUID -> StoredState -> Types.Model
+hydrateModelFromStoredState : (UUID.UUID -> Types.SharedModel) -> UUID.UUID -> StoredState -> Types.SharedModel
 hydrateModelFromStoredState emptyModel newClientUuid storedState =
     let
         model =

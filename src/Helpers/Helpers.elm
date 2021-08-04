@@ -54,7 +54,7 @@ import Types.Server
         , ServerOrigin(..)
         , ServerUiStatus(..)
         )
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import UUID
 
 
@@ -657,7 +657,7 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places
 -}
-pipelineCmd : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+pipelineCmd : (SharedModel -> ( SharedModel, Cmd Msg )) -> ( SharedModel, Cmd Msg ) -> ( SharedModel, Cmd Msg )
 pipelineCmd fn ( model, cmd ) =
     let
         ( newModel, newCmd ) =

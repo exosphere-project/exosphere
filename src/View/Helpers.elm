@@ -67,12 +67,12 @@ import Types.HelperTypes
 import Types.Msg exposing (Msg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
-import Types.Types exposing (LogMessage, Model, Style)
+import Types.Types exposing (LogMessage, SharedModel, Style)
 import View.Types
 import Widget
 
 
-toViewContext : Model -> View.Types.Context
+toViewContext : SharedModel -> View.Types.Context
 toViewContext model =
     { palette = toExoPalette model.style
     , localization = model.style.localization
@@ -885,7 +885,7 @@ sortProjects projects =
         |> List.sortWith projectComparator
 
 
-friendlyProjectTitle : Model -> Project -> String
+friendlyProjectTitle : SharedModel -> Project -> String
 friendlyProjectTitle model project =
     -- If we have multiple projects on the same provider then append the project name to the provider name
     let

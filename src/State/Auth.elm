@@ -15,7 +15,7 @@ import Set
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project, ProjectSecret(..))
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View
     exposing
         ( JetstreamCreds
@@ -27,7 +27,7 @@ import Types.View
 import Url
 
 
-projectUpdateAuthToken : Model -> Project -> OSTypes.ScopedAuthToken -> ( Model, Cmd Msg )
+projectUpdateAuthToken : SharedModel -> Project -> OSTypes.ScopedAuthToken -> ( SharedModel, Cmd Msg )
 projectUpdateAuthToken model project authToken =
     -- Update auth token for existing project
     let
@@ -40,7 +40,7 @@ projectUpdateAuthToken model project authToken =
     sendPendingRequests newModel newProject
 
 
-unscopedProviderUpdateAuthToken : Model -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( Model, Cmd Msg )
+unscopedProviderUpdateAuthToken : SharedModel -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( SharedModel, Cmd Msg )
 unscopedProviderUpdateAuthToken model provider authToken =
     let
         newProvider =
@@ -52,7 +52,7 @@ unscopedProviderUpdateAuthToken model provider authToken =
     ( newModel, Cmd.none )
 
 
-sendPendingRequests : Model -> Project -> ( Model, Cmd Msg )
+sendPendingRequests : SharedModel -> Project -> ( SharedModel, Cmd Msg )
 sendPendingRequests model project =
     -- Fires any pending commands which were waiting for auth token renewal
     -- This function assumes our token is valid (does not check for expiry).
@@ -71,7 +71,7 @@ sendPendingRequests model project =
     ( newModel, Cmd.batch cmds )
 
 
-requestAuthToken : Model -> Project -> Result String (Cmd Msg)
+requestAuthToken : SharedModel -> Project -> Result String (Cmd Msg)
 requestAuthToken model project =
     -- Wraps Rest.Keystone.RequestAuthToken
     case project.secret of

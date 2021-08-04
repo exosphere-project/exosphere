@@ -12,7 +12,7 @@ import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
-import Types.Types exposing (Model)
+import Types.Types exposing (SharedModel)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.AllResources
 import View.AttachVolume
@@ -30,7 +30,7 @@ import View.Volumes
 import Widget
 
 
-project : Model -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
+project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
 project model context p viewParams viewConstructor =
     let
         v =

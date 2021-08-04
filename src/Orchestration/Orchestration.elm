@@ -7,11 +7,11 @@ import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.Msg exposing (Msg)
 import Types.Project exposing (Project)
-import Types.Types exposing (CloudSpecificConfig, Model)
+import Types.Types exposing (CloudSpecificConfig, SharedModel)
 import UUID
 
 
-orchModel : Model -> Time.Posix -> ( Model, Cmd Msg )
+orchModel : SharedModel -> Time.Posix -> ( SharedModel, Cmd Msg )
 orchModel model time =
     let
         ( newProjects, newCmds ) =
