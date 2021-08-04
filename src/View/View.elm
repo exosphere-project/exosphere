@@ -12,7 +12,8 @@ import Style.Helpers as SH
 import Style.Toast
 import Toasty
 import Types.Msg exposing (Msg(..))
-import Types.Types exposing (SharedModel, WindowSize)
+import Types.OuterModel exposing (OuterModel)
+import Types.Types exposing (WindowSize)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.HelpAbout
@@ -30,21 +31,21 @@ import View.Toast
 import View.Types
 
 
-view : SharedModel -> Browser.Document Msg
-view model =
+view : OuterModel -> Browser.Document Msg
+view outerModel =
     let
         context =
-            VH.toViewContext model
+            VH.toViewContext outerModel.sharedModel
     in
     { title =
-        View.PageTitle.pageTitle model context
+        View.PageTitle.pageTitle outerModel context
     , body =
-        [ view_ model context ]
+        [ view_ outerModel context ]
     }
 
 
-view_ : SharedModel -> View.Types.Context -> Html.Html Msg
-view_ model context =
+view_ : OuterModel -> View.Types.Context -> Html.Html Msg
+view_ outerModel context =
     Element.layout
         [ Font.size 17
         , Font.family
@@ -54,11 +55,11 @@ view_ model context =
         , Font.color <| SH.toElementColor <| context.palette.on.background
         , Background.color <| SH.toElementColor <| context.palette.background
         ]
-        (elementView model.windowSize model context)
+        (elementView outerModel.sharedModel.windowSize outerModel context)
 
 
-elementView : WindowSize -> SharedModel -> View.Types.Context -> Element.Element Msg
-elementView windowSize model context =
+elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element Msg
+elementView windowSize outerModel context =
     let
         mainContentContainerView =
             Element.column
@@ -69,11 +70,11 @@ elementView windowSize model context =
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
-                [ case model.viewState of
+                [ case outerModel.viewState of
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.LoginPicker.loginPicker context model.openIdConnectLoginConfig
+                                View.LoginPicker.loginPicker context outerModel.sharedModel.openIdConnectLoginConfig
 
                             Login loginView ->
                                 case loginView of
@@ -94,30 +95,30 @@ elementView windowSize model context =
                                         ]
 
                             SelectProjects authUrl selectedProjects ->
-                                View.SelectProjects.selectProjects model context authUrl selectedProjects
+                                View.SelectProjects.selectProjects outerModel.sharedModel context authUrl selectedProjects
 
                             MessageLog showDebugMsgs ->
-                                View.Messages.messageLog context model.logMessages showDebugMsgs
+                                View.Messages.messageLog context outerModel.sharedModel.logMessages showDebugMsgs
 
                             Settings ->
-                                View.Settings.settings context model.style.styleMode
+                                View.Settings.settings context outerModel.sharedModel.style.styleMode
 
                             GetSupport maybeSupportableItem requestDescription isSubmitted ->
                                 View.GetSupport.getSupport
-                                    model
+                                    outerModel.sharedModel
                                     context
                                     maybeSupportableItem
                                     requestDescription
                                     isSubmitted
 
                             HelpAbout ->
-                                View.HelpAbout.helpAbout model context
+                                View.HelpAbout.helpAbout outerModel.sharedModel context
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
 
                     ProjectView projectName projectViewParams viewConstructor ->
-                        case GetterSetters.projectLookup model projectName of
+                        case GetterSetters.projectLookup outerModel.sharedModel projectName of
                             Nothing ->
                                 Element.text <|
                                     String.join " "
@@ -129,12 +130,12 @@ elementView windowSize model context =
 
                             Just project ->
                                 View.Project.project
-                                    model
+                                    outerModel.sharedModel
                                     context
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast context model.showDebugMsgs) ToastyMsg model.toasties)
+                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast context outerModel.sharedModel.showDebugMsgs) ToastyMsg outerModel.sharedModel.toasties)
                 ]
     in
     Element.row
@@ -155,7 +156,7 @@ elementView windowSize model context =
                 [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
                 , Element.width Element.fill
                 ]
-                (View.Nav.navBar model context)
+                (View.Nav.navBar outerModel context)
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
@@ -163,7 +164,7 @@ elementView windowSize model context =
                 , Element.height <|
                     Element.px (windowSize.height - View.Nav.navBarHeight)
                 ]
-                [ View.Nav.navMenu model context
+                [ View.Nav.navMenu outerModel context
                 , mainContentContainerView
                 ]
             ]

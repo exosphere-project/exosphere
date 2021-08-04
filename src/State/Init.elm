@@ -21,6 +21,7 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
     exposing
@@ -32,7 +33,7 @@ import UUID
 import Url
 
 
-init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( SharedModel, Cmd Msg )
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd Msg )
 init flags urlKey =
     let
         currentTime =
@@ -81,9 +82,6 @@ init flags urlKey =
             , urlPathPrefix = flags.urlPathPrefix
             , navigationKey = Tuple.second urlKey
             , prevUrl = ""
-            , viewState =
-                -- This is will get replaced with the appropriate login view
-                NonProjectView LoginPicker
             , windowSize = { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -171,11 +169,10 @@ init flags urlKey =
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
+        defaultViewState =
+            State.ViewState.defaultViewState hydratedModel
+
         viewState =
-            let
-                defaultViewState =
-                    State.ViewState.defaultViewState hydratedModel
-            in
             AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
                 |> Maybe.withDefault (NonProjectView PageNotFound)
 
@@ -227,18 +224,26 @@ init flags urlKey =
                     )
                     ( hydratedModel, Cmd.none )
 
+        outerModel =
+            { sharedModel = requestResourcesModel, viewState = defaultViewState }
+
         ( setViewModel, setViewCmd ) =
             case viewState of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView nonProjectViewConstructor requestResourcesModel
+                    setNonProjectView
+                        nonProjectViewConstructor
+                        outerModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
                     case GetterSetters.projectLookup requestResourcesModel projectId of
                         Just project ->
-                            setProjectView project projectViewConstructor requestResourcesModel
+                            setProjectView
+                                project
+                                projectViewConstructor
+                                outerModel
 
                         Nothing ->
-                            ( requestResourcesModel, Cmd.none )
+                            ( outerModel, Cmd.none )
     in
     ( setViewModel, Cmd.batch [ requestResourcesCmd, setViewCmd ] )

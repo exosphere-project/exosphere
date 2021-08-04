@@ -5,7 +5,8 @@ import State.Init
 import State.State as State
 import State.Subscriptions
 import Types.Msg exposing (Msg(..))
-import Types.Types exposing (Flags, SharedModel)
+import Types.OuterModel exposing (OuterModel)
+import Types.Types exposing (Flags)
 import View.View exposing (view)
 
 
@@ -13,7 +14,7 @@ import View.View exposing (view)
 {- App Setup -}
 
 
-main : Program Flags SharedModel Msg
+main : Program Flags OuterModel Msg
 main =
     application
         { init = \flags url key -> State.Init.init flags ( url, key )

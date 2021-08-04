@@ -22,7 +22,6 @@ import Toasty
 import Types.Error exposing (ErrorContext, Toast)
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
-import Types.View as ViewTypes
 import UUID
 
 
@@ -102,7 +101,6 @@ type alias SharedModel =
 
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
     , prevUrl : String
-    , viewState : ViewTypes.ViewState
     , windowSize : WindowSize
     , unscopedProviders : List HelperTypes.UnscopedProvider
     , projects : List Project

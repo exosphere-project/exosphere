@@ -3,13 +3,10 @@ module State.Subscriptions exposing (subscriptions)
 import Browser.Events
 import Time
 import Types.Msg exposing (Msg(..))
-import Types.Types
-    exposing
-        ( SharedModel
-        )
+import Types.OuterModel exposing (OuterModel)
 
 
-subscriptions : SharedModel -> Sub Msg
+subscriptions : OuterModel -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Time.every (5 * 1000) (Tick 5)

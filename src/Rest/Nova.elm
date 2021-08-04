@@ -42,6 +42,7 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
 import Types.Types exposing (SharedModel)
@@ -863,8 +864,9 @@ receiveConsoleUrl model project server result =
             ( newModel, Cmd.none )
 
 
-receiveFlavors : SharedModel -> Project -> List OSTypes.Flavor -> ( SharedModel, Cmd Msg )
-receiveFlavors model project flavors =
+receiveFlavors : OuterModel -> Project -> List OSTypes.Flavor -> ( OuterModel, Cmd Msg )
+receiveFlavors outerModel project flavors =
+    -- TODO this code should not care about view state
     let
         newProject =
             { project | flavors = flavors }
@@ -876,7 +878,7 @@ receiveFlavors model project flavors =
         -- This could also benefit from some "railway-oriented programming" to avoid repetition of
         -- "otherwise just model.viewState" statments.
         viewState =
-            case model.viewState of
+            case outerModel.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
                         CreateServer viewParams ->
@@ -897,21 +899,21 @@ receiveFlavors model project flavors =
                                             )
 
                                     Nothing ->
-                                        model.viewState
+                                        outerModel.viewState
 
                             else
-                                model.viewState
+                                outerModel.viewState
 
                         _ ->
-                            model.viewState
+                            outerModel.viewState
 
                 _ ->
-                    model.viewState
+                    outerModel.viewState
 
-        newModel =
-            GetterSetters.modelUpdateProject { model | viewState = viewState } newProject
+        newSharedModel =
+            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
     in
-    ( newModel, Cmd.none )
+    ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
 
 
 receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd Msg )

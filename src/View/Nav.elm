@@ -13,8 +13,8 @@ import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
 import Types.HelperTypes
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
-import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH
@@ -31,17 +31,17 @@ navBarHeight =
     70
 
 
-navMenu : SharedModel -> View.Types.Context -> Element.Element Msg
-navMenu model context =
+navMenu : OuterModel -> View.Types.Context -> Element.Element Msg
+navMenu outerModel context =
     let
         projectMenuItem : Project -> Element.Element Msg
         projectMenuItem project =
             let
                 projectTitle =
-                    VH.friendlyProjectTitle model project
+                    VH.friendlyProjectTitle outerModel.sharedModel project
 
                 status =
-                    case model.viewState of
+                    case outerModel.viewState of
                         ProjectView p _ _ ->
                             if p == project.auth.project.uuid then
                                 MenuItem.Active
@@ -72,7 +72,7 @@ navMenu model context =
         addProjectMenuItem =
             let
                 active =
-                    case model.viewState of
+                    case outerModel.viewState of
                         NonProjectView LoginPicker ->
                             MenuItem.Active
 
@@ -83,7 +83,7 @@ navMenu model context =
                             MenuItem.Inactive
 
                 destination =
-                    SetNonProjectView <| defaultLoginViewState model.style.defaultLoginView
+                    SetNonProjectView <| defaultLoginViewState outerModel.sharedModel.style.defaultLoginView
             in
             MenuItem.menuItem context.palette
                 active
@@ -99,13 +99,13 @@ navMenu model context =
         , Element.scrollbarY
         , Element.height Element.fill
         ]
-        (projectMenuItems model.projects
+        (projectMenuItems outerModel.sharedModel.projects
             ++ [ addProjectMenuItem ]
         )
 
 
-navBar : SharedModel -> View.Types.Context -> Element.Element Msg
-navBar model context =
+navBar : OuterModel -> View.Types.Context -> Element.Element Msg
+navBar outerModel context =
     let
         navBarContainerAttributes =
             [ Background.color (SH.toElementColor context.palette.menu.secondary)
@@ -123,15 +123,15 @@ navBar model context =
                 [ Element.padding 5
                 , Element.spacing 20
                 ]
-                [ Element.image [ Element.height (Element.px 50) ] { src = model.style.logo, description = "" }
-                , if model.style.topBarShowAppTitle then
+                [ Element.image [ Element.height (Element.px 50) ] { src = outerModel.sharedModel.style.logo, description = "" }
+                , if outerModel.sharedModel.style.topBarShowAppTitle then
                     Element.el
                         [ Region.heading 1
                         , Font.bold
                         , Font.size 26
                         , Font.color (SH.toElementColor context.palette.menu.on.surface)
                         ]
-                        (Element.text model.style.appTitle)
+                        (Element.text outerModel.sharedModel.style.appTitle)
 
                   else
                     Element.none
@@ -184,7 +184,7 @@ navBar model context =
                             Just
                                 (SetNonProjectView <|
                                     GetSupport
-                                        (View.GetSupport.viewStateToSupportableItem model.viewState)
+                                        (View.GetSupport.viewStateToSupportableItem outerModel.viewState)
                                         ""
                                         False
                                 )

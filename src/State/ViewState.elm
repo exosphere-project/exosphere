@@ -27,6 +27,7 @@ import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
@@ -34,11 +35,11 @@ import View.Helpers
 import View.PageTitle
 
 
-setNonProjectView : NonProjectViewConstructor -> SharedModel -> ( SharedModel, Cmd Msg )
-setNonProjectView nonProjectViewConstructor model =
+setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd Msg )
+setNonProjectView nonProjectViewConstructor outerModel =
     let
         prevNonProjectViewConstructor =
-            case model.viewState of
+            case outerModel.viewState of
                 NonProjectView nonProjectViewConstructor_ ->
                     if nonProjectViewConstructor == nonProjectViewConstructor_ then
                         Nothing
@@ -49,27 +50,27 @@ setNonProjectView nonProjectViewConstructor model =
                 _ ->
                     Nothing
 
-        ( viewSpecificModel, viewSpecificCmd ) =
+        ( viewSpecificSharedModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
                 GetSupport _ _ _ ->
                     case prevNonProjectViewConstructor of
                         Just (GetSupport _ _ _) ->
-                            ( model, Cmd.none )
+                            ( outerModel.sharedModel, Cmd.none )
 
                         _ ->
-                            ( model, Ports.instantiateClipboardJs () )
+                            ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
 
                 HelpAbout ->
                     case prevNonProjectViewConstructor of
                         Just HelpAbout ->
-                            ( model, Cmd.none )
+                            ( outerModel.sharedModel, Cmd.none )
 
                         _ ->
-                            ( model, Ports.instantiateClipboardJs () )
+                            ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
 
                 LoadingUnscopedProjects authTokenStr ->
                     -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
-                    case model.openIdConnectLoginConfig of
+                    case outerModel.sharedModel.openIdConnectLoginConfig of
                         Nothing ->
                             let
                                 errorContext =
@@ -79,7 +80,7 @@ setNonProjectView nonProjectViewConstructor model =
                                         Nothing
                             in
                             State.Error.processStringError
-                                model
+                                outerModel.sharedModel
                                 errorContext
                                 "This deployment of Exosphere is not configured to use OpenID Connect."
 
@@ -90,7 +91,7 @@ setNonProjectView nonProjectViewConstructor model =
 
                                 tokenExpiry =
                                     -- One hour later? This should never matter
-                                    Time.posixToMillis model.clientCurrentTime
+                                    Time.posixToMillis outerModel.sharedModel.clientCurrentTime
                                         + oneHourMillis
                                         |> Time.millisToPosix
 
@@ -104,30 +105,32 @@ setNonProjectView nonProjectViewConstructor model =
                                         RemoteData.NotAsked
 
                                 newUnscopedProviders =
-                                    unscopedProvider :: model.unscopedProviders
+                                    unscopedProvider :: outerModel.sharedModel.unscopedProviders
 
-                                newModel =
-                                    { model | unscopedProviders = newUnscopedProviders }
+                                oldSharedModel =
+                                    outerModel.sharedModel
                             in
-                            ( newModel
-                            , Rest.Keystone.requestUnscopedProjects unscopedProvider model.cloudCorsProxyUrl
+                            ( { oldSharedModel | unscopedProviders = newUnscopedProviders }
+                            , Rest.Keystone.requestUnscopedProjects unscopedProvider oldSharedModel.cloudCorsProxyUrl
                             )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( outerModel.sharedModel, Cmd.none )
 
         newViewState =
             NonProjectView nonProjectViewConstructor
+
+        ( newOuterModel, viewStateCmd ) =
+            modelUpdateViewState newViewState { outerModel | sharedModel = viewSpecificSharedModel }
     in
-    ( viewSpecificModel, viewSpecificCmd )
-        |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
+    ( newOuterModel, Cmd.batch [ viewStateCmd, viewSpecificCmd ] )
 
 
-setProjectView : Project -> ProjectViewConstructor -> SharedModel -> ( SharedModel, Cmd Msg )
-setProjectView project projectViewConstructor model =
+setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd Msg )
+setProjectView project projectViewConstructor outerModel =
     let
         prevProjectViewConstructor =
-            case model.viewState of
+            case outerModel.viewState of
                 ProjectView projectId _ projectViewConstructor_ ->
                     if projectId == project.auth.project.uuid then
                         Just projectViewConstructor_
@@ -141,33 +144,32 @@ setProjectView project projectViewConstructor model =
         newViewState =
             ProjectView project.auth.project.uuid Defaults.projectViewParams projectViewConstructor
 
-        viewSpecificModelAndCmd =
+        ( viewSpecificOuterModel, viewSpecificCmd ) =
             case projectViewConstructor of
                 AllResources _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
                         Just (AllResources _) ->
-                            ( model, Cmd.none )
+                            ( outerModel, Cmd.none )
 
                         _ ->
                             let
-                                ( newModel, newCmd ) =
-                                    ApiModelHelpers.requestServers project.auth.project.uuid model
-                            in
-                            ( newModel
-                            , Cmd.batch
-                                [ newCmd
-                                , OSVolumes.requestVolumes project
-                                , Rest.Nova.requestKeypairs project
-                                , OSQuotas.requestComputeQuota project
-                                , OSQuotas.requestVolumeQuota project
-                                , Ports.instantiateClipboardJs ()
-                                ]
-                            )
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestFloatingIps
-                                        project.auth.project.uuid
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel
+                                    , Cmd.batch
+                                        [ OSVolumes.requestVolumes project
+                                        , Rest.Nova.requestKeypairs project
+                                        , OSQuotas.requestComputeQuota project
+                                        , OSQuotas.requestVolumeQuota project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
                                     )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            in
+                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 ListImages _ _ ->
                     let
@@ -178,56 +180,64 @@ setProjectView project projectViewConstructor model =
                                     Cmd.none
 
                                 _ ->
-                                    Rest.Glance.requestImages model project
+                                    Rest.Glance.requestImages outerModel.sharedModel project
                     in
-                    ( model, cmd )
+                    ( outerModel, cmd )
 
                 ListProjectServers _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
                         Just (ListProjectServers _) ->
-                            ( model, Cmd.none )
+                            ( outerModel, Cmd.none )
 
                         _ ->
-                            ApiModelHelpers.requestServers
-                                project.auth.project.uuid
-                                model
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestFloatingIps
+                            let
+                                ( newSharedModel, cmd ) =
+                                    ApiModelHelpers.requestServers
                                         project.auth.project.uuid
-                                    )
+                                        outerModel.sharedModel
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps
+                                                project.auth.project.uuid
+                                            )
+                            in
+                            ( { outerModel | sharedModel = newSharedModel }, cmd )
 
                 ServerDetail serverUuid _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
                         Just (ServerDetail _ _) ->
-                            ( model, Cmd.none )
+                            ( outerModel, Cmd.none )
 
                         _ ->
                             let
-                                newModel =
+                                newSharedModel =
                                     project
-                                        |> GetterSetters.modelUpdateProject model
+                                        |> GetterSetters.modelUpdateProject outerModel.sharedModel
 
                                 cmd =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages model project
+                                        , Rest.Glance.requestImages outerModel.sharedModel project
                                         , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
+
+                                ( newNewSharedModel, newCmd ) =
+                                    ( newSharedModel, cmd )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServer project.auth.project.uuid serverUuid)
                             in
-                            ( newModel, cmd )
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestServer project.auth.project.uuid serverUuid)
+                            ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
 
                 CreateServerImage _ _ ->
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
                 CreateServer viewParams ->
-                    case model.viewState of
+                    case outerModel.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
+                        -- TODO double-check that this code still actually works.
                         ProjectView _ _ (CreateServer _) ->
                             let
                                 newViewParams =
@@ -265,17 +275,14 @@ setProjectView project projectViewConstructor model =
                                         ( _, _, _ ) ->
                                             viewParams
 
-                                newModel =
-                                    { model
-                                        | viewState =
-                                            ProjectView
-                                                project.auth.project.uuid
-                                                { createPopup = False }
-                                            <|
-                                                CreateServer newViewParams
-                                    }
+                                newViewState_ =
+                                    ProjectView
+                                        project.auth.project.uuid
+                                        { createPopup = False }
+                                    <|
+                                        CreateServer newViewParams
                             in
-                            ( newModel
+                            ( { outerModel | viewState = newViewState_ }
                             , Cmd.none
                             )
 
@@ -293,11 +300,14 @@ setProjectView project projectViewConstructor model =
                                         , Rest.Nova.requestKeypairs project
                                         , RandomHelpers.generateServerName newViewParamsMsg
                                         ]
+
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel, cmd )
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
                             in
-                            ( model, cmd )
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork project.auth.project.uuid)
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
+                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 ListProjectVolumes _ ->
                     let
@@ -313,32 +323,40 @@ setProjectView project projectViewConstructor model =
                                         , Ports.instantiateClipboardJs ()
                                         ]
                     in
-                    ( model, cmd )
+                    ( outerModel, cmd )
 
                 ListFloatingIps _ ->
                     case prevProjectViewConstructor of
                         Just (ListFloatingIps _) ->
-                            ( model, Cmd.none )
+                            ( outerModel, Cmd.none )
 
                         _ ->
-                            ( model, Ports.instantiateClipboardJs () )
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            in
+                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 AssignFloatingIp _ ->
                     case prevProjectViewConstructor of
                         Just (AssignFloatingIp _) ->
-                            ( model, Cmd.none )
+                            ( outerModel, Cmd.none )
 
                         _ ->
-                            ( model, Cmd.none )
-                                |> Helpers.pipelineCmd
-                                    (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel, Cmd.none )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                            in
+                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 ListKeypairs _ ->
                     let
@@ -354,49 +372,51 @@ setProjectView project projectViewConstructor model =
                                         , Ports.instantiateClipboardJs ()
                                         ]
                     in
-                    ( model, cmd )
+                    ( outerModel, cmd )
 
                 CreateKeypair _ _ ->
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
                 VolumeDetail _ _ ->
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
                 AttachVolumeModal _ _ ->
                     case prevProjectViewConstructor of
                         Just (AttachVolumeModal _ _) ->
-                            ( model, Cmd.none )
+                            ( outerModel, Cmd.none )
 
                         _ ->
                             let
-                                cmd =
-                                    OSVolumes.requestVolumes project
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel, OSVolumes.requestVolumes project )
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( model, cmd )
-                                |> Helpers.pipelineCmd (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 MountVolInstructions _ ->
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
                 CreateVolume _ _ ->
                     let
                         cmd =
                             -- If just entering this view, get volume quota
-                            case model.viewState of
+                            case outerModel.viewState of
                                 ProjectView _ _ (CreateVolume _ _) ->
                                     Cmd.none
 
                                 _ ->
                                     OSQuotas.requestVolumeQuota project
                     in
-                    ( model, cmd )
+                    ( outerModel, cmd )
+
+        ( newOuterModel, viewStateCmd ) =
+            modelUpdateViewState newViewState viewSpecificOuterModel
     in
-    viewSpecificModelAndCmd
-        |> Helpers.pipelineCmd (modelUpdateViewState newViewState)
+    ( newOuterModel, Cmd.batch [ viewStateCmd, viewSpecificCmd ] )
 
 
-modelUpdateViewState : ViewState -> SharedModel -> ( SharedModel, Cmd Msg )
-modelUpdateViewState viewState model =
+modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd Msg )
+modelUpdateViewState viewState outerModel =
     -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
     let
         urlWithoutQuery url =
@@ -405,22 +425,28 @@ modelUpdateViewState viewState model =
                 |> Maybe.withDefault ""
 
         prevUrl =
-            model.prevUrl
+            outerModel.sharedModel.prevUrl
 
         newUrl =
-            AppUrl.Builder.viewStateToUrl model.urlPathPrefix viewState
+            AppUrl.Builder.viewStateToUrl outerModel.sharedModel.urlPathPrefix viewState
 
-        newModel =
-            { model
+        oldSharedModel =
+            outerModel.sharedModel
+
+        newSharedModel =
+            { oldSharedModel | prevUrl = newUrl }
+
+        newOuterModel =
+            { outerModel
                 | viewState = viewState
-                , prevUrl = newUrl
+                , sharedModel = newSharedModel
             }
 
         newViewContext =
-            View.Helpers.toViewContext newModel
+            View.Helpers.toViewContext newOuterModel.sharedModel
 
         newPageTitle =
-            View.PageTitle.pageTitle newModel newViewContext
+            View.PageTitle.pageTitle newOuterModel newViewContext
 
         ( updateUrlFunc, updateMatomoCmd ) =
             if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then
@@ -433,11 +459,11 @@ modelUpdateViewState viewState model =
 
         urlCmd =
             Cmd.batch
-                [ updateUrlFunc model.navigationKey newUrl
+                [ updateUrlFunc newOuterModel.sharedModel.navigationKey newUrl
                 , updateMatomoCmd
                 ]
     in
-    ( newModel, urlCmd )
+    ( newOuterModel, urlCmd )
 
 
 defaultViewState : SharedModel -> ViewState

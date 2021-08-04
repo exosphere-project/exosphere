@@ -34,6 +34,7 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server, ServerOrigin(..))
 import Types.Types exposing (SharedModel)
@@ -436,20 +437,21 @@ requestCreateSecurityGroupRules project group rules errorMessage =
 {- HTTP Response Handling -}
 
 
-receiveNetworks : SharedModel -> Project -> List OSTypes.Network -> ( SharedModel, Cmd Msg )
-receiveNetworks model project networks =
+receiveNetworks : OuterModel -> Project -> List OSTypes.Network -> ( OuterModel, Cmd Msg )
+receiveNetworks outerModel project networks =
+    -- TODO this code should not care about view state
     let
         newProject =
             let
                 newNetsRDPP =
-                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks model.clientCurrentTime) (RDPP.NotLoading Nothing)
+                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks outerModel.sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing)
             in
             { project | networks = newNetsRDPP }
 
         -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
         -- Same comments above (in receiveFlavors) apply here.
         viewState =
-            case model.viewState of
+            case outerModel.viewState of
                 ProjectView _ viewParams projectViewConstructor ->
                     case projectViewConstructor of
                         CreateServer createServerViewParams ->
@@ -466,21 +468,21 @@ receiveNetworks model project networks =
                                             )
 
                                     _ ->
-                                        model.viewState
+                                        outerModel.viewState
 
                             else
-                                model.viewState
+                                outerModel.viewState
 
                         _ ->
-                            model.viewState
+                            outerModel.viewState
 
                 _ ->
-                    model.viewState
+                    outerModel.viewState
 
-        newModel =
-            GetterSetters.modelUpdateProject { model | viewState = viewState } newProject
+        newSharedModel =
+            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
     in
-    ( newModel, Cmd.none )
+    ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
 
 
 receiveFloatingIps : SharedModel -> Project -> List OSTypes.FloatingIp -> ( SharedModel, Cmd Msg )
