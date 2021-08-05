@@ -104,11 +104,11 @@ updateUnderlying outerMsg outerModel =
         sharedModel =
             outerModel.sharedModel
     in
-    case outerMsg of
-        SetNonProjectView nonProjectViewConstructor ->
+    case ( outerMsg, outerModel.viewState ) of
+        ( SetNonProjectView nonProjectViewConstructor, _ ) ->
             ViewStateHelpers.setNonProjectView nonProjectViewConstructor outerModel
 
-        SetProjectView projectIdentifier projectViewConstructor ->
+        ( SetProjectView projectIdentifier projectViewConstructor, _ ) ->
             case GetterSetters.projectLookup sharedModel projectIdentifier of
                 -- TODO deduplicated this logic with below
                 Nothing ->
@@ -118,44 +118,44 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     ViewStateHelpers.setProjectView project projectViewConstructor outerModel
 
-        SharedMsg sharedMsg ->
-            case ( sharedMsg, outerModel.viewState ) of
-                ( NestedViewMsg innerMsg, NonProjectView (ExampleNestedView innerModel) ) ->
-                    let
-                        ( newSharedModel, newInnerModel, cmd ) =
-                            View.Nested.update innerMsg sharedModel innerModel
-                    in
-                    ( { outerModel
-                        | sharedModel = newSharedModel
-                        , viewState = NonProjectView <| ExampleNestedView newInnerModel
-                      }
-                    , Cmd.map (\msg -> SharedMsg <| NestedViewMsg msg) cmd
-                    )
+        ( NestedViewMsg innerMsg, NonProjectView (ExampleNestedView innerModel) ) ->
+            let
+                ( newSharedModel, newInnerModel, cmd ) =
+                    View.Nested.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | sharedModel = newSharedModel
+                , viewState = NonProjectView <| ExampleNestedView newInnerModel
+              }
+            , Cmd.map (\msg -> NestedViewMsg msg) cmd
+            )
 
-                ( ToastyMsg subMsg, _ ) ->
+        ( SharedMsg sharedMsg, _ ) ->
+            case sharedMsg of
+                ToastyMsg subMsg ->
                     Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-                ( MsgChangeWindowSize x y, _ ) ->
+                MsgChangeWindowSize x y ->
                     ( { sharedModel | windowSize = { width = x, height = y } }, Cmd.none )
                         |> mapToOuterModel outerModel
 
-                ( Tick interval time, _ ) ->
+                Tick interval time ->
                     processTick outerModel interval time
                         |> mapToOuterModel outerModel
 
-                ( DoOrchestration posixTime, _ ) ->
+                DoOrchestration posixTime ->
                     Orchestration.orchModel sharedModel posixTime
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-                ( HandleApiErrorWithBody errorContext error, _ ) ->
+                HandleApiErrorWithBody errorContext error ->
                     State.Error.processSynchronousApiError sharedModel errorContext error
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-                ( RequestUnscopedToken openstackLoginUnscoped, _ ) ->
+                RequestUnscopedToken openstackLoginUnscoped ->
                     let
                         creds =
                             -- Ensure auth URL includes port number and version
@@ -167,7 +167,7 @@ updateUnderlying outerMsg outerModel =
                     ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
                         |> mapToOuterMsg
 
-                ( JetstreamLogin jetstreamCreds, _ ) ->
+                JetstreamLogin jetstreamCreds ->
                     let
                         openstackCredsList =
                             State.Auth.jetstreamToOpenstackCreds jetstreamCreds
@@ -180,7 +180,7 @@ updateUnderlying outerMsg outerModel =
                     ( outerModel, Cmd.batch cmds )
                         |> mapToOuterMsg
 
-                ( ReceiveScopedAuthToken ( metadata, response ), _ ) ->
+                ReceiveScopedAuthToken ( metadata, response ) ->
                     case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                         Err error ->
                             State.Error.processStringError
@@ -241,7 +241,7 @@ updateUnderlying outerMsg outerModel =
                                             ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
                                                 |> mapToOuterMsg
 
-                ( ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ), _ ) ->
+                ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
                     case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                         Err error ->
                             State.Error.processStringError
@@ -274,7 +274,7 @@ updateUnderlying outerMsg outerModel =
                                         |> mapToOuterMsg
                                         |> mapToOuterModel outerModel
 
-                ( ReceiveUnscopedProjects keystoneUrl unscopedProjects, _ ) ->
+                ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
                     case
                         GetterSetters.providerLookup sharedModel keystoneUrl
                     of
@@ -305,7 +305,7 @@ updateUnderlying outerMsg outerModel =
                             -- Provider not found, may have been removed, nothing to do
                             ( outerModel, Cmd.none )
 
-                ( RequestProjectLoginFromProvider keystoneUrl desiredProjects, _ ) ->
+                RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
                     case GetterSetters.providerLookup sharedModel keystoneUrl of
                         Just provider ->
                             let
@@ -369,7 +369,7 @@ updateUnderlying outerMsg outerModel =
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
-                ( ProjectMsg projectIdentifier innerMsg, _ ) ->
+                ProjectMsg projectIdentifier innerMsg ->
                     case GetterSetters.projectLookup sharedModel projectIdentifier of
                         Nothing ->
                             -- Project not found, may have been removed, nothing to do
@@ -379,7 +379,7 @@ updateUnderlying outerMsg outerModel =
                             processProjectSpecificMsg outerModel project innerMsg
 
                 {- Form inputs -}
-                ( SubmitOpenRc openstackCreds openRc, _ ) ->
+                SubmitOpenRc openstackCreds openRc ->
                     let
                         newCreds =
                             State.Auth.processOpenRc openstackCreds openRc
@@ -389,13 +389,13 @@ updateUnderlying outerMsg outerModel =
                     in
                     ViewStateHelpers.modelUpdateViewState newViewState outerModel
 
-                ( OpenNewWindow url, _ ) ->
+                OpenNewWindow url ->
                     ( outerModel, Ports.openNewWindow url )
 
-                ( NavigateToUrl url, _ ) ->
+                NavigateToUrl url ->
                     ( outerModel, Browser.Navigation.load url )
 
-                ( UrlChange url, _ ) ->
+                UrlChange url ->
                     -- This handles presses of the browser back/forward button
                     let
                         exoJustSetThisUrl =
@@ -430,7 +430,7 @@ updateUnderlying outerMsg outerModel =
                                 , Cmd.none
                                 )
 
-                ( SetStyle styleMode, _ ) ->
+                SetStyle styleMode ->
                     let
                         oldStyle =
                             sharedModel.style
@@ -441,8 +441,11 @@ updateUnderlying outerMsg outerModel =
                     ( { sharedModel | style = newStyle }, Cmd.none )
                         |> mapToOuterModel outerModel
 
-                ( _, _ ) ->
+                NoOp ->
                     ( outerModel, Cmd.none )
+
+        ( _, _ ) ->
+            ( outerModel, Cmd.none )
 
 
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )

@@ -118,7 +118,7 @@ elementView windowSize outerModel context =
 
                             ExampleNestedView nestedViewModel ->
                                 View.Nested.view nestedViewModel
-                                    |> Element.map (\msg -> SharedMsg <| NestedViewMsg msg)
+                                    |> Element.map (\msg -> NestedViewMsg msg)
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."

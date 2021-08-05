@@ -14,7 +14,6 @@ import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Url
-import View.Nested
 
 
 type SharedMsg
@@ -36,7 +35,6 @@ type SharedMsg
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
     | SetStyle Style.Types.StyleMode
-    | NestedViewMsg View.Nested.Msg
     | NoOp
 
 
