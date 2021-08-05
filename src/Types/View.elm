@@ -34,6 +34,7 @@ import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
+import View.Nested
 
 
 
@@ -43,6 +44,7 @@ import Types.Interaction exposing (Interaction)
 type ViewState
     = NonProjectView NonProjectViewConstructor
     | ProjectView HelperTypes.ProjectIdentifier ProjectViewParams ProjectViewConstructor
+    | ExampleNestedView View.Nested.Model
 
 
 type NonProjectViewConstructor

@@ -311,6 +311,9 @@ viewStateToSupportableItem viewState =
         ProjectView projectUuid _ projectViewConstructor ->
             Just <| supportableProjectItem projectUuid projectViewConstructor
 
+        ExampleNestedView _ ->
+            Nothing
+
 
 buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
 buildSupportRequest model context maybeSupportableResource requestDescription =

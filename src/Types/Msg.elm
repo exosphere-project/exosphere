@@ -15,6 +15,7 @@ import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.View as ViewTypes
 import Url
+import View.Nested
 
 
 type Msg
@@ -37,6 +38,7 @@ type Msg
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
     | SetStyle Style.Types.StyleMode
+    | NestedViewMsg View.Nested.Msg
     | NoOp
 
 

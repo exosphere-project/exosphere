@@ -97,6 +97,9 @@ updateUnderlying msg outerModel =
             outerModel.sharedModel
     in
     case msg of
+        NestedViewMsg _ ->
+            ( outerModel, Cmd.none )
+
         ToastyMsg subMsg ->
             Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
                 |> mapSharedToOuter outerModel
@@ -434,6 +437,9 @@ processTick outerModel interval time =
         ( viewDependentModel, viewDependentCmd ) =
             {- TODO move some of this to Orchestration? -}
             case outerModel.viewState of
+                ExampleNestedView _ ->
+                    ( outerModel.sharedModel, Cmd.none )
+
                 NonProjectView _ ->
                     ( outerModel.sharedModel, Cmd.none )
 
@@ -615,6 +621,9 @@ processProjectSpecificMsg outerModel project msg =
 
                 newViewState =
                     case outerModel.viewState of
+                        ExampleNestedView _ ->
+                            outerModel.viewState
+
                         NonProjectView _ ->
                             -- If we are not in a project-specific view then stay there
                             outerModel.viewState
@@ -1803,6 +1812,9 @@ createProject outerModel authToken endpoints =
         newViewStateFunc =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
             case outerModel.viewState of
+                ExampleNestedView _ ->
+                    \model_ -> ( model_, Cmd.none )
+
                 NonProjectView (SelectProjects _ _) ->
                     \model_ -> ( model_, Cmd.none )
 

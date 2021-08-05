@@ -14,6 +14,9 @@ import View.Types
 pageTitle : OuterModel -> View.Types.Context -> String
 pageTitle outerModel context =
     case outerModel.viewState of
+        ExampleNestedView _ ->
+            "Example Nested View"
+
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
                 LoginPicker ->

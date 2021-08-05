@@ -23,6 +23,7 @@ import View.LoginOpenstack
 import View.LoginPicker
 import View.Messages
 import View.Nav
+import View.Nested
 import View.PageTitle
 import View.Project
 import View.SelectProjects
@@ -71,6 +72,10 @@ elementView windowSize outerModel context =
                 , Element.scrollbars
                 ]
                 [ case outerModel.viewState of
+                    ExampleNestedView nestedViewModel ->
+                        View.Nested.view nestedViewModel
+                            |> Element.map NestedViewMsg
+
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
