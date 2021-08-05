@@ -28,6 +28,7 @@ import Url.Parser
         , top
         )
 import Url.Parser.Query as Query
+import View.Nested
 
 
 urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ViewState
@@ -151,6 +152,9 @@ pathParsers defaultViewState =
     , map
         (NonProjectView PageNotFound)
         (s "pagenotfound")
+    , map
+        (ExampleNestedView View.Nested.init)
+        (s "example")
     , map
         (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)
         (s "projects" </> string </> oneOf projectViewConstructorParsers)

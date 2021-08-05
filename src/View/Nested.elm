@@ -1,6 +1,7 @@
-module View.Nested exposing (Model, Msg(..), update, view)
+module View.Nested exposing (Model, Msg(..), init, update, view)
 
 import Element
+import Element.Input as Input
 
 
 type alias Model =
@@ -11,14 +12,19 @@ type Msg
     = NewContents String
 
 
-init : ( Model, Cmd Msg )
+init : Model
 init =
-    ( { contents = "hi" }, Cmd.none )
+    { contents = "hi" }
 
 
 view : Model -> Element.Element Msg
 view model =
-    Element.text model.contents
+    Input.text []
+        { onChange = NewContents
+        , text = model.contents
+        , placeholder = Nothing
+        , label = Input.labelAbove [] (Element.text "type in the text box")
+        }
 
 
 update : Msg -> ( Model, Cmd Msg )

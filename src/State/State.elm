@@ -52,6 +52,7 @@ import Types.View
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import View.Nested
 
 
 update : Msg -> OuterModel -> ( OuterModel, Cmd Msg )
@@ -97,7 +98,8 @@ updateUnderlying msg outerModel =
             outerModel.sharedModel
     in
     case msg of
-        NestedViewMsg _ ->
+        NestedViewMsg innerMsg ->
+            -- TODO wire this up
             ( outerModel, Cmd.none )
 
         ToastyMsg subMsg ->
