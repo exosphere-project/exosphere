@@ -33,7 +33,7 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server, ServerOrigin(..))
@@ -45,7 +45,7 @@ import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 {- HTTP Requests -}
 
 
-requestNetworks : Project -> Cmd Msg
+requestNetworks : Project -> Cmd SharedMsg
 requestNetworks project =
     let
         errorContext =
@@ -71,7 +71,7 @@ requestNetworks project =
         )
 
 
-requestAutoAllocatedNetwork : Project -> Cmd Msg
+requestAutoAllocatedNetwork : Project -> Cmd SharedMsg
 requestAutoAllocatedNetwork project =
     let
         errorContext =
@@ -97,7 +97,7 @@ requestAutoAllocatedNetwork project =
         )
 
 
-requestFloatingIps : Project -> Cmd Msg
+requestFloatingIps : Project -> Cmd SharedMsg
 requestFloatingIps project =
     let
         errorContext =
@@ -127,7 +127,7 @@ requestFloatingIps project =
         )
 
 
-requestPorts : Project -> Cmd Msg
+requestPorts : Project -> Cmd SharedMsg
 requestPorts project =
     let
         errorContext =
@@ -153,7 +153,7 @@ requestPorts project =
         )
 
 
-requestCreateFloatingIp : Project -> OSTypes.Network -> OSTypes.Port -> Server -> Cmd Msg
+requestCreateFloatingIp : Project -> OSTypes.Network -> OSTypes.Port -> Server -> Cmd SharedMsg
 requestCreateFloatingIp project network port_ server =
     let
         requestBody =
@@ -193,7 +193,7 @@ requestCreateFloatingIp project network port_ server =
     requestCmd
 
 
-requestDeleteFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
+requestDeleteFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
 requestDeleteFloatingIp project uuid =
     let
         errorContext =
@@ -222,7 +222,7 @@ requestDeleteFloatingIp project uuid =
         )
 
 
-requestAssignFloatingIp : Project -> OSTypes.Port -> OSTypes.IpAddressUuid -> Cmd Msg
+requestAssignFloatingIp : Project -> OSTypes.Port -> OSTypes.IpAddressUuid -> Cmd SharedMsg
 requestAssignFloatingIp project port_ floatingIpUuid =
     let
         requestBody =
@@ -264,7 +264,7 @@ requestAssignFloatingIp project port_ floatingIpUuid =
     requestCmd
 
 
-requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd Msg
+requestUnassignFloatingIp : Project -> OSTypes.IpAddressUuid -> Cmd SharedMsg
 requestUnassignFloatingIp project floatingIpUuid =
     let
         requestBody =
@@ -306,7 +306,7 @@ requestUnassignFloatingIp project floatingIpUuid =
     requestCmd
 
 
-requestSecurityGroups : Project -> Cmd Msg
+requestSecurityGroups : Project -> Cmd SharedMsg
 requestSecurityGroups project =
     let
         errorContext =
@@ -336,7 +336,7 @@ requestSecurityGroups project =
         )
 
 
-requestCreateExoSecurityGroup : Project -> Cmd Msg
+requestCreateExoSecurityGroup : Project -> Cmd SharedMsg
 requestCreateExoSecurityGroup project =
     let
         desc =
@@ -379,7 +379,7 @@ requestCreateExoSecurityGroup project =
         )
 
 
-requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGroupRule -> ( SharedModel, Cmd Msg )
+requestCreateExoSecurityGroupRules : SharedModel -> Project -> List SecurityGroupRule -> ( SharedModel, Cmd SharedMsg )
 requestCreateExoSecurityGroupRules model project rules =
     let
         maybeSecurityGroup =
@@ -402,7 +402,7 @@ requestCreateExoSecurityGroupRules model project rules =
             ( model, Cmd.batch cmds )
 
 
-requestCreateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd Msg)
+requestCreateSecurityGroupRules : Project -> OSTypes.SecurityGroup -> List SecurityGroupRule -> String -> List (Cmd SharedMsg)
 requestCreateSecurityGroupRules project group rules errorMessage =
     let
         errorContext =
@@ -437,7 +437,7 @@ requestCreateSecurityGroupRules project group rules errorMessage =
 {- HTTP Response Handling -}
 
 
-receiveNetworks : OuterModel -> Project -> List OSTypes.Network -> ( OuterModel, Cmd Msg )
+receiveNetworks : OuterModel -> Project -> List OSTypes.Network -> ( OuterModel, Cmd SharedMsg )
 receiveNetworks outerModel project networks =
     -- TODO this code should not care about view state
     let
@@ -485,7 +485,7 @@ receiveNetworks outerModel project networks =
     ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
 
 
-receiveFloatingIps : SharedModel -> Project -> List OSTypes.FloatingIp -> ( SharedModel, Cmd Msg )
+receiveFloatingIps : SharedModel -> Project -> List OSTypes.FloatingIp -> ( SharedModel, Cmd SharedMsg )
 receiveFloatingIps model project floatingIps =
     let
         newProject =
@@ -502,7 +502,7 @@ receiveFloatingIps model project floatingIps =
     ( newModel, Cmd.none )
 
 
-receiveCreateFloatingIp : SharedModel -> Project -> Server -> OSTypes.FloatingIp -> ( SharedModel, Cmd Msg )
+receiveCreateFloatingIp : SharedModel -> Project -> Server -> OSTypes.FloatingIp -> ( SharedModel, Cmd SharedMsg )
 receiveCreateFloatingIp model project server floatingIp =
     let
         newServer =
@@ -537,7 +537,7 @@ receiveCreateFloatingIp model project server floatingIp =
     ( newModel, Cmd.none )
 
 
-receiveDeleteFloatingIp : SharedModel -> Project -> OSTypes.IpAddressUuid -> ( SharedModel, Cmd Msg )
+receiveDeleteFloatingIp : SharedModel -> Project -> OSTypes.IpAddressUuid -> ( SharedModel, Cmd SharedMsg )
 receiveDeleteFloatingIp model project uuid =
     case project.floatingIps.data of
         RDPP.DoHave floatingIps _ ->
@@ -562,7 +562,7 @@ receiveDeleteFloatingIp model project uuid =
             ( model, Cmd.none )
 
 
-receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd Msg )
+receiveSecurityGroupsAndEnsureExoGroup : SharedModel -> Project -> List OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
 receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     {- Create an "exosphere" security group unless one already exists -}
     let
@@ -617,7 +617,7 @@ receiveSecurityGroupsAndEnsureExoGroup model project securityGroups =
     ( newModel, Cmd.batch cmds )
 
 
-receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> ( SharedModel, Cmd Msg )
+receiveCreateExoSecurityGroupAndRequestCreateRules : SharedModel -> Project -> OSTypes.SecurityGroup -> ( SharedModel, Cmd SharedMsg )
 receiveCreateExoSecurityGroupAndRequestCreateRules model project newSecGroup =
     let
         newSecGroups =

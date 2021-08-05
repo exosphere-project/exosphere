@@ -6,12 +6,12 @@ import Json.Encode
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 
 
-requestConsoleLog : Project -> Server -> Maybe Int -> Cmd Msg
+requestConsoleLog : Project -> Server -> Maybe Int -> Cmd SharedMsg
 requestConsoleLog project server maybeLength =
     let
         lengthJson =

@@ -14,7 +14,7 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 
 
@@ -22,7 +22,7 @@ import Types.Project exposing (Project)
 -- Compute Quota
 
 
-requestComputeQuota : Project -> Cmd Msg
+requestComputeQuota : Project -> Cmd SharedMsg
 requestComputeQuota project =
     let
         errorContext =
@@ -77,7 +77,7 @@ computeQuotaDecoder =
 -- Volume Quota
 
 
-requestVolumeQuota : Project -> Cmd Msg
+requestVolumeQuota : Project -> Cmd SharedMsg
 requestVolumeQuota project =
     let
         errorContext =

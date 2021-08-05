@@ -5,11 +5,11 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.Project exposing (Project)
 
 
-requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestCreateServerTag project serverUuid tag =
     let
         errorContext =

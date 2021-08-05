@@ -9,7 +9,7 @@ import Parser exposing ((|.), (|=))
 import Style.Toast exposing (toastConfig)
 import Toasty
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.Types
     exposing
         ( LogMessage
@@ -17,7 +17,7 @@ import Types.Types
         )
 
 
-processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd Msg )
+processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
 processStringError model errorContext error =
     let
         logMessage =
@@ -46,7 +46,7 @@ processStringError model errorContext error =
             Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
 
-processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd Msg )
+processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
 processSynchronousApiError model errorContext httpError =
     let
         apiErrorDecodeResult =

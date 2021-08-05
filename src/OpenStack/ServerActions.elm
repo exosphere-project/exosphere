@@ -13,7 +13,7 @@ import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRe
 import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Server exposing (Server)
 import Types.View exposing (ProjectViewConstructor(..))
 
@@ -55,8 +55,8 @@ type alias ServerAction =
 
 
 type ActionType
-    = CmdAction (ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd Msg)
-    | UpdateAction (ProjectIdentifier -> Server -> Msg)
+    = CmdAction (ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg)
+    | UpdateAction (ProjectIdentifier -> Server -> SharedMsg)
 
 
 type SelectMod
@@ -299,7 +299,7 @@ actions maybeWordForServer maybeWordForImage =
     ]
 
 
-doAction : Json.Encode.Value -> ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd Msg
+doAction : Json.Encode.Value -> ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
 doAction body projectId novaUrl serverId =
     let
         errorContext =

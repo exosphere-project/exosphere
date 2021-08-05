@@ -22,14 +22,14 @@ import Types.HelperTypes
         , FloatingIpReuseOption(..)
         , UserAppProxyHostname
         )
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.ServerResourceUsage exposing (TimeSeries)
 import UUID
 
 
-goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd Msg )
+goalNewServer : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 goalNewServer exoClientUuid time project =
     let
         steps =
@@ -47,7 +47,7 @@ goalNewServer exoClientUuid time project =
     ( newProject, newCmds )
 
 
-goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd Msg )
+goalPollServers : Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd SharedMsg )
 goalPollServers time maybeCloudSpecificConfig project =
     let
         userAppProxy =
@@ -68,7 +68,7 @@ goalPollServers time maybeCloudSpecificConfig project =
     ( newProject, newCmds )
 
 
-stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerPoll : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerPoll time project server =
     let
         frequentPollIntervalMs =
@@ -135,7 +135,7 @@ stepServerPoll time project server =
         ( newProject, Rest.Nova.requestServer project newServer.osProps.uuid )
 
 
-stepServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerRequestNetworks : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerRequestNetworks time project server =
     -- TODO DRY with function below?
     let
@@ -183,7 +183,7 @@ stepServerRequestNetworks time project server =
         ( project, Cmd.none )
 
 
-stepServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerRequestPorts : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerRequestPorts time project server =
     -- TODO DRY with function above?
     let
@@ -239,7 +239,7 @@ stepServerRequestPorts time project server =
         ( project, Cmd.none )
 
 
-stepServerRequestFloatingIp : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerRequestFloatingIp : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerRequestFloatingIp _ project server =
     -- Request to create/assign floating IP address to new server
     if
@@ -288,7 +288,7 @@ stepServerRequestFloatingIp _ project server =
         ( project, Cmd.none )
 
 
-stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd Msg )
+stepServerPollConsoleLog : Time.Posix -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerPollConsoleLog time project server =
     -- Now polling console log for two possible purposes:
     -- 1. Get system resource usage data
@@ -478,7 +478,7 @@ stepServerPollConsoleLog time project server =
                     )
 
 
-stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd Msg )
+stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd SharedMsg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     -- TODO ensure server is active
     let
@@ -498,7 +498,7 @@ stepServerGuacamoleAuth time maybeUserAppProxy project server =
         doNothing =
             ( project, Cmd.none )
 
-        doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd Msg )
+        doRequestToken : String -> String -> UserAppProxyHostname -> ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> ( Project, Cmd SharedMsg )
         doRequestToken floatingIp password proxyHostname oldExoOriginProps oldGuacProps =
             let
                 oldAuthToken =

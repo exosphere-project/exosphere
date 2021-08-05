@@ -26,7 +26,7 @@ import Time
 import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
@@ -35,7 +35,7 @@ import View.Helpers
 import View.PageTitle
 
 
-setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd Msg )
+setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd SharedMsg )
 setNonProjectView nonProjectViewConstructor outerModel =
     let
         prevNonProjectViewConstructor =
@@ -126,7 +126,7 @@ setNonProjectView nonProjectViewConstructor outerModel =
     ( newOuterModel, Cmd.batch [ viewStateCmd, viewSpecificCmd ] )
 
 
-setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd Msg )
+setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd SharedMsg )
 setProjectView project projectViewConstructor outerModel =
     let
         prevProjectViewConstructor =
@@ -415,7 +415,7 @@ setProjectView project projectViewConstructor outerModel =
     ( newOuterModel, Cmd.batch [ viewStateCmd, viewSpecificCmd ] )
 
 
-modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd Msg )
+modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd SharedMsg )
 modelUpdateViewState viewState outerModel =
     -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
     let

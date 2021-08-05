@@ -13,7 +13,7 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (ExcludeFilter, HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 
@@ -22,7 +22,7 @@ import Types.Types exposing (SharedModel)
 {- HTTP Requests -}
 
 
-requestImages : SharedModel -> Project -> Cmd Msg
+requestImages : SharedModel -> Project -> Cmd SharedMsg
 requestImages model project =
     let
         projectKeystoneHostname =
@@ -60,7 +60,7 @@ requestImages model project =
 {- HTTP Response Handling -}
 
 
-receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd Msg )
+receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
 receiveImages model project images =
     let
         newProject =

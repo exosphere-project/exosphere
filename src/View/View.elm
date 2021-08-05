@@ -12,7 +12,7 @@ import Style.Helpers as SH
 import Style.Toast
 import Toasty
 import Types.HelperTypes exposing (WindowSize)
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
@@ -32,7 +32,7 @@ import View.Toast
 import View.Types
 
 
-view : OuterModel -> Browser.Document Msg
+view : OuterModel -> Browser.Document SharedMsg
 view outerModel =
     let
         context =
@@ -45,7 +45,7 @@ view outerModel =
     }
 
 
-view_ : OuterModel -> View.Types.Context -> Html.Html Msg
+view_ : OuterModel -> View.Types.Context -> Html.Html SharedMsg
 view_ outerModel context =
     Element.layout
         [ Font.size 17
@@ -59,7 +59,7 @@ view_ outerModel context =
         (elementView outerModel.sharedModel.windowSize outerModel context)
 
 
-elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element Msg
+elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element SharedMsg
 elementView windowSize outerModel context =
     let
         mainContentContainerView =

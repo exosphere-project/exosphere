@@ -8,7 +8,7 @@ import Helpers.String
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View
     exposing
@@ -30,10 +30,10 @@ allResources :
     View.Types.Context
     -> Project
     -> AllResourcesListViewParams
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 allResources context p viewParams =
     let
-        renderHeaderLink : Element.Element Msg -> String -> Msg -> Element.Element Msg
+        renderHeaderLink : Element.Element SharedMsg -> String -> SharedMsg -> Element.Element SharedMsg
         renderHeaderLink icon str msg =
             Element.row
                 (VH.heading3 context.palette

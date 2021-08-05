@@ -3,7 +3,7 @@ module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, 
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Time
-import Types.Msg exposing (Msg)
+import Types.Msg exposing (SharedMsg)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
 import UUID
@@ -13,7 +13,7 @@ import UUID
 -- These functions help with apply goals and steps to a list of similar resources (e.g. projects, servers)
 
 
-applyProjectStep : (Project -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+applyProjectStep : (Project -> ( Project, Cmd SharedMsg )) -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
 applyProjectStep step ( project, cmds ) =
     let
         ( stepProj, stepCmds ) =
@@ -22,7 +22,7 @@ applyProjectStep step ( project, cmds ) =
     ( stepProj, Cmd.batch [ cmds, stepCmds ] )
 
 
-applyStepToAllServers : Maybe UUID.UUID -> (Project -> Server -> ( Project, Cmd Msg )) -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+applyStepToAllServers : Maybe UUID.UUID -> (Project -> Server -> ( Project, Cmd SharedMsg )) -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
 applyStepToAllServers maybeExoClientUuid step ( project, cmds ) =
     -- If maybeExoClientUuid is Just a client UUID, we only apply to servers created by that client UUID.
     -- Otherwise, we apply to all servers in the project.

@@ -5,7 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.View
     exposing
         ( JetstreamProvider(..)
@@ -20,7 +20,7 @@ import View.Types
 import Widget
 
 
-viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
+viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element SharedMsg
 viewLoginOpenstack context viewParams =
     let
         allCredsEntered =
@@ -88,13 +88,13 @@ viewLoginOpenstack context viewParams =
         ]
 
 
-loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element Msg
+loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element SharedMsg
 loginOpenstackCredsEntry context viewParams allCredsEntered =
     let
         creds =
             viewParams.creds
 
-        updateCreds : OSTypes.OpenstackLogin -> Msg
+        updateCreds : OSTypes.OpenstackLogin -> SharedMsg
         updateCreds newCreds =
             SetNonProjectView <| Login <| LoginOpenstack { viewParams | creds = newCreds }
 
@@ -147,7 +147,7 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
         ]
 
 
-loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element Msg
+loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element SharedMsg
 loginOpenstackOpenRcEntry context viewParams =
     Element.column
         VH.formContainer

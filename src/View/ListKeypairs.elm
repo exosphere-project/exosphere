@@ -10,7 +10,7 @@ import Style.Helpers as SH
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (KeypairListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -23,11 +23,11 @@ listKeypairs :
     -> Bool
     -> Project
     -> KeypairListViewParams
-    -> (KeypairListViewParams -> Msg)
-    -> Element.Element Msg
+    -> (KeypairListViewParams -> SharedMsg)
+    -> Element.Element SharedMsg
 listKeypairs context showHeading project viewParams toMsg =
     let
-        renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
+        renderKeypairs : List OSTypes.Keypair -> Element.Element SharedMsg
         renderKeypairs keypairs_ =
             if List.isEmpty keypairs_ then
                 Element.column
@@ -98,9 +98,9 @@ renderKeypairCard :
     View.Types.Context
     -> Project
     -> KeypairListViewParams
-    -> (KeypairListViewParams -> Msg)
+    -> (KeypairListViewParams -> SharedMsg)
     -> OSTypes.Keypair
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 renderKeypairCard context project viewParams toMsg keypair =
     let
         cardBody =
@@ -150,7 +150,7 @@ renderKeypairCard context project viewParams toMsg keypair =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> Msg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element Msg
+actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> SharedMsg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element SharedMsg
 actionButtons context project toMsg viewParams keypair =
     let
         confirmationNeeded =

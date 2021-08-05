@@ -1,7 +1,7 @@
 module Types.Msg exposing
-    ( Msg(..)
-    , ProjectSpecificMsgConstructor(..)
+    ( ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
+    , SharedMsg(..)
     , TickInterval
     )
 
@@ -18,7 +18,7 @@ import Url
 import View.Nested
 
 
-type Msg
+type SharedMsg
     = Tick TickInterval Time.Posix
     | DoOrchestration Time.Posix
     | SetNonProjectView ViewTypes.NonProjectViewConstructor
@@ -49,7 +49,7 @@ type alias TickInterval =
 type ProjectSpecificMsgConstructor
     = SetProjectView ViewTypes.ProjectViewConstructor
     | ReceiveAppCredential OSTypes.ApplicationCredential
-    | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg) Time.Posix
+    | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
       -- TODO this should be a view-specific msg?
     | ToggleCreatePopup
     | RemoveProject
@@ -108,5 +108,5 @@ type ServerSpecificMsgConstructor
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
-    | RequestServerAction (HelperTypes.ProjectIdentifier -> HelperTypes.Url -> OSTypes.ServerUuid -> Cmd Msg) (Maybe (List OSTypes.ServerStatus))
+    | RequestServerAction (HelperTypes.ProjectIdentifier -> HelperTypes.Url -> OSTypes.ServerUuid -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)

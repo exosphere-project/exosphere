@@ -6,7 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
 import Types.Defaults as Defaults
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.Types exposing (OpenIdConnectLoginConfig)
 import Types.View
     exposing
@@ -22,13 +22,13 @@ import Widget
 
 
 type alias LoginMethod =
-    { logo : Element.Element Msg
-    , button : Element.Element Msg
+    { logo : Element.Element SharedMsg
+    , button : Element.Element SharedMsg
     , description : String
     }
 
 
-loginPicker : View.Types.Context -> Maybe OpenIdConnectLoginConfig -> Element.Element Msg
+loginPicker : View.Types.Context -> Maybe OpenIdConnectLoginConfig -> Element.Element SharedMsg
 loginPicker context maybeOpenIdConnectLoginConfig =
     let
         defaultLoginMethods =
@@ -101,7 +101,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                         []
                 )
 
-        renderLoginMethod : LoginMethod -> Element.Element Msg
+        renderLoginMethod : LoginMethod -> Element.Element SharedMsg
         renderLoginMethod loginMethod =
             Element.el
                 [ Element.width <| Element.px 380

@@ -26,7 +26,7 @@ import Style.Widgets.ToggleTip
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, UserAppProxyHostname)
 import Types.Interaction as ITypes
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
 import Types.View
@@ -46,7 +46,7 @@ import Widget
 import Widget.Style.Material
 
 
-serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element Msg
+serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element SharedMsg
 serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case GetterSetters.serverLookup project serverUuid of
@@ -62,14 +62,14 @@ serverDetail context project currentTimeAndZone serverDetailViewParams serverUui
                     ]
 
 
-serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
 serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
             server.osProps.details
 
-        updateViewParams : ServerDetailViewParams -> Msg
+        updateViewParams : ServerDetailViewParams -> SharedMsg
         updateViewParams newViewParams =
             ProjectMsg project.auth.project.uuid <|
                 SetProjectView <|
@@ -282,7 +282,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 in
                 ( True, colWidthPx |> Element.px, colWidthPx - 30 )
 
-        firstColumnContents : List (Element.Element Msg)
+        firstColumnContents : List (Element.Element SharedMsg)
         firstColumnContents =
             [ Element.row
                 (VH.heading2 context.palette ++ [ Element.spacing 10 ])
@@ -392,7 +392,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , serverPassword context project.auth.project.uuid serverDetailViewParams server
             ]
 
-        secondColumnContents : List (Element.Element Msg)
+        secondColumnContents : List (Element.Element SharedMsg)
         secondColumnContents =
             List.concat
                 [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
@@ -435,7 +435,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             (List.append firstColumnContents secondColumnContents)
 
 
-passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
+passwordVulnWarning : View.Types.Context -> Server -> Element.Element SharedMsg
 passwordVulnWarning context server =
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
@@ -476,7 +476,7 @@ passwordVulnWarning context server =
                 Element.none
 
 
-serverStatus : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverStatus : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
 serverStatus context projectId serverDetailViewParams server =
     let
         details =
@@ -485,7 +485,7 @@ serverStatus context projectId serverDetailViewParams server =
         statusBadge =
             VH.serverStatusBadge context.palette server
 
-        lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
+        lockStatus : OSTypes.ServerLockStatus -> Element.Element SharedMsg
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
@@ -557,7 +557,7 @@ serverStatus context projectId serverDetailViewParams server =
         ]
 
 
-interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element Msg
+interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element SharedMsg
 interactions context project server currentTime tlsReverseProxyHostname serverDetailViewParams =
     let
         renderInteraction interaction =
@@ -628,7 +628,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                 _ ->
                                     False
 
-                        showHideMsg : ITypes.Interaction -> Msg
+                        showHideMsg : ITypes.Interaction -> SharedMsg
                         showHideMsg interaction_ =
                             let
                                 newValue =
@@ -736,7 +736,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
         |> Element.column []
 
 
-serverPassword : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element Msg
+serverPassword : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
 serverPassword context projectId serverDetailViewParams server =
     let
         passwordShower password =
@@ -792,7 +792,7 @@ serverPassword context projectId serverDetailViewParams server =
         ]
 
 
-viewServerActions : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> Element.Element Msg
+viewServerActions : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
 viewServerActions context project serverDetailViewParams server =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
@@ -816,16 +816,16 @@ serverEventHistory :
     View.Types.Context
     -> Time.Posix
     -> RemoteData.WebData (List OSTypes.ServerEvent)
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 serverEventHistory context currentTime serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
-                renderTableHeader : String -> Element.Element Msg
+                renderTableHeader : String -> Element.Element SharedMsg
                 renderTableHeader headerText =
                     Element.el [ Font.bold ] <| Element.text headerText
 
-                columns : List (Element.Column OSTypes.ServerEvent Msg)
+                columns : List (Element.Column OSTypes.ServerEvent SharedMsg)
                 columns =
                     [ { header = renderTableHeader "Action"
                       , width = Element.px 180
@@ -880,7 +880,7 @@ serverEventHistory context currentTime serverEventsWebData =
             Element.none
 
 
-renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element SharedMsg
 renderServerActionButton context project serverDetailViewParams server serverAction =
     let
         displayConfirmation =
@@ -908,7 +908,7 @@ renderServerActionButton context project serverDetailViewParams server serverAct
 
         ( ServerActions.CmdAction cmdAction, True, True ) ->
             let
-                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
+                renderKeepFloatingIpCheckbox : List (Element.Element SharedMsg)
                 renderKeepFloatingIpCheckbox =
                     if
                         serverAction.name
@@ -1015,7 +1015,7 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
-serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
+serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton SharedMsg -> Element.Element SharedMsg)
 serverActionSelectModButton context selectMod =
     case selectMod of
         ServerActions.NoMod ->
@@ -1031,7 +1031,7 @@ serverActionSelectModButton context selectMod =
             Widget.textButton (SH.materialStyle context.palette).dangerButton
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg -> String -> Element.Element SharedMsg
 renderActionButton context serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -1049,7 +1049,7 @@ renderActionButton context serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> Maybe Msg -> String -> Element.Element Msg
+renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg -> Maybe SharedMsg -> String -> Element.Element SharedMsg
 renderConfirmationButton context serverAction actionMsg cancelMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -1074,7 +1074,7 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
+resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element SharedMsg
 resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
     let
         thirtyMinMillis =
@@ -1128,7 +1128,7 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
                                 ]
 
 
-renderIpAddresses : View.Types.Context -> Project -> Server -> ServerDetailViewParams -> Element.Element Msg
+renderIpAddresses : View.Types.Context -> Project -> Server -> ServerDetailViewParams -> Element.Element SharedMsg
 renderIpAddresses context project server serverDetailViewParams =
     let
         fixedIpAddressRows =
@@ -1192,7 +1192,7 @@ renderIpAddresses context project server serverDetailViewParams =
                                 )
                         )
 
-        ipButton : Element.Element Msg -> String -> IPInfoLevel -> Element.Element Msg
+        ipButton : Element.Element SharedMsg -> String -> IPInfoLevel -> Element.Element SharedMsg
         ipButton label displayLabel ipMsg =
             Element.row
                 [ Element.spacing 3 ]
@@ -1244,7 +1244,7 @@ renderIpAddresses context project server serverDetailViewParams =
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IPDetails ])
 
 
-serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
+serverVolumes : View.Types.Context -> Project -> Server -> Element.Element SharedMsg
 serverVolumes context project server =
     let
         vols =

@@ -42,7 +42,7 @@ import Types.HelperTypes as HelperTypes
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
         )
-import Types.Msg exposing (Msg)
+import Types.Msg exposing (SharedMsg)
 import Types.Project exposing (Endpoints, Project)
 import Types.Server
     exposing
@@ -657,7 +657,7 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places
 -}
-pipelineCmd : (SharedModel -> ( SharedModel, Cmd Msg )) -> ( SharedModel, Cmd Msg ) -> ( SharedModel, Cmd Msg )
+pipelineCmd : (SharedModel -> ( SharedModel, Cmd SharedMsg )) -> ( SharedModel, Cmd SharedMsg ) -> ( SharedModel, Cmd SharedMsg )
 pipelineCmd fn ( model, cmd ) =
     let
         ( newModel, newCmd ) =

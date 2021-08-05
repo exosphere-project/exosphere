@@ -20,11 +20,11 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 
 
-requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd Msg
+requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd SharedMsg
 requestCreateVolume project createVolumeRequest =
     let
         body =
@@ -64,7 +64,7 @@ requestCreateVolume project createVolumeRequest =
         )
 
 
-requestVolumes : Project -> Cmd Msg
+requestVolumes : Project -> Cmd SharedMsg
 requestVolumes project =
     let
         errorContext =
@@ -94,7 +94,7 @@ requestVolumes project =
         )
 
 
-requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd Msg
+requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd SharedMsg
 requestDeleteVolume project volumeUuid =
     let
         errorContext =
@@ -117,7 +117,7 @@ requestDeleteVolume project volumeUuid =
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd Msg
+requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd SharedMsg
 requestUpdateVolumeName project volumeUuid name =
     let
         body =

@@ -15,7 +15,7 @@ import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Types.Defaults as Defaults
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (AssignFloatingIpViewParams, FloatingIpListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -24,10 +24,10 @@ import View.Types
 import Widget
 
 
-floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> Msg) -> Element.Element Msg
+floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> SharedMsg) -> Element.Element SharedMsg
 floatingIps context showHeading project viewParams toMsg =
     let
-        renderFloatingIps : List OSTypes.FloatingIp -> Element.Element Msg
+        renderFloatingIps : List OSTypes.FloatingIp -> Element.Element SharedMsg
         renderFloatingIps ips =
             let
                 -- Warn the user when their project has at least this many unassigned floating IPs.
@@ -120,7 +120,7 @@ floatingIps context showHeading project viewParams toMsg =
         ]
 
 
-ipScarcityWarning : View.Types.Context -> Element.Element Msg
+ipScarcityWarning : View.Types.Context -> Element.Element SharedMsg
 ipScarcityWarning context =
     Element.paragraph
         [ Element.padding 10
@@ -144,9 +144,9 @@ renderFloatingIpCard :
     View.Types.Context
     -> Project
     -> FloatingIpListViewParams
-    -> (FloatingIpListViewParams -> Msg)
+    -> (FloatingIpListViewParams -> SharedMsg)
     -> OSTypes.FloatingIp
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 renderFloatingIpCard context project viewParams toMsg ip =
     let
         subtitle =
@@ -191,7 +191,7 @@ renderFloatingIpCard context project viewParams toMsg ip =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> Msg) -> FloatingIpListViewParams -> OSTypes.FloatingIp -> Element.Element Msg
+actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> SharedMsg) -> FloatingIpListViewParams -> OSTypes.FloatingIp -> Element.Element SharedMsg
 actionButtons context project toMsg viewParams ip =
     let
         assignUnassignButton =
@@ -274,9 +274,9 @@ actionButtons context project toMsg viewParams ip =
 ipsAssignedToResourcesExpander :
     View.Types.Context
     -> FloatingIpListViewParams
-    -> (FloatingIpListViewParams -> Msg)
+    -> (FloatingIpListViewParams -> SharedMsg)
     -> List OSTypes.FloatingIp
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
     let
         numIpsAssignedToResources =
@@ -327,7 +327,7 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
                   }
                 )
 
-        changeOnlyOwnMsg : Msg
+        changeOnlyOwnMsg : SharedMsg
         changeOnlyOwnMsg =
             toMsg newViewParams
 
@@ -360,7 +360,7 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
             ]
 
 
-assignFloatingIp : View.Types.Context -> Project -> AssignFloatingIpViewParams -> Element.Element Msg
+assignFloatingIp : View.Types.Context -> Project -> AssignFloatingIpViewParams -> Element.Element SharedMsg
 assignFloatingIp context project viewParams =
     let
         serverChoices =

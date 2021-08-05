@@ -12,7 +12,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
 import Types.HelperTypes
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
@@ -31,10 +31,10 @@ navBarHeight =
     70
 
 
-navMenu : OuterModel -> View.Types.Context -> Element.Element Msg
+navMenu : OuterModel -> View.Types.Context -> Element.Element SharedMsg
 navMenu outerModel context =
     let
-        projectMenuItem : Project -> Element.Element Msg
+        projectMenuItem : Project -> Element.Element SharedMsg
         projectMenuItem project =
             let
                 projectTitle =
@@ -65,7 +65,7 @@ navMenu outerModel context =
                     )
                 )
 
-        projectMenuItems : List Project -> List (Element.Element Msg)
+        projectMenuItems : List Project -> List (Element.Element SharedMsg)
         projectMenuItems projects =
             List.map projectMenuItem projects
 
@@ -104,7 +104,7 @@ navMenu outerModel context =
         )
 
 
-navBar : OuterModel -> View.Types.Context -> Element.Element Msg
+navBar : OuterModel -> View.Types.Context -> Element.Element SharedMsg
 navBar outerModel context =
     let
         navBarContainerAttributes =

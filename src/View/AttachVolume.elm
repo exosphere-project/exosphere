@@ -11,7 +11,7 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
 import Types.Defaults as Defaults
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View
     exposing
@@ -24,7 +24,7 @@ import View.Types
 import Widget
 
 
-attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
+attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element SharedMsg
 attachVolume context project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
@@ -158,7 +158,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
         ]
 
 
-mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element SharedMsg
 mountVolInstructions context project attachment =
     Element.column VH.exoColumnAttributes
         [ Element.el (VH.heading2 context.palette) <|

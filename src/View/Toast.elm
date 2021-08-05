@@ -7,11 +7,11 @@ import Html exposing (Html)
 import Html.Attributes
 import Style.Helpers as SH
 import Types.Error exposing (ErrorLevel(..), Toast)
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import View.Types
 
 
-toast : View.Types.Context -> Bool -> Toast -> Html Msg
+toast : View.Types.Context -> Bool -> Toast -> Html SharedMsg
 toast context showDebugMsgs t =
     let
         ( class, title ) =
@@ -55,7 +55,7 @@ toast context showDebugMsgs t =
         layoutWith Element.none
 
 
-genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element Msg
+genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element SharedMsg
 genericToast context variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")

@@ -41,7 +41,7 @@ import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
@@ -53,7 +53,7 @@ import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 {- HTTP Requests -}
 
 
-requestServers : Project -> Cmd Msg
+requestServers : Project -> Cmd SharedMsg
 requestServers project =
     let
         errorContext =
@@ -79,7 +79,7 @@ requestServers project =
         )
 
 
-requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServer : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestServer project serverUuid =
     let
         errorContext =
@@ -112,7 +112,7 @@ requestServer project serverUuid =
         ]
 
 
-requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestServerEvents project serverUuid =
     let
         errorContext =
@@ -138,7 +138,7 @@ requestServerEvents project serverUuid =
         )
 
 
-requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestConsoleUrls project serverUuid =
     -- This is a deprecated call, will eventually need to be updated
     -- See https://gitlab.com/exosphere/exosphere/issues/183
@@ -182,7 +182,7 @@ requestConsoleUrls project serverUuid =
         |> Cmd.batch
 
 
-requestFlavors : Project -> Cmd Msg
+requestFlavors : Project -> Cmd SharedMsg
 requestFlavors project =
     let
         errorContext =
@@ -208,7 +208,7 @@ requestFlavors project =
         )
 
 
-requestKeypairs : Project -> Cmd Msg
+requestKeypairs : Project -> Cmd SharedMsg
 requestKeypairs project =
     let
         errorContext =
@@ -234,7 +234,7 @@ requestKeypairs project =
         )
 
 
-requestCreateKeypair : Project -> OSTypes.KeypairName -> OSTypes.PublicKey -> Cmd Msg
+requestCreateKeypair : Project -> OSTypes.KeypairName -> OSTypes.PublicKey -> Cmd SharedMsg
 requestCreateKeypair project keypairName publicKey =
     let
         body =
@@ -272,7 +272,7 @@ requestCreateKeypair project keypairName publicKey =
         )
 
 
-requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd Msg
+requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd SharedMsg
 requestDeleteKeypair project keypairName =
     let
         errorContext =
@@ -292,7 +292,7 @@ requestDeleteKeypair project keypairName =
         )
 
 
-requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd Msg
+requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd SharedMsg
 requestCreateServer project createServerRequest =
     let
         instanceNumbers =
@@ -414,7 +414,7 @@ requestCreateServer project createServerRequest =
         )
 
 
-requestDeleteServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd Msg
+requestDeleteServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestDeleteServer projectId novaUrl serverId =
     let
         errorContext =
@@ -441,7 +441,7 @@ requestDeleteServer projectId novaUrl serverId =
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
+requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
 requestConsoleUrlIfRequestable project server =
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
@@ -451,7 +451,7 @@ requestConsoleUrlIfRequestable project server =
             Cmd.none
 
 
-requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestCreateServerImage project serverUuid imageName =
     let
         body =
@@ -485,7 +485,7 @@ requestCreateServerImage project serverUuid imageName =
         )
 
 
-requestSetServerName : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestSetServerName : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestSetServerName project serverUuid newServerName =
     let
         body =
@@ -522,7 +522,7 @@ requestSetServerName project serverUuid newServerName =
         )
 
 
-requestSetServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataItem -> Cmd Msg
+requestSetServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataItem -> Cmd SharedMsg
 requestSetServerMetadata project serverUuid metadataItem =
     let
         body =
@@ -563,7 +563,7 @@ requestSetServerMetadata project serverUuid metadataItem =
         )
 
 
-requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd Msg
+requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd SharedMsg
 requestDeleteServerMetadata project serverUuid metadataKey =
     let
         errorContext =
@@ -596,7 +596,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
 {- HTTP Response Handling -}
 
 
-receiveServers : SharedModel -> Project -> List OSTypes.Server -> ( SharedModel, Cmd Msg )
+receiveServers : SharedModel -> Project -> List OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
 receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
@@ -648,7 +648,7 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd Msg )
+receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
 receiveServer model project osServer =
     let
         ( newServer, cmd ) =
@@ -686,7 +686,7 @@ receiveServer model project osServer =
     )
 
 
-receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd Msg )
+receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd SharedMsg )
 receiveServer_ project osServer =
     let
         newServer : Server
@@ -829,7 +829,7 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd Msg )
+receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd SharedMsg )
 receiveConsoleUrl model project server result =
     case server.osProps.consoleUrl of
         RemoteData.Success _ ->
@@ -864,7 +864,7 @@ receiveConsoleUrl model project server result =
             ( newModel, Cmd.none )
 
 
-receiveFlavors : OuterModel -> Project -> List OSTypes.Flavor -> ( OuterModel, Cmd Msg )
+receiveFlavors : OuterModel -> Project -> List OSTypes.Flavor -> ( OuterModel, Cmd SharedMsg )
 receiveFlavors outerModel project flavors =
     -- TODO this code should not care about view state
     let
@@ -916,7 +916,7 @@ receiveFlavors outerModel project flavors =
     ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
 
 
-receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd Msg )
+receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )
 receiveKeypairs model project keypairs =
     let
         newProject =

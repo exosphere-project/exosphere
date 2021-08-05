@@ -19,7 +19,7 @@ import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.View exposing (CreateServerViewParams, ProjectViewConstructor(..))
@@ -28,14 +28,14 @@ import View.Types
 import Widget
 
 
-updateCreateServerRequest : Project -> CreateServerViewParams -> Msg
+updateCreateServerRequest : Project -> CreateServerViewParams -> SharedMsg
 updateCreateServerRequest project viewParams =
     ProjectMsg project.auth.project.uuid <|
         SetProjectView <|
             CreateServer viewParams
 
 
-createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 createServer context project viewParams =
     let
         invalidNameReasons =
@@ -233,7 +233,7 @@ createServer context project viewParams =
         ]
 
 
-flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element SharedMsg
 flavorPicker context project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
@@ -382,7 +382,7 @@ flavorPicker context project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element SharedMsg
 volBackedPrompt context project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
@@ -516,7 +516,7 @@ countPicker :
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 countPicker context project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
@@ -593,10 +593,10 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 desktopEnvironmentPicker context project createServerViewParams =
     let
-        warnings : List (Element.Element Msg)
+        warnings : List (Element.Element SharedMsg)
         warnings =
             [ Just <|
                 Element.text <|
@@ -696,7 +696,7 @@ desktopEnvironmentPicker context project createServerViewParams =
         ]
 
 
-guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 guacamolePicker context project createServerViewParams =
     case createServerViewParams.deployGuacamole of
         Nothing ->
@@ -723,7 +723,7 @@ guacamolePicker context project createServerViewParams =
                 ]
 
 
-skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 skipOperatingSystemUpdatesPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
@@ -761,7 +761,7 @@ skipOperatingSystemUpdatesPicker context project createServerViewParams =
         ]
 
 
-networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 networkPicker context project viewParams =
     let
         networkOptions =
@@ -811,7 +811,7 @@ networkPicker context project viewParams =
         ]
 
 
-floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 floatingIpPicker context project viewParams =
     let
         optionPicker =
@@ -912,7 +912,7 @@ floatingIpPicker context project viewParams =
         ]
 
 
-keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 keypairPicker context project viewParams =
     let
         keypairAsOption keypair =
@@ -990,7 +990,7 @@ keypairPicker context project viewParams =
         ]
 
 
-userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
 userDataInput context project viewParams =
     Input.multiline
         (VH.inputItemAttributes context.palette.background

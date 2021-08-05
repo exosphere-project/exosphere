@@ -5,7 +5,7 @@ import Element.Input as Input
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -13,7 +13,7 @@ import View.Types
 import Widget
 
 
-createServerImage : View.Types.Context -> Project -> OSTypes.ServerUuid -> String -> Element.Element Msg
+createServerImage : View.Types.Context -> Project -> OSTypes.ServerUuid -> String -> Element.Element SharedMsg
 createServerImage context project serverUuid imageName =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el

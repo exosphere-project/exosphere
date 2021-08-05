@@ -7,7 +7,7 @@ import Helpers.String
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Widgets.FormValidation as FormValidation
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -15,7 +15,7 @@ import View.Types
 import Widget
 
 
-createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element Msg
+createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element SharedMsg
 createKeypair context project name publicKey =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -82,7 +82,7 @@ createKeypair context project name publicKey =
         ]
 
 
-createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element Msg)
+createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element SharedMsg)
 createKeyPairButton context project name publicKey =
     let
         isValid =

@@ -10,7 +10,7 @@ import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
@@ -30,7 +30,7 @@ import View.Volumes
 import Widget
 
 
-project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
+project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element SharedMsg
 project model context p viewParams viewConstructor =
     let
         v =
@@ -135,7 +135,7 @@ project model context p viewParams viewConstructor =
         ]
 
 
-projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element Msg
+projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element SharedMsg
 projectNav context p viewParams =
     let
         edges =
@@ -186,7 +186,7 @@ projectNav context p viewParams =
         ]
 
 
-createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element Msg
+createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element SharedMsg
 createButton context projectId expanded =
     let
         materialStyle =
@@ -197,7 +197,7 @@ createButton context projectId expanded =
                 | container = Element.width Element.fill :: materialStyle.container
             }
 
-        renderButton : Element.Element Never -> String -> Maybe Msg -> Element.Element Msg
+        renderButton : Element.Element Never -> String -> Maybe SharedMsg -> Element.Element SharedMsg
         renderButton icon_ text onPress =
             Widget.iconButton
                 buttonStyle

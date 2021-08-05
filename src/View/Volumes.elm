@@ -19,7 +19,7 @@ import Style.Widgets.IconButton
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.View
     exposing
@@ -42,11 +42,11 @@ volumes :
     -> Bool
     -> Project
     -> VolumeListViewParams
-    -> (VolumeListViewParams -> Msg)
-    -> Element.Element Msg
+    -> (VolumeListViewParams -> SharedMsg)
+    -> Element.Element SharedMsg
 volumes context showHeading project viewParams toMsg =
     let
-        renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
+        renderSuccessCase : List OSTypes.Volume -> Element.Element SharedMsg
         renderSuccessCase volumes_ =
             Element.column
                 (VH.exoColumnAttributes
@@ -89,9 +89,9 @@ renderVolumeCard :
     View.Types.Context
     -> Project
     -> VolumeListViewParams
-    -> (VolumeListViewParams -> Msg)
+    -> (VolumeListViewParams -> SharedMsg)
     -> OSTypes.Volume
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 renderVolumeCard context project viewParams toMsg volume =
     ExoCard.expandoCard
         context.palette
@@ -123,10 +123,10 @@ renderVolumeCard context project viewParams toMsg volume =
 volumeActionButtons :
     View.Types.Context
     -> Project
-    -> (List DeleteVolumeConfirmation -> Msg)
+    -> (List DeleteVolumeConfirmation -> SharedMsg)
     -> List DeleteVolumeConfirmation
     -> OSTypes.Volume
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 volumeActionButtons context project toMsg deleteConfirmations volume =
     let
         volDetachDeleteWarning =
@@ -256,9 +256,9 @@ volumeDetailView :
     View.Types.Context
     -> Project
     -> List DeleteVolumeConfirmation
-    -> (List DeleteVolumeConfirmation -> Msg)
+    -> (List DeleteVolumeConfirmation -> SharedMsg)
     -> OSTypes.VolumeUuid
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -276,10 +276,10 @@ volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
 volumeDetail :
     View.Types.Context
     -> Project
-    -> (List DeleteVolumeConfirmation -> Msg)
+    -> (List DeleteVolumeConfirmation -> SharedMsg)
     -> List DeleteVolumeConfirmation
     -> OSTypes.VolumeUuid
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
     OpenStack.Volumes.volumeLookup project volumeUuid
         |> Maybe.withDefault
@@ -319,7 +319,7 @@ volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
             )
 
 
-renderAttachment : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+renderAttachment : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element SharedMsg
 renderAttachment context project attachment =
     let
         serverName serverUuid =
@@ -363,7 +363,7 @@ renderAttachment context project attachment =
         ]
 
 
-renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element Msg
+renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element SharedMsg
 renderAttachments context project volume =
     case List.length volume.attachments of
         0 ->
@@ -377,7 +377,7 @@ renderAttachments context project volume =
                     List.map (renderAttachment context project) volume.attachments
 
 
-createVolume : View.Types.Context -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
+createVolume : View.Types.Context -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element SharedMsg
 createVolume context project volName volSizeInput =
     let
         maybeVolumeQuotaAvail =

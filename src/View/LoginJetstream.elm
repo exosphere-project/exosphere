@@ -4,7 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Style.Helpers as SH
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.View
     exposing
         ( JetstreamCreds
@@ -19,10 +19,10 @@ import View.Types
 import Widget
 
 
-viewLoginJetstream : View.Types.Context -> JetstreamCreds -> Element.Element Msg
+viewLoginJetstream : View.Types.Context -> JetstreamCreds -> Element.Element SharedMsg
 viewLoginJetstream context jetstreamCreds =
     let
-        updateCreds : JetstreamCreds -> Msg
+        updateCreds : JetstreamCreds -> SharedMsg
         updateCreds newCreds =
             SetNonProjectView <| Login <| LoginJetstream newCreds
     in
@@ -73,7 +73,7 @@ viewLoginJetstream context jetstreamCreds =
         ]
 
 
-jetstreamLoginText : View.Types.Context -> Element.Element Msg
+jetstreamLoginText : View.Types.Context -> Element.Element SharedMsg
 jetstreamLoginText context =
     Element.column VH.exoColumnAttributes
         [ Element.paragraph

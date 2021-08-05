@@ -3,10 +3,10 @@ module Rest.Guacamole exposing (requestLoginToken)
 import Http
 import Json.Decode as Decode
 import Types.HelperTypes exposing (Url)
-import Types.Msg exposing (Msg)
+import Types.Msg exposing (SharedMsg)
 
 
-requestLoginToken : Url -> String -> String -> (Result Http.Error String -> Msg) -> Cmd Msg
+requestLoginToken : Url -> String -> String -> (Result Http.Error String -> SharedMsg) -> Cmd SharedMsg
 requestLoginToken url username password resultToMsg =
     Http.request
         { method = "POST"

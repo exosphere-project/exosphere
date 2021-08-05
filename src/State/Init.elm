@@ -20,7 +20,7 @@ import Time
 import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
@@ -33,7 +33,7 @@ import UUID
 import Url
 
 
-init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd Msg )
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd SharedMsg )
 init flags urlKey =
     let
         currentTime =
@@ -209,7 +209,7 @@ init flags urlKey =
 
         ( requestResourcesModel, requestResourcesCmd ) =
             let
-                applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+                applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
                 applyRequestsToProject projectId model =
                     ( model, otherCmds )
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)

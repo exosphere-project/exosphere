@@ -6,13 +6,13 @@ import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
 import Types.HelperTypes exposing (CloudSpecificConfig)
-import Types.Msg exposing (Msg)
+import Types.Msg exposing (SharedMsg)
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 import UUID
 
 
-orchModel : SharedModel -> Time.Posix -> ( SharedModel, Cmd Msg )
+orchModel : SharedModel -> Time.Posix -> ( SharedModel, Cmd SharedMsg )
 orchModel model time =
     let
         ( newProjects, newCmds ) =
@@ -24,7 +24,7 @@ orchModel model time =
     ( { model | projects = newProjects }, Cmd.batch newCmds )
 
 
-orchProject : UUID.UUID -> Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd Msg )
+orchProject : UUID.UUID -> Time.Posix -> Maybe CloudSpecificConfig -> Project -> ( Project, Cmd SharedMsg )
 orchProject exoClientUuid time maybeCloudSpecificConfig project =
     let
         goals =
@@ -43,6 +43,6 @@ orchProject exoClientUuid time maybeCloudSpecificConfig project =
     ( newProject, newCmds )
 
 
-goalDummy : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd Msg )
+goalDummy : UUID.UUID -> Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 goalDummy _ _ project =
     ( project, Cmd.none )

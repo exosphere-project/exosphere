@@ -4,12 +4,12 @@ import Element
 import Element.Input as Input
 import FeatherIcons
 import Style.Types
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import View.Helpers as VH
 import View.Types
 
 
-settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element Msg
+settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element SharedMsg
 settings context styleMode =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])

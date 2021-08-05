@@ -18,7 +18,7 @@ import Task
 import Time
 import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
 
 
@@ -38,7 +38,7 @@ httpRequestMethodStr method =
             "DELETE"
 
 
-openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect Msg -> Cmd Msg
+openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect SharedMsg -> Cmd SharedMsg
 openstackCredentialedRequest projectId method maybeMicroversion origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
@@ -49,7 +49,7 @@ openstackCredentialedRequest projectId method maybeMicroversion origUrl requestB
 
     -}
     let
-        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd Msg
+        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg
         requestProto maybeProxyUrl token =
             let
                 ( url, headers ) =
@@ -128,7 +128,7 @@ proxyifyRequest proxyServerUrl requestUrlStr =
     )
 
 
-resultToMsgErrorBody : ErrorContext -> (a -> Msg) -> Result HttpErrorWithBody a -> Msg
+resultToMsgErrorBody : ErrorContext -> (a -> SharedMsg) -> Result HttpErrorWithBody a -> SharedMsg
 resultToMsgErrorBody errorContext successMsg result =
     -- Generates Msg to deal with result of API call
     -- TODO this is a _transitional_ function that should be removed when

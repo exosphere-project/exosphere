@@ -13,7 +13,7 @@ import Parser exposing ((|.), (|=))
 import Rest.Keystone
 import Set
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types exposing (SharedModel)
@@ -28,7 +28,7 @@ import Types.View
 import Url
 
 
-projectUpdateAuthToken : OuterModel -> Project -> OSTypes.ScopedAuthToken -> ( OuterModel, Cmd Msg )
+projectUpdateAuthToken : OuterModel -> Project -> OSTypes.ScopedAuthToken -> ( OuterModel, Cmd SharedMsg )
 projectUpdateAuthToken outerModel project authToken =
     -- Update auth token for existing project
     let
@@ -44,7 +44,7 @@ projectUpdateAuthToken outerModel project authToken =
     sendPendingRequests newOuterModel newProject
 
 
-unscopedProviderUpdateAuthToken : SharedModel -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( SharedModel, Cmd Msg )
+unscopedProviderUpdateAuthToken : SharedModel -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( SharedModel, Cmd SharedMsg )
 unscopedProviderUpdateAuthToken model provider authToken =
     let
         newProvider =
@@ -56,7 +56,7 @@ unscopedProviderUpdateAuthToken model provider authToken =
     ( newModel, Cmd.none )
 
 
-sendPendingRequests : OuterModel -> Project -> ( OuterModel, Cmd Msg )
+sendPendingRequests : OuterModel -> Project -> ( OuterModel, Cmd SharedMsg )
 sendPendingRequests outerModel project =
     -- Fires any pending commands which were waiting for auth token renewal
     -- This function assumes our token is valid (does not check for expiry).
@@ -81,7 +81,7 @@ sendPendingRequests outerModel project =
     ( newModel, Cmd.batch cmds )
 
 
-requestAuthToken : SharedModel -> Project -> Result String (Cmd Msg)
+requestAuthToken : SharedModel -> Project -> Result String (Cmd SharedMsg)
 requestAuthToken model project =
     -- Wraps Rest.Keystone.RequestAuthToken
     case project.secret of

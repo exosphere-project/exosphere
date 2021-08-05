@@ -12,7 +12,7 @@ import Style.Helpers as SH
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
-import Types.Msg exposing (Msg(..))
+import Types.Msg exposing (SharedMsg(..))
 import Types.Types
     exposing
         ( SharedModel
@@ -36,7 +36,7 @@ getSupport :
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Bool
-    -> Element.Element Msg
+    -> Element.Element SharedMsg
 getSupport model context maybeSupportableResource requestDescription isSubmitted =
     Element.column
         (VH.exoColumnAttributes

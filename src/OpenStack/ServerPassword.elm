@@ -12,11 +12,11 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 
 
-requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestServerPassword project serverUuid =
     let
         errorContext =
@@ -43,7 +43,7 @@ requestServerPassword project serverUuid =
         (expectJsonWithErrorBody resultToMsg_ decodeServerPassword)
 
 
-requestClearServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestClearServerPassword : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestClearServerPassword project serverUuid =
     let
         errorContext =

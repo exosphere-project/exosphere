@@ -37,7 +37,7 @@ import Types.Defaults as Defaults
 import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject)
-import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), TickInterval)
+import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..), TickInterval)
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
 import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
@@ -55,7 +55,7 @@ import Types.View
 import View.Nested
 
 
-update : Msg -> OuterModel -> ( OuterModel, Cmd Msg )
+update : SharedMsg -> OuterModel -> ( OuterModel, Cmd SharedMsg )
 update msg outerModel =
     {- We want to `setStorage` on every update. This function adds the setStorage
        command for every step of the update function.
@@ -85,13 +85,13 @@ update msg outerModel =
     )
 
 
-mapSharedToOuter : OuterModel -> ( SharedModel, Cmd Msg ) -> ( OuterModel, Cmd Msg )
+mapSharedToOuter : OuterModel -> ( SharedModel, Cmd SharedMsg ) -> ( OuterModel, Cmd SharedMsg )
 mapSharedToOuter outerModel ( newSharedModel, cmd ) =
     -- hopefully temporary function
     ( { outerModel | sharedModel = newSharedModel }, cmd )
 
 
-updateUnderlying : Msg -> OuterModel -> ( OuterModel, Cmd Msg )
+updateUnderlying : SharedMsg -> OuterModel -> ( OuterModel, Cmd SharedMsg )
 updateUnderlying msg outerModel =
     let
         sharedModel =
@@ -279,7 +279,7 @@ updateUnderlying msg outerModel =
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
-                        buildLoginRequest : UnscopedProviderProject -> Cmd Msg
+                        buildLoginRequest : UnscopedProviderProject -> Cmd SharedMsg
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
                                 sharedModel.cloudCorsProxyUrl
@@ -414,7 +414,7 @@ updateUnderlying msg outerModel =
             ( outerModel, Cmd.none )
 
 
-processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd Msg )
+processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd SharedMsg )
 processTick outerModel interval time =
     let
         serverVolsNeedFrequentPoll : Project -> Server -> Bool
@@ -457,7 +457,7 @@ processTick outerModel interval time =
 
                         Just project ->
                             let
-                                pollVolumes : ( SharedModel, Cmd Msg )
+                                pollVolumes : ( SharedModel, Cmd SharedMsg )
                                 pollVolumes =
                                     ( outerModel.sharedModel
                                     , case interval of
@@ -541,7 +541,7 @@ processTick outerModel interval time =
     )
 
 
-processProjectSpecificMsg : OuterModel -> Project -> ProjectSpecificMsgConstructor -> ( OuterModel, Cmd Msg )
+processProjectSpecificMsg : OuterModel -> Project -> ProjectSpecificMsgConstructor -> ( OuterModel, Cmd SharedMsg )
 processProjectSpecificMsg outerModel project msg =
     let
         sharedModel =
@@ -770,7 +770,7 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestDeleteServers serverUuidsToDelete ->
             let
-                applyDelete : OSTypes.ServerUuid -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+                applyDelete : OSTypes.ServerUuid -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
                 applyDelete serverUuid projCmdTuple =
                     let
                         ( delServerProj, delServerCmd ) =
@@ -1154,7 +1154,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveVolumes volumes ->
             let
                 -- Look for any server backing volumes that were created with no name, and give them a reasonable name
-                updateVolNameCmds : List (Cmd Msg)
+                updateVolNameCmds : List (Cmd SharedMsg)
                 updateVolNameCmds =
                     RDPP.withDefault [] project.servers
                         -- List of tuples containing server and Maybe boot vol
@@ -1268,7 +1268,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapSharedToOuter outerModel
 
 
-processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd Msg )
+processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd SharedMsg )
 processServerSpecificMsg outerModel project server serverMsgConstructor =
     let
         sharedModel =
@@ -1779,7 +1779,7 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : OuterModel -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd Msg )
+createProject : OuterModel -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd SharedMsg )
 createProject outerModel authToken endpoints =
     let
         sharedModel =
@@ -1844,7 +1844,7 @@ createProject outerModel authToken endpoints =
     ( newOuterModel, Cmd.batch [ viewStateCmd, newCmd ] )
 
 
-createUnscopedProvider : SharedModel -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( SharedModel, Cmd Msg )
+createUnscopedProvider : SharedModel -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( SharedModel, Cmd SharedMsg )
 createUnscopedProvider model authToken authUrl =
     let
         newProvider =
@@ -1861,7 +1861,7 @@ createUnscopedProvider model authToken authUrl =
     )
 
 
-requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd Msg )
+requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd SharedMsg )
 requestDeleteServer project serverUuid retainFloatingIps =
     case GetterSetters.serverLookup project serverUuid of
         Nothing ->

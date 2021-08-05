@@ -16,7 +16,7 @@ import RemoteData
 import Rest.Neutron
 import Rest.Nova
 import Types.HelperTypes exposing (ProjectIdentifier)
-import Types.Msg exposing (Msg)
+import Types.Msg exposing (SharedMsg)
 import Types.Types exposing (SharedModel)
 
 
@@ -24,7 +24,7 @@ import Types.Types exposing (SharedModel)
 {- This module assists with making API calls that also require updating the model when the API call is placed. Typically, we set the resource to "loading" status while we wait for a response from the API. -}
 
 
-requestServers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestServers : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestServers projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -38,7 +38,7 @@ requestServers projectUuid model =
             ( model, Cmd.none )
 
 
-requestServer : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd Msg )
+requestServer : ProjectIdentifier -> OSTypes.ServerUuid -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestServer projectUuid serverUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -52,7 +52,7 @@ requestServer projectUuid serverUuid model =
             ( model, Cmd.none )
 
 
-requestNetworks : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestNetworks : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestNetworks projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -66,7 +66,7 @@ requestNetworks projectUuid model =
             ( model, Cmd.none )
 
 
-requestAutoAllocatedNetwork : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestAutoAllocatedNetwork : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestAutoAllocatedNetwork projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -80,7 +80,7 @@ requestAutoAllocatedNetwork projectUuid model =
             ( model, Cmd.none )
 
 
-requestComputeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestComputeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestComputeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -95,7 +95,7 @@ requestComputeQuota projectUuid model =
             ( model, Cmd.none )
 
 
-requestVolumeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestVolumeQuota : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestVolumeQuota projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -110,7 +110,7 @@ requestVolumeQuota projectUuid model =
             ( model, Cmd.none )
 
 
-requestFloatingIps : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestFloatingIps : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestFloatingIps projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
@@ -123,7 +123,7 @@ requestFloatingIps projectUuid model =
             ( model, Cmd.none )
 
 
-requestPorts : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd Msg )
+requestPorts : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
 requestPorts projectUuid model =
     case GetterSetters.projectLookup model projectUuid of
         Just project ->
