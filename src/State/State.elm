@@ -97,35 +97,43 @@ updateUnderlying msg outerModel =
         sharedModel =
             outerModel.sharedModel
     in
-    case msg of
-        NestedViewMsg innerMsg ->
-            -- TODO wire this up
-            ( outerModel, Cmd.none )
+    case ( msg, outerModel.viewState ) of
+        ( NestedViewMsg innerMsg, ExampleNestedView innerModel ) ->
+            let
+                ( newSharedModel, newInnerModel, cmd ) =
+                    View.Nested.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | sharedModel = newSharedModel
+                , viewState = ExampleNestedView newInnerModel
+              }
+            , Cmd.map NestedViewMsg cmd
+            )
 
-        ToastyMsg subMsg ->
+        ( ToastyMsg subMsg, _ ) ->
             Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
                 |> mapSharedToOuter outerModel
 
-        MsgChangeWindowSize x y ->
+        ( MsgChangeWindowSize x y, _ ) ->
             ( { sharedModel | windowSize = { width = x, height = y } }, Cmd.none )
                 |> mapSharedToOuter outerModel
 
-        Tick interval time ->
+        ( Tick interval time, _ ) ->
             processTick outerModel interval time
                 |> mapSharedToOuter outerModel
 
-        DoOrchestration posixTime ->
+        ( DoOrchestration posixTime, _ ) ->
             Orchestration.orchModel sharedModel posixTime
                 |> mapSharedToOuter outerModel
 
-        SetNonProjectView nonProjectViewConstructor ->
+        ( SetNonProjectView nonProjectViewConstructor, _ ) ->
             ViewStateHelpers.setNonProjectView nonProjectViewConstructor outerModel
 
-        HandleApiErrorWithBody errorContext error ->
+        ( HandleApiErrorWithBody errorContext error, _ ) ->
             State.Error.processSynchronousApiError sharedModel errorContext error
                 |> mapSharedToOuter outerModel
 
-        RequestUnscopedToken openstackLoginUnscoped ->
+        ( RequestUnscopedToken openstackLoginUnscoped, _ ) ->
             let
                 creds =
                     -- Ensure auth URL includes port number and version
@@ -136,7 +144,7 @@ updateUnderlying msg outerModel =
             in
             ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
 
-        JetstreamLogin jetstreamCreds ->
+        ( JetstreamLogin jetstreamCreds, _ ) ->
             let
                 openstackCredsList =
                     State.Auth.jetstreamToOpenstackCreds jetstreamCreds
@@ -148,7 +156,7 @@ updateUnderlying msg outerModel =
             in
             ( outerModel, Cmd.batch cmds )
 
-        ReceiveScopedAuthToken ( metadata, response ) ->
+        ( ReceiveScopedAuthToken ( metadata, response ), _ ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -206,7 +214,7 @@ updateUnderlying msg outerModel =
                                     in
                                     ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
-        ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
+        ( ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ), _ ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
@@ -236,7 +244,7 @@ updateUnderlying msg outerModel =
                             createUnscopedProvider sharedModel authToken keystoneUrl
                                 |> mapSharedToOuter outerModel
 
-        ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
+        ( ReceiveUnscopedProjects keystoneUrl unscopedProjects, _ ) ->
             case
                 GetterSetters.providerLookup sharedModel keystoneUrl
             of
@@ -267,7 +275,7 @@ updateUnderlying msg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
+        ( RequestProjectLoginFromProvider keystoneUrl desiredProjects, _ ) ->
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
@@ -330,7 +338,7 @@ updateUnderlying msg outerModel =
                         "Provider could not found in Exosphere's list of Providers."
                         |> mapSharedToOuter outerModel
 
-        ProjectMsg projectIdentifier innerMsg ->
+        ( ProjectMsg projectIdentifier innerMsg, _ ) ->
             case GetterSetters.projectLookup sharedModel projectIdentifier of
                 Nothing ->
                     -- Project not found, may have been removed, nothing to do
@@ -340,7 +348,7 @@ updateUnderlying msg outerModel =
                     processProjectSpecificMsg outerModel project innerMsg
 
         {- Form inputs -}
-        SubmitOpenRc openstackCreds openRc ->
+        ( SubmitOpenRc openstackCreds openRc, _ ) ->
             let
                 newCreds =
                     State.Auth.processOpenRc openstackCreds openRc
@@ -350,13 +358,13 @@ updateUnderlying msg outerModel =
             in
             ViewStateHelpers.modelUpdateViewState newViewState outerModel
 
-        OpenNewWindow url ->
+        ( OpenNewWindow url, _ ) ->
             ( outerModel, Ports.openNewWindow url )
 
-        NavigateToUrl url ->
+        ( NavigateToUrl url, _ ) ->
             ( outerModel, Browser.Navigation.load url )
 
-        UrlChange url ->
+        ( UrlChange url, _ ) ->
             -- This handles presses of the browser back/forward button
             let
                 exoJustSetThisUrl =
@@ -391,7 +399,7 @@ updateUnderlying msg outerModel =
                         , Cmd.none
                         )
 
-        SetStyle styleMode ->
+        ( SetStyle styleMode, _ ) ->
             let
                 oldStyle =
                     sharedModel.style
@@ -402,7 +410,7 @@ updateUnderlying msg outerModel =
             ( { sharedModel | style = newStyle }, Cmd.none )
                 |> mapSharedToOuter outerModel
 
-        NoOp ->
+        ( _, _ ) ->
             ( outerModel, Cmd.none )
 
 
