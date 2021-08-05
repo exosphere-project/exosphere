@@ -8,8 +8,7 @@ import Style.Helpers as SH
 import Types.Msg exposing (SharedMsg(..))
 import Types.View
     exposing
-        ( JetstreamProvider(..)
-        , LoginView(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
         , OpenstackLoginFormEntryType(..)
         , OpenstackLoginViewParams

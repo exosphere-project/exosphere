@@ -8,6 +8,8 @@ module Types.HelperTypes exposing
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
+    , JetstreamCreds
+    , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
     , Password
@@ -143,3 +145,16 @@ type alias ExcludeFilter =
     { filterKey : String
     , filterValue : String
     }
+
+
+type alias JetstreamCreds =
+    { jetstreamProviderChoice : JetstreamProvider
+    , taccUsername : String
+    , taccPassword : String
+    }
+
+
+type JetstreamProvider
+    = IUCloud
+    | TACCCloud
+    | BothJetstreamClouds

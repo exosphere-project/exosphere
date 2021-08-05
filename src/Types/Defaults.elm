@@ -67,9 +67,9 @@ openstackCreds =
     }
 
 
-jetstreamCreds : ViewTypes.JetstreamCreds
+jetstreamCreds : HelperTypes.JetstreamCreds
 jetstreamCreds =
-    { jetstreamProviderChoice = ViewTypes.BothJetstreamClouds
+    { jetstreamProviderChoice = HelperTypes.BothJetstreamClouds
     , taccUsername = ""
     , taccPassword = ""
     }

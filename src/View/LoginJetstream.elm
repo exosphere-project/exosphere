@@ -4,12 +4,11 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Style.Helpers as SH
+import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.Msg exposing (SharedMsg(..))
 import Types.View
     exposing
-        ( JetstreamCreds
-        , JetstreamProvider(..)
-        , LoginView(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
         , OpenstackLoginFormEntryType(..)
         )

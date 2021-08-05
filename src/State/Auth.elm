@@ -12,19 +12,17 @@ import OpenStack.Types as OSTypes
 import Parser exposing ((|.), (|=))
 import Rest.Keystone
 import Set
-import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider)
+import Types.HelperTypes as HelperTypes
+    exposing
+        ( HttpRequestMethod(..)
+        , JetstreamCreds
+        , JetstreamProvider(..)
+        , UnscopedProvider
+        )
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types exposing (SharedModel)
-import Types.View
-    exposing
-        ( JetstreamCreds
-        , JetstreamProvider(..)
-        , NonProjectViewConstructor(..)
-        , ProjectViewConstructor(..)
-        , ViewState(..)
-        )
 import Url
 
 

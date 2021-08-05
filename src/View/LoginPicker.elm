@@ -6,13 +6,12 @@ import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
 import Types.Defaults as Defaults
+import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.Msg exposing (SharedMsg(..))
 import Types.Types exposing (OpenIdConnectLoginConfig)
 import Types.View
     exposing
-        ( JetstreamCreds
-        , JetstreamProvider(..)
-        , LoginView(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
         , OpenstackLoginFormEntryType(..)
         )

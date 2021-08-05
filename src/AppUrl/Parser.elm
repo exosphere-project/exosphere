@@ -3,11 +3,10 @@ module AppUrl.Parser exposing (urlToViewState)
 import Dict
 import OpenStack.Types as OSTypes
 import Types.Defaults as Defaults
+import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.View
     exposing
-        ( JetstreamCreds
-        , JetstreamProvider(..)
-        , LoginView(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
         , OpenstackLoginFormEntryType(..)
         , OpenstackLoginViewParams

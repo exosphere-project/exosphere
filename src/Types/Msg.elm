@@ -24,7 +24,7 @@ type SharedMsg
     | SetNonProjectView ViewTypes.NonProjectViewConstructor
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | RequestUnscopedToken OSTypes.OpenstackLogin
-    | JetstreamLogin ViewTypes.JetstreamCreds
+    | JetstreamLogin HelperTypes.JetstreamCreds
     | ReceiveScopedAuthToken ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)

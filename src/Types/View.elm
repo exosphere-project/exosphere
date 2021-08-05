@@ -8,8 +8,6 @@ module Types.View exposing
     , IPInfoLevel(..)
     , ImageListViewParams
     , ImageListVisibilityFilter
-    , JetstreamCreds
-    , JetstreamProvider(..)
     , KeypairIdentifier
     , KeypairListViewParams
     , LoginView(..)
@@ -70,7 +68,7 @@ type
 
 type LoginView
     = LoginOpenstack OpenstackLoginViewParams
-    | LoginJetstream JetstreamCreds
+    | LoginJetstream HelperTypes.JetstreamCreds
 
 
 type alias OpenstackLoginViewParams =
@@ -228,16 +226,3 @@ type alias VerboseStatus =
 type PasswordVisibility
     = PasswordShown
     | PasswordHidden
-
-
-type alias JetstreamCreds =
-    { jetstreamProviderChoice : JetstreamProvider
-    , taccUsername : String
-    , taccPassword : String
-    }
-
-
-type JetstreamProvider
-    = IUCloud
-    | TACCCloud
-    | BothJetstreamClouds

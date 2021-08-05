@@ -1,9 +1,9 @@
 module AppUrl.Builder exposing (viewStateToUrl)
 
+import Types.HelperTypes exposing (JetstreamProvider(..))
 import Types.View
     exposing
-        ( JetstreamProvider(..)
-        , LoginView(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ViewState(..)
