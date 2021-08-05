@@ -14,9 +14,6 @@ import Url.Builder as UB
 viewStateToUrl : Maybe String -> ViewState -> String
 viewStateToUrl maybePathPrefix viewState =
     case viewState of
-        ExampleNestedView _ ->
-            buildPrefixedUrl maybePathPrefix [ "example" ] []
-
         NonProjectView nonProjectViewConstructor ->
             projectNonspecificUrlPart (buildPrefixedUrl maybePathPrefix) nonProjectViewConstructor
 
@@ -133,6 +130,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
         HelpAbout ->
             buildUrlFunc
                 [ "helpabout" ]
+                []
+
+        ExampleNestedView _ ->
+            buildUrlFunc
+                [ "example" ]
                 []
 
         PageNotFound ->

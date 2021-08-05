@@ -14,9 +14,6 @@ import View.Types
 pageTitle : OuterModel -> View.Types.Context -> String
 pageTitle outerModel context =
     case outerModel.viewState of
-        ExampleNestedView _ ->
-            "Example Nested View"
-
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
                 LoginPicker ->
@@ -63,6 +60,9 @@ pageTitle outerModel context =
 
                 HelpAbout ->
                     "About " ++ outerModel.sharedModel.style.appTitle
+
+                ExampleNestedView _ ->
+                    "Example Nested View"
 
                 PageNotFound ->
                     "Error: page not found"

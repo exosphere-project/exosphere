@@ -153,7 +153,7 @@ pathParsers defaultViewState =
         (NonProjectView PageNotFound)
         (s "pagenotfound")
     , map
-        (ExampleNestedView View.Nested.init)
+        (NonProjectView <| ExampleNestedView View.Nested.init)
         (s "example")
     , map
         (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)

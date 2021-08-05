@@ -44,7 +44,6 @@ import View.Nested
 type ViewState
     = NonProjectView NonProjectViewConstructor
     | ProjectView HelperTypes.ProjectIdentifier ProjectViewParams ProjectViewConstructor
-    | ExampleNestedView View.Nested.Model
 
 
 type NonProjectViewConstructor
@@ -56,6 +55,7 @@ type NonProjectViewConstructor
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout
+    | ExampleNestedView View.Nested.Model
     | PageNotFound
 
 

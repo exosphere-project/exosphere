@@ -234,9 +234,6 @@ init flags urlKey =
 
         ( setViewModel, setViewCmd ) =
             case viewStateFromUrl of
-                ExampleNestedView model ->
-                    ( { outerModel | viewState = ExampleNestedView model }, Cmd.none )
-
                 NonProjectView nonProjectViewConstructor ->
                     setNonProjectView
                         nonProjectViewConstructor

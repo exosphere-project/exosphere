@@ -72,10 +72,6 @@ elementView windowSize outerModel context =
                 , Element.scrollbars
                 ]
                 [ case outerModel.viewState of
-                    ExampleNestedView nestedViewModel ->
-                        View.Nested.view nestedViewModel
-                            |> Element.map NestedViewMsg
-
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
@@ -118,6 +114,10 @@ elementView windowSize outerModel context =
 
                             HelpAbout ->
                                 View.HelpAbout.helpAbout outerModel.sharedModel context
+
+                            ExampleNestedView nestedViewModel ->
+                                View.Nested.view nestedViewModel
+                                    |> Element.map NestedViewMsg
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
