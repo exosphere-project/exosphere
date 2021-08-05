@@ -55,7 +55,7 @@ type ProjectSpecificMsgConstructor
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers
-    | RequestCreateServer ViewTypes.CreateServerViewParams OSTypes.NetworkUuid
+    | RequestCreateServer HelperTypes.CreateServerViewParams OSTypes.NetworkUuid
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid

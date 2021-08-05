@@ -136,7 +136,7 @@ serverDetailViewParams =
     }
 
 
-createServerViewParams : String -> String -> Maybe Bool -> ViewTypes.CreateServerViewParams
+createServerViewParams : String -> String -> Maybe Bool -> HelperTypes.CreateServerViewParams
 createServerViewParams imageUuid imageName deployGuacamole =
     { serverName = imageName
     , imageUuid = imageUuid

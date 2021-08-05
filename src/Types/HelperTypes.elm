@@ -1,5 +1,6 @@
 module Types.HelperTypes exposing
     ( CloudSpecificConfig
+    , CreateServerViewParams
     , DefaultLoginView(..)
     , ExcludeFilter
     , FloatingIpAssignmentStatus(..)
@@ -24,6 +25,7 @@ module Types.HelperTypes exposing
 
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
+import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 
 
 type alias Url =
@@ -158,3 +160,21 @@ type JetstreamProvider
     = IUCloud
     | TACCCloud
     | BothJetstreamClouds
+
+
+type alias CreateServerViewParams =
+    { serverName : String
+    , imageUuid : OSTypes.ImageUuid
+    , imageName : String
+    , count : Int
+    , flavorUuid : OSTypes.FlavorUuid
+    , volSizeTextInput : Maybe NumericTextInput
+    , userDataTemplate : String
+    , networkUuid : Maybe OSTypes.NetworkUuid
+    , showAdvancedOptions : Bool
+    , keypairName : Maybe String
+    , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
+    , deployDesktopEnvironment : Bool
+    , installOperatingSystemUpdates : Bool
+    , floatingIpCreationOption : FloatingIpOption
+    }

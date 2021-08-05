@@ -1,7 +1,6 @@
 module Types.View exposing
     ( AllResourcesListViewParams
     , AssignFloatingIpViewParams
-    , CreateServerViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
     , FloatingIpListViewParams
@@ -123,7 +122,7 @@ type ProjectViewConstructor
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
-    | CreateServer CreateServerViewParams
+    | CreateServer HelperTypes.CreateServerViewParams
     | CreateVolume OSTypes.VolumeName NumericTextInput
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
@@ -159,24 +158,6 @@ type alias ServerDetailViewParams =
 type alias VolumeListViewParams =
     { expandedVols : List OSTypes.VolumeUuid
     , deleteConfirmations : List DeleteVolumeConfirmation
-    }
-
-
-type alias CreateServerViewParams =
-    { serverName : String
-    , imageUuid : OSTypes.ImageUuid
-    , imageName : String
-    , count : Int
-    , flavorUuid : OSTypes.FlavorUuid
-    , volSizeTextInput : Maybe NumericTextInput
-    , userDataTemplate : String
-    , networkUuid : Maybe OSTypes.NetworkUuid
-    , showAdvancedOptions : Bool
-    , keypairName : Maybe String
-    , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole
-    , deployDesktopEnvironment : Bool
-    , installOperatingSystemUpdates : Bool
-    , floatingIpCreationOption : HelperTypes.FloatingIpOption
     }
 
 
