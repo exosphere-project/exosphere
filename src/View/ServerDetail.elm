@@ -27,6 +27,7 @@ import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
 import Types.View
@@ -46,7 +47,7 @@ import Widget
 import Widget.Style.Material
 
 
-serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element SharedMsg
+serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element OuterMsg
 serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
     case GetterSetters.serverLookup project serverUuid of
@@ -62,18 +63,17 @@ serverDetail context project currentTimeAndZone serverDetailViewParams serverUui
                     ]
 
 
-serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
+serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
 serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
             server.osProps.details
 
-        updateViewParams : ServerDetailViewParams -> SharedMsg
+        updateViewParams : ServerDetailViewParams -> OuterMsg
         updateViewParams newViewParams =
-            ProjectMsg project.auth.project.uuid <|
-                SetProjectView <|
-                    ServerDetail server.osProps.uuid newViewParams
+            SetProjectView project.auth.project.uuid <|
+                ServerDetail server.osProps.uuid newViewParams
 
         creatorName =
             case server.exoProps.serverOrigin of
@@ -194,11 +194,12 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 saveOnPress =
                     case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
                         ( Nothing, Just validName ) ->
-                            Just
-                                (ProjectMsg project.auth.project.uuid <|
-                                    ServerMsg server.osProps.uuid <|
-                                        RequestSetServerName validName
-                                )
+                            Just <|
+                                SharedMsg
+                                    (ProjectMsg project.auth.project.uuid <|
+                                        ServerMsg server.osProps.uuid <|
+                                            RequestSetServerName validName
+                                    )
 
                         ( _, _ ) ->
                             Nothing
@@ -282,7 +283,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 in
                 ( True, colWidthPx |> Element.px, colWidthPx - 30 )
 
-        firstColumnContents : List (Element.Element SharedMsg)
+        firstColumnContents : List (Element.Element OuterMsg)
         firstColumnContents =
             [ Element.row
                 (VH.heading2 context.palette ++ [ Element.spacing 10 ])
@@ -371,11 +372,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     { text = "Attach " ++ context.localization.blockDevice
                     , onPress =
                         Just <|
-                            ProjectMsg project.auth.project.uuid <|
-                                SetProjectView <|
-                                    AttachVolumeModal
-                                        (Just server.osProps.uuid)
-                                        Nothing
+                            SetProjectView project.auth.project.uuid <|
+                                AttachVolumeModal
+                                    (Just server.osProps.uuid)
+                                    Nothing
                     }
 
               else
@@ -392,7 +392,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             , serverPassword context project.auth.project.uuid serverDetailViewParams server
             ]
 
-        secondColumnContents : List (Element.Element SharedMsg)
+        secondColumnContents : List (Element.Element OuterMsg)
         secondColumnContents =
             List.concat
                 [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
@@ -435,7 +435,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             (List.append firstColumnContents secondColumnContents)
 
 
-passwordVulnWarning : View.Types.Context -> Server -> Element.Element SharedMsg
+passwordVulnWarning : View.Types.Context -> Server -> Element.Element OuterMsg
 passwordVulnWarning context server =
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
@@ -476,7 +476,7 @@ passwordVulnWarning context server =
                 Element.none
 
 
-serverStatus : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
+serverStatus : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
 serverStatus context projectId serverDetailViewParams server =
     let
         details =
@@ -485,7 +485,7 @@ serverStatus context projectId serverDetailViewParams server =
         statusBadge =
             VH.serverStatusBadge context.palette server
 
-        lockStatus : OSTypes.ServerLockStatus -> Element.Element SharedMsg
+        lockStatus : OSTypes.ServerLockStatus -> Element.Element OuterMsg
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
@@ -543,11 +543,10 @@ serverStatus context projectId serverDetailViewParams server =
             Style.Widgets.ToggleTip.toggleTip context.palette
                 contents
                 serverDetailViewParams.verboseStatus
-                (ProjectMsg projectId <|
-                    SetProjectView <|
-                        ServerDetail
-                            server.osProps.uuid
-                            { serverDetailViewParams | verboseStatus = not serverDetailViewParams.verboseStatus }
+                (SetProjectView projectId <|
+                    ServerDetail
+                        server.osProps.uuid
+                        { serverDetailViewParams | verboseStatus = not serverDetailViewParams.verboseStatus }
                 )
     in
     Element.row [ Element.spacing 15 ]
@@ -557,7 +556,7 @@ serverStatus context projectId serverDetailViewParams server =
         ]
 
 
-interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element SharedMsg
+interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element OuterMsg
 interactions context project server currentTime tlsReverseProxyHostname serverDetailViewParams =
     let
         renderInteraction interaction =
@@ -628,7 +627,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                 _ ->
                                     False
 
-                        showHideMsg : ITypes.Interaction -> SharedMsg
+                        showHideMsg : ITypes.Interaction -> OuterMsg
                         showHideMsg interaction_ =
                             let
                                 newValue =
@@ -639,10 +638,9 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                         Nothing ->
                                             Just <| interaction_
                             in
-                            ProjectMsg project.auth.project.uuid <|
-                                SetProjectView <|
-                                    ServerDetail server.osProps.uuid
-                                        { serverDetailViewParams | activeInteractionToggleTip = newValue }
+                            SetProjectView project.auth.project.uuid <|
+                                ServerDetail server.osProps.uuid
+                                    { serverDetailViewParams | activeInteractionToggleTip = newValue }
                     in
                     Style.Widgets.ToggleTip.toggleTip
                         context.palette
@@ -676,10 +674,10 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
-                                                Just <| OpenNewWindow url
+                                                Just <| SharedMsg <| OpenNewWindow url
 
                                             ITypes.Warn url _ ->
-                                                Just <| OpenNewWindow url
+                                                Just <| SharedMsg <| OpenNewWindow url
 
                                             _ ->
                                                 Nothing
@@ -736,7 +734,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
         |> Element.column []
 
 
-serverPassword : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
+serverPassword : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
 serverPassword context projectId serverDetailViewParams server =
     let
         passwordShower password =
@@ -750,10 +748,9 @@ serverPassword context projectId serverDetailViewParams server =
                         Element.none
                 , let
                     changeMsg newValue =
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                ServerDetail server.osProps.uuid
-                                    { serverDetailViewParams | passwordVisibility = newValue }
+                        SetProjectView projectId <|
+                            ServerDetail server.osProps.uuid
+                                { serverDetailViewParams | passwordVisibility = newValue }
 
                     ( buttonText, onPressMsg ) =
                         case serverDetailViewParams.passwordVisibility of
@@ -792,7 +789,7 @@ serverPassword context projectId serverDetailViewParams server =
         ]
 
 
-viewServerActions : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> Element.Element SharedMsg
+viewServerActions : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
 viewServerActions context project serverDetailViewParams server =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
@@ -816,16 +813,16 @@ serverEventHistory :
     View.Types.Context
     -> Time.Posix
     -> RemoteData.WebData (List OSTypes.ServerEvent)
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 serverEventHistory context currentTime serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
-                renderTableHeader : String -> Element.Element SharedMsg
+                renderTableHeader : String -> Element.Element OuterMsg
                 renderTableHeader headerText =
                     Element.el [ Font.bold ] <| Element.text headerText
 
-                columns : List (Element.Column OSTypes.ServerEvent SharedMsg)
+                columns : List (Element.Column OSTypes.ServerEvent OuterMsg)
                 columns =
                     [ { header = renderTableHeader "Action"
                       , width = Element.px 180
@@ -880,7 +877,7 @@ serverEventHistory context currentTime serverEventsWebData =
             Element.none
 
 
-renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element SharedMsg
+renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element OuterMsg
 renderServerActionButton context project serverDetailViewParams server serverAction =
     let
         displayConfirmation =
@@ -895,20 +892,17 @@ renderServerActionButton context project serverDetailViewParams server serverAct
         ( ServerActions.CmdAction _, True, False ) ->
             let
                 updateAction =
-                    ProjectMsg
-                        project.auth.project.uuid
-                        (SetProjectView
-                            (ServerDetail
-                                server.osProps.uuid
-                                { serverDetailViewParams | serverActionNamePendingConfirmation = Just serverAction.name }
-                            )
+                    SetProjectView project.auth.project.uuid
+                        (ServerDetail
+                            server.osProps.uuid
+                            { serverDetailViewParams | serverActionNamePendingConfirmation = Just serverAction.name }
                         )
             in
             renderActionButton context serverAction (Just updateAction) serverAction.name
 
         ( ServerActions.CmdAction cmdAction, True, True ) ->
             let
-                renderKeepFloatingIpCheckbox : List (Element.Element SharedMsg)
+                renderKeepFloatingIpCheckbox : List (Element.Element OuterMsg)
                 renderKeepFloatingIpCheckbox =
                     if
                         serverAction.name
@@ -919,13 +913,10 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                             []
                             { onChange =
                                 \new ->
-                                    ProjectMsg
-                                        project.auth.project.uuid
-                                        (SetProjectView
-                                            (ServerDetail
-                                                server.osProps.uuid
-                                                { serverDetailViewParams | retainFloatingIpsWhenDeleting = new }
-                                            )
+                                    SetProjectView project.auth.project.uuid
+                                        (ServerDetail
+                                            server.osProps.uuid
+                                            { serverDetailViewParams | retainFloatingIpsWhenDeleting = new }
                                         )
                             , icon = Input.defaultCheckbox
                             , checked = serverDetailViewParams.retainFloatingIpsWhenDeleting
@@ -950,27 +941,26 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                     if serverAction.name == "Delete" then
                         -- Override action so that we can pass through user's choice of whether to retain floating IPs
                         Just <|
-                            ProjectMsg project.auth.project.uuid <|
-                                ServerMsg server.osProps.uuid <|
-                                    RequestDeleteServer serverDetailViewParams.retainFloatingIpsWhenDeleting
+                            SharedMsg <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    ServerMsg server.osProps.uuid <|
+                                        RequestDeleteServer serverDetailViewParams.retainFloatingIpsWhenDeleting
 
                     else
                         Just <|
-                            ProjectMsg project.auth.project.uuid <|
-                                ServerMsg server.osProps.uuid <|
-                                    RequestServerAction
-                                        cmdAction
-                                        serverAction.targetStatus
+                            SharedMsg <|
+                                ProjectMsg project.auth.project.uuid <|
+                                    ServerMsg server.osProps.uuid <|
+                                        RequestServerAction
+                                            cmdAction
+                                            serverAction.targetStatus
 
                 cancelMsg =
                     Just <|
-                        ProjectMsg
-                            project.auth.project.uuid
-                            (SetProjectView
-                                (ServerDetail
-                                    server.osProps.uuid
-                                    { serverDetailViewParams | serverActionNamePendingConfirmation = Nothing }
-                                )
+                        SetProjectView project.auth.project.uuid
+                            (ServerDetail
+                                server.osProps.uuid
+                                { serverDetailViewParams | serverActionNamePendingConfirmation = Nothing }
                             )
 
                 title =
@@ -988,11 +978,12 @@ renderServerActionButton context project serverDetailViewParams server serverAct
             let
                 actionMsg =
                     Just <|
-                        ProjectMsg project.auth.project.uuid <|
-                            ServerMsg server.osProps.uuid <|
-                                RequestServerAction
-                                    cmdAction
-                                    serverAction.targetStatus
+                        SharedMsg <|
+                            ProjectMsg project.auth.project.uuid <|
+                                ServerMsg server.osProps.uuid <|
+                                    RequestServerAction
+                                        cmdAction
+                                        serverAction.targetStatus
 
                 title =
                     serverAction.name
@@ -1015,7 +1006,7 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
-serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton SharedMsg -> Element.Element SharedMsg)
+serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton OuterMsg -> Element.Element OuterMsg)
 serverActionSelectModButton context selectMod =
     case selectMod of
         ServerActions.NoMod ->
@@ -1031,7 +1022,7 @@ serverActionSelectModButton context selectMod =
             Widget.textButton (SH.materialStyle context.palette).dangerButton
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg -> String -> Element.Element SharedMsg
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe OuterMsg -> String -> Element.Element OuterMsg
 renderActionButton context serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -1049,7 +1040,7 @@ renderActionButton context serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg -> Maybe SharedMsg -> String -> Element.Element SharedMsg
+renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe OuterMsg -> Maybe OuterMsg -> String -> Element.Element OuterMsg
 renderConfirmationButton context serverAction actionMsg cancelMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -1074,61 +1065,64 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element SharedMsg
+resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element OuterMsg
 resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
     let
         thirtyMinMillis =
             1000 * 60 * 30
-    in
-    case server.exoProps.serverOrigin of
-        ServerNotFromExo ->
-            Element.text <|
-                String.join " "
-                    [ "Charts not available because"
-                    , context.localization.virtualComputer
-                    , "was not created by Exosphere."
-                    ]
 
-        ServerFromExo exoOriginProps ->
-            case exoOriginProps.resourceUsage.data of
-                RDPP.DoHave history _ ->
-                    if Dict.isEmpty history.timeSeries then
-                        if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
-                            Element.text <|
-                                String.join " "
-                                    [ "No chart data yet. This"
-                                    , context.localization.virtualComputer
-                                    , "is new and may take a few minutes to start reporting data."
-                                    ]
-
-                        else
-                            Element.text "No chart data to show."
-
-                    else
-                        Element.column [ Element.width Element.fill ]
-                            [ View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
-                            , View.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
+        charts =
+            case server.exoProps.serverOrigin of
+                ServerNotFromExo ->
+                    Element.text <|
+                        String.join " "
+                            [ "Charts not available because"
+                            , context.localization.virtualComputer
+                            , "was not created by Exosphere."
                             ]
 
-                _ ->
-                    if exoOriginProps.exoServerVersion < 2 then
-                        Element.text <|
-                            String.join " "
-                                [ "Charts not available because"
-                                , context.localization.virtualComputer
-                                , "was not created using a new enough build of Exosphere."
-                                ]
+                ServerFromExo exoOriginProps ->
+                    case exoOriginProps.resourceUsage.data of
+                        RDPP.DoHave history _ ->
+                            if Dict.isEmpty history.timeSeries then
+                                if Helpers.serverLessThanThisOld server (Tuple.first currentTimeAndZone) thirtyMinMillis then
+                                    Element.text <|
+                                        String.join " "
+                                            [ "No chart data yet. This"
+                                            , context.localization.virtualComputer
+                                            , "is new and may take a few minutes to start reporting data."
+                                            ]
 
-                    else
-                        Element.text <|
-                            String.join " "
-                                [ "Could not access the"
-                                , context.localization.virtualComputer
-                                , "console log, charts not available."
-                                ]
+                                else
+                                    Element.text "No chart data to show."
+
+                            else
+                                Element.column [ Element.width Element.fill ]
+                                    [ View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
+                                    , View.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
+                                    ]
+
+                        _ ->
+                            if exoOriginProps.exoServerVersion < 2 then
+                                Element.text <|
+                                    String.join " "
+                                        [ "Charts not available because"
+                                        , context.localization.virtualComputer
+                                        , "was not created using a new enough build of Exosphere."
+                                        ]
+
+                            else
+                                Element.text <|
+                                    String.join " "
+                                        [ "Could not access the"
+                                        , context.localization.virtualComputer
+                                        , "console log, charts not available."
+                                        ]
+    in
+    Element.map SharedMsg charts
 
 
-renderIpAddresses : View.Types.Context -> Project -> Server -> ServerDetailViewParams -> Element.Element SharedMsg
+renderIpAddresses : View.Types.Context -> Project -> Server -> ServerDetailViewParams -> Element.Element OuterMsg
 renderIpAddresses context project server serverDetailViewParams =
     let
         fixedIpAddressRows =
@@ -1157,9 +1151,8 @@ renderIpAddresses context project server serverDetailViewParams =
                                 [ "Assign a", context.localization.floatingIpAddress ]
                         , onPress =
                             Just <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
+                                SetProjectView project.auth.project.uuid <|
+                                    AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
                         }
                     ]
 
@@ -1186,13 +1179,13 @@ renderIpAddresses context project server serverDetailViewParams =
                                         { text =
                                             "Unassign"
                                         , onPress =
-                                            Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipAddress.uuid
+                                            Just <| SharedMsg <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipAddress.uuid
                                         }
                                     ]
                                 )
                         )
 
-        ipButton : Element.Element SharedMsg -> String -> IPInfoLevel -> Element.Element SharedMsg
+        ipButton : Element.Element OuterMsg -> String -> IPInfoLevel -> Element.Element OuterMsg
         ipButton label displayLabel ipMsg =
             Element.row
                 [ Element.spacing 3 ]
@@ -1205,11 +1198,10 @@ renderIpAddresses context project server serverDetailViewParams =
                     ]
                     { onPress =
                         Just <|
-                            ProjectMsg project.auth.project.uuid <|
-                                SetProjectView <|
-                                    ServerDetail
-                                        server.osProps.uuid
-                                        { serverDetailViewParams | ipInfoLevel = ipMsg }
+                            SetProjectView project.auth.project.uuid <|
+                                ServerDetail
+                                    server.osProps.uuid
+                                    { serverDetailViewParams | ipInfoLevel = ipMsg }
                     , label = label
                     }
                 , Element.el [ Font.size 10 ] (Element.text displayLabel)
@@ -1244,7 +1236,7 @@ renderIpAddresses context project server serverDetailViewParams =
                 (floatingIpAddressRows ++ [ ipButton icon "IP Details" IPDetails ])
 
 
-serverVolumes : View.Types.Context -> Project -> Server -> Element.Element SharedMsg
+serverVolumes : View.Types.Context -> Project -> Server -> Element.Element OuterMsg
 serverVolumes context project server =
     let
         vols =
@@ -1269,12 +1261,7 @@ serverVolumes context project server =
             let
                 volDetailsButton v =
                     Style.Widgets.IconButton.goToButton context.palette
-                        (Just
-                            (ProjectMsg
-                                project.auth.project.uuid
-                                (SetProjectView <| VolumeDetail v.uuid [])
-                            )
-                        )
+                        (Just (SetProjectView project.auth.project.uuid <| VolumeDetail v.uuid []))
 
                 volumeRow v =
                     let

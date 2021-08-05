@@ -28,6 +28,7 @@ import Types.Error as Error
 import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
@@ -35,7 +36,7 @@ import View.Helpers
 import View.PageTitle
 
 
-setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd SharedMsg )
+setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 setNonProjectView nonProjectViewConstructor outerModel =
     let
         prevNonProjectViewConstructor =
@@ -123,10 +124,15 @@ setNonProjectView nonProjectViewConstructor outerModel =
         ( newOuterModel, viewStateCmd ) =
             modelUpdateViewState newViewState { outerModel | sharedModel = viewSpecificSharedModel }
     in
-    ( newOuterModel, Cmd.batch [ viewStateCmd, viewSpecificCmd ] )
+    ( newOuterModel
+    , Cmd.batch
+        [ viewStateCmd
+        , Cmd.map SharedMsg viewSpecificCmd
+        ]
+    )
 
 
-setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd SharedMsg )
+setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 setProjectView project projectViewConstructor outerModel =
     let
         prevProjectViewConstructor =
@@ -289,16 +295,15 @@ setProjectView project projectViewConstructor outerModel =
                         -- If we are just entering this view then gather everything we need
                         _ ->
                             let
-                                newViewParamsMsg serverName_ =
-                                    ProjectMsg project.auth.project.uuid <|
-                                        SetProjectView <|
-                                            CreateServer { viewParams | serverName = serverName_ }
-
                                 cmd =
                                     Cmd.batch
                                         [ Rest.Nova.requestFlavors project
                                         , Rest.Nova.requestKeypairs project
-                                        , RandomHelpers.generateServerName newViewParamsMsg
+                                        , RandomHelpers.generateServerName
+                                            (\serverName ->
+                                                ProjectMsg project.auth.project.uuid <|
+                                                    ReceiveRandomServerName serverName
+                                            )
                                         ]
 
                                 ( newSharedModel, newCmd ) =
@@ -412,10 +417,15 @@ setProjectView project projectViewConstructor outerModel =
         ( newOuterModel, viewStateCmd ) =
             modelUpdateViewState newViewState viewSpecificOuterModel
     in
-    ( newOuterModel, Cmd.batch [ viewStateCmd, viewSpecificCmd ] )
+    ( newOuterModel
+    , Cmd.batch
+        [ viewStateCmd
+        , Cmd.map SharedMsg viewSpecificCmd
+        ]
+    )
 
 
-modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd SharedMsg )
+modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 modelUpdateViewState viewState outerModel =
     -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
     let

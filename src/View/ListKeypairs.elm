@@ -11,6 +11,7 @@ import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (KeypairListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -23,11 +24,11 @@ listKeypairs :
     -> Bool
     -> Project
     -> KeypairListViewParams
-    -> (KeypairListViewParams -> SharedMsg)
-    -> Element.Element SharedMsg
+    -> (KeypairListViewParams -> OuterMsg)
+    -> Element.Element OuterMsg
 listKeypairs context showHeading project viewParams toMsg =
     let
-        renderKeypairs : List OSTypes.Keypair -> Element.Element SharedMsg
+        renderKeypairs : List OSTypes.Keypair -> Element.Element OuterMsg
         renderKeypairs keypairs_ =
             if List.isEmpty keypairs_ then
                 Element.column
@@ -58,9 +59,8 @@ listKeypairs context showHeading project viewParams toMsg =
                                 ]
                         , onPress =
                             Just <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        CreateKeypair "" ""
+                                SetProjectView project.auth.project.uuid <|
+                                    CreateKeypair "" ""
                         }
                     ]
 
@@ -98,9 +98,9 @@ renderKeypairCard :
     View.Types.Context
     -> Project
     -> KeypairListViewParams
-    -> (KeypairListViewParams -> SharedMsg)
+    -> (KeypairListViewParams -> OuterMsg)
     -> OSTypes.Keypair
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 renderKeypairCard context project viewParams toMsg keypair =
     let
         cardBody =
@@ -150,7 +150,7 @@ renderKeypairCard context project viewParams toMsg keypair =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> SharedMsg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element SharedMsg
+actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> OuterMsg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element OuterMsg
 actionButtons context project toMsg viewParams keypair =
     let
         confirmationNeeded =
@@ -166,9 +166,10 @@ actionButtons context project toMsg viewParams keypair =
                         , text = "Delete"
                         , onPress =
                             Just <|
-                                ProjectMsg
-                                    project.auth.project.uuid
-                                    (RequestDeleteKeypair keypair.name)
+                                SharedMsg <|
+                                    ProjectMsg
+                                        project.auth.project.uuid
+                                        (RequestDeleteKeypair keypair.name)
                         }
                     , Widget.textButton
                         (SH.materialStyle context.palette).button

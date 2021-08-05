@@ -13,7 +13,6 @@ import Toasty
 import Types.Error exposing (ErrorContext, HttpErrorWithBody, Toast)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
-import Types.View as ViewTypes
 import Url
 import View.Nested
 
@@ -21,7 +20,6 @@ import View.Nested
 type SharedMsg
     = Tick TickInterval Time.Posix
     | DoOrchestration Time.Posix
-    | SetNonProjectView ViewTypes.NonProjectViewConstructor
     | HandleApiErrorWithBody ErrorContext HttpErrorWithBody
     | RequestUnscopedToken OSTypes.OpenstackLogin
     | JetstreamLogin HelperTypes.JetstreamCreds
@@ -47,8 +45,7 @@ type alias TickInterval =
 
 
 type ProjectSpecificMsgConstructor
-    = SetProjectView ViewTypes.ProjectViewConstructor
-    | ReceiveAppCredential OSTypes.ApplicationCredential
+    = ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
       -- TODO this should be a view-specific msg?
     | ToggleCreatePopup
@@ -91,6 +88,7 @@ type ProjectSpecificMsgConstructor
     | ReceiveDetachVolume
     | ReceiveComputeQuota OSTypes.ComputeQuota
     | ReceiveVolumeQuota OSTypes.VolumeQuota
+    | ReceiveRandomServerName String
 
 
 type ServerSpecificMsgConstructor

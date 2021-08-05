@@ -5,14 +5,14 @@ import Element.Input as Input
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
-import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Types exposing (LogMessage)
 import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 
 
-messageLog : View.Types.Context -> List LogMessage -> Bool -> Element.Element SharedMsg
+messageLog : View.Types.Context -> List LogMessage -> Bool -> Element.Element OuterMsg
 messageLog context logMessages showDebugMsgs =
     let
         shownMessages =

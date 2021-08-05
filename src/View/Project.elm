@@ -11,6 +11,7 @@ import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
@@ -30,7 +31,7 @@ import View.Volumes
 import Widget
 
 
-project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element SharedMsg
+project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element OuterMsg
 project model context p viewParams viewConstructor =
     let
         v =
@@ -50,9 +51,8 @@ project model context p viewParams viewConstructor =
                         p
                         serverListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListProjectServers newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListProjectServers newParams
                         )
 
                 ServerDetail serverUuid serverDetailViewParams ->
@@ -67,9 +67,8 @@ project model context p viewParams viewConstructor =
                         p
                         volumeListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListProjectVolumes newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListProjectVolumes newParams
                         )
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
@@ -77,9 +76,8 @@ project model context p viewParams viewConstructor =
                         p
                         deleteVolumeConfirmations
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    VolumeDetail volumeUuid newParams
+                            SetProjectView p.auth.project.uuid <|
+                                VolumeDetail volumeUuid newParams
                         )
                         volumeUuid
 
@@ -98,9 +96,8 @@ project model context p viewParams viewConstructor =
                         p
                         floatingIpListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListFloatingIps newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListFloatingIps newParams
                         )
 
                 AssignFloatingIp assignFloatingIpViewParams ->
@@ -115,9 +112,8 @@ project model context p viewParams viewConstructor =
                         p
                         keypairListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListKeypairs newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListKeypairs newParams
                         )
 
                 CreateKeypair keypairName publicKey ->
@@ -135,7 +131,7 @@ project model context p viewParams viewConstructor =
         ]
 
 
-projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element SharedMsg
+projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element OuterMsg
 projectNav context p viewParams =
     let
         edges =
@@ -171,7 +167,7 @@ projectNav context p viewParams =
                         ]
                 , text = removeText
                 , onPress =
-                    Just <| ProjectMsg p.auth.project.uuid RemoveProject
+                    Just <| SharedMsg <| ProjectMsg p.auth.project.uuid RemoveProject
                 }
         , Element.el
             [ Element.alignRight
@@ -186,7 +182,7 @@ projectNav context p viewParams =
         ]
 
 
-createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element SharedMsg
+createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element OuterMsg
 createButton context projectId expanded =
     let
         materialStyle =
@@ -197,7 +193,7 @@ createButton context projectId expanded =
                 | container = Element.width Element.fill :: materialStyle.container
             }
 
-        renderButton : Element.Element Never -> String -> Maybe SharedMsg -> Element.Element SharedMsg
+        renderButton : Element.Element Never -> String -> Maybe OuterMsg -> Element.Element OuterMsg
         renderButton icon_ text onPress =
             Widget.iconButton
                 buttonStyle
@@ -243,13 +239,12 @@ createButton context projectId expanded =
                         |> Helpers.String.toTitleCase
                     )
                     (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                ListImages
-                                    Defaults.imageListViewParams
-                                    { title = "Name"
-                                    , asc = True
-                                    }
+                        SetProjectView projectId <|
+                            ListImages
+                                Defaults.imageListViewParams
+                                { title = "Name"
+                                , asc = True
+                                }
                     )
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
@@ -257,10 +252,9 @@ createButton context projectId expanded =
                         |> Helpers.String.toTitleCase
                     )
                     (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
-                                CreateVolume "" (ValidNumericTextInput 10)
+                        SetProjectView projectId <|
+                            -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
+                            CreateVolume "" (ValidNumericTextInput 10)
                     )
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
@@ -268,9 +262,8 @@ createButton context projectId expanded =
                         |> Helpers.String.toTitleCase
                     )
                     (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                CreateKeypair "" ""
+                        SetProjectView projectId <|
+                            CreateKeypair "" ""
                     )
                 ]
 
@@ -302,7 +295,8 @@ createButton context projectId expanded =
                     ]
             , onPress =
                 Just <|
-                    ProjectMsg projectId <|
-                        ToggleCreatePopup
+                    SharedMsg <|
+                        ProjectMsg projectId <|
+                            ToggleCreatePopup
             }
         ]

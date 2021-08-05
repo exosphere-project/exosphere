@@ -6,6 +6,7 @@ import Element.Input as Input
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.View
     exposing
         ( LoginView(..)
@@ -19,7 +20,7 @@ import View.Types
 import Widget
 
 
-viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element SharedMsg
+viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element OuterMsg
 viewLoginOpenstack context viewParams =
     let
         allCredsEntered =
@@ -58,7 +59,7 @@ viewLoginOpenstack context viewParams =
                                 { text = "Log In"
                                 , onPress =
                                     if allCredsEntered then
-                                        Just <| RequestUnscopedToken viewParams.creds
+                                        Just <| SharedMsg <| RequestUnscopedToken viewParams.creds
 
                                     else
                                         Nothing
@@ -78,7 +79,7 @@ viewLoginOpenstack context viewParams =
                             (Widget.textButton
                                 (SH.materialStyle context.palette).primaryButton
                                 { text = "Submit"
-                                , onPress = Just <| SubmitOpenRc viewParams.creds viewParams.openRc
+                                , onPress = Just <| SharedMsg <| SubmitOpenRc viewParams.creds viewParams.openRc
                                 }
                             )
                         ]
@@ -87,13 +88,13 @@ viewLoginOpenstack context viewParams =
         ]
 
 
-loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element SharedMsg
+loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element OuterMsg
 loginOpenstackCredsEntry context viewParams allCredsEntered =
     let
         creds =
             viewParams.creds
 
-        updateCreds : OSTypes.OpenstackLogin -> SharedMsg
+        updateCreds : OSTypes.OpenstackLogin -> OuterMsg
         updateCreds newCreds =
             SetNonProjectView <| Login <| LoginOpenstack { viewParams | creds = newCreds }
 
@@ -146,7 +147,7 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
         ]
 
 
-loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element SharedMsg
+loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element OuterMsg
 loginOpenstackOpenRcEntry context viewParams =
     Element.column
         VH.formContainer

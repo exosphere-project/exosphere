@@ -22,6 +22,7 @@ import Types.Defaults as Defaults
 import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types
     exposing
@@ -33,7 +34,7 @@ import UUID
 import Url
 
 
-init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd SharedMsg )
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
 init flags urlKey =
     let
         currentTime =
@@ -251,4 +252,6 @@ init flags urlKey =
                         Nothing ->
                             ( outerModel, Cmd.none )
     in
-    ( setViewModel, Cmd.batch [ requestResourcesCmd, setViewCmd ] )
+    ( setViewModel
+    , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]
+    )

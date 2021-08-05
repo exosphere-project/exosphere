@@ -12,8 +12,8 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
 import Types.HelperTypes
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
@@ -31,10 +31,10 @@ navBarHeight =
     70
 
 
-navMenu : OuterModel -> View.Types.Context -> Element.Element SharedMsg
+navMenu : OuterModel -> View.Types.Context -> Element.Element OuterMsg
 navMenu outerModel context =
     let
-        projectMenuItem : Project -> Element.Element SharedMsg
+        projectMenuItem : Project -> Element.Element OuterMsg
         projectMenuItem project =
             let
                 projectTitle =
@@ -58,14 +58,12 @@ navMenu outerModel context =
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
-                    (ProjectMsg project.auth.project.uuid
-                        (SetProjectView <|
-                            AllResources Defaults.allResourcesListViewParams
-                        )
+                    (SetProjectView project.auth.project.uuid <|
+                        AllResources Defaults.allResourcesListViewParams
                     )
                 )
 
-        projectMenuItems : List Project -> List (Element.Element SharedMsg)
+        projectMenuItems : List Project -> List (Element.Element OuterMsg)
         projectMenuItems projects =
             List.map projectMenuItem projects
 
@@ -104,7 +102,7 @@ navMenu outerModel context =
         )
 
 
-navBar : OuterModel -> View.Types.Context -> Element.Element SharedMsg
+navBar : OuterModel -> View.Types.Context -> Element.Element OuterMsg
 navBar outerModel context =
     let
         navBarContainerAttributes =

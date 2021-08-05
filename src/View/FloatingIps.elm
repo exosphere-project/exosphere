@@ -16,6 +16,7 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Types.Defaults as Defaults
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (AssignFloatingIpViewParams, FloatingIpListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -24,10 +25,10 @@ import View.Types
 import Widget
 
 
-floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> SharedMsg) -> Element.Element SharedMsg
+floatingIps : View.Types.Context -> Bool -> Project -> FloatingIpListViewParams -> (FloatingIpListViewParams -> OuterMsg) -> Element.Element OuterMsg
 floatingIps context showHeading project viewParams toMsg =
     let
-        renderFloatingIps : List OSTypes.FloatingIp -> Element.Element SharedMsg
+        renderFloatingIps : List OSTypes.FloatingIp -> Element.Element OuterMsg
         renderFloatingIps ips =
             let
                 -- Warn the user when their project has at least this many unassigned floating IPs.
@@ -120,7 +121,7 @@ floatingIps context showHeading project viewParams toMsg =
         ]
 
 
-ipScarcityWarning : View.Types.Context -> Element.Element SharedMsg
+ipScarcityWarning : View.Types.Context -> Element.Element OuterMsg
 ipScarcityWarning context =
     Element.paragraph
         [ Element.padding 10
@@ -144,9 +145,9 @@ renderFloatingIpCard :
     View.Types.Context
     -> Project
     -> FloatingIpListViewParams
-    -> (FloatingIpListViewParams -> SharedMsg)
+    -> (FloatingIpListViewParams -> OuterMsg)
     -> OSTypes.FloatingIp
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 renderFloatingIpCard context project viewParams toMsg ip =
     let
         subtitle =
@@ -167,9 +168,8 @@ renderFloatingIpCard context project viewParams toMsg ip =
                                 , Style.Widgets.IconButton.goToButton
                                     context.palette
                                     (Just
-                                        (ProjectMsg project.auth.project.uuid <|
-                                            SetProjectView <|
-                                                ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
+                                        (SetProjectView project.auth.project.uuid <|
+                                            ServerDetail server.osProps.uuid Defaults.serverDetailViewParams
                                         )
                                     )
                                 ]
@@ -191,7 +191,13 @@ renderFloatingIpCard context project viewParams toMsg ip =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (FloatingIpListViewParams -> SharedMsg) -> FloatingIpListViewParams -> OSTypes.FloatingIp -> Element.Element SharedMsg
+actionButtons :
+    View.Types.Context
+    -> Project
+    -> (FloatingIpListViewParams -> OuterMsg)
+    -> FloatingIpListViewParams
+    -> OSTypes.FloatingIp
+    -> Element.Element OuterMsg
 actionButtons context project toMsg viewParams ip =
     let
         assignUnassignButton =
@@ -201,13 +207,12 @@ actionButtons context project toMsg viewParams ip =
                         Nothing ->
                             ( "Assign"
                             , Just <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    SetProjectView <|
-                                        AssignFloatingIp (AssignFloatingIpViewParams (Just ip.uuid) Nothing)
+                                SetProjectView project.auth.project.uuid <|
+                                    AssignFloatingIp (AssignFloatingIpViewParams (Just ip.uuid) Nothing)
                             )
 
                         Just _ ->
-                            ( "Unassign", Just <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ip.uuid )
+                            ( "Unassign", Just <| SharedMsg <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ip.uuid )
             in
             Widget.textButton
                 (SH.materialStyle context.palette).button
@@ -228,9 +233,10 @@ actionButtons context project toMsg viewParams ip =
                         , text = "Delete"
                         , onPress =
                             Just <|
-                                ProjectMsg
-                                    project.auth.project.uuid
-                                    (RequestDeleteFloatingIp ip.uuid)
+                                SharedMsg <|
+                                    ProjectMsg
+                                        project.auth.project.uuid
+                                        (RequestDeleteFloatingIp ip.uuid)
                         }
                     , Widget.textButton
                         (SH.materialStyle context.palette).button
@@ -274,9 +280,9 @@ actionButtons context project toMsg viewParams ip =
 ipsAssignedToResourcesExpander :
     View.Types.Context
     -> FloatingIpListViewParams
-    -> (FloatingIpListViewParams -> SharedMsg)
+    -> (FloatingIpListViewParams -> OuterMsg)
     -> List OSTypes.FloatingIp
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
     let
         numIpsAssignedToResources =
@@ -327,7 +333,7 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
                   }
                 )
 
-        changeOnlyOwnMsg : SharedMsg
+        changeOnlyOwnMsg : OuterMsg
         changeOnlyOwnMsg =
             toMsg newViewParams
 
@@ -360,7 +366,7 @@ ipsAssignedToResourcesExpander context viewParams toMsg ipsAssignedToResources =
             ]
 
 
-assignFloatingIp : View.Types.Context -> Project -> AssignFloatingIpViewParams -> Element.Element SharedMsg
+assignFloatingIp : View.Types.Context -> Project -> AssignFloatingIpViewParams -> Element.Element OuterMsg
 assignFloatingIp context project viewParams =
     let
         serverChoices =
@@ -442,7 +448,7 @@ assignFloatingIp context project viewParams =
                         Input.labelHidden selectServerText
                     , onChange =
                         \new ->
-                            ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | serverUuid = Just new }))
+                            SetProjectView project.auth.project.uuid (AssignFloatingIp { viewParams | serverUuid = Just new })
                     , options = serverChoices
                     , selected = viewParams.serverUuid
                     }
@@ -464,7 +470,7 @@ assignFloatingIp context project viewParams =
                     { label = Input.labelHidden selectIpText
                     , onChange =
                         \new ->
-                            ProjectMsg project.auth.project.uuid (SetProjectView (AssignFloatingIp { viewParams | ipUuid = Just new }))
+                            SetProjectView project.auth.project.uuid (AssignFloatingIp { viewParams | ipUuid = Just new })
                     , options = ipChoices
                     , selected = viewParams.ipUuid
                     }
@@ -509,7 +515,8 @@ assignFloatingIp context project viewParams =
                                             -- Conditions are perfect
                                             { onPress =
                                                 Just <|
-                                                    ProjectMsg project.auth.project.uuid (RequestAssignFloatingIp port_ ipUuid)
+                                                    SharedMsg <|
+                                                        ProjectMsg project.auth.project.uuid (RequestAssignFloatingIp port_ ipUuid)
                                             , warnText = Nothing
                                             }
 

@@ -8,7 +8,7 @@ import Helpers.String
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.View
     exposing
@@ -30,10 +30,10 @@ allResources :
     View.Types.Context
     -> Project
     -> AllResourcesListViewParams
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 allResources context p viewParams =
     let
-        renderHeaderLink : Element.Element SharedMsg -> String -> SharedMsg -> Element.Element SharedMsg
+        renderHeaderLink : Element.Element OuterMsg -> String -> OuterMsg -> Element.Element OuterMsg
         renderHeaderLink icon str msg =
             Element.row
                 (VH.heading3 context.palette
@@ -66,19 +66,17 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListProjectServers
-                            Defaults.serverListViewParams
+                (SetProjectView p.auth.project.uuid <|
+                    ListProjectServers
+                        Defaults.serverListViewParams
                 )
             , View.ServerList.serverList context
                 False
                 p
                 viewParams.serverListViewParams
                 (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | serverListViewParams = newParams }
+                    SetProjectView p.auth.project.uuid <|
+                        AllResources { viewParams | serverListViewParams = newParams }
                 )
             ]
         , Element.column
@@ -93,19 +91,17 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListProjectVolumes
-                            Defaults.volumeListViewParams
+                (SetProjectView p.auth.project.uuid <|
+                    ListProjectVolumes
+                        Defaults.volumeListViewParams
                 )
             , View.Volumes.volumes context
                 False
                 p
                 viewParams.volumeListViewParams
                 (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | volumeListViewParams = newParams }
+                    SetProjectView p.auth.project.uuid <|
+                        AllResources { viewParams | volumeListViewParams = newParams }
                 )
             ]
         , Element.column
@@ -116,19 +112,17 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListFloatingIps
-                            Defaults.floatingIpListViewParams
+                (SetProjectView p.auth.project.uuid <|
+                    ListFloatingIps
+                        Defaults.floatingIpListViewParams
                 )
             , View.FloatingIps.floatingIps context
                 False
                 p
                 viewParams.floatingIpListViewParams
                 (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | floatingIpListViewParams = newParams }
+                    SetProjectView p.auth.project.uuid <|
+                        AllResources { viewParams | floatingIpListViewParams = newParams }
                 )
             ]
         , Element.column
@@ -145,19 +139,17 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (ProjectMsg p.auth.project.uuid <|
-                    SetProjectView <|
-                        ListKeypairs
-                            Defaults.keypairListViewParams
+                (SetProjectView p.auth.project.uuid <|
+                    ListKeypairs
+                        Defaults.keypairListViewParams
                 )
             , View.ListKeypairs.listKeypairs context
                 False
                 p
                 viewParams.keypairListViewParams
                 (\newParams ->
-                    ProjectMsg p.auth.project.uuid <|
-                        SetProjectView <|
-                            AllResources { viewParams | keypairListViewParams = newParams }
+                    SetProjectView p.auth.project.uuid <|
+                        AllResources { viewParams | keypairListViewParams = newParams }
                 )
             ]
         ]

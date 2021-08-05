@@ -12,12 +12,12 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
 import Style.Helpers as SH
-import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import View.Helpers as VH
 import View.Types
 
 
-infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element SharedMsg
+infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element OuterMsg
 infoItem context detail ( label, units ) =
     let
         labelLimit m_ =
@@ -52,7 +52,7 @@ infoItem context detail ( label, units ) =
         ]
 
 
-computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element SharedMsg
+computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element OuterMsg
 computeInfoItems context quota =
     Element.wrappedRow
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
@@ -71,7 +71,7 @@ computeInfoItems context quota =
         ]
 
 
-quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element SharedMsg) -> Element.Element SharedMsg
+quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element OuterMsg) -> Element.Element OuterMsg
 quotaDetail context quota infoItemsF =
     let
         resourceWord =
@@ -84,14 +84,14 @@ quotaDetail context quota infoItemsF =
     VH.renderWebData context quota resourceWord infoItemsF
 
 
-computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element SharedMsg
+computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element OuterMsg
 computeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (computeInfoItems context) ]
 
 
-floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element SharedMsg
+floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element OuterMsg
 floatingIpInfoItems context floatingIpsUsed quota =
     {-
        Compute quota reports incorrect number of floating IPs used (0), so we are overriding it with a count of the floating IPs returned by Neutron.
@@ -126,14 +126,14 @@ floatingIpInfoItems context floatingIpsUsed quota =
         ]
 
 
-floatingIpQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Int -> Element.Element SharedMsg
+floatingIpQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Int -> Element.Element OuterMsg
 floatingIpQuotaDetails context quota floatingIpsUsed =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (floatingIpInfoItems context floatingIpsUsed) ]
 
 
-volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element SharedMsg
+volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element OuterMsg
 volumeInfoItems context quota =
     Element.wrappedRow
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
@@ -152,7 +152,7 @@ volumeInfoItems context quota =
         ]
 
 
-volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element SharedMsg
+volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element OuterMsg
 volumeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])

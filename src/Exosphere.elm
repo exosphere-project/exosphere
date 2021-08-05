@@ -6,6 +6,7 @@ import State.State as State
 import State.Subscriptions
 import Types.Msg exposing (SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Types exposing (Flags)
 import View.View exposing (view)
 
@@ -14,7 +15,7 @@ import View.View exposing (view)
 {- App Setup -}
 
 
-main : Program Flags OuterModel SharedMsg
+main : Program Flags OuterModel OuterMsg
 main =
     application
         { init = \flags url key -> State.Init.init flags ( url, key )
@@ -23,6 +24,6 @@ main =
         , subscriptions = State.Subscriptions.subscriptions
 
         -- Not needed because all of our <a hrefs load another domain in a new window
-        , onUrlRequest = \_ -> NoOp
-        , onUrlChange = UrlChange
+        , onUrlRequest = \_ -> SharedMsg NoOp
+        , onUrlChange = \u -> SharedMsg <| UrlChange u
         }

@@ -14,6 +14,7 @@ import Toasty
 import Types.HelperTypes exposing (WindowSize)
 import Types.Msg exposing (SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.HelpAbout
@@ -32,7 +33,7 @@ import View.Toast
 import View.Types
 
 
-view : OuterModel -> Browser.Document SharedMsg
+view : OuterModel -> Browser.Document OuterMsg
 view outerModel =
     let
         context =
@@ -45,7 +46,7 @@ view outerModel =
     }
 
 
-view_ : OuterModel -> View.Types.Context -> Html.Html SharedMsg
+view_ : OuterModel -> View.Types.Context -> Html.Html OuterMsg
 view_ outerModel context =
     Element.layout
         [ Font.size 17
@@ -59,7 +60,7 @@ view_ outerModel context =
         (elementView outerModel.sharedModel.windowSize outerModel context)
 
 
-elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element SharedMsg
+elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg
 elementView windowSize outerModel context =
     let
         mainContentContainerView =
@@ -117,7 +118,7 @@ elementView windowSize outerModel context =
 
                             ExampleNestedView nestedViewModel ->
                                 View.Nested.view nestedViewModel
-                                    |> Element.map NestedViewMsg
+                                    |> Element.map (\msg -> SharedMsg <| NestedViewMsg msg)
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
@@ -140,7 +141,12 @@ elementView windowSize outerModel context =
                                     project
                                     projectViewParams
                                     viewConstructor
-                , Element.html (Toasty.view Style.Toast.toastConfig (View.Toast.toast context outerModel.sharedModel.showDebugMsgs) ToastyMsg outerModel.sharedModel.toasties)
+                , Element.html
+                    (Toasty.view Style.Toast.toastConfig
+                        (View.Toast.toast context outerModel.sharedModel.showDebugMsgs)
+                        (\m -> SharedMsg <| ToastyMsg m)
+                        outerModel.sharedModel.toasties
+                    )
                 ]
     in
     Element.row

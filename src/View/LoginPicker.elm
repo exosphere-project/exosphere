@@ -8,6 +8,7 @@ import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Types exposing (OpenIdConnectLoginConfig)
 import Types.View
     exposing
@@ -21,13 +22,13 @@ import Widget
 
 
 type alias LoginMethod =
-    { logo : Element.Element SharedMsg
-    , button : Element.Element SharedMsg
+    { logo : Element.Element OuterMsg
+    , button : Element.Element OuterMsg
     , description : String
     }
 
 
-loginPicker : View.Types.Context -> Maybe OpenIdConnectLoginConfig -> Element.Element SharedMsg
+loginPicker : View.Types.Context -> Maybe OpenIdConnectLoginConfig -> Element.Element OuterMsg
 loginPicker context maybeOpenIdConnectLoginConfig =
     let
         defaultLoginMethods =
@@ -83,7 +84,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                             url =
                                 oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
                         in
-                        Just <| NavigateToUrl url
+                        Just <| SharedMsg <| NavigateToUrl url
                     }
             , description =
                 oidcLoginConfig.oidcLoginButtonDescription
@@ -100,7 +101,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                         []
                 )
 
-        renderLoginMethod : LoginMethod -> Element.Element SharedMsg
+        renderLoginMethod : LoginMethod -> Element.Element OuterMsg
         renderLoginMethod loginMethod =
             Element.el
                 [ Element.width <| Element.px 380

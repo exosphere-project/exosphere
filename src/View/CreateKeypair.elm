@@ -8,6 +8,7 @@ import Html.Attributes
 import Style.Helpers as SH
 import Style.Widgets.FormValidation as FormValidation
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
@@ -15,7 +16,7 @@ import View.Types
 import Widget
 
 
-createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element SharedMsg
+createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element OuterMsg
 createKeypair context project name publicKey =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -40,11 +41,10 @@ createKeypair context project name publicKey =
                         )
                 , onChange =
                     \newName ->
-                        ProjectMsg project.auth.project.uuid <|
-                            SetProjectView <|
-                                CreateKeypair
-                                    newName
-                                    publicKey
+                        SetProjectView project.auth.project.uuid <|
+                            CreateKeypair
+                                newName
+                                publicKey
                 , label = Input.labelAbove [] (Element.text "Name")
                 }
              , Input.multiline
@@ -62,11 +62,10 @@ createKeypair context project name publicKey =
                 , placeholder = Just (Input.placeholder [] (Element.text "ssh-rsa ..."))
                 , onChange =
                     \newPublicKey ->
-                        ProjectMsg project.auth.project.uuid <|
-                            SetProjectView <|
-                                CreateKeypair
-                                    name
-                                    newPublicKey
+                        SetProjectView project.auth.project.uuid <|
+                            CreateKeypair
+                                name
+                                newPublicKey
                 , label =
                     Input.labelAbove
                         [ Element.paddingXY 0 10
@@ -82,7 +81,7 @@ createKeypair context project name publicKey =
         ]
 
 
-createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element SharedMsg)
+createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element OuterMsg)
 createKeyPairButton context project name publicKey =
     let
         isValid =
@@ -95,8 +94,9 @@ createKeyPairButton context project name publicKey =
         ( maybeCmd, validation ) =
             if isValid then
                 ( Just <|
-                    ProjectMsg project.auth.project.uuid <|
-                        RequestCreateKeypair name publicKey
+                    SharedMsg <|
+                        ProjectMsg project.auth.project.uuid <|
+                            RequestCreateKeypair name publicKey
                 , Element.none
                 )
 

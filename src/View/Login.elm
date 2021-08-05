@@ -2,7 +2,7 @@ module View.Login exposing (loginPickerButton)
 
 import Element
 import Style.Helpers as SH
-import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.View
     exposing
         ( LoginView(..)
@@ -13,7 +13,7 @@ import View.Types
 import Widget
 
 
-loginPickerButton : View.Types.Context -> Element.Element SharedMsg
+loginPickerButton : View.Types.Context -> Element.Element OuterMsg
 loginPickerButton context =
     Widget.textButton
         (SH.materialStyle context.palette).button

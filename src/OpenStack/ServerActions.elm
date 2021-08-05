@@ -14,6 +14,7 @@ import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Server exposing (Server)
 import Types.View exposing (ProjectViewConstructor(..))
 
@@ -56,7 +57,7 @@ type alias ServerAction =
 
 type ActionType
     = CmdAction (ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg)
-    | UpdateAction (ProjectIdentifier -> Server -> SharedMsg)
+    | UpdateAction (ProjectIdentifier -> Server -> OuterMsg)
 
 
 type SelectMod
@@ -213,13 +214,10 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             UpdateAction <|
                 \projectId server ->
-                    ProjectMsg
-                        projectId
-                        (SetProjectView
-                            (CreateServerImage
-                                server.osProps.uuid
-                                (server.osProps.name ++ "-image")
-                            )
+                    SetProjectView projectId
+                        (CreateServerImage
+                            server.osProps.uuid
+                            (server.osProps.name ++ "-image")
                         )
       , selectMod = NoMod
       , targetStatus = Just [ OSTypes.ServerActive ]

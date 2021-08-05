@@ -6,6 +6,7 @@ import Element.Input as Input
 import Style.Helpers as SH
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.View
     exposing
         ( LoginView(..)
@@ -18,10 +19,10 @@ import View.Types
 import Widget
 
 
-viewLoginJetstream : View.Types.Context -> JetstreamCreds -> Element.Element SharedMsg
+viewLoginJetstream : View.Types.Context -> JetstreamCreds -> Element.Element OuterMsg
 viewLoginJetstream context jetstreamCreds =
     let
-        updateCreds : JetstreamCreds -> SharedMsg
+        updateCreds : JetstreamCreds -> OuterMsg
         updateCreds newCreds =
             SetNonProjectView <| Login <| LoginJetstream newCreds
     in
@@ -63,7 +64,7 @@ viewLoginJetstream context jetstreamCreds =
                             (SH.materialStyle context.palette).primaryButton
                             { text = "Log In"
                             , onPress =
-                                Just (JetstreamLogin jetstreamCreds)
+                                Just <| SharedMsg (JetstreamLogin jetstreamCreds)
                             }
                         )
                     ]
@@ -72,7 +73,7 @@ viewLoginJetstream context jetstreamCreds =
         ]
 
 
-jetstreamLoginText : View.Types.Context -> Element.Element SharedMsg
+jetstreamLoginText : View.Types.Context -> Element.Element OuterMsg
 jetstreamLoginText context =
     Element.column VH.exoColumnAttributes
         [ Element.paragraph

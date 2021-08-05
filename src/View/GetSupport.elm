@@ -13,6 +13,7 @@ import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
 import Types.Msg exposing (SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Types
     exposing
         ( SharedModel
@@ -36,7 +37,7 @@ getSupport :
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Bool
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 getSupport model context maybeSupportableResource requestDescription isSubmitted =
     Element.column
         (VH.exoColumnAttributes
@@ -242,7 +243,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                , Font.size 10
                                ]
                         )
-                        { onChange = \_ -> NoOp
+                        { onChange = \_ -> SharedMsg NoOp
                         , text = buildSupportRequest model context maybeSupportableResource requestDescription
                         , placeholder = Nothing
                         , label = Input.labelHidden "Support request"

@@ -26,6 +26,7 @@ import Types.HelperTypes
         , FloatingIpReuseOption(..)
         )
 import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.View exposing (ProjectViewConstructor(..))
@@ -34,14 +35,13 @@ import View.Types
 import Widget
 
 
-updateCreateServerRequest : Project -> CreateServerViewParams -> SharedMsg
+updateCreateServerRequest : Project -> CreateServerViewParams -> OuterMsg
 updateCreateServerRequest project viewParams =
-    ProjectMsg project.auth.project.uuid <|
-        SetProjectView <|
-            CreateServer viewParams
+    SetProjectView project.auth.project.uuid <|
+        CreateServer viewParams
 
 
-createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 createServer context project viewParams =
     let
         invalidNameReasons =
@@ -119,7 +119,7 @@ createServer context project viewParams =
             in
             case ( invalidNameReasons, invalidVolSizeTextInput, viewParams.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
-                    Just (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams netUuid))
+                    Just <| SharedMsg (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams netUuid))
 
                 ( _, _, _ ) ->
                     Nothing
@@ -239,7 +239,7 @@ createServer context project viewParams =
         ]
 
 
-flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element SharedMsg
+flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element OuterMsg
 flavorPicker context project viewParams computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
@@ -388,7 +388,7 @@ flavorPicker context project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element SharedMsg
+volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element OuterMsg
 volBackedPrompt context project viewParams volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
@@ -522,7 +522,7 @@ countPicker :
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
-    -> Element.Element SharedMsg
+    -> Element.Element OuterMsg
 countPicker context project viewParams computeQuota volumeQuota flavor =
     let
         countAvail =
@@ -599,10 +599,10 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 desktopEnvironmentPicker context project createServerViewParams =
     let
-        warnings : List (Element.Element SharedMsg)
+        warnings : List (Element.Element OuterMsg)
         warnings =
             [ Just <|
                 Element.text <|
@@ -702,7 +702,7 @@ desktopEnvironmentPicker context project createServerViewParams =
         ]
 
 
-guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 guacamolePicker context project createServerViewParams =
     case createServerViewParams.deployGuacamole of
         Nothing ->
@@ -729,7 +729,7 @@ guacamolePicker context project createServerViewParams =
                 ]
 
 
-skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 skipOperatingSystemUpdatesPicker context project createServerViewParams =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
@@ -767,7 +767,7 @@ skipOperatingSystemUpdatesPicker context project createServerViewParams =
         ]
 
 
-networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 networkPicker context project viewParams =
     let
         networkOptions =
@@ -817,7 +817,7 @@ networkPicker context project viewParams =
         ]
 
 
-floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 floatingIpPicker context project viewParams =
     let
         optionPicker =
@@ -918,7 +918,7 @@ floatingIpPicker context project viewParams =
         ]
 
 
-keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 keypairPicker context project viewParams =
     let
         keypairAsOption keypair =
@@ -989,14 +989,13 @@ keypairPicker context project viewParams =
                     ]
             , onPress =
                 Just <|
-                    ProjectMsg project.auth.project.uuid <|
-                        SetProjectView <|
-                            CreateKeypair "" ""
+                    SetProjectView project.auth.project.uuid <|
+                        CreateKeypair "" ""
             }
         ]
 
 
-userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element SharedMsg
+userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 userDataInput context project viewParams =
     Input.multiline
         (VH.inputItemAttributes context.palette.background
