@@ -7,7 +7,6 @@ module View.Types exposing
 import Dict
 import Element
 import Style.Types exposing (ExoPalette)
-import Types.Msg exposing (Msg)
 import Types.Types exposing (Localization, WindowSize)
 
 
@@ -19,9 +18,9 @@ type alias Context =
     }
 
 
-type BrowserLinkLabel
+type BrowserLinkLabel msg
     = BrowserLinkTextLabel String
-    | BrowserLinkFancyLabel (Element.Element Msg)
+    | BrowserLinkFancyLabel (Element.Element msg)
 
 
 type alias ImageTag =
