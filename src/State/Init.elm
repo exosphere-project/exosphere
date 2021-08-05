@@ -172,7 +172,7 @@ init flags urlKey =
         defaultViewState =
             State.ViewState.defaultViewState hydratedModel
 
-        viewState =
+        viewStateFromUrl =
             AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
                 |> Maybe.withDefault (NonProjectView PageNotFound)
 
@@ -226,12 +226,14 @@ init flags urlKey =
 
         outerModel =
             { sharedModel = requestResourcesModel
-            , viewState = defaultViewState
+            , viewState =
+                -- This will get replaced with the appropriate view from viewStateFromUrl
+                NonProjectView LoginPicker
             , pendingCredentialedRequests = []
             }
 
         ( setViewModel, setViewCmd ) =
-            case viewState of
+            case viewStateFromUrl of
                 ExampleNestedView model ->
                     ( { outerModel | viewState = ExampleNestedView model }, Cmd.none )
 
