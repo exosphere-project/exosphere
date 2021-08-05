@@ -1,15 +1,9 @@
 module Types.Types exposing
-    ( CloudSpecificConfig
-    , ExcludeFilter
-    , Flags
-    , KeystoneHostname
-    , Localization
+    ( Flags
     , LogMessage
     , OpenIdConnectLoginConfig
     , SharedModel
     , Style
-    , UserAppProxyHostname
-    , WindowSize
     )
 
 import Browser.Navigation
@@ -57,12 +51,12 @@ type alias Flags =
     , userSupportEmail : Maybe String
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , localization : Maybe Localization
+    , localization : Maybe HelperTypes.Localization
     , clouds :
         List
-            { keystoneHostname : KeystoneHostname
-            , userAppProxy : Maybe UserAppProxyHostname
-            , imageExcludeFilter : Maybe ExcludeFilter
+            { keystoneHostname : HelperTypes.KeystoneHostname
+            , userAppProxy : Maybe HelperTypes.UserAppProxyHostname
+            , imageExcludeFilter : Maybe HelperTypes.ExcludeFilter
             , featuredImageNamePrefix : Maybe String
             }
     , instanceConfigMgtRepoUrl : Maybe String
@@ -81,19 +75,6 @@ type alias Flags =
     }
 
 
-type alias CloudSpecificConfig =
-    { userAppProxy : Maybe UserAppProxyHostname
-    , imageExcludeFilter : Maybe ExcludeFilter
-    , featuredImageNamePrefix : Maybe String
-    }
-
-
-type alias WindowSize =
-    { width : Int
-    , height : Int
-    }
-
-
 type alias SharedModel =
     { logMessages : List LogMessage
     , urlPathPrefix : Maybe String
@@ -101,7 +82,7 @@ type alias SharedModel =
 
     -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
     , prevUrl : String
-    , windowSize : WindowSize
+    , windowSize : HelperTypes.WindowSize
     , unscopedProviders : List HelperTypes.UnscopedProvider
     , projects : List Project
     , toasties : Toasty.Stack Toast
@@ -113,34 +94,9 @@ type alias SharedModel =
     , style : Style
     , openIdConnectLoginConfig :
         Maybe OpenIdConnectLoginConfig
-    , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
+    , cloudSpecificConfigs : Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig
     , instanceConfigMgtRepoUrl : HelperTypes.Url
     , instanceConfigMgtRepoCheckout : String
-    }
-
-
-type alias ExcludeFilter =
-    { filterKey : String
-    , filterValue : String
-    }
-
-
-type alias Localization =
-    { openstackWithOwnKeystone : String
-    , openstackSharingKeystoneWithAnother : String
-    , unitOfTenancy : String
-    , maxResourcesPerProject : String
-    , pkiPublicKeyForSsh : String
-    , virtualComputer : String
-    , virtualComputerHardwareConfig : String
-    , cloudInitData : String
-    , commandDrivenTextInterface : String
-    , staticRepresentationOfBlockDeviceContents : String
-    , blockDevice : String
-    , nonFloatingIpAddress : String
-    , floatingIpAddress : String
-    , publiclyRoutableIpAddress : String
-    , graphicalDesktopEnvironment : String
     }
 
 
@@ -155,7 +111,7 @@ type alias Style =
     , aboutAppMarkdown : Maybe String
     , supportInfoMarkdown : Maybe String
     , userSupportEmail : String
-    , localization : Localization
+    , localization : HelperTypes.Localization
     }
 
 
@@ -170,14 +126,6 @@ type alias OpenIdConnectLoginConfig =
 
 type alias CloudCorsProxyUrl =
     HelperTypes.Url
-
-
-type alias KeystoneHostname =
-    HelperTypes.Hostname
-
-
-type alias UserAppProxyHostname =
-    HelperTypes.Hostname
 
 
 type alias LogMessage =

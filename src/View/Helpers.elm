@@ -973,7 +973,7 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
         ]
 
 
-imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
+imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.HelperTypes.ExcludeFilter
 imageExcludeFilterLookup context project =
     let
         projectKeystoneHostname =
@@ -993,7 +993,7 @@ featuredImageNamePrefixLookup context project =
         |> Maybe.andThen (\csc -> csc.featuredImageNamePrefix)
 
 
-userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.Types.UserAppProxyHostname
+userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.HelperTypes.UserAppProxyHostname
 userAppProxyLookup context project =
     let
         projectKeystoneHostname =

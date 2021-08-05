@@ -1,17 +1,23 @@
 module Types.HelperTypes exposing
-    ( DefaultLoginView(..)
+    ( CloudSpecificConfig
+    , DefaultLoginView(..)
+    , ExcludeFilter
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
+    , KeystoneHostname
+    , Localization
     , Password
     , ProjectIdentifier
     , UnscopedProvider
     , UnscopedProviderProject
     , Url
+    , UserAppProxyHostname
     , Uuid
+    , WindowSize
     )
 
 import OpenStack.Types as OSTypes
@@ -91,3 +97,49 @@ type HttpRequestMethod
 type DefaultLoginView
     = DefaultLoginOpenstack
     | DefaultLoginJetstream
+
+
+type alias Localization =
+    { openstackWithOwnKeystone : String
+    , openstackSharingKeystoneWithAnother : String
+    , unitOfTenancy : String
+    , maxResourcesPerProject : String
+    , pkiPublicKeyForSsh : String
+    , virtualComputer : String
+    , virtualComputerHardwareConfig : String
+    , cloudInitData : String
+    , commandDrivenTextInterface : String
+    , staticRepresentationOfBlockDeviceContents : String
+    , blockDevice : String
+    , nonFloatingIpAddress : String
+    , floatingIpAddress : String
+    , publiclyRoutableIpAddress : String
+    , graphicalDesktopEnvironment : String
+    }
+
+
+type alias WindowSize =
+    { width : Int
+    , height : Int
+    }
+
+
+type alias KeystoneHostname =
+    Hostname
+
+
+type alias CloudSpecificConfig =
+    { userAppProxy : Maybe UserAppProxyHostname
+    , imageExcludeFilter : Maybe ExcludeFilter
+    , featuredImageNamePrefix : Maybe String
+    }
+
+
+type alias UserAppProxyHostname =
+    Hostname
+
+
+type alias ExcludeFilter =
+    { filterKey : String
+    , filterValue : String
+    }

@@ -401,7 +401,7 @@ modelUpdateUnscopedProvider model newProvider =
     { model | unscopedProviders = newProvidersSorted }
 
 
-cloudConfigLookup : SharedModel -> Project -> Maybe Types.Types.CloudSpecificConfig
+cloudConfigLookup : SharedModel -> Project -> Maybe HelperTypes.CloudSpecificConfig
 cloudConfigLookup model project =
     let
         projectKeystoneHostname =

@@ -24,12 +24,11 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier)
+import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, UserAppProxyHostname)
 import Types.Interaction as ITypes
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
-import Types.Types exposing (UserAppProxyHostname)
 import Types.View
     exposing
         ( AssignFloatingIpViewParams

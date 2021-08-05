@@ -5,9 +5,10 @@ import Orchestration.GoalNetworkResources exposing (goalPollNetworkResources)
 import Orchestration.GoalServer exposing (goalNewServer, goalPollServers)
 import Orchestration.Helpers exposing (applyProjectStep)
 import Time
+import Types.HelperTypes exposing (CloudSpecificConfig)
 import Types.Msg exposing (Msg)
 import Types.Project exposing (Project)
-import Types.Types exposing (CloudSpecificConfig, SharedModel)
+import Types.Types exposing (SharedModel)
 import UUID
 
 

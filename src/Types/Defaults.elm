@@ -22,11 +22,10 @@ import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
-import Types.Types as Types
 import Types.View as ViewTypes
 
 
-localization : Types.Localization
+localization : HelperTypes.Localization
 localization =
     {- Maybe put this alongside Types.Localization? -}
     { openstackWithOwnKeystone = "cloud"

@@ -11,9 +11,9 @@ import Html
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
+import Types.HelperTypes exposing (WindowSize)
 import Types.Msg exposing (Msg(..))
 import Types.OuterModel exposing (OuterModel)
-import Types.Types exposing (WindowSize)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.HelpAbout

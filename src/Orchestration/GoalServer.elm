@@ -14,12 +14,18 @@ import Rest.Neutron
 import Rest.Nova
 import Time
 import Types.Guacamole as GuacTypes
-import Types.HelperTypes exposing (FloatingIpAssignmentStatus(..), FloatingIpOption(..), FloatingIpReuseOption(..))
+import Types.HelperTypes
+    exposing
+        ( CloudSpecificConfig
+        , FloatingIpAssignmentStatus(..)
+        , FloatingIpOption(..)
+        , FloatingIpReuseOption(..)
+        , UserAppProxyHostname
+        )
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.ServerResourceUsage exposing (TimeSeries)
-import Types.Types exposing (CloudSpecificConfig, UserAppProxyHostname)
 import UUID
 
 
@@ -472,7 +478,7 @@ stepServerPollConsoleLog time project server =
                     )
 
 
-stepServerGuacamoleAuth : Time.Posix -> Maybe Types.Types.UserAppProxyHostname -> Project -> Server -> ( Project, Cmd Msg )
+stepServerGuacamoleAuth : Time.Posix -> Maybe UserAppProxyHostname -> Project -> Server -> ( Project, Cmd Msg )
 stepServerGuacamoleAuth time maybeUserAppProxy project server =
     -- TODO ensure server is active
     let
