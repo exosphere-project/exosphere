@@ -5,7 +5,6 @@ import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Types.Error exposing (HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes
-import Types.Msg exposing (Msg)
 import Types.Server exposing (Server)
 
 
@@ -29,7 +28,6 @@ type alias Project =
     , securityGroups : List OSTypes.SecurityGroup
     , computeQuota : WebData OSTypes.ComputeQuota
     , volumeQuota : WebData OSTypes.VolumeQuota
-    , pendingCredentialedRequests : List (OSTypes.AuthTokenString -> Cmd Msg) -- Requests waiting for a valid auth token
     }
 
 

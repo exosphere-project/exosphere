@@ -88,7 +88,7 @@ update msg outerModel =
 mapSharedToOuter : OuterModel -> ( SharedModel, Cmd Msg ) -> ( OuterModel, Cmd Msg )
 mapSharedToOuter outerModel ( newSharedModel, cmd ) =
     -- hopefully temporary function
-    ( { sharedModel = newSharedModel, viewState = outerModel.viewState }, cmd )
+    ( { outerModel | sharedModel = newSharedModel }, cmd )
 
 
 updateUnderlying : Msg -> OuterModel -> ( OuterModel, Cmd Msg )
@@ -201,11 +201,10 @@ updateUnderlying msg outerModel =
                                                         sharedModel.clientCurrentTime
                                                         project
 
-                                        ( newModel, updateTokenCmd ) =
-                                            State.Auth.projectUpdateAuthToken sharedModel project authToken
+                                        ( newOuterModel, updateTokenCmd ) =
+                                            State.Auth.projectUpdateAuthToken outerModel project authToken
                                     in
-                                    ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
-                                        |> mapSharedToOuter outerModel
+                                    ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
 
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
@@ -572,16 +571,13 @@ processProjectSpecificMsg outerModel project msg =
                 -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
                 let
                     newPQRs =
-                        requestNeedingToken :: project.pendingCredentialedRequests
-
-                    newProject =
-                        { project | pendingCredentialedRequests = newPQRs }
-
-                    newSharedModel =
-                        GetterSetters.modelUpdateProject sharedModel newProject
+                        ( project.auth.project.uuid, requestNeedingToken ) :: outerModel.pendingCredentialedRequests
 
                     cmdResult =
-                        State.Auth.requestAuthToken newSharedModel newProject
+                        State.Auth.requestAuthToken sharedModel project
+
+                    newOuterModel =
+                        { outerModel | pendingCredentialedRequests = newPQRs }
                 in
                 case cmdResult of
                     Err e ->
@@ -592,12 +588,12 @@ processProjectSpecificMsg outerModel project msg =
                                     ErrorCrit
                                     (Just "Please remove this project from Exosphere and add it again.")
                         in
-                        State.Error.processStringError newSharedModel errorContext e
-                            |> mapSharedToOuter outerModel
+                        State.Error.processStringError sharedModel errorContext e
+                            |> mapSharedToOuter newOuterModel
 
                     Ok cmd ->
-                        ( newSharedModel, cmd )
-                            |> mapSharedToOuter outerModel
+                        ( sharedModel, cmd )
+                            |> mapSharedToOuter newOuterModel
 
         ToggleCreatePopup ->
             case outerModel.viewState of
@@ -1805,7 +1801,6 @@ createProject outerModel authToken endpoints =
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
-            , pendingCredentialedRequests = []
             }
 
         newProjects =

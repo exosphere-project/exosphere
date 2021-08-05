@@ -14,6 +14,7 @@ import Rest.Keystone
 import Set
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider)
 import Types.Msg exposing (Msg(..), ProjectSpecificMsgConstructor(..))
+import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.Types exposing (SharedModel)
 import Types.View
@@ -27,17 +28,20 @@ import Types.View
 import Url
 
 
-projectUpdateAuthToken : SharedModel -> Project -> OSTypes.ScopedAuthToken -> ( SharedModel, Cmd Msg )
-projectUpdateAuthToken model project authToken =
+projectUpdateAuthToken : OuterModel -> Project -> OSTypes.ScopedAuthToken -> ( OuterModel, Cmd Msg )
+projectUpdateAuthToken outerModel project authToken =
     -- Update auth token for existing project
     let
         newProject =
             { project | auth = authToken }
 
-        newModel =
-            GetterSetters.modelUpdateProject model newProject
+        newSharedModel =
+            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
+
+        newOuterModel =
+            { outerModel | sharedModel = newSharedModel }
     in
-    sendPendingRequests newModel newProject
+    sendPendingRequests newOuterModel newProject
 
 
 unscopedProviderUpdateAuthToken : SharedModel -> UnscopedProvider -> OSTypes.UnscopedAuthToken -> ( SharedModel, Cmd Msg )
@@ -52,21 +56,27 @@ unscopedProviderUpdateAuthToken model provider authToken =
     ( newModel, Cmd.none )
 
 
-sendPendingRequests : SharedModel -> Project -> ( SharedModel, Cmd Msg )
-sendPendingRequests model project =
+sendPendingRequests : OuterModel -> Project -> ( OuterModel, Cmd Msg )
+sendPendingRequests outerModel project =
     -- Fires any pending commands which were waiting for auth token renewal
     -- This function assumes our token is valid (does not check for expiry).
     let
+        pendingRequestsForProject =
+            outerModel.pendingCredentialedRequests
+                |> List.filter (\pr -> Tuple.first pr == project.auth.project.uuid)
+                |> List.map Tuple.second
+
+        pendingRequestsForOtherProjects =
+            outerModel.pendingCredentialedRequests
+                |> List.filter (\pr -> Tuple.first pr /= project.auth.project.uuid)
+
         -- Hydrate cmds with auth token
         cmds =
-            List.map (\pqr -> pqr project.auth.tokenValue) project.pendingCredentialedRequests
+            List.map (\pqr -> pqr project.auth.tokenValue) pendingRequestsForProject
 
-        -- Clear out pendingCredentialedRequests
-        newProject =
-            { project | pendingCredentialedRequests = [] }
-
+        -- Clear out pendingCredentialedRequests for this project
         newModel =
-            GetterSetters.modelUpdateProject model newProject
+            { outerModel | pendingCredentialedRequests = pendingRequestsForOtherProjects }
     in
     ( newModel, Cmd.batch cmds )
 

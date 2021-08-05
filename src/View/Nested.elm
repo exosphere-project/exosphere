@@ -2,6 +2,7 @@ module View.Nested exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Input as Input
+import Types.Types
 
 
 type alias Model =

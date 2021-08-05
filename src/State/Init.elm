@@ -225,7 +225,10 @@ init flags urlKey =
                     ( hydratedModel, Cmd.none )
 
         outerModel =
-            { sharedModel = requestResourcesModel, viewState = defaultViewState }
+            { sharedModel = requestResourcesModel
+            , viewState = defaultViewState
+            , pendingCredentialedRequests = []
+            }
 
         ( setViewModel, setViewCmd ) =
             case viewState of
