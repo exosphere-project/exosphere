@@ -61,8 +61,8 @@ pageTitle outerModel context =
                 HelpAbout ->
                     "About " ++ outerModel.sharedModel.style.appTitle
 
-                ExampleNestedView _ ->
-                    "Example Nested View"
+                ExamplePage _ ->
+                    "Example Page"
 
                 PageNotFound ->
                     "Error: page not found"

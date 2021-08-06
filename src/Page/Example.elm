@@ -1,4 +1,4 @@
-module Page.Nested exposing (Model, Msg(..), init, update, view)
+module Page.Example exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Events as Events

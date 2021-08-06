@@ -8,8 +8,8 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
+import Page.Example
 import Page.LoginOpenstack
-import Page.Nested
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
@@ -117,9 +117,9 @@ elementView windowSize outerModel context =
                             HelpAbout ->
                                 View.HelpAbout.helpAbout outerModel.sharedModel context
 
-                            ExampleNestedView nestedViewModel ->
-                                Page.Nested.view nestedViewModel
-                                    |> Element.map (\msg -> NestedViewMsg msg)
+                            ExamplePage model ->
+                                Page.Example.view model
+                                    |> Element.map (\msg -> ExamplePageMsg msg)
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."

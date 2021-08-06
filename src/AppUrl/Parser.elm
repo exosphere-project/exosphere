@@ -2,8 +2,8 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Page.Example
 import Page.LoginOpenstack
-import Page.Nested
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.View
@@ -157,7 +157,7 @@ pathParsers defaultViewState =
         (NonProjectView PageNotFound)
         (s "pagenotfound")
     , map
-        (NonProjectView <| ExampleNestedView Page.Nested.init)
+        (NonProjectView <| ExamplePage Page.Example.init)
         (s "example")
     , map
         (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)

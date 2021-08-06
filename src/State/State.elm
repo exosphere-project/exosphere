@@ -18,8 +18,8 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.Example
 import Page.LoginOpenstack
-import Page.Nested
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -129,15 +129,15 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     ViewStateHelpers.setProjectView project projectViewConstructor outerModel
 
-        ( NestedViewMsg innerMsg, NonProjectView (ExampleNestedView innerModel) ) ->
+        ( ExamplePageMsg innerMsg, NonProjectView (ExamplePage innerModel) ) ->
             let
                 ( newSharedModel, cmd, sharedMsg ) =
-                    Page.Nested.update innerMsg sharedModel innerModel
+                    Page.Example.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| ExampleNestedView newSharedModel
+                | viewState = NonProjectView <| ExamplePage newSharedModel
               }
-            , Cmd.map (\msg -> NestedViewMsg msg) cmd
+            , Cmd.map (\msg -> ExamplePageMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)

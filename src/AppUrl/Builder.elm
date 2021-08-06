@@ -132,7 +132,7 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "helpabout" ]
                 []
 
-        ExampleNestedView _ ->
+        ExamplePage _ ->
             buildUrlFunc
                 [ "example" ]
                 []

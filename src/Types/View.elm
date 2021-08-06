@@ -25,8 +25,8 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.Example
 import Page.LoginOpenstack
-import Page.Nested
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
@@ -51,7 +51,7 @@ type NonProjectViewConstructor
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout
-    | ExampleNestedView Page.Nested.Model
+    | ExamplePage Page.Example.Model
     | PageNotFound
 
 
