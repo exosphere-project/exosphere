@@ -1,4 +1,4 @@
-module View.Messages exposing (messageLog)
+module LegacyView.Messages exposing (messageLog)
 
 import Element
 import Element.Input as Input

@@ -1,4 +1,4 @@
-module View.Settings exposing (settings)
+module LegacyView.Settings exposing (settings)
 
 import Element
 import Element.Input as Input

@@ -1,4 +1,4 @@
-module View.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
+module LegacyView.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
 
 import Element
 import Element.Font as Font
@@ -7,6 +7,7 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.String
+import LegacyView.QuotaUsage
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
@@ -33,7 +34,6 @@ import Types.View
         , VolumeListViewParams
         )
 import View.Helpers as VH
-import View.QuotaUsage
 import View.Types
 import Widget
 
@@ -76,7 +76,7 @@ volumes context showHeading project viewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
+            [ LegacyView.QuotaUsage.volumeQuotaDetails context project.volumeQuota
             , VH.renderWebData
                 context
                 project.volumes

@@ -1,4 +1,4 @@
-module View.CreateServerImage exposing (createServerImage)
+module LegacyView.CreateServerImage exposing (createServerImage)
 
 import Element
 import Element.Input as Input

@@ -1,4 +1,4 @@
-module View.Images exposing (imagesIfLoaded)
+module LegacyView.Images exposing (imagesIfLoaded)
 
 import Element
 import Element.Font as Font

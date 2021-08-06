@@ -1,4 +1,4 @@
-module View.QuotaUsage exposing
+module LegacyView.QuotaUsage exposing
     ( computeQuotaDetails
     , floatingIpQuotaDetails
     , volumeQuotaDetails

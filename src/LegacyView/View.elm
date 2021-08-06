@@ -1,4 +1,4 @@
-module View.View exposing (view)
+module LegacyView.View exposing (view)
 
 import Browser
 import Element
@@ -8,6 +8,17 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
+import LegacyView.GetSupport
+import LegacyView.HelpAbout
+import LegacyView.LoginJetstream
+import LegacyView.LoginPicker
+import LegacyView.Messages
+import LegacyView.Nav
+import LegacyView.PageTitle
+import LegacyView.Project
+import LegacyView.SelectProjects
+import LegacyView.Settings
+import LegacyView.Toast
 import Page.Example
 import Page.LoginOpenstack
 import Style.Helpers as SH
@@ -18,18 +29,7 @@ import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
-import View.GetSupport
-import View.HelpAbout
 import View.Helpers as VH
-import View.LoginJetstream
-import View.LoginPicker
-import View.Messages
-import View.Nav
-import View.PageTitle
-import View.Project
-import View.SelectProjects
-import View.Settings
-import View.Toast
 import View.Types
 
 
@@ -40,7 +40,7 @@ view outerModel =
             VH.toViewContext outerModel.sharedModel
     in
     { title =
-        View.PageTitle.pageTitle outerModel context
+        LegacyView.PageTitle.pageTitle outerModel context
     , body =
         [ view_ outerModel context ]
     }
@@ -68,7 +68,7 @@ elementView windowSize outerModel context =
                 [ Element.padding 10
                 , Element.alignTop
                 , Element.width <|
-                    Element.px (windowSize.width - View.Nav.navMenuWidth)
+                    Element.px (windowSize.width - LegacyView.Nav.navMenuWidth)
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
@@ -76,7 +76,7 @@ elementView windowSize outerModel context =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                View.LoginPicker.loginPicker context outerModel.sharedModel.openIdConnectLoginConfig
+                                LegacyView.LoginPicker.loginPicker context outerModel.sharedModel.openIdConnectLoginConfig
 
                             Login loginView ->
                                 case loginView of
@@ -85,7 +85,7 @@ elementView windowSize outerModel context =
                                             |> Element.map LoginOpenstackMsg
 
                                     LoginJetstream jetstreamCreds ->
-                                        View.LoginJetstream.viewLoginJetstream context jetstreamCreds
+                                        LegacyView.LoginJetstream.viewLoginJetstream context jetstreamCreds
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here
@@ -98,16 +98,16 @@ elementView windowSize outerModel context =
                                         ]
 
                             SelectProjects authUrl selectedProjects ->
-                                View.SelectProjects.selectProjects outerModel.sharedModel context authUrl selectedProjects
+                                LegacyView.SelectProjects.selectProjects outerModel.sharedModel context authUrl selectedProjects
 
                             MessageLog showDebugMsgs ->
-                                View.Messages.messageLog context outerModel.sharedModel.logMessages showDebugMsgs
+                                LegacyView.Messages.messageLog context outerModel.sharedModel.logMessages showDebugMsgs
 
                             Settings ->
-                                View.Settings.settings context outerModel.sharedModel.style.styleMode
+                                LegacyView.Settings.settings context outerModel.sharedModel.style.styleMode
 
                             GetSupport maybeSupportableItem requestDescription isSubmitted ->
-                                View.GetSupport.getSupport
+                                LegacyView.GetSupport.getSupport
                                     outerModel.sharedModel
                                     context
                                     maybeSupportableItem
@@ -115,7 +115,7 @@ elementView windowSize outerModel context =
                                     isSubmitted
 
                             HelpAbout ->
-                                View.HelpAbout.helpAbout outerModel.sharedModel context
+                                LegacyView.HelpAbout.helpAbout outerModel.sharedModel context
 
                             ExamplePage model ->
                                 Page.Example.view model
@@ -136,7 +136,7 @@ elementView windowSize outerModel context =
                                         ]
 
                             Just project ->
-                                View.Project.project
+                                LegacyView.Project.project
                                     outerModel.sharedModel
                                     context
                                     project
@@ -144,7 +144,7 @@ elementView windowSize outerModel context =
                                     viewConstructor
                 , Element.html
                     (Toasty.view Style.Toast.toastConfig
-                        (View.Toast.toast context outerModel.sharedModel.showDebugMsgs)
+                        (LegacyView.Toast.toast context outerModel.sharedModel.showDebugMsgs)
                         (\m -> SharedMsg <| ToastyMsg m)
                         outerModel.sharedModel.toasties
                     )
@@ -168,15 +168,15 @@ elementView windowSize outerModel context =
                 [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
                 , Element.width Element.fill
                 ]
-                (View.Nav.navBar outerModel context)
+                (LegacyView.Nav.navBar outerModel context)
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
                 , Element.width Element.fill
                 , Element.height <|
-                    Element.px (windowSize.height - View.Nav.navBarHeight)
+                    Element.px (windowSize.height - LegacyView.Nav.navBarHeight)
                 ]
-                [ View.Nav.navMenu outerModel context
+                [ LegacyView.Nav.navMenu outerModel context
                 , mainContentContainerView
                 ]
             ]

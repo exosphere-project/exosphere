@@ -1,4 +1,4 @@
-module View.Project exposing (project)
+module LegacyView.Project exposing (project)
 
 import Element
 import Element.Background as Background
@@ -6,6 +6,17 @@ import Element.Border as Border
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
+import LegacyView.AllResources
+import LegacyView.AttachVolume
+import LegacyView.CreateKeypair
+import LegacyView.CreateServer
+import LegacyView.CreateServerImage
+import LegacyView.FloatingIps
+import LegacyView.Images
+import LegacyView.ListKeypairs
+import LegacyView.ServerDetail
+import LegacyView.ServerList
+import LegacyView.Volumes
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -15,19 +26,8 @@ import Types.Project exposing (Project)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Types exposing (SharedModel)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
-import View.AllResources
-import View.AttachVolume
-import View.CreateKeypair
-import View.CreateServer
-import View.CreateServerImage
-import View.FloatingIps
 import View.Helpers as VH
-import View.Images
-import View.ListKeypairs
-import View.ServerDetail
-import View.ServerList
 import View.Types
-import View.Volumes
 import Widget
 
 
@@ -37,16 +37,16 @@ project model context p viewParams viewConstructor =
         v =
             case viewConstructor of
                 AllResources allResourcesViewParams ->
-                    View.AllResources.allResources
+                    LegacyView.AllResources.allResources
                         context
                         p
                         allResourcesViewParams
 
                 ListImages imageFilter sortTableParams ->
-                    View.Images.imagesIfLoaded context p imageFilter sortTableParams
+                    LegacyView.Images.imagesIfLoaded context p imageFilter sortTableParams
 
                 ListProjectServers serverListViewParams ->
-                    View.ServerList.serverList context
+                    LegacyView.ServerList.serverList context
                         True
                         p
                         serverListViewParams
@@ -56,13 +56,13 @@ project model context p viewParams viewConstructor =
                         )
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.ServerDetail.serverDetail context p ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
+                    LegacyView.ServerDetail.serverDetail context p ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
                 CreateServer createServerViewParams ->
-                    View.CreateServer.createServer context p createServerViewParams
+                    LegacyView.CreateServer.createServer context p createServerViewParams
 
                 ListProjectVolumes volumeListViewParams ->
-                    View.Volumes.volumes context
+                    LegacyView.Volumes.volumes context
                         True
                         p
                         volumeListViewParams
@@ -72,7 +72,7 @@ project model context p viewParams viewConstructor =
                         )
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
-                    View.Volumes.volumeDetailView context
+                    LegacyView.Volumes.volumeDetailView context
                         p
                         deleteVolumeConfirmations
                         (\newParams ->
@@ -82,16 +82,16 @@ project model context p viewParams viewConstructor =
                         volumeUuid
 
                 CreateVolume volName volSizeInput ->
-                    View.Volumes.createVolume context p volName volSizeInput
+                    LegacyView.Volumes.createVolume context p volName volSizeInput
 
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
-                    View.AttachVolume.attachVolume context p maybeServerUuid maybeVolumeUuid
+                    LegacyView.AttachVolume.attachVolume context p maybeServerUuid maybeVolumeUuid
 
                 MountVolInstructions attachment ->
-                    View.AttachVolume.mountVolInstructions context p attachment
+                    LegacyView.AttachVolume.mountVolInstructions context p attachment
 
                 ListFloatingIps floatingIpListViewParams ->
-                    View.FloatingIps.floatingIps context
+                    LegacyView.FloatingIps.floatingIps context
                         True
                         p
                         floatingIpListViewParams
@@ -101,13 +101,13 @@ project model context p viewParams viewConstructor =
                         )
 
                 AssignFloatingIp assignFloatingIpViewParams ->
-                    View.FloatingIps.assignFloatingIp
+                    LegacyView.FloatingIps.assignFloatingIp
                         context
                         p
                         assignFloatingIpViewParams
 
                 ListKeypairs keypairListViewParams ->
-                    View.ListKeypairs.listKeypairs context
+                    LegacyView.ListKeypairs.listKeypairs context
                         True
                         p
                         keypairListViewParams
@@ -117,10 +117,10 @@ project model context p viewParams viewConstructor =
                         )
 
                 CreateKeypair keypairName publicKey ->
-                    View.CreateKeypair.createKeypair context p keypairName publicKey
+                    LegacyView.CreateKeypair.createKeypair context p keypairName publicKey
 
                 CreateServerImage serverUuid imageName ->
-                    View.CreateServerImage.createServerImage context p serverUuid imageName
+                    LegacyView.CreateServerImage.createServerImage context p serverUuid imageName
     in
     Element.column
         (Element.width Element.fill

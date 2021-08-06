@@ -11,6 +11,7 @@ import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
+import LegacyView.PageTitle
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
@@ -34,7 +35,6 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
-import View.PageTitle
 
 
 setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -457,7 +457,7 @@ modelUpdateViewState viewState outerModel =
             View.Helpers.toViewContext newOuterModel.sharedModel
 
         newPageTitle =
-            View.PageTitle.pageTitle newOuterModel newViewContext
+            LegacyView.PageTitle.pageTitle newOuterModel newViewContext
 
         ( updateUrlFunc, updateMatomoCmd ) =
             if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then

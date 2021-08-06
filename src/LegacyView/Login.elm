@@ -1,4 +1,4 @@
-module View.Login exposing (loginPickerButton)
+module LegacyView.Login exposing (loginPickerButton)
 
 import Element
 import Style.Helpers as SH

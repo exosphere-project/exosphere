@@ -1,4 +1,4 @@
-module View.ServerDetail exposing (serverDetail)
+module LegacyView.ServerDetail exposing (serverDetail)
 
 import DateFormat.Relative
 import Dict
@@ -14,6 +14,7 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
+import LegacyView.ResourceUsage
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
@@ -41,7 +42,6 @@ import Types.View
         , ViewState(..)
         )
 import View.Helpers as VH
-import View.ResourceUsage
 import View.Types
 import Widget
 import Widget.Style.Material
@@ -1098,8 +1098,8 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
 
                             else
                                 Element.column [ Element.width Element.fill ]
-                                    [ View.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
-                                    , View.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
+                                    [ LegacyView.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
+                                    , LegacyView.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
                                     ]
 
                         _ ->

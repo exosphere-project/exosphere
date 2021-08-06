@@ -1,10 +1,14 @@
-module View.AllResources exposing (allResources)
+module LegacyView.AllResources exposing (allResources)
 
 import Element
 import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons
 import Helpers.String
+import LegacyView.FloatingIps
+import LegacyView.ListKeypairs
+import LegacyView.ServerList
+import LegacyView.Volumes
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
@@ -18,12 +22,8 @@ import Types.View
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
-import View.FloatingIps
 import View.Helpers as VH
-import View.ListKeypairs
-import View.ServerList
 import View.Types
-import View.Volumes
 
 
 allResources :
@@ -70,7 +70,7 @@ allResources context p viewParams =
                     ListProjectServers
                         Defaults.serverListViewParams
                 )
-            , View.ServerList.serverList context
+            , LegacyView.ServerList.serverList context
                 False
                 p
                 viewParams.serverListViewParams
@@ -95,7 +95,7 @@ allResources context p viewParams =
                     ListProjectVolumes
                         Defaults.volumeListViewParams
                 )
-            , View.Volumes.volumes context
+            , LegacyView.Volumes.volumes context
                 False
                 p
                 viewParams.volumeListViewParams
@@ -116,7 +116,7 @@ allResources context p viewParams =
                     ListFloatingIps
                         Defaults.floatingIpListViewParams
                 )
-            , View.FloatingIps.floatingIps context
+            , LegacyView.FloatingIps.floatingIps context
                 False
                 p
                 viewParams.floatingIpListViewParams
@@ -143,7 +143,7 @@ allResources context p viewParams =
                     ListKeypairs
                         Defaults.keypairListViewParams
                 )
-            , View.ListKeypairs.listKeypairs context
+            , LegacyView.ListKeypairs.listKeypairs context
                 False
                 p
                 viewParams.keypairListViewParams

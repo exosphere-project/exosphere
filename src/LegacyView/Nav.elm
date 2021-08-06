@@ -1,4 +1,4 @@
-module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
+module LegacyView.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 
 import Element
 import Element.Background as Background
@@ -7,6 +7,7 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
+import LegacyView.GetSupport
 import Page.LoginOpenstack
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
@@ -17,7 +18,6 @@ import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
-import View.GetSupport
 import View.Helpers as VH
 import View.Types
 
@@ -183,7 +183,7 @@ navBar outerModel context =
                             Just
                                 (SetNonProjectView <|
                                     GetSupport
-                                        (View.GetSupport.viewStateToSupportableItem outerModel.viewState)
+                                        (LegacyView.GetSupport.viewStateToSupportableItem outerModel.viewState)
                                         ""
                                         False
                                 )

@@ -1,4 +1,4 @@
-module View.ListKeypairs exposing (listKeypairs)
+module LegacyView.ListKeypairs exposing (listKeypairs)
 
 import Element
 import Element.Font as Font

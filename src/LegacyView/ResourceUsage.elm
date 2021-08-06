@@ -1,4 +1,4 @@
-module View.ResourceUsage exposing (alerts, charts)
+module LegacyView.ResourceUsage exposing (alerts, charts)
 
 import Dict
 import Element

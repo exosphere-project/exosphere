@@ -1,6 +1,7 @@
 module Exosphere exposing (main)
 
 import Browser exposing (application)
+import LegacyView.View exposing (view)
 import State.Init
 import State.State as State
 import State.Subscriptions
@@ -8,7 +9,6 @@ import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
 import Types.Types exposing (Flags)
-import View.View exposing (view)
 
 
 

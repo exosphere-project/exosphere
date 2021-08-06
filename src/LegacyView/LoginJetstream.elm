@@ -1,8 +1,9 @@
-module View.LoginJetstream exposing (jetstreamLoginText, viewLoginJetstream)
+module LegacyView.LoginJetstream exposing (jetstreamLoginText, viewLoginJetstream)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import LegacyView.Login
 import Style.Helpers as SH
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -13,7 +14,6 @@ import Types.View
         , NonProjectViewConstructor(..)
         )
 import View.Helpers as VH
-import View.Login
 import View.Types
 import Widget
 
@@ -57,7 +57,7 @@ viewLoginJetstream context jetstreamCreds =
                     , selected = Just jetstreamCreds.jetstreamProviderChoice
                     }
                 , Element.row [ Element.width Element.fill ]
-                    [ Element.el [] (View.Login.loginPickerButton context)
+                    [ Element.el [] (LegacyView.Login.loginPickerButton context)
                     , Element.el [ Element.alignRight ]
                         (Widget.textButton
                             (SH.materialStyle context.palette).primaryButton

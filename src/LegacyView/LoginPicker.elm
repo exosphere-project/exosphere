@@ -1,4 +1,4 @@
-module View.LoginPicker exposing (loginPicker)
+module LegacyView.LoginPicker exposing (loginPicker)
 
 import Color
 import Element

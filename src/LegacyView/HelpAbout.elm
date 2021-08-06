@@ -1,4 +1,4 @@
-module View.HelpAbout exposing (helpAbout)
+module LegacyView.HelpAbout exposing (helpAbout)
 
 import Element
 import FeatherIcons

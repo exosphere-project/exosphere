@@ -1,4 +1,4 @@
-module View.CreateKeypair exposing (createKeypair)
+module LegacyView.CreateKeypair exposing (createKeypair)
 
 import Element
 import Element.Font as Font

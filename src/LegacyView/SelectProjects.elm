@@ -1,4 +1,4 @@
-module View.SelectProjects exposing (selectProjects)
+module LegacyView.SelectProjects exposing (selectProjects)
 
 import Element
 import Element.Input as Input

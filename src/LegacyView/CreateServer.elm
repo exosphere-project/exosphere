@@ -1,4 +1,4 @@
-module View.CreateServer exposing (createServer)
+module LegacyView.CreateServer exposing (createServer)
 
 import Element
 import Element.Background as Background

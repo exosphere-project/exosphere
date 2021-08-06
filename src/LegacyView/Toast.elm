@@ -1,4 +1,4 @@
-module View.Toast exposing (toast)
+module LegacyView.Toast exposing (toast)
 
 import Element
 import Element.Font as Font

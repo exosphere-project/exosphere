@@ -1,4 +1,4 @@
-module View.AttachVolume exposing (attachVolume, mountVolInstructions)
+module LegacyView.AttachVolume exposing (attachVolume, mountVolInstructions)
 
 import Element
 import Element.Font as Font

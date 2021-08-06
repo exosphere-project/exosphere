@@ -1,4 +1,4 @@
-module View.PageTitle exposing (pageTitle)
+module LegacyView.PageTitle exposing (pageTitle)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String

@@ -1,4 +1,4 @@
-module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
+module LegacyView.GetSupport exposing (getSupport, viewStateToSupportableItem)
 
 import Element
 import Element.Font as Font

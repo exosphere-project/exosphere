@@ -1,4 +1,4 @@
-module View.ServerList exposing (serverList)
+module LegacyView.ServerList exposing (serverList)
 
 import Element
 import Element.Events as Events
@@ -8,6 +8,7 @@ import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import LegacyView.QuotaUsage
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
@@ -31,7 +32,6 @@ import Types.View
         , ViewState(..)
         )
 import View.Helpers as VH
-import View.QuotaUsage
 import View.Types
 import Widget
 
@@ -112,7 +112,7 @@ serverList context showHeading project serverListViewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ View.QuotaUsage.computeQuotaDetails context project.computeQuota
+            [ LegacyView.QuotaUsage.computeQuotaDetails context project.computeQuota
             , serverListContents
             ]
         ]
