@@ -26,6 +26,7 @@ main =
             \urlRequest ->
                 case urlRequest of
                     Browser.Internal url ->
+                        -- TODO need a way to handle these which includes a Browser.Navigation.pushUrl
                         SharedMsg <| UrlChange url
 
                     Browser.External _ ->
