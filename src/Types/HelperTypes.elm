@@ -29,6 +29,10 @@ import RemoteData exposing (WebData)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
 
 
+
+{- Primitive types -}
+
+
 type alias Url =
     String
 
@@ -37,32 +41,16 @@ type alias Hostname =
     String
 
 
+type alias UserAppProxyHostname =
+    Hostname
+
+
+type alias KeystoneHostname =
+    Hostname
+
+
 type alias Uuid =
     String
-
-
-type alias Password =
-    String
-
-
-type IPv4AddressPublicRoutability
-    = PrivateRfc1918Space
-    | PublicNonRfc1918Space
-
-
-type alias UnscopedProvider =
-    { authUrl : OSTypes.KeystoneUrl
-    , token : OSTypes.UnscopedAuthToken
-    , projectsAvailable : WebData (List UnscopedProviderProject)
-    }
-
-
-type alias UnscopedProviderProject =
-    { project : OSTypes.NameAndUuid
-    , description : String
-    , domainId : Uuid
-    , enabled : Bool
-    }
 
 
 type alias ProjectIdentifier =
@@ -70,26 +58,8 @@ type alias ProjectIdentifier =
     Uuid
 
 
-type
-    FloatingIpOption
-    -- Wait to see if server gets a fixed IP in publicly routable space
-    = Automatic
-      -- Use a floating IP as soon as we are able to do so
-    | UseFloatingIp FloatingIpReuseOption FloatingIpAssignmentStatus
-    | DoNotUseFloatingIp
-
-
-type FloatingIpReuseOption
-    = CreateNewFloatingIp
-    | UseExistingFloatingIp OSTypes.IpAddressUuid
-
-
-type FloatingIpAssignmentStatus
-    = Unknown
-      -- We need an active server with a port and an external network before we can assign a floating IP address
-    | WaitingForResources
-    | Attemptable
-    | AttemptedWaiting
+type alias Password =
+    String
 
 
 type HttpRequestMethod
@@ -97,6 +67,10 @@ type HttpRequestMethod
     | Post
     | Put
     | Delete
+
+
+
+{- Helper types for SharedModel -}
 
 
 type DefaultLoginView
@@ -129,8 +103,10 @@ type alias WindowSize =
     }
 
 
-type alias KeystoneHostname =
-    Hostname
+type alias ExcludeFilter =
+    { filterKey : String
+    , filterValue : String
+    }
 
 
 type alias CloudSpecificConfig =
@@ -140,14 +116,63 @@ type alias CloudSpecificConfig =
     }
 
 
-type alias UserAppProxyHostname =
-    Hostname
-
-
-type alias ExcludeFilter =
-    { filterKey : String
-    , filterValue : String
+type alias UnscopedProvider =
+    { authUrl : OSTypes.KeystoneUrl
+    , token : OSTypes.UnscopedAuthToken
+    , projectsAvailable : WebData (List UnscopedProviderProject)
     }
+
+
+type alias UnscopedProviderProject =
+    { project : OSTypes.NameAndUuid
+    , description : String
+    , domainId : Uuid
+    , enabled : Bool
+    }
+
+
+type alias OpenIdConnectLoginConfig =
+    { keystoneAuthUrl : String
+    , webssoKeystoneEndpoint : String
+    , oidcLoginIcon : String
+    , oidcLoginButtonLabel : String
+    , oidcLoginButtonDescription : String
+    }
+
+
+
+{- Helpers for IP addresses -}
+
+
+type IPv4AddressPublicRoutability
+    = PrivateRfc1918Space
+    | PublicNonRfc1918Space
+
+
+type
+    FloatingIpOption
+    -- Wait to see if server gets a fixed IP in publicly routable space
+    = Automatic
+      -- Use a floating IP as soon as we are able to do so
+    | UseFloatingIp FloatingIpReuseOption FloatingIpAssignmentStatus
+    | DoNotUseFloatingIp
+
+
+type FloatingIpReuseOption
+    = CreateNewFloatingIp
+    | UseExistingFloatingIp OSTypes.IpAddressUuid
+
+
+type FloatingIpAssignmentStatus
+    = Unknown
+      -- We need an active server with a port and an external network before we can assign a floating IP address
+    | WaitingForResources
+    | Attemptable
+    | AttemptedWaiting
+
+
+
+{- Stuff that should move somewhere else -}
 
 
 type alias JetstreamCreds =
@@ -178,13 +203,4 @@ type alias CreateServerViewParams =
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
     , floatingIpCreationOption : FloatingIpOption
-    }
-
-
-type alias OpenIdConnectLoginConfig =
-    { keystoneAuthUrl : String
-    , webssoKeystoneEndpoint : String
-    , oidcLoginIcon : String
-    , oidcLoginButtonLabel : String
-    , oidcLoginButtonDescription : String
     }
