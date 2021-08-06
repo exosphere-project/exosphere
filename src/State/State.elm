@@ -415,6 +415,11 @@ processSharedMsg sharedMsg outerModel =
         OpenNewWindow url ->
             ( outerModel, Ports.openNewWindow url )
 
+        NavigateToView navigableView ->
+            case navigableView of
+                Types.SharedMsg.LoginPicker ->
+                    ViewStateHelpers.setNonProjectView LoginPicker outerModel
+
         NavigateToUrl url ->
             ( outerModel, Browser.Navigation.load url )
 

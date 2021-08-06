@@ -1,5 +1,6 @@
 module Types.SharedMsg exposing
-    ( ProjectSpecificMsgConstructor(..)
+    ( NavigableView(..)
+    , ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
     , SharedMsg(..)
     , TickInterval
@@ -28,6 +29,7 @@ type SharedMsg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
+    | NavigateToView NavigableView
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
@@ -104,3 +106,7 @@ type ServerSpecificMsgConstructor
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (HelperTypes.ProjectIdentifier -> HelperTypes.Url -> OSTypes.ServerUuid -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
+
+
+type NavigableView
+    = LoginPicker

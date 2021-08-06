@@ -30,6 +30,7 @@ type Msg
     | SelectCredsInput
     | ProcessOpenRc
     | RequestAuthToken
+    | NavigateToView SharedMsg.NavigableView
     | NoOp
 
 
@@ -103,6 +104,9 @@ update msg _ model =
 
         RequestAuthToken ->
             ( model, Cmd.none, SharedMsg.RequestUnscopedToken model.creds )
+
+        NavigateToView navigableView ->
+            ( model, Cmd.none, SharedMsg.NavigateToView navigableView )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -262,15 +266,9 @@ loginOpenstackOpenRcEntry context model =
 
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
-    Element.link
-        []
-        -- TODO this needs a path prefix?
-        { url = "/loginpicker"
-        , label =
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Other Login Methods"
-                , onPress =
-                    Just NoOp
-                }
+    Widget.textButton
+        (SH.materialStyle context.palette).button
+        { text = "Other Login Methods"
+        , onPress =
+            Just <| NavigateToView <| SharedMsg.LoginPicker
         }
