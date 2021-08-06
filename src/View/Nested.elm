@@ -1,8 +1,9 @@
 module View.Nested exposing (Model, Msg(..), init, update, view)
 
 import Element
+import Element.Events as Events
 import Element.Input as Input
-import Types.Msg exposing (SharedMsg)
+import Types.Msg exposing (SharedMsg(..))
 import Types.Types exposing (SharedModel)
 
 
@@ -12,6 +13,7 @@ type alias Model =
 
 type Msg
     = NewContents String
+    | ButtonClicked
 
 
 init : Model
@@ -29,11 +31,17 @@ view model =
             , label = Input.labelAbove [] (Element.text "type in the text box")
             }
         , Element.text ("What you typed in the box: " ++ model.contents)
+        , Element.el
+            [ Events.onClick ButtonClicked ]
+            (Element.text "click here to go elsewhere")
         ]
 
 
-update : Msg -> SharedModel -> Model -> ( SharedModel, Model, Cmd Msg )
-update msg sharedModel _ =
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg )
+update msg _ model =
     case msg of
         NewContents s ->
-            ( sharedModel, { contents = s }, Cmd.none )
+            ( { contents = s }, Cmd.none, NoOp )
+
+        ButtonClicked ->
+            ( model, Cmd.none, OpenNewWindow "https://ipcow.com" )

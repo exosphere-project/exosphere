@@ -98,6 +98,15 @@ mapToOuterModel outerModel ( newSharedModel, cmd ) =
     ( { outerModel | sharedModel = newSharedModel }, cmd )
 
 
+pipelineCmdOuterModelMsg : (OuterModel -> ( OuterModel, Cmd OuterMsg )) -> ( OuterModel, Cmd OuterMsg ) -> ( OuterModel, Cmd OuterMsg )
+pipelineCmdOuterModelMsg fn ( outerModel, outerCmd ) =
+    let
+        ( newModel, newCmd ) =
+            fn outerModel
+    in
+    ( newModel, Cmd.batch [ outerCmd, newCmd ] )
+
+
 updateUnderlying : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 updateUnderlying outerMsg outerModel =
     let
@@ -123,14 +132,16 @@ updateUnderlying outerMsg outerModel =
 
         ( NestedViewMsg innerMsg, NonProjectView (ExampleNestedView innerModel) ) ->
             let
-                ( newInnerModel, cmd, sharedMsg ) =
+                ( newSharedModel, cmd, sharedMsg ) =
                     View.Nested.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| ExampleNestedView newInnerModel
+                | viewState = NonProjectView <| ExampleNestedView newSharedModel
               }
             , Cmd.map (\msg -> NestedViewMsg msg) cmd
             )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
 
         ( _, _ ) ->
             ( outerModel, Cmd.none )
