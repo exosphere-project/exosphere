@@ -105,6 +105,9 @@ updateUnderlying outerMsg outerModel =
             outerModel.sharedModel
     in
     case ( outerMsg, outerModel.viewState ) of
+        ( SharedMsg sharedMsg, _ ) ->
+            processSharedMsg sharedMsg outerModel
+
         ( SetNonProjectView nonProjectViewConstructor, _ ) ->
             ViewStateHelpers.setNonProjectView nonProjectViewConstructor outerModel
 
@@ -120,331 +123,336 @@ updateUnderlying outerMsg outerModel =
 
         ( NestedViewMsg innerMsg, NonProjectView (ExampleNestedView innerModel) ) ->
             let
-                ( newSharedModel, newInnerModel, cmd ) =
+                ( newInnerModel, cmd, sharedMsg ) =
                     View.Nested.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | sharedModel = newSharedModel
-                , viewState = NonProjectView <| ExampleNestedView newInnerModel
+                | viewState = NonProjectView <| ExampleNestedView newInnerModel
               }
             , Cmd.map (\msg -> NestedViewMsg msg) cmd
             )
 
-        ( SharedMsg sharedMsg, _ ) ->
-            case sharedMsg of
-                ToastyMsg subMsg ->
-                    Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
+        ( _, _ ) ->
+            ( outerModel, Cmd.none )
+
+
+processSharedMsg : SharedMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+processSharedMsg sharedMsg outerModel =
+    let
+        sharedModel =
+            outerModel.sharedModel
+    in
+    case sharedMsg of
+        ToastyMsg subMsg ->
+            Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        MsgChangeWindowSize x y ->
+            ( { sharedModel | windowSize = { width = x, height = y } }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        Tick interval time ->
+            processTick outerModel interval time
+                |> mapToOuterModel outerModel
+
+        DoOrchestration posixTime ->
+            Orchestration.orchModel sharedModel posixTime
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        HandleApiErrorWithBody errorContext error ->
+            State.Error.processSynchronousApiError sharedModel errorContext error
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+
+        RequestUnscopedToken openstackLoginUnscoped ->
+            let
+                creds =
+                    -- Ensure auth URL includes port number and version
+                    { openstackLoginUnscoped
+                        | authUrl =
+                            State.Auth.authUrlWithPortAndVersion openstackLoginUnscoped.authUrl
+                    }
+            in
+            ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
+                |> mapToOuterMsg
+
+        JetstreamLogin jetstreamCreds ->
+            let
+                openstackCredsList =
+                    State.Auth.jetstreamToOpenstackCreds jetstreamCreds
+
+                cmds =
+                    List.map
+                        (\creds -> Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds)
+                        openstackCredsList
+            in
+            ( outerModel, Cmd.batch cmds )
+                |> mapToOuterMsg
+
+        ReceiveScopedAuthToken ( metadata, response ) ->
+            case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
+                Err error ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            "decode scoped auth token"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
 
-                MsgChangeWindowSize x y ->
-                    ( { sharedModel | windowSize = { width = x, height = y } }, Cmd.none )
-                        |> mapToOuterModel outerModel
-
-                Tick interval time ->
-                    processTick outerModel interval time
-                        |> mapToOuterModel outerModel
-
-                DoOrchestration posixTime ->
-                    Orchestration.orchModel sharedModel posixTime
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
-
-                HandleApiErrorWithBody errorContext error ->
-                    State.Error.processSynchronousApiError sharedModel errorContext error
-                        |> mapToOuterMsg
-                        |> mapToOuterModel outerModel
-
-                RequestUnscopedToken openstackLoginUnscoped ->
-                    let
-                        creds =
-                            -- Ensure auth URL includes port number and version
-                            { openstackLoginUnscoped
-                                | authUrl =
-                                    State.Auth.authUrlWithPortAndVersion openstackLoginUnscoped.authUrl
-                            }
-                    in
-                    ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
-                        |> mapToOuterMsg
-
-                JetstreamLogin jetstreamCreds ->
-                    let
-                        openstackCredsList =
-                            State.Auth.jetstreamToOpenstackCreds jetstreamCreds
-
-                        cmds =
-                            List.map
-                                (\creds -> Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds)
-                                openstackCredsList
-                    in
-                    ( outerModel, Cmd.batch cmds )
-                        |> mapToOuterMsg
-
-                ReceiveScopedAuthToken ( metadata, response ) ->
-                    case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
-                        Err error ->
+                Ok authToken ->
+                    case Helpers.serviceCatalogToEndpoints authToken.catalog of
+                        Err e ->
                             State.Error.processStringError
                                 sharedModel
                                 (ErrorContext
-                                    "decode scoped auth token"
+                                    "Decode project endpoints"
                                     ErrorCrit
-                                    Nothing
+                                    (Just "Please check with your cloud administrator or the Exosphere developers.")
                                 )
-                                error
+                                e
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
-                        Ok authToken ->
-                            case Helpers.serviceCatalogToEndpoints authToken.catalog of
-                                Err e ->
-                                    State.Error.processStringError
-                                        sharedModel
-                                        (ErrorContext
-                                            "Decode project endpoints"
-                                            ErrorCrit
-                                            (Just "Please check with your cloud administrator or the Exosphere developers.")
-                                        )
-                                        e
-                                        |> mapToOuterMsg
-                                        |> mapToOuterModel outerModel
-
-                                Ok endpoints ->
-                                    let
-                                        projectId =
-                                            authToken.project.uuid
-                                    in
-                                    -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
-                                    -- This code ensures we don't end up with duplicate projects on the same provider in our model.
-                                    case
-                                        GetterSetters.projectLookup sharedModel <| projectId
-                                    of
-                                        Nothing ->
-                                            createProject outerModel authToken endpoints
-
-                                        Just project ->
-                                            -- If we don't have an application credential for this project yet, then get one
-                                            let
-                                                appCredCmd =
-                                                    case project.secret of
-                                                        ApplicationCredential _ ->
-                                                            Cmd.none
-
-                                                        _ ->
-                                                            Rest.Keystone.requestAppCredential
-                                                                sharedModel.clientUuid
-                                                                sharedModel.clientCurrentTime
-                                                                project
-
-                                                ( newOuterModel, updateTokenCmd ) =
-                                                    State.Auth.projectUpdateAuthToken outerModel project authToken
-                                            in
-                                            ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
-                                                |> mapToOuterMsg
-
-                ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
-                    case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
-                        Err error ->
-                            State.Error.processStringError
-                                sharedModel
-                                (ErrorContext
-                                    "decode scoped auth token"
-                                    ErrorCrit
-                                    Nothing
-                                )
-                                error
-                                |> mapToOuterMsg
-                                |> mapToOuterModel outerModel
-
-                        Ok authToken ->
+                        Ok endpoints ->
+                            let
+                                projectId =
+                                    authToken.project.uuid
+                            in
+                            -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
+                            -- This code ensures we don't end up with duplicate projects on the same provider in our model.
                             case
-                                GetterSetters.providerLookup sharedModel keystoneUrl
+                                GetterSetters.projectLookup sharedModel <| projectId
                             of
-                                Just unscopedProvider ->
-                                    -- We already have an unscoped provider in the model with the same auth URL, update its token
-                                    State.Auth.unscopedProviderUpdateAuthToken
-                                        sharedModel
-                                        unscopedProvider
-                                        authToken
-                                        |> mapToOuterMsg
-                                        |> mapToOuterModel outerModel
-
                                 Nothing ->
-                                    -- We don't have an unscoped provider with the same auth URL, create it
-                                    createUnscopedProvider sharedModel authToken keystoneUrl
-                                        |> mapToOuterMsg
-                                        |> mapToOuterModel outerModel
+                                    createProject outerModel authToken endpoints
 
-                ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
+                                Just project ->
+                                    -- If we don't have an application credential for this project yet, then get one
+                                    let
+                                        appCredCmd =
+                                            case project.secret of
+                                                ApplicationCredential _ ->
+                                                    Cmd.none
+
+                                                _ ->
+                                                    Rest.Keystone.requestAppCredential
+                                                        sharedModel.clientUuid
+                                                        sharedModel.clientCurrentTime
+                                                        project
+
+                                        ( newOuterModel, updateTokenCmd ) =
+                                            State.Auth.projectUpdateAuthToken outerModel project authToken
+                                    in
+                                    ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                                        |> mapToOuterMsg
+
+        ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
+            case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
+                Err error ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            "decode scoped auth token"
+                            ErrorCrit
+                            Nothing
+                        )
+                        error
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+                Ok authToken ->
                     case
                         GetterSetters.providerLookup sharedModel keystoneUrl
                     of
-                        Just provider ->
-                            let
-                                newProvider =
-                                    { provider | projectsAvailable = RemoteData.Success unscopedProjects }
-
-                                newSharedModel =
-                                    GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
-
-                                newOuterModel =
-                                    { outerModel | sharedModel = newSharedModel }
-                            in
-                            -- If we are not already on a SelectProjects view, then go there
-                            case outerModel.viewState of
-                                NonProjectView (SelectProjects _ _) ->
-                                    ( newOuterModel, Cmd.none )
-
-                                _ ->
-                                    ViewStateHelpers.modelUpdateViewState
-                                        (NonProjectView <|
-                                            SelectProjects newProvider.authUrl []
-                                        )
-                                        newOuterModel
-
-                        Nothing ->
-                            -- Provider not found, may have been removed, nothing to do
-                            ( outerModel, Cmd.none )
-
-                RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
-                    case GetterSetters.providerLookup sharedModel keystoneUrl of
-                        Just provider ->
-                            let
-                                buildLoginRequest : UnscopedProviderProject -> Cmd SharedMsg
-                                buildLoginRequest project =
-                                    Rest.Keystone.requestScopedAuthToken
-                                        sharedModel.cloudCorsProxyUrl
-                                    <|
-                                        OSTypes.TokenCreds
-                                            keystoneUrl
-                                            provider.token
-                                            project.project.uuid
-
-                                loginRequests =
-                                    List.map buildLoginRequest desiredProjects
-                                        |> Cmd.batch
-
-                                -- Remove unscoped provider from model now that we have selected projects from it
-                                newUnscopedProviders =
-                                    List.filter
-                                        (\p -> p.authUrl /= keystoneUrl)
-                                        sharedModel.unscopedProviders
-
-                                -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
-                                newViewStateFunc =
-                                    case List.head newUnscopedProviders of
-                                        Just unscopedProvider ->
-                                            ViewStateHelpers.setNonProjectView
-                                                (SelectProjects unscopedProvider.authUrl [])
-
-                                        Nothing ->
-                                            -- If we have at least one project then show it, else show the login page
-                                            case List.head sharedModel.projects of
-                                                Just project ->
-                                                    ViewStateHelpers.setProjectView
-                                                        project
-                                                    <|
-                                                        AllResources Defaults.allResourcesListViewParams
-
-                                                Nothing ->
-                                                    ViewStateHelpers.setNonProjectView
-                                                        LoginPicker
-
-                                sharedModelUpdatedUnscopedProviders =
-                                    { sharedModel | unscopedProviders = newUnscopedProviders }
-
-                                ( newOuterModel, viewStateCmds ) =
-                                    newViewStateFunc { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
-                            in
-                            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg loginRequests, viewStateCmds ] )
-
-                        Nothing ->
-                            State.Error.processStringError
+                        Just unscopedProvider ->
+                            -- We already have an unscoped provider in the model with the same auth URL, update its token
+                            State.Auth.unscopedProviderUpdateAuthToken
                                 sharedModel
-                                (ErrorContext
-                                    ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
-                                    ErrorCrit
-                                    Nothing
-                                )
-                                "Provider could not found in Exosphere's list of Providers."
+                                unscopedProvider
+                                authToken
                                 |> mapToOuterMsg
                                 |> mapToOuterModel outerModel
 
-                ProjectMsg projectIdentifier innerMsg ->
-                    case GetterSetters.projectLookup sharedModel projectIdentifier of
                         Nothing ->
-                            -- Project not found, may have been removed, nothing to do
-                            ( outerModel, Cmd.none )
+                            -- We don't have an unscoped provider with the same auth URL, create it
+                            createUnscopedProvider sharedModel authToken keystoneUrl
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
-                        Just project ->
-                            processProjectSpecificMsg outerModel project innerMsg
-
-                {- Form inputs -}
-                SubmitOpenRc openstackCreds openRc ->
+        ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
+            case
+                GetterSetters.providerLookup sharedModel keystoneUrl
+            of
+                Just provider ->
                     let
-                        newCreds =
-                            State.Auth.processOpenRc openstackCreds openRc
+                        newProvider =
+                            { provider | projectsAvailable = RemoteData.Success unscopedProjects }
 
-                        newViewState =
-                            NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc LoginViewCredsEntry
+                        newSharedModel =
+                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+
+                        newOuterModel =
+                            { outerModel | sharedModel = newSharedModel }
                     in
-                    ViewStateHelpers.modelUpdateViewState newViewState outerModel
+                    -- If we are not already on a SelectProjects view, then go there
+                    case outerModel.viewState of
+                        NonProjectView (SelectProjects _ _) ->
+                            ( newOuterModel, Cmd.none )
 
-                OpenNewWindow url ->
-                    ( outerModel, Ports.openNewWindow url )
-
-                NavigateToUrl url ->
-                    ( outerModel, Browser.Navigation.load url )
-
-                UrlChange url ->
-                    -- This handles presses of the browser back/forward button
-                    let
-                        exoJustSetThisUrl =
-                            -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
-                            UrlHelpers.urlPathQueryMatches url sharedModel.prevUrl
-                    in
-                    if exoJustSetThisUrl then
-                        ( outerModel, Cmd.none )
-
-                    else
-                        case
-                            AppUrl.Parser.urlToViewState
-                                sharedModel.urlPathPrefix
-                                (ViewStateHelpers.defaultViewState sharedModel)
-                                url
-                        of
-                            Just newViewState ->
-                                ( { outerModel
-                                    | viewState = newViewState
-                                    , sharedModel =
-                                        { sharedModel
-                                            | prevUrl = AppUrl.Builder.viewStateToUrl sharedModel.urlPathPrefix newViewState
-                                        }
-                                  }
-                                , Cmd.none
+                        _ ->
+                            ViewStateHelpers.modelUpdateViewState
+                                (NonProjectView <|
+                                    SelectProjects newProvider.authUrl []
                                 )
+                                newOuterModel
 
-                            Nothing ->
-                                ( { outerModel
-                                    | viewState = NonProjectView PageNotFound
-                                  }
-                                , Cmd.none
-                                )
-
-                SetStyle styleMode ->
-                    let
-                        oldStyle =
-                            sharedModel.style
-
-                        newStyle =
-                            { oldStyle | styleMode = styleMode }
-                    in
-                    ( { sharedModel | style = newStyle }, Cmd.none )
-                        |> mapToOuterModel outerModel
-
-                NoOp ->
+                Nothing ->
+                    -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        ( _, _ ) ->
+        RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
+            case GetterSetters.providerLookup sharedModel keystoneUrl of
+                Just provider ->
+                    let
+                        buildLoginRequest : UnscopedProviderProject -> Cmd SharedMsg
+                        buildLoginRequest project =
+                            Rest.Keystone.requestScopedAuthToken
+                                sharedModel.cloudCorsProxyUrl
+                            <|
+                                OSTypes.TokenCreds
+                                    keystoneUrl
+                                    provider.token
+                                    project.project.uuid
+
+                        loginRequests =
+                            List.map buildLoginRequest desiredProjects
+                                |> Cmd.batch
+
+                        -- Remove unscoped provider from model now that we have selected projects from it
+                        newUnscopedProviders =
+                            List.filter
+                                (\p -> p.authUrl /= keystoneUrl)
+                                sharedModel.unscopedProviders
+
+                        -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
+                        newViewStateFunc =
+                            case List.head newUnscopedProviders of
+                                Just unscopedProvider ->
+                                    ViewStateHelpers.setNonProjectView
+                                        (SelectProjects unscopedProvider.authUrl [])
+
+                                Nothing ->
+                                    -- If we have at least one project then show it, else show the login page
+                                    case List.head sharedModel.projects of
+                                        Just project ->
+                                            ViewStateHelpers.setProjectView
+                                                project
+                                            <|
+                                                AllResources Defaults.allResourcesListViewParams
+
+                                        Nothing ->
+                                            ViewStateHelpers.setNonProjectView
+                                                LoginPicker
+
+                        sharedModelUpdatedUnscopedProviders =
+                            { sharedModel | unscopedProviders = newUnscopedProviders }
+
+                        ( newOuterModel, viewStateCmds ) =
+                            newViewStateFunc { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
+                    in
+                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg loginRequests, viewStateCmds ] )
+
+                Nothing ->
+                    State.Error.processStringError
+                        sharedModel
+                        (ErrorContext
+                            ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
+                            ErrorCrit
+                            Nothing
+                        )
+                        "Provider could not found in Exosphere's list of Providers."
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+
+        ProjectMsg projectIdentifier innerMsg ->
+            case GetterSetters.projectLookup sharedModel projectIdentifier of
+                Nothing ->
+                    -- Project not found, may have been removed, nothing to do
+                    ( outerModel, Cmd.none )
+
+                Just project ->
+                    processProjectSpecificMsg outerModel project innerMsg
+
+        {- Form inputs -}
+        SubmitOpenRc openstackCreds openRc ->
+            let
+                newCreds =
+                    State.Auth.processOpenRc openstackCreds openRc
+
+                newViewState =
+                    NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc LoginViewCredsEntry
+            in
+            ViewStateHelpers.modelUpdateViewState newViewState outerModel
+
+        OpenNewWindow url ->
+            ( outerModel, Ports.openNewWindow url )
+
+        NavigateToUrl url ->
+            ( outerModel, Browser.Navigation.load url )
+
+        UrlChange url ->
+            -- This handles presses of the browser back/forward button
+            let
+                exoJustSetThisUrl =
+                    -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
+                    UrlHelpers.urlPathQueryMatches url sharedModel.prevUrl
+            in
+            if exoJustSetThisUrl then
+                ( outerModel, Cmd.none )
+
+            else
+                case
+                    AppUrl.Parser.urlToViewState
+                        sharedModel.urlPathPrefix
+                        (ViewStateHelpers.defaultViewState sharedModel)
+                        url
+                of
+                    Just newViewState ->
+                        ( { outerModel
+                            | viewState = newViewState
+                            , sharedModel =
+                                { sharedModel
+                                    | prevUrl = AppUrl.Builder.viewStateToUrl sharedModel.urlPathPrefix newViewState
+                                }
+                          }
+                        , Cmd.none
+                        )
+
+                    Nothing ->
+                        ( { outerModel
+                            | viewState = NonProjectView PageNotFound
+                          }
+                        , Cmd.none
+                        )
+
+        SetStyle styleMode ->
+            let
+                oldStyle =
+                    sharedModel.style
+
+                newStyle =
+                    { oldStyle | styleMode = styleMode }
+            in
+            ( { sharedModel | style = newStyle }, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        NoOp ->
             ( outerModel, Cmd.none )
 
 
