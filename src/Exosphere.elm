@@ -5,10 +5,10 @@ import LegacyView.View exposing (view)
 import State.Init
 import State.State as State
 import State.Subscriptions
+import Types.Flags exposing (Flags)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
-import Types.Types exposing (Flags)
 
 
 

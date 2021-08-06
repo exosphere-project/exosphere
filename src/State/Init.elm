@@ -19,16 +19,13 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
+import Types.Flags exposing (Flags)
 import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.Types
-    exposing
-        ( Flags
-        , SharedModel
-        )
+import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url

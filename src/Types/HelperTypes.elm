@@ -13,6 +13,7 @@ module Types.HelperTypes exposing
     , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
+    , OpenIdConnectLoginConfig
     , Password
     , ProjectIdentifier
     , UnscopedProvider
@@ -177,4 +178,13 @@ type alias CreateServerViewParams =
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
     , floatingIpCreationOption : FloatingIpOption
+    }
+
+
+type alias OpenIdConnectLoginConfig =
+    { keystoneAuthUrl : String
+    , webssoKeystoneEndpoint : String
+    , oidcLoginIcon : String
+    , oidcLoginButtonLabel : String
+    , oidcLoginButtonDescription : String
     }
