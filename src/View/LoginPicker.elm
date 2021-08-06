@@ -5,7 +5,6 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
-import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.Msg exposing (SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -14,9 +13,9 @@ import Types.View
     exposing
         ( LoginView(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
         )
 import View.Helpers as VH
+import View.LoginOpenstack
 import View.Types
 import Widget
 
@@ -43,7 +42,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                                 SetNonProjectView <|
                                     Login <|
                                         LoginOpenstack <|
-                                            Defaults.openStackLoginViewParams
+                                            View.LoginOpenstack.init
                         }
               , description =
                     ""

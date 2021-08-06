@@ -7,7 +7,6 @@ import Types.View
     exposing
         ( LoginView(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
         )
 import View.Types
 import Widget

@@ -33,6 +33,7 @@ import Types.Project exposing (Project)
 import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
+import View.LoginOpenstack
 import View.PageTitle
 
 
@@ -501,7 +502,7 @@ defaultLoginViewState maybeDefaultLoginView =
         Just defaultLoginView ->
             case defaultLoginView of
                 DefaultLoginOpenstack ->
-                    NonProjectView <| Login <| LoginOpenstack Defaults.openStackLoginViewParams
+                    NonProjectView <| Login <| LoginOpenstack View.LoginOpenstack.init
 
                 DefaultLoginJetstream ->
                     NonProjectView <| Login <| LoginJetstream Defaults.jetstreamCreds

@@ -48,11 +48,10 @@ import Types.View
     exposing
         ( LoginView(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
+import View.LoginOpenstack
 import View.Nested
 
 
@@ -139,6 +138,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| ExampleNestedView newSharedModel
               }
             , Cmd.map (\msg -> NestedViewMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
+            let
+                ( newSharedModel, cmd, sharedMsg ) =
+                    View.LoginOpenstack.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| Login <| LoginOpenstack newSharedModel
+              }
+            , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -399,17 +411,6 @@ processSharedMsg sharedMsg outerModel =
 
                 Just project ->
                     processProjectSpecificMsg outerModel project innerMsg
-
-        {- Form inputs -}
-        SubmitOpenRc openstackCreds openRc ->
-            let
-                newCreds =
-                    State.Auth.processOpenRc openstackCreds openRc
-
-                newViewState =
-                    NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc LoginViewCredsEntry
-            in
-            ViewStateHelpers.modelUpdateViewState newViewState outerModel
 
         OpenNewWindow url ->
             ( outerModel, Ports.openNewWindow url )

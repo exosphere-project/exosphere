@@ -8,8 +8,6 @@ module Types.Defaults exposing
     , jetstreamCreds
     , keypairListViewParams
     , localization
-    , openStackLoginViewParams
-    , openstackCreds
     , projectViewParams
     , serverDetailViewParams
     , serverListViewParams
@@ -17,7 +15,6 @@ module Types.Defaults exposing
     , volumeListViewParams
     )
 
-import OpenStack.Types as OSTypes
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -48,23 +45,6 @@ localization =
 
 
 {- Most of the rest of this should be view-specific models -}
-
-
-openStackLoginViewParams : ViewTypes.OpenstackLoginViewParams
-openStackLoginViewParams =
-    { creds = openstackCreds
-    , openRc = ""
-    , formEntryType = ViewTypes.LoginViewCredsEntry
-    }
-
-
-openstackCreds : OSTypes.OpenstackLogin
-openstackCreds =
-    { authUrl = ""
-    , userDomain = ""
-    , username = ""
-    , password = ""
-    }
 
 
 jetstreamCreds : HelperTypes.JetstreamCreds

@@ -11,8 +11,6 @@ module Types.View exposing
     , KeypairListViewParams
     , LoginView(..)
     , NonProjectViewConstructor(..)
-    , OpenstackLoginFormEntryType(..)
-    , OpenstackLoginViewParams
     , PasswordVisibility(..)
     , ProjectViewConstructor(..)
     , ProjectViewParams
@@ -31,6 +29,7 @@ import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
+import View.LoginOpenstack
 import View.Nested
 
 
@@ -66,20 +65,8 @@ type
 
 
 type LoginView
-    = LoginOpenstack OpenstackLoginViewParams
+    = LoginOpenstack View.LoginOpenstack.Model
     | LoginJetstream HelperTypes.JetstreamCreds
-
-
-type alias OpenstackLoginViewParams =
-    { creds : OSTypes.OpenstackLogin
-    , openRc : String
-    , formEntryType : OpenstackLoginFormEntryType
-    }
-
-
-type OpenstackLoginFormEntryType
-    = LoginViewCredsEntry
-    | LoginViewOpenRcEntry
 
 
 type alias ImageListViewParams =

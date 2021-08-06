@@ -1,34 +1,118 @@
-module View.LoginOpenstack exposing (viewLoginOpenstack)
+module View.LoginOpenstack exposing (EntryType, Model, Msg, init, update, view)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
+import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Types.Msg exposing (SharedMsg(..))
-import Types.OuterMsg exposing (OuterMsg(..))
-import Types.View
-    exposing
-        ( LoginView(..)
-        , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
-        )
+import Types.Types exposing (SharedModel)
 import View.Helpers as VH
-import View.Login exposing (loginPickerButton)
 import View.Types
 import Widget
 
 
-viewLoginOpenstack : View.Types.Context -> OpenstackLoginViewParams -> Element.Element OuterMsg
-viewLoginOpenstack context viewParams =
+type alias Model =
+    { creds : OSTypes.OpenstackLogin
+    , openRc : String
+    , entryType : EntryType
+    }
+
+
+type Msg
+    = InputAuthUrl String
+    | InputUserDomain String
+    | InputUsername String
+    | InputPassword String
+    | InputOpenRc String
+    | SelectOpenRcInput
+    | SelectCredsInput
+    | ProcessOpenRc
+    | RequestAuthToken
+    | SelectLoginPicker
+
+
+type EntryType
+    = CredsEntry
+    | OpenRcEntry
+
+
+init : Model
+init =
+    { creds =
+        { authUrl = ""
+        , userDomain = ""
+        , username = ""
+        , password = ""
+        }
+    , openRc = ""
+    , entryType = CredsEntry
+    }
+
+
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg )
+update msg _ model =
+    let
+        oldCreds =
+            model.creds
+
+        updateCreds : Model -> OSTypes.OpenstackLogin -> Model
+        updateCreds model_ newCreds =
+            { model_ | creds = newCreds }
+    in
+    case msg of
+        InputAuthUrl authUrl ->
+            ( updateCreds model { oldCreds | authUrl = authUrl }, Cmd.none, NoOp )
+
+        InputUserDomain userDomain ->
+            ( updateCreds model { oldCreds | userDomain = userDomain }, Cmd.none, NoOp )
+
+        InputUsername username ->
+            ( updateCreds model { oldCreds | username = username }, Cmd.none, NoOp )
+
+        InputPassword password ->
+            ( updateCreds model { oldCreds | password = password }, Cmd.none, NoOp )
+
+        InputOpenRc openRc ->
+            ( { model | openRc = openRc }, Cmd.none, NoOp )
+
+        SelectOpenRcInput ->
+            ( { model | entryType = OpenRcEntry }, Cmd.none, NoOp )
+
+        SelectCredsInput ->
+            ( { model | entryType = CredsEntry }, Cmd.none, NoOp )
+
+        ProcessOpenRc ->
+            let
+                newCreds =
+                    OpenStack.OpenRc.processOpenRc model.creds model.openRc
+            in
+            ( { model
+                | creds = newCreds
+                , entryType = CredsEntry
+              }
+            , Cmd.none
+            , NoOp
+            )
+
+        RequestAuthToken ->
+            ( model, Cmd.none, RequestUnscopedToken model.creds )
+
+        SelectLoginPicker ->
+            -- TODO somehow navigate to login picker
+            ( model, Cmd.none, NoOp )
+
+
+view : View.Types.Context -> Model -> Element.Element Msg
+view context model =
     let
         allCredsEntered =
             -- These fields must be populated before login can be attempted
-            [ viewParams.creds.authUrl
-            , viewParams.creds.userDomain
-            , viewParams.creds.username
-            , viewParams.creds.password
+            [ model.creds.authUrl
+            , model.creds.userDomain
+            , model.creds.username
+            , model.creds.password
             ]
                 |> List.any (\x -> String.isEmpty x)
                 |> not
@@ -38,20 +122,20 @@ viewLoginOpenstack context viewParams =
             (VH.heading2 context.palette)
             (Element.text "Add an OpenStack Account")
         , Element.column VH.formContainer
-            [ case viewParams.formEntryType of
-                LoginViewCredsEntry ->
-                    loginOpenstackCredsEntry context viewParams allCredsEntered
+            [ case model.entryType of
+                CredsEntry ->
+                    loginOpenstackCredsEntry context model allCredsEntered
 
-                LoginViewOpenRcEntry ->
-                    loginOpenstackOpenRcEntry context viewParams
+                OpenRcEntry ->
+                    loginOpenstackOpenRcEntry context model
             , Element.row (VH.exoRowAttributes ++ [ Element.width Element.fill ])
-                (case viewParams.formEntryType of
-                    LoginViewCredsEntry ->
+                (case model.entryType of
+                    CredsEntry ->
                         [ Element.el [] (loginPickerButton context)
                         , Widget.textButton
                             (SH.materialStyle context.palette).button
                             { text = "Use OpenRC File"
-                            , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewOpenRcEntry }
+                            , onPress = Just SelectOpenRcInput
                             }
                         , Element.el [ Element.alignRight ]
                             (Widget.textButton
@@ -59,7 +143,7 @@ viewLoginOpenstack context viewParams =
                                 { text = "Log In"
                                 , onPress =
                                     if allCredsEntered then
-                                        Just <| SharedMsg <| RequestUnscopedToken viewParams.creds
+                                        Just RequestAuthToken
 
                                     else
                                         Nothing
@@ -67,19 +151,19 @@ viewLoginOpenstack context viewParams =
                             )
                         ]
 
-                    LoginViewOpenRcEntry ->
+                    OpenRcEntry ->
                         [ Element.el VH.exoPaddingSpacingAttributes
                             (Widget.textButton
                                 (SH.materialStyle context.palette).button
                                 { text = "Cancel"
-                                , onPress = Just <| SetNonProjectView <| Login <| LoginOpenstack { viewParams | formEntryType = LoginViewCredsEntry }
+                                , onPress = Just SelectCredsInput
                                 }
                             )
                         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                             (Widget.textButton
                                 (SH.materialStyle context.palette).primaryButton
                                 { text = "Submit"
-                                , onPress = Just <| SharedMsg <| SubmitOpenRc viewParams.creds viewParams.openRc
+                                , onPress = Just ProcessOpenRc
                                 }
                             )
                         ]
@@ -88,15 +172,11 @@ viewLoginOpenstack context viewParams =
         ]
 
 
-loginOpenstackCredsEntry : View.Types.Context -> OpenstackLoginViewParams -> Bool -> Element.Element OuterMsg
-loginOpenstackCredsEntry context viewParams allCredsEntered =
+loginOpenstackCredsEntry : View.Types.Context -> Model -> Bool -> Element.Element Msg
+loginOpenstackCredsEntry context model allCredsEntered =
     let
         creds =
-            viewParams.creds
-
-        updateCreds : OSTypes.OpenstackLogin -> OuterMsg
-        updateCreds newCreds =
-            SetNonProjectView <| Login <| LoginOpenstack { viewParams | creds = newCreds }
+            model.creds
 
         textField text placeholderText onChange labelText =
             Input.text
@@ -113,24 +193,24 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
         , textField
             creds.authUrl
             "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
-            (\u -> updateCreds { creds | authUrl = u })
+            InputAuthUrl
             "Keystone auth URL"
         , textField
             creds.userDomain
             "User domain e.g. default"
-            (\d -> updateCreds { creds | userDomain = d })
+            InputUserDomain
             "User Domain (name or ID)"
         , textField
             creds.username
             "User name e.g. demo"
-            (\u -> updateCreds { creds | username = u })
+            InputUsername
             "User Name"
         , Input.currentPassword
             (VH.inputItemAttributes context.palette.surface)
             { text = creds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
-            , onChange = \p -> updateCreds { creds | password = p }
+            , onChange = InputPassword
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
             }
         , if allCredsEntered then
@@ -147,8 +227,8 @@ loginOpenstackCredsEntry context viewParams allCredsEntered =
         ]
 
 
-loginOpenstackOpenRcEntry : View.Types.Context -> OpenstackLoginViewParams -> Element.Element OuterMsg
-loginOpenstackOpenRcEntry context viewParams =
+loginOpenstackOpenRcEntry : View.Types.Context -> Model -> Element.Element Msg
+loginOpenstackOpenRcEntry context model =
     Element.column
         VH.formContainer
         [ Element.paragraph []
@@ -167,10 +247,20 @@ loginOpenstackOpenRcEntry context viewParams =
                    , Font.size 12
                    ]
             )
-            { onChange = \o -> SetNonProjectView <| Login <| LoginOpenstack { viewParams | openRc = o }
-            , text = viewParams.openRc
+            { onChange = InputOpenRc
+            , text = model.openRc
             , placeholder = Nothing
             , label = Input.labelLeft [] Element.none
             , spellcheck = False
             }
         ]
+
+
+loginPickerButton : View.Types.Context -> Element.Element Msg
+loginPickerButton context =
+    Widget.textButton
+        (SH.materialStyle context.palette).button
+        { text = "Other Login Methods"
+        , onPress =
+            Just SelectLoginPicker
+        }

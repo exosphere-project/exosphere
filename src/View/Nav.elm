@@ -18,6 +18,7 @@ import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH
+import View.LoginOpenstack
 import View.Types
 
 
@@ -244,7 +245,7 @@ defaultLoginViewState maybeDefaultLoginView =
         Just defaultLoginView ->
             case defaultLoginView of
                 Types.HelperTypes.DefaultLoginOpenstack ->
-                    Login <| LoginOpenstack Defaults.openStackLoginViewParams
+                    Login <| LoginOpenstack View.LoginOpenstack.init
 
                 Types.HelperTypes.DefaultLoginJetstream ->
                     Login <| LoginJetstream Defaults.jetstreamCreds

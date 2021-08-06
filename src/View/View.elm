@@ -80,8 +80,9 @@ elementView windowSize outerModel context =
 
                             Login loginView ->
                                 case loginView of
-                                    LoginOpenstack openstackCreds ->
-                                        View.LoginOpenstack.viewLoginOpenstack context openstackCreds
+                                    LoginOpenstack model ->
+                                        View.LoginOpenstack.view context model
+                                            |> Element.map LoginOpenstackMsg
 
                                     LoginJetstream jetstreamCreds ->
                                         View.LoginJetstream.viewLoginJetstream context jetstreamCreds

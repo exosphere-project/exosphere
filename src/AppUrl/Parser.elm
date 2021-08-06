@@ -8,8 +8,6 @@ import Types.View
     exposing
         ( LoginView(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
@@ -27,6 +25,7 @@ import Url.Parser
         , top
         )
 import Url.Parser.Query as Query
+import View.LoginOpenstack
 import View.Nested
 
 
@@ -55,7 +54,13 @@ pathParsers defaultViewState =
     [ -- Non-project-specific views
       map defaultViewState top
     , map
-        (\creds -> NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams creds "" LoginViewCredsEntry)
+        (\creds ->
+            let
+                init =
+                    View.LoginOpenstack.init
+            in
+            NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }
+        )
         (let
             queryParser =
                 Query.map4
