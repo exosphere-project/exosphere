@@ -7,6 +7,7 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
+import Page.LoginOpenstack
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
@@ -18,7 +19,6 @@ import Types.Project exposing (Project)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.Helpers as VH
-import View.LoginOpenstack
 import View.Types
 
 
@@ -245,7 +245,7 @@ defaultLoginViewState maybeDefaultLoginView =
         Just defaultLoginView ->
             case defaultLoginView of
                 Types.HelperTypes.DefaultLoginOpenstack ->
-                    Login <| LoginOpenstack View.LoginOpenstack.init
+                    Login <| LoginOpenstack Page.LoginOpenstack.init
 
                 Types.HelperTypes.DefaultLoginJetstream ->
                     Login <| LoginJetstream Defaults.jetstreamCreds

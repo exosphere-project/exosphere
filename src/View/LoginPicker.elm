@@ -4,6 +4,7 @@ import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Page.LoginOpenstack
 import Style.Helpers as SH
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -15,7 +16,6 @@ import Types.View
         , NonProjectViewConstructor(..)
         )
 import View.Helpers as VH
-import View.LoginOpenstack
 import View.Types
 import Widget
 
@@ -42,7 +42,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                                 SetNonProjectView <|
                                     Login <|
                                         LoginOpenstack <|
-                                            View.LoginOpenstack.init
+                                            Page.LoginOpenstack.init
                         }
               , description =
                     ""

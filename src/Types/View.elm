@@ -25,12 +25,12 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.LoginOpenstack
+import Page.Nested
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
-import View.LoginOpenstack
-import View.Nested
 
 
 
@@ -51,7 +51,7 @@ type NonProjectViewConstructor
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout
-    | ExampleNestedView View.Nested.Model
+    | ExampleNestedView Page.Nested.Model
     | PageNotFound
 
 
@@ -65,7 +65,7 @@ type
 
 
 type LoginView
-    = LoginOpenstack View.LoginOpenstack.Model
+    = LoginOpenstack Page.LoginOpenstack.Model
     | LoginJetstream HelperTypes.JetstreamCreds
 
 

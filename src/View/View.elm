@@ -8,6 +8,8 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
+import Page.LoginOpenstack
+import Page.Nested
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
@@ -20,11 +22,9 @@ import View.GetSupport
 import View.HelpAbout
 import View.Helpers as VH
 import View.LoginJetstream
-import View.LoginOpenstack
 import View.LoginPicker
 import View.Messages
 import View.Nav
-import View.Nested
 import View.PageTitle
 import View.Project
 import View.SelectProjects
@@ -81,7 +81,7 @@ elementView windowSize outerModel context =
                             Login loginView ->
                                 case loginView of
                                     LoginOpenstack model ->
-                                        View.LoginOpenstack.view context model
+                                        Page.LoginOpenstack.view context model
                                             |> Element.map LoginOpenstackMsg
 
                                     LoginJetstream jetstreamCreds ->
@@ -118,7 +118,7 @@ elementView windowSize outerModel context =
                                 View.HelpAbout.helpAbout outerModel.sharedModel context
 
                             ExampleNestedView nestedViewModel ->
-                                View.Nested.view nestedViewModel
+                                Page.Nested.view nestedViewModel
                                     |> Element.map (\msg -> NestedViewMsg msg)
 
                             PageNotFound ->

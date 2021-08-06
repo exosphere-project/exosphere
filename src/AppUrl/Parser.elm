@@ -2,6 +2,8 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Page.LoginOpenstack
+import Page.Nested
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.View
@@ -25,8 +27,6 @@ import Url.Parser
         , top
         )
 import Url.Parser.Query as Query
-import View.LoginOpenstack
-import View.Nested
 
 
 urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ViewState
@@ -57,7 +57,7 @@ pathParsers defaultViewState =
         (\creds ->
             let
                 init =
-                    View.LoginOpenstack.init
+                    Page.LoginOpenstack.init
             in
             NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }
         )
@@ -157,7 +157,7 @@ pathParsers defaultViewState =
         (NonProjectView PageNotFound)
         (s "pagenotfound")
     , map
-        (NonProjectView <| ExampleNestedView View.Nested.init)
+        (NonProjectView <| ExampleNestedView Page.Nested.init)
         (s "example")
     , map
         (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)

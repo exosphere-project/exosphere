@@ -14,6 +14,7 @@ import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Page.LoginOpenstack
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -33,7 +34,6 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
-import View.LoginOpenstack
 import View.PageTitle
 
 
@@ -502,7 +502,7 @@ defaultLoginViewState maybeDefaultLoginView =
         Just defaultLoginView ->
             case defaultLoginView of
                 DefaultLoginOpenstack ->
-                    NonProjectView <| Login <| LoginOpenstack View.LoginOpenstack.init
+                    NonProjectView <| Login <| LoginOpenstack Page.LoginOpenstack.init
 
                 DefaultLoginJetstream ->
                     NonProjectView <| Login <| LoginJetstream Defaults.jetstreamCreds

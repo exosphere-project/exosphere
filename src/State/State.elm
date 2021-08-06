@@ -18,6 +18,8 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.LoginOpenstack
+import Page.Nested
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -51,8 +53,6 @@ import Types.View
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
-import View.LoginOpenstack
-import View.Nested
 
 
 update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -132,7 +132,7 @@ updateUnderlying outerMsg outerModel =
         ( NestedViewMsg innerMsg, NonProjectView (ExampleNestedView innerModel) ) ->
             let
                 ( newSharedModel, cmd, sharedMsg ) =
-                    View.Nested.update innerMsg sharedModel innerModel
+                    Page.Nested.update innerMsg sharedModel innerModel
             in
             ( { outerModel
                 | viewState = NonProjectView <| ExampleNestedView newSharedModel
@@ -145,7 +145,7 @@ updateUnderlying outerMsg outerModel =
         ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
             let
                 ( newSharedModel, cmd, sharedMsg ) =
-                    View.LoginOpenstack.update innerMsg sharedModel innerModel
+                    Page.LoginOpenstack.update innerMsg sharedModel innerModel
             in
             ( { outerModel
                 | viewState = NonProjectView <| Login <| LoginOpenstack newSharedModel
