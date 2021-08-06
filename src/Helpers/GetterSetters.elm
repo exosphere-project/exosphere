@@ -40,7 +40,7 @@ import RemoteData
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
-import Types.Types exposing (SharedModel)
+import Types.SharedModel exposing (SharedModel)
 
 
 

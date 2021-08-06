@@ -6,8 +6,8 @@ import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
-import Types.Types exposing (SharedModel)
 import View.Helpers as VH
 import View.Types
 import Widget

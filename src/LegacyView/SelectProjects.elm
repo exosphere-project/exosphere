@@ -9,8 +9,8 @@ import OpenStack.Types as OSTypes
 import Style.Helpers as SH
 import Types.HelperTypes exposing (UnscopedProviderProject)
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg(..))
-import Types.Types exposing (SharedModel)
 import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

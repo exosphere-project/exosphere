@@ -16,8 +16,8 @@ import RemoteData
 import Rest.Neutron
 import Rest.Nova
 import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
-import Types.Types exposing (SharedModel)
 
 
 

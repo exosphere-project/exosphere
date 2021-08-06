@@ -23,8 +23,8 @@ import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.Types exposing (SharedModel)
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.Helpers as VH
 import View.Types

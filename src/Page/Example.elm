@@ -3,8 +3,8 @@ module Page.Example exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Events as Events
 import Element.Input as Input
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg(..))
-import Types.Types exposing (SharedModel)
 
 
 type alias Model =

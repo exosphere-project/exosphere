@@ -3,7 +3,7 @@ module LegacyView.HelpAbout exposing (helpAbout)
 import Element
 import FeatherIcons
 import Types.OuterMsg exposing (OuterMsg(..))
-import Types.Types exposing (SharedModel)
+import Types.SharedModel exposing (SharedModel)
 import UUID
 import View.Helpers as VH
 import View.Types

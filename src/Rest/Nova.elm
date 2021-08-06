@@ -44,8 +44,8 @@ import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import Types.Types exposing (SharedModel)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 

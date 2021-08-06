@@ -14,8 +14,8 @@ import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequ
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (ExcludeFilter, HttpRequestMethod(..))
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.Types exposing (SharedModel)
 
 
 

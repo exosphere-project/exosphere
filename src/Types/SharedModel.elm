@@ -1,4 +1,4 @@
-module Types.Types exposing (LogMessage, SharedModel, Style)
+module Types.SharedModel exposing (LogMessage, SharedModel, Style)
 
 import Browser.Navigation
 import Color

@@ -53,8 +53,8 @@ import Types.Server
         , ServerOrigin(..)
         , ServerUiStatus(..)
         )
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (SharedMsg)
-import Types.Types exposing (SharedModel)
 import UUID
 
 

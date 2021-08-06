@@ -13,11 +13,11 @@ import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
 import Types.OuterMsg exposing (OuterMsg(..))
-import Types.SharedMsg exposing (SharedMsg(..))
-import Types.Types
+import Types.SharedModel
     exposing
         ( SharedModel
         )
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.View
     exposing
         ( NonProjectViewConstructor(..)

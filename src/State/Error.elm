@@ -9,12 +9,12 @@ import Parser exposing ((|.), (|=))
 import Style.Toast exposing (toastConfig)
 import Toasty
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
-import Types.SharedMsg exposing (SharedMsg(..))
-import Types.Types
+import Types.SharedModel
     exposing
         ( LogMessage
         , SharedModel
         )
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
 processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )

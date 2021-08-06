@@ -66,7 +66,7 @@ import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
-import Types.Types exposing (LogMessage, SharedModel, Style)
+import Types.SharedModel exposing (LogMessage, SharedModel, Style)
 import View.Types
 import Widget
 

@@ -14,7 +14,7 @@ import RemoteData
 import Style.Types
 import Time
 import Types.Project
-import Types.Types as Types
+import Types.SharedModel as Types
 import UUID
 
 

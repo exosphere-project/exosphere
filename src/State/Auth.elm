@@ -18,8 +18,8 @@ import Types.HelperTypes as HelperTypes
         )
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.Types exposing (SharedModel)
 import Url
 
 

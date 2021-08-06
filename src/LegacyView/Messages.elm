@@ -6,7 +6,7 @@ import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
 import Types.OuterMsg exposing (OuterMsg(..))
-import Types.Types exposing (LogMessage)
+import Types.SharedModel exposing (LogMessage)
 import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
