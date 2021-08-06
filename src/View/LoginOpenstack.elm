@@ -30,7 +30,6 @@ type Msg
     | SelectCredsInput
     | ProcessOpenRc
     | RequestAuthToken
-    | SelectLoginPicker
     | NoOp
 
 
@@ -99,10 +98,6 @@ update msg _ model =
 
         RequestAuthToken ->
             ( model, Cmd.none, SharedMsg.RequestUnscopedToken model.creds )
-
-        SelectLoginPicker ->
-            -- TODO somehow navigate to login picker
-            ( model, Cmd.none, SharedMsg.NoOp )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
