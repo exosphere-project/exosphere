@@ -47,6 +47,7 @@ init =
     }
 
 
+defaultCreds : OSTypes.OpenstackLogin
 defaultCreds =
     { authUrl = ""
     , userDomain = ""
