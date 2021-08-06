@@ -6,9 +6,9 @@ import Json.Encode
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
 requestConsoleLog : Project -> Server -> Maybe Int -> Cmd SharedMsg

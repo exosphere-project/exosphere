@@ -4,8 +4,8 @@ import Helpers.GetterSetters as GetterSetters
 import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
 import Rest.Neutron
 import Time
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
 goalPollNetworkResources : Time.Posix -> Project -> ( Project, Cmd SharedMsg )

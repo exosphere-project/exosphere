@@ -15,9 +15,9 @@ import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Types.Defaults as Defaults
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (AssignFloatingIpViewParams, FloatingIpListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.QuotaUsage

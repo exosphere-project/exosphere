@@ -10,9 +10,9 @@ import Style.Helpers as SH
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (KeypairListViewParams, ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

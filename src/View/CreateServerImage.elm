@@ -5,9 +5,9 @@ import Element.Input as Input
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

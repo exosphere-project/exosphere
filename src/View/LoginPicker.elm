@@ -6,8 +6,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
-import Types.Msg exposing (SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.Types exposing (OpenIdConnectLoginConfig)
 import Types.View
     exposing

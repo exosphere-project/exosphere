@@ -26,8 +26,8 @@ import Rest.Helpers
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject)
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
 import Url
 

@@ -19,9 +19,9 @@ import Style.Widgets.IconButton
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View
     exposing
         ( DeleteVolumeConfirmation

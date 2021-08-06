@@ -33,10 +33,10 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server, ServerOrigin(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Types exposing (SharedModel)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 

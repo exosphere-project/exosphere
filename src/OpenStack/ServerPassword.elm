@@ -12,8 +12,8 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
 requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd SharedMsg

@@ -12,8 +12,8 @@ import Style.Helpers as SH
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
-import Types.Msg exposing (SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.Types
     exposing
         ( SharedModel

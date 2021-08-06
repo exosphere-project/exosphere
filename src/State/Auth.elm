@@ -16,9 +16,9 @@ import Types.HelperTypes as HelperTypes
         , JetstreamProvider(..)
         , UnscopedProvider
         )
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project, ProjectSecret(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Types exposing (SharedModel)
 import Url
 

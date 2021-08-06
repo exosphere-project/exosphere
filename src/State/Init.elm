@@ -20,10 +20,10 @@ import Time
 import Toasty
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project, ProjectSecret(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Types
     exposing
         ( Flags

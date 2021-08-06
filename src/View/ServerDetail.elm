@@ -26,10 +26,10 @@ import Style.Widgets.ToggleTip
 import Time
 import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, UserAppProxyHostname)
 import Types.Interaction as ITypes
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View
     exposing
         ( AssignFloatingIpViewParams

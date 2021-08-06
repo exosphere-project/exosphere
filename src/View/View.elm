@@ -12,9 +12,9 @@ import Style.Helpers as SH
 import Style.Toast
 import Toasty
 import Types.HelperTypes exposing (WindowSize)
-import Types.Msg exposing (SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.GetSupport
 import View.HelpAbout

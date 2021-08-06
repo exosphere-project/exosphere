@@ -25,10 +25,10 @@ import Types.HelperTypes
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
         )
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH exposing (edges)
 import View.Types

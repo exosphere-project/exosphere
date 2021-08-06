@@ -5,8 +5,8 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (SharedMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
 requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg

@@ -41,10 +41,10 @@ import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Types exposing (SharedModel)
 import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 

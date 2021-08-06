@@ -3,7 +3,7 @@ module View.Nested exposing (Model, Msg(..), init, update, view)
 import Element
 import Element.Events as Events
 import Element.Input as Input
-import Types.Msg exposing (SharedMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.Types exposing (SharedModel)
 
 

@@ -1,4 +1,4 @@
-module Types.Msg exposing
+module Types.SharedMsg exposing
     ( ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
     , SharedMsg(..)

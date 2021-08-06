@@ -4,8 +4,8 @@ import Element
 import Element.Input as Input
 import FeatherIcons
 import Style.Types
-import Types.Msg exposing (SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import View.Helpers as VH
 import View.Types
 

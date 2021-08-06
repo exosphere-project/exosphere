@@ -7,9 +7,9 @@ import Helpers.String
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Widgets.FormValidation as FormValidation
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (ProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types

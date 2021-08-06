@@ -15,10 +15,10 @@ import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View
     exposing
         ( -- TODO This shouldn't be here

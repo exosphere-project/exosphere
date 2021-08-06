@@ -42,7 +42,6 @@ import Types.HelperTypes as HelperTypes
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
         )
-import Types.Msg exposing (SharedMsg)
 import Types.Project exposing (Endpoints, Project)
 import Types.Server
     exposing
@@ -54,6 +53,7 @@ import Types.Server
         , ServerOrigin(..)
         , ServerUiStatus(..)
         )
+import Types.SharedMsg exposing (SharedMsg)
 import Types.Types exposing (SharedModel)
 import UUID
 

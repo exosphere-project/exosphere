@@ -22,10 +22,10 @@ import Types.HelperTypes
         , FloatingIpReuseOption(..)
         , UserAppProxyHostname
         )
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoSetupStatus(..), Server, ServerFromExoProps, ServerOrigin(..))
 import Types.ServerResourceUsage exposing (TimeSeries)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
 
 

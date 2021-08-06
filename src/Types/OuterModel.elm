@@ -2,7 +2,7 @@ module Types.OuterModel exposing (OuterModel)
 
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
-import Types.Msg exposing (SharedMsg)
+import Types.SharedMsg exposing (SharedMsg)
 import Types.Types exposing (SharedModel)
 import Types.View exposing (ViewState)
 

@@ -9,7 +9,7 @@ import Parser exposing ((|.), (|=))
 import Style.Toast exposing (toastConfig)
 import Toasty
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
-import Types.Msg exposing (SharedMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.Types
     exposing
         ( LogMessage

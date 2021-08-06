@@ -2,9 +2,9 @@ module State.Subscriptions exposing (subscriptions)
 
 import Browser.Events
 import Time
-import Types.Msg exposing (SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
 subscriptions : OuterModel -> Sub OuterMsg

@@ -20,8 +20,8 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
 requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd SharedMsg

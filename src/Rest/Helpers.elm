@@ -18,7 +18,7 @@ import Task
 import Time
 import Types.Error exposing (ErrorContext, HttpErrorWithBody)
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..))
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
 
 

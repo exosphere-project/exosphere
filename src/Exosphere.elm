@@ -4,9 +4,9 @@ import Browser exposing (application)
 import State.Init
 import State.State as State
 import State.Subscriptions
-import Types.Msg exposing (SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import Types.Types exposing (Flags)
 import View.View exposing (view)
 

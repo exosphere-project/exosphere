@@ -26,10 +26,10 @@ import Time
 import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
-import Types.Msg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.Types exposing (SharedModel)
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers

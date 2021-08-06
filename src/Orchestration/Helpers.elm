@@ -3,9 +3,9 @@ module Orchestration.Helpers exposing (applyProjectStep, applyStepToAllServers, 
 import Helpers.Helpers exposing (serverFromThisExoClient)
 import Helpers.RemoteDataPlusPlus as RDPP
 import Time
-import Types.Msg exposing (SharedMsg)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server)
+import Types.SharedMsg exposing (SharedMsg)
 import UUID
 
 
