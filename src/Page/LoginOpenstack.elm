@@ -1,4 +1,4 @@
-module Page.LoginOpenstack exposing (EntryType, Model, Msg, init, update, view)
+module Page.LoginOpenstack exposing (EntryType, Model, Msg, defaultCreds, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -41,13 +41,17 @@ type EntryType
 init : Model
 init =
     { creds =
-        { authUrl = ""
-        , userDomain = ""
-        , username = ""
-        , password = ""
-        }
+        defaultCreds
     , openRc = ""
     , entryType = CredsEntry
+    }
+
+
+defaultCreds =
+    { authUrl = ""
+    , userDomain = ""
+    , username = ""
+    , password = ""
     }
 
 
