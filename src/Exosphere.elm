@@ -22,8 +22,13 @@ main =
         , view = view
         , update = State.update
         , subscriptions = State.Subscriptions.subscriptions
+        , onUrlRequest =
+            \urlRequest ->
+                case urlRequest of
+                    Browser.Internal url ->
+                        SharedMsg <| UrlChange url
 
-        -- Not needed because all of our <a hrefs load another domain in a new window
-        , onUrlRequest = \_ -> SharedMsg NoOp
+                    Browser.External _ ->
+                        SharedMsg NoOp
         , onUrlChange = \u -> SharedMsg <| UrlChange u
         }

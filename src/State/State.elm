@@ -420,6 +420,7 @@ processSharedMsg sharedMsg outerModel =
 
         UrlChange url ->
             -- This handles presses of the browser back/forward button
+            -- It also handles internal links clicked by the user
             let
                 exoJustSetThisUrl =
                     -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it

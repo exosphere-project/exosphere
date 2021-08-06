@@ -6,7 +6,7 @@ import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Types.SharedMsg exposing (SharedMsg(..))
+import Types.SharedMsg as SharedMsg
 import Types.Types exposing (SharedModel)
 import View.Helpers as VH
 import View.Types
@@ -31,6 +31,7 @@ type Msg
     | ProcessOpenRc
     | RequestAuthToken
     | SelectLoginPicker
+    | NoOp
 
 
 type EntryType
@@ -51,7 +52,7 @@ init =
     }
 
 
-update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg )
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     let
         oldCreds =
@@ -63,25 +64,25 @@ update msg _ model =
     in
     case msg of
         InputAuthUrl authUrl ->
-            ( updateCreds model { oldCreds | authUrl = authUrl }, Cmd.none, NoOp )
+            ( updateCreds model { oldCreds | authUrl = authUrl }, Cmd.none, SharedMsg.NoOp )
 
         InputUserDomain userDomain ->
-            ( updateCreds model { oldCreds | userDomain = userDomain }, Cmd.none, NoOp )
+            ( updateCreds model { oldCreds | userDomain = userDomain }, Cmd.none, SharedMsg.NoOp )
 
         InputUsername username ->
-            ( updateCreds model { oldCreds | username = username }, Cmd.none, NoOp )
+            ( updateCreds model { oldCreds | username = username }, Cmd.none, SharedMsg.NoOp )
 
         InputPassword password ->
-            ( updateCreds model { oldCreds | password = password }, Cmd.none, NoOp )
+            ( updateCreds model { oldCreds | password = password }, Cmd.none, SharedMsg.NoOp )
 
         InputOpenRc openRc ->
-            ( { model | openRc = openRc }, Cmd.none, NoOp )
+            ( { model | openRc = openRc }, Cmd.none, SharedMsg.NoOp )
 
         SelectOpenRcInput ->
-            ( { model | entryType = OpenRcEntry }, Cmd.none, NoOp )
+            ( { model | entryType = OpenRcEntry }, Cmd.none, SharedMsg.NoOp )
 
         SelectCredsInput ->
-            ( { model | entryType = CredsEntry }, Cmd.none, NoOp )
+            ( { model | entryType = CredsEntry }, Cmd.none, SharedMsg.NoOp )
 
         ProcessOpenRc ->
             let
@@ -93,15 +94,18 @@ update msg _ model =
                 , entryType = CredsEntry
               }
             , Cmd.none
-            , NoOp
+            , SharedMsg.NoOp
             )
 
         RequestAuthToken ->
-            ( model, Cmd.none, RequestUnscopedToken model.creds )
+            ( model, Cmd.none, SharedMsg.RequestUnscopedToken model.creds )
 
         SelectLoginPicker ->
             -- TODO somehow navigate to login picker
-            ( model, Cmd.none, NoOp )
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Model -> Element.Element Msg
@@ -258,9 +262,15 @@ loginOpenstackOpenRcEntry context model =
 
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
-    Widget.textButton
-        (SH.materialStyle context.palette).button
-        { text = "Other Login Methods"
-        , onPress =
-            Just SelectLoginPicker
+    Element.link
+        []
+        -- TODO this needs a path prefix?
+        { url = "/loginpicker"
+        , label =
+            Widget.textButton
+                (SH.materialStyle context.palette).button
+                { text = "Other Login Methods"
+                , onPress =
+                    Just NoOp
+                }
         }
