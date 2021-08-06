@@ -8,9 +8,7 @@ module State.Auth exposing
 
 import Helpers.GetterSetters as GetterSetters
 import OpenStack.Types as OSTypes
-import Parser exposing ((|.), (|=))
 import Rest.Keystone
-import Set
 import Types.HelperTypes as HelperTypes
     exposing
         ( HttpRequestMethod(..)
