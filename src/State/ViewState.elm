@@ -481,7 +481,7 @@ defaultViewState : SharedModel -> ViewState
 defaultViewState model =
     case model.projects of
         [] ->
-            defaultLoginViewState model.style.defaultLoginView
+            NonProjectView <| defaultLoginViewState model.style.defaultLoginView
 
         firstProject :: _ ->
             ProjectView
@@ -492,17 +492,17 @@ defaultViewState model =
                 )
 
 
-defaultLoginViewState : Maybe DefaultLoginView -> ViewState
+defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor
 defaultLoginViewState maybeDefaultLoginView =
     -- TODO deduplicate with same function in View.Nav
     case maybeDefaultLoginView of
         Nothing ->
-            NonProjectView LoginPicker
+            LoginPicker
 
         Just defaultLoginView ->
             case defaultLoginView of
                 DefaultLoginOpenstack ->
-                    NonProjectView <| Login <| LoginOpenstack Page.LoginOpenstack.init
+                    Login <| LoginOpenstack Page.LoginOpenstack.init
 
                 DefaultLoginJetstream ->
-                    NonProjectView <| Login <| LoginJetstream Defaults.jetstreamCreds
+                    Login <| LoginJetstream Defaults.jetstreamCreds

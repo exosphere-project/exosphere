@@ -8,7 +8,7 @@ import Element.Region as Region
 import FeatherIcons
 import Helpers.String
 import LegacyView.GetSupport
-import Page.LoginOpenstack
+import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
@@ -82,7 +82,7 @@ navMenu outerModel context =
                             MenuItem.Inactive
 
                 destination =
-                    SetNonProjectView <| defaultLoginViewState outerModel.sharedModel.style.defaultLoginView
+                    SetNonProjectView <| State.ViewState.defaultLoginViewState outerModel.sharedModel.style.defaultLoginView
             in
             MenuItem.menuItem context.palette
                 active
@@ -233,19 +233,3 @@ navBar outerModel context =
     navBarContainerElement
         navBarContainerAttributes
         [ navBarHeaderView ]
-
-
-defaultLoginViewState : Maybe Types.HelperTypes.DefaultLoginView -> NonProjectViewConstructor
-defaultLoginViewState maybeDefaultLoginView =
-    -- TODO deduplicate with same function in View.Nav
-    case maybeDefaultLoginView of
-        Nothing ->
-            LoginPicker
-
-        Just defaultLoginView ->
-            case defaultLoginView of
-                Types.HelperTypes.DefaultLoginOpenstack ->
-                    Login <| LoginOpenstack Page.LoginOpenstack.init
-
-                Types.HelperTypes.DefaultLoginJetstream ->
-                    Login <| LoginJetstream Defaults.jetstreamCreds
