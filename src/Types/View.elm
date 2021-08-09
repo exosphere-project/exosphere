@@ -34,7 +34,7 @@ import Types.Interaction exposing (Interaction)
 
 
 
-{- View state types -}
+-- Types that describe view state. After the Legacy Views are migrated to pages, we may want to move these to OuterModel.
 
 
 type ViewState
@@ -55,18 +55,43 @@ type NonProjectViewConstructor
     | PageNotFound
 
 
-type
-    SupportableItemType
-    -- Ideally this would be in View.Types, eh
+type LoginView
+    = LoginOpenstack Page.LoginOpenstack.Model
+    | LoginJetstream HelperTypes.JetstreamCreds
+
+
+type ProjectViewConstructor
+    = AllResources AllResourcesListViewParams
+    | ListImages ImageListViewParams SortTableParams
+    | ListProjectServers ServerListViewParams
+    | ListProjectVolumes VolumeListViewParams
+    | ListFloatingIps FloatingIpListViewParams
+    | AssignFloatingIp AssignFloatingIpViewParams
+    | ListKeypairs KeypairListViewParams
+    | CreateKeypair String String
+    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
+    | CreateServerImage OSTypes.ServerUuid String
+    | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
+    | CreateServer HelperTypes.CreateServerViewParams
+    | CreateVolume OSTypes.VolumeName NumericTextInput
+    | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
+    | MountVolInstructions OSTypes.VolumeAttachment
+
+
+
+-- Everything below will be moved to page-specific models as Legacy Views are migrated over.
+-- Model for get support view
+
+
+type SupportableItemType
     = SupportableProject
     | SupportableImage
     | SupportableServer
     | SupportableVolume
 
 
-type LoginView
-    = LoginOpenstack Page.LoginOpenstack.Model
-    | LoginJetstream HelperTypes.JetstreamCreds
+
+-- Model for image list view
 
 
 type alias ImageListViewParams =
@@ -92,27 +117,17 @@ type alias SortTableParams =
     }
 
 
+
+-- Model for any project-specific view
+
+
 type alias ProjectViewParams =
     { createPopup : Bool
     }
 
 
-type ProjectViewConstructor
-    = AllResources AllResourcesListViewParams
-    | ListImages ImageListViewParams SortTableParams
-    | ListProjectServers ServerListViewParams
-    | ListProjectVolumes VolumeListViewParams
-    | ListFloatingIps FloatingIpListViewParams
-    | AssignFloatingIp AssignFloatingIpViewParams
-    | ListKeypairs KeypairListViewParams
-    | CreateKeypair String String
-    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
-    | CreateServerImage OSTypes.ServerUuid String
-    | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
-    | CreateServer HelperTypes.CreateServerViewParams
-    | CreateVolume OSTypes.VolumeName NumericTextInput
-    | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
-    | MountVolInstructions OSTypes.VolumeAttachment
+
+-- Model for all resources view
 
 
 type alias AllResourcesListViewParams =
@@ -123,11 +138,27 @@ type alias AllResourcesListViewParams =
     }
 
 
+
+-- Model for instance list view
+
+
 type alias ServerListViewParams =
     { onlyOwnServers : Bool
     , selectedServers : Set.Set ServerSelection
     , deleteConfirmations : List DeleteConfirmation
     }
+
+
+type alias ServerSelection =
+    OSTypes.ServerUuid
+
+
+type alias DeleteConfirmation =
+    OSTypes.ServerUuid
+
+
+
+-- Model for instance details view
 
 
 type alias ServerDetailViewParams =
@@ -142,46 +173,6 @@ type alias ServerDetailViewParams =
     }
 
 
-type alias VolumeListViewParams =
-    { expandedVols : List OSTypes.VolumeUuid
-    , deleteConfirmations : List DeleteVolumeConfirmation
-    }
-
-
-type alias ServerSelection =
-    OSTypes.ServerUuid
-
-
-type alias DeleteConfirmation =
-    OSTypes.ServerUuid
-
-
-type alias DeleteVolumeConfirmation =
-    OSTypes.VolumeUuid
-
-
-type alias FloatingIpListViewParams =
-    { deleteConfirmations : List OSTypes.IpAddressUuid
-    , hideAssignedIps : Bool
-    }
-
-
-type alias AssignFloatingIpViewParams =
-    { ipUuid : Maybe OSTypes.IpAddressUuid
-    , serverUuid : Maybe OSTypes.ServerUuid
-    }
-
-
-type alias KeypairListViewParams =
-    { expandedKeypairs : List KeypairIdentifier
-    , deleteConfirmations : List KeypairIdentifier
-    }
-
-
-type alias KeypairIdentifier =
-    ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
-
-
 type IPInfoLevel
     = IPDetails
     | IPSummary
@@ -194,3 +185,51 @@ type alias VerboseStatus =
 type PasswordVisibility
     = PasswordShown
     | PasswordHidden
+
+
+
+-- Model for volume list view
+
+
+type alias VolumeListViewParams =
+    { expandedVols : List OSTypes.VolumeUuid
+    , deleteConfirmations : List DeleteVolumeConfirmation
+    }
+
+
+type alias DeleteVolumeConfirmation =
+    OSTypes.VolumeUuid
+
+
+
+-- Model for floating IP list view
+
+
+type alias FloatingIpListViewParams =
+    { deleteConfirmations : List OSTypes.IpAddressUuid
+    , hideAssignedIps : Bool
+    }
+
+
+
+-- Model for assign floating IP view
+
+
+type alias AssignFloatingIpViewParams =
+    { ipUuid : Maybe OSTypes.IpAddressUuid
+    , serverUuid : Maybe OSTypes.ServerUuid
+    }
+
+
+
+-- Model for keypair list view
+
+
+type alias KeypairListViewParams =
+    { expandedKeypairs : List KeypairIdentifier
+    , deleteConfirmations : List KeypairIdentifier
+    }
+
+
+type alias KeypairIdentifier =
+    ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )
