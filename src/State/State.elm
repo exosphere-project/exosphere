@@ -21,6 +21,7 @@ import Orchestration.Orchestration as Orchestration
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.Settings
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -173,6 +174,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| MessageLog newSharedModel
               }
             , Cmd.map (\msg -> MessageLogMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( SettingsMsg innerMsg, NonProjectView Settings ) ->
+            let
+                ( _, cmd, sharedMsg ) =
+                    Page.Settings.update innerMsg sharedModel ()
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| Settings
+              }
+            , Cmd.map (\msg -> SettingsMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)

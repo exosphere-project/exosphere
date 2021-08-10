@@ -15,11 +15,11 @@ import LegacyView.Nav
 import LegacyView.PageTitle
 import LegacyView.Project
 import LegacyView.SelectProjects
-import LegacyView.Settings
 import LegacyView.Toast
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.Settings
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
@@ -105,7 +105,8 @@ elementView windowSize outerModel context =
                                     |> Element.map MessageLogMsg
 
                             Settings ->
-                                LegacyView.Settings.settings context outerModel.sharedModel.style.styleMode
+                                Page.Settings.view context outerModel.sharedModel ()
+                                    |> Element.map SettingsMsg
 
                             GetSupport maybeSupportableItem requestDescription isSubmitted ->
                                 LegacyView.GetSupport.getSupport
