@@ -84,15 +84,17 @@ update msg outerModel =
     )
 
 
+
+-- There may be a better approach than these mapping functions, I'm not sure yet.
+
+
 mapToOuterMsg : ( a, Cmd SharedMsg ) -> ( a, Cmd OuterMsg )
 mapToOuterMsg ( model, cmdSharedMsg ) =
-    -- hopefully temporary function
     ( model, Cmd.map SharedMsg cmdSharedMsg )
 
 
 mapToOuterModel : OuterModel -> ( SharedModel, Cmd a ) -> ( OuterModel, Cmd a )
 mapToOuterModel outerModel ( newSharedModel, cmd ) =
-    -- hopefully temporary function
     ( { outerModel | sharedModel = newSharedModel }, cmd )
 
 
