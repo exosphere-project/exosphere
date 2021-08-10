@@ -23,13 +23,8 @@ main =
         , update = State.update
         , subscriptions = State.Subscriptions.subscriptions
         , onUrlRequest =
-            \urlRequest ->
-                case urlRequest of
-                    Browser.Internal url ->
-                        -- TODO need a way to handle these which includes a Browser.Navigation.pushUrl
-                        SharedMsg <| UrlChange url
-
-                    Browser.External _ ->
-                        SharedMsg NoOp
+            \_ ->
+                -- We don't need this right now, because all of our <a hrefs load another domain in a new window
+                SharedMsg NoOp
         , onUrlChange = \u -> SharedMsg <| UrlChange u
         }
