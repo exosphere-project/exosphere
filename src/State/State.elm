@@ -18,7 +18,6 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
-import Page.Example
 import Page.LoginOpenstack
 import Ports
 import RemoteData
@@ -127,19 +126,6 @@ updateUnderlying outerMsg outerModel =
 
                 Just project ->
                     ViewStateHelpers.setProjectView project projectViewConstructor outerModel
-
-        ( ExamplePageMsg innerMsg, NonProjectView (ExamplePage innerModel) ) ->
-            let
-                ( newSharedModel, cmd, sharedMsg ) =
-                    Page.Example.update innerMsg sharedModel innerModel
-            in
-            ( { outerModel
-                | viewState = NonProjectView <| ExamplePage newSharedModel
-              }
-            , Cmd.map (\msg -> ExamplePageMsg msg) cmd
-            )
-                |> pipelineCmdOuterModelMsg
-                    (processSharedMsg sharedMsg)
 
         ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
             let

@@ -19,7 +19,6 @@ import LegacyView.Project
 import LegacyView.SelectProjects
 import LegacyView.Settings
 import LegacyView.Toast
-import Page.Example
 import Page.LoginOpenstack
 import Style.Helpers as SH
 import Style.Toast
@@ -116,10 +115,6 @@ elementView windowSize outerModel context =
 
                             HelpAbout ->
                                 LegacyView.HelpAbout.helpAbout outerModel.sharedModel context
-
-                            ExamplePage model ->
-                                Page.Example.view model
-                                    |> Element.map (\msg -> ExamplePageMsg msg)
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."

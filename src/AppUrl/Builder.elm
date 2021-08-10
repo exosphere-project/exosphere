@@ -132,11 +132,6 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "helpabout" ]
                 []
 
-        ExamplePage _ ->
-            buildUrlFunc
-                [ "example" ]
-                []
-
         PageNotFound ->
             buildUrlFunc
                 [ "pagenotfound" ]

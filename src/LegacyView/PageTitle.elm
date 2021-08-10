@@ -61,9 +61,6 @@ pageTitle outerModel context =
                 HelpAbout ->
                     "About " ++ outerModel.sharedModel.style.appTitle
 
-                ExamplePage _ ->
-                    "Example Page"
-
                 PageNotFound ->
                     "Error: page not found"
 
