@@ -121,7 +121,6 @@ updateUnderlying outerMsg outerModel =
 
         ( SetProjectView projectIdentifier projectViewConstructor, _ ) ->
             case GetterSetters.projectLookup sharedModel projectIdentifier of
-                -- TODO deduplicated this logic with below
                 Nothing ->
                     -- Project not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )

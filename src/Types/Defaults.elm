@@ -24,7 +24,6 @@ import Types.View as ViewTypes
 
 localization : HelperTypes.Localization
 localization =
-    {- Maybe put this alongside Types.Localization? -}
     { openstackWithOwnKeystone = "cloud"
     , openstackSharingKeystoneWithAnother = "region"
     , unitOfTenancy = "project"
@@ -44,7 +43,7 @@ localization =
 
 
 
-{- Most of the rest of this should be view-specific models -}
+-- Most of the code below should become page-specific init functions as legacy views are migrated to pages
 
 
 jetstreamCreds : HelperTypes.JetstreamCreds

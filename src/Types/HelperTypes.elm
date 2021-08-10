@@ -188,6 +188,10 @@ type JetstreamProvider
     | BothJetstreamClouds
 
 
+
+-- This should become the Model of the create instance view, once the legacy view is migrated to a page
+
+
 type alias CreateServerViewParams =
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
