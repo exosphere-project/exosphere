@@ -5,7 +5,6 @@ module Types.Defaults exposing
     , createVolumeView
     , floatingIpListViewParams
     , imageListViewParams
-    , jetstreamCreds
     , keypairListViewParams
     , localization
     , projectViewParams
@@ -44,14 +43,6 @@ localization =
 
 
 -- Most of the code below should become page-specific init functions as legacy views are migrated to pages
-
-
-jetstreamCreds : HelperTypes.JetstreamCreds
-jetstreamCreds =
-    { jetstreamProviderChoice = HelperTypes.BothJetstreamClouds
-    , taccUsername = ""
-    , taccPassword = ""
-    }
 
 
 projectViewParams : ViewTypes.ProjectViewParams

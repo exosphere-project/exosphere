@@ -25,6 +25,7 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.LoginJetstream
 import Page.LoginOpenstack
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -55,7 +56,7 @@ type NonProjectViewConstructor
 
 type LoginView
     = LoginOpenstack Page.LoginOpenstack.Model
-    | LoginJetstream HelperTypes.JetstreamCreds
+    | LoginJetstream Page.LoginJetstream.Model
 
 
 type ProjectViewConstructor

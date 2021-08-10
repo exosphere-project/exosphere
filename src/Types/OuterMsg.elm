@@ -1,5 +1,6 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
+import Page.LoginJetstream
 import Page.LoginOpenstack
 import Types.HelperTypes as HelperTypes
 import Types.SharedMsg
@@ -11,3 +12,4 @@ type OuterMsg
     | SetProjectView HelperTypes.ProjectIdentifier ViewTypes.ProjectViewConstructor
     | SharedMsg Types.SharedMsg.SharedMsg
     | LoginOpenstackMsg Page.LoginOpenstack.Msg
+    | LoginJetstreamMsg Page.LoginJetstream.Msg

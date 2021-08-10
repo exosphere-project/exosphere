@@ -1,69 +1,102 @@
-module LegacyView.LoginJetstream exposing (jetstreamLoginText, viewLoginJetstream)
+module Page.LoginJetstream exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
-import LegacyView.Login
 import Style.Helpers as SH
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
-import Types.OuterMsg exposing (OuterMsg(..))
-import Types.SharedMsg exposing (SharedMsg(..))
-import Types.View
-    exposing
-        ( LoginView(..)
-        , NonProjectViewConstructor(..)
-        )
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-viewLoginJetstream : View.Types.Context -> JetstreamCreds -> Element.Element OuterMsg
-viewLoginJetstream context jetstreamCreds =
-    let
-        updateCreds : JetstreamCreds -> OuterMsg
-        updateCreds newCreds =
-            SetNonProjectView <| Login <| LoginJetstream newCreds
-    in
+type alias Model =
+    JetstreamCreds
+
+
+type Msg
+    = GotUsername String
+    | GotPassword String
+    | GotProviderChoice JetstreamProvider
+    | GotSubmit
+    | NavigateToView SharedMsg.NavigableView
+
+
+init : Model
+init =
+    defaultJetstreamCreds
+
+
+defaultJetstreamCreds : JetstreamCreds
+defaultJetstreamCreds =
+    { jetstreamProviderChoice = BothJetstreamClouds
+    , taccUsername = ""
+    , taccPassword = ""
+    }
+
+
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotUsername username ->
+            ( { model | taccUsername = username }, Cmd.none, SharedMsg.NoOp )
+
+        GotPassword password ->
+            ( { model | taccPassword = password }, Cmd.none, SharedMsg.NoOp )
+
+        GotProviderChoice choice ->
+            ( { model | jetstreamProviderChoice = choice }, Cmd.none, SharedMsg.NoOp )
+
+        GotSubmit ->
+            ( model, Cmd.none, SharedMsg.JetstreamLogin model )
+
+        NavigateToView view_ ->
+            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
+
+
+view : View.Types.Context -> Model -> Element.Element Msg
+view context model =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream Cloud Account")
         , Element.column VH.contentContainer
-            [ jetstreamLoginText context
+            [ helpText context
             , Element.column VH.formContainer
                 [ Input.text
                     (VH.inputItemAttributes context.palette.background)
-                    { text = jetstreamCreds.taccUsername
+                    { text = model.taccUsername
                     , placeholder = Just (Input.placeholder [] (Element.text "tg******"))
-                    , onChange = \un -> updateCreds { jetstreamCreds | taccUsername = un }
+                    , onChange = GotUsername
                     , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Username")
                     }
                 , Input.currentPassword
                     (VH.inputItemAttributes context.palette.background)
-                    { text = jetstreamCreds.taccPassword
+                    { text = model.taccPassword
                     , placeholder = Nothing
-                    , onChange = \pw -> updateCreds { jetstreamCreds | taccPassword = pw }
+                    , onChange = GotPassword
                     , label = Input.labelAbove [ Font.size 14 ] (Element.text "TACC Password")
                     , show = False
                     }
                 , Input.radio []
                     { label = Input.labelAbove [] (Element.text "Provider")
-                    , onChange = \x -> updateCreds { jetstreamCreds | jetstreamProviderChoice = x }
+                    , onChange = GotProviderChoice
                     , options =
                         [ Input.option IUCloud (Element.text "IU Cloud")
                         , Input.option TACCCloud (Element.text "TACC Cloud")
                         , Input.option BothJetstreamClouds (Element.text "Both Clouds")
                         ]
-                    , selected = Just jetstreamCreds.jetstreamProviderChoice
+                    , selected = Just model.jetstreamProviderChoice
                     }
                 , Element.row [ Element.width Element.fill ]
-                    [ Element.el [] (LegacyView.Login.loginPickerButton context)
+                    [ Element.el [] (loginPickerButton context)
                     , Element.el [ Element.alignRight ]
                         (Widget.textButton
                             (SH.materialStyle context.palette).primaryButton
                             { text = "Log In"
                             , onPress =
-                                Just <| SharedMsg (JetstreamLogin jetstreamCreds)
+                                Just GotSubmit
                             }
                         )
                     ]
@@ -72,8 +105,8 @@ viewLoginJetstream context jetstreamCreds =
         ]
 
 
-jetstreamLoginText : View.Types.Context -> Element.Element OuterMsg
-jetstreamLoginText context =
+helpText : View.Types.Context -> Element.Element Msg
+helpText context =
     Element.column VH.exoColumnAttributes
         [ Element.paragraph
             []
@@ -144,3 +177,14 @@ jetstreamLoginText context =
                 View.Types.BrowserLinkTextLabel "set your TACC password"
             ]
         ]
+
+
+loginPickerButton : View.Types.Context -> Element.Element Msg
+loginPickerButton context =
+    -- TODO deduplicate with same button on OpenStack login page
+    Widget.textButton
+        (SH.materialStyle context.palette).button
+        { text = "Other Login Methods"
+        , onPress =
+            Just <| NavigateToView SharedMsg.LoginPicker
+        }

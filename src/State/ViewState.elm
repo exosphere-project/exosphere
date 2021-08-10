@@ -15,6 +15,7 @@ import LegacyView.PageTitle
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
 import RemoteData
@@ -504,4 +505,4 @@ defaultLoginViewState maybeDefaultLoginView =
                     Login <| LoginOpenstack Page.LoginOpenstack.init
 
                 DefaultLoginJetstream ->
-                    Login <| LoginJetstream Defaults.jetstreamCreds
+                    Login <| LoginJetstream Page.LoginJetstream.init

@@ -18,6 +18,7 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
 import RemoteData
@@ -135,6 +136,7 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     ViewStateHelpers.setProjectView project projectViewConstructor outerModel
 
+        -- TODO exact same structure for each page-specific case here. Is there a way to deduplicate or factor out?
         ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
             let
                 ( newSharedModel, cmd, sharedMsg ) =
@@ -148,7 +150,21 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
+        ( LoginJetstreamMsg innerMsg, NonProjectView (Login (LoginJetstream innerModel)) ) ->
+            let
+                ( newSharedModel, cmd, sharedMsg ) =
+                    Page.LoginJetstream.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| Login <| LoginJetstream newSharedModel
+              }
+            , Cmd.map (\msg -> LoginJetstreamMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
         ( _, _ ) ->
+            -- This is not great because it allows us to forget to write a case statement above, but I don't know of a nicer way to write a catchall case for when a page-specific Msg is received for an inapplicable page.
             ( outerModel, Cmd.none )
 
 

@@ -10,7 +10,6 @@ import Helpers.String
 import Html
 import LegacyView.GetSupport
 import LegacyView.HelpAbout
-import LegacyView.LoginJetstream
 import LegacyView.LoginPicker
 import LegacyView.Messages
 import LegacyView.Nav
@@ -19,6 +18,7 @@ import LegacyView.Project
 import LegacyView.SelectProjects
 import LegacyView.Settings
 import LegacyView.Toast
+import Page.LoginJetstream
 import Page.LoginOpenstack
 import Style.Helpers as SH
 import Style.Toast
@@ -83,8 +83,9 @@ elementView windowSize outerModel context =
                                         Page.LoginOpenstack.view context model
                                             |> Element.map LoginOpenstackMsg
 
-                                    LoginJetstream jetstreamCreds ->
-                                        LegacyView.LoginJetstream.viewLoginJetstream context jetstreamCreds
+                                    LoginJetstream model ->
+                                        Page.LoginJetstream.view context model
+                                            |> Element.map LoginJetstreamMsg
 
                             LoadingUnscopedProjects _ ->
                                 -- TODO put a fidget spinner here
