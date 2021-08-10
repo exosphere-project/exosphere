@@ -494,7 +494,6 @@ defaultViewState model =
 
 defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor
 defaultLoginViewState maybeDefaultLoginView =
-    -- TODO deduplicate with same function in View.Nav
     case maybeDefaultLoginView of
         Nothing ->
             LoginPicker

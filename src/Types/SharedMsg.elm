@@ -45,7 +45,6 @@ type alias TickInterval =
 type ProjectSpecificMsgConstructor
     = ReceiveAppCredential OSTypes.ApplicationCredential
     | PrepareCredentialedRequest (Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg) Time.Posix
-      -- TODO this should be a view-specific msg?
     | ToggleCreatePopup
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor

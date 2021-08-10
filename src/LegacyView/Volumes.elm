@@ -26,10 +26,6 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 import Types.View
     exposing
         ( DeleteVolumeConfirmation
-        , -- TODO this shouldn't be here
-          IPInfoLevel(..)
-          -- TODO this shouldn't be here
-        , PasswordVisibility(..)
         , ProjectViewConstructor(..)
         , VolumeListViewParams
         )

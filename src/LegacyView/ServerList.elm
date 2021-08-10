@@ -22,10 +22,7 @@ import Types.Server exposing (Server, ServerOrigin(..))
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View
     exposing
-        ( -- TODO This shouldn't be here
-          IPInfoLevel(..)
-        , NonProjectViewConstructor(..)
-        , PasswordVisibility(..)
+        ( NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , ServerListViewParams
         , ServerSelection

@@ -1156,7 +1156,6 @@ processProjectSpecificMsg outerModel project msg =
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
 
                 ( newOuterModel, setViewCmd ) =
-                    -- TODO ensure this code works: sets URL if needed, page title if needed, etc.
                     ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = newNewSharedModel }
             in
             ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, setViewCmd ] )
@@ -1361,7 +1360,6 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveRandomServerName serverName ->
-            -- TODO make sure this works
             case outerModel.viewState of
                 ProjectView _ _ (CreateServer viewParams) ->
                     ViewStateHelpers.setProjectView project (CreateServer { viewParams | serverName = serverName }) outerModel
