@@ -20,6 +20,7 @@ import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.MessageLog
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -159,6 +160,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| Login <| LoginJetstream newSharedModel
               }
             , Cmd.map (\msg -> LoginJetstreamMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( MessageLogMsg innerMsg, NonProjectView (MessageLog innerModel) ) ->
+            let
+                ( newSharedModel, cmd, sharedMsg ) =
+                    Page.MessageLog.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| MessageLog newSharedModel
+              }
+            , Cmd.map (\msg -> MessageLogMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)

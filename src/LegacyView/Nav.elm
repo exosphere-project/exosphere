@@ -8,6 +8,7 @@ import Element.Region as Region
 import FeatherIcons
 import Helpers.String
 import LegacyView.GetSupport
+import Page.MessageLog
 import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
@@ -147,7 +148,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView <| MessageLog False)
+                        { onPress = Just (SetNonProjectView <| MessageLog Page.MessageLog.init)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])

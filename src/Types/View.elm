@@ -27,6 +27,7 @@ module Types.View exposing
 import OpenStack.Types as OSTypes
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.MessageLog
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
@@ -47,7 +48,7 @@ type NonProjectViewConstructor
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | MessageLog Bool
+    | MessageLog Page.MessageLog.Model
     | Settings
     | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
     | HelpAbout

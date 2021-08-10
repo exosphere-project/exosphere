@@ -140,7 +140,7 @@ pathParsers defaultViewState =
                         Nothing ->
                             False
             in
-            NonProjectView <| MessageLog showDebugMsgs
+            NonProjectView <| MessageLog { showDebugMsgs = showDebugMsgs }
         )
         (s "msglog" <?> Query.string "showdebug")
     , map

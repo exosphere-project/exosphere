@@ -11,7 +11,6 @@ import Html
 import LegacyView.GetSupport
 import LegacyView.HelpAbout
 import LegacyView.LoginPicker
-import LegacyView.Messages
 import LegacyView.Nav
 import LegacyView.PageTitle
 import LegacyView.Project
@@ -20,6 +19,7 @@ import LegacyView.Settings
 import LegacyView.Toast
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.MessageLog
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
@@ -100,8 +100,9 @@ elementView windowSize outerModel context =
                             SelectProjects authUrl selectedProjects ->
                                 LegacyView.SelectProjects.selectProjects outerModel.sharedModel context authUrl selectedProjects
 
-                            MessageLog showDebugMsgs ->
-                                LegacyView.Messages.messageLog context outerModel.sharedModel.logMessages showDebugMsgs
+                            MessageLog model ->
+                                Page.MessageLog.view context outerModel.sharedModel model
+                                    |> Element.map MessageLogMsg
 
                             Settings ->
                                 LegacyView.Settings.settings context outerModel.sharedModel.style.styleMode
