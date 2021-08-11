@@ -1,8 +1,9 @@
-module Helpers.ServerResourceUsage exposing (getMostRecentDataPoint, parseConsoleLog)
+module Helpers.ServerResourceUsage exposing (getMostRecentDataPoint, parseConsoleLog, timeSeriesRecentDataPoints)
 
 import Dict
 import Json.Decode
-import Types.ServerResourceUsage exposing (DataPoint, History)
+import Time
+import Types.ServerResourceUsage exposing (DataPoint, History, TimeSeries)
 
 
 
@@ -59,3 +60,18 @@ decodeLogLine =
             (Json.Decode.field "memPctUsed" Json.Decode.int)
             (Json.Decode.field "rootfsPctUsed" Json.Decode.int)
         )
+
+
+timeSeriesRecentDataPoints : TimeSeries -> Time.Posix -> Int -> Dict.Dict Int DataPoint
+timeSeriesRecentDataPoints timeSeries currentTime timeIntervalDurationMillis =
+    let
+        timeSeriesList =
+            Dict.toList timeSeries
+
+        durationAgo =
+            Time.posixToMillis currentTime - timeIntervalDurationMillis
+
+        recentDataPoints =
+            List.filter (\t -> Tuple.first t > durationAgo) timeSeriesList
+    in
+    Dict.fromList recentDataPoints

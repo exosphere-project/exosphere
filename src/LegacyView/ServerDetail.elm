@@ -14,10 +14,11 @@ import Helpers.Interaction as IHelpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import Helpers.Time
-import LegacyView.ResourceUsage
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
+import Page.InstanceResourceUsageAlerts
+import Page.InstanceResourceUsageCharts
 import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -1099,8 +1100,8 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
 
                             else
                                 Element.column [ Element.width Element.fill ]
-                                    [ LegacyView.ResourceUsage.alerts context (Tuple.first currentTimeAndZone) history.timeSeries
-                                    , LegacyView.ResourceUsage.charts context chartsWidthPx currentTimeAndZone history.timeSeries
+                                    [ Page.InstanceResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) history.timeSeries
+                                    , Page.InstanceResourceUsageCharts.view context chartsWidthPx currentTimeAndZone history.timeSeries
                                     ]
 
                         _ ->
