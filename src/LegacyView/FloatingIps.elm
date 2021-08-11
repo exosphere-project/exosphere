@@ -8,8 +8,8 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import LegacyView.QuotaUsage
 import OpenStack.Types as OSTypes
+import Page.QuotaUsage
 import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.CopyableText
@@ -111,7 +111,7 @@ floatingIps context showHeading project viewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ LegacyView.QuotaUsage.floatingIpQuotaDetails context project.computeQuota floatingIpsUsedCount
+            [ Page.QuotaUsage.view context (Page.QuotaUsage.FloatingIp project.computeQuota floatingIpsUsedCount)
             , VH.renderRDPP
                 context
                 project.floatingIps

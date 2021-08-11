@@ -8,8 +8,8 @@ import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import LegacyView.QuotaUsage
 import OpenStack.Types as OSTypes
+import Page.QuotaUsage
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -109,7 +109,7 @@ serverList context showHeading project serverListViewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ LegacyView.QuotaUsage.computeQuotaDetails context project.computeQuota
+            [ Page.QuotaUsage.view context (Page.QuotaUsage.Compute project.computeQuota)
             , serverListContents
             ]
         ]

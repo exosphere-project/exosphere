@@ -7,10 +7,10 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.String
-import LegacyView.QuotaUsage
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
+import Page.QuotaUsage
 import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
@@ -72,7 +72,7 @@ volumes context showHeading project viewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ LegacyView.QuotaUsage.volumeQuotaDetails context project.volumeQuota
+            [ Page.QuotaUsage.view context (Page.QuotaUsage.Volume project.volumeQuota)
             , VH.renderWebData
                 context
                 project.volumes

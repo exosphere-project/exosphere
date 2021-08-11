@@ -1,8 +1,4 @@
-module LegacyView.QuotaUsage exposing
-    ( computeQuotaDetails
-    , floatingIpQuotaDetails
-    , volumeQuotaDetails
-    )
+module Page.QuotaUsage exposing (ResourceType(..), view)
 
 import Element
 import Element.Background as Background
@@ -12,12 +8,30 @@ import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData exposing (RemoteData(..), WebData)
 import Style.Helpers as SH
-import Types.OuterMsg exposing (OuterMsg(..))
 import View.Helpers as VH
 import View.Types
 
 
-infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element OuterMsg
+type ResourceType
+    = Compute (WebData OSTypes.ComputeQuota)
+    | FloatingIp (WebData OSTypes.ComputeQuota) Int
+    | Volume (WebData OSTypes.VolumeQuota)
+
+
+view : View.Types.Context -> ResourceType -> Element.Element msg
+view context resourceType =
+    case resourceType of
+        Compute quota ->
+            computeQuotaDetails context quota
+
+        FloatingIp quota floatingIpsUsed ->
+            floatingIpQuotaDetails context quota floatingIpsUsed
+
+        Volume quota ->
+            volumeQuotaDetails context quota
+
+
+infoItem : View.Types.Context -> { inUse : Int, limit : Maybe Int } -> ( String, String ) -> Element.Element msg
 infoItem context detail ( label, units ) =
     let
         labelLimit m_ =
@@ -52,7 +66,7 @@ infoItem context detail ( label, units ) =
         ]
 
 
-computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element OuterMsg
+computeInfoItems : View.Types.Context -> OSTypes.ComputeQuota -> Element.Element msg
 computeInfoItems context quota =
     Element.wrappedRow
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
@@ -71,7 +85,7 @@ computeInfoItems context quota =
         ]
 
 
-quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element OuterMsg) -> Element.Element OuterMsg
+quotaDetail : View.Types.Context -> WebData q -> (q -> Element.Element msg) -> Element.Element msg
 quotaDetail context quota infoItemsF =
     let
         resourceWord =
@@ -84,14 +98,14 @@ quotaDetail context quota infoItemsF =
     VH.renderWebData context quota resourceWord infoItemsF
 
 
-computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element OuterMsg
+computeQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Element.Element msg
 computeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (computeInfoItems context) ]
 
 
-floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element OuterMsg
+floatingIpInfoItems : View.Types.Context -> Int -> OSTypes.ComputeQuota -> Element.Element msg
 floatingIpInfoItems context floatingIpsUsed quota =
     {-
        Compute quota reports incorrect number of floating IPs used (0), so we are overriding it with a count of the floating IPs returned by Neutron.
@@ -126,14 +140,14 @@ floatingIpInfoItems context floatingIpsUsed quota =
         ]
 
 
-floatingIpQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Int -> Element.Element OuterMsg
+floatingIpQuotaDetails : View.Types.Context -> WebData OSTypes.ComputeQuota -> Int -> Element.Element msg
 floatingIpQuotaDetails context quota floatingIpsUsed =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
         [ quotaDetail context quota (floatingIpInfoItems context floatingIpsUsed) ]
 
 
-volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element OuterMsg
+volumeInfoItems : View.Types.Context -> OSTypes.VolumeQuota -> Element.Element msg
 volumeInfoItems context quota =
     Element.wrappedRow
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
@@ -152,7 +166,7 @@ volumeInfoItems context quota =
         ]
 
 
-volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element OuterMsg
+volumeQuotaDetails : View.Types.Context -> WebData OSTypes.VolumeQuota -> Element.Element msg
 volumeQuotaDetails context quota =
     Element.row
         (VH.exoRowAttributes ++ [ Element.width Element.fill ])
