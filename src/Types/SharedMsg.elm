@@ -8,6 +8,7 @@ module Types.SharedMsg exposing
 
 import Http
 import OpenStack.Types as OSTypes
+import Set
 import Style.Types
 import Time
 import Toasty
@@ -26,7 +27,7 @@ type SharedMsg
     | ReceiveScopedAuthToken ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | NavigateToView NavigableView

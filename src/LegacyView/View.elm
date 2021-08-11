@@ -11,13 +11,13 @@ import Html
 import LegacyView.Nav
 import LegacyView.PageTitle
 import LegacyView.Project
-import LegacyView.SelectProjects
 import Page.GetSupport
 import Page.HelpAbout
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.SelectProjects
 import Page.Settings
 import Page.Toast
 import Style.Helpers as SH
@@ -98,8 +98,9 @@ elementView windowSize outerModel context =
                                             |> Helpers.String.toTitleCase
                                         ]
 
-                            SelectProjects authUrl selectedProjects ->
-                                LegacyView.SelectProjects.selectProjects outerModel.sharedModel context authUrl selectedProjects
+                            SelectProjects model ->
+                                Page.SelectProjects.view context outerModel.sharedModel model
+                                    |> Element.map SelectProjectsMsg
 
                             MessageLog model ->
                                 Page.MessageLog.view context outerModel.sharedModel model

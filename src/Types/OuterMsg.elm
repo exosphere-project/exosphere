@@ -5,6 +5,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.SelectProjects
 import Page.Settings
 import Types.HelperTypes as HelperTypes
 import Types.SharedMsg
@@ -21,3 +22,4 @@ type OuterMsg
     | SettingsMsg Page.Settings.Msg
     | GetSupportMsg Page.GetSupport.Msg
     | LoginPickerMsg Page.LoginPicker.Msg
+    | SelectProjectsMsg Page.SelectProjects.Msg

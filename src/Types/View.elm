@@ -28,6 +28,7 @@ import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.SelectProjects
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
@@ -47,7 +48,7 @@ type NonProjectViewConstructor
     = LoginPicker
     | Login LoginView
     | LoadingUnscopedProjects OSTypes.AuthTokenString
-    | SelectProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
+    | SelectProjects Page.SelectProjects.Model
     | MessageLog Page.MessageLog.Model
     | Settings
     | GetSupport Page.GetSupport.Model

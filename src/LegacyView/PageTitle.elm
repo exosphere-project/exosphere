@@ -33,10 +33,10 @@ pageTitle outerModel context =
                         , Helpers.String.pluralize context.localization.unitOfTenancy
                         ]
 
-                SelectProjects keystoneUrl _ ->
+                SelectProjects model ->
                     let
                         providerTitle =
-                            keystoneUrl
+                            model.providerKeystoneUrl
                                 |> UrlHelpers.hostnameFromUrl
                                 |> VH.titleFromHostname
                     in

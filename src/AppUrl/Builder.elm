@@ -98,11 +98,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 []
 
-        SelectProjects keystoneUrl _ ->
+        SelectProjects model ->
             buildUrlFunc
                 [ "selectprojs"
                 ]
-                [ UB.string "keystoneurl" keystoneUrl
+                [ UB.string "keystoneurl" model.providerKeystoneUrl
                 ]
 
         MessageLog model ->

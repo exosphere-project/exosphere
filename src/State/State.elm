@@ -23,6 +23,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
+import Page.SelectProjects
 import Page.Settings
 import Ports
 import RemoteData
@@ -31,6 +32,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Set
 import State.Auth
 import State.Error
 import State.ViewState as ViewStateHelpers
@@ -219,6 +221,19 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
+        ( SelectProjectsMsg innerMsg, NonProjectView (SelectProjects innerModel) ) ->
+            let
+                ( newSharedModel, cmd, sharedMsg ) =
+                    Page.SelectProjects.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| SelectProjects newSharedModel
+              }
+            , Cmd.map (\msg -> SelectProjectsMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
         ( _, _ ) ->
             -- This is not great because it allows us to forget to write a case statement above, but I don't know of a nicer way to write a catchall case for when a page-specific Msg is received for an inapplicable page.
             ( outerModel, Cmd.none )
@@ -390,13 +405,14 @@ processSharedMsg sharedMsg outerModel =
                     in
                     -- If we are not already on a SelectProjects view, then go there
                     case outerModel.viewState of
-                        NonProjectView (SelectProjects _ _) ->
+                        NonProjectView (SelectProjects _) ->
                             ( newOuterModel, Cmd.none )
 
                         _ ->
                             ViewStateHelpers.modelUpdateViewState
                                 (NonProjectView <|
-                                    SelectProjects newProvider.authUrl []
+                                    SelectProjects <|
+                                        Page.SelectProjects.init newProvider.authUrl
                                 )
                                 newOuterModel
 
@@ -404,7 +420,7 @@ processSharedMsg sharedMsg outerModel =
                     -- Provider not found, may have been removed, nothing to do
                     ( outerModel, Cmd.none )
 
-        RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
+        RequestProjectLoginFromProvider keystoneUrl desiredProjectIdentifiers ->
             case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
@@ -418,8 +434,13 @@ processSharedMsg sharedMsg outerModel =
                                     provider.token
                                     project.project.uuid
 
+                        unscopedProjects =
+                            desiredProjectIdentifiers
+                                |> Set.toList
+                                |> List.filterMap (GetterSetters.unscopedProjectLookup provider)
+
                         loginRequests =
-                            List.map buildLoginRequest desiredProjects
+                            List.map buildLoginRequest unscopedProjects
                                 |> Cmd.batch
 
                         -- Remove unscoped provider from model now that we have selected projects from it
@@ -433,7 +454,7 @@ processSharedMsg sharedMsg outerModel =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
                                     ViewStateHelpers.setNonProjectView
-                                        (SelectProjects unscopedProvider.authUrl [])
+                                        (SelectProjects <| Page.SelectProjects.init unscopedProvider.authUrl)
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
@@ -2038,7 +2059,7 @@ createProject outerModel authToken endpoints =
         newViewStateFunc =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
             case outerModel.viewState of
-                NonProjectView (SelectProjects _ _) ->
+                NonProjectView (SelectProjects _) ->
                     \model_ -> ( model_, Cmd.none )
 
                 NonProjectView _ ->
