@@ -12,7 +12,6 @@ import LegacyView.Nav
 import LegacyView.PageTitle
 import LegacyView.Project
 import LegacyView.SelectProjects
-import LegacyView.Toast
 import Page.GetSupport
 import Page.HelpAbout
 import Page.LoginJetstream
@@ -20,6 +19,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.Settings
+import Page.Toast
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
@@ -139,7 +139,7 @@ elementView windowSize outerModel context =
                                     viewConstructor
                 , Element.html
                     (Toasty.view Style.Toast.toastConfig
-                        (LegacyView.Toast.toast context outerModel.sharedModel.showDebugMsgs)
+                        (Page.Toast.view context outerModel.sharedModel)
                         (\m -> SharedMsg <| ToastyMsg m)
                         outerModel.sharedModel.toasties
                     )
