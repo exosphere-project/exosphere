@@ -3,6 +3,7 @@ module Types.OuterMsg exposing (OuterMsg(..))
 import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.LoginPicker
 import Page.MessageLog
 import Page.Settings
 import Types.HelperTypes as HelperTypes
@@ -19,3 +20,4 @@ type OuterMsg
     | MessageLogMsg Page.MessageLog.Msg
     | SettingsMsg Page.Settings.Msg
     | GetSupportMsg Page.GetSupport.Msg
+    | LoginPickerMsg Page.LoginPicker.Msg

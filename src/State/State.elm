@@ -21,6 +21,7 @@ import Orchestration.Orchestration as Orchestration
 import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.LoginPicker
 import Page.MessageLog
 import Page.Settings
 import Ports
@@ -201,6 +202,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| GetSupport newSharedModel
               }
             , Cmd.map (\msg -> GetSupportMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( LoginPickerMsg innerMsg, NonProjectView LoginPicker ) ->
+            let
+                ( _, cmd, sharedMsg ) =
+                    Page.LoginPicker.update innerMsg
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| LoginPicker
+              }
+            , Cmd.map (\msg -> LoginPickerMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -470,6 +484,12 @@ processSharedMsg sharedMsg outerModel =
             case navigableView of
                 Types.SharedMsg.LoginPicker ->
                     ViewStateHelpers.setNonProjectView LoginPicker outerModel
+
+                Types.SharedMsg.LoginOpenstack ->
+                    ViewStateHelpers.setNonProjectView (Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
+
+                Types.SharedMsg.LoginJetstream ->
+                    ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
 
         NavigateToUrl url ->
             ( outerModel, Browser.Navigation.load url )

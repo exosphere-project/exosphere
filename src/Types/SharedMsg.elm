@@ -109,3 +109,5 @@ type ServerSpecificMsgConstructor
 
 type NavigableView
     = LoginPicker
+    | LoginOpenstack
+    | LoginJetstream

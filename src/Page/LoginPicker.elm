@@ -1,33 +1,42 @@
-module LegacyView.LoginPicker exposing (loginPicker)
+module Page.LoginPicker exposing (Msg(..), update, view)
 
 import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
-import Page.LoginOpenstack
 import Style.Helpers as SH
-import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..), OpenIdConnectLoginConfig)
-import Types.OuterMsg exposing (OuterMsg(..))
-import Types.SharedMsg exposing (SharedMsg(..))
-import Types.View
-    exposing
-        ( LoginView(..)
-        , NonProjectViewConstructor(..)
-        )
+import Types.HelperTypes
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
+type Msg
+    = NavigateToView SharedMsg.NavigableView
+    | NavigateToUrl Types.HelperTypes.Url
+
+
 type alias LoginMethod =
-    { logo : Element.Element OuterMsg
-    , button : Element.Element OuterMsg
+    { logo : Element.Element Msg
+    , button : Element.Element Msg
     , description : String
     }
 
 
-loginPicker : View.Types.Context -> Maybe OpenIdConnectLoginConfig -> Element.Element OuterMsg
-loginPicker context maybeOpenIdConnectLoginConfig =
+update : Msg -> ( (), Cmd Msg, SharedMsg.SharedMsg )
+update msg =
+    case msg of
+        NavigateToView view_ ->
+            ( (), Cmd.none, SharedMsg.NavigateToView view_ )
+
+        NavigateToUrl url ->
+            ( (), Cmd.none, SharedMsg.NavigateToUrl url )
+
+
+view : View.Types.Context -> SharedModel -> Element.Element Msg
+view context sharedModel =
     let
         defaultLoginMethods =
             [ { logo =
@@ -38,10 +47,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                         { text = "Add OpenStack Account"
                         , onPress =
                             Just <|
-                                SetNonProjectView <|
-                                    Login <|
-                                        LoginOpenstack <|
-                                            Page.LoginOpenstack.init
+                                NavigateToView SharedMsg.LoginOpenstack
                         }
               , description =
                     ""
@@ -54,10 +60,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                         { text = "Add Jetstream Account"
                         , onPress =
                             Just <|
-                                SetNonProjectView <|
-                                    Login <|
-                                        LoginJetstream <|
-                                            JetstreamCreds BothJetstreamClouds "" ""
+                                NavigateToView SharedMsg.LoginJetstream
                         }
               , description =
                     "Recommended login method for Jetstream Cloud"
@@ -82,7 +85,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                             url =
                                 oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
                         in
-                        Just <| SharedMsg <| NavigateToUrl url
+                        Just <| NavigateToUrl url
                     }
             , description =
                 oidcLoginConfig.oidcLoginButtonDescription
@@ -91,7 +94,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
         loginMethods =
             List.append
                 defaultLoginMethods
-                (case maybeOpenIdConnectLoginConfig of
+                (case sharedModel.openIdConnectLoginConfig of
                     Just oidcLoginConfig ->
                         [ oidcLoginMethod oidcLoginConfig ]
 
@@ -99,7 +102,7 @@ loginPicker context maybeOpenIdConnectLoginConfig =
                         []
                 )
 
-        renderLoginMethod : LoginMethod -> Element.Element OuterMsg
+        renderLoginMethod : LoginMethod -> Element.Element Msg
         renderLoginMethod loginMethod =
             Element.el
                 [ Element.width <| Element.px 380

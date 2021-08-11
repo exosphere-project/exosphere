@@ -8,7 +8,6 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
-import LegacyView.LoginPicker
 import LegacyView.Nav
 import LegacyView.PageTitle
 import LegacyView.Project
@@ -18,6 +17,7 @@ import Page.GetSupport
 import Page.HelpAbout
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.LoginPicker
 import Page.MessageLog
 import Page.Settings
 import Style.Helpers as SH
@@ -75,7 +75,8 @@ elementView windowSize outerModel context =
                     NonProjectView viewConstructor ->
                         case viewConstructor of
                             LoginPicker ->
-                                LegacyView.LoginPicker.loginPicker context outerModel.sharedModel.openIdConnectLoginConfig
+                                Page.LoginPicker.view context outerModel.sharedModel
+                                    |> Element.map LoginPickerMsg
 
                             Login loginView ->
                                 case loginView of
