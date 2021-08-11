@@ -1,16 +1,19 @@
-module LegacyView.HelpAbout exposing (helpAbout)
+module Page.HelpAbout exposing (view)
 
 import Element
 import FeatherIcons
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedModel exposing (SharedModel)
 import UUID
 import View.Helpers as VH
 import View.Types
 
 
-helpAbout : SharedModel -> View.Types.Context -> Element.Element OuterMsg
-helpAbout model context =
+
+-- No state or Msgs to keep track of, so there is no Model, Msg, init, or update here
+
+
+view : SharedModel -> View.Types.Context -> Element.Element msg
+view model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30, Element.width Element.fill ])
         [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
             [ FeatherIcons.info
@@ -40,7 +43,7 @@ helpAbout model context =
         ]
 
 
-defaultHelpAboutText : View.Types.Context -> Element.Element OuterMsg
+defaultHelpAboutText : View.Types.Context -> Element.Element msg
 defaultHelpAboutText context =
     Element.column VH.contentContainer
         [ Element.paragraph []

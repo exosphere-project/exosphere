@@ -8,7 +8,6 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
-import LegacyView.HelpAbout
 import LegacyView.LoginPicker
 import LegacyView.Nav
 import LegacyView.PageTitle
@@ -16,6 +15,7 @@ import LegacyView.Project
 import LegacyView.SelectProjects
 import LegacyView.Toast
 import Page.GetSupport
+import Page.HelpAbout
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -113,7 +113,7 @@ elementView windowSize outerModel context =
                                     |> Element.map GetSupportMsg
 
                             HelpAbout ->
-                                LegacyView.HelpAbout.helpAbout outerModel.sharedModel context
+                                Page.HelpAbout.view outerModel.sharedModel context
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
