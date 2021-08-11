@@ -18,13 +18,13 @@ module Types.View exposing
     , ServerListViewParams
     , ServerSelection
     , SortTableParams
-    , SupportableItemType(..)
     , VerboseStatus
     , ViewState(..)
     , VolumeListViewParams
     )
 
 import OpenStack.Types as OSTypes
+import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -50,7 +50,7 @@ type NonProjectViewConstructor
     | SelectProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
     | MessageLog Page.MessageLog.Model
     | Settings
-    | GetSupport (Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )) String Bool
+    | GetSupport Page.GetSupport.Model
     | HelpAbout
     | PageNotFound
 
@@ -80,17 +80,6 @@ type ProjectViewConstructor
 
 
 -- Everything below will be moved to page-specific models as Legacy Views are migrated over.
--- Model for get support view
-
-
-type SupportableItemType
-    = SupportableProject
-    | SupportableImage
-    | SupportableServer
-    | SupportableVolume
-
-
-
 -- Model for image list view
 
 

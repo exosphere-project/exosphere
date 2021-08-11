@@ -7,7 +7,7 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
-import LegacyView.GetSupport
+import Page.GetSupport
 import Page.MessageLog
 import State.ViewState
 import Style.Helpers as SH
@@ -182,10 +182,9 @@ navBar outerModel context =
                         { onPress =
                             Just
                                 (SetNonProjectView <|
-                                    GetSupport
-                                        (LegacyView.GetSupport.viewStateToSupportableItem outerModel.viewState)
-                                        ""
-                                        False
+                                    GetSupport <|
+                                        Page.GetSupport.init
+                                            (State.ViewState.viewStateToSupportableItem outerModel.viewState)
                                 )
                         , label =
                             Element.row

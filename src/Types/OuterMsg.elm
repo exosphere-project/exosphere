@@ -1,5 +1,6 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
+import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -17,3 +18,4 @@ type OuterMsg
     | LoginJetstreamMsg Page.LoginJetstream.Msg
     | MessageLogMsg Page.MessageLog.Msg
     | SettingsMsg Page.Settings.Msg
+    | GetSupportMsg Page.GetSupport.Msg

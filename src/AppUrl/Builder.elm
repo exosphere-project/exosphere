@@ -122,7 +122,7 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "settings" ]
                 []
 
-        GetSupport _ _ _ ->
+        GetSupport _ ->
             buildUrlFunc
                 [ "getsupport" ]
                 []

@@ -8,7 +8,6 @@ import Element.Font as Font
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
-import LegacyView.GetSupport
 import LegacyView.HelpAbout
 import LegacyView.LoginPicker
 import LegacyView.Nav
@@ -16,6 +15,7 @@ import LegacyView.PageTitle
 import LegacyView.Project
 import LegacyView.SelectProjects
 import LegacyView.Toast
+import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -108,13 +108,9 @@ elementView windowSize outerModel context =
                                 Page.Settings.view context outerModel.sharedModel ()
                                     |> Element.map SettingsMsg
 
-                            GetSupport maybeSupportableItem requestDescription isSubmitted ->
-                                LegacyView.GetSupport.getSupport
-                                    outerModel.sharedModel
-                                    context
-                                    maybeSupportableItem
-                                    requestDescription
-                                    isSubmitted
+                            GetSupport model ->
+                                Page.GetSupport.view context outerModel.sharedModel model
+                                    |> Element.map GetSupportMsg
 
                             HelpAbout ->
                                 LegacyView.HelpAbout.helpAbout outerModel.sharedModel context

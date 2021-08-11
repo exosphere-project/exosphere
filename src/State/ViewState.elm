@@ -4,6 +4,7 @@ module State.ViewState exposing
     , modelUpdateViewState
     , setNonProjectView
     , setProjectView
+    , viewStateToSupportableItem
     )
 
 import AppUrl.Builder
@@ -15,6 +16,7 @@ import LegacyView.PageTitle
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Page.GetSupport exposing (SupportableItemType(..))
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
@@ -55,9 +57,9 @@ setNonProjectView nonProjectViewConstructor outerModel =
 
         ( viewSpecificSharedModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
-                GetSupport _ _ _ ->
+                GetSupport _ ->
                     case prevNonProjectViewConstructor of
-                        Just (GetSupport _ _ _) ->
+                        Just (GetSupport _) ->
                             ( outerModel.sharedModel, Cmd.none )
 
                         _ ->
@@ -506,3 +508,45 @@ defaultLoginViewState maybeDefaultLoginView =
 
                 DefaultLoginJetstream ->
                     Login <| LoginJetstream Page.LoginJetstream.init
+
+
+viewStateToSupportableItem :
+    Types.View.ViewState
+    -> Maybe ( Page.GetSupport.SupportableItemType, Maybe Types.HelperTypes.Uuid )
+viewStateToSupportableItem viewState =
+    let
+        supportableProjectItem :
+            Types.HelperTypes.ProjectIdentifier
+            -> ProjectViewConstructor
+            -> ( SupportableItemType, Maybe Types.HelperTypes.Uuid )
+        supportableProjectItem projectUuid projectViewConstructor =
+            case projectViewConstructor of
+                CreateServer createServerViewParams ->
+                    ( SupportableImage, Just createServerViewParams.imageUuid )
+
+                ServerDetail serverUuid _ ->
+                    ( SupportableServer, Just serverUuid )
+
+                CreateServerImage serverUuid _ ->
+                    ( SupportableServer, Just serverUuid )
+
+                VolumeDetail volumeUuid _ ->
+                    ( SupportableVolume, Just volumeUuid )
+
+                AttachVolumeModal _ maybeVolumeUuid ->
+                    maybeVolumeUuid
+                        |> Maybe.map (\uuid -> ( SupportableVolume, Just uuid ))
+                        |> Maybe.withDefault ( SupportableProject, Just projectUuid )
+
+                MountVolInstructions attachment ->
+                    ( SupportableServer, Just attachment.serverUuid )
+
+                _ ->
+                    ( SupportableProject, Just projectUuid )
+    in
+    case viewState of
+        NonProjectView _ ->
+            Nothing
+
+        ProjectView projectUuid _ projectViewConstructor ->
+            Just <| supportableProjectItem projectUuid projectViewConstructor

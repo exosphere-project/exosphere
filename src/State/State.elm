@@ -18,6 +18,7 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -187,6 +188,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| Settings
               }
             , Cmd.map (\msg -> SettingsMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( GetSupportMsg innerMsg, NonProjectView (GetSupport innerModel) ) ->
+            let
+                ( newSharedModel, cmd, sharedMsg ) =
+                    Page.GetSupport.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| GetSupport newSharedModel
+              }
+            , Cmd.map (\msg -> GetSupportMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)

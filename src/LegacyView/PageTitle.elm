@@ -55,7 +55,7 @@ pageTitle outerModel context =
                 Settings ->
                     "Settings"
 
-                GetSupport _ _ _ ->
+                GetSupport _ ->
                     "Get Support"
 
                 HelpAbout ->

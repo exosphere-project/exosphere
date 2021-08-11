@@ -2,6 +2,7 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Page.GetSupport
 import Page.LoginOpenstack
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
@@ -147,7 +148,7 @@ pathParsers defaultViewState =
         (NonProjectView Settings)
         (s "settings")
     , map
-        (NonProjectView <| GetSupport Nothing "" False)
+        (NonProjectView <| GetSupport (Page.GetSupport.init Nothing))
         (s "getsupport")
     , map
         (NonProjectView HelpAbout)
