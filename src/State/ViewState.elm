@@ -334,9 +334,9 @@ setProjectView project projectViewConstructor outerModel =
                     in
                     ( outerModel, cmd )
 
-                ListFloatingIps _ ->
+                FloatingIpList _ ->
                     case prevProjectViewConstructor of
-                        Just (ListFloatingIps _) ->
+                        Just (FloatingIpList _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -352,9 +352,9 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                AssignFloatingIp _ ->
+                FloatingIpAssign _ ->
                     case prevProjectViewConstructor of
-                        Just (AssignFloatingIp _) ->
+                        Just (FloatingIpAssign _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->

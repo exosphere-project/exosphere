@@ -1,9 +1,7 @@
 module Types.Defaults exposing
     ( allResourcesListViewParams
-    , assignFloatingIpViewParams
     , createServerViewParams
     , createVolumeView
-    , floatingIpListViewParams
     , imageListViewParams
     , keypairListViewParams
     , localization
@@ -14,6 +12,7 @@ module Types.Defaults exposing
     , volumeListViewParams
     )
 
+import Page.FloatingIpList
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -81,7 +80,7 @@ allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
     , volumeListViewParams = volumeListViewParams
     , keypairListViewParams = keypairListViewParams
-    , floatingIpListViewParams = floatingIpListViewParams
+    , floatingIpListViewParams = Page.FloatingIpList.init
     }
 
 
@@ -136,16 +135,6 @@ createVolumeView =
 volumeListViewParams : ViewTypes.VolumeListViewParams
 volumeListViewParams =
     ViewTypes.VolumeListViewParams [] []
-
-
-floatingIpListViewParams : ViewTypes.FloatingIpListViewParams
-floatingIpListViewParams =
-    ViewTypes.FloatingIpListViewParams [] True
-
-
-assignFloatingIpViewParams : ViewTypes.AssignFloatingIpViewParams
-assignFloatingIpViewParams =
-    ViewTypes.AssignFloatingIpViewParams Nothing Nothing
 
 
 keypairListViewParams : ViewTypes.KeypairListViewParams

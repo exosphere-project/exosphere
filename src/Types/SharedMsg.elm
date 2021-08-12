@@ -112,3 +112,6 @@ type NavigableView
     = LoginPicker
     | LoginOpenstack
     | LoginJetstream
+    | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
+    | FloatingIpList HelperTypes.ProjectIdentifier
+    | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)

@@ -1,9 +1,7 @@
 module Types.View exposing
     ( AllResourcesListViewParams
-    , AssignFloatingIpViewParams
     , DeleteConfirmation
     , DeleteVolumeConfirmation
-    , FloatingIpListViewParams
     , IPInfoLevel(..)
     , ImageListViewParams
     , ImageListVisibilityFilter
@@ -24,6 +22,8 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.FloatingIpAssign
+import Page.FloatingIpList
 import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
@@ -66,8 +66,8 @@ type ProjectViewConstructor
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
     | ListProjectVolumes VolumeListViewParams
-    | ListFloatingIps FloatingIpListViewParams
-    | AssignFloatingIp AssignFloatingIpViewParams
+    | FloatingIpList Page.FloatingIpList.Model
+    | FloatingIpAssign Page.FloatingIpAssign.Model
     | ListKeypairs KeypairListViewParams
     | CreateKeypair String String
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
@@ -124,7 +124,7 @@ type alias AllResourcesListViewParams =
     { serverListViewParams : ServerListViewParams
     , volumeListViewParams : VolumeListViewParams
     , keypairListViewParams : KeypairListViewParams
-    , floatingIpListViewParams : FloatingIpListViewParams
+    , floatingIpListViewParams : Page.FloatingIpList.Model
     }
 
 
@@ -189,26 +189,6 @@ type alias VolumeListViewParams =
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
-
-
-
--- Model for floating IP list view
-
-
-type alias FloatingIpListViewParams =
-    { deleteConfirmations : List OSTypes.IpAddressUuid
-    , hideAssignedIps : Bool
-    }
-
-
-
--- Model for assign floating IP view
-
-
-type alias AssignFloatingIpViewParams =
-    { ipUuid : Maybe OSTypes.IpAddressUuid
-    , serverUuid : Maybe OSTypes.ServerUuid
-    }
 
 
 

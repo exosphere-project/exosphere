@@ -11,12 +11,13 @@ import LegacyView.AttachVolume
 import LegacyView.CreateKeypair
 import LegacyView.CreateServer
 import LegacyView.CreateServerImage
-import LegacyView.FloatingIps
 import LegacyView.Images
 import LegacyView.ListKeypairs
 import LegacyView.ServerDetail
 import LegacyView.ServerList
 import LegacyView.Volumes
+import Page.FloatingIpAssign
+import Page.FloatingIpList
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -90,21 +91,19 @@ project model context p viewParams viewConstructor =
                 MountVolInstructions attachment ->
                     LegacyView.AttachVolume.mountVolInstructions context p attachment
 
-                ListFloatingIps floatingIpListViewParams ->
-                    LegacyView.FloatingIps.floatingIps context
-                        True
+                FloatingIpList model_ ->
+                    Page.FloatingIpList.view context
                         p
-                        floatingIpListViewParams
-                        (\newParams ->
-                            SetProjectView p.auth.project.uuid <|
-                                ListFloatingIps newParams
-                        )
+                        model_
+                        True
+                        |> Element.map FloatingIpListMsg
 
-                AssignFloatingIp assignFloatingIpViewParams ->
-                    LegacyView.FloatingIps.assignFloatingIp
+                FloatingIpAssign model_ ->
+                    Page.FloatingIpAssign.view
                         context
                         p
-                        assignFloatingIpViewParams
+                        model_
+                        |> Element.map FloatingIpAssignMsg
 
                 ListKeypairs keypairListViewParams ->
                     LegacyView.ListKeypairs.listKeypairs context

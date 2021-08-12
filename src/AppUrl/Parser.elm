@@ -2,6 +2,8 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Page.FloatingIpAssign
+import Page.FloatingIpList
 import Page.GetSupport
 import Page.LoginOpenstack
 import Types.Defaults as Defaults
@@ -198,10 +200,10 @@ projectViewConstructorParsers =
         (ListProjectVolumes Defaults.volumeListViewParams)
         (s "volumes")
     , map
-        (ListFloatingIps Defaults.floatingIpListViewParams)
+        (FloatingIpList Page.FloatingIpList.init)
         (s "floatingips")
     , map
-        (AssignFloatingIp Defaults.assignFloatingIpViewParams)
+        (FloatingIpAssign <| Page.FloatingIpAssign.init Nothing Nothing)
         (s "assignfloatingip")
     , map
         (ListKeypairs Defaults.keypairListViewParams)

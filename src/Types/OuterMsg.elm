@@ -1,5 +1,7 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
+import Page.FloatingIpAssign
+import Page.FloatingIpList
 import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
@@ -23,3 +25,5 @@ type OuterMsg
     | GetSupportMsg Page.GetSupport.Msg
     | LoginPickerMsg Page.LoginPicker.Msg
     | SelectProjectsMsg Page.SelectProjects.Msg
+    | FloatingIpListMsg Page.FloatingIpList.Msg
+    | FloatingIpAssignMsg Page.FloatingIpAssign.Msg

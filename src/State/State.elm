@@ -18,6 +18,8 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.FloatingIpAssign
+import Page.FloatingIpList
 import Page.GetSupport
 import Page.LoginJetstream
 import Page.LoginOpenstack
@@ -145,11 +147,11 @@ updateUnderlying outerMsg outerModel =
         -- TODO exact same structure for each page-specific case here. Is there a way to deduplicate or factor out?
         ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
             let
-                ( newSharedModel, cmd, sharedMsg ) =
+                ( newInnerModel, cmd, sharedMsg ) =
                     Page.LoginOpenstack.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginOpenstack newSharedModel
+                | viewState = NonProjectView <| Login <| LoginOpenstack newInnerModel
               }
             , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
             )
@@ -158,11 +160,11 @@ updateUnderlying outerMsg outerModel =
 
         ( LoginJetstreamMsg innerMsg, NonProjectView (Login (LoginJetstream innerModel)) ) ->
             let
-                ( newSharedModel, cmd, sharedMsg ) =
+                ( newInnerModel, cmd, sharedMsg ) =
                     Page.LoginJetstream.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginJetstream newSharedModel
+                | viewState = NonProjectView <| Login <| LoginJetstream newInnerModel
               }
             , Cmd.map (\msg -> LoginJetstreamMsg msg) cmd
             )
@@ -171,11 +173,11 @@ updateUnderlying outerMsg outerModel =
 
         ( MessageLogMsg innerMsg, NonProjectView (MessageLog innerModel) ) ->
             let
-                ( newSharedModel, cmd, sharedMsg ) =
+                ( newInnerModel, cmd, sharedMsg ) =
                     Page.MessageLog.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| MessageLog newSharedModel
+                | viewState = NonProjectView <| MessageLog newInnerModel
               }
             , Cmd.map (\msg -> MessageLogMsg msg) cmd
             )
@@ -197,11 +199,11 @@ updateUnderlying outerMsg outerModel =
 
         ( GetSupportMsg innerMsg, NonProjectView (GetSupport innerModel) ) ->
             let
-                ( newSharedModel, cmd, sharedMsg ) =
+                ( newInnerModel, cmd, sharedMsg ) =
                     Page.GetSupport.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| GetSupport newSharedModel
+                | viewState = NonProjectView <| GetSupport newInnerModel
               }
             , Cmd.map (\msg -> GetSupportMsg msg) cmd
             )
@@ -223,16 +225,78 @@ updateUnderlying outerMsg outerModel =
 
         ( SelectProjectsMsg innerMsg, NonProjectView (SelectProjects innerModel) ) ->
             let
-                ( newSharedModel, cmd, sharedMsg ) =
+                ( newInnerModel, cmd, sharedMsg ) =
                     Page.SelectProjects.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| SelectProjects newSharedModel
+                | viewState = NonProjectView <| SelectProjects newInnerModel
               }
             , Cmd.map (\msg -> SelectProjectsMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
+
+        ( FloatingIpListMsg innerMsg, ProjectView projectId projectViewParams projectViewConstructor ) ->
+            -- TODO the project-looking-up logic needs to be factored out somehow, otherwise we'll be looking up a project a bunch of times.
+            case GetterSetters.projectLookup sharedModel projectId of
+                Just project ->
+                    -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
+                    let
+                        maybeToViewAndInnerModel =
+                            case projectViewConstructor of
+                                FloatingIpList innerModel ->
+                                    Just
+                                        ( FloatingIpList
+                                        , innerModel
+                                        )
+
+                                AllResources allResourcesViewParams ->
+                                    Just
+                                        ( \newInnerModel ->
+                                            AllResources { allResourcesViewParams | floatingIpListViewParams = newInnerModel }
+                                        , allResourcesViewParams.floatingIpListViewParams
+                                        )
+
+                                _ ->
+                                    Nothing
+                    in
+                    case maybeToViewAndInnerModel of
+                        Just ( projectView, innerModel ) ->
+                            let
+                                ( newInnerModel, cmd, sharedMsg ) =
+                                    Page.FloatingIpList.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState = ProjectView projectId projectViewParams <| projectView newInnerModel
+                              }
+                            , Cmd.map (\msg -> FloatingIpListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        ( FloatingIpAssignMsg innerMsg, ProjectView projectId projectViewParams (FloatingIpAssign innerModel) ) ->
+            case GetterSetters.projectLookup sharedModel projectId of
+                Just project ->
+                    let
+                        ( newSharedModel, cmd, sharedMsg ) =
+                            Page.FloatingIpAssign.update innerMsg project innerModel
+                    in
+                    ( { outerModel
+                        | viewState = ProjectView projectId projectViewParams <| FloatingIpAssign newSharedModel
+                      }
+                    , Cmd.map (\msg -> FloatingIpAssignMsg msg) cmd
+                    )
+                        |> pipelineCmdOuterModelMsg
+                            (processSharedMsg sharedMsg)
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
 
         ( _, _ ) ->
             -- This is not great because it allows us to forget to write a case statement above, but I don't know of a nicer way to write a catchall case for when a page-specific Msg is received for an inapplicable page.
@@ -511,6 +575,40 @@ processSharedMsg sharedMsg outerModel =
 
                 Types.SharedMsg.LoginJetstream ->
                     ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
+
+                Types.SharedMsg.ServerDetail projectId serverId ->
+                    -- TODO this project lookup logic will be duplicated a bunch of times, there be a ProjectView constructor of NavigableView so we only need to do it once
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (ServerDetail serverId Defaults.serverDetailViewParams)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.FloatingIpList projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (FloatingIpList Page.FloatingIpList.init)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.FloatingIpAssign projectId maybeIpUuid maybeServerUuid ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
 
         NavigateToUrl url ->
             ( outerModel, Browser.Navigation.load url )
@@ -915,7 +1013,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
                 ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.setProjectView project (ListFloatingIps Defaults.floatingIpListViewParams) outerModel
+                    ViewStateHelpers.setProjectView project (FloatingIpList Page.FloatingIpList.init) outerModel
             in
             ( newOuterModel
             , Cmd.batch

@@ -114,7 +114,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ListFloatingIps _ ->
+                FloatingIpList _ ->
                     String.join " "
                         [ context.localization.floatingIpAddress
                             |> Helpers.String.pluralize
@@ -123,7 +123,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                AssignFloatingIp _ ->
+                FloatingIpAssign _ ->
                     String.join " "
                         [ "Assign"
                         , context.localization.floatingIpAddress

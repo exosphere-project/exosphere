@@ -31,11 +31,10 @@ import Types.Interaction as ITypes
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg as SharedMsg
 import Types.View
     exposing
-        ( AssignFloatingIpViewParams
-        , IPInfoLevel(..)
+        ( IPInfoLevel(..)
         , NonProjectViewConstructor(..)
         , PasswordVisibility(..)
         , ProjectViewConstructor(..)
@@ -197,9 +196,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                         ( Nothing, Just validName ) ->
                             Just <|
                                 SharedMsg
-                                    (ProjectMsg project.auth.project.uuid <|
-                                        ServerMsg server.osProps.uuid <|
-                                            RequestSetServerName validName
+                                    (SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                        SharedMsg.ServerMsg server.osProps.uuid <|
+                                            SharedMsg.RequestSetServerName validName
                                     )
 
                         ( _, _ ) ->
@@ -675,10 +674,10 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                     , onPress =
                                         case interactionStatus of
                                             ITypes.Ready url ->
-                                                Just <| SharedMsg <| OpenNewWindow url
+                                                Just <| SharedMsg <| SharedMsg.OpenNewWindow url
 
                                             ITypes.Warn url _ ->
-                                                Just <| SharedMsg <| OpenNewWindow url
+                                                Just <| SharedMsg <| SharedMsg.OpenNewWindow url
 
                                             _ ->
                                                 Nothing
@@ -944,16 +943,16 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                         -- Override action so that we can pass through user's choice of whether to retain floating IPs
                         Just <|
                             SharedMsg <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    ServerMsg server.osProps.uuid <|
-                                        RequestDeleteServer serverDetailViewParams.retainFloatingIpsWhenDeleting
+                                SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                    SharedMsg.ServerMsg server.osProps.uuid <|
+                                        SharedMsg.RequestDeleteServer serverDetailViewParams.retainFloatingIpsWhenDeleting
 
                     else
                         Just <|
                             SharedMsg <|
-                                ProjectMsg project.auth.project.uuid <|
-                                    ServerMsg server.osProps.uuid <|
-                                        RequestServerAction
+                                SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                    SharedMsg.ServerMsg server.osProps.uuid <|
+                                        SharedMsg.RequestServerAction
                                             cmdAction
                                             serverAction.targetStatus
 
@@ -981,9 +980,9 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                 actionMsg =
                     Just <|
                         SharedMsg <|
-                            ProjectMsg project.auth.project.uuid <|
-                                ServerMsg server.osProps.uuid <|
-                                    RequestServerAction
+                            SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                SharedMsg.ServerMsg server.osProps.uuid <|
+                                    SharedMsg.RequestServerAction
                                         cmdAction
                                         serverAction.targetStatus
 
@@ -1153,8 +1152,10 @@ renderIpAddresses context project server serverDetailViewParams =
                                 [ "Assign a", context.localization.floatingIpAddress ]
                         , onPress =
                             Just <|
-                                SetProjectView project.auth.project.uuid <|
-                                    AssignFloatingIp (AssignFloatingIpViewParams Nothing (Just server.osProps.uuid))
+                                (SharedMsg <|
+                                    SharedMsg.NavigateToView <|
+                                        SharedMsg.FloatingIpAssign project.auth.project.uuid Nothing (Just server.osProps.uuid)
+                                )
                         }
                     ]
 
@@ -1181,7 +1182,10 @@ renderIpAddresses context project server serverDetailViewParams =
                                         { text =
                                             "Unassign"
                                         , onPress =
-                                            Just <| SharedMsg <| ProjectMsg project.auth.project.uuid <| RequestUnassignFloatingIp ipAddress.uuid
+                                            Just <|
+                                                SharedMsg <|
+                                                    SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                                        SharedMsg.RequestUnassignFloatingIp ipAddress.uuid
                                         }
                                     ]
                                 )

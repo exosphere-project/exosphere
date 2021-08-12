@@ -5,15 +5,16 @@ import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons
 import Helpers.String
-import LegacyView.FloatingIps
 import LegacyView.ListKeypairs
 import LegacyView.ServerList
 import LegacyView.Volumes
+import Page.FloatingIpList
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg as SharedMsg
 import Types.View
     exposing
         ( AllResourcesListViewParams
@@ -112,18 +113,12 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SetProjectView p.auth.project.uuid <|
-                    ListFloatingIps
-                        Defaults.floatingIpListViewParams
-                )
-            , LegacyView.FloatingIps.floatingIps context
-                False
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.FloatingIpList <| p.auth.project.uuid)
+            , Page.FloatingIpList.view context
                 p
                 viewParams.floatingIpListViewParams
-                (\newParams ->
-                    SetProjectView p.auth.project.uuid <|
-                        AllResources { viewParams | floatingIpListViewParams = newParams }
-                )
+                False
+                |> Element.map FloatingIpListMsg
             ]
         , Element.column
             [ Element.width Element.fill
