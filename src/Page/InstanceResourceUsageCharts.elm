@@ -22,7 +22,7 @@ import LineChart.Legends as Legends
 import LineChart.Line as Line
 import Time
 import Tuple
-import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
+import Types.ServerResourceUsage exposing (AlertLevel(..), DataPoint, TimeSeries)
 import Types.SharedMsg exposing (SharedMsg(..))
 import View.Helpers as VH
 import View.Types

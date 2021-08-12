@@ -15,7 +15,6 @@ import Style.Widgets.Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
-import Types.HelperTypes
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
