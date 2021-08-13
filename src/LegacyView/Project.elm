@@ -1,4 +1,4 @@
-module View.Project exposing (project)
+module LegacyView.Project exposing (project)
 
 import Element
 import Element.Background as Background
@@ -6,131 +6,121 @@ import Element.Border as Border
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
+import LegacyView.AllResources
+import LegacyView.AttachVolume
+import LegacyView.CreateKeypair
+import LegacyView.CreateServer
+import LegacyView.CreateServerImage
+import LegacyView.FloatingIps
+import LegacyView.Images
+import LegacyView.ListKeypairs
+import LegacyView.ServerDetail
+import LegacyView.ServerList
+import LegacyView.Volumes
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ProjectViewParams
-        , ViewState(..)
-        )
-import View.AllResources
-import View.AttachVolume
-import View.CreateServer
-import View.CreateServerImage
-import View.FloatingIps
+import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.Helpers as VH
-import View.Images
-import View.Keypairs
-import View.ServerDetail
-import View.ServerList
 import View.Types
-import View.Volumes
 import Widget
 
 
-project : Model -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element Msg
+project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element OuterMsg
 project model context p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
                 AllResources allResourcesViewParams ->
-                    View.AllResources.allResources
+                    LegacyView.AllResources.allResources
                         context
                         p
                         allResourcesViewParams
 
                 ListImages imageFilter sortTableParams ->
-                    View.Images.imagesIfLoaded context p imageFilter sortTableParams
+                    LegacyView.Images.imagesIfLoaded context p imageFilter sortTableParams
 
                 ListProjectServers serverListViewParams ->
-                    View.ServerList.serverList context
+                    LegacyView.ServerList.serverList context
                         True
                         p
                         serverListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListProjectServers newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListProjectServers newParams
                         )
 
                 ServerDetail serverUuid serverDetailViewParams ->
-                    View.ServerDetail.serverDetail context p ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
+                    LegacyView.ServerDetail.serverDetail context p ( model.clientCurrentTime, model.timeZone ) serverDetailViewParams serverUuid
 
                 CreateServer createServerViewParams ->
-                    View.CreateServer.createServer context p createServerViewParams
+                    LegacyView.CreateServer.createServer context p createServerViewParams
 
                 ListProjectVolumes volumeListViewParams ->
-                    View.Volumes.volumes context
+                    LegacyView.Volumes.volumes context
                         True
                         p
                         volumeListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListProjectVolumes newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListProjectVolumes newParams
                         )
 
                 VolumeDetail volumeUuid deleteVolumeConfirmations ->
-                    View.Volumes.volumeDetailView context
+                    LegacyView.Volumes.volumeDetailView context
                         p
                         deleteVolumeConfirmations
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    VolumeDetail volumeUuid newParams
+                            SetProjectView p.auth.project.uuid <|
+                                VolumeDetail volumeUuid newParams
                         )
                         volumeUuid
 
                 CreateVolume volName volSizeInput ->
-                    View.Volumes.createVolume context p volName volSizeInput
+                    LegacyView.Volumes.createVolume context p volName volSizeInput
 
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
-                    View.AttachVolume.attachVolume context p maybeServerUuid maybeVolumeUuid
+                    LegacyView.AttachVolume.attachVolume context p maybeServerUuid maybeVolumeUuid
 
                 MountVolInstructions attachment ->
-                    View.AttachVolume.mountVolInstructions context p attachment
+                    LegacyView.AttachVolume.mountVolInstructions context p attachment
 
                 ListFloatingIps floatingIpListViewParams ->
-                    View.FloatingIps.floatingIps context
+                    LegacyView.FloatingIps.floatingIps context
                         True
                         p
                         floatingIpListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListFloatingIps newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListFloatingIps newParams
                         )
 
                 AssignFloatingIp assignFloatingIpViewParams ->
-                    View.FloatingIps.assignFloatingIp
+                    LegacyView.FloatingIps.assignFloatingIp
                         context
                         p
                         assignFloatingIpViewParams
 
                 ListKeypairs keypairListViewParams ->
-                    View.Keypairs.listKeypairs context
+                    LegacyView.ListKeypairs.listKeypairs context
                         True
                         p
                         keypairListViewParams
                         (\newParams ->
-                            ProjectMsg p.auth.project.uuid <|
-                                SetProjectView <|
-                                    ListKeypairs newParams
+                            SetProjectView p.auth.project.uuid <|
+                                ListKeypairs newParams
                         )
 
                 CreateKeypair keypairName publicKey ->
-                    View.Keypairs.createKeypair context p keypairName publicKey
+                    LegacyView.CreateKeypair.createKeypair context p keypairName publicKey
 
                 CreateServerImage serverUuid imageName ->
-                    View.CreateServerImage.createServerImage context p serverUuid imageName
+                    LegacyView.CreateServerImage.createServerImage context p serverUuid imageName
     in
     Element.column
         (Element.width Element.fill
@@ -141,7 +131,7 @@ project model context p viewParams viewConstructor =
         ]
 
 
-projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element Msg
+projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element OuterMsg
 projectNav context p viewParams =
     let
         edges =
@@ -177,7 +167,7 @@ projectNav context p viewParams =
                         ]
                 , text = removeText
                 , onPress =
-                    Just <| ProjectMsg p.auth.project.uuid RemoveProject
+                    Just <| SharedMsg <| ProjectMsg p.auth.project.uuid RemoveProject
                 }
         , Element.el
             [ Element.alignRight
@@ -192,7 +182,7 @@ projectNav context p viewParams =
         ]
 
 
-createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element Msg
+createButton : View.Types.Context -> ProjectIdentifier -> Bool -> Element.Element OuterMsg
 createButton context projectId expanded =
     let
         materialStyle =
@@ -203,7 +193,7 @@ createButton context projectId expanded =
                 | container = Element.width Element.fill :: materialStyle.container
             }
 
-        renderButton : Element.Element Never -> String -> Maybe Msg -> Element.Element Msg
+        renderButton : Element.Element Never -> String -> Maybe OuterMsg -> Element.Element OuterMsg
         renderButton icon_ text onPress =
             Widget.iconButton
                 buttonStyle
@@ -249,13 +239,12 @@ createButton context projectId expanded =
                         |> Helpers.String.toTitleCase
                     )
                     (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                ListImages
-                                    Defaults.imageListViewParams
-                                    { title = "Name"
-                                    , asc = True
-                                    }
+                        SetProjectView projectId <|
+                            ListImages
+                                Defaults.imageListViewParams
+                                { title = "Name"
+                                , asc = True
+                                }
                     )
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
@@ -263,10 +252,9 @@ createButton context projectId expanded =
                         |> Helpers.String.toTitleCase
                     )
                     (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
-                                CreateVolume "" (ValidNumericTextInput 10)
+                        SetProjectView projectId <|
+                            -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
+                            CreateVolume "" (ValidNumericTextInput 10)
                     )
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
@@ -274,9 +262,8 @@ createButton context projectId expanded =
                         |> Helpers.String.toTitleCase
                     )
                     (Just <|
-                        ProjectMsg projectId <|
-                            SetProjectView <|
-                                CreateKeypair "" ""
+                        SetProjectView projectId <|
+                            CreateKeypair "" ""
                     )
                 ]
 
@@ -308,7 +295,8 @@ createButton context projectId expanded =
                     ]
             , onPress =
                 Just <|
-                    ProjectMsg projectId <|
-                        ToggleCreatePopup
+                    SharedMsg <|
+                        ProjectMsg projectId <|
+                            ToggleCreatePopup
             }
         ]

@@ -1,4 +1,4 @@
-module View.SelectProjects exposing (selectProjects)
+module LegacyView.SelectProjects exposing (selectProjects)
 
 import Element
 import Element.Input as Input
@@ -7,24 +7,22 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , UnscopedProviderProject
-        )
+import Types.HelperTypes exposing (UnscopedProviderProject)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (SharedMsg(..))
+import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
 selectProjects :
-    Model
+    SharedModel
     -> View.Types.Context
     -> OSTypes.KeystoneUrl
     -> List UnscopedProviderProject
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 selectProjects model context keystoneUrl selectedProjects =
     case GetterSetters.providerLookup model keystoneUrl of
         Just provider ->
@@ -32,7 +30,7 @@ selectProjects model context keystoneUrl selectedProjects =
                 urlLabel =
                     UrlHelpers.hostnameFromUrl keystoneUrl
 
-                renderSuccessCase : List UnscopedProviderProject -> Element.Element Msg
+                renderSuccessCase : List UnscopedProviderProject -> Element.Element OuterMsg
                 renderSuccessCase projects =
                     Element.column VH.formContainer <|
                         List.append
@@ -45,7 +43,8 @@ selectProjects model context keystoneUrl selectedProjects =
                                 { text = "Choose"
                                 , onPress =
                                     Just <|
-                                        RequestProjectLoginFromProvider keystoneUrl selectedProjects
+                                        SharedMsg <|
+                                            RequestProjectLoginFromProvider keystoneUrl selectedProjects
                                 }
                             ]
             in
@@ -74,10 +73,10 @@ selectProjects model context keystoneUrl selectedProjects =
             Element.text "Provider not found"
 
 
-renderProject : OSTypes.KeystoneUrl -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element Msg
+renderProject : OSTypes.KeystoneUrl -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element OuterMsg
 renderProject keystoneUrl selectedProjects project =
     let
-        onChange : Bool -> Bool -> Msg
+        onChange : Bool -> Bool -> OuterMsg
         onChange projectEnabled enableDisable =
             if projectEnabled then
                 if enableDisable then
@@ -97,9 +96,9 @@ renderProject keystoneUrl selectedProjects project =
                                 selectedProjects
 
             else
-                NoOp
+                SharedMsg NoOp
 
-        renderProjectLabel : UnscopedProviderProject -> Element.Element Msg
+        renderProjectLabel : UnscopedProviderProject -> Element.Element OuterMsg
         renderProjectLabel p =
             let
                 disabledMsg =

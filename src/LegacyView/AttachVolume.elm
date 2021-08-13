@@ -1,4 +1,4 @@
-module View.AttachVolume exposing (attachVolume, mountVolInstructions)
+module LegacyView.AttachVolume exposing (attachVolume, mountVolInstructions)
 
 import Element
 import Element.Font as Font
@@ -11,22 +11,21 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
 import Types.Defaults as Defaults
-import Types.Types
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View
     exposing
         ( IPInfoLevel(..)
-        , Msg(..)
         , PasswordVisibility(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , ServerSpecificMsgConstructor(..)
         )
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element Msg
+attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element OuterMsg
 attachVolume context project maybeServerUuid maybeVolumeUuid =
     let
         serverChoices =
@@ -87,7 +86,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                         )
                 , onChange =
                     \new ->
-                        ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal (Just new) maybeVolumeUuid))
+                        SetProjectView project.auth.project.uuid (AttachVolumeModal (Just new) maybeVolumeUuid)
                 , options = serverChoices
                 , selected = maybeServerUuid
                 }
@@ -98,7 +97,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                         (Element.text ("Select a " ++ context.localization.blockDevice))
                 , onChange =
                     \new ->
-                        ProjectMsg project.auth.project.uuid (SetProjectView (AttachVolumeModal maybeServerUuid (Just new)))
+                        SetProjectView project.auth.project.uuid (AttachVolumeModal maybeServerUuid (Just new))
                 , options = volumeChoices
                 , selected = maybeVolumeUuid
                 }
@@ -127,9 +126,10 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                             else
                                 { onPress =
                                     Just <|
-                                        ProjectMsg project.auth.project.uuid <|
-                                            ServerMsg serverUuid <|
-                                                RequestAttachVolume volumeUuid
+                                        SharedMsg <|
+                                            ProjectMsg project.auth.project.uuid <|
+                                                ServerMsg serverUuid <|
+                                                    RequestAttachVolume volumeUuid
                                 , warnText = Nothing
                                 }
 
@@ -160,7 +160,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
         ]
 
 
-mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element OuterMsg
 mountVolInstructions context project attachment =
     Element.column VH.exoColumnAttributes
         [ Element.el (VH.heading2 context.palette) <|
@@ -214,14 +214,12 @@ mountVolInstructions context project attachment =
                 { text = "Go to my " ++ context.localization.virtualComputer
                 , onPress =
                     Just <|
-                        ProjectMsg
+                        SetProjectView
                             project.auth.project.uuid
                         <|
-                            SetProjectView
-                                (ServerDetail
-                                    attachment.serverUuid
-                                    Defaults.serverDetailViewParams
-                                )
+                            ServerDetail
+                                attachment.serverUuid
+                                Defaults.serverDetailViewParams
                 }
             ]
         ]

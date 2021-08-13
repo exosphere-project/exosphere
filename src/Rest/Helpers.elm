@@ -17,29 +17,29 @@ import OpenStack.Types as OSTypes
 import Task
 import Time
 import Types.Error exposing (ErrorContext, HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes
-import Types.Types as TT
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Url
 
 
-httpRequestMethodStr : TT.HttpRequestMethod -> String
+httpRequestMethodStr : HttpRequestMethod -> String
 httpRequestMethodStr method =
     case method of
-        TT.Get ->
+        Get ->
             "GET"
 
-        TT.Post ->
+        Post ->
             "POST"
 
-        TT.Put ->
+        Put ->
             "PUT"
 
-        TT.Delete ->
+        Delete ->
             "DELETE"
 
 
-openstackCredentialedRequest : TT.Project -> TT.HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect TT.Msg -> Cmd TT.Msg
-openstackCredentialedRequest project method maybeMicroversion origUrl requestBody expect =
+openstackCredentialedRequest : HelperTypes.ProjectIdentifier -> HttpRequestMethod -> Maybe String -> String -> Http.Body -> Http.Expect SharedMsg -> Cmd SharedMsg
+openstackCredentialedRequest projectId method maybeMicroversion origUrl requestBody expect =
     {-
        Prepare an HTTP request to OpenStack which requires a currently valid auth token and maybe a proxy server URL.
 
@@ -49,7 +49,7 @@ openstackCredentialedRequest project method maybeMicroversion origUrl requestBod
 
     -}
     let
-        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd TT.Msg
+        requestProto : Maybe HelperTypes.Url -> OSTypes.AuthTokenString -> Cmd SharedMsg
         requestProto maybeProxyUrl token =
             let
                 ( url, headers ) =
@@ -82,7 +82,7 @@ openstackCredentialedRequest project method maybeMicroversion origUrl requestBod
                 }
     in
     Task.perform
-        (\posixTime -> TT.ProjectMsg project.auth.project.uuid (TT.PrepareCredentialedRequest requestProto posixTime))
+        (\posixTime -> ProjectMsg projectId (PrepareCredentialedRequest requestProto posixTime))
         Time.now
 
 
@@ -128,14 +128,14 @@ proxyifyRequest proxyServerUrl requestUrlStr =
     )
 
 
-resultToMsgErrorBody : ErrorContext -> (a -> TT.Msg) -> Result HttpErrorWithBody a -> TT.Msg
+resultToMsgErrorBody : ErrorContext -> (a -> SharedMsg) -> Result HttpErrorWithBody a -> SharedMsg
 resultToMsgErrorBody errorContext successMsg result =
     -- Generates Msg to deal with result of API call
     -- TODO this is a _transitional_ function that should be removed when
     -- TODO https://gitlab.com/exosphere/exosphere/-/issues/339 is fixed
     case result of
         Err error ->
-            TT.HandleApiErrorWithBody errorContext error
+            HandleApiErrorWithBody errorContext error
 
         Ok stuff ->
             successMsg stuff

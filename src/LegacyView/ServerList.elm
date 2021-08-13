@@ -1,4 +1,4 @@
-module View.ServerList exposing (serverList)
+module LegacyView.ServerList exposing (serverList)
 
 import Element
 import Element.Events as Events
@@ -8,31 +8,27 @@ import FeatherIcons
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import LegacyView.QuotaUsage
 import OpenStack.Types as OSTypes
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
-import Types.Types
+import Types.HelperTypes exposing (ProjectIdentifier)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Project)
+import Types.Server exposing (Server, ServerOrigin(..))
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View
     exposing
-        ( IPInfoLevel(..)
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , PasswordVisibility(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSpecificMsgConstructor(..)
+        ( NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
-        , Server
         , ServerListViewParams
-        , ServerOrigin(..)
         , ServerSelection
-        , ServerSpecificMsgConstructor(..)
         , ViewState(..)
         )
 import View.Helpers as VH
-import View.QuotaUsage
 import View.Types
 import Widget
 
@@ -42,8 +38,8 @@ serverList :
     -> Bool
     -> Project
     -> ServerListViewParams
-    -> (ServerListViewParams -> Msg)
-    -> Element.Element Msg
+    -> (ServerListViewParams -> OuterMsg)
+    -> Element.Element OuterMsg
 serverList context showHeading project serverListViewParams toMsg =
     let
         serverListContents =
@@ -113,7 +109,7 @@ serverList context showHeading project serverListViewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ View.QuotaUsage.computeQuotaDetails context project.computeQuota
+            [ LegacyView.QuotaUsage.computeQuotaDetails context project.computeQuota
             , serverListContents
             ]
         ]
@@ -124,9 +120,9 @@ serverList_ :
     -> ProjectIdentifier
     -> OSTypes.UserUuid
     -> ServerListViewParams
-    -> (ServerListViewParams -> Msg)
+    -> (ServerListViewParams -> OuterMsg)
     -> List Server
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 serverList_ context projectId userUuid serverListViewParams toMsg servers =
     {- Render a list of servers -}
     let
@@ -180,8 +176,8 @@ renderTableHead :
     -> Bool
     -> ( List Server, List Server )
     -> ServerListViewParams
-    -> (ServerListViewParams -> Msg)
-    -> Element.Element Msg
+    -> (ServerListViewParams -> OuterMsg)
+    -> Element.Element OuterMsg
 renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams toMsg =
     let
         deleteButtonOnPress =
@@ -193,7 +189,7 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                     uuidsToDelete =
                         List.map (\s -> s.osProps.uuid) selectedServers
                 in
-                Just (ProjectMsg projectId (RequestDeleteServers uuidsToDelete))
+                Just <| SharedMsg (ProjectMsg projectId (RequestDeleteServers uuidsToDelete))
 
         onChecked new =
             let
@@ -238,10 +234,10 @@ renderServer :
     View.Types.Context
     -> ProjectIdentifier
     -> ServerListViewParams
-    -> (ServerListViewParams -> Msg)
+    -> (ServerListViewParams -> OuterMsg)
     -> Bool
     -> Server
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 renderServer context projectId serverListViewParams toMsg isMyServer server =
     let
         creatorNameView =
@@ -287,12 +283,12 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 OSTypes.ServerLocked ->
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = False
-                        , onChange = \_ -> NoOp
+                        , onChange = \_ -> SharedMsg NoOp
                         , icon = \_ -> Icon.lock (SH.toElementColor context.palette.on.surface) 14
                         , label = Input.labelHidden server.osProps.name
                         }
 
-        serverLabelName : Server -> Element.Element Msg
+        serverLabelName : Server -> Element.Element OuterMsg
         serverLabelName aServer =
             Element.row
                 [ Element.width Element.fill
@@ -305,15 +301,14 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
 
-        serverNameClickEvent : Msg
+        serverNameClickEvent : OuterMsg
         serverNameClickEvent =
-            ProjectMsg projectId <|
-                SetProjectView <|
-                    ServerDetail
-                        server.osProps.uuid
-                        Defaults.serverDetailViewParams
+            SetProjectView projectId <|
+                ServerDetail
+                    server.osProps.uuid
+                    Defaults.serverDetailViewParams
 
-        serverLabel : Server -> Element.Element Msg
+        serverLabel : Server -> Element.Element OuterMsg
         serverLabel aServer =
             Element.row
                 [ Element.width Element.fill
@@ -344,9 +339,10 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                         , text = "Delete"
                         , onPress =
                             Just <|
-                                ProjectMsg projectId <|
-                                    ServerMsg server.osProps.uuid <|
-                                        RequestDeleteServer False
+                                SharedMsg <|
+                                    ProjectMsg projectId <|
+                                        ServerMsg server.osProps.uuid <|
+                                            RequestDeleteServer False
                         }
                     , Widget.iconButton
                         (SH.materialStyle context.palette).button
@@ -398,9 +394,9 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 onlyOwnExpander :
     View.Types.Context
     -> ServerListViewParams
-    -> (ServerListViewParams -> Msg)
+    -> (ServerListViewParams -> OuterMsg)
     -> List Server
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
     let
         numOtherUsersServers =
@@ -463,7 +459,7 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
                   }
                 )
 
-        changeOnlyOwnMsg : Msg
+        changeOnlyOwnMsg : OuterMsg
         changeOnlyOwnMsg =
             toMsg newServerListViewParams
 

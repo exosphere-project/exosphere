@@ -2,7 +2,6 @@ module Helpers.Url exposing (buildProxyUrl, hostnameFromUrl, urlPathQueryMatches
 
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
-import Types.Types exposing (UserAppProxyHostname)
 import Url
 
 
@@ -34,7 +33,7 @@ urlPathQueryMatches urlType urlStr =
     (urlType.path ++ urlTypeQueryStr) == urlStr
 
 
-buildProxyUrl : UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
+buildProxyUrl : HelperTypes.UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
 buildProxyUrl proxyHostname destinationIp port_ path https_upstream =
     [ "https://"
     , if https_upstream then

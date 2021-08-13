@@ -13,11 +13,12 @@ import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Types
 import Time
-import Types.Types as Types
+import Types.Project
+import Types.SharedModel as Types
 import UUID
 
 
-generateStoredState : Types.Model -> Encode.Value
+generateStoredState : Types.SharedModel -> Encode.Value
 generateStoredState model =
     let
         strippedProjects =
@@ -26,7 +27,7 @@ generateStoredState model =
     encodeStoredState strippedProjects model.clientUuid model.style.styleMode
 
 
-generateStoredProject : Types.Project -> StoredProject
+generateStoredProject : Types.Project.Project -> StoredProject
 generateStoredProject project =
     { secret = project.secret
     , auth = project.auth
@@ -34,7 +35,7 @@ generateStoredProject project =
     }
 
 
-hydrateModelFromStoredState : (UUID.UUID -> Types.Model) -> UUID.UUID -> StoredState -> Types.Model
+hydrateModelFromStoredState : (UUID.UUID -> Types.SharedModel) -> UUID.UUID -> StoredState -> Types.SharedModel
 hydrateModelFromStoredState emptyModel newClientUuid storedState =
     let
         model =
@@ -69,7 +70,7 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
     }
 
 
-hydrateProjectFromStoredProject : StoredProject -> Types.Project
+hydrateProjectFromStoredProject : StoredProject -> Types.Project.Project
 hydrateProjectFromStoredProject storedProject =
     { secret = storedProject.secret
     , auth = storedProject.auth
@@ -86,7 +87,6 @@ hydrateProjectFromStoredProject storedProject =
     , securityGroups = []
     , computeQuota = RemoteData.NotAsked
     , volumeQuota = RemoteData.NotAsked
-    , pendingCredentialedRequests = []
     }
 
 
@@ -97,14 +97,14 @@ hydrateProjectFromStoredProject storedProject =
 encodeStoredState : List StoredProject -> UUID.UUID -> Style.Types.StyleMode -> Encode.Value
 encodeStoredState projects clientUuid styleMode =
     let
-        secretEncode : Types.ProjectSecret -> Encode.Value
+        secretEncode : Types.Project.ProjectSecret -> Encode.Value
         secretEncode secret =
             case secret of
-                Types.NoProjectSecret ->
+                Types.Project.NoProjectSecret ->
                     Encode.object
                         [ ( "secretType", Encode.string "noProjectSecret" ) ]
 
-                Types.ApplicationCredential appCred ->
+                Types.Project.ApplicationCredential appCred ->
                     Encode.object
                         [ ( "secretType", Encode.string "applicationCredential" )
                         , ( "appCredentialId", Encode.string appCred.uuid )
@@ -202,7 +202,7 @@ encodeCatalogEndpointInterface endpointInterface =
     Encode.string interfaceString
 
 
-encodeExoEndpoints : Types.Endpoints -> Encode.Value
+encodeExoEndpoints : Types.Project.Endpoints -> Encode.Value
 encodeExoEndpoints endpoints =
     Encode.object
         [ ( "cinder", Encode.string endpoints.cinder )
@@ -305,22 +305,22 @@ storedProjectDecode2 =
         |> Decode.andThen storedProject2ToStoredProject
 
 
-decodeProjectSecret : Decode.Decoder Types.ProjectSecret
+decodeProjectSecret : Decode.Decoder Types.Project.ProjectSecret
 decodeProjectSecret =
     let
         -- https://thoughtbot.com/blog/5-common-json-decoders#5---conditional-decoding-based-on-a-field
-        projectSecretFromType : String -> Decode.Decoder Types.ProjectSecret
+        projectSecretFromType : String -> Decode.Decoder Types.Project.ProjectSecret
         projectSecretFromType typeStr =
             case typeStr of
                 "noProjectSecret" ->
-                    Decode.succeed Types.NoProjectSecret
+                    Decode.succeed Types.Project.NoProjectSecret
 
                 "applicationCredential" ->
                     Decode.map2
                         OSTypes.ApplicationCredential
                         (Decode.field "appCredentialId" Decode.string)
                         (Decode.field "appCredentialSecret" Decode.string)
-                        |> Decode.map Types.ApplicationCredential
+                        |> Decode.map Types.Project.ApplicationCredential
 
                 _ ->
                     Decode.fail <| "Invalid user type \"" ++ typeStr ++ "\". Must be either password or applicationCredential."
@@ -350,9 +350,9 @@ decodeStoredAuthTokenDetails =
         (Decode.field "tokenValue" Decode.string)
 
 
-decodeEndpoints : Decode.Decoder Types.Endpoints
+decodeEndpoints : Decode.Decoder Types.Project.Endpoints
 decodeEndpoints =
-    Decode.map5 Types.Endpoints
+    Decode.map5 Types.Project.Endpoints
         (Decode.field "cinder" Decode.string)
         (Decode.field "glance" Decode.string)
         (Decode.field "keystone" Decode.string)

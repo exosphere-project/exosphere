@@ -8,17 +8,16 @@ import OpenStack.Error as OSError
 import Parser exposing ((|.), (|=))
 import Style.Toast exposing (toastConfig)
 import Toasty
-import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
-import Types.Types
+import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody, Toast)
+import Types.SharedModel
     exposing
         ( LogMessage
-        , Model
-        , Msg(..)
-        , Toast
+        , SharedModel
         )
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
-processStringError : Model -> ErrorContext -> String -> ( Model, Cmd Msg )
+processStringError : SharedModel -> ErrorContext -> String -> ( SharedModel, Cmd SharedMsg )
 processStringError model errorContext error =
     let
         logMessage =
@@ -47,7 +46,7 @@ processStringError model errorContext error =
             Toasty.addToastIfUnique toastConfig ToastyMsg toast ( newModel, Cmd.none )
 
 
-processSynchronousApiError : Model -> ErrorContext -> HttpErrorWithBody -> ( Model, Cmd Msg )
+processSynchronousApiError : SharedModel -> ErrorContext -> HttpErrorWithBody -> ( SharedModel, Cmd SharedMsg )
 processSynchronousApiError model errorContext httpError =
     let
         apiErrorDecodeResult =

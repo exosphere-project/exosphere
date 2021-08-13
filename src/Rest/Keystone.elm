@@ -25,20 +25,9 @@ import Rest.Helpers
         )
 import Time
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , NewServerNetworkOptions(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ServerOrigin(..)
-        , UnscopedProvider
-        , UnscopedProviderProject
-        , ViewState(..)
-        )
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProvider, UnscopedProviderProject)
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import UUID
 import Url
 
@@ -47,7 +36,7 @@ import Url
 {- HTTP Requests -}
 
 
-requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLogin -> Cmd Msg
+requestUnscopedAuthToken : Maybe HelperTypes.Url -> OSTypes.OpenstackLogin -> Cmd SharedMsg
 requestUnscopedAuthToken maybeProxyUrl creds =
     let
         requestBody =
@@ -91,7 +80,7 @@ requestUnscopedAuthToken maybeProxyUrl creds =
         (resultToMsgErrorBody errorContext (ReceiveUnscopedAuthToken creds.authUrl))
 
 
-requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd Msg
+requestScopedAuthToken : Maybe HelperTypes.Url -> OSTypes.CredentialsForAuthToken -> Cmd SharedMsg
 requestScopedAuthToken maybeProxyUrl input =
     let
         requestBody =
@@ -174,7 +163,7 @@ requestScopedAuthToken maybeProxyUrl input =
         (resultToMsgErrorBody errorContext ReceiveScopedAuthToken)
 
 
-requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> Msg) -> Cmd Msg
+requestAuthTokenHelper : Encode.Value -> HelperTypes.Url -> Maybe HelperTypes.Url -> (Result HttpErrorWithBody ( Http.Metadata, String ) -> SharedMsg) -> Cmd SharedMsg
 requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
     let
         correctedUrl =
@@ -231,7 +220,7 @@ requestAuthTokenHelper requestBody authUrl maybeProxyUrl resultMsg =
         }
 
 
-requestAppCredential : UUID.UUID -> Time.Posix -> Project -> Cmd Msg
+requestAppCredential : UUID.UUID -> Time.Posix -> Project -> Cmd SharedMsg
 requestAppCredential clientUuid posixTime project =
     let
         appCredentialName =
@@ -272,7 +261,7 @@ requestAppCredential clientUuid posixTime project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (urlWithVersion ++ "/users/" ++ project.auth.user.uuid ++ "/application_credentials")
@@ -280,7 +269,7 @@ requestAppCredential clientUuid posixTime project =
         (expectJsonWithErrorBody resultToMsg_ decodeAppCredential)
 
 
-requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd Msg
+requestUnscopedProjects : UnscopedProvider -> Maybe HelperTypes.Url -> Cmd SharedMsg
 requestUnscopedProjects provider maybeProxyUrl =
     let
         correctedUrl =

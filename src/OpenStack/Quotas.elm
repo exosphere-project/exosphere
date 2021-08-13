@@ -13,20 +13,16 @@ import Json.Decode as Decode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
 
 -- Compute Quota
 
 
-requestComputeQuota : Project -> Cmd Msg
+requestComputeQuota : Project -> Cmd SharedMsg
 requestComputeQuota project =
     let
         errorContext =
@@ -45,7 +41,7 @@ requestComputeQuota project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.nova ++ "/limits")
@@ -81,7 +77,7 @@ computeQuotaDecoder =
 -- Volume Quota
 
 
-requestVolumeQuota : Project -> Cmd Msg
+requestVolumeQuota : Project -> Cmd SharedMsg
 requestVolumeQuota project =
     let
         errorContext =
@@ -100,7 +96,7 @@ requestVolumeQuota project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.cinder ++ "/limits")

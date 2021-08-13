@@ -12,26 +12,17 @@ import Json.Decode.Pipeline as Pipeline
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( ExcludeFilter
-        , HttpRequestMethod(..)
-        , Model
-        , Msg(..)
-        , NewServerNetworkOptions(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ServerOrigin(..)
-        , ViewState(..)
-        )
+import Types.HelperTypes exposing (ExcludeFilter, HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
 
 {- HTTP Requests -}
 
 
-requestImages : Model -> Project -> Cmd Msg
+requestImages : SharedModel -> Project -> Cmd SharedMsg
 requestImages model project =
     let
         projectKeystoneHostname =
@@ -54,7 +45,7 @@ requestImages model project =
                 (\images -> ProjectMsg project.auth.project.uuid <| ReceiveImages images)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.glance ++ "/v2/images?limit=999999")
@@ -69,7 +60,7 @@ requestImages model project =
 {- HTTP Response Handling -}
 
 
-receiveImages : Model -> Project -> List OSTypes.Image -> ( Model, Cmd Msg )
+receiveImages : SharedModel -> Project -> List OSTypes.Image -> ( SharedModel, Cmd SharedMsg )
 receiveImages model project images =
     let
         newProject =

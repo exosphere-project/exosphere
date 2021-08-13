@@ -7,20 +7,20 @@ module View.Types exposing
 import Dict
 import Element
 import Style.Types exposing (ExoPalette)
-import Types.Types exposing (Localization, Msg, WindowSize)
+import Types.HelperTypes exposing (CloudSpecificConfig, KeystoneHostname, Localization, WindowSize)
 
 
 type alias Context =
     { palette : ExoPalette
     , localization : Localization
-    , cloudSpecificConfigs : Dict.Dict Types.Types.KeystoneHostname Types.Types.CloudSpecificConfig
+    , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     , windowSize : WindowSize
     }
 
 
-type BrowserLinkLabel
+type BrowserLinkLabel msg
     = BrowserLinkTextLabel String
-    | BrowserLinkFancyLabel (Element.Element Msg)
+    | BrowserLinkFancyLabel (Element.Element msg)
 
 
 type alias ImageTag =

@@ -1,25 +1,19 @@
-module View.PageTitle exposing (pageTitle)
+module LegacyView.PageTitle exposing (pageTitle)
 
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
-import Types.Types
-    exposing
-        ( LoginView(..)
-        , Model
-        , NonProjectViewConstructor(..)
-        , Project
-        , ProjectViewConstructor(..)
-        , ViewState(..)
-        )
+import Types.OuterModel exposing (OuterModel)
+import Types.Project exposing (Project)
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
 
 
-pageTitle : Model -> View.Types.Context -> String
-pageTitle model context =
-    case model.viewState of
+pageTitle : OuterModel -> View.Types.Context -> String
+pageTitle outerModel context =
+    case outerModel.viewState of
         NonProjectView nonProjectViewConstructor ->
             case nonProjectViewConstructor of
                 LoginPicker ->
@@ -65,7 +59,7 @@ pageTitle model context =
                     "Get Support"
 
                 HelpAbout ->
-                    "About " ++ model.style.appTitle
+                    "About " ++ outerModel.sharedModel.style.appTitle
 
                 PageNotFound ->
                     "Error: page not found"
@@ -73,7 +67,7 @@ pageTitle model context =
         ProjectView projectIdentifier _ projectViewConstructor ->
             let
                 maybeProject =
-                    GetterSetters.projectLookup model projectIdentifier
+                    GetterSetters.projectLookup outerModel.sharedModel projectIdentifier
 
                 projectName =
                     maybeProject

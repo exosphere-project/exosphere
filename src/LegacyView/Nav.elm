@@ -1,4 +1,4 @@
-module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
+module LegacyView.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 
 import Element
 import Element.Background as Background
@@ -7,21 +7,16 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
+import LegacyView.GetSupport
+import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( Model
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ViewState(..)
-        )
-import View.GetSupport
+import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Project)
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
 
@@ -36,17 +31,17 @@ navBarHeight =
     70
 
 
-navMenu : Model -> View.Types.Context -> Element.Element Msg
-navMenu model context =
+navMenu : OuterModel -> View.Types.Context -> Element.Element OuterMsg
+navMenu outerModel context =
     let
-        projectMenuItem : Project -> Element.Element Msg
+        projectMenuItem : Project -> Element.Element OuterMsg
         projectMenuItem project =
             let
                 projectTitle =
-                    VH.friendlyProjectTitle model project
+                    VH.friendlyProjectTitle outerModel.sharedModel project
 
                 status =
-                    case model.viewState of
+                    case outerModel.viewState of
                         ProjectView p _ _ ->
                             if p == project.auth.project.uuid then
                                 MenuItem.Active
@@ -63,21 +58,19 @@ navMenu model context =
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
-                    (ProjectMsg project.auth.project.uuid
-                        (SetProjectView <|
-                            AllResources Defaults.allResourcesListViewParams
-                        )
+                    (SetProjectView project.auth.project.uuid <|
+                        AllResources Defaults.allResourcesListViewParams
                     )
                 )
 
-        projectMenuItems : List Project -> List (Element.Element Msg)
+        projectMenuItems : List Project -> List (Element.Element OuterMsg)
         projectMenuItems projects =
             List.map projectMenuItem projects
 
         addProjectMenuItem =
             let
                 active =
-                    case model.viewState of
+                    case outerModel.viewState of
                         NonProjectView LoginPicker ->
                             MenuItem.Active
 
@@ -88,9 +81,7 @@ navMenu model context =
                             MenuItem.Inactive
 
                 destination =
-                    model.style.defaultLoginView
-                        |> Maybe.map (\loginView -> SetNonProjectView (Login loginView))
-                        |> Maybe.withDefault (SetNonProjectView LoginPicker)
+                    SetNonProjectView <| State.ViewState.defaultLoginViewState outerModel.sharedModel.style.defaultLoginView
             in
             MenuItem.menuItem context.palette
                 active
@@ -106,13 +97,13 @@ navMenu model context =
         , Element.scrollbarY
         , Element.height Element.fill
         ]
-        (projectMenuItems model.projects
+        (projectMenuItems outerModel.sharedModel.projects
             ++ [ addProjectMenuItem ]
         )
 
 
-navBar : Model -> View.Types.Context -> Element.Element Msg
-navBar model context =
+navBar : OuterModel -> View.Types.Context -> Element.Element OuterMsg
+navBar outerModel context =
     let
         navBarContainerAttributes =
             [ Background.color (SH.toElementColor context.palette.menu.secondary)
@@ -130,15 +121,15 @@ navBar model context =
                 [ Element.padding 5
                 , Element.spacing 20
                 ]
-                [ Element.image [ Element.height (Element.px 50) ] { src = model.style.logo, description = "" }
-                , if model.style.topBarShowAppTitle then
+                [ Element.image [ Element.height (Element.px 50) ] { src = outerModel.sharedModel.style.logo, description = "" }
+                , if outerModel.sharedModel.style.topBarShowAppTitle then
                     Element.el
                         [ Region.heading 1
                         , Font.bold
                         , Font.size 26
                         , Font.color (SH.toElementColor context.palette.menu.on.surface)
                         ]
-                        (Element.text model.style.appTitle)
+                        (Element.text outerModel.sharedModel.style.appTitle)
 
                   else
                     Element.none
@@ -191,7 +182,7 @@ navBar model context =
                             Just
                                 (SetNonProjectView <|
                                     GetSupport
-                                        (View.GetSupport.viewStateToSupportableItem model.viewState)
+                                        (LegacyView.GetSupport.viewStateToSupportableItem outerModel.viewState)
                                         ""
                                         False
                                 )

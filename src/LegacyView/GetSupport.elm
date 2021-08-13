@@ -1,4 +1,4 @@
-module View.GetSupport exposing (getSupport, viewStateToSupportableItem)
+module LegacyView.GetSupport exposing (getSupport, viewStateToSupportableItem)
 
 import Element
 import Element.Font as Font
@@ -11,13 +11,16 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
-import Types.HelperTypes as HelperTypes
-import Types.Types
+import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedModel
     exposing
-        ( Model
-        , Msg(..)
-        , NonProjectViewConstructor(..)
-        , ProjectIdentifier
+        ( SharedModel
+        )
+import Types.SharedMsg exposing (SharedMsg(..))
+import Types.View
+    exposing
+        ( NonProjectViewConstructor(..)
         , ProjectViewConstructor(..)
         , SupportableItemType(..)
         , ViewState(..)
@@ -29,12 +32,12 @@ import Widget
 
 
 getSupport :
-    Model
+    SharedModel
     -> View.Types.Context
     -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
     -> String
     -> Bool
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 getSupport model context maybeSupportableResource requestDescription isSubmitted =
     Element.column
         (VH.exoColumnAttributes
@@ -240,7 +243,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                , Font.size 10
                                ]
                         )
-                        { onChange = \_ -> NoOp
+                        { onChange = \_ -> SharedMsg NoOp
                         , text = buildSupportRequest model context maybeSupportableResource requestDescription
                         , placeholder = Nothing
                         , label = Input.labelHidden "Support request"
@@ -310,7 +313,7 @@ viewStateToSupportableItem viewState =
             Just <| supportableProjectItem projectUuid projectViewConstructor
 
 
-buildSupportRequest : Model -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
+buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
 buildSupportRequest model context maybeSupportableResource requestDescription =
     String.concat
         [ "# Support Request From "

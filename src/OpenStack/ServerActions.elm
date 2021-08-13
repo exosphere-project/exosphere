@@ -12,17 +12,11 @@ import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , Server
-        , ServerSpecificMsgConstructor(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Server exposing (Server)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View exposing (ProjectViewConstructor(..))
 
 
 getAllowed : Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
@@ -62,8 +56,8 @@ type alias ServerAction =
 
 
 type ActionType
-    = CmdAction (Project -> Server -> Cmd Msg)
-    | UpdateAction (ProjectIdentifier -> Server -> Msg)
+    = CmdAction (ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg)
+    | UpdateAction (ProjectIdentifier -> Server -> OuterMsg)
 
 
 type SelectMod
@@ -220,13 +214,10 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             UpdateAction <|
                 \projectId server ->
-                    ProjectMsg
-                        projectId
-                        (SetProjectView
-                            (CreateServerImage
-                                server.osProps.uuid
-                                (server.osProps.name ++ "-image")
-                            )
+                    SetProjectView projectId
+                        (CreateServerImage
+                            server.osProps.uuid
+                            (server.osProps.name ++ "-image")
                         )
       , selectMod = NoMod
       , targetStatus = Just [ OSTypes.ServerActive ]
@@ -306,27 +297,27 @@ actions maybeWordForServer maybeWordForImage =
     ]
 
 
-doAction : Json.Encode.Value -> Project -> Server -> Cmd Msg
-doAction body project server =
+doAction : Json.Encode.Value -> ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
+doAction body projectId novaUrl serverId =
     let
         errorContext =
             ErrorContext
-                ("perform action for server " ++ server.osProps.uuid)
+                ("perform action for server " ++ serverId)
                 ErrorCrit
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        projectId
         Post
         Nothing
-        (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")
+        (novaUrl ++ "/servers/" ++ serverId ++ "/action")
         (Http.jsonBody body)
         (expectStringWithErrorBody
             (resultToMsgErrorBody
                 errorContext
                 (\_ ->
-                    ProjectMsg project.auth.project.uuid <|
-                        ServerMsg server.osProps.uuid <|
+                    ProjectMsg projectId <|
+                        ServerMsg serverId <|
                             RequestServer
                 )
             )

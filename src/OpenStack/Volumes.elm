@@ -19,16 +19,12 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd Msg
+requestCreateVolume : Project -> OSTypes.CreateVolumeRequest -> Cmd SharedMsg
 requestCreateVolume project createVolumeRequest =
     let
         body =
@@ -57,7 +53,7 @@ requestCreateVolume project createVolumeRequest =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.cinder ++ "/volumes")
@@ -68,7 +64,7 @@ requestCreateVolume project createVolumeRequest =
         )
 
 
-requestVolumes : Project -> Cmd Msg
+requestVolumes : Project -> Cmd SharedMsg
 requestVolumes project =
     let
         errorContext =
@@ -87,7 +83,7 @@ requestVolumes project =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.cinder ++ "/volumes/detail")
@@ -98,7 +94,7 @@ requestVolumes project =
         )
 
 
-requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd Msg
+requestDeleteVolume : Project -> OSTypes.VolumeUuid -> Cmd SharedMsg
 requestDeleteVolume project volumeUuid =
     let
         errorContext =
@@ -113,7 +109,7 @@ requestDeleteVolume project volumeUuid =
                 (\_ -> ProjectMsg project.auth.project.uuid ReceiveDeleteVolume)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)
@@ -121,7 +117,7 @@ requestDeleteVolume project volumeUuid =
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd Msg
+requestUpdateVolumeName : Project -> OSTypes.VolumeUuid -> String -> Cmd SharedMsg
 requestUpdateVolumeName project volumeUuid name =
     let
         body =
@@ -145,7 +141,7 @@ requestUpdateVolumeName project volumeUuid name =
                 (\_ -> ProjectMsg project.auth.project.uuid ReceiveUpdateVolumeName)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Put
         Nothing
         (project.endpoints.cinder ++ "/volumes/" ++ volumeUuid)

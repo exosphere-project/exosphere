@@ -5,7 +5,7 @@ module Helpers.ExoSetupStatus exposing
 
 import Json.Decode
 import Time
-import Types.Types exposing (ExoSetupStatus(..))
+import Types.Server exposing (ExoSetupStatus(..))
 
 
 parseConsoleLogExoSetupStatus : ExoSetupStatus -> String -> Time.Posix -> Time.Posix -> ExoSetupStatus

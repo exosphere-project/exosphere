@@ -66,11 +66,11 @@ module OpenStack.Types exposing
 
 import Dict
 import Json.Encode
+import OpenStack.HelperTypes as HelperTypes
 import OpenStack.SecurityGroupRule exposing (SecurityGroupRule)
 import RemoteData exposing (RemoteData)
 import Time
 import Types.Error exposing (HttpErrorWithBody)
-import Types.HelperTypes as HelperTypes
 
 
 

@@ -40,29 +40,20 @@ import Rest.Helpers
 import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
-import Types.Types
-    exposing
-        ( ExoServerProps
-        , FloatingIpOption(..)
-        , HttpRequestMethod(..)
-        , Model
-        , Msg(..)
-        , NewServerNetworkOptions(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , Server
-        , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
-        , ViewState(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
+import Types.OuterModel exposing (OuterModel)
+import Types.Project exposing (Project)
+import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 
 {- HTTP Requests -}
 
 
-requestServers : Project -> Cmd Msg
+requestServers : Project -> Cmd SharedMsg
 requestServers project =
     let
         errorContext =
@@ -77,7 +68,7 @@ requestServers project =
                 (ReceiveServers errorContext result)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/detail")
@@ -88,7 +79,7 @@ requestServers project =
         )
 
 
-requestServer : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServer : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestServer project serverUuid =
     let
         errorContext =
@@ -104,7 +95,7 @@ requestServer project serverUuid =
 
         requestServerCmd =
             openstackCredentialedRequest
-                project
+                project.auth.project.uuid
                 Get
                 (Just "compute 2.27")
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid)
@@ -121,7 +112,7 @@ requestServer project serverUuid =
         ]
 
 
-requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServerEvents : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestServerEvents project serverUuid =
     let
         errorContext =
@@ -136,7 +127,7 @@ requestServerEvents project serverUuid =
                     ReceiveServerEvents errorContext result
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         (Just "compute 2.27")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-instance-actions")
@@ -147,7 +138,7 @@ requestServerEvents project serverUuid =
         )
 
 
-requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestConsoleUrls : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestConsoleUrls project serverUuid =
     -- This is a deprecated call, will eventually need to be updated
     -- See https://gitlab.com/exosphere/exosphere/issues/183
@@ -173,7 +164,7 @@ requestConsoleUrls project serverUuid =
                         ]
             in
             openstackCredentialedRequest
-                project
+                project.auth.project.uuid
                 Post
                 Nothing
                 (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
@@ -191,7 +182,7 @@ requestConsoleUrls project serverUuid =
         |> Cmd.batch
 
 
-requestFlavors : Project -> Cmd Msg
+requestFlavors : Project -> Cmd SharedMsg
 requestFlavors project =
     let
         errorContext =
@@ -206,7 +197,7 @@ requestFlavors project =
                 (\flavors -> ProjectMsg project.auth.project.uuid <| ReceiveFlavors flavors)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.nova ++ "/flavors/detail")
@@ -217,7 +208,7 @@ requestFlavors project =
         )
 
 
-requestKeypairs : Project -> Cmd Msg
+requestKeypairs : Project -> Cmd SharedMsg
 requestKeypairs project =
     let
         errorContext =
@@ -232,7 +223,7 @@ requestKeypairs project =
                 (\keypairs -> ProjectMsg project.auth.project.uuid <| ReceiveKeypairs keypairs)
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.nova ++ "/os-keypairs")
@@ -243,7 +234,7 @@ requestKeypairs project =
         )
 
 
-requestCreateKeypair : Project -> OSTypes.KeypairName -> OSTypes.PublicKey -> Cmd Msg
+requestCreateKeypair : Project -> OSTypes.KeypairName -> OSTypes.PublicKey -> Cmd SharedMsg
 requestCreateKeypair project keypairName publicKey =
     let
         body =
@@ -270,7 +261,7 @@ requestCreateKeypair project keypairName publicKey =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/os-keypairs")
@@ -281,7 +272,7 @@ requestCreateKeypair project keypairName publicKey =
         )
 
 
-requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd Msg
+requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd SharedMsg
 requestDeleteKeypair project keypairName =
     let
         errorContext =
@@ -291,7 +282,7 @@ requestDeleteKeypair project keypairName =
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.nova ++ "/os-keypairs/" ++ keypairName)
@@ -301,7 +292,7 @@ requestDeleteKeypair project keypairName =
         )
 
 
-requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd Msg
+requestCreateServer : Project -> OSTypes.CreateServerRequest -> Cmd SharedMsg
 requestCreateServer project createServerRequest =
     let
         instanceNumbers =
@@ -410,7 +401,7 @@ requestCreateServer project createServerRequest =
             |> List.map
                 (\requestBody ->
                     openstackCredentialedRequest
-                        project
+                        project.auth.project.uuid
                         Post
                         Nothing
                         (project.endpoints.nova ++ "/servers")
@@ -423,12 +414,12 @@ requestCreateServer project createServerRequest =
         )
 
 
-requestDeleteServer : Project -> Server -> Cmd Msg
-requestDeleteServer project server =
+requestDeleteServer : ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
+requestDeleteServer projectId novaUrl serverId =
     let
         errorContext =
             ErrorContext
-                ("delete server with UUID " ++ server.osProps.uuid)
+                ("delete server with UUID " ++ serverId)
                 ErrorCrit
                 Nothing
 
@@ -436,21 +427,21 @@ requestDeleteServer project server =
             resultToMsgErrorBody
                 errorContext
                 (\_ ->
-                    ProjectMsg project.auth.project.uuid <|
-                        ServerMsg server.osProps.uuid <|
+                    ProjectMsg projectId <|
+                        ServerMsg serverId <|
                             ReceiveDeleteServer
                 )
     in
     openstackCredentialedRequest
-        project
+        projectId
         Delete
         Nothing
-        (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid)
+        (novaUrl ++ "/servers/" ++ serverId)
         Http.emptyBody
         (expectStringWithErrorBody resultToMsg_)
 
 
-requestConsoleUrlIfRequestable : Project -> Server -> Cmd Msg
+requestConsoleUrlIfRequestable : Project -> Server -> Cmd SharedMsg
 requestConsoleUrlIfRequestable project server =
     case server.osProps.details.openstackStatus of
         OSTypes.ServerActive ->
@@ -460,7 +451,7 @@ requestConsoleUrlIfRequestable project server =
             Cmd.none
 
 
-requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestCreateServerImage : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestCreateServerImage project serverUuid imageName =
     let
         body =
@@ -484,7 +475,7 @@ requestCreateServerImage project serverUuid imageName =
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/action")
@@ -494,7 +485,7 @@ requestCreateServerImage project serverUuid imageName =
         )
 
 
-requestSetServerName : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestSetServerName : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestSetServerName project serverUuid newServerName =
     let
         body =
@@ -520,7 +511,7 @@ requestSetServerName project serverUuid newServerName =
                     ReceiveSetServerName newServerName errorContext result
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Put
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid)
@@ -531,7 +522,7 @@ requestSetServerName project serverUuid newServerName =
         )
 
 
-requestSetServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataItem -> Cmd Msg
+requestSetServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataItem -> Cmd SharedMsg
 requestSetServerMetadata project serverUuid metadataItem =
     let
         body =
@@ -561,7 +552,7 @@ requestSetServerMetadata project serverUuid metadataItem =
                     ReceiveSetServerMetadata metadataItem errorContext result
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata")
@@ -572,7 +563,7 @@ requestSetServerMetadata project serverUuid metadataItem =
         )
 
 
-requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd Msg
+requestDeleteServerMetadata : Project -> OSTypes.ServerUuid -> OSTypes.MetadataKey -> Cmd SharedMsg
 requestDeleteServerMetadata project serverUuid metadataKey =
     let
         errorContext =
@@ -593,7 +584,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
                     ReceiveDeleteServerMetadata metadataKey errorContext result
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/metadata/" ++ metadataKey)
@@ -605,7 +596,7 @@ requestDeleteServerMetadata project serverUuid metadataKey =
 {- HTTP Response Handling -}
 
 
-receiveServers : Model -> Project -> List OSTypes.Server -> ( Model, Cmd Msg )
+receiveServers : SharedModel -> Project -> List OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
 receiveServers model project osServers =
     let
         ( newExoServers, cmds ) =
@@ -657,7 +648,7 @@ receiveServers model project osServers =
     )
 
 
-receiveServer : Model -> Project -> OSTypes.Server -> ( Model, Cmd Msg )
+receiveServer : SharedModel -> Project -> OSTypes.Server -> ( SharedModel, Cmd SharedMsg )
 receiveServer model project osServer =
     let
         ( newServer, cmd ) =
@@ -695,7 +686,7 @@ receiveServer model project osServer =
     )
 
 
-receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd Msg )
+receiveServer_ : Project -> OSTypes.Server -> ( Server, Cmd SharedMsg )
 receiveServer_ project osServer =
     let
         newServer : Server
@@ -838,7 +829,7 @@ receiveServer_ project osServer =
     ( newServer, allCmds )
 
 
-receiveConsoleUrl : Model -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( Model, Cmd Msg )
+receiveConsoleUrl : SharedModel -> Project -> Server -> Result HttpErrorWithBody OSTypes.ConsoleUrl -> ( SharedModel, Cmd SharedMsg )
 receiveConsoleUrl model project server result =
     case server.osProps.consoleUrl of
         RemoteData.Success _ ->
@@ -873,8 +864,9 @@ receiveConsoleUrl model project server result =
             ( newModel, Cmd.none )
 
 
-receiveFlavors : Model -> Project -> List OSTypes.Flavor -> ( Model, Cmd Msg )
-receiveFlavors model project flavors =
+receiveFlavors : OuterModel -> Project -> List OSTypes.Flavor -> ( OuterModel, Cmd SharedMsg )
+receiveFlavors outerModel project flavors =
+    -- TODO this code should not care about view state
     let
         newProject =
             { project | flavors = flavors }
@@ -886,7 +878,7 @@ receiveFlavors model project flavors =
         -- This could also benefit from some "railway-oriented programming" to avoid repetition of
         -- "otherwise just model.viewState" statments.
         viewState =
-            case model.viewState of
+            case outerModel.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
                         CreateServer viewParams ->
@@ -907,24 +899,24 @@ receiveFlavors model project flavors =
                                             )
 
                                     Nothing ->
-                                        model.viewState
+                                        outerModel.viewState
 
                             else
-                                model.viewState
+                                outerModel.viewState
 
                         _ ->
-                            model.viewState
+                            outerModel.viewState
 
                 _ ->
-                    model.viewState
+                    outerModel.viewState
 
-        newModel =
-            GetterSetters.modelUpdateProject { model | viewState = viewState } newProject
+        newSharedModel =
+            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
     in
-    ( newModel, Cmd.none )
+    ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
 
 
-receiveKeypairs : Model -> Project -> List OSTypes.Keypair -> ( Model, Cmd Msg )
+receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )
 receiveKeypairs model project keypairs =
     let
         newProject =

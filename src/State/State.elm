@@ -18,6 +18,7 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.LoginOpenstack
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -36,85 +37,144 @@ import Toasty
 import Types.Defaults as Defaults
 import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
-import Types.HelperTypes as HelperTypes
+import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject)
+import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Endpoints, Project, ProjectSecret(..))
+import Types.Server exposing (ExoSetupStatus(..), NewServerNetworkOptions(..), Server, ServerFromExoProps, ServerOrigin(..), currentExoServerVersion)
 import Types.ServerResourceUsage
-import Types.Types
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..), TickInterval)
+import Types.View
     exposing
-        ( Endpoints
-        , ExoSetupStatus(..)
-        , HttpRequestMethod(..)
-        , LoginView(..)
-        , Model
-        , Msg(..)
-        , NewServerNetworkOptions(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
-        , Project
-        , ProjectSecret(..)
-        , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
-        , Server
-        , ServerFromExoProps
-        , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
-        , TickInterval
-        , UnscopedProviderProject
         , ViewState(..)
-        , currentExoServerVersion
         )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+update msg outerModel =
     {- We want to `setStorage` on every update. This function adds the setStorage
        command for every step of the update function.
     -}
     let
-        ( newModel, cmds ) =
-            updateUnderlying msg model
+        ( newOuterModel, cmds ) =
+            updateUnderlying msg outerModel
 
         orchestrationTimeCmd =
             -- Each trip through the runtime, we get the time and feed it to orchestration module
             case msg of
-                DoOrchestration _ ->
+                SharedMsg (DoOrchestration _) ->
                     Cmd.none
 
-                Tick _ _ ->
+                SharedMsg (Tick _ _) ->
                     Cmd.none
 
                 _ ->
-                    Task.perform (\posix -> DoOrchestration posix) Time.now
+                    Task.perform (\posix -> SharedMsg <| DoOrchestration posix) Time.now
     in
-    ( newModel
+    ( newOuterModel
     , Cmd.batch
-        [ Ports.setStorage (LocalStorage.generateStoredState newModel)
+        [ Ports.setStorage (LocalStorage.generateStoredState newOuterModel.sharedModel)
         , orchestrationTimeCmd
         , cmds
         ]
     )
 
 
-updateUnderlying : Msg -> Model -> ( Model, Cmd Msg )
-updateUnderlying msg model =
-    case msg of
+
+-- There may be a better approach than these mapping functions, I'm not sure yet.
+
+
+mapToOuterMsg : ( a, Cmd SharedMsg ) -> ( a, Cmd OuterMsg )
+mapToOuterMsg ( model, cmdSharedMsg ) =
+    ( model, Cmd.map SharedMsg cmdSharedMsg )
+
+
+mapToOuterModel : OuterModel -> ( SharedModel, Cmd a ) -> ( OuterModel, Cmd a )
+mapToOuterModel outerModel ( newSharedModel, cmd ) =
+    ( { outerModel | sharedModel = newSharedModel }, cmd )
+
+
+pipelineCmdOuterModelMsg : (OuterModel -> ( OuterModel, Cmd OuterMsg )) -> ( OuterModel, Cmd OuterMsg ) -> ( OuterModel, Cmd OuterMsg )
+pipelineCmdOuterModelMsg fn ( outerModel, outerCmd ) =
+    let
+        ( newModel, newCmd ) =
+            fn outerModel
+    in
+    ( newModel, Cmd.batch [ outerCmd, newCmd ] )
+
+
+updateUnderlying : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+updateUnderlying outerMsg outerModel =
+    let
+        sharedModel =
+            outerModel.sharedModel
+    in
+    case ( outerMsg, outerModel.viewState ) of
+        ( SharedMsg sharedMsg, _ ) ->
+            processSharedMsg sharedMsg outerModel
+
+        ( SetNonProjectView nonProjectViewConstructor, _ ) ->
+            ViewStateHelpers.setNonProjectView nonProjectViewConstructor outerModel
+
+        ( SetProjectView projectIdentifier projectViewConstructor, _ ) ->
+            case GetterSetters.projectLookup sharedModel projectIdentifier of
+                Nothing ->
+                    -- Project not found, may have been removed, nothing to do
+                    ( outerModel, Cmd.none )
+
+                Just project ->
+                    ViewStateHelpers.setProjectView project projectViewConstructor outerModel
+
+        ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
+            let
+                ( newSharedModel, cmd, sharedMsg ) =
+                    Page.LoginOpenstack.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| Login <| LoginOpenstack newSharedModel
+              }
+            , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( _, _ ) ->
+            ( outerModel, Cmd.none )
+
+
+processSharedMsg : SharedMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+processSharedMsg sharedMsg outerModel =
+    let
+        sharedModel =
+            outerModel.sharedModel
+    in
+    case sharedMsg of
         ToastyMsg subMsg ->
-            Toasty.update Style.Toast.toastConfig ToastyMsg subMsg model
+            Toasty.update Style.Toast.toastConfig ToastyMsg subMsg outerModel.sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         MsgChangeWindowSize x y ->
-            ( { model | windowSize = { width = x, height = y } }, Cmd.none )
+            ( { sharedModel | windowSize = { width = x, height = y } }, Cmd.none )
+                |> mapToOuterModel outerModel
 
         Tick interval time ->
-            processTick model interval time
+            processTick outerModel interval time
+                |> mapToOuterModel outerModel
 
         DoOrchestration posixTime ->
-            Orchestration.orchModel model posixTime
-
-        SetNonProjectView nonProjectViewConstructor ->
-            ViewStateHelpers.setNonProjectView nonProjectViewConstructor model
+            Orchestration.orchModel sharedModel posixTime
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         HandleApiErrorWithBody errorContext error ->
-            State.Error.processSynchronousApiError model errorContext error
+            State.Error.processSynchronousApiError sharedModel errorContext error
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestUnscopedToken openstackLoginUnscoped ->
             let
@@ -125,7 +185,8 @@ updateUnderlying msg model =
                             State.Auth.authUrlWithPortAndVersion openstackLoginUnscoped.authUrl
                     }
             in
-            ( model, Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl creds )
+            ( outerModel, Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds )
+                |> mapToOuterMsg
 
         JetstreamLogin jetstreamCreds ->
             let
@@ -134,34 +195,39 @@ updateUnderlying msg model =
 
                 cmds =
                     List.map
-                        (\creds -> Rest.Keystone.requestUnscopedAuthToken model.cloudCorsProxyUrl creds)
+                        (\creds -> Rest.Keystone.requestUnscopedAuthToken sharedModel.cloudCorsProxyUrl creds)
                         openstackCredsList
             in
-            ( model, Cmd.batch cmds )
+            ( outerModel, Cmd.batch cmds )
+                |> mapToOuterMsg
 
         ReceiveScopedAuthToken ( metadata, response ) ->
             case Rest.Keystone.decodeScopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
-                        model
+                        sharedModel
                         (ErrorContext
                             "decode scoped auth token"
                             ErrorCrit
                             Nothing
                         )
                         error
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Ok authToken ->
                     case Helpers.serviceCatalogToEndpoints authToken.catalog of
                         Err e ->
                             State.Error.processStringError
-                                model
+                                sharedModel
                                 (ErrorContext
                                     "Decode project endpoints"
                                     ErrorCrit
                                     (Just "Please check with your cloud administrator or the Exosphere developers.")
                                 )
                                 e
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                         Ok endpoints ->
                             let
@@ -171,10 +237,10 @@ updateUnderlying msg model =
                             -- If we don't have a project with same name + authUrl then create one, if we do then update its OSTypes.AuthToken
                             -- This code ensures we don't end up with duplicate projects on the same provider in our model.
                             case
-                                GetterSetters.projectLookup model <| projectId
+                                GetterSetters.projectLookup sharedModel <| projectId
                             of
                                 Nothing ->
-                                    createProject model authToken endpoints
+                                    createProject outerModel authToken endpoints
 
                                 Just project ->
                                     -- If we don't have an application credential for this project yet, then get one
@@ -186,78 +252,88 @@ updateUnderlying msg model =
 
                                                 _ ->
                                                     Rest.Keystone.requestAppCredential
-                                                        model.clientUuid
-                                                        model.clientCurrentTime
+                                                        sharedModel.clientUuid
+                                                        sharedModel.clientCurrentTime
                                                         project
 
-                                        ( newModel, updateTokenCmd ) =
-                                            State.Auth.projectUpdateAuthToken model project authToken
+                                        ( newOuterModel, updateTokenCmd ) =
+                                            State.Auth.projectUpdateAuthToken outerModel project authToken
                                     in
-                                    ( newModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                                    ( newOuterModel, Cmd.batch [ appCredCmd, updateTokenCmd ] )
+                                        |> mapToOuterMsg
 
         ReceiveUnscopedAuthToken keystoneUrl ( metadata, response ) ->
             case Rest.Keystone.decodeUnscopedAuthToken <| Http.GoodStatus_ metadata response of
                 Err error ->
                     State.Error.processStringError
-                        model
+                        sharedModel
                         (ErrorContext
                             "decode scoped auth token"
                             ErrorCrit
                             Nothing
                         )
                         error
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Ok authToken ->
                     case
-                        GetterSetters.providerLookup model keystoneUrl
+                        GetterSetters.providerLookup sharedModel keystoneUrl
                     of
                         Just unscopedProvider ->
                             -- We already have an unscoped provider in the model with the same auth URL, update its token
                             State.Auth.unscopedProviderUpdateAuthToken
-                                model
+                                sharedModel
                                 unscopedProvider
                                 authToken
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                         Nothing ->
                             -- We don't have an unscoped provider with the same auth URL, create it
-                            createUnscopedProvider model authToken keystoneUrl
+                            createUnscopedProvider sharedModel authToken keystoneUrl
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
         ReceiveUnscopedProjects keystoneUrl unscopedProjects ->
             case
-                GetterSetters.providerLookup model keystoneUrl
+                GetterSetters.providerLookup sharedModel keystoneUrl
             of
                 Just provider ->
                     let
                         newProvider =
                             { provider | projectsAvailable = RemoteData.Success unscopedProjects }
 
-                        newModel =
-                            GetterSetters.modelUpdateUnscopedProvider model newProvider
+                        newSharedModel =
+                            GetterSetters.modelUpdateUnscopedProvider sharedModel newProvider
+
+                        newOuterModel =
+                            { outerModel | sharedModel = newSharedModel }
                     in
                     -- If we are not already on a SelectProjects view, then go there
-                    case newModel.viewState of
+                    case outerModel.viewState of
                         NonProjectView (SelectProjects _ _) ->
-                            ( newModel, Cmd.none )
+                            ( newOuterModel, Cmd.none )
 
                         _ ->
                             ViewStateHelpers.modelUpdateViewState
                                 (NonProjectView <|
                                     SelectProjects newProvider.authUrl []
                                 )
-                                newModel
+                                newOuterModel
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
         RequestProjectLoginFromProvider keystoneUrl desiredProjects ->
-            case GetterSetters.providerLookup model keystoneUrl of
+            case GetterSetters.providerLookup sharedModel keystoneUrl of
                 Just provider ->
                     let
-                        buildLoginRequest : UnscopedProviderProject -> Cmd Msg
+                        buildLoginRequest : UnscopedProviderProject -> Cmd SharedMsg
                         buildLoginRequest project =
                             Rest.Keystone.requestScopedAuthToken
-                                model.cloudCorsProxyUrl
+                                sharedModel.cloudCorsProxyUrl
                             <|
                                 OSTypes.TokenCreds
                                     keystoneUrl
@@ -272,7 +348,7 @@ updateUnderlying msg model =
                         newUnscopedProviders =
                             List.filter
                                 (\p -> p.authUrl /= keystoneUrl)
-                                model.unscopedProviders
+                                sharedModel.unscopedProviders
 
                         -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
                         newViewStateFunc =
@@ -283,7 +359,7 @@ updateUnderlying msg model =
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
-                                    case List.head model.projects of
+                                    case List.head sharedModel.projects of
                                         Just project ->
                                             ViewStateHelpers.setProjectView
                                                 project
@@ -294,75 +370,77 @@ updateUnderlying msg model =
                                             ViewStateHelpers.setNonProjectView
                                                 LoginPicker
 
-                        modelUpdatedUnscopedProviders =
-                            { model | unscopedProviders = newUnscopedProviders }
+                        sharedModelUpdatedUnscopedProviders =
+                            { sharedModel | unscopedProviders = newUnscopedProviders }
+
+                        ( newOuterModel, viewStateCmds ) =
+                            newViewStateFunc { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
                     in
-                    ( modelUpdatedUnscopedProviders, loginRequests )
-                        |> Helpers.pipelineCmd newViewStateFunc
+                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg loginRequests, viewStateCmds ] )
 
                 Nothing ->
                     State.Error.processStringError
-                        model
+                        sharedModel
                         (ErrorContext
                             ("look for OpenStack provider with Keystone URL " ++ keystoneUrl)
                             ErrorCrit
                             Nothing
                         )
                         "Provider could not found in Exosphere's list of Providers."
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ProjectMsg projectIdentifier innerMsg ->
-            case GetterSetters.projectLookup model projectIdentifier of
+            case GetterSetters.projectLookup sharedModel projectIdentifier of
                 Nothing ->
                     -- Project not found, may have been removed, nothing to do
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
                 Just project ->
-                    processProjectSpecificMsg model project innerMsg
-
-        {- Form inputs -}
-        SubmitOpenRc openstackCreds openRc ->
-            let
-                newCreds =
-                    State.Auth.processOpenRc openstackCreds openRc
-
-                newViewState =
-                    NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams newCreds openRc LoginViewCredsEntry
-            in
-            ViewStateHelpers.modelUpdateViewState newViewState model
+                    processProjectSpecificMsg outerModel project innerMsg
 
         OpenNewWindow url ->
-            ( model, Ports.openNewWindow url )
+            ( outerModel, Ports.openNewWindow url )
+
+        NavigateToView navigableView ->
+            case navigableView of
+                Types.SharedMsg.LoginPicker ->
+                    ViewStateHelpers.setNonProjectView LoginPicker outerModel
 
         NavigateToUrl url ->
-            ( model, Browser.Navigation.load url )
+            ( outerModel, Browser.Navigation.load url )
 
         UrlChange url ->
             -- This handles presses of the browser back/forward button
+            -- It also handles internal links clicked by the user
             let
                 exoJustSetThisUrl =
                     -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
-                    UrlHelpers.urlPathQueryMatches url model.prevUrl
+                    UrlHelpers.urlPathQueryMatches url sharedModel.prevUrl
             in
             if exoJustSetThisUrl then
-                ( model, Cmd.none )
+                ( outerModel, Cmd.none )
 
             else
                 case
                     AppUrl.Parser.urlToViewState
-                        model.urlPathPrefix
-                        (ViewStateHelpers.defaultViewState model)
+                        sharedModel.urlPathPrefix
+                        (ViewStateHelpers.defaultViewState sharedModel)
                         url
                 of
                     Just newViewState ->
-                        ( { model
+                        ( { outerModel
                             | viewState = newViewState
-                            , prevUrl = AppUrl.Builder.viewStateToUrl model.urlPathPrefix newViewState
+                            , sharedModel =
+                                { sharedModel
+                                    | prevUrl = AppUrl.Builder.viewStateToUrl sharedModel.urlPathPrefix newViewState
+                                }
                           }
                         , Cmd.none
                         )
 
                     Nothing ->
-                        ( { model
+                        ( { outerModel
                             | viewState = NonProjectView PageNotFound
                           }
                         , Cmd.none
@@ -371,19 +449,20 @@ updateUnderlying msg model =
         SetStyle styleMode ->
             let
                 oldStyle =
-                    model.style
+                    sharedModel.style
 
                 newStyle =
                     { oldStyle | styleMode = styleMode }
             in
-            ( { model | style = newStyle }, Cmd.none )
+            ( { sharedModel | style = newStyle }, Cmd.none )
+                |> mapToOuterModel outerModel
 
         NoOp ->
-            ( model, Cmd.none )
+            ( outerModel, Cmd.none )
 
 
-processTick : Model -> TickInterval -> Time.Posix -> ( Model, Cmd Msg )
-processTick model interval time =
+processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )
+processTick outerModel interval time =
     let
         serverVolsNeedFrequentPoll : Project -> Server -> Bool
         serverVolsNeedFrequentPoll project server =
@@ -413,21 +492,21 @@ processTick model interval time =
 
         ( viewDependentModel, viewDependentCmd ) =
             {- TODO move some of this to Orchestration? -}
-            case model.viewState of
+            case outerModel.viewState of
                 NonProjectView _ ->
-                    ( model, Cmd.none )
+                    ( outerModel.sharedModel, Cmd.none )
 
                 ProjectView projectName _ projectViewState ->
-                    case GetterSetters.projectLookup model projectName of
+                    case GetterSetters.projectLookup outerModel.sharedModel projectName of
                         Nothing ->
                             {- Should this throw an error? -}
-                            ( model, Cmd.none )
+                            ( outerModel.sharedModel, Cmd.none )
 
                         Just project ->
                             let
-                                pollVolumes : ( Model, Cmd Msg )
+                                pollVolumes : ( SharedModel, Cmd SharedMsg )
                                 pollVolumes =
-                                    ( model
+                                    ( outerModel.sharedModel
                                     , case interval of
                                         5 ->
                                             if List.any volNeedsFrequentPoll (RemoteData.withDefault [] project.volumes) then
@@ -456,7 +535,7 @@ processTick model interval time =
                                         5 ->
                                             case GetterSetters.serverLookup project serverUuid of
                                                 Just server ->
-                                                    ( model
+                                                    ( outerModel.sharedModel
                                                     , if serverVolsNeedFrequentPoll project server then
                                                         volCmd
 
@@ -465,19 +544,19 @@ processTick model interval time =
                                                     )
 
                                                 Nothing ->
-                                                    ( model, Cmd.none )
+                                                    ( outerModel.sharedModel, Cmd.none )
 
                                         300 ->
-                                            ( model, volCmd )
+                                            ( outerModel.sharedModel, volCmd )
 
                                         _ ->
-                                            ( model, Cmd.none )
+                                            ( outerModel.sharedModel, Cmd.none )
 
                                 ListProjectVolumes _ ->
                                     pollVolumes
 
                                 VolumeDetail volumeUuid _ ->
-                                    ( model
+                                    ( outerModel.sharedModel
                                     , case interval of
                                         5 ->
                                             case GetterSetters.volumeLookup project volumeUuid of
@@ -499,27 +578,29 @@ processTick model interval time =
                                     )
 
                                 _ ->
-                                    ( model, Cmd.none )
+                                    ( outerModel.sharedModel, Cmd.none )
     in
     ( { viewDependentModel | clientCurrentTime = time }
     , Cmd.batch
         [ viewDependentCmd
         , viewIndependentCmd
         ]
+        |> Cmd.map SharedMsg
     )
 
 
-processProjectSpecificMsg : Model -> Project -> ProjectSpecificMsgConstructor -> ( Model, Cmd Msg )
-processProjectSpecificMsg model project msg =
+processProjectSpecificMsg : OuterModel -> Project -> ProjectSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
+processProjectSpecificMsg outerModel project msg =
+    let
+        sharedModel =
+            outerModel.sharedModel
+    in
     case msg of
-        SetProjectView projectViewConstructor ->
-            ViewStateHelpers.setProjectView project projectViewConstructor model
-
         PrepareCredentialedRequest requestProto posixTime ->
             let
                 -- Add proxy URL
                 requestNeedingToken =
-                    requestProto model.cloudCorsProxyUrl
+                    requestProto sharedModel.cloudCorsProxyUrl
 
                 currentTimeMillis =
                     posixTime |> Time.posixToMillis
@@ -533,22 +614,21 @@ processProjectSpecificMsg model project msg =
             in
             if not tokenExpired then
                 -- Token still valid, fire the request with current token
-                ( model, requestNeedingToken project.auth.tokenValue )
+                ( sharedModel, requestNeedingToken project.auth.tokenValue )
+                    |> mapToOuterMsg
+                    |> mapToOuterModel outerModel
 
             else
                 -- Token is expired (or nearly expired) so we add request to list of pending requests and refresh that token
                 let
                     newPQRs =
-                        requestNeedingToken :: project.pendingCredentialedRequests
-
-                    newProject =
-                        { project | pendingCredentialedRequests = newPQRs }
-
-                    newModel =
-                        GetterSetters.modelUpdateProject model newProject
+                        ( project.auth.project.uuid, requestNeedingToken ) :: outerModel.pendingCredentialedRequests
 
                     cmdResult =
-                        State.Auth.requestAuthToken newModel newProject
+                        State.Auth.requestAuthToken sharedModel project
+
+                    newOuterModel =
+                        { outerModel | pendingCredentialedRequests = newPQRs }
                 in
                 case cmdResult of
                     Err e ->
@@ -559,13 +639,17 @@ processProjectSpecificMsg model project msg =
                                     ErrorCrit
                                     (Just "Please remove this project from Exosphere and add it again.")
                         in
-                        State.Error.processStringError newModel errorContext e
+                        State.Error.processStringError sharedModel errorContext e
+                            |> mapToOuterMsg
+                            |> mapToOuterModel newOuterModel
 
                     Ok cmd ->
-                        ( newModel, cmd )
+                        ( sharedModel, cmd )
+                            |> mapToOuterMsg
+                            |> mapToOuterModel newOuterModel
 
         ToggleCreatePopup ->
-            case model.viewState of
+            case outerModel.viewState of
                 ProjectView projectId viewParams viewConstructor ->
                     let
                         newViewState =
@@ -576,21 +660,21 @@ processProjectSpecificMsg model project msg =
                                 }
                                 viewConstructor
                     in
-                    ViewStateHelpers.modelUpdateViewState newViewState model
+                    ViewStateHelpers.modelUpdateViewState newViewState outerModel
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
         RemoveProject ->
             let
                 newProjects =
-                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) model.projects
+                    List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) sharedModel.projects
 
                 newViewState =
-                    case model.viewState of
+                    case outerModel.viewState of
                         NonProjectView _ ->
                             -- If we are not in a project-specific view then stay there
-                            model.viewState
+                            outerModel.viewState
 
                         ProjectView _ _ _ ->
                             -- If we have any projects switch to the first one in the list, otherwise switch to login view
@@ -606,10 +690,10 @@ processProjectSpecificMsg model project msg =
                                 Nothing ->
                                     NonProjectView <| LoginPicker
 
-                modelUpdatedProjects =
-                    { model | projects = newProjects }
+                sharedModelUpdatedProjects =
+                    { sharedModel | projects = newProjects }
             in
-            ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProjects
+            ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = sharedModelUpdatedProjects }
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -622,7 +706,7 @@ processProjectSpecificMsg model project msg =
                                 Nothing
                     in
                     State.Error.processStringError
-                        model
+                        sharedModel
                         errorContext
                         (String.join " "
                             [ "Instance"
@@ -630,12 +714,16 @@ processProjectSpecificMsg model project msg =
                             , "does not exist in the model, it may have been deleted."
                             ]
                         )
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Just server ->
-                    processServerSpecificMsg model project server serverMsgConstructor
+                    processServerSpecificMsg outerModel project server serverMsgConstructor
 
         RequestServers ->
-            ApiModelHelpers.requestServers project.auth.project.uuid model
+            ApiModelHelpers.requestServers project.auth.project.uuid sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestCreateServer viewParams networkUuid ->
             let
@@ -657,19 +745,20 @@ processProjectSpecificMsg model project msg =
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
                             viewParams.deployDesktopEnvironment
                             viewParams.installOperatingSystemUpdates
-                            model.instanceConfigMgtRepoUrl
-                            model.instanceConfigMgtRepoCheckout
+                            sharedModel.instanceConfigMgtRepoUrl
+                            sharedModel.instanceConfigMgtRepoCheckout
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion
-                            model.clientUuid
+                            sharedModel.clientUuid
                             (viewParams.deployGuacamole |> Maybe.withDefault False)
                             viewParams.deployDesktopEnvironment
                             project.auth.user.name
                             viewParams.floatingIpCreationOption
                     }
             in
-            ( model, Rest.Nova.requestCreateServer project createServerRequest )
+            ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
+                |> mapToOuterMsg
 
         RequestCreateVolume name size ->
             let
@@ -678,10 +767,12 @@ processProjectSpecificMsg model project msg =
                     , size = size
                     }
             in
-            ( model, OSVolumes.requestCreateVolume project createVolumeRequest )
+            ( outerModel, OSVolumes.requestCreateVolume project createVolumeRequest )
+                |> mapToOuterMsg
 
         RequestDeleteVolume volumeUuid ->
-            ( model, OSVolumes.requestDeleteVolume project volumeUuid )
+            ( outerModel, OSVolumes.requestDeleteVolume project volumeUuid )
+                |> mapToOuterMsg
 
         RequestDetachVolume volumeUuid ->
             let
@@ -695,42 +786,49 @@ processProjectSpecificMsg model project msg =
             in
             case maybeServerUuid of
                 Just serverUuid ->
-                    ( model, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+                    ( outerModel, OSSvrVols.requestDetachVolume project serverUuid volumeUuid )
+                        |> mapToOuterMsg
 
                 Nothing ->
                     State.Error.processStringError
-                        model
+                        sharedModel
                         (ErrorContext
                             ("look for server UUID with attached volume " ++ volumeUuid)
                             ErrorCrit
                             Nothing
                         )
                         "Could not determine server attached to this volume."
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestDeleteFloatingIp floatingIpAddress ->
-            ( model, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
+            ( outerModel, Rest.Neutron.requestDeleteFloatingIp project floatingIpAddress )
+                |> mapToOuterMsg
 
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
-                ( newModel, setViewCmd ) =
-                    ViewStateHelpers.setProjectView project (ListFloatingIps Defaults.floatingIpListViewParams) model
+                ( newOuterModel, setViewCmd ) =
+                    ViewStateHelpers.setProjectView project (ListFloatingIps Defaults.floatingIpListViewParams) outerModel
             in
-            ( newModel
+            ( newOuterModel
             , Cmd.batch
                 [ setViewCmd
-                , Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid
+                , Cmd.map SharedMsg <| Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid
                 ]
             )
 
         RequestUnassignFloatingIp floatingIpUuid ->
-            ( model, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+            ( outerModel, Rest.Neutron.requestUnassignFloatingIp project floatingIpUuid )
+                |> mapToOuterMsg
 
         ReceiveImages images ->
-            Rest.Glance.receiveImages model project images
+            Rest.Glance.receiveImages sharedModel project images
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestDeleteServers serverUuidsToDelete ->
             let
-                applyDelete : OSTypes.ServerUuid -> ( Project, Cmd Msg ) -> ( Project, Cmd Msg )
+                applyDelete : OSTypes.ServerUuid -> ( Project, Cmd SharedMsg ) -> ( Project, Cmd SharedMsg )
                 applyDelete serverUuid projCmdTuple =
                     let
                         ( delServerProj, delServerCmd ) =
@@ -744,14 +842,18 @@ processProjectSpecificMsg model project msg =
                         ( project, Cmd.none )
                         serverUuidsToDelete
             in
-            ( GetterSetters.modelUpdateProject model newProject
+            ( GetterSetters.modelUpdateProject sharedModel newProject
             , cmd
             )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveServers errorContext result ->
             case result of
                 Ok servers ->
-                    Rest.Nova.receiveServers model project servers
+                    Rest.Nova.receiveServers sharedModel project servers
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Err e ->
                     let
@@ -763,18 +865,22 @@ processProjectSpecificMsg model project msg =
                                 | servers =
                                     RDPP.RemoteDataPlusPlus
                                         oldServersData
-                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( e, sharedModel.clientCurrentTime )))
                             }
 
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext e
+                    State.Error.processSynchronousApiError newSharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveServer serverUuid errorContext result ->
             case result of
                 Ok server ->
-                    Rest.Nova.receiveServer model project server
+                    Rest.Nova.receiveServer sharedModel project server
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
                     let
@@ -785,7 +891,7 @@ processProjectSpecificMsg model project msg =
                             case GetterSetters.serverLookup project serverUuid of
                                 Nothing ->
                                     -- Server not in project, may have been deleted, ignoring this error
-                                    ( model, Cmd.none )
+                                    ( outerModel, Cmd.none )
 
                                 Just server ->
                                     -- Reset receivedTime and loadingSeparately
@@ -805,10 +911,12 @@ processProjectSpecificMsg model project msg =
                                         newProject =
                                             GetterSetters.projectUpdateServer project newServer
 
-                                        newModel =
-                                            GetterSetters.modelUpdateProject model newProject
+                                        newSharedModel =
+                                            GetterSetters.modelUpdateProject sharedModel newProject
                                     in
-                                    State.Error.processSynchronousApiError newModel errorContext httpErrorWithBody
+                                    State.Error.processSynchronousApiError newSharedModel errorContext httpErrorWithBody
+                                        |> mapToOuterMsg
+                                        |> mapToOuterModel outerModel
                     in
                     case httpError of
                         Http.BadStatus code ->
@@ -826,9 +934,11 @@ processProjectSpecificMsg model project msg =
                                         GetterSetters.projectDeleteServer project serverUuid
 
                                     newModel =
-                                        GetterSetters.modelUpdateProject model newProject
+                                        GetterSetters.modelUpdateProject sharedModel newProject
                                 in
                                 State.Error.processSynchronousApiError newModel newErrorContext httpErrorWithBody
+                                    |> mapToOuterMsg
+                                    |> mapToOuterModel outerModel
 
                             else
                                 non404
@@ -837,7 +947,8 @@ processProjectSpecificMsg model project msg =
                             non404
 
         ReceiveFlavors flavors ->
-            Rest.Nova.receiveFlavors model project flavors
+            Rest.Nova.receiveFlavors outerModel project flavors
+                |> mapToOuterMsg
 
         RequestKeypairs ->
             let
@@ -852,36 +963,44 @@ processProjectSpecificMsg model project msg =
                 newProject =
                     { project | keypairs = newKeypairs }
 
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newModel
+            ( newSharedModel
             , Rest.Nova.requestKeypairs newProject
             )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveKeypairs keypairs ->
-            Rest.Nova.receiveKeypairs model project keypairs
+            Rest.Nova.receiveKeypairs sharedModel project keypairs
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestCreateKeypair keypairName publicKey ->
-            ( model, Rest.Nova.requestCreateKeypair project keypairName publicKey )
+            ( outerModel, Rest.Nova.requestCreateKeypair project keypairName publicKey )
+                |> mapToOuterMsg
 
         ReceiveCreateKeypair keypair ->
             let
                 newProject =
                     GetterSetters.projectUpdateKeypair project keypair
 
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ViewStateHelpers.setProjectView newProject (ListKeypairs Defaults.keypairListViewParams) newModel
+            ViewStateHelpers.setProjectView newProject (ListKeypairs Defaults.keypairListViewParams) { outerModel | sharedModel = newSharedModel }
 
         RequestDeleteKeypair keypairName ->
-            ( model, Rest.Nova.requestDeleteKeypair project keypairName )
+            ( outerModel, Rest.Nova.requestDeleteKeypair project keypairName )
+                |> mapToOuterMsg
 
         ReceiveDeleteKeypair errorContext keypairName result ->
             case result of
                 Err httpError ->
-                    State.Error.processStringError model errorContext (Helpers.httpErrorToString httpError)
+                    State.Error.processStringError sharedModel errorContext (Helpers.httpErrorToString httpError)
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Ok () ->
                     let
@@ -898,10 +1017,11 @@ processProjectSpecificMsg model project msg =
                         newProject =
                             { project | keypairs = newKeypairs }
 
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    ( newModel, Cmd.none )
+                    ( newSharedModel, Cmd.none )
+                        |> mapToOuterModel outerModel
 
         ReceiveCreateServer _ ->
             let
@@ -912,21 +1032,26 @@ processProjectSpecificMsg model project msg =
                     <|
                         AllResources
                             Defaults.allResourcesListViewParams
+
+                ( newSharedModel, newCmd ) =
+                    ( sharedModel, Cmd.none )
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                        |> Helpers.pipelineCmd
+                            (ApiModelHelpers.requestPorts project.auth.project.uuid)
+
+                ( newOuterModel, changedViewCmd ) =
+                    ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = newSharedModel }
             in
-            ( model, Cmd.none )
-                |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestServers project.auth.project.uuid)
-                |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestNetworks project.auth.project.uuid)
-                |> Helpers.pipelineCmd
-                    (ApiModelHelpers.requestPorts project.auth.project.uuid)
-                |> Helpers.pipelineCmd
-                    (ViewStateHelpers.modelUpdateViewState newViewState)
+            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, changedViewCmd ] )
 
         ReceiveNetworks errorContext result ->
             case result of
                 Ok networks ->
-                    Rest.Neutron.receiveNetworks model project networks
+                    Rest.Neutron.receiveNetworks outerModel project networks
+                        |> mapToOuterMsg
 
                 Err httpError ->
                     let
@@ -938,13 +1063,15 @@ processProjectSpecificMsg model project msg =
                                 | networks =
                                     RDPP.RemoteDataPlusPlus
                                         oldNetworksData
-                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
                             }
 
                         newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
                     State.Error.processSynchronousApiError newModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveAutoAllocatedNetwork errorContext result ->
             let
@@ -954,7 +1081,7 @@ processProjectSpecificMsg model project msg =
                             { project
                                 | autoAllocatedNetworkUuid =
                                     RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave netUuid model.clientCurrentTime)
+                                        (RDPP.DoHave netUuid sharedModel.clientCurrentTime)
                                         (RDPP.NotLoading Nothing)
                             }
 
@@ -966,14 +1093,14 @@ processProjectSpecificMsg model project msg =
                                         (RDPP.NotLoading
                                             (Just
                                                 ( httpError
-                                                , model.clientCurrentTime
+                                                , sharedModel.clientCurrentTime
                                                 )
                                             )
                                         )
                             }
 
                 newViewState =
-                    case model.viewState of
+                    case outerModel.viewState of
                         ProjectView _ viewParams projectViewConstructor ->
                             case projectViewConstructor of
                                 CreateServer createServerViewParams ->
@@ -990,32 +1117,40 @@ processProjectSpecificMsg model project msg =
                                                     )
 
                                             _ ->
-                                                model.viewState
+                                                outerModel.viewState
 
                                     else
-                                        model.viewState
+                                        outerModel.viewState
 
                                 _ ->
-                                    model.viewState
+                                    outerModel.viewState
 
                         _ ->
-                            model.viewState
+                            outerModel.viewState
 
-                newModel =
+                newSharedModel =
                     GetterSetters.modelUpdateProject
-                        { model | viewState = newViewState }
+                        sharedModel
                         newProject
-            in
-            case result of
-                Ok _ ->
-                    ApiModelHelpers.requestNetworks project.auth.project.uuid newModel
 
-                Err httpError ->
-                    State.Error.processSynchronousApiError newModel errorContext httpError
-                        |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+                ( newNewSharedModel, newCmd ) =
+                    case result of
+                        Ok _ ->
+                            ApiModelHelpers.requestNetworks project.auth.project.uuid newSharedModel
+
+                        Err httpError ->
+                            State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                                |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
+
+                ( newOuterModel, setViewCmd ) =
+                    ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = newNewSharedModel }
+            in
+            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, setViewCmd ] )
 
         ReceiveFloatingIps ips ->
-            Rest.Neutron.receiveFloatingIps model project ips
+            Rest.Neutron.receiveFloatingIps sharedModel project ips
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceivePorts errorContext result ->
             case result of
@@ -1025,11 +1160,12 @@ processProjectSpecificMsg model project msg =
                             { project
                                 | ports =
                                     RDPP.RemoteDataPlusPlus
-                                        (RDPP.DoHave ports model.clientCurrentTime)
+                                        (RDPP.DoHave ports sharedModel.clientCurrentTime)
                                         (RDPP.NotLoading Nothing)
                             }
                     in
-                    ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+                    ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                        |> mapToOuterModel outerModel
 
                 Err httpError ->
                     let
@@ -1041,50 +1177,60 @@ processProjectSpecificMsg model project msg =
                                 | ports =
                                     RDPP.RemoteDataPlusPlus
                                         oldPortsData
-                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
                             }
 
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    State.Error.processSynchronousApiError newModel errorContext httpError
+                    State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveDeleteFloatingIp uuid ->
-            Rest.Neutron.receiveDeleteFloatingIp model project uuid
+            Rest.Neutron.receiveDeleteFloatingIp sharedModel project uuid
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveAssignFloatingIp floatingIp ->
             -- TODO update servers so that new assignment is reflected in the UI
             let
                 newProject =
-                    processNewFloatingIp model.clientCurrentTime project floatingIp
+                    processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
 
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newModel, Cmd.none )
+            ( newSharedModel, Cmd.none )
+                |> mapToOuterModel outerModel
 
         ReceiveUnassignFloatingIp floatingIp ->
             -- TODO update servers so that unassignment is reflected in the UI
             let
                 newProject =
-                    processNewFloatingIp model.clientCurrentTime project floatingIp
+                    processNewFloatingIp sharedModel.clientCurrentTime project floatingIp
             in
-            ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                |> mapToOuterModel outerModel
 
         ReceiveSecurityGroups groups ->
-            Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup model project groups
+            Rest.Neutron.receiveSecurityGroupsAndEnsureExoGroup sharedModel project groups
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveCreateExoSecurityGroup group ->
-            Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules model project group
+            Rest.Neutron.receiveCreateExoSecurityGroupAndRequestCreateRules sharedModel project group
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) model
+            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) outerModel
 
         ReceiveVolumes volumes ->
             let
                 -- Look for any server backing volumes that were created with no name, and give them a reasonable name
-                updateVolNameCmds : List (Cmd Msg)
+                updateVolNameCmds : List (Cmd SharedMsg)
                 updateVolNameCmds =
                     RDPP.withDefault [] project.servers
                         -- List of tuples containing server and Maybe boot vol
@@ -1155,60 +1301,84 @@ processProjectSpecificMsg model project msg =
                 newProject =
                     { project | volumes = RemoteData.succeed volumes }
 
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newModel, Cmd.batch updateVolNameCmds )
+            ( newSharedModel, Cmd.batch updateVolNameCmds )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveDeleteVolume ->
-            ( model, OSVolumes.requestVolumes project )
+            ( outerModel, OSVolumes.requestVolumes project )
+                |> mapToOuterMsg
 
         ReceiveUpdateVolumeName ->
-            ( model, OSVolumes.requestVolumes project )
+            ( outerModel, OSVolumes.requestVolumes project )
+                |> mapToOuterMsg
 
         ReceiveAttachVolume attachment ->
-            ViewStateHelpers.setProjectView project (MountVolInstructions attachment) model
+            ViewStateHelpers.setProjectView project (MountVolInstructions attachment) outerModel
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) model
+            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) outerModel
 
         ReceiveAppCredential appCredential ->
             let
                 newProject =
                     { project | secret = ApplicationCredential appCredential }
             in
-            ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                |> mapToOuterModel outerModel
 
         ReceiveComputeQuota quota ->
             let
                 newProject =
                     { project | computeQuota = RemoteData.Success quota }
             in
-            ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                |> mapToOuterModel outerModel
 
         ReceiveVolumeQuota quota ->
             let
                 newProject =
                     { project | volumeQuota = RemoteData.Success quota }
             in
-            ( GetterSetters.modelUpdateProject model newProject, Cmd.none )
+            ( GetterSetters.modelUpdateProject sharedModel newProject, Cmd.none )
+                |> mapToOuterModel outerModel
+
+        ReceiveRandomServerName serverName ->
+            case outerModel.viewState of
+                ProjectView _ _ (CreateServer viewParams) ->
+                    ViewStateHelpers.setProjectView project (CreateServer { viewParams | serverName = serverName }) outerModel
+
+                _ ->
+                    ( outerModel, Cmd.none )
 
 
-processServerSpecificMsg : Model -> Project -> Server -> ServerSpecificMsgConstructor -> ( Model, Cmd Msg )
-processServerSpecificMsg model project server serverMsgConstructor =
+processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
+processServerSpecificMsg outerModel project server serverMsgConstructor =
+    let
+        sharedModel =
+            outerModel.sharedModel
+    in
     case serverMsgConstructor of
         RequestServer ->
-            ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid model
+            ApiModelHelpers.requestServer project.auth.project.uuid server.osProps.uuid sharedModel
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestDeleteServer retainFloatingIps ->
             let
                 ( newProject, cmd ) =
                     requestDeleteServer project server.osProps.uuid retainFloatingIps
             in
-            ( GetterSetters.modelUpdateProject model newProject, cmd )
+            ( GetterSetters.modelUpdateProject sharedModel newProject, cmd )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         RequestAttachVolume volumeUuid ->
-            ( model, OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid )
+            ( outerModel, OSSvrVols.requestAttachVolume project server.osProps.uuid volumeUuid )
+                |> mapToOuterMsg
 
         RequestCreateServerImage imageName ->
             let
@@ -1222,13 +1392,15 @@ processServerSpecificMsg model project server serverMsgConstructor =
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
+
+                ( newOuterModel, setViewCmd ) =
+                    ViewStateHelpers.modelUpdateViewState newViewState outerModel
             in
-            ( model, createImageCmd )
-                |> Helpers.pipelineCmd
-                    (ViewStateHelpers.modelUpdateViewState newViewState)
+            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg createImageCmd, setViewCmd ] )
 
         RequestSetServerName newServerName ->
-            ( model, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
+            ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
+                |> mapToOuterMsg
 
         ReceiveServerEvents _ result ->
             case result of
@@ -1240,23 +1412,26 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
                     in
-                    ( GetterSetters.modelUpdateProject model newProject
+                    ( GetterSetters.modelUpdateProject sharedModel newProject
                     , Cmd.none
                     )
+                        |> mapToOuterModel outerModel
 
                 Err _ ->
                     -- Dropping this on the floor for now, someday we may want to do something different
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
         ReceiveConsoleUrl url ->
-            Rest.Nova.receiveConsoleUrl model project server url
+            Rest.Nova.receiveConsoleUrl sharedModel project server url
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveDeleteServer ->
             let
                 ( serverDeletedModel, urlCmd ) =
                     let
                         newViewState =
-                            case model.viewState of
+                            case outerModel.viewState of
                                 ProjectView projectId viewParams (ServerDetail viewServerUuid _) ->
                                     if viewServerUuid == server.osProps.uuid then
                                         ProjectView
@@ -1267,10 +1442,10 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                             )
 
                                     else
-                                        model.viewState
+                                        outerModel.viewState
 
                                 _ ->
-                                    model.viewState
+                                    outerModel.viewState
 
                         newProject =
                             let
@@ -1285,32 +1460,38 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             in
                             GetterSetters.projectUpdateServer project newServer
 
-                        modelUpdatedProject =
-                            GetterSetters.modelUpdateProject model newProject
+                        sharedModelUpdatedProject =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    ViewStateHelpers.modelUpdateViewState newViewState modelUpdatedProject
+                    ViewStateHelpers.modelUpdateViewState
+                        newViewState
+                        { outerModel | sharedModel = sharedModelUpdatedProject }
             in
             ( serverDeletedModel, urlCmd )
 
         ReceiveCreateFloatingIp errorContext result ->
             case result of
                 Ok ip ->
-                    Rest.Neutron.receiveCreateFloatingIp model project server ip
+                    Rest.Neutron.receiveCreateFloatingIp sharedModel project server ip
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Err httpErrorWithBody ->
                     let
                         newErrorContext =
-                            if GetterSetters.serverPresentNotDeleting model server.osProps.uuid then
+                            if GetterSetters.serverPresentNotDeleting sharedModel server.osProps.uuid then
                                 errorContext
 
                             else
                                 { errorContext | level = ErrorDebug }
                     in
-                    State.Error.processSynchronousApiError model newErrorContext httpErrorWithBody
+                    State.Error.processSynchronousApiError sharedModel newErrorContext httpErrorWithBody
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         ReceiveServerPassword password ->
             if String.isEmpty password then
-                ( model, Cmd.none )
+                ( outerModel, Cmd.none )
 
             else
                 let
@@ -1332,12 +1513,15 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                 else
                                     Cmd.none
                 in
-                ( model, cmd )
+                ( outerModel, cmd )
+                    |> mapToOuterMsg
 
         ReceiveSetServerName _ errorContext result ->
             case result of
                 Err e ->
-                    State.Error.processSynchronousApiError model errorContext e
+                    State.Error.processSynchronousApiError sharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Ok actualNewServerName ->
                     let
@@ -1353,12 +1537,12 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
 
-                        modelWithUpdatedProject =
-                            GetterSetters.modelUpdateProject model newProject
+                        sharedModelWithUpdatedProject =
+                            GetterSetters.modelUpdateProject sharedModel newProject
 
                         -- Only update the view if we are on the server details view for the server we're interested in
                         updatedView =
-                            case model.viewState of
+                            case outerModel.viewState of
                                 ProjectView projectIdentifier projectViewParams (ServerDetail serverUuid_ serverDetailViewParams) ->
                                     if server.osProps.uuid == serverUuid_ then
                                         let
@@ -1372,20 +1556,24 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                             (ServerDetail serverUuid_ newServerDetailsViewParams)
 
                                     else
-                                        model.viewState
+                                        outerModel.viewState
 
                                 _ ->
-                                    model.viewState
+                                    outerModel.viewState
 
                         -- Later, maybe: Check that newServerName == actualNewServerName
                     in
-                    ViewStateHelpers.modelUpdateViewState updatedView modelWithUpdatedProject
+                    ViewStateHelpers.modelUpdateViewState
+                        updatedView
+                        { outerModel | sharedModel = sharedModelWithUpdatedProject }
 
         ReceiveSetServerMetadata intendedMetadataItem errorContext result ->
             case result of
                 Err e ->
                     -- Error from API
-                    State.Error.processSynchronousApiError model errorContext e
+                    State.Error.processSynchronousApiError sharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Ok newServerMetadata ->
                     -- Update the model after ensuring the intended metadata item was actually added
@@ -1409,23 +1597,29 @@ processServerSpecificMsg model project server serverMsgConstructor =
                             newProject =
                                 GetterSetters.projectUpdateServer project newServer
 
-                            newModel =
-                                GetterSetters.modelUpdateProject model newProject
+                            newSharedModel =
+                                GetterSetters.modelUpdateProject sharedModel newProject
                         in
-                        ( newModel, Cmd.none )
+                        ( newSharedModel, Cmd.none )
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
 
                     else
                         -- This is bonkers, throw an error
                         State.Error.processStringError
-                            model
+                            sharedModel
                             errorContext
                             "The metadata items returned by OpenStack did not include the metadata item that we tried to set."
+                            |> mapToOuterMsg
+                            |> mapToOuterModel outerModel
 
         ReceiveDeleteServerMetadata metadataKey errorContext result ->
             case result of
                 Err e ->
                     -- Error from API
-                    State.Error.processSynchronousApiError model errorContext e
+                    State.Error.processSynchronousApiError sharedModel errorContext e
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
                 Ok _ ->
                     let
@@ -1447,10 +1641,11 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
 
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    ( newModel, Cmd.none )
+                    ( newSharedModel, Cmd.none )
+                        |> mapToOuterModel outerModel
 
         ReceiveGuacamoleAuthToken result ->
             let
@@ -1460,8 +1655,8 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         ErrorDebug
                         Nothing
 
-                modelUpdateGuacProps : ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> Model
-                modelUpdateGuacProps exoOriginProps guacProps =
+                sharedModelUpdateGuacProps : ServerFromExoProps -> GuacTypes.LaunchedWithGuacProps -> SharedModel
+                sharedModelUpdateGuacProps exoOriginProps guacProps =
                     let
                         newOriginProps =
                             { exoOriginProps | guacamoleStatus = GuacTypes.LaunchedWithGuacamole guacProps }
@@ -1478,10 +1673,10 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
 
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
-                    newModel
+                    newSharedModel
             in
             case server.exoProps.serverOrigin of
                 ServerFromExo exoOriginProps ->
@@ -1497,7 +1692,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                                         RDPP.RemoteDataPlusPlus
                                                             (RDPP.DoHave
                                                                 tokenValue
-                                                                model.clientCurrentTime
+                                                                sharedModel.clientCurrentTime
                                                             )
                                                             (RDPP.NotLoading Nothing)
                                                 }
@@ -1514,26 +1709,32 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                                 | authToken =
                                                     RDPP.RemoteDataPlusPlus
                                                         oldGuacProps.authToken.data
-                                                        (RDPP.NotLoading (Just ( e, model.clientCurrentTime )))
+                                                        (RDPP.NotLoading (Just ( e, sharedModel.clientCurrentTime )))
                                             }
                             in
-                            ( modelUpdateGuacProps
+                            ( sharedModelUpdateGuacProps
                                 exoOriginProps
                                 newGuacProps
                             , Cmd.none
                             )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                         GuacTypes.NotLaunchedWithGuacamole ->
                             State.Error.processStringError
-                                model
+                                sharedModel
                                 errorContext
                                 "Server does not appear to have been launched with Guacamole support"
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                 ServerNotFromExo ->
                     State.Error.processStringError
-                        model
+                        sharedModel
                         errorContext
                         "Server does not appear to have been launched from Exosphere"
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
 
         RequestServerAction func targetStatuses ->
             let
@@ -1546,15 +1747,17 @@ processServerSpecificMsg model project server serverMsgConstructor =
                 newProject =
                     GetterSetters.projectUpdateServer project newServer
 
-                newModel =
-                    GetterSetters.modelUpdateProject model newProject
+                newSharedModel =
+                    GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newModel, func newProject newServer )
+            ( newSharedModel, func newProject.auth.project.uuid newProject.endpoints.nova newServer.osProps.uuid )
+                |> mapToOuterMsg
+                |> mapToOuterModel outerModel
 
         ReceiveConsoleLog errorContext result ->
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
-                    ( model, Cmd.none )
+                    ( outerModel, Cmd.none )
 
                 ServerFromExo exoOriginProps ->
                     let
@@ -1571,7 +1774,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                 Err httpError ->
                                     ( RDPP.RemoteDataPlusPlus
                                         exoOriginProps.exoSetupStatus.data
-                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
                                     , Cmd.none
                                     )
 
@@ -1582,7 +1785,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                                 oldExoSetupStatus
                                                 consoleLog
                                                 server.osProps.details.created
-                                                model.clientCurrentTime
+                                                sharedModel.clientCurrentTime
 
                                         cmd =
                                             if newExoSetupStatus == oldExoSetupStatus then
@@ -1603,7 +1806,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                     ( RDPP.RemoteDataPlusPlus
                                         (RDPP.DoHave
                                             newExoSetupStatus
-                                            model.clientCurrentTime
+                                            sharedModel.clientCurrentTime
                                         )
                                         (RDPP.NotLoading Nothing)
                                     , cmd
@@ -1614,7 +1817,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                 Err httpError ->
                                     RDPP.RemoteDataPlusPlus
                                         exoOriginProps.resourceUsage.data
-                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
 
                                 Ok consoleLog ->
                                     RDPP.RemoteDataPlusPlus
@@ -1626,7 +1829,7 @@ processServerSpecificMsg model project server serverMsgConstructor =
                                                     exoOriginProps.resourceUsage
                                                 )
                                             )
-                                            model.clientCurrentTime
+                                            sharedModel.clientCurrentTime
                                         )
                                         (RDPP.NotLoading Nothing)
 
@@ -1648,15 +1851,19 @@ processServerSpecificMsg model project server serverMsgConstructor =
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
 
-                        newModel =
-                            GetterSetters.modelUpdateProject model newProject
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
                     in
                     case result of
                         Err httpError ->
-                            State.Error.processSynchronousApiError newModel errorContext httpError
+                            State.Error.processSynchronousApiError newSharedModel errorContext httpError
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
                         Ok _ ->
-                            ( newModel, exoSetupStatusMetadataCmd )
+                            ( newSharedModel, exoSetupStatusMetadataCmd )
+                                |> mapToOuterMsg
+                                |> mapToOuterModel outerModel
 
 
 processNewFloatingIp : Time.Posix -> Project -> OSTypes.FloatingIp -> Project
@@ -1678,9 +1885,12 @@ processNewFloatingIp time project floatingIp =
     }
 
 
-createProject : Model -> OSTypes.ScopedAuthToken -> Endpoints -> ( Model, Cmd Msg )
-createProject model authToken endpoints =
+createProject : OuterModel -> OSTypes.ScopedAuthToken -> Endpoints -> ( OuterModel, Cmd OuterMsg )
+createProject outerModel authToken endpoints =
     let
+        sharedModel =
+            outerModel.sharedModel
+
         newProject =
             { secret = NoProjectSecret
             , auth = authToken
@@ -1699,15 +1909,14 @@ createProject model authToken endpoints =
             , securityGroups = []
             , computeQuota = RemoteData.NotAsked
             , volumeQuota = RemoteData.NotAsked
-            , pendingCredentialedRequests = []
             }
 
         newProjects =
-            newProject :: model.projects
+            newProject :: outerModel.sharedModel.projects
 
         newViewStateFunc =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
-            case model.viewState of
+            case outerModel.viewState of
                 NonProjectView (SelectProjects _ _) ->
                     \model_ -> ( model_, Cmd.none )
 
@@ -1719,27 +1928,29 @@ createProject model authToken endpoints =
                     ViewStateHelpers.setProjectView newProject <|
                         AllResources Defaults.allResourcesListViewParams
 
-        newModel =
-            { model
+        ( newSharedModel, newCmd ) =
+            ( { sharedModel
                 | projects = newProjects
-            }
+              }
+            , [ Rest.Nova.requestServers
+              , Rest.Neutron.requestSecurityGroups
+              , Rest.Keystone.requestAppCredential sharedModel.clientUuid sharedModel.clientCurrentTime
+              ]
+                |> List.map (\x -> x newProject)
+                |> Cmd.batch
+            )
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
+                |> Helpers.pipelineCmd
+                    (ApiModelHelpers.requestPorts newProject.auth.project.uuid)
+
+        ( newOuterModel, viewStateCmd ) =
+            newViewStateFunc { outerModel | sharedModel = newSharedModel }
     in
-    ( newModel
-    , [ Rest.Nova.requestServers
-      , Rest.Neutron.requestSecurityGroups
-      , Rest.Keystone.requestAppCredential model.clientUuid model.clientCurrentTime
-      ]
-        |> List.map (\x -> x newProject)
-        |> Cmd.batch
-    )
-        |> Helpers.pipelineCmd
-            (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
-        |> Helpers.pipelineCmd
-            (ApiModelHelpers.requestPorts newProject.auth.project.uuid)
-        |> Helpers.pipelineCmd newViewStateFunc
+    ( newOuterModel, Cmd.batch [ viewStateCmd, Cmd.map SharedMsg newCmd ] )
 
 
-createUnscopedProvider : Model -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( Model, Cmd Msg )
+createUnscopedProvider : SharedModel -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( SharedModel, Cmd SharedMsg )
 createUnscopedProvider model authToken authUrl =
     let
         newProvider =
@@ -1756,7 +1967,7 @@ createUnscopedProvider model authToken authUrl =
     )
 
 
-requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd Msg )
+requestDeleteServer : Project -> OSTypes.ServerUuid -> Bool -> ( Project, Cmd SharedMsg )
 requestDeleteServer project serverUuid retainFloatingIps =
     case GetterSetters.serverLookup project serverUuid of
         Nothing ->
@@ -1785,7 +1996,10 @@ requestDeleteServer project serverUuid retainFloatingIps =
             in
             ( newProject
             , Cmd.batch
-                [ Rest.Nova.requestDeleteServer newProject newServer
+                [ Rest.Nova.requestDeleteServer
+                    newProject.auth.project.uuid
+                    newProject.endpoints.nova
+                    newServer.osProps.uuid
                 , Cmd.batch deleteFloatingIpCmds
                 ]
             )

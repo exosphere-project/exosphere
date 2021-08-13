@@ -1,16 +1,18 @@
-module View.Messages exposing (messageLog)
+module LegacyView.Messages exposing (messageLog)
 
 import Element
 import Element.Input as Input
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
-import Types.Types exposing (LogMessage, Msg(..), NonProjectViewConstructor(..))
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedModel exposing (LogMessage)
+import Types.View exposing (NonProjectViewConstructor(..))
 import View.Helpers as VH
 import View.Types
 
 
-messageLog : View.Types.Context -> List LogMessage -> Bool -> Element.Element Msg
+messageLog : View.Types.Context -> List LogMessage -> Bool -> Element.Element OuterMsg
 messageLog context logMessages showDebugMsgs =
     let
         shownMessages =

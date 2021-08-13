@@ -11,17 +11,12 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ServerSpecificMsgConstructor(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestServerPassword : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestServerPassword project serverUuid =
     let
         errorContext =
@@ -40,7 +35,7 @@ requestServerPassword project serverUuid =
                             ReceiveServerPassword serverPassword
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Get
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")
@@ -48,7 +43,7 @@ requestServerPassword project serverUuid =
         (expectJsonWithErrorBody resultToMsg_ decodeServerPassword)
 
 
-requestClearServerPassword : Project -> OSTypes.ServerUuid -> Cmd Msg
+requestClearServerPassword : Project -> OSTypes.ServerUuid -> Cmd SharedMsg
 requestClearServerPassword project serverUuid =
     let
         errorContext =
@@ -58,7 +53,7 @@ requestClearServerPassword project serverUuid =
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-server-password")

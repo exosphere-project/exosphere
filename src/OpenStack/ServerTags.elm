@@ -4,10 +4,12 @@ import Http
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types exposing (HttpRequestMethod(..), Msg(..), Project)
+import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (SharedMsg(..))
 
 
-requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd Msg
+requestCreateServerTag : Project -> OSTypes.ServerUuid -> String -> Cmd SharedMsg
 requestCreateServerTag project serverUuid tag =
     let
         errorContext =
@@ -17,7 +19,7 @@ requestCreateServerTag project serverUuid tag =
                 Nothing
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Put
         (Just "compute 2.26")
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/tags/" ++ tag)

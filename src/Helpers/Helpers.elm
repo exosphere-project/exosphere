@@ -37,24 +37,24 @@ import Time
 import Types.Error
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
-import Types.Types
     exposing
-        ( Endpoints
-        , ExoServerVersion
-        , ExoSetupStatus(..)
-        , FloatingIpAssignmentStatus(..)
+        ( FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
-        , JetstreamProvider(..)
-        , Model
-        , Msg(..)
+        )
+import Types.Project exposing (Endpoints, Project)
+import Types.Server
+    exposing
+        ( ExoServerVersion
+        , ExoSetupStatus(..)
         , NewServerNetworkOptions(..)
-        , Project
         , Server
         , ServerFromExoProps
         , ServerOrigin(..)
         , ServerUiStatus(..)
         )
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (SharedMsg)
 import UUID
 
 
@@ -657,7 +657,7 @@ serverLessThanThisOld server currentTime maxServerAgeMillis =
 
 {-| This one helps string functions together in Rest.ApiModelHelpers and other places
 -}
-pipelineCmd : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+pipelineCmd : (SharedModel -> ( SharedModel, Cmd SharedMsg )) -> ( SharedModel, Cmd SharedMsg ) -> ( SharedModel, Cmd SharedMsg )
 pipelineCmd fn ( model, cmd ) =
     let
         ( newModel, newCmd ) =

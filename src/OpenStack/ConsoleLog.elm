@@ -5,19 +5,13 @@ import Json.Decode
 import Json.Encode
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , Server
-        , ServerSpecificMsgConstructor(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.Server exposing (Server)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestConsoleLog : Project -> Server -> Maybe Int -> Cmd Msg
+requestConsoleLog : Project -> Server -> Maybe Int -> Cmd SharedMsg
 requestConsoleLog project server maybeLength =
     let
         lengthJson =
@@ -51,7 +45,7 @@ requestConsoleLog project server maybeLength =
                     ReceiveConsoleLog errorContext result
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ server.osProps.uuid ++ "/action")

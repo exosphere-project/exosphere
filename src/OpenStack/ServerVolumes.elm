@@ -12,16 +12,12 @@ import Rest.Helpers
         , resultToMsgErrorBody
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.Types
-    exposing
-        ( HttpRequestMethod(..)
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        )
+import Types.HelperTypes exposing (HttpRequestMethod(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
-requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
+requestAttachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd SharedMsg
 requestAttachVolume project serverUuid volumeUuid =
     let
         body =
@@ -49,7 +45,7 @@ requestAttachVolume project serverUuid volumeUuid =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Post
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments")
@@ -60,7 +56,7 @@ requestAttachVolume project serverUuid volumeUuid =
         )
 
 
-requestDetachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd Msg
+requestDetachVolume : Project -> OSTypes.ServerUuid -> OSTypes.VolumeUuid -> Cmd SharedMsg
 requestDetachVolume project serverUuid volumeUuid =
     let
         errorContext =
@@ -79,7 +75,7 @@ requestDetachVolume project serverUuid volumeUuid =
                 )
     in
     openstackCredentialedRequest
-        project
+        project.auth.project.uuid
         Delete
         Nothing
         (project.endpoints.nova ++ "/servers/" ++ serverUuid ++ "/os-volume_attachments/" ++ volumeUuid)

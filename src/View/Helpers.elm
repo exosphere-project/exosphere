@@ -64,23 +64,14 @@ import Style.Widgets.ToggleTip
 import Time
 import Types.Error exposing (ErrorLevel(..), toFriendlyErrorLevel)
 import Types.HelperTypes
-import Types.Types
-    exposing
-        ( ExoSetupStatus(..)
-        , LogMessage
-        , Model
-        , Msg(..)
-        , Project
-        , Server
-        , ServerOrigin(..)
-        , ServerUiStatus(..)
-        , Style
-        )
+import Types.Project exposing (Project)
+import Types.Server exposing (ExoSetupStatus(..), Server, ServerOrigin(..), ServerUiStatus(..))
+import Types.SharedModel exposing (LogMessage, SharedModel, Style)
 import View.Types
 import Widget
 
 
-toViewContext : Model -> View.Types.Context
+toViewContext : SharedModel -> View.Types.Context
 toViewContext model =
     { palette = toExoPalette model.style
     , localization = model.style.localization
@@ -98,29 +89,29 @@ toExoPalette style =
 {- Elm UI Doodads -}
 
 
-exoRowAttributes : List (Element.Attribute Msg)
+exoRowAttributes : List (Element.Attribute msg)
 exoRowAttributes =
     exoElementAttributes
 
 
-exoColumnAttributes : List (Element.Attribute Msg)
+exoColumnAttributes : List (Element.Attribute msg)
 exoColumnAttributes =
     exoElementAttributes
 
 
-exoElementAttributes : List (Element.Attribute Msg)
+exoElementAttributes : List (Element.Attribute msg)
 exoElementAttributes =
     exoPaddingSpacingAttributes
 
 
-exoPaddingSpacingAttributes : List (Element.Attribute Msg)
+exoPaddingSpacingAttributes : List (Element.Attribute msg)
 exoPaddingSpacingAttributes =
     [ Element.padding 10
     , Element.spacing 10
     ]
 
 
-inputItemAttributes : Color.Color -> List (Element.Attribute Msg)
+inputItemAttributes : Color.Color -> List (Element.Attribute msg)
 inputItemAttributes backgroundColor =
     [ Element.width Element.fill
     , Element.spacing 12
@@ -128,7 +119,7 @@ inputItemAttributes backgroundColor =
     ]
 
 
-heading2 : ExoPalette -> List (Element.Attribute Msg)
+heading2 : ExoPalette -> List (Element.Attribute msg)
 heading2 palette =
     [ Region.heading 2
     , Font.bold
@@ -140,7 +131,7 @@ heading2 palette =
     ]
 
 
-heading3 : ExoPalette -> List (Element.Attribute Msg)
+heading3 : ExoPalette -> List (Element.Attribute msg)
 heading3 palette =
     [ Region.heading 3
     , Font.bold
@@ -152,7 +143,7 @@ heading3 palette =
     ]
 
 
-heading4 : List (Element.Attribute Msg)
+heading4 : List (Element.Attribute msg)
 heading4 =
     [ Region.heading 4
     , Font.bold
@@ -161,7 +152,7 @@ heading4 =
     ]
 
 
-contentContainer : List (Element.Attribute Msg)
+contentContainer : List (Element.Attribute msg)
 contentContainer =
     -- Keeps the width from getting too wide for single column
     [ Element.width (Element.maximum 900 Element.fill)
@@ -170,7 +161,7 @@ contentContainer =
     ]
 
 
-formContainer : List (Element.Attribute Msg)
+formContainer : List (Element.Attribute msg)
 formContainer =
     -- Keeps form fields from displaying too wide
     [ Element.width (Element.maximum 600 Element.fill)
@@ -179,7 +170,7 @@ formContainer =
     ]
 
 
-compactKVRow : String -> Element.Element Msg -> Element.Element Msg
+compactKVRow : String -> Element.Element msg -> Element.Element msg
 compactKVRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10 ])
@@ -188,7 +179,7 @@ compactKVRow key value =
         ]
 
 
-compactKVSubRow : String -> Element.Element Msg -> Element.Element Msg
+compactKVSubRow : String -> Element.Element msg -> Element.Element msg
 compactKVSubRow key value =
     Element.row
         (exoRowAttributes ++ [ Element.padding 0, Element.spacing 10, Font.size 14 ])
@@ -227,7 +218,7 @@ hint context hintText =
         )
 
 
-renderMessageAsElement : View.Types.Context -> LogMessage -> Element.Element Msg
+renderMessageAsElement : View.Types.Context -> LogMessage -> Element.Element msg
 renderMessageAsElement context message =
     let
         levelColor : ErrorLevel -> Element.Color
@@ -301,7 +292,7 @@ renderMessageAsString message =
         |> String.concat
 
 
-browserLink : View.Types.Context -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel -> Element.Element Msg
+browserLink : View.Types.Context -> Types.HelperTypes.Url -> View.Types.BrowserLinkLabel msg -> Element.Element msg
 browserLink context url label =
     let
         linkAttribs =
@@ -362,7 +353,7 @@ titleFromHostname hostname =
             hostname
 
 
-loadingStuff : View.Types.Context -> String -> Element.Element Msg
+loadingStuff : View.Types.Context -> String -> Element.Element msg
 loadingStuff context resourceWord =
     Element.row [ Element.spacing 15 ]
         [ Widget.circularProgressIndicator
@@ -377,7 +368,7 @@ loadingStuff context resourceWord =
         ]
 
 
-renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
+renderWebData : View.Types.Context -> RemoteData.WebData a -> String -> (a -> Element.Element msg) -> Element.Element msg
 renderWebData context remoteData resourceWord renderSuccessCase =
     case remoteData of
         RemoteData.NotAsked ->
@@ -400,7 +391,7 @@ renderWebData context remoteData resourceWord renderSuccessCase =
             renderSuccessCase resource
 
 
-renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element Msg) -> Element.Element Msg
+renderRDPP : View.Types.Context -> RDPP.RemoteDataPlusPlus Types.Error.HttpErrorWithBody a -> String -> (a -> Element.Element msg) -> Element.Element msg
 renderRDPP context remoteData resourceWord renderSuccessCase =
     case remoteData.data of
         RDPP.DoHave data _ ->
@@ -426,7 +417,7 @@ renderRDPP context remoteData resourceWord renderSuccessCase =
                             loadingStuff context resourceWord
 
 
-serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element Msg
+serverStatusBadge : Style.Types.ExoPalette -> Server -> Element.Element msg
 serverStatusBadge palette server =
     let
         contents =
@@ -731,7 +722,7 @@ getServerUiStatusBadgeState status =
             StatusBadge.Muted
 
 
-renderMarkdown : View.Types.Context -> String -> List (Element.Element Msg)
+renderMarkdown : View.Types.Context -> String -> List (Element.Element msg)
 renderMarkdown context markdown =
     let
         deadEndsToString deadEnds =
@@ -756,7 +747,7 @@ renderMarkdown context markdown =
             ]
 
 
-elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element Msg)
+elmUiRenderer : View.Types.Context -> Markdown.Renderer.Renderer (Element.Element msg)
 elmUiRenderer context =
     -- Heavily borrowed and modified from https://ellie-app.com/bQLgjtbgdkZa1
     { heading = heading context.palette
@@ -862,9 +853,9 @@ heading :
     ->
         { level : Markdown.Block.HeadingLevel
         , rawText : String
-        , children : List (Element.Element Msg)
+        , children : List (Element.Element msg)
         }
-    -> Element.Element Msg
+    -> Element.Element msg
 heading exoPalette { level, children } =
     Element.paragraph
         (case level of
@@ -883,7 +874,7 @@ heading exoPalette { level, children } =
         children
 
 
-sortProjects : List Types.Types.UnscopedProviderProject -> List Types.Types.UnscopedProviderProject
+sortProjects : List Types.HelperTypes.UnscopedProviderProject -> List Types.HelperTypes.UnscopedProviderProject
 sortProjects projects =
     let
         projectComparator a b =
@@ -893,7 +884,7 @@ sortProjects projects =
         |> List.sortWith projectComparator
 
 
-friendlyProjectTitle : Model -> Project -> String
+friendlyProjectTitle : SharedModel -> Project -> String
 friendlyProjectTitle model project =
     -- If we have multiple projects on the same provider then append the project name to the provider name
     let
@@ -929,8 +920,8 @@ createdAgoByFrom :
     -> Maybe ( String, String )
     -> Maybe ( String, String )
     -> Bool
-    -> Msg
-    -> Element.Element Msg
+    -> msg
+    -> Element.Element msg
 createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromTuple showToggleTip showHideTipMsg =
     let
         timeDistanceStr =
@@ -982,7 +973,7 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
         ]
 
 
-imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.Types.ExcludeFilter
+imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.HelperTypes.ExcludeFilter
 imageExcludeFilterLookup context project =
     let
         projectKeystoneHostname =
@@ -1002,7 +993,7 @@ featuredImageNamePrefixLookup context project =
         |> Maybe.andThen (\csc -> csc.featuredImageNamePrefix)
 
 
-userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.Types.UserAppProxyHostname
+userAppProxyLookup : View.Types.Context -> Project -> Maybe Types.HelperTypes.UserAppProxyHostname
 userAppProxyLookup context project =
     let
         projectKeystoneHostname =

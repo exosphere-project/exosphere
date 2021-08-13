@@ -4,21 +4,11 @@ import Helpers.GetterSetters as GetterSetters
 import Orchestration.Helpers exposing (applyProjectStep, pollRDPP)
 import Rest.Neutron
 import Time
-import Types.Types
-    exposing
-        ( ExoSetupStatus(..)
-        , FloatingIpAssignmentStatus(..)
-        , FloatingIpOption(..)
-        , FloatingIpReuseOption(..)
-        , Msg(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
-        , ServerOrigin(..)
-        , ServerSpecificMsgConstructor(..)
-        )
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 
 
-goalPollNetworkResources : Time.Posix -> Project -> ( Project, Cmd Msg )
+goalPollNetworkResources : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 goalPollNetworkResources time project =
     let
         steps =
@@ -35,7 +25,7 @@ goalPollNetworkResources time project =
     ( newProject, newCmds )
 
 
-stepPollFloatingIps : Time.Posix -> Project -> ( Project, Cmd Msg )
+stepPollFloatingIps : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollFloatingIps time project =
     let
         requestStuff =
@@ -53,7 +43,7 @@ stepPollFloatingIps time project =
         ( project, Cmd.none )
 
 
-stepPollPorts : Time.Posix -> Project -> ( Project, Cmd Msg )
+stepPollPorts : Time.Posix -> Project -> ( Project, Cmd SharedMsg )
 stepPollPorts time project =
     let
         requestStuff =

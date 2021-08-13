@@ -1,14 +1,15 @@
-module View.HelpAbout exposing (helpAbout)
+module LegacyView.HelpAbout exposing (helpAbout)
 
 import Element
 import FeatherIcons
-import Types.Types exposing (Model, Msg(..))
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedModel exposing (SharedModel)
 import UUID
 import View.Helpers as VH
 import View.Types
 
 
-helpAbout : Model -> View.Types.Context -> Element.Element Msg
+helpAbout : SharedModel -> View.Types.Context -> Element.Element OuterMsg
 helpAbout model context =
     Element.column (List.append VH.exoColumnAttributes [ Element.spacing 30, Element.width Element.fill ])
         [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
@@ -39,7 +40,7 @@ helpAbout model context =
         ]
 
 
-defaultHelpAboutText : View.Types.Context -> Element.Element Msg
+defaultHelpAboutText : View.Types.Context -> Element.Element OuterMsg
 defaultHelpAboutText context =
     Element.column VH.contentContainer
         [ Element.paragraph []

@@ -1,18 +1,16 @@
-module View.Settings exposing (settings)
+module LegacyView.Settings exposing (settings)
 
 import Element
 import Element.Input as Input
 import FeatherIcons
 import Style.Types
-import Types.Types
-    exposing
-        ( Msg(..)
-        )
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedMsg exposing (SharedMsg(..))
 import View.Helpers as VH
 import View.Types
 
 
-settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element Msg
+settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element OuterMsg
 settings context styleMode =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -28,7 +26,7 @@ settings context styleMode =
                 VH.exoColumnAttributes
                 { onChange =
                     \newStyleMode ->
-                        SetStyle newStyleMode
+                        SharedMsg <| SetStyle newStyleMode
                 , options =
                     [ Input.option Style.Types.LightMode (Element.text "Light")
                     , Input.option Style.Types.DarkMode (Element.text "Dark")

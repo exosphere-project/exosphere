@@ -2,15 +2,13 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Page.LoginOpenstack
 import Types.Defaults as Defaults
-import Types.Types
+import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
+import Types.View
     exposing
-        ( JetstreamCreds
-        , JetstreamProvider(..)
-        , LoginView(..)
+        ( LoginView(..)
         , NonProjectViewConstructor(..)
-        , OpenstackLoginFormEntryType(..)
-        , OpenstackLoginViewParams
         , ProjectViewConstructor(..)
         , ViewState(..)
         )
@@ -55,7 +53,13 @@ pathParsers defaultViewState =
     [ -- Non-project-specific views
       map defaultViewState top
     , map
-        (\creds -> NonProjectView <| Login <| LoginOpenstack <| OpenstackLoginViewParams creds "" LoginViewCredsEntry)
+        (\creds ->
+            let
+                init =
+                    Page.LoginOpenstack.init
+            in
+            NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }
+        )
         (let
             queryParser =
                 Query.map4

@@ -19,29 +19,19 @@ import Style.Types
 import Time
 import Toasty
 import Types.Defaults as Defaults
-import Types.Types
-    exposing
-        ( ExoSetupStatus(..)
-        , Flags
-        , HttpRequestMethod(..)
-        , LoginView(..)
-        , Model
-        , Msg(..)
-        , NewServerNetworkOptions(..)
-        , NonProjectViewConstructor(..)
-        , Project
-        , ProjectIdentifier
-        , ProjectSecret(..)
-        , ProjectSpecificMsgConstructor(..)
-        , ProjectViewConstructor(..)
-        , ServerOrigin(..)
-        , ViewState(..)
-        )
+import Types.Flags exposing (Flags)
+import Types.HelperTypes exposing (DefaultLoginView(..), HttpRequestMethod(..), ProjectIdentifier)
+import Types.OuterModel exposing (OuterModel)
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Project, ProjectSecret(..))
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import UUID
 import Url
 
 
-init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( Model, Cmd Msg )
+init : Flags -> ( Url.Url, Browser.Navigation.Key ) -> ( OuterModel, Cmd OuterMsg )
 init flags urlKey =
     let
         currentTime =
@@ -68,31 +58,28 @@ init flags urlKey =
                 Nothing ->
                     ( Style.Types.defaultPrimaryColor, Style.Types.defaultSecondaryColor )
 
-        defaultLoginView : Maybe LoginView
+        defaultLoginView : Maybe DefaultLoginView
         defaultLoginView =
             flags.defaultLoginView
                 |> Maybe.andThen
                     (\viewStr ->
                         case viewStr of
                             "openstack" ->
-                                Just <| LoginOpenstack <| Defaults.openStackLoginViewParams
+                                Just DefaultLoginOpenstack
 
                             "jetstream" ->
-                                Just <| LoginJetstream Defaults.jetstreamCreds
+                                Just DefaultLoginJetstream
 
                             _ ->
                                 Nothing
                     )
 
-        emptyModel : Bool -> UUID.UUID -> Model
+        emptyModel : Bool -> UUID.UUID -> SharedModel
         emptyModel showDebugMsgs uuid =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
             , navigationKey = Tuple.second urlKey
             , prevUrl = ""
-            , viewState =
-                -- This is will get replaced with the appropriate login view
-                NonProjectView LoginPicker
             , windowSize = { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -176,15 +163,14 @@ init flags urlKey =
                         Result.Ok decodedValue ->
                             decodedValue
 
-        hydratedModel : Model
+        hydratedModel : SharedModel
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
-        viewState =
-            let
-                defaultViewState =
-                    State.ViewState.defaultViewState hydratedModel
-            in
+        defaultViewState =
+            State.ViewState.defaultViewState hydratedModel
+
+        viewStateFromUrl =
             AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
                 |> Maybe.withDefault (NonProjectView PageNotFound)
 
@@ -221,7 +207,7 @@ init flags urlKey =
 
         ( requestResourcesModel, requestResourcesCmd ) =
             let
-                applyRequestsToProject : ProjectIdentifier -> Model -> ( Model, Cmd Msg )
+                applyRequestsToProject : ProjectIdentifier -> SharedModel -> ( SharedModel, Cmd SharedMsg )
                 applyRequestsToProject projectId model =
                     ( model, otherCmds )
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers projectId)
@@ -236,18 +222,33 @@ init flags urlKey =
                     )
                     ( hydratedModel, Cmd.none )
 
+        outerModel =
+            { sharedModel = requestResourcesModel
+            , viewState =
+                -- This will get replaced with the appropriate view from viewStateFromUrl
+                NonProjectView LoginPicker
+            , pendingCredentialedRequests = []
+            }
+
         ( setViewModel, setViewCmd ) =
-            case viewState of
+            case viewStateFromUrl of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView nonProjectViewConstructor requestResourcesModel
+                    setNonProjectView
+                        nonProjectViewConstructor
+                        outerModel
 
                 ProjectView projectId _ projectViewConstructor ->
                     -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
                     case GetterSetters.projectLookup requestResourcesModel projectId of
                         Just project ->
-                            setProjectView project projectViewConstructor requestResourcesModel
+                            setProjectView
+                                project
+                                projectViewConstructor
+                                outerModel
 
                         Nothing ->
-                            ( requestResourcesModel, Cmd.none )
+                            ( outerModel, Cmd.none )
     in
-    ( setViewModel, Cmd.batch [ requestResourcesCmd, setViewCmd ] )
+    ( setViewModel
+    , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]
+    )

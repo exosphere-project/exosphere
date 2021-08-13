@@ -8,8 +8,6 @@ module Types.Defaults exposing
     , jetstreamCreds
     , keypairListViewParams
     , localization
-    , openStackLoginViewParams
-    , openstackCreds
     , projectViewParams
     , serverDetailViewParams
     , serverListViewParams
@@ -17,14 +15,14 @@ module Types.Defaults exposing
     , volumeListViewParams
     )
 
-import OpenStack.Types as OSTypes
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Types.Types as Types
+import Types.HelperTypes as HelperTypes
+import Types.View as ViewTypes
 
 
-localization : Types.Localization
+localization : HelperTypes.Localization
 localization =
     { openstackWithOwnKeystone = "cloud"
     , openstackSharingKeystoneWithAnother = "region"
@@ -44,37 +42,24 @@ localization =
     }
 
 
-openStackLoginViewParams : Types.OpenstackLoginViewParams
-openStackLoginViewParams =
-    { creds = openstackCreds
-    , openRc = ""
-    , formEntryType = Types.LoginViewCredsEntry
-    }
+
+-- Most of the code below should become page-specific init functions as legacy views are migrated to pages
 
 
-openstackCreds : OSTypes.OpenstackLogin
-openstackCreds =
-    { authUrl = ""
-    , userDomain = ""
-    , username = ""
-    , password = ""
-    }
-
-
-jetstreamCreds : Types.JetstreamCreds
+jetstreamCreds : HelperTypes.JetstreamCreds
 jetstreamCreds =
-    { jetstreamProviderChoice = Types.BothJetstreamClouds
+    { jetstreamProviderChoice = HelperTypes.BothJetstreamClouds
     , taccUsername = ""
     , taccPassword = ""
     }
 
 
-projectViewParams : Types.ProjectViewParams
+projectViewParams : ViewTypes.ProjectViewParams
 projectViewParams =
     { createPopup = False }
 
 
-imageListViewParams : Types.ImageListViewParams
+imageListViewParams : ViewTypes.ImageListViewParams
 imageListViewParams =
     { searchText = ""
     , tags = Set.empty
@@ -84,7 +69,7 @@ imageListViewParams =
     }
 
 
-imageListVisibilityFilter : Types.ImageListVisibilityFilter
+imageListVisibilityFilter : ViewTypes.ImageListVisibilityFilter
 imageListVisibilityFilter =
     { public = True
     , community = True
@@ -93,14 +78,14 @@ imageListVisibilityFilter =
     }
 
 
-sortTableParams : Types.SortTableParams
+sortTableParams : ViewTypes.SortTableParams
 sortTableParams =
     { title = ""
     , asc = True
     }
 
 
-allResourcesListViewParams : Types.AllResourcesListViewParams
+allResourcesListViewParams : ViewTypes.AllResourcesListViewParams
 allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
     , volumeListViewParams = volumeListViewParams
@@ -109,7 +94,7 @@ allResourcesListViewParams =
     }
 
 
-serverListViewParams : Types.ServerListViewParams
+serverListViewParams : ViewTypes.ServerListViewParams
 serverListViewParams =
     { onlyOwnServers = True
     , selectedServers = Set.empty
@@ -117,12 +102,12 @@ serverListViewParams =
     }
 
 
-serverDetailViewParams : Types.ServerDetailViewParams
+serverDetailViewParams : ViewTypes.ServerDetailViewParams
 serverDetailViewParams =
     { showCreatedTimeToggleTip = False
     , verboseStatus = False
-    , passwordVisibility = Types.PasswordHidden
-    , ipInfoLevel = Types.IPSummary
+    , passwordVisibility = ViewTypes.PasswordHidden
+    , ipInfoLevel = ViewTypes.IPSummary
     , serverActionNamePendingConfirmation = Nothing
     , serverNamePendingConfirmation = Nothing
     , activeInteractionToggleTip = Nothing
@@ -130,7 +115,7 @@ serverDetailViewParams =
     }
 
 
-createServerViewParams : String -> String -> Maybe Bool -> Types.CreateServerViewParams
+createServerViewParams : String -> String -> Maybe Bool -> HelperTypes.CreateServerViewParams
 createServerViewParams imageUuid imageName deployGuacamole =
     { serverName = imageName
     , imageUuid = imageUuid
@@ -145,30 +130,30 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , deployGuacamole = deployGuacamole
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
-    , floatingIpCreationOption = Types.Automatic
+    , floatingIpCreationOption = HelperTypes.Automatic
     }
 
 
-createVolumeView : Types.ProjectViewConstructor
+createVolumeView : ViewTypes.ProjectViewConstructor
 createVolumeView =
-    Types.CreateVolume "" (ValidNumericTextInput 10)
+    ViewTypes.CreateVolume "" (ValidNumericTextInput 10)
 
 
-volumeListViewParams : Types.VolumeListViewParams
+volumeListViewParams : ViewTypes.VolumeListViewParams
 volumeListViewParams =
-    Types.VolumeListViewParams [] []
+    ViewTypes.VolumeListViewParams [] []
 
 
-floatingIpListViewParams : Types.FloatingIpListViewParams
+floatingIpListViewParams : ViewTypes.FloatingIpListViewParams
 floatingIpListViewParams =
-    Types.FloatingIpListViewParams [] True
+    ViewTypes.FloatingIpListViewParams [] True
 
 
-assignFloatingIpViewParams : Types.AssignFloatingIpViewParams
+assignFloatingIpViewParams : ViewTypes.AssignFloatingIpViewParams
 assignFloatingIpViewParams =
-    Types.AssignFloatingIpViewParams Nothing Nothing
+    ViewTypes.AssignFloatingIpViewParams Nothing Nothing
 
 
-keypairListViewParams : Types.KeypairListViewParams
+keypairListViewParams : ViewTypes.KeypairListViewParams
 keypairListViewParams =
-    Types.KeypairListViewParams [] []
+    ViewTypes.KeypairListViewParams [] []

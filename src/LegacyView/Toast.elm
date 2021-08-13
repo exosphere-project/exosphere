@@ -1,4 +1,4 @@
-module View.Toast exposing (toast)
+module LegacyView.Toast exposing (toast)
 
 import Element
 import Element.Font as Font
@@ -6,12 +6,12 @@ import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Style.Helpers as SH
-import Types.Error exposing (ErrorLevel(..))
-import Types.Types exposing (Msg, Toast)
+import Types.Error exposing (ErrorLevel(..), Toast)
+import Types.OuterMsg exposing (OuterMsg(..))
 import View.Types
 
 
-toast : View.Types.Context -> Bool -> Toast -> Html Msg
+toast : View.Types.Context -> Bool -> Toast -> Html OuterMsg
 toast context showDebugMsgs t =
     let
         ( class, title ) =
@@ -55,7 +55,7 @@ toast context showDebugMsgs t =
         layoutWith Element.none
 
 
-genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element Msg
+genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element OuterMsg
 genericToast context variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")

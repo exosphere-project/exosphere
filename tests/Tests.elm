@@ -15,6 +15,7 @@ import Helpers.Helpers as Helpers
 import Helpers.String
 import Json.Decode as Decode
 import OpenStack.Error as OSError
+import OpenStack.OpenRc
 import OpenStack.Quotas
     exposing
         ( computeQuotaDecoder
@@ -26,10 +27,9 @@ import OpenStack.Types as OSTypes
         , OpenstackLogin
         , VolumeQuota
         )
-import State.Auth
+import Page.LoginOpenstack
 import Test exposing (..)
 import TestData
-import Types.Defaults as Defaults
 
 
 indefiniteArticlesSuite : Test
@@ -187,14 +187,14 @@ processOpenRcSuite =
         [ test "ensure an empty file is unmatched" <|
             \() ->
                 ""
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
-                    |> Expect.equal Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
+                    |> Expect.equal Page.LoginOpenstack.defaultCreds
         , test "that $OS_PASSWORD_INPUT is *not* processed" <|
             \() ->
                 """
                 export OS_PASSWORD=$OS_PASSWORD_INPUT
                 """
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .password
                     |> Expect.equal ""
         , test "that double quotes are not included in a processed match" <|
@@ -202,7 +202,7 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL="https://cell.alliance.rebel:5000/v3"
                 """
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "that double quotes are optional" <|
@@ -210,13 +210,13 @@ processOpenRcSuite =
                 """
                 export OS_AUTH_URL=https://cell.alliance.rebel:5000/v3
                 """
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> .authUrl
                     |> Expect.equal "https://cell.alliance.rebel:5000/v3"
         , test "ensure pre-'API Version 3' can be processed " <|
             \() ->
                 TestData.openrcPreV3
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:35357/v3"
@@ -227,7 +227,7 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open with comments works" <|
             \() ->
                 TestData.openrcV3withComments
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
@@ -238,7 +238,7 @@ processOpenRcSuite =
         , test "ensure an 'API Version 3' open _without_ comments works" <|
             \() ->
                 TestData.openrcV3
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://cell.alliance.rebel:5000/v3"
@@ -249,7 +249,7 @@ processOpenRcSuite =
         , test "ensure that export keyword is optional" <|
             \() ->
                 TestData.openrcNoExportKeyword
-                    |> State.Auth.processOpenRc Defaults.openstackCreds
+                    |> OpenStack.OpenRc.processOpenRc Page.LoginOpenstack.defaultCreds
                     |> Expect.equal
                         (OpenstackLogin
                             "https://mycloud.whatever:5000/v3/"

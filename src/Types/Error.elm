@@ -2,6 +2,7 @@ module Types.Error exposing
     ( ErrorContext
     , ErrorLevel(..)
     , HttpErrorWithBody
+    , Toast
     , toFriendlyErrorLevel
     )
 
@@ -46,3 +47,9 @@ toFriendlyErrorLevel level =
 
         ErrorCrit ->
             "critical"
+
+
+type alias Toast =
+    { context : ErrorContext
+    , error : String
+    }

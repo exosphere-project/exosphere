@@ -1,4 +1,4 @@
-module View.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
+module LegacyView.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
 
 import Element
 import Element.Font as Font
@@ -7,6 +7,7 @@ import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.String
+import LegacyView.QuotaUsage
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
@@ -19,19 +20,16 @@ import Style.Widgets.IconButton
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
-import Types.Types
+import Types.OuterMsg exposing (OuterMsg(..))
+import Types.Project exposing (Project)
+import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.View
     exposing
         ( DeleteVolumeConfirmation
-        , IPInfoLevel(..)
-        , Msg(..)
-        , PasswordVisibility(..)
-        , Project
-        , ProjectSpecificMsgConstructor(..)
         , ProjectViewConstructor(..)
         , VolumeListViewParams
         )
 import View.Helpers as VH
-import View.QuotaUsage
 import View.Types
 import Widget
 
@@ -41,11 +39,11 @@ volumes :
     -> Bool
     -> Project
     -> VolumeListViewParams
-    -> (VolumeListViewParams -> Msg)
-    -> Element.Element Msg
+    -> (VolumeListViewParams -> OuterMsg)
+    -> Element.Element OuterMsg
 volumes context showHeading project viewParams toMsg =
     let
-        renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
+        renderSuccessCase : List OSTypes.Volume -> Element.Element OuterMsg
         renderSuccessCase volumes_ =
             Element.column
                 (VH.exoColumnAttributes
@@ -74,7 +72,7 @@ volumes context showHeading project viewParams toMsg =
           else
             Element.none
         , Element.column VH.contentContainer
-            [ View.QuotaUsage.volumeQuotaDetails context project.volumeQuota
+            [ LegacyView.QuotaUsage.volumeQuotaDetails context project.volumeQuota
             , VH.renderWebData
                 context
                 project.volumes
@@ -88,9 +86,9 @@ renderVolumeCard :
     View.Types.Context
     -> Project
     -> VolumeListViewParams
-    -> (VolumeListViewParams -> Msg)
+    -> (VolumeListViewParams -> OuterMsg)
     -> OSTypes.Volume
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 renderVolumeCard context project viewParams toMsg volume =
     ExoCard.expandoCard
         context.palette
@@ -122,10 +120,10 @@ renderVolumeCard context project viewParams toMsg volume =
 volumeActionButtons :
     View.Types.Context
     -> Project
-    -> (List DeleteVolumeConfirmation -> Msg)
+    -> (List DeleteVolumeConfirmation -> OuterMsg)
     -> List DeleteVolumeConfirmation
     -> OSTypes.Volume
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 volumeActionButtons context project toMsg deleteConfirmations volume =
     let
         volDetachDeleteWarning =
@@ -160,11 +158,8 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                         { text = "Attach"
                         , onPress =
                             Just
-                                (ProjectMsg
-                                    project.auth.project.uuid
-                                    (SetProjectView <|
-                                        AttachVolumeModal Nothing (Just volume.uuid)
-                                    )
+                                (SetProjectView project.auth.project.uuid <|
+                                    AttachVolumeModal Nothing (Just volume.uuid)
                                 )
                         }
 
@@ -182,9 +177,10 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                             { text = "Detach"
                             , onPress =
                                 Just
-                                    (ProjectMsg
-                                        project.auth.project.uuid
-                                        (RequestDetachVolume volume.uuid)
+                                    (SharedMsg <|
+                                        ProjectMsg
+                                            project.auth.project.uuid
+                                            (RequestDetachVolume volume.uuid)
                                     )
                             }
 
@@ -208,9 +204,10 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
                             , text = "Delete"
                             , onPress =
                                 Just <|
-                                    ProjectMsg
-                                        project.auth.project.uuid
-                                        (RequestDeleteVolume volume.uuid)
+                                    SharedMsg <|
+                                        ProjectMsg
+                                            project.auth.project.uuid
+                                            (RequestDeleteVolume volume.uuid)
                             }
                         , Widget.textButton
                             (SH.materialStyle context.palette).button
@@ -255,9 +252,9 @@ volumeDetailView :
     View.Types.Context
     -> Project
     -> List DeleteVolumeConfirmation
-    -> (List DeleteVolumeConfirmation -> Msg)
+    -> (List DeleteVolumeConfirmation -> OuterMsg)
     -> OSTypes.VolumeUuid
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -275,10 +272,10 @@ volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
 volumeDetail :
     View.Types.Context
     -> Project
-    -> (List DeleteVolumeConfirmation -> Msg)
+    -> (List DeleteVolumeConfirmation -> OuterMsg)
     -> List DeleteVolumeConfirmation
     -> OSTypes.VolumeUuid
-    -> Element.Element Msg
+    -> Element.Element OuterMsg
 volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
     OpenStack.Volumes.volumeLookup project volumeUuid
         |> Maybe.withDefault
@@ -318,7 +315,7 @@ volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid =
             )
 
 
-renderAttachment : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element Msg
+renderAttachment : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element OuterMsg
 renderAttachment context project attachment =
     let
         serverName serverUuid =
@@ -339,11 +336,10 @@ renderAttachment context project attachment =
         , Element.row [ Element.spacing 5 ]
             [ Element.text (serverName attachment.serverUuid)
             , Style.Widgets.IconButton.goToButton context.palette
-                (Just
-                    (ProjectMsg
-                        project.auth.project.uuid
-                        (SetProjectView <| ServerDetail attachment.serverUuid <| Defaults.serverDetailViewParams)
-                    )
+                (Just <|
+                    SetProjectView project.auth.project.uuid <|
+                        ServerDetail attachment.serverUuid <|
+                            Defaults.serverDetailViewParams
                 )
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
@@ -362,7 +358,7 @@ renderAttachment context project attachment =
         ]
 
 
-renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element Msg
+renderAttachments : View.Types.Context -> Project -> OSTypes.Volume -> Element.Element OuterMsg
 renderAttachments context project volume =
     case List.length volume.attachments of
         0 ->
@@ -376,7 +372,7 @@ renderAttachments context project volume =
                     List.map (renderAttachment context project) volume.attachments
 
 
-createVolume : View.Types.Context -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element Msg
+createVolume : View.Types.Context -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element OuterMsg
 createVolume context project volName volSizeInput =
     let
         maybeVolumeQuotaAvail =
@@ -407,7 +403,7 @@ createVolume context project volName volSizeInput =
                 (VH.inputItemAttributes context.palette.background)
                 { text = volName
                 , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
-                , onChange = \n -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume n volSizeInput
+                , onChange = \n -> SetProjectView project.auth.project.uuid <| CreateVolume n volSizeInput
                 , label = Input.labelAbove [] (Element.text "Name")
                 }
             , Element.text <|
@@ -425,13 +421,15 @@ createVolume context project volName volSizeInput =
                 , maxVal = volGbAvail
                 , defaultVal = Just 2
                 }
-                (\newInput -> ProjectMsg project.auth.project.uuid <| SetProjectView <| CreateVolume volName newInput)
+                (\newInput -> SetProjectView project.auth.project.uuid <| CreateVolume volName newInput)
             , let
                 ( onPress, quotaWarnText ) =
                     if canAttemptCreateVol then
                         case volSizeInput of
                             ValidNumericTextInput volSizeGb ->
-                                ( Just (ProjectMsg project.auth.project.uuid (RequestCreateVolume volName volSizeGb))
+                                ( Just <|
+                                    SharedMsg
+                                        (ProjectMsg project.auth.project.uuid (RequestCreateVolume volName volSizeGb))
                                 , Nothing
                                 )
 

@@ -1,4 +1,4 @@
-module View.ResourceUsage exposing (alerts, charts)
+module LegacyView.ResourceUsage exposing (alerts, charts)
 
 import Dict
 import Element
@@ -27,12 +27,12 @@ import Style.Helpers as SH
 import Time
 import Tuple
 import Types.ServerResourceUsage exposing (Alert, AlertLevel(..), DataPoint, TimeSeries)
-import Types.Types exposing (Msg)
+import Types.SharedMsg exposing (SharedMsg(..))
 import View.Helpers as VH
 import View.Types
 
 
-alerts : View.Types.Context -> Time.Posix -> TimeSeries -> Element.Element Msg
+alerts : View.Types.Context -> Time.Posix -> TimeSeries -> Element.Element SharedMsg
 alerts context currentTime timeSeries =
     let
         -- Get most recent data point, it must be <60 minutes old
@@ -62,7 +62,7 @@ alerts context currentTime timeSeries =
             Element.none
 
 
-charts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element Msg
+charts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> TimeSeries -> Element.Element SharedMsg
 charts context widthPx ( currentTime, timeZone ) timeSeriesDict =
     let
         timeSeriesListLast30m =
@@ -202,7 +202,7 @@ dataPointToAlerts context dataPoint =
     List.concat [ diskAlerts, memAlerts, cpuAlerts ]
 
 
-renderAlert : View.Types.Context -> Alert -> Element.Element Msg
+renderAlert : View.Types.Context -> Alert -> Element.Element SharedMsg
 renderAlert context alert =
     let
         ( icon, color, onColor ) =
