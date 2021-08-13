@@ -8,7 +8,6 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import LegacyView.AllResources
 import LegacyView.AttachVolume
-import LegacyView.CreateKeypair
 import LegacyView.CreateServer
 import LegacyView.CreateServerImage
 import LegacyView.Images
@@ -17,6 +16,7 @@ import LegacyView.ServerList
 import LegacyView.Volumes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
+import Page.KeypairCreate
 import Page.KeypairList
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -25,7 +25,7 @@ import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg as SharedMsg
 import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
 import View.Helpers as VH
 import View.Types
@@ -112,8 +112,9 @@ project model context p viewParams viewConstructor =
                         True
                         |> Element.map KeypairListMsg
 
-                CreateKeypair keypairName publicKey ->
-                    LegacyView.CreateKeypair.createKeypair context p keypairName publicKey
+                KeypairCreate model_ ->
+                    Page.KeypairCreate.view context model_
+                        |> Element.map KeypairCreateMsg
 
                 CreateServerImage serverUuid imageName ->
                     LegacyView.CreateServerImage.createServerImage context p serverUuid imageName
@@ -163,7 +164,7 @@ projectNav context p viewParams =
                         ]
                 , text = removeText
                 , onPress =
-                    Just <| SharedMsg <| ProjectMsg p.auth.project.uuid RemoveProject
+                    Just <| SharedMsg <| SharedMsg.ProjectMsg p.auth.project.uuid SharedMsg.RemoveProject
                 }
         , Element.el
             [ Element.alignRight
@@ -257,10 +258,7 @@ createButton context projectId expanded =
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <|
-                        SetProjectView projectId <|
-                            CreateKeypair "" ""
-                    )
+                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.KeypairCreate projectId)
                 ]
 
         ( attribs, icon ) =
@@ -292,7 +290,7 @@ createButton context projectId expanded =
             , onPress =
                 Just <|
                     SharedMsg <|
-                        ProjectMsg projectId <|
-                            ToggleCreatePopup
+                        SharedMsg.ProjectMsg projectId <|
+                            SharedMsg.ToggleCreatePopup
             }
         ]

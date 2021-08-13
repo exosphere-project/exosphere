@@ -21,6 +21,7 @@ import Orchestration.Orchestration as Orchestration
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
@@ -241,6 +242,7 @@ updateUnderlying outerMsg outerModel =
             case GetterSetters.projectLookup sharedModel projectId of
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
+                        -- TODO order these cases same as the Msg order, which itself should be re-ordered, possibly alphabetically
                         ( FloatingIpListMsg innerMsg, _ ) ->
                             let
                                 -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
@@ -332,6 +334,21 @@ updateUnderlying outerMsg outerModel =
 
                                 Nothing ->
                                     ( outerModel, Cmd.none )
+
+                        ( KeypairCreateMsg innerMsg, KeypairCreate innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.KeypairCreate.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        KeypairCreate newSharedModel
+                              }
+                            , Cmd.map (\msg -> KeypairCreateMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
                         ( FloatingIpAssignMsg innerMsg, FloatingIpAssign innerModel ) ->
                             let
@@ -678,12 +695,12 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-                Types.SharedMsg.CreateKeypair projectId ->
+                Types.SharedMsg.KeypairCreate projectId ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (CreateKeypair "" "")
+                                (KeypairCreate Page.KeypairCreate.init)
                                 outerModel
 
                         Nothing ->

@@ -116,4 +116,4 @@ type NavigableView
     | FloatingIpList HelperTypes.ProjectIdentifier
     | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | KeypairList HelperTypes.ProjectIdentifier
-    | CreateKeypair HelperTypes.ProjectIdentifier
+    | KeypairCreate HelperTypes.ProjectIdentifier

@@ -384,7 +384,7 @@ setProjectView project projectViewConstructor outerModel =
                     in
                     ( outerModel, cmd )
 
-                CreateKeypair _ _ ->
+                KeypairCreate _ ->
                     ( outerModel, Cmd.none )
 
                 VolumeDetail _ _ ->

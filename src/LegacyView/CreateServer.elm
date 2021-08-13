@@ -28,7 +28,7 @@ import Types.HelperTypes
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg as SharedMsg
 import Types.View exposing (ProjectViewConstructor(..))
 import Types.Workflow
     exposing
@@ -136,7 +136,7 @@ createServer context project viewParams =
             in
             case ( invalidNameReasons, invalidInputs, viewParams.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
-                    Just <| SharedMsg (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams netUuid))
+                    Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer viewParams netUuid))
 
                 ( _, _, _ ) ->
                     Nothing
@@ -1098,9 +1098,7 @@ keypairPicker context project viewParams =
                         )
                     ]
             , onPress =
-                Just <|
-                    SetProjectView project.auth.project.uuid <|
-                        CreateKeypair "" ""
+                Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.KeypairCreate project.auth.project.uuid
             }
         ]
 

@@ -1,4 +1,4 @@
-module LegacyView.CreateKeypair exposing (createKeypair)
+module Page.KeypairCreate exposing (Model, Msg(..), createKeyPairButton, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -7,17 +7,49 @@ import Helpers.String
 import Html.Attributes
 import Style.Helpers as SH
 import Style.Widgets.FormValidation as FormValidation
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (ProjectViewConstructor(..))
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-createKeypair : View.Types.Context -> Project -> String -> String -> Element.Element OuterMsg
-createKeypair context project name publicKey =
+type alias Model =
+    { name : String
+    , publicKey : String
+    }
+
+
+type Msg
+    = GotName String
+    | GotPublicKey String
+    | GotSubmit
+
+
+init : Model
+init =
+    Model "" ""
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
+    case msg of
+        GotName name ->
+            ( { model | name = name }, Cmd.none, SharedMsg.NoOp )
+
+        GotPublicKey publicKey ->
+            ( { model | publicKey = publicKey }, Cmd.none, SharedMsg.NoOp )
+
+        GotSubmit ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+                SharedMsg.RequestCreateKeypair model.name model.publicKey
+            )
+
+
+view : View.Types.Context -> Model -> Element.Element Msg
+view context model =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette) <|
@@ -30,7 +62,7 @@ createKeypair context project name publicKey =
         , Element.column VH.formContainer
             ([ Input.text
                 (VH.inputItemAttributes context.palette.background)
-                { text = name
+                { text = model.name
                 , placeholder =
                     Just
                         (Input.placeholder []
@@ -39,12 +71,7 @@ createKeypair context project name publicKey =
                                     [ "My", context.localization.pkiPublicKeyForSsh ]
                             )
                         )
-                , onChange =
-                    \newName ->
-                        SetProjectView project.auth.project.uuid <|
-                            CreateKeypair
-                                newName
-                                publicKey
+                , onChange = GotName
                 , label = Input.labelAbove [] (Element.text "Name")
                 }
              , Input.multiline
@@ -58,14 +85,9 @@ createKeypair context project name publicKey =
                        , Font.size 12
                        ]
                 )
-                { text = publicKey
+                { text = model.publicKey
                 , placeholder = Just (Input.placeholder [] (Element.text "ssh-rsa ..."))
-                , onChange =
-                    \newPublicKey ->
-                        SetProjectView project.auth.project.uuid <|
-                            CreateKeypair
-                                name
-                                newPublicKey
+                , onChange = GotPublicKey
                 , label =
                     Input.labelAbove
                         [ Element.paddingXY 0 10
@@ -76,27 +98,24 @@ createKeypair context project name publicKey =
                 , spellcheck = False
                 }
              ]
-                ++ createKeyPairButton context project name publicKey
+                ++ createKeyPairButton context model
             )
         ]
 
 
-createKeyPairButton : View.Types.Context -> Project -> String -> String -> List (Element.Element OuterMsg)
-createKeyPairButton context project name publicKey =
+createKeyPairButton : View.Types.Context -> Model -> List (Element.Element Msg)
+createKeyPairButton context model =
     let
         isValid =
             List.all
                 identity
-                [ String.length name > 0
-                , String.length publicKey > 0
+                [ String.length model.name > 0
+                , String.length model.publicKey > 0
                 ]
 
         ( maybeCmd, validation ) =
             if isValid then
-                ( Just <|
-                    SharedMsg <|
-                        ProjectMsg project.auth.project.uuid <|
-                            RequestCreateKeypair name publicKey
+                ( Just GotSubmit
                 , Element.none
                 )
 

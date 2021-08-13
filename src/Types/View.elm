@@ -23,6 +23,7 @@ import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
@@ -68,7 +69,7 @@ type ProjectViewConstructor
     | FloatingIpList Page.FloatingIpList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | KeypairList Page.KeypairList.Model
-    | CreateKeypair String String
+    | KeypairCreate Page.KeypairCreate.Model
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)

@@ -422,6 +422,7 @@ cloudConfigLookup model project =
 projectUpdateKeypair : Project -> OSTypes.Keypair -> Project
 projectUpdateKeypair project keypair =
     let
+        -- TODO these should be placed in the same order that we get them from OpenStack, whatever that is.
         otherKeypairs =
             project.keypairs
                 |> RemoteData.withDefault []

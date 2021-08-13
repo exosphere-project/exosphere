@@ -5,6 +5,7 @@ import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
 import Types.Defaults as Defaults
@@ -210,7 +211,7 @@ projectViewConstructorParsers =
         (KeypairList Page.KeypairList.init)
         (s "keypairs")
     , map
-        (CreateKeypair "" "")
+        (KeypairCreate Page.KeypairCreate.init)
         (s "uploadkeypair")
     , map
         (\params ->

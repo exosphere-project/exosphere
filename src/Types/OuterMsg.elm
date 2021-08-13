@@ -3,6 +3,7 @@ module Types.OuterMsg exposing (OuterMsg(..))
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
@@ -29,3 +30,4 @@ type OuterMsg
     | FloatingIpListMsg Page.FloatingIpList.Msg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | KeypairListMsg Page.KeypairList.Msg
+    | KeypairCreateMsg Page.KeypairCreate.Msg

@@ -141,7 +141,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                CreateKeypair _ _ ->
+                KeypairCreate _ ->
                     String.join " "
                         [ "Upload"
                         , context.localization.pkiPublicKeyForSsh
