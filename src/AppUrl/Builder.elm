@@ -171,7 +171,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "assignfloatingip" ]
                 []
 
-        ListKeypairs _ ->
+        KeypairList _ ->
             buildUrlFunc
                 [ "keypairs" ]
                 []

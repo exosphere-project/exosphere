@@ -272,12 +272,12 @@ requestCreateKeypair project keypairName publicKey =
         )
 
 
-requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd SharedMsg
-requestDeleteKeypair project keypairName =
+requestDeleteKeypair : Project -> OSTypes.KeypairIdentifier -> Cmd SharedMsg
+requestDeleteKeypair project keypairId =
     let
         errorContext =
             ErrorContext
-                ("delete keypair with name \"" ++ keypairName ++ "\"")
+                ("delete keypair with name \"" ++ Tuple.first keypairId ++ "\"")
                 ErrorCrit
                 Nothing
     in
@@ -285,10 +285,10 @@ requestDeleteKeypair project keypairName =
         project.auth.project.uuid
         Delete
         Nothing
-        (project.endpoints.nova ++ "/os-keypairs/" ++ keypairName)
+        (project.endpoints.nova ++ "/os-keypairs/" ++ Tuple.first keypairId)
         Http.emptyBody
         (Http.expectWhatever
-            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext keypairName result)
+            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext (Tuple.first keypairId) result)
         )
 
 

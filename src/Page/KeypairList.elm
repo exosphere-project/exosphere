@@ -1,4 +1,4 @@
-module LegacyView.ListKeypairs exposing (listKeypairs)
+module Page.KeypairList exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
@@ -6,29 +6,89 @@ import FeatherIcons
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
+import Set
 import Style.Helpers as SH
 import Style.Widgets.Card as Card
 import Style.Widgets.CopyableText
 import Style.Widgets.Icon as Icon
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (KeypairListViewParams, ProjectViewConstructor(..))
+import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-listKeypairs :
-    View.Types.Context
-    -> Bool
-    -> Project
-    -> KeypairListViewParams
-    -> (KeypairListViewParams -> OuterMsg)
-    -> Element.Element OuterMsg
-listKeypairs context showHeading project viewParams toMsg =
+type alias Model =
+    { expandedKeypairs : Set.Set OSTypes.KeypairIdentifier
+    , deleteConfirmations : Set.Set OSTypes.KeypairIdentifier
+    }
+
+
+type Msg
+    = GotExpandCard OSTypes.KeypairIdentifier Bool
+    | GotDeleteNeedsConfirm OSTypes.KeypairIdentifier
+    | GotDeleteConfirm OSTypes.KeypairIdentifier
+    | GotDeleteCancel OSTypes.KeypairIdentifier
+    | NavigateToView SharedMsg.NavigableView
+
+
+init : Model
+init =
+    Model Set.empty Set.empty
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
+    case msg of
+        GotExpandCard keypairId expanded ->
+            ( { model
+                | expandedKeypairs =
+                    if expanded then
+                        Set.insert keypairId model.expandedKeypairs
+
+                    else
+                        Set.remove keypairId model.expandedKeypairs
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteNeedsConfirm keypairId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.insert
+                        keypairId
+                        model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteConfirm keypairId ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestDeleteKeypair keypairId
+            )
+
+        GotDeleteCancel keypairId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.remove
+                        keypairId
+                        model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        NavigateToView view_ ->
+            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
+
+
+view : View.Types.Context -> Project -> Model -> Bool -> Element.Element Msg
+view context project model showHeading =
     let
-        renderKeypairs : List OSTypes.Keypair -> Element.Element OuterMsg
+        renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
             if List.isEmpty keypairs_ then
                 Element.column
@@ -58,9 +118,7 @@ listKeypairs context showHeading project viewParams toMsg =
                                     )
                                 ]
                         , onPress =
-                            Just <|
-                                SetProjectView project.auth.project.uuid <|
-                                    CreateKeypair "" ""
+                            Just <| NavigateToView <| SharedMsg.CreateKeypair project.auth.project.uuid
                         }
                     ]
 
@@ -68,7 +126,7 @@ listKeypairs context showHeading project viewParams toMsg =
                 Element.column
                     VH.contentContainer
                     (List.map
-                        (renderKeypairCard context project viewParams toMsg)
+                        (renderKeypairCard context model)
                         keypairs_
                     )
     in
@@ -94,14 +152,8 @@ listKeypairs context showHeading project viewParams toMsg =
         ]
 
 
-renderKeypairCard :
-    View.Types.Context
-    -> Project
-    -> KeypairListViewParams
-    -> (KeypairListViewParams -> OuterMsg)
-    -> OSTypes.Keypair
-    -> Element.Element OuterMsg
-renderKeypairCard context project viewParams toMsg keypair =
+renderKeypairCard : View.Types.Context -> Model -> OSTypes.Keypair -> Element.Element Msg
+renderKeypairCard context model keypair =
     let
         cardBody =
             Element.column
@@ -118,26 +170,16 @@ renderKeypairCard context project viewParams toMsg keypair =
                         , Html.Attributes.style "word-break" "break-all" |> Element.htmlAttribute
                         ]
                         keypair.fingerprint
-                , actionButtons context project toMsg viewParams keypair
+                , actionButtons context model keypair
                 ]
 
         expanded =
-            List.member ( keypair.name, keypair.fingerprint ) viewParams.expandedKeypairs
+            Set.member (toIdentifier keypair) model.expandedKeypairs
     in
     Card.expandoCard
         context.palette
         expanded
-        (\bool ->
-            toMsg
-                { viewParams
-                    | expandedKeypairs =
-                        if bool then
-                            ( keypair.name, keypair.fingerprint ) :: viewParams.expandedKeypairs
-
-                        else
-                            List.filter (\k -> ( keypair.name, keypair.fingerprint ) /= k) viewParams.expandedKeypairs
-                }
-        )
+        (GotExpandCard (toIdentifier keypair))
         (VH.possiblyUntitledResource keypair.name context.localization.pkiPublicKeyForSsh
             |> Element.text
         )
@@ -150,11 +192,11 @@ renderKeypairCard context project viewParams toMsg keypair =
         cardBody
 
 
-actionButtons : View.Types.Context -> Project -> (KeypairListViewParams -> OuterMsg) -> KeypairListViewParams -> OSTypes.Keypair -> Element.Element OuterMsg
-actionButtons context project toMsg viewParams keypair =
+actionButtons : View.Types.Context -> Model -> OSTypes.Keypair -> Element.Element Msg
+actionButtons context model keypair =
     let
         confirmationNeeded =
-            List.member ( keypair.name, keypair.fingerprint ) viewParams.deleteConfirmations
+            Set.member (toIdentifier keypair) model.deleteConfirmations
 
         deleteButton =
             if confirmationNeeded then
@@ -164,25 +206,12 @@ actionButtons context project toMsg viewParams keypair =
                         (SH.materialStyle context.palette).dangerButton
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
-                        , onPress =
-                            Just <|
-                                SharedMsg <|
-                                    ProjectMsg
-                                        project.auth.project.uuid
-                                        (RequestDeleteKeypair keypair.name)
+                        , onPress = Just <| GotDeleteConfirm (toIdentifier keypair)
                         }
                     , Widget.textButton
                         (SH.materialStyle context.palette).button
                         { text = "Cancel"
-                        , onPress =
-                            Just <|
-                                toMsg
-                                    { viewParams
-                                        | deleteConfirmations =
-                                            List.filter
-                                                ((/=) ( keypair.name, keypair.fingerprint ))
-                                                viewParams.deleteConfirmations
-                                    }
+                        , onPress = Just <| GotDeleteCancel (toIdentifier keypair)
                         }
                     ]
 
@@ -192,15 +221,14 @@ actionButtons context project toMsg viewParams keypair =
                     { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                     , text = "Delete"
                     , onPress =
-                        Just <|
-                            toMsg
-                                { viewParams
-                                    | deleteConfirmations =
-                                        ( keypair.name, keypair.fingerprint )
-                                            :: viewParams.deleteConfirmations
-                                }
+                        Just <| GotDeleteNeedsConfirm (toIdentifier keypair)
                     }
     in
     Element.row
         [ Element.width Element.fill ]
         [ Element.el [ Element.alignRight ] deleteButton ]
+
+
+toIdentifier : OSTypes.Keypair -> OSTypes.KeypairIdentifier
+toIdentifier keypair =
+    ( keypair.name, keypair.fingerprint )

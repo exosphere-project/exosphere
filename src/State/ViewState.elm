@@ -367,12 +367,13 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                ListKeypairs _ ->
+                KeypairList _ ->
+                    -- TODO move stuff out of here
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListKeypairs _) ->
+                                Just (KeypairList _) ->
                                     Cmd.none
 
                                 _ ->

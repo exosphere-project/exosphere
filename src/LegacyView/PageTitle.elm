@@ -132,7 +132,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ListKeypairs _ ->
+                KeypairList _ ->
                     String.join " "
                         [ context.localization.pkiPublicKeyForSsh
                             |> Helpers.String.pluralize

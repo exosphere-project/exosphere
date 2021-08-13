@@ -57,7 +57,7 @@ type ProjectSpecificMsgConstructor
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
-    | RequestDeleteKeypair OSTypes.KeypairName
+    | RequestDeleteKeypair OSTypes.KeypairIdentifier
     | RequestDeleteFloatingIp OSTypes.IpAddressUuid
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
@@ -115,3 +115,5 @@ type NavigableView
     | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
     | FloatingIpList HelperTypes.ProjectIdentifier
     | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
+    | KeypairList HelperTypes.ProjectIdentifier
+    | CreateKeypair HelperTypes.ProjectIdentifier

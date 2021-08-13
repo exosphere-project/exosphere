@@ -22,6 +22,7 @@ module OpenStack.Types exposing
     , IpAddressValue
     , Keypair
     , KeypairFingerprint
+    , KeypairIdentifier
     , KeypairName
     , KeystoneUrl
     , MetadataItem
@@ -270,6 +271,10 @@ type alias Keypair =
 
 type alias KeypairName =
     String
+
+
+type alias KeypairIdentifier =
+    ( KeypairName, KeypairFingerprint )
 
 
 type alias PublicKey =

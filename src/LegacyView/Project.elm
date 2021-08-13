@@ -12,12 +12,12 @@ import LegacyView.CreateKeypair
 import LegacyView.CreateServer
 import LegacyView.CreateServerImage
 import LegacyView.Images
-import LegacyView.ListKeypairs
 import LegacyView.ServerDetail
 import LegacyView.ServerList
 import LegacyView.Volumes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
+import Page.KeypairList
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
@@ -105,15 +105,12 @@ project model context p viewParams viewConstructor =
                         model_
                         |> Element.map FloatingIpAssignMsg
 
-                ListKeypairs keypairListViewParams ->
-                    LegacyView.ListKeypairs.listKeypairs context
-                        True
+                KeypairList model_ ->
+                    Page.KeypairList.view context
                         p
-                        keypairListViewParams
-                        (\newParams ->
-                            SetProjectView p.auth.project.uuid <|
-                                ListKeypairs newParams
-                        )
+                        model_
+                        True
+                        |> Element.map KeypairListMsg
 
                 CreateKeypair keypairName publicKey ->
                     LegacyView.CreateKeypair.createKeypair context p keypairName publicKey

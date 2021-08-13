@@ -5,6 +5,7 @@ import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairList
 import Page.LoginOpenstack
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
@@ -206,7 +207,7 @@ projectViewConstructorParsers =
         (FloatingIpAssign <| Page.FloatingIpAssign.init Nothing Nothing)
         (s "assignfloatingip")
     , map
-        (ListKeypairs Defaults.keypairListViewParams)
+        (KeypairList Page.KeypairList.init)
         (s "keypairs")
     , map
         (CreateKeypair "" "")

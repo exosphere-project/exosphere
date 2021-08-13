@@ -21,6 +21,7 @@ import Orchestration.Orchestration as Orchestration
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.LoginPicker
@@ -279,6 +280,52 @@ updateUnderlying outerMsg outerModel =
                                                 projectView newInnerModel
                                       }
                                     , Cmd.map (\msg -> FloatingIpListMsg msg) cmd
+                                    )
+                                        |> pipelineCmdOuterModelMsg
+                                            (processSharedMsg sharedMsg)
+
+                                Nothing ->
+                                    ( outerModel, Cmd.none )
+
+                        ( KeypairListMsg innerMsg, _ ) ->
+                            let
+                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
+                                maybeToViewAndInnerModel =
+                                    case projectViewConstructor of
+                                        KeypairList innerModel ->
+                                            Just
+                                                ( KeypairList
+                                                , innerModel
+                                                )
+
+                                        AllResources allResourcesViewParams ->
+                                            Just
+                                                ( \newInnerModel ->
+                                                    AllResources
+                                                        { allResourcesViewParams
+                                                            | keypairListViewParams = newInnerModel
+                                                        }
+                                                , allResourcesViewParams.keypairListViewParams
+                                                )
+
+                                        _ ->
+                                            Nothing
+                            in
+                            case maybeToViewAndInnerModel of
+                                Just ( projectView, innerModel ) ->
+                                    let
+                                        ( newInnerModel, cmd, sharedMsg ) =
+                                            Page.KeypairList.update innerMsg project innerModel
+                                    in
+                                    ( { outerModel
+                                        | viewState =
+                                            ProjectView
+                                                projectId
+                                                projectViewParams
+                                            <|
+                                                projectView newInnerModel
+                                      }
+                                    , Cmd.map (\msg -> KeypairListMsg msg) cmd
                                     )
                                         |> pipelineCmdOuterModelMsg
                                             (processSharedMsg sharedMsg)
@@ -587,7 +634,7 @@ processSharedMsg sharedMsg outerModel =
                     ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
 
                 Types.SharedMsg.ServerDetail projectId serverId ->
-                    -- TODO this project lookup logic will be duplicated a bunch of times, there be a ProjectView constructor of NavigableView so we only need to do it once
+                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
@@ -615,6 +662,28 @@ processSharedMsg sharedMsg outerModel =
                             ViewStateHelpers.setProjectView
                                 project
                                 (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.KeypairList projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (KeypairList Page.KeypairList.init)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.CreateKeypair projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (CreateKeypair "" "")
                                 outerModel
 
                         Nothing ->
@@ -1204,10 +1273,13 @@ processProjectSpecificMsg outerModel project msg =
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ViewStateHelpers.setProjectView newProject (ListKeypairs Defaults.keypairListViewParams) { outerModel | sharedModel = newSharedModel }
+            ViewStateHelpers.setProjectView
+                newProject
+                (KeypairList Page.KeypairList.init)
+                { outerModel | sharedModel = newSharedModel }
 
-        RequestDeleteKeypair keypairName ->
-            ( outerModel, Rest.Nova.requestDeleteKeypair project keypairName )
+        RequestDeleteKeypair keypairId ->
+            ( outerModel, Rest.Nova.requestDeleteKeypair project keypairId )
                 |> mapToOuterMsg
 
         ReceiveDeleteKeypair errorContext keypairName result ->

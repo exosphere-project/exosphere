@@ -5,8 +5,6 @@ module Types.View exposing
     , IPInfoLevel(..)
     , ImageListViewParams
     , ImageListVisibilityFilter
-    , KeypairIdentifier
-    , KeypairListViewParams
     , LoginView(..)
     , NonProjectViewConstructor(..)
     , PasswordVisibility(..)
@@ -25,6 +23,7 @@ import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
@@ -68,7 +67,7 @@ type ProjectViewConstructor
     | ListProjectVolumes VolumeListViewParams
     | FloatingIpList Page.FloatingIpList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
-    | ListKeypairs KeypairListViewParams
+    | KeypairList Page.KeypairList.Model
     | CreateKeypair String String
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
@@ -123,7 +122,7 @@ type alias ProjectViewParams =
 type alias AllResourcesListViewParams =
     { serverListViewParams : ServerListViewParams
     , volumeListViewParams : VolumeListViewParams
-    , keypairListViewParams : KeypairListViewParams
+    , keypairListViewParams : Page.KeypairList.Model
     , floatingIpListViewParams : Page.FloatingIpList.Model
     }
 
@@ -189,17 +188,3 @@ type alias VolumeListViewParams =
 
 type alias DeleteVolumeConfirmation =
     OSTypes.VolumeUuid
-
-
-
--- Model for keypair list view
-
-
-type alias KeypairListViewParams =
-    { expandedKeypairs : List KeypairIdentifier
-    , deleteConfirmations : List KeypairIdentifier
-    }
-
-
-type alias KeypairIdentifier =
-    ( OSTypes.KeypairName, OSTypes.KeypairFingerprint )

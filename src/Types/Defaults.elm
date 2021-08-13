@@ -3,7 +3,6 @@ module Types.Defaults exposing
     , createServerViewParams
     , createVolumeView
     , imageListViewParams
-    , keypairListViewParams
     , localization
     , projectViewParams
     , serverDetailViewParams
@@ -13,6 +12,7 @@ module Types.Defaults exposing
     )
 
 import Page.FloatingIpList
+import Page.KeypairList
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
@@ -79,7 +79,7 @@ allResourcesListViewParams : ViewTypes.AllResourcesListViewParams
 allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
     , volumeListViewParams = volumeListViewParams
-    , keypairListViewParams = keypairListViewParams
+    , keypairListViewParams = Page.KeypairList.init
     , floatingIpListViewParams = Page.FloatingIpList.init
     }
 
@@ -135,8 +135,3 @@ createVolumeView =
 volumeListViewParams : ViewTypes.VolumeListViewParams
 volumeListViewParams =
     ViewTypes.VolumeListViewParams [] []
-
-
-keypairListViewParams : ViewTypes.KeypairListViewParams
-keypairListViewParams =
-    ViewTypes.KeypairListViewParams [] []
