@@ -617,7 +617,7 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-customWorkflowInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element Msg
+customWorkflowInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 customWorkflowInput context project viewParams =
     let
         clearButton =

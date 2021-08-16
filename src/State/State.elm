@@ -1847,7 +1847,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                 Err httpError ->
                                     RDPP.RemoteDataPlusPlus
                                         RDPP.DontHave
-                                        (RDPP.NotLoading (Just ( httpError, model.clientCurrentTime )))
+                                        (RDPP.NotLoading (Just ( httpError, sharedModel.clientCurrentTime )))
 
                                 Ok consoleLog ->
                                     let
@@ -1859,7 +1859,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                             RDPP.RemoteDataPlusPlus
                                                 (RDPP.DoHave
                                                     parsedToken
-                                                    model.clientCurrentTime
+                                                    sharedModel.clientCurrentTime
                                                 )
                                                 (RDPP.NotLoading Nothing)
 
