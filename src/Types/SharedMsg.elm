@@ -108,10 +108,13 @@ type ServerSpecificMsgConstructor
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
-type NavigableView
+type
+    NavigableView
+    -- TODO order these
     = LoginPicker
     | LoginOpenstack
     | LoginJetstream
+    | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
     | FloatingIpList HelperTypes.ProjectIdentifier
     | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)

@@ -170,9 +170,9 @@ init flags urlKey =
         defaultViewState =
             State.ViewState.defaultViewState hydratedModel
 
-        viewStateFromUrl =
+        ( viewStateFromUrl, cmdFromPageInit ) =
             AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
-                |> Maybe.withDefault (NonProjectView PageNotFound)
+                |> Maybe.withDefault ( NonProjectView PageNotFound, Cmd.none )
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
@@ -202,6 +202,7 @@ init flags urlKey =
                 projectsNeedingAppCredentials
                 |> Cmd.batch
             , setFaviconCmd
+            , cmdFromPageInit
             ]
                 |> Cmd.batch
 

@@ -1,4 +1,4 @@
-module Page.GetSupport exposing (Model, Msg(..), SupportableItemType(..), init, update, view)
+module Page.GetSupport exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
@@ -6,6 +6,7 @@ import Element.Input as Input
 import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Ports
 import RemoteData
 import Set
 import Style.Helpers as SH
@@ -21,33 +22,28 @@ import Widget
 
 
 type alias Model =
-    { maybeSupportableResource : Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
+    { maybeSupportableResource : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
     , requestDescription : String
     , isSubmitted : Bool
     }
 
 
-type SupportableItemType
-    = SupportableProject
-    | SupportableImage
-    | SupportableServer
-    | SupportableVolume
-
-
 type Msg
-    = GotResourceType (Maybe SupportableItemType)
+    = GotResourceType (Maybe HelperTypes.SupportableItemType)
     | GotResourceUuid (Maybe HelperTypes.Uuid)
     | GotDescription String
     | Submit
     | NoOp
 
 
-init : Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> Model
+init : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> ( Model, Cmd SharedMsg.SharedMsg )
 init maybeSupportableResource =
-    { maybeSupportableResource = maybeSupportableResource
-    , requestDescription = ""
-    , isSubmitted = False
-    }
+    ( { maybeSupportableResource = maybeSupportableResource
+      , requestDescription = ""
+      , isSubmitted = False
+      }
+    , Ports.instantiateClipboardJs ()
+    )
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -133,10 +129,10 @@ view context sharedModel model =
                             in
                             Input.option (Just itemType) (Element.text itemTypeStr)
                         )
-                        [ SupportableServer
-                        , SupportableVolume
-                        , SupportableImage
-                        , SupportableProject
+                        [ HelperTypes.SupportableServer
+                        , HelperTypes.SupportableVolume
+                        , HelperTypes.SupportableImage
+                        , HelperTypes.SupportableProject
                         ]
                         ++ [ Input.option Nothing (Element.text "None of these things") ]
                 }
@@ -170,7 +166,7 @@ view context sharedModel model =
 
                         options =
                             case supportableItemType of
-                                SupportableProject ->
+                                HelperTypes.SupportableProject ->
                                     sharedModel.projects
                                         |> List.map
                                             (\proj ->
@@ -179,7 +175,7 @@ view context sharedModel model =
                                                 )
                                             )
 
-                                SupportableImage ->
+                                HelperTypes.SupportableImage ->
                                     sharedModel.projects
                                         |> List.map .images
                                         |> List.concat
@@ -194,7 +190,7 @@ view context sharedModel model =
                                         |> Set.toList
                                         |> List.sortBy Tuple.second
 
-                                SupportableServer ->
+                                HelperTypes.SupportableServer ->
                                     sharedModel.projects
                                         |> List.map .servers
                                         |> List.map (RDPP.withDefault [])
@@ -207,7 +203,7 @@ view context sharedModel model =
                                             )
                                         |> List.sortBy Tuple.second
 
-                                SupportableVolume ->
+                                HelperTypes.SupportableVolume ->
                                     sharedModel.projects
                                         |> List.map .volumes
                                         |> List.map (RemoteData.withDefault [])
@@ -298,23 +294,23 @@ view context sharedModel model =
         ]
 
 
-supportableItemTypeStr : View.Types.Context -> SupportableItemType -> String
+supportableItemTypeStr : View.Types.Context -> HelperTypes.SupportableItemType -> String
 supportableItemTypeStr context supportableItemType =
     case supportableItemType of
-        SupportableProject ->
+        HelperTypes.SupportableProject ->
             context.localization.unitOfTenancy
 
-        SupportableImage ->
+        HelperTypes.SupportableImage ->
             context.localization.staticRepresentationOfBlockDeviceContents
 
-        SupportableServer ->
+        HelperTypes.SupportableServer ->
             context.localization.virtualComputer
 
-        SupportableVolume ->
+        HelperTypes.SupportableVolume ->
             context.localization.blockDevice
 
 
-buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
+buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
 buildSupportRequest model context maybeSupportableResource requestDescription =
     String.concat
         [ "# Support Request From "

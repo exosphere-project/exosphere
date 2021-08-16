@@ -16,6 +16,7 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , Password
     , ProjectIdentifier
+    , SupportableItemType(..)
     , UnscopedProvider
     , UnscopedProviderProject
     , Url
@@ -187,6 +188,13 @@ type JetstreamProvider
     = IUCloud
     | TACCCloud
     | BothJetstreamClouds
+
+
+type SupportableItemType
+    = SupportableProject
+    | SupportableImage
+    | SupportableServer
+    | SupportableVolume
 
 
 

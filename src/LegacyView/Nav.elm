@@ -7,7 +7,6 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
-import Page.GetSupport
 import Page.MessageLog
 import State.ViewState
 import Style.Helpers as SH
@@ -17,6 +16,7 @@ import Types.Defaults as Defaults
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg as SharedMsg
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
@@ -181,9 +181,9 @@ navBar outerModel context =
                         []
                         { onPress =
                             Just
-                                (SetNonProjectView <|
-                                    GetSupport <|
-                                        Page.GetSupport.init
+                                (SharedMsg <|
+                                    SharedMsg.NavigateToView <|
+                                        SharedMsg.GetSupport
                                             (State.ViewState.viewStateToSupportableItem outerModel.viewState)
                                 )
                         , label =

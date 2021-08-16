@@ -16,7 +16,6 @@ import LegacyView.PageTitle
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
-import Page.GetSupport exposing (SupportableItemType(..))
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
@@ -30,7 +29,7 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Time
 import Types.Defaults as Defaults
 import Types.Error as Error
-import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
+import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
@@ -63,7 +62,7 @@ setNonProjectView nonProjectViewConstructor outerModel =
                             ( outerModel.sharedModel, Cmd.none )
 
                         _ ->
-                            ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
+                            ( outerModel.sharedModel, Cmd.none )
 
                 HelpAbout ->
                     case prevNonProjectViewConstructor of
@@ -513,37 +512,37 @@ defaultLoginViewState maybeDefaultLoginView =
 
 viewStateToSupportableItem :
     Types.View.ViewState
-    -> Maybe ( Page.GetSupport.SupportableItemType, Maybe Types.HelperTypes.Uuid )
+    -> Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
 viewStateToSupportableItem viewState =
     let
         supportableProjectItem :
-            Types.HelperTypes.ProjectIdentifier
+            HelperTypes.ProjectIdentifier
             -> ProjectViewConstructor
-            -> ( SupportableItemType, Maybe Types.HelperTypes.Uuid )
+            -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
         supportableProjectItem projectUuid projectViewConstructor =
             case projectViewConstructor of
                 CreateServer createServerViewParams ->
-                    ( SupportableImage, Just createServerViewParams.imageUuid )
+                    ( HelperTypes.SupportableImage, Just createServerViewParams.imageUuid )
 
                 ServerDetail serverUuid _ ->
-                    ( SupportableServer, Just serverUuid )
+                    ( HelperTypes.SupportableServer, Just serverUuid )
 
                 CreateServerImage serverUuid _ ->
-                    ( SupportableServer, Just serverUuid )
+                    ( HelperTypes.SupportableServer, Just serverUuid )
 
                 VolumeDetail volumeUuid _ ->
-                    ( SupportableVolume, Just volumeUuid )
+                    ( HelperTypes.SupportableVolume, Just volumeUuid )
 
                 AttachVolumeModal _ maybeVolumeUuid ->
                     maybeVolumeUuid
-                        |> Maybe.map (\uuid -> ( SupportableVolume, Just uuid ))
-                        |> Maybe.withDefault ( SupportableProject, Just projectUuid )
+                        |> Maybe.map (\uuid -> ( HelperTypes.SupportableVolume, Just uuid ))
+                        |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectUuid )
 
                 MountVolInstructions attachment ->
-                    ( SupportableServer, Just attachment.serverUuid )
+                    ( HelperTypes.SupportableServer, Just attachment.serverUuid )
 
                 _ ->
-                    ( SupportableProject, Just projectUuid )
+                    ( HelperTypes.SupportableProject, Just projectUuid )
     in
     case viewState of
         NonProjectView _ ->

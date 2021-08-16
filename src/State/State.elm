@@ -644,6 +644,19 @@ processSharedMsg sharedMsg outerModel =
                 Types.SharedMsg.LoginPicker ->
                     ViewStateHelpers.setNonProjectView LoginPicker outerModel
 
+                Types.SharedMsg.GetSupport maybeSupportableItemTuple ->
+                    let
+                        -- TODO clean this up once ViewStateHelpers is no longer needed
+                        ( pageModel, cmd ) =
+                            Page.GetSupport.init maybeSupportableItemTuple
+
+                        ( newOuterModel, otherCmd ) =
+                            ViewStateHelpers.setNonProjectView (GetSupport pageModel) outerModel
+                    in
+                    ( newOuterModel
+                    , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
+                    )
+
                 Types.SharedMsg.LoginOpenstack ->
                     ViewStateHelpers.setNonProjectView (Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
 
@@ -727,7 +740,7 @@ processSharedMsg sharedMsg outerModel =
                         (ViewStateHelpers.defaultViewState sharedModel)
                         url
                 of
-                    Just newViewState ->
+                    Just ( newViewState, cmd ) ->
                         ( { outerModel
                             | viewState = newViewState
                             , sharedModel =
@@ -735,7 +748,8 @@ processSharedMsg sharedMsg outerModel =
                                     | prevUrl = AppUrl.Builder.viewStateToUrl sharedModel.urlPathPrefix newViewState
                                 }
                           }
-                        , Cmd.none
+                        , cmd
+                            |> Cmd.map SharedMsg
                         )
 
                     Nothing ->

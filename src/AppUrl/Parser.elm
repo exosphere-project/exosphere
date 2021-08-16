@@ -1,5 +1,7 @@
 module AppUrl.Parser exposing (urlToViewState)
 
+-- TODO the Types.SharedMsg import is temporary. Perhaps in the future, this model should call the NavigateToView Msg instead of `init`ing pages directly?
+
 import Dict
 import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
@@ -10,6 +12,7 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
+import Types.SharedMsg as SharedMsg
 import Types.View
     exposing
         ( LoginView(..)
@@ -33,7 +36,7 @@ import Url.Parser
 import Url.Parser.Query as Query
 
 
-urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ViewState
+urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ( ViewState, Cmd SharedMsg.SharedMsg )
 urlToViewState maybePathPrefix defaultViewState url =
     case maybePathPrefix of
         Nothing ->
@@ -53,17 +56,17 @@ urlToViewState maybePathPrefix defaultViewState url =
                 url
 
 
-pathParsers : ViewState -> List (Parser (ViewState -> b) b)
+pathParsers : ViewState -> List (Parser (( ViewState, Cmd SharedMsg.SharedMsg ) -> b) b)
 pathParsers defaultViewState =
     [ -- Non-project-specific views
-      map defaultViewState top
+      map ( defaultViewState, Cmd.none ) top
     , map
         (\creds ->
             let
                 init =
                     Page.LoginOpenstack.init
             in
-            NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }
+            ( NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }, Cmd.none )
         )
         (let
             queryParser =
@@ -86,7 +89,7 @@ pathParsers defaultViewState =
          s "login" </> s "openstack" <?> queryParser
         )
     , map
-        (\creds -> NonProjectView <| Login <| LoginJetstream creds)
+        (\creds -> ( NonProjectView <| Login <| LoginJetstream creds, Cmd.none ))
         (let
             providerEnumDict =
                 Dict.fromList
@@ -112,16 +115,16 @@ pathParsers defaultViewState =
          s "login" </> s "jetstream" <?> queryParser
         )
     , map
-        (NonProjectView LoginPicker)
+        ( NonProjectView LoginPicker, Cmd.none )
         (s "loginpicker")
     , map
         (\maybeTokenValue ->
             case maybeTokenValue of
                 Just tokenValue ->
-                    NonProjectView <| LoadingUnscopedProjects tokenValue
+                    ( NonProjectView <| LoadingUnscopedProjects tokenValue, Cmd.none )
 
                 Nothing ->
-                    NonProjectView PageNotFound
+                    ( NonProjectView PageNotFound, Cmd.none )
         )
         (s "auth" </> s "oidc-login" <?> Query.string "token")
 
@@ -145,23 +148,28 @@ pathParsers defaultViewState =
                         Nothing ->
                             False
             in
-            NonProjectView <| MessageLog { showDebugMsgs = showDebugMsgs }
+            ( NonProjectView <| MessageLog { showDebugMsgs = showDebugMsgs }, Cmd.none )
         )
         (s "msglog" <?> Query.string "showdebug")
     , map
-        (NonProjectView Settings)
+        ( NonProjectView Settings, Cmd.none )
         (s "settings")
     , map
-        (NonProjectView <| GetSupport (Page.GetSupport.init Nothing))
+        (let
+            ( pageModel, cmd ) =
+                Page.GetSupport.init Nothing
+         in
+         ( NonProjectView <| GetSupport pageModel, cmd )
+        )
         (s "getsupport")
     , map
-        (NonProjectView HelpAbout)
+        ( NonProjectView HelpAbout, Cmd.none )
         (s "helpabout")
     , map
-        (NonProjectView PageNotFound)
+        ( NonProjectView PageNotFound, Cmd.none )
         (s "pagenotfound")
     , map
-        (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)
+        (\uuid projectViewConstructor -> ( ProjectView uuid Defaults.projectViewParams <| projectViewConstructor, Cmd.none ))
         (s "projects" </> string </> oneOf projectViewConstructorParsers)
     ]
 
