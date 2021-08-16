@@ -1,24 +1,19 @@
-module LegacyView.Volumes exposing (createVolume, volumeDetail, volumeDetailView, volumes)
+module LegacyView.Volumes exposing (volumeDetail, volumeDetailView, volumes)
 
 import Element
 import Element.Font as Font
-import Element.Input as Input
 import FeatherIcons
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.String
-import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
 import Page.QuotaUsage
-import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
-import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
@@ -370,97 +365,3 @@ renderAttachments context project volume =
                     (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 <|
                     List.map (renderAttachment context project) volume.attachments
-
-
-createVolume : View.Types.Context -> Project -> OSTypes.VolumeName -> NumericTextInput -> Element.Element OuterMsg
-createVolume context project volName volSizeInput =
-    let
-        maybeVolumeQuotaAvail =
-            project.volumeQuota
-                |> RemoteData.toMaybe
-                |> Maybe.map OSQuotas.volumeQuotaAvail
-
-        ( canAttemptCreateVol, volGbAvail ) =
-            case maybeVolumeQuotaAvail of
-                Just ( numVolsAvail, volGbAvail_ ) ->
-                    ( numVolsAvail |> Maybe.map (\v -> v >= 1) |> Maybe.withDefault True
-                    , volGbAvail_
-                    )
-
-                Nothing ->
-                    ( True, Nothing )
-    in
-    Element.column (List.append VH.exoColumnAttributes [ Element.spacing 20, Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text <|
-                String.join " "
-                    [ "Create"
-                    , context.localization.blockDevice |> Helpers.String.toTitleCase
-                    ]
-            )
-        , Element.column VH.formContainer
-            [ Input.text
-                (VH.inputItemAttributes context.palette.background)
-                { text = volName
-                , placeholder = Just (Input.placeholder [] (Element.text "My Important Data"))
-                , onChange = \n -> SetProjectView project.auth.project.uuid <| CreateVolume n volSizeInput
-                , label = Input.labelAbove [] (Element.text "Name")
-                }
-            , Element.text <|
-                String.join " "
-                    [ "(Suggestion: choose a good name that describes what the"
-                    , context.localization.blockDevice
-                    , "will store.)"
-                    ]
-            , numericTextInput
-                context.palette
-                (VH.inputItemAttributes context.palette.background)
-                volSizeInput
-                { labelText = "Size in GB"
-                , minVal = Just 1
-                , maxVal = volGbAvail
-                , defaultVal = Just 2
-                }
-                (\newInput -> SetProjectView project.auth.project.uuid <| CreateVolume volName newInput)
-            , let
-                ( onPress, quotaWarnText ) =
-                    if canAttemptCreateVol then
-                        case volSizeInput of
-                            ValidNumericTextInput volSizeGb ->
-                                ( Just <|
-                                    SharedMsg
-                                        (ProjectMsg project.auth.project.uuid (RequestCreateVolume volName volSizeGb))
-                                , Nothing
-                                )
-
-                            InvalidNumericTextInput _ ->
-                                ( Nothing, Nothing )
-
-                    else
-                        ( Nothing
-                        , Just <|
-                            String.concat
-                                [ "Your "
-                                , context.localization.maxResourcesPerProject
-                                , " does not allow for creation of another "
-                                , context.localization.blockDevice
-                                , "."
-                                ]
-                        )
-              in
-              Element.row (List.append VH.exoRowAttributes [ Element.width Element.fill ])
-                [ case quotaWarnText of
-                    Just text ->
-                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text text
-
-                    Nothing ->
-                        Element.none
-                , Element.el [ Element.alignRight ] <|
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
-                        { text = "Create"
-                        , onPress = onPress
-                        }
-                ]
-            ]
-        ]

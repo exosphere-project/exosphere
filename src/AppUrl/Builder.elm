@@ -227,7 +227,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                     )
                 ]
 
-        CreateVolume _ _ ->
+        VolumeCreate _ ->
             buildUrlFunc
                 [ "createvolume"
                 ]

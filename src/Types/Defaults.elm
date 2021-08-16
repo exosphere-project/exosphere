@@ -1,7 +1,6 @@
 module Types.Defaults exposing
     ( allResourcesListViewParams
     , createServerViewParams
-    , createVolumeView
     , imageListViewParams
     , localization
     , projectViewParams
@@ -15,7 +14,6 @@ import Page.FloatingIpList
 import Page.KeypairList
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
 import Types.View as ViewTypes
 
@@ -125,11 +123,6 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
     }
-
-
-createVolumeView : ViewTypes.ProjectViewConstructor
-createVolumeView =
-    ViewTypes.CreateVolume "" (ValidNumericTextInput 10)
 
 
 volumeListViewParams : ViewTypes.VolumeListViewParams

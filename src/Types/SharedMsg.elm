@@ -121,3 +121,4 @@ type
     | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | KeypairList HelperTypes.ProjectIdentifier
     | KeypairCreate HelperTypes.ProjectIdentifier
+    | VolumeCreate HelperTypes.ProjectIdentifier

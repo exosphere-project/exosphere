@@ -378,12 +378,12 @@ setProjectView project projectViewConstructor outerModel =
                 MountVolInstructions _ ->
                     ( outerModel, Cmd.none )
 
-                CreateVolume _ _ ->
+                VolumeCreate _ ->
                     let
                         cmd =
                             -- If just entering this view, get volume quota
                             case outerModel.viewState of
-                                ProjectView _ _ (CreateVolume _ _) ->
+                                ProjectView _ _ (VolumeCreate _) ->
                                     Cmd.none
 
                                 _ ->

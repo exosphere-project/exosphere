@@ -10,6 +10,7 @@ import Page.GetSupport
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
+import Page.VolumeCreate
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.SharedMsg as SharedMsg
@@ -249,7 +250,7 @@ projectViewConstructorParsers =
          s "createserver" <?> queryParser
         )
     , map
-        Defaults.createVolumeView
+        (VolumeCreate Page.VolumeCreate.init)
         (s "createvolume")
     , map
         (\( maybeServerUuid, maybeVolUuid ) ->

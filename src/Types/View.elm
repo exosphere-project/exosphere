@@ -29,8 +29,8 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.SelectProjects
+import Page.VolumeCreate
 import Set
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
 
@@ -74,7 +74,7 @@ type ProjectViewConstructor
     | CreateServerImage OSTypes.ServerUuid String
     | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
     | CreateServer HelperTypes.CreateServerViewParams
-    | CreateVolume OSTypes.VolumeName NumericTextInput
+    | VolumeCreate Page.VolumeCreate.Model
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | MountVolInstructions OSTypes.VolumeAttachment
 

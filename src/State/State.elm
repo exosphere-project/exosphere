@@ -30,6 +30,7 @@ import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
 import Page.Settings
+import Page.VolumeCreate
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -362,6 +363,21 @@ updateUnderlying outerMsg outerModel =
                                         FloatingIpAssign newSharedModel
                               }
                             , Cmd.map (\msg -> FloatingIpAssignMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( VolumeCreateMsg innerMsg, VolumeCreate innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeCreate.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        VolumeCreate newSharedModel
+                              }
+                            , Cmd.map (\msg -> VolumeCreateMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -725,6 +741,17 @@ processSharedMsg sharedMsg outerModel =
                             ViewStateHelpers.setProjectView
                                 project
                                 (KeypairCreate Page.KeypairCreate.init)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.VolumeCreate projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (VolumeCreate Page.VolumeCreate.init)
                                 outerModel
 
                         Nothing ->

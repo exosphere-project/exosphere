@@ -179,7 +179,7 @@ pageTitle outerModel context =
                             |> Helpers.String.toTitleCase
                         ]
 
-                CreateVolume _ _ ->
+                VolumeCreate _ ->
                     String.join " "
                         [ "Create"
                         , context.localization.blockDevice

@@ -11,6 +11,7 @@ import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
 import Page.Settings
+import Page.VolumeCreate
 import Types.HelperTypes as HelperTypes
 import Types.SharedMsg
 import Types.View as ViewTypes
@@ -31,3 +32,4 @@ type OuterMsg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | KeypairListMsg Page.KeypairList.Msg
     | KeypairCreateMsg Page.KeypairCreate.Msg
+    | VolumeCreateMsg Page.VolumeCreate.Msg

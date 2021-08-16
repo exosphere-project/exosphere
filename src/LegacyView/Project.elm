@@ -18,8 +18,8 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
+import Page.VolumeCreate
 import Style.Helpers as SH
-import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -82,8 +82,9 @@ project model context p viewParams viewConstructor =
                         )
                         volumeUuid
 
-                CreateVolume volName volSizeInput ->
-                    LegacyView.Volumes.createVolume context p volName volSizeInput
+                VolumeCreate model_ ->
+                    Page.VolumeCreate.view context p model_
+                        |> Element.map VolumeCreateMsg
 
                 AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
                     LegacyView.AttachVolume.attachVolume context p maybeServerUuid maybeVolumeUuid
@@ -248,11 +249,7 @@ createButton context projectId expanded =
                     (context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <|
-                        SetProjectView projectId <|
-                            -- TODO store default values of CreateVolumeRequest (name and size) somewhere else, like global defaults imported by State.elm
-                            CreateVolume "" (ValidNumericTextInput 10)
-                    )
+                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.VolumeCreate projectId)
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.pkiPublicKeyForSsh
