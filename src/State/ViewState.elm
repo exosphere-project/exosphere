@@ -42,37 +42,10 @@ import View.Helpers
 setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 setNonProjectView nonProjectViewConstructor outerModel =
     let
-        prevNonProjectViewConstructor =
-            case outerModel.viewState of
-                NonProjectView nonProjectViewConstructor_ ->
-                    if nonProjectViewConstructor == nonProjectViewConstructor_ then
-                        Nothing
-
-                    else
-                        Just nonProjectViewConstructor_
-
-                _ ->
-                    Nothing
-
         ( viewSpecificSharedModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
-                GetSupport _ ->
-                    case prevNonProjectViewConstructor of
-                        Just (GetSupport _) ->
-                            ( outerModel.sharedModel, Cmd.none )
-
-                        _ ->
-                            ( outerModel.sharedModel, Cmd.none )
-
-                HelpAbout ->
-                    case prevNonProjectViewConstructor of
-                        Just HelpAbout ->
-                            ( outerModel.sharedModel, Cmd.none )
-
-                        _ ->
-                            ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
-
                 LoadingUnscopedProjects authTokenStr ->
+                    -- TODO revisit this
                     -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
                     case outerModel.sharedModel.openIdConnectLoginConfig of
                         Nothing ->

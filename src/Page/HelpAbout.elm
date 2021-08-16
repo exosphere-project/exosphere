@@ -1,8 +1,10 @@
-module Page.HelpAbout exposing (view)
+module Page.HelpAbout exposing (init, view)
 
 import Element
 import FeatherIcons
+import Ports
 import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg exposing (SharedMsg)
 import UUID
 import View.Helpers as VH
 import View.Types
@@ -11,6 +13,13 @@ import View.Types
 
 -- No state or Msgs to keep track of, so there is no Model, Msg, init, or update here
 -- TODO normalize argument order here, most other pages take a context and then a SharedModel
+
+
+init : ( (), Cmd SharedMsg )
+init =
+    ( ()
+    , Ports.instantiateClipboardJs ()
+    )
 
 
 view : SharedModel -> View.Types.Context -> Element.Element msg

@@ -21,6 +21,7 @@ import Orchestration.Orchestration as Orchestration
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.HelpAbout
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -662,6 +663,16 @@ processSharedMsg sharedMsg outerModel =
 
                 Types.SharedMsg.LoginJetstream ->
                     ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
+
+                Types.SharedMsg.HelpAbout ->
+                    let
+                        ( _, cmd ) =
+                            Page.HelpAbout.init
+
+                        ( newOuterModel, otherCmd ) =
+                            ViewStateHelpers.setNonProjectView HelpAbout outerModel
+                    in
+                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
 
                 Types.SharedMsg.ServerDetail projectId serverId ->
                     -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once

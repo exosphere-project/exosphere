@@ -114,6 +114,7 @@ type
     = LoginPicker
     | LoginOpenstack
     | LoginJetstream
+    | HelpAbout
     | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
     | FloatingIpList HelperTypes.ProjectIdentifier

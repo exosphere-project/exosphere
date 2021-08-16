@@ -202,7 +202,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView HelpAbout)
+                        { onPress = Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.HelpAbout
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
