@@ -1,26 +1,19 @@
-module LegacyView.AttachVolume exposing (mountVolInstructions)
+module Page.VolumeMountInstructions exposing (view)
 
 import Element
 import Helpers.Helpers as Helpers
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
-import Types.Defaults as Defaults
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.View
-    exposing
-        ( IPInfoLevel(..)
-        , PasswordVisibility(..)
-        , ProjectViewConstructor(..)
-        )
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element OuterMsg
-mountVolInstructions context project attachment =
+view : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element SharedMsg.SharedMsg
+view context project attachment =
     Element.column VH.exoColumnAttributes
         [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
@@ -73,12 +66,8 @@ mountVolInstructions context project attachment =
                 { text = "Go to my " ++ context.localization.virtualComputer
                 , onPress =
                     Just <|
-                        SetProjectView
-                            project.auth.project.uuid
-                        <|
-                            ServerDetail
-                                attachment.serverUuid
-                                Defaults.serverDetailViewParams
+                        SharedMsg.NavigateToView <|
+                            SharedMsg.ServerDetail project.auth.project.uuid attachment.serverUuid
                 }
             ]
         ]

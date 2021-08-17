@@ -7,7 +7,6 @@ import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import LegacyView.AllResources
-import LegacyView.AttachVolume
 import LegacyView.CreateServer
 import LegacyView.CreateServerImage
 import LegacyView.Images
@@ -21,6 +20,7 @@ import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
+import Page.VolumeMountInstructions
 import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
@@ -84,7 +84,8 @@ project model context p viewParams viewConstructor =
                         |> Element.map VolumeAttachMsg
 
                 MountVolInstructions attachment ->
-                    LegacyView.AttachVolume.mountVolInstructions context p attachment
+                    Page.VolumeMountInstructions.view context p attachment
+                        |> Element.map SharedMsg
 
                 FloatingIpList model_ ->
                     Page.FloatingIpList.view context
