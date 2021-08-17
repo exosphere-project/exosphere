@@ -1,4 +1,4 @@
-module LegacyView.Volumes exposing (volumeDetail, volumeDetailView, volumes)
+module LegacyView.Volumes exposing (volumes)
 
 import Element
 import Element.Font as Font
@@ -240,27 +240,6 @@ volumeActionButtons context project toMsg deleteConfirmations volume =
             [ attachDetachButton
             , Element.el [ Element.alignRight ] deleteButton
             ]
-        ]
-
-
-volumeDetailView :
-    View.Types.Context
-    -> Project
-    -> List DeleteVolumeConfirmation
-    -> (List DeleteVolumeConfirmation -> OuterMsg)
-    -> OSTypes.VolumeUuid
-    -> Element.Element OuterMsg
-volumeDetailView context project deleteVolumeConfirmations toMsg volumeUuid =
-    Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette) <|
-            Element.text <|
-                String.join " "
-                    [ context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    , "Detail"
-                    ]
-        , volumeDetail context project toMsg deleteVolumeConfirmations volumeUuid
         ]
 
 

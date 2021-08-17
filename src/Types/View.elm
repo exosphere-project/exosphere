@@ -30,6 +30,7 @@ import Page.LoginOpenstack
 import Page.MessageLog
 import Page.SelectProjects
 import Page.VolumeCreate
+import Page.VolumeDetail
 import Set
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
@@ -72,7 +73,7 @@ type ProjectViewConstructor
     | KeypairCreate Page.KeypairCreate.Model
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServerImage OSTypes.ServerUuid String
-    | VolumeDetail OSTypes.VolumeUuid (List DeleteVolumeConfirmation)
+    | VolumeDetail Page.VolumeDetail.Model
     | CreateServer HelperTypes.CreateServerViewParams
     | VolumeCreate Page.VolumeCreate.Model
     | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)

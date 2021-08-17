@@ -359,7 +359,7 @@ setProjectView project projectViewConstructor outerModel =
                 KeypairCreate _ ->
                     ( outerModel, Cmd.none )
 
-                VolumeDetail _ _ ->
+                VolumeDetail _ ->
                     ( outerModel, Cmd.none )
 
                 AttachVolumeModal _ _ ->
@@ -503,8 +503,8 @@ viewStateToSupportableItem viewState =
                 CreateServerImage serverUuid _ ->
                     ( HelperTypes.SupportableServer, Just serverUuid )
 
-                VolumeDetail volumeUuid _ ->
-                    ( HelperTypes.SupportableVolume, Just volumeUuid )
+                VolumeDetail pageModel ->
+                    ( HelperTypes.SupportableVolume, Just pageModel.volumeUuid )
 
                 AttachVolumeModal _ maybeVolumeUuid ->
                     maybeVolumeUuid

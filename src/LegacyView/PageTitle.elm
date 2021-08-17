@@ -165,11 +165,11 @@ pageTitle outerModel context =
                         , serverName maybeProject serverUuid
                         ]
 
-                VolumeDetail volumeUuid _ ->
+                VolumeDetail model ->
                     String.join " "
                         [ context.localization.blockDevice
                             |> Helpers.String.toTitleCase
-                        , volumeName maybeProject volumeUuid
+                        , volumeName maybeProject model.volumeUuid
                         ]
 
                 CreateServer _ ->

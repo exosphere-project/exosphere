@@ -122,3 +122,5 @@ type
     | KeypairList HelperTypes.ProjectIdentifier
     | KeypairCreate HelperTypes.ProjectIdentifier
     | VolumeCreate HelperTypes.ProjectIdentifier
+    | VolumeAttach HelperTypes.ProjectIdentifier (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
+    | VolumeDetail HelperTypes.ProjectIdentifier OSTypes.VolumeUuid

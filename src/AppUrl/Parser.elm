@@ -11,6 +11,7 @@ import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
 import Page.VolumeCreate
+import Page.VolumeDetail
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.SharedMsg as SharedMsg
@@ -204,7 +205,7 @@ projectViewConstructorParsers =
         (s "servers")
     , map
         (\volUuid ->
-            VolumeDetail volUuid []
+            VolumeDetail (Page.VolumeDetail.init volUuid)
         )
         (s "volumes" </> string)
     , map

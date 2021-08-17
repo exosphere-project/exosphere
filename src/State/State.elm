@@ -31,6 +31,7 @@ import Page.MessageLog
 import Page.SelectProjects
 import Page.Settings
 import Page.VolumeCreate
+import Page.VolumeDetail
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -378,6 +379,21 @@ updateUnderlying outerMsg outerModel =
                                         VolumeCreate newSharedModel
                               }
                             , Cmd.map (\msg -> VolumeCreateMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( VolumeDetailMsg innerMsg, VolumeDetail innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeDetail.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        VolumeDetail newSharedModel
+                              }
+                            , Cmd.map (\msg -> VolumeDetailMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -757,6 +773,28 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
+                Types.SharedMsg.VolumeAttach projectId maybeServerUuid maybeVolumeUuid ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (AttachVolumeModal maybeServerUuid maybeVolumeUuid)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.VolumeDetail projectId volumeUuid ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (VolumeDetail <| Page.VolumeDetail.init volumeUuid)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
         NavigateToUrl url ->
             ( outerModel, Browser.Navigation.load url )
 
@@ -906,11 +944,11 @@ processTick outerModel interval time =
                                 ListProjectVolumes _ ->
                                     pollVolumes
 
-                                VolumeDetail volumeUuid _ ->
+                                VolumeDetail pageModel ->
                                     ( outerModel.sharedModel
                                     , case interval of
                                         5 ->
-                                            case GetterSetters.volumeLookup project volumeUuid of
+                                            case GetterSetters.volumeLookup project pageModel.volumeUuid of
                                                 Nothing ->
                                                     Cmd.none
 

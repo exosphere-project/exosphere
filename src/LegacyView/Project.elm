@@ -19,6 +19,7 @@ import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.VolumeCreate
+import Page.VolumeDetail
 import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
@@ -72,15 +73,9 @@ project model context p viewParams viewConstructor =
                                 ListProjectVolumes newParams
                         )
 
-                VolumeDetail volumeUuid deleteVolumeConfirmations ->
-                    LegacyView.Volumes.volumeDetailView context
-                        p
-                        deleteVolumeConfirmations
-                        (\newParams ->
-                            SetProjectView p.auth.project.uuid <|
-                                VolumeDetail volumeUuid newParams
-                        )
-                        volumeUuid
+                VolumeDetail model_ ->
+                    Page.VolumeDetail.view context p model_ True
+                        |> Element.map VolumeDetailMsg
 
                 VolumeCreate model_ ->
                     Page.VolumeCreate.view context p model_

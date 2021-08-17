@@ -197,10 +197,10 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ UB.string "name" imageName
                 ]
 
-        VolumeDetail volumeUuid _ ->
+        VolumeDetail model ->
             buildUrlFunc
                 [ "volumes"
-                , volumeUuid
+                , model.volumeUuid
                 ]
                 []
 

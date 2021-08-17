@@ -1267,7 +1267,7 @@ serverVolumes context project server =
             let
                 volDetailsButton v =
                     Style.Widgets.IconButton.goToButton context.palette
-                        (Just (SetProjectView project.auth.project.uuid <| VolumeDetail v.uuid []))
+                        (Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.VolumeDetail project.auth.project.uuid v.uuid)
 
                 volumeRow v =
                     let
