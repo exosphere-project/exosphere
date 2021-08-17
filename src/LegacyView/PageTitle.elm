@@ -149,11 +149,11 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ServerDetail serverUuid _ ->
+                ServerDetail model ->
                     String.join " "
                         [ context.localization.virtualComputer
                             |> Helpers.String.toTitleCase
-                        , serverName maybeProject serverUuid
+                        , serverName maybeProject model.serverUuid
                         ]
 
                 ServerCreateImage model ->

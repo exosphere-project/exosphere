@@ -1,6 +1,5 @@
 module OpenStack.ServerActions exposing
-    ( ActionType(..)
-    , SelectMod(..)
+    ( SelectMod(..)
     , ServerAction
     , getAllowed
     )
@@ -10,10 +9,8 @@ import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
-import Rest.Nova
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Server exposing (Server)
 import Types.SharedMsg as SharedMsg
     exposing
@@ -52,16 +49,10 @@ type alias ServerAction =
     , description : String
     , allowedStatuses : Maybe (List OSTypes.ServerStatus)
     , allowedLockStatus : Maybe OSTypes.ServerLockStatus
-    , action : ActionType
+    , action : ProjectIdentifier -> Server -> Bool -> SharedMsg
     , selectMod : SelectMod
-    , targetStatus : Maybe (List OSTypes.ServerStatus)
     , confirmable : Bool
     }
-
-
-type ActionType
-    = CmdAction (ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg)
-    | UpdateAction (ProjectIdentifier -> Server -> OuterMsg)
 
 
 type SelectMod
@@ -92,10 +83,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction (Json.Encode.object [ ( "lock", Json.Encode.null ) ])
+            doAction (Json.Encode.object [ ( "lock", Json.Encode.null ) ]) Nothing
       , selectMod = NoMod
-      , targetStatus = Nothing
       , confirmable = False
       }
     , { name = "Unlock"
@@ -108,10 +97,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Nothing
       , allowedLockStatus = Just OSTypes.ServerLocked
       , action =
-            CmdAction <|
-                doAction (Json.Encode.object [ ( "unlock", Json.Encode.null ) ])
+            doAction (Json.Encode.object [ ( "unlock", Json.Encode.null ) ]) Nothing
       , selectMod = Warning
-      , targetStatus = Nothing
       , confirmable = False
       }
     , { name = "Start"
@@ -123,11 +110,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerStopped, OSTypes.ServerShutoff ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction <|
-                    Json.Encode.object [ ( "os-start", Json.Encode.null ) ]
+            doAction (Json.Encode.object [ ( "os-start", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
       , selectMod = Primary
-      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Unpause"
@@ -139,11 +123,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerPaused ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction <|
-                    Json.Encode.object [ ( "unpause", Json.Encode.null ) ]
+            doAction (Json.Encode.object [ ( "unpause", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
       , selectMod = Primary
-      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Resume"
@@ -155,11 +136,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction <|
-                    Json.Encode.object [ ( "resume", Json.Encode.null ) ]
+            doAction (Json.Encode.object [ ( "resume", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
       , selectMod = Primary
-      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Unshelve"
@@ -171,10 +149,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ])
+            doAction (Json.Encode.object [ ( "unshelve", Json.Encode.null ) ]) (Just [ OSTypes.ServerActive ])
       , selectMod = Primary
-      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Suspend"
@@ -182,11 +158,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerActive ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction <|
-                    Json.Encode.object [ ( "suspend", Json.Encode.null ) ]
+            doAction (Json.Encode.object [ ( "suspend", Json.Encode.null ) ]) (Just [ OSTypes.ServerSuspended ])
       , selectMod = NoMod
-      , targetStatus = Just [ OSTypes.ServerSuspended ]
       , confirmable = False
       }
     , { name = "Shelve"
@@ -199,10 +172,9 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <|
-                doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
+            doAction (Json.Encode.object [ ( "shelve", Json.Encode.null ) ])
+                (Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ])
       , selectMod = NoMod
-      , targetStatus = Just [ OSTypes.ServerShelved, OSTypes.ServerShelvedOffloaded ]
       , confirmable = False
       }
     , { name =
@@ -216,15 +188,12 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
       , allowedLockStatus = Nothing
       , action =
-            UpdateAction <|
-                \projectId server ->
-                    SharedMsg <|
-                        NavigateToView <|
-                            SharedMsg.ServerCreateImage projectId
-                                server.osProps.uuid
-                                (Just <| server.osProps.name ++ "-image")
+            \projectId server _ ->
+                NavigateToView <|
+                    SharedMsg.ServerCreateImage projectId
+                        server.osProps.uuid
+                        (Just <| server.osProps.name ++ "-image")
       , selectMod = NoMod
-      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Reboot"
@@ -238,16 +207,16 @@ actions maybeWordForServer maybeWordForImage =
 
       -- TODO soft and hard reboot? Call hard reboot "reset"?
       , action =
-            CmdAction <|
-                doAction <|
-                    Json.Encode.object
-                        [ ( "reboot"
-                          , Json.Encode.object
-                                [ ( "type", Json.Encode.string "SOFT" ) ]
-                          )
-                        ]
+            doAction
+                (Json.Encode.object
+                    [ ( "reboot"
+                      , Json.Encode.object
+                            [ ( "type", Json.Encode.string "SOFT" ) ]
+                      )
+                    ]
+                )
+                (Just [ OSTypes.ServerActive ])
       , selectMod = Warning
-      , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False
       }
     , { name = "Delete"
@@ -272,9 +241,9 @@ actions maybeWordForServer maybeWordForImage =
                 ]
       , allowedLockStatus = Just OSTypes.ServerUnlocked
       , action =
-            CmdAction <| Rest.Nova.requestDeleteServer
+            \projectId server retainFloatingIp ->
+                ProjectMsg projectId <| ServerMsg server.osProps.uuid <| RequestDeleteServer retainFloatingIp
       , selectMod = Danger
-      , targetStatus = Just [ OSTypes.ServerSoftDeleted ]
       , confirmable = True
       }
 
@@ -301,28 +270,37 @@ actions maybeWordForServer maybeWordForImage =
     ]
 
 
-doAction : Json.Encode.Value -> ProjectIdentifier -> Url -> OSTypes.ServerUuid -> Cmd SharedMsg
-doAction body projectId novaUrl serverId =
+doAction : Json.Encode.Value -> Maybe (List OSTypes.ServerStatus) -> ProjectIdentifier -> Server -> Bool -> SharedMsg
+doAction jsonBody maybeTargetStatuses projectId server _ =
     let
-        errorContext =
-            ErrorContext
-                ("perform action for server " ++ serverId)
-                ErrorCrit
+        credentialedRequest : Url -> Cmd SharedMsg
+        credentialedRequest novaUrl =
+            let
+                errorContext =
+                    ErrorContext
+                        ("perform action for server " ++ server.osProps.uuid)
+                        ErrorCrit
+                        Nothing
+            in
+            openstackCredentialedRequest
+                projectId
+                Post
                 Nothing
-    in
-    openstackCredentialedRequest
-        projectId
-        Post
-        Nothing
-        (novaUrl ++ "/servers/" ++ serverId ++ "/action")
-        (Http.jsonBody body)
-        (expectStringWithErrorBody
-            (resultToMsgErrorBody
-                errorContext
-                (\_ ->
-                    ProjectMsg projectId <|
-                        ServerMsg serverId <|
-                            RequestServer
+                (novaUrl ++ "/servers/" ++ server.osProps.uuid ++ "/action")
+                (Http.jsonBody jsonBody)
+                (expectStringWithErrorBody
+                    (resultToMsgErrorBody
+                        errorContext
+                        (\_ ->
+                            ProjectMsg projectId <|
+                                ServerMsg server.osProps.uuid <|
+                                    RequestServer
+                        )
+                    )
                 )
-            )
-        )
+    in
+    SharedMsg.ProjectMsg projectId <|
+        SharedMsg.ServerMsg server.osProps.uuid <|
+            SharedMsg.RequestServerAction
+                credentialedRequest
+                maybeTargetStatuses

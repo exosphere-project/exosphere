@@ -185,10 +185,10 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, cmd )
 
-                ServerDetail serverUuid _ ->
+                ServerDetail model ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (ServerDetail _ _) ->
+                        Just (ServerDetail _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -208,7 +208,7 @@ setProjectView project projectViewConstructor outerModel =
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer project.auth.project.uuid serverUuid)
+                                            (ApiModelHelpers.requestServer project.auth.project.uuid model.serverUuid)
                             in
                             ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
 
@@ -497,8 +497,8 @@ viewStateToSupportableItem viewState =
                 CreateServer createServerViewParams ->
                     ( HelperTypes.SupportableImage, Just createServerViewParams.imageUuid )
 
-                ServerDetail serverUuid _ ->
-                    ( HelperTypes.SupportableServer, Just serverUuid )
+                ServerDetail pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
                 ServerCreateImage pageModel ->
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )

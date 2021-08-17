@@ -4,7 +4,6 @@ module Types.Defaults exposing
     , imageListViewParams
     , localization
     , projectViewParams
-    , serverDetailViewParams
     , serverListViewParams
     , sortTableParams
     )
@@ -87,19 +86,6 @@ serverListViewParams =
     { onlyOwnServers = True
     , selectedServers = Set.empty
     , deleteConfirmations = []
-    }
-
-
-serverDetailViewParams : ViewTypes.ServerDetailViewParams
-serverDetailViewParams =
-    { showCreatedTimeToggleTip = False
-    , verboseStatus = False
-    , passwordVisibility = ViewTypes.PasswordHidden
-    , ipInfoLevel = ViewTypes.IPSummary
-    , serverActionNamePendingConfirmation = Nothing
-    , serverNamePendingConfirmation = Nothing
-    , activeInteractionToggleTip = Nothing
-    , retainFloatingIpsWhenDeleting = False
     }
 
 

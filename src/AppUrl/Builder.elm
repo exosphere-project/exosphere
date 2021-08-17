@@ -181,10 +181,10 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "uploadkeypair" ]
                 []
 
-        ServerDetail serverUuid _ ->
+        ServerDetail model ->
             buildUrlFunc
                 [ "servers"
-                , serverUuid
+                , model.serverUuid
                 ]
                 []
 

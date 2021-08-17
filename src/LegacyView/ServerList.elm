@@ -14,12 +14,11 @@ import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
-import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
+import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View
     exposing
         ( NonProjectViewConstructor(..)
@@ -303,10 +302,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 
         serverNameClickEvent : OuterMsg
         serverNameClickEvent =
-            SetProjectView projectId <|
-                ServerDetail
-                    server.osProps.uuid
-                    Defaults.serverDetailViewParams
+            SharedMsg <| NavigateToView <| SharedMsg.ServerDetail projectId server.osProps.uuid
 
         serverLabel : Server -> Element.Element OuterMsg
         serverLabel aServer =

@@ -1,4 +1,4 @@
-module LegacyView.ServerDetail exposing (serverDetail)
+module Page.ServerDetail exposing (Model, Msg, init, update, view)
 
 import DateFormat.Relative
 import Dict
@@ -26,33 +26,117 @@ import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton
 import Style.Widgets.ToggleTip
 import Time
-import Types.HelperTypes exposing (FloatingIpOption(..), ProjectIdentifier, UserAppProxyHostname)
-import Types.Interaction as ITypes
-import Types.OuterMsg exposing (OuterMsg(..))
+import Types.HelperTypes exposing (FloatingIpOption(..), UserAppProxyHostname)
+import Types.Interaction as ITypes exposing (Interaction)
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
 import Types.SharedMsg as SharedMsg
-import Types.View
-    exposing
-        ( IPInfoLevel(..)
-        , NonProjectViewConstructor(..)
-        , PasswordVisibility(..)
-        , ProjectViewConstructor(..)
-        , ServerDetailViewParams
-        , ViewState(..)
-        )
 import View.Helpers as VH
 import View.Types
 import Widget
 import Widget.Style.Material
 
 
-serverDetail : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> OSTypes.ServerUuid -> Element.Element OuterMsg
-serverDetail context project currentTimeAndZone serverDetailViewParams serverUuid =
+type alias Model =
+    { serverUuid : OSTypes.ServerUuid
+    , showCreatedTimeToggleTip : Bool
+    , verboseStatus : VerboseStatus
+    , passwordVisibility : PasswordVisibility
+    , ipInfoLevel : IpInfoLevel
+    , serverActionNamePendingConfirmation : Maybe String
+    , serverNamePendingConfirmation : Maybe String
+    , activeInteractionToggleTip : Maybe Interaction
+    , retainFloatingIpsWhenDeleting : Bool
+    }
+
+
+type IpInfoLevel
+    = IpDetails
+    | IpSummary
+
+
+type alias VerboseStatus =
+    Bool
+
+
+type PasswordVisibility
+    = PasswordShown
+    | PasswordHidden
+
+
+init : OSTypes.ServerUuid -> Model
+init serverUuid =
+    { serverUuid = serverUuid
+    , showCreatedTimeToggleTip = False
+    , verboseStatus = False
+    , passwordVisibility = PasswordHidden
+    , ipInfoLevel = IpSummary
+    , serverActionNamePendingConfirmation = Nothing
+    , serverNamePendingConfirmation = Nothing
+    , activeInteractionToggleTip = Nothing
+    , retainFloatingIpsWhenDeleting = False
+    }
+
+
+type Msg
+    = GotShowCreatedTimeToggleTip Bool
+    | GotShowVerboseStatus Bool
+    | GotPasswordVisibility PasswordVisibility
+    | GotIpInfoLevel IpInfoLevel
+    | GotServerActionNamePendingConfirmation (Maybe String)
+    | GotServerNamePendingConfirmation (Maybe String)
+    | GotActiveInteractionToggleTip (Maybe Interaction)
+    | GotRetainFloatingIpsWhenDeleting Bool
+    | GotSetServerName String
+    | SharedMsg SharedMsg.SharedMsg
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
+    case msg of
+        GotShowCreatedTimeToggleTip shown ->
+            ( { model | showCreatedTimeToggleTip = shown }, Cmd.none, SharedMsg.NoOp )
+
+        GotShowVerboseStatus shown ->
+            ( { model | verboseStatus = shown }, Cmd.none, SharedMsg.NoOp )
+
+        GotPasswordVisibility visibility ->
+            ( { model | passwordVisibility = visibility }, Cmd.none, SharedMsg.NoOp )
+
+        GotIpInfoLevel level ->
+            ( { model | ipInfoLevel = level }, Cmd.none, SharedMsg.NoOp )
+
+        GotServerActionNamePendingConfirmation maybeAction ->
+            ( { model | serverActionNamePendingConfirmation = maybeAction }, Cmd.none, SharedMsg.NoOp )
+
+        GotServerNamePendingConfirmation maybeName ->
+            ( { model | serverNamePendingConfirmation = maybeName }, Cmd.none, SharedMsg.NoOp )
+
+        GotActiveInteractionToggleTip maybeInteraction ->
+            ( { model | activeInteractionToggleTip = maybeInteraction }, Cmd.none, SharedMsg.NoOp )
+
+        GotRetainFloatingIpsWhenDeleting retain ->
+            ( { model | retainFloatingIpsWhenDeleting = retain }, Cmd.none, SharedMsg.NoOp )
+
+        GotSetServerName validName ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+                SharedMsg.ServerMsg model.serverUuid <|
+                    SharedMsg.RequestSetServerName validName
+            )
+
+        SharedMsg msg_ ->
+            -- TODO convert other pages to use this style
+            ( model, Cmd.none, msg_ )
+
+
+view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
+view context project currentTimeAndZone model =
     {- Attempt to look up a given server UUID; if a Server type is found, call rendering function serverDetail_ -}
-    case GetterSetters.serverLookup project serverUuid of
+    case GetterSetters.serverLookup project model.serverUuid of
         Just server ->
-            serverDetail_ context project currentTimeAndZone serverDetailViewParams server
+            serverDetail_ context project currentTimeAndZone model server
 
         Nothing ->
             Element.text <|
@@ -63,17 +147,12 @@ serverDetail context project currentTimeAndZone serverDetailViewParams serverUui
                     ]
 
 
-serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
-serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
+serverDetail_ : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Server -> Element.Element Msg
+serverDetail_ context project currentTimeAndZone model server =
     {- Render details of a server type and associated resources (e.g. volumes) -}
     let
         details =
             server.osProps.details
-
-        updateViewParams : ServerDetailViewParams -> OuterMsg
-        updateViewParams newViewParams =
-            SetProjectView project.auth.project.uuid <|
-                ServerDetail server.osProps.uuid newViewParams
 
         creatorName =
             case server.exoProps.serverOrigin of
@@ -136,12 +215,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.html
                             |> Element.el []
                     , onPress =
-                        Just
-                            (updateViewParams
-                                { serverDetailViewParams
-                                    | serverNamePendingConfirmation = Just server.osProps.name
-                                }
-                            )
+                        Just <| GotServerNamePendingConfirmation (Just server.osProps.name)
                     }
                 ]
 
@@ -150,7 +224,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 invalidNameReasons =
                     serverNameValidator
                         (Just context.localization.virtualComputer)
-                        (serverDetailViewParams.serverNamePendingConfirmation
+                        (model.serverNamePendingConfirmation
                             |> Maybe.withDefault ""
                         )
 
@@ -192,14 +266,10 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     }
 
                 saveOnPress =
-                    case ( invalidNameReasons, serverDetailViewParams.serverNamePendingConfirmation ) of
+                    case ( invalidNameReasons, model.serverNamePendingConfirmation ) of
                         ( Nothing, Just validName ) ->
                             Just <|
-                                SharedMsg
-                                    (SharedMsg.ProjectMsg project.auth.project.uuid <|
-                                        SharedMsg.ServerMsg server.osProps.uuid <|
-                                            SharedMsg.RequestSetServerName validName
-                                    )
+                                GotSetServerName validName
 
                         ( _, _ ) ->
                             Nothing
@@ -211,7 +281,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     ]
                     (Widget.textInput (Widget.Style.Material.textInput (SH.toMaterialPalette context.palette))
                         { chips = []
-                        , text = serverDetailViewParams.serverNamePendingConfirmation |> Maybe.withDefault ""
+                        , text = model.serverNamePendingConfirmation |> Maybe.withDefault ""
                         , placeholder =
                             Just
                                 (Input.placeholder
@@ -225,12 +295,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                                     )
                                 )
                         , label = "Name"
-                        , onChange =
-                            \n ->
-                                updateViewParams
-                                    { serverDetailViewParams
-                                        | serverNamePendingConfirmation = Just n
-                                    }
+                        , onChange = \name -> GotServerNamePendingConfirmation <| Just name
                         }
                     )
                 , Widget.iconButton
@@ -255,17 +320,12 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                             |> Element.html
                             |> Element.el []
                     , onPress =
-                        Just
-                            (updateViewParams
-                                { serverDetailViewParams
-                                    | serverNamePendingConfirmation = Nothing
-                                }
-                            )
+                        Just <| GotServerNamePendingConfirmation Nothing
                     }
                 ]
 
         serverNameView =
-            case serverDetailViewParams.serverNamePendingConfirmation of
+            case model.serverNamePendingConfirmation of
                 Just _ ->
                     serverNameViewEdit
 
@@ -283,7 +343,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 in
                 ( True, colWidthPx |> Element.px, colWidthPx - 30 )
 
-        firstColumnContents : List (Element.Element OuterMsg)
+        firstColumnContents : List (Element.Element Msg)
         firstColumnContents =
             [ Element.row
                 (VH.heading2 context.palette ++ [ Element.spacing 10 ])
@@ -305,13 +365,9 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     details.created
                     (Just ( "user", creatorName ))
                     (Just ( context.localization.staticRepresentationOfBlockDeviceContents, imageText ))
-                    serverDetailViewParams.showCreatedTimeToggleTip
-                    (updateViewParams
-                        { serverDetailViewParams
-                            | showCreatedTimeToggleTip = not serverDetailViewParams.showCreatedTimeToggleTip
-                        }
-                    )
-            , VH.compactKVRow "Status" (serverStatus context project.auth.project.uuid serverDetailViewParams server)
+                    model.showCreatedTimeToggleTip
+                    (GotShowCreatedTimeToggleTip (not model.showCreatedTimeToggleTip))
+            , VH.compactKVRow "Status" (serverStatus context model server)
             , VH.compactKVRow "UUID" <| copyableText context.palette [] server.osProps.uuid
             , VH.compactKVRow
                 (Helpers.String.toTitleCase context.localization.virtualComputerHardwareConfig)
@@ -329,7 +385,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     context
                     project
                     server
-                    serverDetailViewParams
+                    model
                 )
             , Element.el (VH.heading3 context.palette)
                 (Element.text <|
@@ -388,16 +444,16 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                 server
                 (Tuple.first currentTimeAndZone)
                 (VH.userAppProxyLookup context project)
-                serverDetailViewParams
+                model
             , Element.el (VH.heading3 context.palette) (Element.text "Password")
-            , serverPassword context project.auth.project.uuid serverDetailViewParams server
+            , serverPassword context model server
             ]
 
-        secondColumnContents : List (Element.Element OuterMsg)
+        secondColumnContents : List (Element.Element Msg)
         secondColumnContents =
             List.concat
                 [ [ Element.el (VH.heading3 context.palette) (Element.text "Actions")
-                  , viewServerActions context project serverDetailViewParams server
+                  , viewServerActions context project model server
                   , serverEventHistory
                         context
                         (Tuple.first currentTimeAndZone)
@@ -436,7 +492,7 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
             (List.append firstColumnContents secondColumnContents)
 
 
-passwordVulnWarning : View.Types.Context -> Server -> Element.Element OuterMsg
+passwordVulnWarning : View.Types.Context -> Server -> Element.Element Msg
 passwordVulnWarning context server =
     case server.exoProps.serverOrigin of
         ServerNotFromExo ->
@@ -477,8 +533,8 @@ passwordVulnWarning context server =
                 Element.none
 
 
-serverStatus : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
-serverStatus context projectId serverDetailViewParams server =
+serverStatus : View.Types.Context -> Model -> Server -> Element.Element Msg
+serverStatus context model server =
     let
         details =
             server.osProps.details
@@ -486,7 +542,7 @@ serverStatus context projectId serverDetailViewParams server =
         statusBadge =
             VH.serverStatusBadge context.palette server
 
-        lockStatus : OSTypes.ServerLockStatus -> Element.Element OuterMsg
+        lockStatus : OSTypes.ServerLockStatus -> Element.Element Msg
         lockStatus lockStatus_ =
             case lockStatus_ of
                 OSTypes.ServerLocked ->
@@ -543,12 +599,8 @@ serverStatus context projectId serverDetailViewParams server =
             in
             Style.Widgets.ToggleTip.toggleTip context.palette
                 contents
-                serverDetailViewParams.verboseStatus
-                (SetProjectView projectId <|
-                    ServerDetail
-                        server.osProps.uuid
-                        { serverDetailViewParams | verboseStatus = not serverDetailViewParams.verboseStatus }
-                )
+                model.verboseStatus
+                (GotShowVerboseStatus (not model.verboseStatus))
     in
     Element.row [ Element.spacing 15 ]
         [ statusBadge
@@ -557,8 +609,8 @@ serverStatus context projectId serverDetailViewParams server =
         ]
 
 
-interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> ServerDetailViewParams -> Element.Element OuterMsg
-interactions context project server currentTime tlsReverseProxyHostname serverDetailViewParams =
+interactions : View.Types.Context -> Project -> Server -> Time.Posix -> Maybe UserAppProxyHostname -> Model -> Element.Element Msg
+interactions context project server currentTime tlsReverseProxyHostname model =
     let
         renderInteraction interaction =
             let
@@ -621,27 +673,25 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
                                 ]
 
                         shown =
-                            case serverDetailViewParams.activeInteractionToggleTip of
+                            case model.activeInteractionToggleTip of
                                 Just interaction_ ->
                                     interaction == interaction_
 
                                 _ ->
                                     False
 
-                        showHideMsg : ITypes.Interaction -> OuterMsg
+                        showHideMsg : ITypes.Interaction -> Msg
                         showHideMsg interaction_ =
                             let
                                 newValue =
-                                    case serverDetailViewParams.activeInteractionToggleTip of
+                                    case model.activeInteractionToggleTip of
                                         Just _ ->
                                             Nothing
 
                                         Nothing ->
                                             Just <| interaction_
                             in
-                            SetProjectView project.auth.project.uuid <|
-                                ServerDetail server.osProps.uuid
-                                    { serverDetailViewParams | activeInteractionToggleTip = newValue }
+                            GotActiveInteractionToggleTip newValue
                     in
                     Style.Widgets.ToggleTip.toggleTip
                         context.palette
@@ -736,13 +786,13 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
         |> Element.column []
 
 
-serverPassword : View.Types.Context -> ProjectIdentifier -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
-serverPassword context projectId serverDetailViewParams server =
+serverPassword : View.Types.Context -> Model -> Server -> Element.Element Msg
+serverPassword context model server =
     let
         passwordShower password =
             Element.column
                 [ Element.spacing 10 ]
-                [ case serverDetailViewParams.passwordVisibility of
+                [ case model.passwordVisibility of
                     PasswordShown ->
                         copyableText context.palette [] password
 
@@ -750,12 +800,10 @@ serverPassword context projectId serverDetailViewParams server =
                         Element.none
                 , let
                     changeMsg newValue =
-                        SetProjectView projectId <|
-                            ServerDetail server.osProps.uuid
-                                { serverDetailViewParams | passwordVisibility = newValue }
+                        GotPasswordVisibility newValue
 
                     ( buttonText, onPressMsg ) =
-                        case serverDetailViewParams.passwordVisibility of
+                        case model.passwordVisibility of
                             PasswordShown ->
                                 ( "Hide password"
                                 , changeMsg PasswordHidden
@@ -791,15 +839,15 @@ serverPassword context projectId serverDetailViewParams server =
         ]
 
 
-viewServerActions : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> Element.Element OuterMsg
-viewServerActions context project serverDetailViewParams server =
+viewServerActions : View.Types.Context -> Project -> Model -> Server -> Element.Element Msg
+viewServerActions context project model server =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.spacingXY 0 10 ])
     <|
         case server.exoProps.targetOpenstackStatus of
             Nothing ->
                 List.map
-                    (renderServerActionButton context project serverDetailViewParams server)
+                    (renderServerActionButton context project model server)
                     (ServerActions.getAllowed
                         (Just context.localization.virtualComputer)
                         (Just context.localization.staticRepresentationOfBlockDeviceContents)
@@ -815,16 +863,16 @@ serverEventHistory :
     View.Types.Context
     -> Time.Posix
     -> RemoteData.WebData (List OSTypes.ServerEvent)
-    -> Element.Element OuterMsg
+    -> Element.Element Msg
 serverEventHistory context currentTime serverEventsWebData =
     case serverEventsWebData of
         RemoteData.Success serverEvents ->
             let
-                renderTableHeader : String -> Element.Element OuterMsg
+                renderTableHeader : String -> Element.Element Msg
                 renderTableHeader headerText =
                     Element.el [ Font.bold ] <| Element.text headerText
 
-                columns : List (Element.Column OSTypes.ServerEvent OuterMsg)
+                columns : List (Element.Column OSTypes.ServerEvent Msg)
                 columns =
                     [ { header = renderTableHeader "Action"
                       , width = Element.px 180
@@ -879,32 +927,28 @@ serverEventHistory context currentTime serverEventsWebData =
             Element.none
 
 
-renderServerActionButton : View.Types.Context -> Project -> ServerDetailViewParams -> Server -> ServerActions.ServerAction -> Element.Element OuterMsg
-renderServerActionButton context project serverDetailViewParams server serverAction =
+renderServerActionButton : View.Types.Context -> Project -> Model -> Server -> ServerActions.ServerAction -> Element.Element Msg
+renderServerActionButton context project model server serverAction =
     let
         displayConfirmation =
-            case serverDetailViewParams.serverActionNamePendingConfirmation of
+            case model.serverActionNamePendingConfirmation of
                 Nothing ->
                     False
 
                 Just actionName ->
                     actionName == serverAction.name
     in
-    case ( serverAction.action, serverAction.confirmable, displayConfirmation ) of
-        ( ServerActions.CmdAction _, True, False ) ->
+    case ( serverAction.confirmable, displayConfirmation ) of
+        ( True, False ) ->
             let
                 updateAction =
-                    SetProjectView project.auth.project.uuid
-                        (ServerDetail
-                            server.osProps.uuid
-                            { serverDetailViewParams | serverActionNamePendingConfirmation = Just serverAction.name }
-                        )
+                    GotServerActionNamePendingConfirmation <| Just serverAction.name
             in
             renderActionButton context serverAction (Just updateAction) serverAction.name
 
-        ( ServerActions.CmdAction cmdAction, True, True ) ->
+        ( True, True ) ->
             let
-                renderKeepFloatingIpCheckbox : List (Element.Element OuterMsg)
+                renderKeepFloatingIpCheckbox : List (Element.Element Msg)
                 renderKeepFloatingIpCheckbox =
                     if
                         serverAction.name
@@ -913,15 +957,9 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                     then
                         [ Input.checkbox
                             []
-                            { onChange =
-                                \new ->
-                                    SetProjectView project.auth.project.uuid
-                                        (ServerDetail
-                                            server.osProps.uuid
-                                            { serverDetailViewParams | retainFloatingIpsWhenDeleting = new }
-                                        )
+                            { onChange = GotRetainFloatingIpsWhenDeleting
                             , icon = Input.defaultCheckbox
-                            , checked = serverDetailViewParams.retainFloatingIpsWhenDeleting
+                            , checked = model.retainFloatingIpsWhenDeleting
                             , label =
                                 Input.labelRight []
                                     (Element.text <|
@@ -940,30 +978,10 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                         []
 
                 actionMsg =
-                    if serverAction.name == "Delete" then
-                        -- Override action so that we can pass through user's choice of whether to retain floating IPs
-                        Just <|
-                            SharedMsg <|
-                                SharedMsg.ProjectMsg project.auth.project.uuid <|
-                                    SharedMsg.ServerMsg server.osProps.uuid <|
-                                        SharedMsg.RequestDeleteServer serverDetailViewParams.retainFloatingIpsWhenDeleting
-
-                    else
-                        Just <|
-                            SharedMsg <|
-                                SharedMsg.ProjectMsg project.auth.project.uuid <|
-                                    SharedMsg.ServerMsg server.osProps.uuid <|
-                                        SharedMsg.RequestServerAction
-                                            cmdAction
-                                            serverAction.targetStatus
+                    Just <| serverAction.action project.auth.project.uuid server model.retainFloatingIpsWhenDeleting
 
                 cancelMsg =
-                    Just <|
-                        SetProjectView project.auth.project.uuid
-                            (ServerDetail
-                                server.osProps.uuid
-                                { serverDetailViewParams | serverActionNamePendingConfirmation = Nothing }
-                            )
+                    Just <| GotServerActionNamePendingConfirmation Nothing
 
                 title =
                     confirmationMessage serverAction
@@ -976,26 +994,10 @@ renderServerActionButton context project serverDetailViewParams server serverAct
                     , renderKeepFloatingIpCheckbox
                     ]
 
-        ( ServerActions.CmdAction cmdAction, False, _ ) ->
+        ( _, _ ) ->
             let
                 actionMsg =
-                    Just <|
-                        SharedMsg <|
-                            SharedMsg.ProjectMsg project.auth.project.uuid <|
-                                SharedMsg.ServerMsg server.osProps.uuid <|
-                                    SharedMsg.RequestServerAction
-                                        cmdAction
-                                        serverAction.targetStatus
-
-                title =
-                    serverAction.name
-            in
-            renderActionButton context serverAction actionMsg title
-
-        ( ServerActions.UpdateAction updateAction, _, _ ) ->
-            let
-                actionMsg =
-                    Just <| updateAction project.auth.project.uuid server
+                    Just <| SharedMsg <| serverAction.action project.auth.project.uuid server model.retainFloatingIpsWhenDeleting
 
                 title =
                     serverAction.name
@@ -1008,7 +1010,7 @@ confirmationMessage serverAction =
     "Are you sure you want to " ++ (serverAction.name |> String.toLower) ++ "?"
 
 
-serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton OuterMsg -> Element.Element OuterMsg)
+serverActionSelectModButton : View.Types.Context -> ServerActions.SelectMod -> (Widget.TextButton Msg -> Element.Element Msg)
 serverActionSelectModButton context selectMod =
     case selectMod of
         ServerActions.NoMod ->
@@ -1024,7 +1026,7 @@ serverActionSelectModButton context selectMod =
             Widget.textButton (SH.materialStyle context.palette).dangerButton
 
 
-renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe OuterMsg -> String -> Element.Element OuterMsg
+renderActionButton : View.Types.Context -> ServerActions.ServerAction -> Maybe Msg -> String -> Element.Element Msg
 renderActionButton context serverAction actionMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -1042,7 +1044,7 @@ renderActionButton context serverAction actionMsg title =
         ]
 
 
-renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe OuterMsg -> Maybe OuterMsg -> String -> Element.Element OuterMsg
+renderConfirmationButton : View.Types.Context -> ServerActions.ServerAction -> Maybe SharedMsg.SharedMsg -> Maybe Msg -> String -> Element.Element Msg
 renderConfirmationButton context serverAction actionMsg cancelMsg title =
     Element.row
         [ Element.spacing 10 ]
@@ -1053,7 +1055,7 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
             serverActionSelectModButton context
                 serverAction.selectMod
                 { text = "Yes"
-                , onPress = actionMsg
+                , onPress = Maybe.map SharedMsg actionMsg
                 }
         , Element.el
             []
@@ -1067,7 +1069,7 @@ renderConfirmationButton context serverAction actionMsg cancelMsg title =
         ]
 
 
-resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element OuterMsg
+resourceUsageCharts : View.Types.Context -> Int -> ( Time.Posix, Time.Zone ) -> Server -> Element.Element Msg
 resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
     let
         thirtyMinMillis =
@@ -1124,8 +1126,8 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
     Element.map SharedMsg charts
 
 
-renderIpAddresses : View.Types.Context -> Project -> Server -> ServerDetailViewParams -> Element.Element OuterMsg
-renderIpAddresses context project server serverDetailViewParams =
+renderIpAddresses : View.Types.Context -> Project -> Server -> Model -> Element.Element Msg
+renderIpAddresses context project server model =
     let
         fixedIpAddressRows =
             GetterSetters.getServerFixedIps project server.osProps.uuid
@@ -1192,7 +1194,7 @@ renderIpAddresses context project server serverDetailViewParams =
                                 )
                         )
 
-        ipButton : Element.Element OuterMsg -> String -> IPInfoLevel -> Element.Element OuterMsg
+        ipButton : Element.Element Msg -> String -> IpInfoLevel -> Element.Element Msg
         ipButton label displayLabel ipMsg =
             Element.row
                 [ Element.spacing 3 ]
@@ -1203,19 +1205,14 @@ renderIpAddresses context project server serverDetailViewParams =
                     , Border.color (SH.toElementColor context.palette.muted)
                     , Element.padding 3
                     ]
-                    { onPress =
-                        Just <|
-                            SetProjectView project.auth.project.uuid <|
-                                ServerDetail
-                                    server.osProps.uuid
-                                    { serverDetailViewParams | ipInfoLevel = ipMsg }
+                    { onPress = Just <| GotIpInfoLevel ipMsg
                     , label = label
                     }
                 , Element.el [ Font.size 10 ] (Element.text displayLabel)
                 ]
     in
-    case serverDetailViewParams.ipInfoLevel of
-        IPDetails ->
+    case model.ipInfoLevel of
+        IpDetails ->
             let
                 icon =
                     FeatherIcons.chevronDown
@@ -1226,11 +1223,11 @@ renderIpAddresses context project server serverDetailViewParams =
             Element.column
                 (VH.exoColumnAttributes ++ [ Element.padding 0 ])
                 (floatingIpAddressRows
-                    ++ ipButton icon "IP Details" IPSummary
+                    ++ ipButton icon "IP Details" IpSummary
                     :: fixedIpAddressRows
                 )
 
-        IPSummary ->
+        IpSummary ->
             let
                 icon =
                     FeatherIcons.chevronRight
@@ -1240,10 +1237,10 @@ renderIpAddresses context project server serverDetailViewParams =
             in
             Element.column
                 (VH.exoColumnAttributes ++ [ Element.padding 0 ])
-                (floatingIpAddressRows ++ [ ipButton icon "IP Details" IPDetails ])
+                (floatingIpAddressRows ++ [ ipButton icon "IP Details" IpDetails ])
 
 
-serverVolumes : View.Types.Context -> Project -> Server -> Element.Element OuterMsg
+serverVolumes : View.Types.Context -> Project -> Server -> Element.Element Msg
 serverVolumes context project server =
     let
         vols =

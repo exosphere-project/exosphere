@@ -1,19 +1,15 @@
 module Types.View exposing
     ( AllResourcesListViewParams
     , DeleteConfirmation
-    , IPInfoLevel(..)
     , ImageListViewParams
     , ImageListVisibilityFilter
     , LoginView(..)
     , NonProjectViewConstructor(..)
-    , PasswordVisibility(..)
     , ProjectViewConstructor(..)
     , ProjectViewParams
-    , ServerDetailViewParams
     , ServerListViewParams
     , ServerSelection
     , SortTableParams
-    , VerboseStatus
     , ViewState(..)
     )
 
@@ -28,13 +24,13 @@ import Page.LoginOpenstack
 import Page.MessageLog
 import Page.SelectProjects
 import Page.ServerCreateImage
+import Page.ServerDetail
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
 import Set
 import Types.HelperTypes as HelperTypes
-import Types.Interaction exposing (Interaction)
 
 
 
@@ -69,7 +65,7 @@ type
     = AllResources AllResourcesListViewParams
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
-    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
+    | ServerDetail Page.ServerDetail.Model
     | CreateServer HelperTypes.CreateServerViewParams
     | ServerCreateImage Page.ServerCreateImage.Model
     | VolumeList Page.VolumeList.Model
@@ -149,33 +145,3 @@ type alias ServerSelection =
 
 type alias DeleteConfirmation =
     OSTypes.ServerUuid
-
-
-
--- Model for instance details view
-
-
-type alias ServerDetailViewParams =
-    { showCreatedTimeToggleTip : Bool
-    , verboseStatus : VerboseStatus
-    , passwordVisibility : PasswordVisibility
-    , ipInfoLevel : IPInfoLevel
-    , serverActionNamePendingConfirmation : Maybe String
-    , serverNamePendingConfirmation : Maybe String
-    , activeInteractionToggleTip : Maybe Interaction
-    , retainFloatingIpsWhenDeleting : Bool
-    }
-
-
-type IPInfoLevel
-    = IPDetails
-    | IPSummary
-
-
-type alias VerboseStatus =
-    Bool
-
-
-type PasswordVisibility
-    = PasswordShown
-    | PasswordHidden

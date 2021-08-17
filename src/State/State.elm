@@ -30,6 +30,7 @@ import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
 import Page.ServerCreateImage
+import Page.ServerDetail
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -386,6 +387,21 @@ updateUnderlying outerMsg outerModel =
 
                                 Nothing ->
                                     ( outerModel, Cmd.none )
+
+                        ( ServerDetailMsg innerMsg, ServerDetail innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerDetail.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerDetail newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerDetailMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
                         ( ServerCreateImageMsg innerMsg, ServerCreateImage innerModel ) ->
                             let
@@ -791,7 +807,7 @@ processSharedMsg sharedMsg outerModel =
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (ServerDetail serverId Defaults.serverDetailViewParams)
+                                (ServerDetail (Page.ServerDetail.init serverId))
                                 outerModel
 
                         Nothing ->
@@ -1006,14 +1022,14 @@ processTick outerModel interval time =
                                 AllResources _ ->
                                     pollVolumes
 
-                                ServerDetail serverUuid _ ->
+                                ServerDetail model ->
                                     let
                                         volCmd =
                                             OSVolumes.requestVolumes project
                                     in
                                     case interval of
                                         5 ->
-                                            case GetterSetters.serverLookup project serverUuid of
+                                            case GetterSetters.serverLookup project model.serverUuid of
                                                 Just server ->
                                                     ( outerModel.sharedModel
                                                     , if serverVolsNeedFrequentPoll project server then
@@ -1917,8 +1933,8 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     let
                         newViewState =
                             case outerModel.viewState of
-                                ProjectView projectId viewParams (ServerDetail viewServerUuid _) ->
-                                    if viewServerUuid == server.osProps.uuid then
+                                ProjectView projectId viewParams (ServerDetail model) ->
+                                    if model.serverUuid == server.osProps.uuid then
                                         ProjectView
                                             projectId
                                             viewParams
@@ -2028,17 +2044,17 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         -- Only update the view if we are on the server details view for the server we're interested in
                         updatedView =
                             case outerModel.viewState of
-                                ProjectView projectIdentifier projectViewParams (ServerDetail serverUuid_ serverDetailViewParams) ->
-                                    if server.osProps.uuid == serverUuid_ then
+                                ProjectView projectIdentifier projectViewParams (ServerDetail model) ->
+                                    if server.osProps.uuid == model.serverUuid then
                                         let
-                                            newServerDetailsViewParams =
-                                                { serverDetailViewParams
+                                            newModel =
+                                                { model
                                                     | serverNamePendingConfirmation = Nothing
                                                 }
                                         in
                                         ProjectView projectIdentifier
                                             projectViewParams
-                                            (ServerDetail serverUuid_ newServerDetailsViewParams)
+                                            (ServerDetail newModel)
 
                                     else
                                         outerModel.viewState
@@ -2235,7 +2251,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ( newSharedModel, func newProject.auth.project.uuid newProject.endpoints.nova newServer.osProps.uuid )
+            ( newSharedModel, func newProject.endpoints.nova )
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
