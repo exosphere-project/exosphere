@@ -19,6 +19,7 @@ import Types.Error exposing (HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes
 import Types.ServerResourceUsage
+import Types.Workflow as WorkflowTypes
 
 
 type alias Server =
@@ -48,6 +49,7 @@ type alias ServerFromExoProps =
     , exoSetupStatus : RDPP.RemoteDataPlusPlus HttpErrorWithBody ExoSetupStatus
     , resourceUsage : ResourceUsageRDPP
     , guacamoleStatus : GuacTypes.ServerGuacamoleStatus
+    , customWorkflowStatus : WorkflowTypes.ServerCustomWorkflowStatus
     , exoCreatorUsername : Maybe String
     }
 

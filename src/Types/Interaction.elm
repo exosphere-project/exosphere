@@ -13,6 +13,7 @@ type Interaction
     | GuacDesktop
     | NativeSSH
     | Console
+    | CustomWorkflow
 
 
 type InteractionStatus

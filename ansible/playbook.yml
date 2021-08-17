@@ -9,7 +9,7 @@
     - 'cloud-init-tweaks'
     - 'auto-mount-volumes'
     - role: 'docker'
-      when: 'guac_enabled is defined and guac_enabled == true'
+      when: '(guac_enabled is defined and guac_enabled == true) or (workflow_source_repository is defined)'
     - role: 'desktop-setup'
       when: 'gui_enabled is defined and gui_enabled == true'
     # VNC service must run after Docker service because it listens on Docker network interface
@@ -17,6 +17,10 @@
       when: 'gui_enabled is defined and gui_enabled == true'
     - role: 'guacamole'
       when: 'guac_enabled is defined and guac_enabled == true'
+    - role: 'workflow'
+      tags:
+        - 'workflow'
+      when: 'workflow_source_repository is defined'
   tasks:
     - name: 'ensure hosts are reachable'
       ping:

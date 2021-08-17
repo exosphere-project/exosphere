@@ -729,6 +729,7 @@ interactions context project server currentTime tlsReverseProxyHostname serverDe
     , ITypes.GuacDesktop
     , ITypes.NativeSSH
     , ITypes.Console
+    , ITypes.CustomWorkflow
     ]
         |> List.map renderInteraction
         |> Element.column []

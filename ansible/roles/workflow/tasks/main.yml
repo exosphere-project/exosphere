@@ -1,0 +1,107 @@
+---
+
+- fail:
+    msg: "workflow_source_repository is a mandatory value"
+  when: 'workflow_source_repository is not defined or workflow_source_repository == ""'
+
+# Write to console that workflow provisioning has started
+- shell: 'echo ''{"exoWorkflowSetup":"started"}'' > /dev/console'
+
+- name: 'custom workflow details logging script copied into place'
+  copy:
+    src: 'custom_workflow_json.sh'
+    dest: '/opt/custom_workflow_json.sh'
+    mode: '0544'
+
+- name: 'repo cloned locally if needed'
+  git:
+    repo: '{{ workflow_source_repository }}'
+    version: '{{ workflow_repo_version }}'
+    dest: '/opt/workflow'
+  when: 'workflow_local_download == true'
+
+- name: 'data directory created'
+  file:
+    path: '/data'
+    state: 'directory'
+    owner: 'exouser'
+
+# We are assuming that virtualenv is installed, should already be done by cloud-init.
+- name: 'repo2docker installed'
+  pip:
+    name:
+      - 'six'
+      - 'chardet'  # Temporary workaround for this bug: https://github.com/jupyterhub/repo2docker/issues/1065
+      - 'jupyter-repo2docker'
+    virtualenv: '/opt/repo2docker-venv'
+
+- set_fact:
+    repo2docker_repo_arg: '{{ ''/opt/workflow'' if workflow_local_download == true else workflow_source_repository }}'
+
+- name: 'repo2docker called to build container image'
+  become: 'yes'
+  become_user: 'exouser'
+  register: result
+  retries: 3
+  delay: 10
+  until: result is not failed
+  command:
+    argv:
+      - '/opt/repo2docker-venv/bin/jupyter-repo2docker'
+      - '--json-logs'
+      - '--image-name'
+      - 'exosphere-workflow'
+      - '--no-run'
+      - '--ref'
+      - '{{ workflow_repo_version }}'
+      - '{{ repo2docker_repo_arg }}'
+
+# This is allowed to fail because container may already exist
+
+- name: 'docker container created from new image'
+  command:
+    argv:
+      - 'docker'
+      - 'run'
+      - '--detach'
+      - '--restart'
+      - 'always'
+      - '--name'
+      - 'workflow'
+      - '--volume'
+      - '/data:/data:rw'
+      - '-p'
+      - '8888:8888'
+      - 'exosphere-workflow'
+      - 'jupyter'
+      - 'notebook'
+      - '--ip'
+      - '0.0.0.0'
+  failed_when: false
+
+- name: 'Jupyter notebook token determined'
+  shell: 'docker exec workflow jupyter notebook list | grep -m 1 -Po ''(token=)\K[a-f0-9]+'''
+  register: 'workflow_token'
+  retries: 3
+  delay: 10
+  until: workflow_token is not failed
+  check_mode: false
+
+- name: 'Write Jupyter notebook token to console'
+  shell: 'echo ''{"exoWorkflowToken":"{{ workflow_token.stdout }}"}'' > /dev/console'
+  check_mode: false
+
+- name: 'custom workflow details logged first time'
+  register: result
+  retries: 3
+  delay: 10
+  until: result is not failed
+  shell: '/opt/custom_workflow_json.sh > /dev/console'
+
+- name: 'custom workflow logging script run every minute'
+  cron:
+    name: 'custom workflow details logging script run every minute'
+    job: '/opt/custom_workflow_json.sh > /dev/console'
+
+# Write to console that workflow provisioning is complete
+- shell: 'echo ''{"exoWorkflowSetup":"complete"}'' > /dev/console'
