@@ -7,11 +7,11 @@ module Types.Defaults exposing
     , serverDetailViewParams
     , serverListViewParams
     , sortTableParams
-    , volumeListViewParams
     )
 
 import Page.FloatingIpList
 import Page.KeypairList
+import Page.VolumeList
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Types.HelperTypes as HelperTypes
@@ -76,7 +76,7 @@ sortTableParams =
 allResourcesListViewParams : ViewTypes.AllResourcesListViewParams
 allResourcesListViewParams =
     { serverListViewParams = serverListViewParams
-    , volumeListViewParams = volumeListViewParams
+    , volumeListViewParams = Page.VolumeList.init
     , keypairListViewParams = Page.KeypairList.init
     , floatingIpListViewParams = Page.FloatingIpList.init
     }
@@ -123,8 +123,3 @@ createServerViewParams imageUuid imageName deployGuacamole =
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
     }
-
-
-volumeListViewParams : ViewTypes.VolumeListViewParams
-volumeListViewParams =
-    ViewTypes.VolumeListViewParams [] []

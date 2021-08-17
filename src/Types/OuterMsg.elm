@@ -13,6 +13,7 @@ import Page.SelectProjects
 import Page.Settings
 import Page.VolumeCreate
 import Page.VolumeDetail
+import Page.VolumeList
 import Types.HelperTypes as HelperTypes
 import Types.SharedMsg
 import Types.View as ViewTypes
@@ -35,3 +36,4 @@ type OuterMsg
     | KeypairCreateMsg Page.KeypairCreate.Msg
     | VolumeCreateMsg Page.VolumeCreate.Msg
     | VolumeDetailMsg Page.VolumeDetail.Msg
+    | VolumeListMsg Page.VolumeList.Msg

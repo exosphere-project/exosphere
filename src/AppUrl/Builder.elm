@@ -156,7 +156,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "servers" ]
                 []
 
-        ListProjectVolumes _ ->
+        VolumeList _ ->
             buildUrlFunc
                 [ "volumes" ]
                 []

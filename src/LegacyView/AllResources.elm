@@ -6,9 +6,9 @@ import Element.Font as Font
 import FeatherIcons
 import Helpers.String
 import LegacyView.ServerList
-import LegacyView.Volumes
 import Page.FloatingIpList
 import Page.KeypairList
+import Page.VolumeList
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Defaults as Defaults
@@ -93,17 +93,14 @@ allResources context p viewParams =
                     |> Helpers.String.toTitleCase
                 )
                 (SetProjectView p.auth.project.uuid <|
-                    ListProjectVolumes
-                        Defaults.volumeListViewParams
+                    VolumeList
+                        Page.VolumeList.init
                 )
-            , LegacyView.Volumes.volumes context
+            , Page.VolumeList.view context
                 False
                 p
                 viewParams.volumeListViewParams
-                (\newParams ->
-                    SetProjectView p.auth.project.uuid <|
-                        AllResources { viewParams | volumeListViewParams = newParams }
-                )
+                |> Element.map VolumeListMsg
             ]
         , Element.column
             [ Element.width Element.fill ]

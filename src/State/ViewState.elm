@@ -290,12 +290,12 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                ListProjectVolumes _ ->
+                VolumeList _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListProjectVolumes _) ->
+                                Just (VolumeList _) ->
                                     Cmd.none
 
                                 _ ->

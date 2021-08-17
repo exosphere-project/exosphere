@@ -32,6 +32,7 @@ import Page.SelectProjects
 import Page.Settings
 import Page.VolumeCreate
 import Page.VolumeDetail
+import Page.VolumeList
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
@@ -331,6 +332,52 @@ updateUnderlying outerMsg outerModel =
                                                 projectView newInnerModel
                                       }
                                     , Cmd.map (\msg -> KeypairListMsg msg) cmd
+                                    )
+                                        |> pipelineCmdOuterModelMsg
+                                            (processSharedMsg sharedMsg)
+
+                                Nothing ->
+                                    ( outerModel, Cmd.none )
+
+                        ( VolumeListMsg innerMsg, _ ) ->
+                            let
+                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
+                                maybeToViewAndInnerModel =
+                                    case projectViewConstructor of
+                                        VolumeList innerModel ->
+                                            Just
+                                                ( VolumeList
+                                                , innerModel
+                                                )
+
+                                        AllResources allResourcesViewParams ->
+                                            Just
+                                                ( \newInnerModel ->
+                                                    AllResources
+                                                        { allResourcesViewParams
+                                                            | volumeListViewParams = newInnerModel
+                                                        }
+                                                , allResourcesViewParams.volumeListViewParams
+                                                )
+
+                                        _ ->
+                                            Nothing
+                            in
+                            case maybeToViewAndInnerModel of
+                                Just ( projectView, innerModel ) ->
+                                    let
+                                        ( newInnerModel, cmd, sharedMsg ) =
+                                            Page.VolumeList.update innerMsg project innerModel
+                                    in
+                                    ( { outerModel
+                                        | viewState =
+                                            ProjectView
+                                                projectId
+                                                projectViewParams
+                                            <|
+                                                projectView newInnerModel
+                                      }
+                                    , Cmd.map (\msg -> VolumeListMsg msg) cmd
                                     )
                                         |> pipelineCmdOuterModelMsg
                                             (processSharedMsg sharedMsg)
@@ -941,7 +988,7 @@ processTick outerModel interval time =
                                         _ ->
                                             ( outerModel.sharedModel, Cmd.none )
 
-                                ListProjectVolumes _ ->
+                                VolumeList _ ->
                                     pollVolumes
 
                                 VolumeDetail pageModel ->
@@ -1619,7 +1666,7 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) outerModel
+            ViewStateHelpers.setProjectView project (VolumeList Page.VolumeList.init) outerModel
 
         ReceiveVolumes volumes ->
             let
@@ -1714,7 +1761,7 @@ processProjectSpecificMsg outerModel project msg =
             ViewStateHelpers.setProjectView project (MountVolInstructions attachment) outerModel
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView project (ListProjectVolumes Defaults.volumeListViewParams) outerModel
+            ViewStateHelpers.setProjectView project (VolumeList Page.VolumeList.init) outerModel
 
         ReceiveAppCredential appCredential ->
             let

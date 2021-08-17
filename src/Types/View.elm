@@ -1,7 +1,6 @@
 module Types.View exposing
     ( AllResourcesListViewParams
     , DeleteConfirmation
-    , DeleteVolumeConfirmation
     , IPInfoLevel(..)
     , ImageListViewParams
     , ImageListVisibilityFilter
@@ -16,7 +15,6 @@ module Types.View exposing
     , SortTableParams
     , VerboseStatus
     , ViewState(..)
-    , VolumeListViewParams
     )
 
 import OpenStack.Types as OSTypes
@@ -31,6 +29,7 @@ import Page.MessageLog
 import Page.SelectProjects
 import Page.VolumeCreate
 import Page.VolumeDetail
+import Page.VolumeList
 import Set
 import Types.HelperTypes as HelperTypes
 import Types.Interaction exposing (Interaction)
@@ -66,7 +65,7 @@ type ProjectViewConstructor
     = AllResources AllResourcesListViewParams
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
-    | ListProjectVolumes VolumeListViewParams
+    | VolumeList Page.VolumeList.Model
     | FloatingIpList Page.FloatingIpList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | KeypairList Page.KeypairList.Model
@@ -123,7 +122,7 @@ type alias ProjectViewParams =
 
 type alias AllResourcesListViewParams =
     { serverListViewParams : ServerListViewParams
-    , volumeListViewParams : VolumeListViewParams
+    , volumeListViewParams : Page.VolumeList.Model
     , keypairListViewParams : Page.KeypairList.Model
     , floatingIpListViewParams : Page.FloatingIpList.Model
     }
@@ -176,17 +175,3 @@ type alias VerboseStatus =
 type PasswordVisibility
     = PasswordShown
     | PasswordHidden
-
-
-
--- Model for volume list view
-
-
-type alias VolumeListViewParams =
-    { expandedVols : List OSTypes.VolumeUuid
-    , deleteConfirmations : List DeleteVolumeConfirmation
-    }
-
-
-type alias DeleteVolumeConfirmation =
-    OSTypes.VolumeUuid

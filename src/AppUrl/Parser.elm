@@ -12,6 +12,7 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Page.VolumeCreate
 import Page.VolumeDetail
+import Page.VolumeList
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.SharedMsg as SharedMsg
@@ -209,7 +210,7 @@ projectViewConstructorParsers =
         )
         (s "volumes" </> string)
     , map
-        (ListProjectVolumes Defaults.volumeListViewParams)
+        (VolumeList Page.VolumeList.init)
         (s "volumes")
     , map
         (FloatingIpList Page.FloatingIpList.init)

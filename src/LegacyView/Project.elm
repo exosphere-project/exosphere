@@ -13,13 +13,13 @@ import LegacyView.CreateServerImage
 import LegacyView.Images
 import LegacyView.ServerDetail
 import LegacyView.ServerList
-import LegacyView.Volumes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.VolumeCreate
 import Page.VolumeDetail
+import Page.VolumeList
 import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
@@ -63,15 +63,12 @@ project model context p viewParams viewConstructor =
                 CreateServer createServerViewParams ->
                     LegacyView.CreateServer.createServer context p createServerViewParams
 
-                ListProjectVolumes volumeListViewParams ->
-                    LegacyView.Volumes.volumes context
+                VolumeList model_ ->
+                    Page.VolumeList.view context
                         True
                         p
-                        volumeListViewParams
-                        (\newParams ->
-                            SetProjectView p.auth.project.uuid <|
-                                ListProjectVolumes newParams
-                        )
+                        model_
+                        |> Element.map VolumeListMsg
 
                 VolumeDetail model_ ->
                     Page.VolumeDetail.view context p model_ True

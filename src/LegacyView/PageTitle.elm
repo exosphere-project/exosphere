@@ -105,7 +105,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ListProjectVolumes _ ->
+                VolumeList _ ->
                     String.join " "
                         [ context.localization.blockDevice
                             |> Helpers.String.pluralize
