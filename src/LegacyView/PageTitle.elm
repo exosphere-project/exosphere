@@ -156,13 +156,13 @@ pageTitle outerModel context =
                         , serverName maybeProject serverUuid
                         ]
 
-                CreateServerImage serverUuid _ ->
+                ServerCreateImage model ->
                     String.join " "
                         [ "Create"
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.toTitleCase
                         , "for"
-                        , serverName maybeProject serverUuid
+                        , serverName maybeProject model.serverUuid
                         ]
 
                 VolumeDetail model ->

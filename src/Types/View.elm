@@ -27,6 +27,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.SelectProjects
+import Page.ServerCreateImage
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -70,7 +71,7 @@ type
     | ListProjectServers ServerListViewParams
     | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
     | CreateServer HelperTypes.CreateServerViewParams
-    | CreateServerImage OSTypes.ServerUuid String
+    | ServerCreateImage Page.ServerCreateImage.Model
     | VolumeList Page.VolumeList.Model
     | VolumeDetail Page.VolumeDetail.Model
     | VolumeCreate Page.VolumeCreate.Model

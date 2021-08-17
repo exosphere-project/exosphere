@@ -188,13 +188,13 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 []
 
-        CreateServerImage serverUuid imageName ->
+        ServerCreateImage model ->
             buildUrlFunc
                 [ "servers"
-                , serverUuid
+                , model.serverUuid
                 , "image"
                 ]
-                [ UB.string "name" imageName
+                [ UB.string "name" model.imageName
                 ]
 
         VolumeDetail model ->

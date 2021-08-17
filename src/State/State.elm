@@ -29,6 +29,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
+import Page.ServerCreateImage
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -385,6 +386,21 @@ updateUnderlying outerMsg outerModel =
 
                                 Nothing ->
                                     ( outerModel, Cmd.none )
+
+                        ( ServerCreateImageMsg innerMsg, ServerCreateImage innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerCreateImage.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerCreateImage newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerCreateImageMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
                         ( KeypairCreateMsg innerMsg, KeypairCreate innerModel ) ->
                             let
@@ -776,6 +792,18 @@ processSharedMsg sharedMsg outerModel =
                             ViewStateHelpers.setProjectView
                                 project
                                 (ServerDetail serverId Defaults.serverDetailViewParams)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.ServerCreateImage projectId serverId maybeImageName ->
+                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
                                 outerModel
 
                         Nothing ->

@@ -8,7 +8,6 @@ import Helpers.String
 import Helpers.Url as UrlHelpers
 import LegacyView.AllResources
 import LegacyView.CreateServer
-import LegacyView.CreateServerImage
 import LegacyView.Images
 import LegacyView.ServerDetail
 import LegacyView.ServerList
@@ -16,6 +15,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
+import Page.ServerCreateImage
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -112,8 +112,9 @@ project model context p viewParams viewConstructor =
                     Page.KeypairCreate.view context model_
                         |> Element.map KeypairCreateMsg
 
-                CreateServerImage serverUuid imageName ->
-                    LegacyView.CreateServerImage.createServerImage context p serverUuid imageName
+                ServerCreateImage model_ ->
+                    Page.ServerCreateImage.view context model_
+                        |> Element.map ServerCreateImageMsg
     in
     Element.column
         (Element.width Element.fill

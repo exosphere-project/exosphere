@@ -10,6 +10,7 @@ import Page.GetSupport
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
+import Page.ServerCreateImage
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -188,7 +189,7 @@ projectViewConstructorParsers =
         (s "resources")
     , map
         (\svrUuid imageName ->
-            CreateServerImage svrUuid imageName
+            ServerCreateImage (Page.ServerCreateImage.init svrUuid (Just imageName))
         )
         (let
             queryParser =

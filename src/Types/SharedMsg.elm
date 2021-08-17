@@ -117,6 +117,7 @@ type
     | HelpAbout
     | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
+    | ServerCreateImage HelperTypes.ProjectIdentifier OSTypes.ServerUuid (Maybe String)
     | FloatingIpList HelperTypes.ProjectIdentifier
     | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | KeypairList HelperTypes.ProjectIdentifier

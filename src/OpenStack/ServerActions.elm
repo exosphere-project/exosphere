@@ -15,8 +15,12 @@ import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Server exposing (Server)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (ProjectViewConstructor(..))
+import Types.SharedMsg as SharedMsg
+    exposing
+        ( ProjectSpecificMsgConstructor(..)
+        , ServerSpecificMsgConstructor(..)
+        , SharedMsg(..)
+        )
 
 
 getAllowed : Maybe String -> Maybe String -> OSTypes.ServerStatus -> OSTypes.ServerLockStatus -> List ServerAction
@@ -214,11 +218,11 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             UpdateAction <|
                 \projectId server ->
-                    SetProjectView projectId
-                        (CreateServerImage
-                            server.osProps.uuid
-                            (server.osProps.name ++ "-image")
-                        )
+                    SharedMsg <|
+                        NavigateToView <|
+                            SharedMsg.ServerCreateImage projectId
+                                server.osProps.uuid
+                                (Just <| server.osProps.name ++ "-image")
       , selectMod = NoMod
       , targetStatus = Just [ OSTypes.ServerActive ]
       , confirmable = False

@@ -212,7 +212,7 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
 
-                CreateServerImage _ _ ->
+                ServerCreateImage _ ->
                     ( outerModel, Cmd.none )
 
                 CreateServer viewParams ->
@@ -500,8 +500,8 @@ viewStateToSupportableItem viewState =
                 ServerDetail serverUuid _ ->
                     ( HelperTypes.SupportableServer, Just serverUuid )
 
-                CreateServerImage serverUuid _ ->
-                    ( HelperTypes.SupportableServer, Just serverUuid )
+                ServerCreateImage pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
                 VolumeDetail pageModel ->
                     ( HelperTypes.SupportableVolume, Just pageModel.volumeUuid )
