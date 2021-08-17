@@ -1107,33 +1107,37 @@ keypairPicker context project viewParams =
 
 userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
 userDataInput context project viewParams =
-    Input.multiline
-        (VH.inputItemAttributes context.palette.background
-            ++ [ Element.width Element.fill
-               , Element.height (Element.px 500)
-               , Element.spacing 3
-               , Font.family [ Font.monospace ]
-               ]
-        )
-        { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
-        , text = viewParams.userDataTemplate
-        , placeholder =
-            Just
-                (Input.placeholder []
-                    (Element.text <|
-                        String.join
-                            " "
-                            [ "#!/bin/bash\n\n# Your"
-                            , context.localization.cloudInitData
-                            , "here"
-                            ]
+    Element.column
+        VH.exoColumnAttributes
+        [ Element.el
+            [ Font.bold ]
+            (Element.text
+                (Helpers.String.toTitleCase context.localization.cloudInitData)
+            )
+        , Input.multiline
+            (VH.inputItemAttributes context.palette.background
+                ++ [ Element.width Element.fill
+                   , Element.height (Element.px 500)
+                   , Element.spacing 3
+                   , Font.family [ Font.monospace ]
+                   ]
+            )
+            { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
+            , text = viewParams.userDataTemplate
+            , placeholder =
+                Just
+                    (Input.placeholder []
+                        (Element.text <|
+                            String.join
+                                " "
+                                [ "#!/bin/bash\n\n# Your"
+                                , context.localization.cloudInitData
+                                , "here"
+                                ]
+                        )
                     )
-                )
-        , label =
-            Input.labelAbove
-                [ Element.paddingXY 20 0
-                , Font.bold
-                ]
-                (Element.text <| Helpers.String.toTitleCase context.localization.cloudInitData)
-        , spellcheck = False
-        }
+            , label =
+                Input.labelHidden <| Helpers.String.toTitleCase context.localization.cloudInitData
+            , spellcheck = False
+            }
+        ]
