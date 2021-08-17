@@ -186,7 +186,7 @@ pageTitle outerModel context =
                             |> Helpers.String.toTitleCase
                         ]
 
-                AttachVolumeModal _ _ ->
+                VolumeAttach _ ->
                     String.join " "
                         [ "Attach"
                         , context.localization.blockDevice

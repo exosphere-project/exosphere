@@ -17,6 +17,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
+import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
@@ -78,8 +79,9 @@ project model context p viewParams viewConstructor =
                     Page.VolumeCreate.view context p model_
                         |> Element.map VolumeCreateMsg
 
-                AttachVolumeModal maybeServerUuid maybeVolumeUuid ->
-                    LegacyView.AttachVolume.attachVolume context p maybeServerUuid maybeVolumeUuid
+                VolumeAttach model_ ->
+                    Page.VolumeAttach.view context p model_
+                        |> Element.map VolumeAttachMsg
 
                 MountVolInstructions attachment ->
                     LegacyView.AttachVolume.mountVolInstructions context p attachment

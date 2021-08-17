@@ -362,9 +362,9 @@ setProjectView project projectViewConstructor outerModel =
                 VolumeDetail _ ->
                     ( outerModel, Cmd.none )
 
-                AttachVolumeModal _ _ ->
+                VolumeAttach _ ->
                     case prevProjectViewConstructor of
-                        Just (AttachVolumeModal _ _) ->
+                        Just (VolumeAttach _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -506,8 +506,8 @@ viewStateToSupportableItem viewState =
                 VolumeDetail pageModel ->
                     ( HelperTypes.SupportableVolume, Just pageModel.volumeUuid )
 
-                AttachVolumeModal _ maybeVolumeUuid ->
-                    maybeVolumeUuid
+                VolumeAttach pageModel ->
+                    pageModel.maybeVolumeUuid
                         |> Maybe.map (\uuid -> ( HelperTypes.SupportableVolume, Just uuid ))
                         |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectUuid )
 

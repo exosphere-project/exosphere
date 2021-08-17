@@ -233,10 +233,10 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 []
 
-        AttachVolumeModal maybeServerUuid maybeVolUuid ->
+        VolumeAttach model ->
             let
                 volUuidQP =
-                    case maybeVolUuid of
+                    case model.maybeVolumeUuid of
                         Just volUuid ->
                             [ UB.string "voluuid" volUuid ]
 
@@ -244,7 +244,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                             []
 
                 serverUuidQP =
-                    case maybeServerUuid of
+                    case model.maybeServerUuid of
                         Just serverUuid ->
                             [ UB.string "serveruuid" serverUuid ]
 

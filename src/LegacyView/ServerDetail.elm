@@ -372,10 +372,11 @@ serverDetail_ context project currentTimeAndZone serverDetailViewParams server =
                     { text = "Attach " ++ context.localization.blockDevice
                     , onPress =
                         Just <|
-                            SetProjectView project.auth.project.uuid <|
-                                AttachVolumeModal
-                                    (Just server.osProps.uuid)
-                                    Nothing
+                            SharedMsg <|
+                                SharedMsg.NavigateToView <|
+                                    SharedMsg.VolumeAttach project.auth.project.uuid
+                                        (Just server.osProps.uuid)
+                                        Nothing
                     }
 
               else

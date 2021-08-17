@@ -30,6 +30,7 @@ import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
 import Page.Settings
+import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
@@ -445,6 +446,21 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
+                        ( VolumeAttachMsg innerMsg, VolumeAttach innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeAttach.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        VolumeAttach newSharedModel
+                              }
+                            , Cmd.map (\msg -> VolumeAttachMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
                         _ ->
                             -- This is not great because it allows us to forget to write a case statement above, but I don't know of a nicer way to write a catchall case for when a page-specific Msg is received for an inapplicable page.
                             ( outerModel, Cmd.none )
@@ -825,7 +841,7 @@ processSharedMsg sharedMsg outerModel =
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (AttachVolumeModal maybeServerUuid maybeVolumeUuid)
+                                (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
                                 outerModel
 
                         Nothing ->

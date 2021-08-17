@@ -1,19 +1,13 @@
-module LegacyView.AttachVolume exposing (attachVolume, mountVolInstructions)
+module LegacyView.AttachVolume exposing (mountVolInstructions)
 
 import Element
-import Element.Font as Font
-import Element.Input as Input
-import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
-import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
-import RemoteData
 import Style.Helpers as SH
 import Types.Defaults as Defaults
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View
     exposing
         ( IPInfoLevel(..)
@@ -23,141 +17,6 @@ import Types.View
 import View.Helpers as VH
 import View.Types
 import Widget
-
-
-attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element OuterMsg
-attachVolume context project maybeServerUuid maybeVolumeUuid =
-    let
-        serverChoices =
-            -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
-            RDPP.withDefault [] project.servers
-                |> List.filter
-                    (\s ->
-                        not <|
-                            List.member
-                                s.osProps.details.openstackStatus
-                                [ OSTypes.ServerShelved
-                                , OSTypes.ServerShelvedOffloaded
-                                , OSTypes.ServerError
-                                , OSTypes.ServerSoftDeleted
-                                , OSTypes.ServerBuilding
-                                ]
-                    )
-                |> List.map
-                    (\s ->
-                        Input.option s.osProps.uuid
-                            (Element.text <| VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer)
-                    )
-
-        volumeChoices =
-            RemoteData.withDefault [] project.volumes
-                |> List.filter (\v -> v.status == OSTypes.Available)
-                |> List.map
-                    (\v ->
-                        Input.option
-                            v.uuid
-                            (Element.row VH.exoRowAttributes
-                                [ Element.text <| VH.possiblyUntitledResource v.name context.localization.blockDevice
-                                , Element.text " - "
-                                , Element.text <| String.fromInt v.size ++ " GB"
-                                ]
-                            )
-                    )
-    in
-    Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
-        [ Element.el (VH.heading2 context.palette) <|
-            Element.text <|
-                String.join " "
-                    [ "Attach a"
-                    , context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    ]
-        , Element.column VH.formContainer
-            [ Input.radio []
-                { label =
-                    Input.labelAbove
-                        [ Element.paddingXY 0 12 ]
-                        (Element.text <|
-                            String.join " "
-                                [ "Select"
-                                , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                                , context.localization.virtualComputer
-                                ]
-                        )
-                , onChange =
-                    \new ->
-                        SetProjectView project.auth.project.uuid (AttachVolumeModal (Just new) maybeVolumeUuid)
-                , options = serverChoices
-                , selected = maybeServerUuid
-                }
-            , Input.radio []
-                -- TODO if no volumes in list, suggest user create a volume and provide link to that view
-                { label =
-                    Input.labelAbove [ Element.paddingXY 0 12 ]
-                        (Element.text ("Select a " ++ context.localization.blockDevice))
-                , onChange =
-                    \new ->
-                        SetProjectView project.auth.project.uuid (AttachVolumeModal maybeServerUuid (Just new))
-                , options = volumeChoices
-                , selected = maybeVolumeUuid
-                }
-            , let
-                params =
-                    case ( maybeServerUuid, maybeVolumeUuid ) of
-                        ( Just serverUuid, Just volumeUuid ) ->
-                            let
-                                volAttachedToServer =
-                                    GetterSetters.serverLookup project serverUuid
-                                        |> Maybe.map (GetterSetters.volumeIsAttachedToServer volumeUuid)
-                                        |> Maybe.withDefault False
-                            in
-                            if volAttachedToServer then
-                                { onPress = Nothing
-                                , warnText =
-                                    Just <|
-                                        String.join " "
-                                            [ "This"
-                                            , context.localization.blockDevice
-                                            , "is already attached to this"
-                                            , context.localization.virtualComputer
-                                            ]
-                                }
-
-                            else
-                                { onPress =
-                                    Just <|
-                                        SharedMsg <|
-                                            ProjectMsg project.auth.project.uuid <|
-                                                ServerMsg serverUuid <|
-                                                    RequestAttachVolume volumeUuid
-                                , warnText = Nothing
-                                }
-
-                        _ ->
-                            {- User hasn't selected a server and volume yet so we keep the button disabled but don't yell at him/her -}
-                            { onPress = Nothing
-                            , warnText = Nothing
-                            }
-
-                button =
-                    Element.el [ Element.alignRight ] <|
-                        Widget.textButton
-                            (SH.materialStyle context.palette).primaryButton
-                            { text = "Attach"
-                            , onPress = params.onPress
-                            }
-              in
-              Element.row [ Element.width Element.fill ]
-                [ case params.warnText of
-                    Just warnText ->
-                        Element.el [ Font.color <| SH.toElementColor context.palette.error ] <| Element.text warnText
-
-                    Nothing ->
-                        Element.none
-                , button
-                ]
-            ]
-        ]
 
 
 mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element OuterMsg

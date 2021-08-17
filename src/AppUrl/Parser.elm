@@ -10,6 +10,7 @@ import Page.GetSupport
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
+import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
@@ -256,7 +257,7 @@ projectViewConstructorParsers =
         (s "createvolume")
     , map
         (\( maybeServerUuid, maybeVolUuid ) ->
-            AttachVolumeModal maybeServerUuid maybeVolUuid
+            VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolUuid)
         )
         (let
             queryParser =

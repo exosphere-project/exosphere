@@ -11,6 +11,7 @@ import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
 import Page.Settings
+import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
@@ -19,7 +20,9 @@ import Types.SharedMsg
 import Types.View as ViewTypes
 
 
-type OuterMsg
+type
+    OuterMsg
+    -- TODO order these
     = SetNonProjectView ViewTypes.NonProjectViewConstructor
     | SetProjectView HelperTypes.ProjectIdentifier ViewTypes.ProjectViewConstructor
     | SharedMsg Types.SharedMsg.SharedMsg
@@ -37,3 +40,4 @@ type OuterMsg
     | VolumeCreateMsg Page.VolumeCreate.Msg
     | VolumeDetailMsg Page.VolumeDetail.Msg
     | VolumeListMsg Page.VolumeList.Msg
+    | VolumeAttachMsg Page.VolumeAttach.Msg

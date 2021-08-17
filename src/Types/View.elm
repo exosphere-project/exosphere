@@ -27,6 +27,7 @@ import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
 import Page.SelectProjects
+import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
@@ -61,22 +62,24 @@ type LoginView
     | LoginJetstream Page.LoginJetstream.Model
 
 
-type ProjectViewConstructor
+type
+    ProjectViewConstructor
+    -- TODO order these
     = AllResources AllResourcesListViewParams
     | ListImages ImageListViewParams SortTableParams
     | ListProjectServers ServerListViewParams
+    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
+    | CreateServer HelperTypes.CreateServerViewParams
+    | CreateServerImage OSTypes.ServerUuid String
     | VolumeList Page.VolumeList.Model
+    | VolumeDetail Page.VolumeDetail.Model
+    | VolumeCreate Page.VolumeCreate.Model
+    | VolumeAttach Page.VolumeAttach.Model
+    | MountVolInstructions OSTypes.VolumeAttachment
     | FloatingIpList Page.FloatingIpList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | KeypairList Page.KeypairList.Model
     | KeypairCreate Page.KeypairCreate.Model
-    | ServerDetail OSTypes.ServerUuid ServerDetailViewParams
-    | CreateServerImage OSTypes.ServerUuid String
-    | VolumeDetail Page.VolumeDetail.Model
-    | CreateServer HelperTypes.CreateServerViewParams
-    | VolumeCreate Page.VolumeCreate.Model
-    | AttachVolumeModal (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
-    | MountVolInstructions OSTypes.VolumeAttachment
 
 
 
