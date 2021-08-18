@@ -9,13 +9,13 @@ import Helpers.Url as UrlHelpers
 import LegacyView.AllResources
 import LegacyView.CreateServer
 import LegacyView.Images
-import LegacyView.ServerList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.ServerCreateImage
 import Page.ServerDetail
+import Page.ServerList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -48,15 +48,12 @@ project model context p viewParams viewConstructor =
                 ListImages imageFilter sortTableParams ->
                     LegacyView.Images.imagesIfLoaded context p imageFilter sortTableParams
 
-                ListProjectServers serverListViewParams ->
-                    LegacyView.ServerList.serverList context
+                ServerList model_ ->
+                    Page.ServerList.view context
                         True
                         p
-                        serverListViewParams
-                        (\newParams ->
-                            SetProjectView p.auth.project.uuid <|
-                                ListProjectServers newParams
-                        )
+                        model_
+                        |> Element.map ServerListMsg
 
                 ServerDetail model_ ->
                     Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) model_

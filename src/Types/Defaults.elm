@@ -4,12 +4,12 @@ module Types.Defaults exposing
     , imageListViewParams
     , localization
     , projectViewParams
-    , serverListViewParams
     , sortTableParams
     )
 
 import Page.FloatingIpList
 import Page.KeypairList
+import Page.ServerList
 import Page.VolumeList
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
@@ -74,18 +74,10 @@ sortTableParams =
 
 allResourcesListViewParams : ViewTypes.AllResourcesListViewParams
 allResourcesListViewParams =
-    { serverListViewParams = serverListViewParams
+    { serverListViewParams = Page.ServerList.init
     , volumeListViewParams = Page.VolumeList.init
     , keypairListViewParams = Page.KeypairList.init
     , floatingIpListViewParams = Page.FloatingIpList.init
-    }
-
-
-serverListViewParams : ViewTypes.ServerListViewParams
-serverListViewParams =
-    { onlyOwnServers = True
-    , selectedServers = Set.empty
-    , deleteConfirmations = []
     }
 
 

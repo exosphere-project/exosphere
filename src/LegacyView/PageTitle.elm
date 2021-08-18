@@ -96,7 +96,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ListProjectServers _ ->
+                ServerList _ ->
                     String.join " "
                         [ context.localization.virtualComputer
                             |> Helpers.String.pluralize

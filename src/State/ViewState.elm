@@ -166,10 +166,10 @@ setProjectView project projectViewConstructor outerModel =
                     in
                     ( outerModel, cmd )
 
-                ListProjectServers _ ->
+                ServerList _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (ListProjectServers _) ->
+                        Just (ServerList _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->

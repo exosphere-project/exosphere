@@ -12,6 +12,7 @@ import Page.KeypairList
 import Page.LoginOpenstack
 import Page.ServerCreateImage
 import Page.ServerDetail
+import Page.ServerList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -205,7 +206,7 @@ projectViewConstructorParsers =
         )
         (s "servers" </> string)
     , map
-        (ListProjectServers Defaults.serverListViewParams)
+        (ServerList Page.ServerList.init)
         (s "servers")
     , map
         (\volUuid ->

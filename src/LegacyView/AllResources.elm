@@ -5,13 +5,12 @@ import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons
 import Helpers.String
-import LegacyView.ServerList
 import Page.FloatingIpList
 import Page.KeypairList
+import Page.ServerList
 import Page.VolumeList
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
-import Types.Defaults as Defaults
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -68,17 +67,14 @@ allResources context p viewParams =
                     |> Helpers.String.toTitleCase
                 )
                 (SetProjectView p.auth.project.uuid <|
-                    ListProjectServers
-                        Defaults.serverListViewParams
+                    ServerList
+                        Page.ServerList.init
                 )
-            , LegacyView.ServerList.serverList context
+            , Page.ServerList.view context
                 False
                 p
                 viewParams.serverListViewParams
-                (\newParams ->
-                    SetProjectView p.auth.project.uuid <|
-                        AllResources { viewParams | serverListViewParams = newParams }
-                )
+                |> Element.map ServerListMsg
             ]
         , Element.column
             [ Element.width Element.fill ]

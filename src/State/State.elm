@@ -31,6 +31,7 @@ import Page.MessageLog
 import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
+import Page.ServerList
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -250,6 +251,52 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
                         -- TODO order these cases same as the Msg order, which itself should be re-ordered, possibly alphabetically
+                        ( ServerListMsg innerMsg, _ ) ->
+                            let
+                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
+                                maybeToViewAndInnerModel =
+                                    case projectViewConstructor of
+                                        ServerList innerModel ->
+                                            Just
+                                                ( ServerList
+                                                , innerModel
+                                                )
+
+                                        AllResources allResourcesViewParams ->
+                                            Just
+                                                ( \newInnerModel ->
+                                                    AllResources
+                                                        { allResourcesViewParams
+                                                            | serverListViewParams = newInnerModel
+                                                        }
+                                                , allResourcesViewParams.serverListViewParams
+                                                )
+
+                                        _ ->
+                                            Nothing
+                            in
+                            case maybeToViewAndInnerModel of
+                                Just ( projectView, innerModel ) ->
+                                    let
+                                        ( newInnerModel, cmd, sharedMsg ) =
+                                            Page.ServerList.update innerMsg project innerModel
+                                    in
+                                    ( { outerModel
+                                        | viewState =
+                                            ProjectView
+                                                projectId
+                                                projectViewParams
+                                            <|
+                                                projectView newInnerModel
+                                      }
+                                    , Cmd.map (\msg -> ServerListMsg msg) cmd
+                                    )
+                                        |> pipelineCmdOuterModelMsg
+                                            (processSharedMsg sharedMsg)
+
+                                Nothing ->
+                                    ( outerModel, Cmd.none )
+
                         ( FloatingIpListMsg innerMsg, _ ) ->
                             let
                                 -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page

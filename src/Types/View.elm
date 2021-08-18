@@ -1,14 +1,11 @@
 module Types.View exposing
     ( AllResourcesListViewParams
-    , DeleteConfirmation
     , ImageListViewParams
     , ImageListVisibilityFilter
     , LoginView(..)
     , NonProjectViewConstructor(..)
     , ProjectViewConstructor(..)
     , ProjectViewParams
-    , ServerListViewParams
-    , ServerSelection
     , SortTableParams
     , ViewState(..)
     )
@@ -25,6 +22,7 @@ import Page.MessageLog
 import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
+import Page.ServerList
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -64,7 +62,7 @@ type
     -- TODO order these
     = AllResources AllResourcesListViewParams
     | ListImages ImageListViewParams SortTableParams
-    | ListProjectServers ServerListViewParams
+    | ServerList Page.ServerList.Model
     | ServerDetail Page.ServerDetail.Model
     | CreateServer HelperTypes.CreateServerViewParams
     | ServerCreateImage Page.ServerCreateImage.Model
@@ -72,6 +70,7 @@ type
     | VolumeDetail Page.VolumeDetail.Model
     | VolumeCreate Page.VolumeCreate.Model
     | VolumeAttach Page.VolumeAttach.Model
+      -- TODO rename to VolumeMountInstructions
     | MountVolInstructions OSTypes.VolumeAttachment
     | FloatingIpList Page.FloatingIpList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
@@ -121,27 +120,8 @@ type alias ProjectViewParams =
 
 
 type alias AllResourcesListViewParams =
-    { serverListViewParams : ServerListViewParams
+    { serverListViewParams : Page.ServerList.Model
     , volumeListViewParams : Page.VolumeList.Model
     , keypairListViewParams : Page.KeypairList.Model
     , floatingIpListViewParams : Page.FloatingIpList.Model
     }
-
-
-
--- Model for instance list view
-
-
-type alias ServerListViewParams =
-    { onlyOwnServers : Bool
-    , selectedServers : Set.Set ServerSelection
-    , deleteConfirmations : List DeleteConfirmation
-    }
-
-
-type alias ServerSelection =
-    OSTypes.ServerUuid
-
-
-type alias DeleteConfirmation =
-    OSTypes.ServerUuid

@@ -12,6 +12,7 @@ import Page.MessageLog
 import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
+import Page.ServerList
 import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
@@ -43,5 +44,6 @@ type
     | VolumeDetailMsg Page.VolumeDetail.Msg
     | VolumeListMsg Page.VolumeList.Msg
     | VolumeAttachMsg Page.VolumeAttach.Msg
-    | ServerCreateImageMsg Page.ServerCreateImage.Msg
+    | ServerListMsg Page.ServerList.Msg
     | ServerDetailMsg Page.ServerDetail.Msg
+    | ServerCreateImageMsg Page.ServerCreateImage.Msg

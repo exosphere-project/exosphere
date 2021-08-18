@@ -1,4 +1,4 @@
-module LegacyView.ServerList exposing (serverList)
+module Page.ServerList exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Events as Events
@@ -15,31 +15,113 @@ import Style.Helpers as SH
 import Style.Widgets.Card
 import Style.Widgets.Icon as Icon
 import Types.HelperTypes exposing (ProjectIdentifier)
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (Server, ServerOrigin(..))
-import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View
-    exposing
-        ( NonProjectViewConstructor(..)
-        , ProjectViewConstructor(..)
-        , ServerListViewParams
-        , ServerSelection
-        , ViewState(..)
-        )
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-serverList :
+type alias Model =
+    { onlyOwnServers : Bool
+    , selectedServers : Set.Set ServerSelection
+    , deleteConfirmations : Set.Set DeleteConfirmation
+    }
+
+
+type alias ServerSelection =
+    OSTypes.ServerUuid
+
+
+type alias DeleteConfirmation =
+    OSTypes.ServerUuid
+
+
+init : Model
+init =
+    Model True Set.empty Set.empty
+
+
+type Msg
+    = GotShowOnlyOwnServers Bool (Set.Set ServerSelection)
+    | GotSelectServer ServerSelection Bool
+    | GotNewServerSelection (Set.Set ServerSelection)
+    | GotDeleteNeedsConfirm DeleteConfirmation
+    | GotDeleteConfirm DeleteConfirmation
+    | GotDeleteCancel DeleteConfirmation
+    | SharedMsg SharedMsg.SharedMsg
+    | NoOp
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
+    case msg of
+        GotShowOnlyOwnServers showOnlyOwn newSelection ->
+            ( { model
+                | onlyOwnServers = showOnlyOwn
+                , selectedServers = newSelection
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotSelectServer serverId selected ->
+            ( { model
+                | selectedServers =
+                    if selected then
+                        Set.insert serverId model.selectedServers
+
+                    else
+                        Set.remove serverId model.selectedServers
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotNewServerSelection newSelection ->
+            ( { model | selectedServers = newSelection }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeleteNeedsConfirm serverId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.insert serverId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotDeleteConfirm serverId ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+                SharedMsg.ServerMsg serverId <|
+                    SharedMsg.RequestDeleteServer False
+            )
+
+        GotDeleteCancel serverId ->
+            ( { model
+                | deleteConfirmations =
+                    Set.remove serverId model.deleteConfirmations
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+
+view :
     View.Types.Context
     -> Bool
     -> Project
-    -> ServerListViewParams
-    -> (ServerListViewParams -> OuterMsg)
-    -> Element.Element OuterMsg
-serverList context showHeading project serverListViewParams toMsg =
+    -> Model
+    -> Element.Element Msg
+view context showHeading project model =
     let
         serverListContents =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
@@ -90,8 +172,7 @@ serverList context showHeading project serverListViewParams toMsg =
                             context
                             project.auth.project.uuid
                             project.auth.user.uuid
-                            serverListViewParams
-                            toMsg
+                            model
                             servers
     in
     Element.column [ Element.width Element.fill ]
@@ -118,18 +199,17 @@ serverList_ :
     View.Types.Context
     -> ProjectIdentifier
     -> OSTypes.UserUuid
-    -> ServerListViewParams
-    -> (ServerListViewParams -> OuterMsg)
+    -> Model
     -> List Server
-    -> Element.Element OuterMsg
-serverList_ context projectId userUuid serverListViewParams toMsg servers =
+    -> Element.Element Msg
+serverList_ context projectId userUuid model servers =
     {- Render a list of servers -}
     let
         ( ownServers, otherUsersServers ) =
             List.partition (ownServer userUuid) servers
 
         shownServers =
-            if serverListViewParams.onlyOwnServers then
+            if model.onlyOwnServers then
                 ownServers
 
             else
@@ -140,7 +220,7 @@ serverList_ context projectId userUuid serverListViewParams toMsg servers =
                 |> List.filter (\s -> s.osProps.details.lockStatus == OSTypes.ServerUnlocked)
 
         selectedServers =
-            List.filter (serverIsSelected serverListViewParams.selectedServers) shownServers
+            List.filter (serverIsSelected model.selectedServers) shownServers
 
         allServersSelected =
             if List.isEmpty selectableServers then
@@ -156,16 +236,14 @@ serverList_ context projectId userUuid serverListViewParams toMsg servers =
                     projectId
                     allServersSelected
                     ( selectableServers, selectedServers )
-                    serverListViewParams
-                    toMsg
               ]
-            , List.map (renderServer context projectId serverListViewParams toMsg True) ownServers
-            , [ onlyOwnExpander context serverListViewParams toMsg otherUsersServers ]
-            , if serverListViewParams.onlyOwnServers then
+            , List.map (renderServer context projectId model True) ownServers
+            , [ onlyOwnExpander context model otherUsersServers ]
+            , if model.onlyOwnServers then
                 []
 
               else
-                List.map (renderServer context projectId serverListViewParams toMsg False) otherUsersServers
+                List.map (renderServer context projectId model False) otherUsersServers
             ]
 
 
@@ -174,10 +252,8 @@ renderTableHead :
     -> ProjectIdentifier
     -> Bool
     -> ( List Server, List Server )
-    -> ServerListViewParams
-    -> (ServerListViewParams -> OuterMsg)
-    -> Element.Element OuterMsg
-renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) serverListViewParams toMsg =
+    -> Element.Element Msg
+renderTableHead context projectId allServersSelected ( selectableServers, selectedServers ) =
     let
         deleteButtonOnPress =
             if List.isEmpty selectedServers then
@@ -188,7 +264,7 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
                     uuidsToDelete =
                         List.map (\s -> s.osProps.uuid) selectedServers
                 in
-                Just <| SharedMsg (ProjectMsg projectId (RequestDeleteServers uuidsToDelete))
+                Just <| SharedMsg (SharedMsg.ProjectMsg projectId (SharedMsg.RequestDeleteServers uuidsToDelete))
 
         onChecked new =
             let
@@ -200,11 +276,8 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
 
                     else
                         Set.empty
-
-                newParams =
-                    { serverListViewParams | selectedServers = newSelection }
             in
-            toMsg newParams
+            GotNewServerSelection newSelection
 
         extraRowAttrs =
             [ Element.paddingXY 5 0
@@ -232,12 +305,11 @@ renderTableHead context projectId allServersSelected ( selectableServers, select
 renderServer :
     View.Types.Context
     -> ProjectIdentifier
-    -> ServerListViewParams
-    -> (ServerListViewParams -> OuterMsg)
+    -> Model
     -> Bool
     -> Server
-    -> Element.Element OuterMsg
-renderServer context projectId serverListViewParams toMsg isMyServer server =
+    -> Element.Element Msg
+renderServer context projectId model isMyServer server =
     let
         creatorNameView =
             case ( isMyServer, server.exoProps.serverOrigin ) of
@@ -260,21 +332,9 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
             case server.osProps.details.lockStatus of
                 OSTypes.ServerUnlocked ->
                     Input.checkbox [ Element.width Element.shrink ]
-                        { checked = serverIsSelected serverListViewParams.selectedServers server
+                        { checked = serverIsSelected model.selectedServers server
                         , onChange =
-                            \new ->
-                                let
-                                    action =
-                                        if new {- == true -} then
-                                            AddServer
-
-                                        else
-                                            RemoveServer
-
-                                    newParams =
-                                        modifyServerSelection server action serverListViewParams
-                                in
-                                toMsg newParams
+                            GotSelectServer server.osProps.uuid
                         , icon = Input.defaultCheckbox
                         , label = Input.labelHidden server.osProps.name
                         }
@@ -282,12 +342,12 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 OSTypes.ServerLocked ->
                     Input.checkbox [ Element.width Element.shrink ]
                         { checked = False
-                        , onChange = \_ -> SharedMsg NoOp
+                        , onChange = \_ -> NoOp
                         , icon = \_ -> Icon.lock (SH.toElementColor context.palette.on.surface) 14
                         , label = Input.labelHidden server.osProps.name
                         }
 
-        serverLabelName : Server -> Element.Element OuterMsg
+        serverLabelName : Server -> Element.Element Msg
         serverLabelName aServer =
             Element.row
                 [ Element.width Element.fill
@@ -300,11 +360,11 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                 , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
 
-        serverNameClickEvent : OuterMsg
+        serverNameClickEvent : Msg
         serverNameClickEvent =
-            SharedMsg <| NavigateToView <| SharedMsg.ServerDetail projectId server.osProps.uuid
+            SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ServerDetail projectId server.osProps.uuid
 
-        serverLabel : Server -> Element.Element OuterMsg
+        serverLabel : Server -> Element.Element Msg
         serverLabel aServer =
             Element.row
                 [ Element.width Element.fill
@@ -320,7 +380,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
             server.exoProps.deletionAttempted
 
         confirmationNeeded =
-            List.member server.osProps.uuid serverListViewParams.deleteConfirmations
+            Set.member server.osProps.uuid model.deleteConfirmations
 
         deleteWidget =
             case ( deletionAttempted, server.osProps.details.lockStatus, confirmationNeeded ) of
@@ -334,24 +394,14 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
-                            Just <|
-                                SharedMsg <|
-                                    ProjectMsg projectId <|
-                                        ServerMsg server.osProps.uuid <|
-                                            RequestDeleteServer False
+                            Just <| GotDeleteConfirm server.osProps.uuid
                         }
                     , Widget.iconButton
                         (SH.materialStyle context.palette).button
                         { icon = Icon.windowClose (SH.toElementColor context.palette.on.surface) 16
                         , text = "Cancel"
                         , onPress =
-                            Just <|
-                                toMsg
-                                    { serverListViewParams
-                                        | deleteConfirmations =
-                                            serverListViewParams.deleteConfirmations
-                                                |> List.filter ((/=) server.osProps.uuid)
-                                    }
+                            Just <| GotDeleteCancel server.osProps.uuid
                         }
                     ]
 
@@ -361,9 +411,7 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
                         { icon = Icon.remove (SH.toElementColor context.palette.on.error) 16
                         , text = "Delete"
                         , onPress =
-                            Just <|
-                                toMsg
-                                    { serverListViewParams | deleteConfirmations = [ server.osProps.uuid ] }
+                            Just <| GotDeleteNeedsConfirm server.osProps.uuid
                         }
                     ]
 
@@ -384,16 +432,15 @@ renderServer context projectId serverListViewParams toMsg isMyServer server =
 
 
 
--- TODO factor this out with ipsAssignedToServersExpander in ServerList.elm
+-- TODO factor this out with ipsAssignedToServersExpander in FloatingIpList.elm
 
 
 onlyOwnExpander :
     View.Types.Context
-    -> ServerListViewParams
-    -> (ServerListViewParams -> OuterMsg)
+    -> Model
     -> List Server
-    -> Element.Element OuterMsg
-onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
+    -> Element.Element Msg
+onlyOwnExpander context model otherUsersServers =
     let
         numOtherUsersServers =
             List.length otherUsersServers
@@ -411,7 +458,7 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
                         , "other users"
                         )
             in
-            if serverListViewParams.onlyOwnServers then
+            if model.onlyOwnServers then
                 String.concat
                     [ "Hiding "
                     , String.fromInt numOtherUsersServers
@@ -429,12 +476,10 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
                     , "created by other users"
                     ]
 
-        ( ( changeActionVerb, changeActionIcon ), newServerListViewParams ) =
-            if serverListViewParams.onlyOwnServers then
+        ( ( changeActionVerb, changeActionIcon ), ( newOnlyOwnServers, newSelectedServers ) ) =
+            if model.onlyOwnServers then
                 ( ( "Show", FeatherIcons.chevronDown )
-                , { serverListViewParams
-                    | onlyOwnServers = False
-                  }
+                , ( False, model.selectedServers )
                 )
 
             else
@@ -443,21 +488,18 @@ onlyOwnExpander context serverListViewParams toMsg otherUsersServers =
                     serverUuidsToDeselect =
                         List.map (\s -> s.osProps.uuid) otherUsersServers
 
-                    newSelectedServers =
+                    selectedServers =
                         Set.filter
                             (\u -> not <| List.member u serverUuidsToDeselect)
-                            serverListViewParams.selectedServers
+                            model.selectedServers
                 in
                 ( ( "Hide", FeatherIcons.chevronUp )
-                , { serverListViewParams
-                    | onlyOwnServers = True
-                    , selectedServers = newSelectedServers
-                  }
+                , ( True, selectedServers )
                 )
 
-        changeOnlyOwnMsg : OuterMsg
+        changeOnlyOwnMsg : Msg
         changeOnlyOwnMsg =
-            toMsg newServerListViewParams
+            GotShowOnlyOwnServers newOnlyOwnServers newSelectedServers
 
         changeButton =
             Widget.iconButton
@@ -496,25 +538,3 @@ ownServer userUuid server =
 serverIsSelected : Set.Set ServerSelection -> Server -> Bool
 serverIsSelected selectedUuids server =
     Set.member server.osProps.uuid selectedUuids
-
-
-modifyServerSelection : Server -> ModifyServerSelectionAction -> ServerListViewParams -> ServerListViewParams
-modifyServerSelection server action serverListViewParams =
-    let
-        actionFunc =
-            case action of
-                AddServer ->
-                    Set.insert
-
-                RemoveServer ->
-                    Set.remove
-
-        newSelectedServers =
-            actionFunc server.osProps.uuid serverListViewParams.selectedServers
-    in
-    { serverListViewParams | selectedServers = newSelectedServers }
-
-
-type ModifyServerSelectionAction
-    = AddServer
-    | RemoveServer

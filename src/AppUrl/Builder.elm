@@ -151,7 +151,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "images" ]
                 []
 
-        ListProjectServers _ ->
+        ServerList _ ->
             buildUrlFunc
                 [ "servers" ]
                 []
