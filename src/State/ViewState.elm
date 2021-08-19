@@ -215,12 +215,12 @@ setProjectView project projectViewConstructor outerModel =
                 ServerCreateImage _ ->
                     ( outerModel, Cmd.none )
 
-                CreateServer viewParams ->
+                ServerCreate viewParams ->
                     case outerModel.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         -- TODO double-check that this code still actually works.
-                        ProjectView _ _ (CreateServer _) ->
+                        ProjectView _ _ (ServerCreate _) ->
                             let
                                 newViewParams =
                                     case
@@ -262,7 +262,7 @@ setProjectView project projectViewConstructor outerModel =
                                         project.auth.project.uuid
                                         { createPopup = False }
                                     <|
-                                        CreateServer newViewParams
+                                        ServerCreate newViewParams
                             in
                             ( { outerModel | viewState = newViewState_ }
                             , Cmd.none
@@ -494,7 +494,7 @@ viewStateToSupportableItem viewState =
             -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
         supportableProjectItem projectUuid projectViewConstructor =
             case projectViewConstructor of
-                CreateServer createServerViewParams ->
+                ServerCreate createServerViewParams ->
                     ( HelperTypes.SupportableImage, Just createServerViewParams.imageUuid )
 
                 ServerDetail pageModel ->

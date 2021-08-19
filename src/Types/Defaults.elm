@@ -1,6 +1,5 @@
 module Types.Defaults exposing
     ( allResourcesListViewParams
-    , createServerViewParams
     , imageListViewParams
     , localization
     , projectViewParams
@@ -11,7 +10,6 @@ import Page.FloatingIpList
 import Page.KeypairList
 import Page.ServerList
 import Page.VolumeList
-import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Set
 import Types.HelperTypes as HelperTypes
 import Types.View as ViewTypes
@@ -78,26 +76,4 @@ allResourcesListViewParams =
     , volumeListViewParams = Page.VolumeList.init
     , keypairListViewParams = Page.KeypairList.init
     , floatingIpListViewParams = Page.FloatingIpList.init
-    }
-
-
-createServerViewParams : String -> String -> Maybe Bool -> HelperTypes.CreateServerViewParams
-createServerViewParams imageUuid imageName deployGuacamole =
-    { serverName = imageName
-    , imageUuid = imageUuid
-    , imageName = imageName
-    , count = 1
-    , flavorUuid = ""
-    , volSizeTextInput = Nothing
-    , userDataTemplate = cloudInitUserDataTemplate
-    , networkUuid = Nothing
-    , customWorkflowSource = Nothing
-    , customWorkflowSourceInput = Nothing
-    , showCustomWorkflowOptions = False
-    , showAdvancedOptions = False
-    , keypairName = Nothing
-    , deployGuacamole = deployGuacamole
-    , deployDesktopEnvironment = False
-    , installOperatingSystemUpdates = True
-    , floatingIpCreationOption = HelperTypes.Automatic
     }

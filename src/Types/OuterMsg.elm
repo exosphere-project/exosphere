@@ -10,6 +10,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
+import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
@@ -46,4 +47,5 @@ type
     | VolumeAttachMsg Page.VolumeAttach.Msg
     | ServerListMsg Page.ServerList.Msg
     | ServerDetailMsg Page.ServerDetail.Msg
+    | ServerCreateMsg Page.ServerCreate.Msg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg

@@ -454,14 +454,14 @@ receiveNetworks outerModel project networks =
             case outerModel.viewState of
                 ProjectView _ viewParams projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer createServerViewParams ->
+                        ServerCreate createServerViewParams ->
                             if createServerViewParams.networkUuid == Nothing then
                                 case Helpers.newServerNetworkOptions newProject of
                                     AutoSelectedNetwork netUuid ->
                                         ProjectView
                                             project.auth.project.uuid
                                             viewParams
-                                            (CreateServer
+                                            (ServerCreate
                                                 { createServerViewParams
                                                     | networkUuid = Just netUuid
                                                 }

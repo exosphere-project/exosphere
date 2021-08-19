@@ -10,6 +10,7 @@ import Page.GetSupport
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
+import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
@@ -230,7 +231,7 @@ projectViewConstructorParsers =
         (s "uploadkeypair")
     , map
         (\params ->
-            CreateServer params
+            ServerCreate params
         )
         (let
             maybeBoolEnumDict =
@@ -242,7 +243,7 @@ projectViewConstructorParsers =
 
             queryParser =
                 Query.map3
-                    Defaults.createServerViewParams
+                    Page.ServerCreate.init
                     (Query.string "imageuuid"
                         |> Query.map (Maybe.withDefault "")
                     )

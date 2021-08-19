@@ -204,7 +204,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 []
 
-        CreateServer viewParams_ ->
+        ServerCreate viewParams_ ->
             buildUrlFunc
                 [ "createserver"
                 ]

@@ -7,6 +7,7 @@ import Filesize
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
+import Page.ServerCreate
 import Set
 import Set.Extra
 import Style.Helpers as SH
@@ -415,8 +416,8 @@ renderImage context project imageListViewParams sortTableParams image =
 
         chooseMsg =
             SetProjectView project.auth.project.uuid <|
-                CreateServer <|
-                    Defaults.createServerViewParams
+                ServerCreate <|
+                    Page.ServerCreate.init
                         image.uuid
                         image.name
                         (VH.userAppProxyLookup context project

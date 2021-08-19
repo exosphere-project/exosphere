@@ -1,6 +1,6 @@
 module Types.HelperTypes exposing
     ( CloudSpecificConfig
-    , CreateServerViewParams
+    , CreateServerPageModel
     , DefaultLoginView(..)
     , ExcludeFilter
     , FloatingIpAssignmentStatus(..)
@@ -197,11 +197,7 @@ type SupportableItemType
     | SupportableVolume
 
 
-
--- This should become the Model of the create instance view, once the legacy view is migrated to a page
-
-
-type alias CreateServerViewParams =
+type alias CreateServerPageModel =
     { serverName : String
     , imageUuid : OSTypes.ImageUuid
     , imageName : String

@@ -172,7 +172,7 @@ pageTitle outerModel context =
                         , volumeName maybeProject model.volumeUuid
                         ]
 
-                CreateServer _ ->
+                ServerCreate _ ->
                     String.join " "
                         [ "Create"
                         , context.localization.virtualComputer

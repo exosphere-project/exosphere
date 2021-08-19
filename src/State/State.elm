@@ -29,6 +29,7 @@ import Page.LoginOpenstack
 import Page.LoginPicker
 import Page.MessageLog
 import Page.SelectProjects
+import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
@@ -434,6 +435,21 @@ updateUnderlying outerMsg outerModel =
 
                                 Nothing ->
                                     ( outerModel, Cmd.none )
+
+                        ( ServerCreateMsg innerMsg, ServerCreate innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerCreate.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerCreate newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerCreateMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
                         ( ServerDetailMsg innerMsg, ServerDetail innerModel ) ->
                             let
@@ -1651,14 +1667,14 @@ processProjectSpecificMsg outerModel project msg =
                     case outerModel.viewState of
                         ProjectView _ viewParams projectViewConstructor ->
                             case projectViewConstructor of
-                                CreateServer createServerViewParams ->
+                                ServerCreate createServerViewParams ->
                                     if createServerViewParams.networkUuid == Nothing then
                                         case Helpers.newServerNetworkOptions newProject of
                                             AutoSelectedNetwork netUuid ->
                                                 ProjectView
                                                     project.auth.project.uuid
                                                     viewParams
-                                                    (CreateServer
+                                                    (ServerCreate
                                                         { createServerViewParams
                                                             | networkUuid = Just netUuid
                                                         }
@@ -1896,8 +1912,8 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveRandomServerName serverName ->
             case outerModel.viewState of
-                ProjectView _ _ (CreateServer viewParams) ->
-                    ViewStateHelpers.setProjectView project (CreateServer { viewParams | serverName = serverName }) outerModel
+                ProjectView _ _ (ServerCreate viewParams) ->
+                    ViewStateHelpers.setProjectView project (ServerCreate { viewParams | serverName = serverName }) outerModel
 
                 _ ->
                     ( outerModel, Cmd.none )

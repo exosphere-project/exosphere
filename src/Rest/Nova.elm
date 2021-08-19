@@ -881,7 +881,7 @@ receiveFlavors outerModel project flavors =
             case outerModel.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer viewParams ->
+                        ServerCreate viewParams ->
                             if viewParams.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
@@ -892,7 +892,7 @@ receiveFlavors outerModel project flavors =
                                         ProjectView
                                             project.auth.project.uuid
                                             Defaults.projectViewParams
-                                            (CreateServer
+                                            (ServerCreate
                                                 { viewParams
                                                     | flavorUuid = smallestFlavor.uuid
                                                 }

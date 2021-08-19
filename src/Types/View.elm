@@ -64,7 +64,7 @@ type
     | ListImages ImageListViewParams SortTableParams
     | ServerList Page.ServerList.Model
     | ServerDetail Page.ServerDetail.Model
-    | CreateServer HelperTypes.CreateServerViewParams
+    | ServerCreate HelperTypes.CreateServerPageModel
     | ServerCreateImage Page.ServerCreateImage.Model
     | VolumeList Page.VolumeList.Model
     | VolumeDetail Page.VolumeDetail.Model

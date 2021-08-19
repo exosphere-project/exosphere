@@ -7,12 +7,12 @@ import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import LegacyView.AllResources
-import LegacyView.CreateServer
 import LegacyView.Images
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.KeypairCreate
 import Page.KeypairList
+import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
@@ -59,8 +59,9 @@ project model context p viewParams viewConstructor =
                     Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) model_
                         |> Element.map ServerDetailMsg
 
-                CreateServer createServerViewParams ->
-                    LegacyView.CreateServer.createServer context p createServerViewParams
+                ServerCreate createServerViewParams ->
+                    Page.ServerCreate.view context p createServerViewParams
+                        |> Element.map ServerCreateMsg
 
                 VolumeList model_ ->
                     Page.VolumeList.view context
