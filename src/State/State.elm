@@ -1818,7 +1818,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
 
         ReceiveAttachVolume attachment ->
-            ViewStateHelpers.setProjectView project (MountVolInstructions attachment) outerModel
+            ViewStateHelpers.setProjectView project (VolumeMountInstructions attachment) outerModel
 
         ReceiveDetachVolume ->
             ViewStateHelpers.setProjectView project (VolumeList Page.VolumeList.init) outerModel

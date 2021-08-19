@@ -375,7 +375,7 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                MountVolInstructions _ ->
+                VolumeMountInstructions _ ->
                     ( outerModel, Cmd.none )
 
                 VolumeCreate _ ->
@@ -509,7 +509,7 @@ viewStateToSupportableItem viewState =
                         |> Maybe.map (\uuid -> ( HelperTypes.SupportableVolume, Just uuid ))
                         |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectUuid )
 
-                MountVolInstructions attachment ->
+                VolumeMountInstructions attachment ->
                     ( HelperTypes.SupportableServer, Just attachment.serverUuid )
 
                 _ ->

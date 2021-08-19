@@ -263,7 +263,7 @@ project model context p projectPageModel viewConstructor =
                     Page.VolumeAttach.view context p model_
                         |> Element.map VolumeAttachMsg
 
-                MountVolInstructions attachment ->
+                VolumeMountInstructions attachment ->
                     Page.VolumeMountInstructions.view context p attachment
                         |> Element.map SharedMsg
 

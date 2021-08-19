@@ -66,8 +66,7 @@ type
     | VolumeDetail Page.VolumeDetail.Model
     | VolumeCreate Page.VolumeCreate.Model
     | VolumeAttach Page.VolumeAttach.Model
-      -- TODO rename to VolumeMountInstructions
-    | MountVolInstructions OSTypes.VolumeAttachment
+    | VolumeMountInstructions OSTypes.VolumeAttachment
     | FloatingIpList Page.FloatingIpList.Model
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | KeypairList Page.KeypairList.Model

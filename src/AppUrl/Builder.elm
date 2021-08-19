@@ -256,7 +256,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 (List.concat [ volUuidQP, serverUuidQP ])
 
-        MountVolInstructions attachment ->
+        VolumeMountInstructions attachment ->
             buildUrlFunc
                 [ "attachvolinstructions" ]
                 [ UB.string "serveruuid" attachment.serverUuid

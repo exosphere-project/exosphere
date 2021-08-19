@@ -193,7 +193,7 @@ pageTitle outerModel context =
                             |> Helpers.String.toTitleCase
                         ]
 
-                MountVolInstructions _ ->
+                VolumeMountInstructions _ ->
                     String.join " "
                         [ "Mount"
                         , context.localization.blockDevice

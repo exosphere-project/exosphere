@@ -275,7 +275,7 @@ projectViewConstructorParsers =
         )
     , map
         (\attachment ->
-            MountVolInstructions attachment
+            VolumeMountInstructions attachment
         )
         (let
             queryParser =
