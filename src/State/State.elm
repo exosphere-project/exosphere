@@ -22,6 +22,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
+import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -435,6 +436,21 @@ updateUnderlying outerMsg outerModel =
 
                                 Nothing ->
                                     ( outerModel, Cmd.none )
+
+                        ( ImageListMsg innerMsg, ImageList innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ImageList.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ImageList newSharedModel
+                              }
+                            , Cmd.map (\msg -> ImageListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
                         ( ServerCreateMsg innerMsg, ServerCreate innerModel ) ->
                             let
@@ -863,6 +879,18 @@ processSharedMsg sharedMsg outerModel =
                             ViewStateHelpers.setNonProjectView HelpAbout outerModel
                     in
                     ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
+
+                Types.SharedMsg.ServerCreate projectId imageId imageName maybeDeployGuac ->
+                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
 
                 Types.SharedMsg.ServerDetail projectId serverId ->
                     -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once

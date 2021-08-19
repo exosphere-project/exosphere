@@ -1,12 +1,9 @@
 module Types.View exposing
     ( AllResourcesListViewParams
-    , ImageListViewParams
-    , ImageListVisibilityFilter
     , LoginView(..)
     , NonProjectViewConstructor(..)
     , ProjectViewConstructor(..)
     , ProjectViewParams
-    , SortTableParams
     , ViewState(..)
     )
 
@@ -14,6 +11,7 @@ import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -27,7 +25,6 @@ import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
-import Set
 import Types.HelperTypes as HelperTypes
 
 
@@ -61,7 +58,7 @@ type
     ProjectViewConstructor
     -- TODO order these
     = AllResources AllResourcesListViewParams
-    | ListImages ImageListViewParams SortTableParams
+    | ImageList Page.ImageList.Model
     | ServerList Page.ServerList.Model
     | ServerDetail Page.ServerDetail.Model
     | ServerCreate HelperTypes.CreateServerPageModel
@@ -76,34 +73,6 @@ type
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | KeypairList Page.KeypairList.Model
     | KeypairCreate Page.KeypairCreate.Model
-
-
-
--- Everything below will be moved to page-specific models as Legacy Views are migrated over.
--- Model for image list view
-
-
-type alias ImageListViewParams =
-    { searchText : String
-    , tags : Set.Set String
-    , onlyOwnImages : Bool
-    , expandImageDetails : Set.Set OSTypes.ImageUuid
-    , visibilityFilter : ImageListVisibilityFilter
-    }
-
-
-type alias ImageListVisibilityFilter =
-    { public : Bool
-    , community : Bool
-    , shared : Bool
-    , private : Bool
-    }
-
-
-type alias SortTableParams =
-    { title : String
-    , asc : Bool
-    }
 
 
 

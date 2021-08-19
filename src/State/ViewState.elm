@@ -153,12 +153,12 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                ListImages _ _ ->
+                ImageList _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListImages _ _) ->
+                                Just (ImageList _) ->
                                     Cmd.none
 
                                 _ ->

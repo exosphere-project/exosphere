@@ -3,6 +3,7 @@ module Types.OuterMsg exposing (OuterMsg(..))
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -49,3 +50,4 @@ type
     | ServerDetailMsg Page.ServerDetail.Msg
     | ServerCreateMsg Page.ServerCreate.Msg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg
+    | ImageListMsg Page.ImageList.Msg

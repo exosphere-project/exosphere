@@ -7,9 +7,9 @@ import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import LegacyView.AllResources
-import LegacyView.Images
 import Page.FloatingIpAssign
 import Page.FloatingIpList
+import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.ServerCreate
@@ -22,7 +22,6 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Style.Helpers as SH
-import Types.Defaults as Defaults
 import Types.HelperTypes exposing (ProjectIdentifier)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
@@ -45,8 +44,9 @@ project model context p viewParams viewConstructor =
                         p
                         allResourcesViewParams
 
-                ListImages imageFilter sortTableParams ->
-                    LegacyView.Images.imagesIfLoaded context p imageFilter sortTableParams
+                ImageList model_ ->
+                    Page.ImageList.view context p model_
+                        |> Element.map ImageListMsg
 
                 ServerList model_ ->
                     Page.ServerList.view context
@@ -231,14 +231,7 @@ createButton context projectId expanded =
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <|
-                        SetProjectView projectId <|
-                            ListImages
-                                Defaults.imageListViewParams
-                                { title = "Name"
-                                , asc = True
-                                }
-                    )
+                    (Just <| SetProjectView projectId <| ImageList Page.ImageList.init)
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice

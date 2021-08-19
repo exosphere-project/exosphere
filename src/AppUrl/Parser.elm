@@ -7,6 +7,7 @@ import OpenStack.Types as OSTypes
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
+import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginOpenstack
@@ -185,7 +186,7 @@ pathParsers defaultViewState =
 projectViewConstructorParsers : List (Parser (ProjectViewConstructor -> b) b)
 projectViewConstructorParsers =
     [ map
-        (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
+        (ImageList Page.ImageList.init)
         (s "images")
     , map
         (AllResources Defaults.allResourcesListViewParams)

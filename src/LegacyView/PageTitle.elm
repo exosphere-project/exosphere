@@ -87,7 +87,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ListImages _ _ ->
+                ImageList _ ->
                     String.join " "
                         [ context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize

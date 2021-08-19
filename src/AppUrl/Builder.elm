@@ -146,7 +146,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "resources" ]
                 []
 
-        ListImages _ _ ->
+        ImageList _ ->
             buildUrlFunc
                 [ "images" ]
                 []

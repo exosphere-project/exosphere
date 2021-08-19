@@ -1,16 +1,13 @@
 module Types.Defaults exposing
     ( allResourcesListViewParams
-    , imageListViewParams
     , localization
     , projectViewParams
-    , sortTableParams
     )
 
 import Page.FloatingIpList
 import Page.KeypairList
 import Page.ServerList
 import Page.VolumeList
-import Set
 import Types.HelperTypes as HelperTypes
 import Types.View as ViewTypes
 
@@ -42,32 +39,6 @@ localization =
 projectViewParams : ViewTypes.ProjectViewParams
 projectViewParams =
     { createPopup = False }
-
-
-imageListViewParams : ViewTypes.ImageListViewParams
-imageListViewParams =
-    { searchText = ""
-    , tags = Set.empty
-    , onlyOwnImages = False
-    , expandImageDetails = Set.empty
-    , visibilityFilter = imageListVisibilityFilter
-    }
-
-
-imageListVisibilityFilter : ViewTypes.ImageListVisibilityFilter
-imageListVisibilityFilter =
-    { public = True
-    , community = True
-    , shared = True
-    , private = True
-    }
-
-
-sortTableParams : ViewTypes.SortTableParams
-sortTableParams =
-    { title = ""
-    , asc = True
-    }
 
 
 allResourcesListViewParams : ViewTypes.AllResourcesListViewParams
