@@ -50,9 +50,14 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
 projectNonspecificUrlPart : (List String -> List UB.QueryParameter -> String) -> NonProjectViewConstructor -> String
 projectNonspecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
-        LoginPicker ->
+        GetSupport _ ->
             buildUrlFunc
-                [ "loginpicker" ]
+                [ "getsupport" ]
+                []
+
+        HelpAbout ->
+            buildUrlFunc
+                [ "helpabout" ]
                 []
 
         Login loginView ->
@@ -92,18 +97,16 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         -- Not encoding password!
                         ]
 
+        LoginPicker ->
+            buildUrlFunc
+                [ "loginpicker" ]
+                []
+
         LoadingUnscopedProjects _ ->
             buildUrlFunc
                 [ "loadingprojs"
                 ]
                 []
-
-        SelectProjects model ->
-            buildUrlFunc
-                [ "selectprojs"
-                ]
-                [ UB.string "keystoneurl" model.providerKeystoneUrl
-                ]
 
         MessageLog model ->
             buildUrlFunc
@@ -117,24 +120,21 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                     )
                 ]
 
-        Settings ->
-            buildUrlFunc
-                [ "settings" ]
-                []
-
-        GetSupport _ ->
-            buildUrlFunc
-                [ "getsupport" ]
-                []
-
-        HelpAbout ->
-            buildUrlFunc
-                [ "helpabout" ]
-                []
-
         PageNotFound ->
             buildUrlFunc
                 [ "pagenotfound" ]
+                []
+
+        SelectProjects model ->
+            buildUrlFunc
+                [ "selectprojs"
+                ]
+                [ UB.string "keystoneurl" model.providerKeystoneUrl
+                ]
+
+        Settings ->
+            buildUrlFunc
+                [ "settings" ]
                 []
 
 
@@ -146,19 +146,9 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "resources" ]
                 []
 
-        ImageList _ ->
+        FloatingIpAssign _ ->
             buildUrlFunc
-                [ "images" ]
-                []
-
-        ServerList _ ->
-            buildUrlFunc
-                [ "servers" ]
-                []
-
-        VolumeList _ ->
-            buildUrlFunc
-                [ "volumes" ]
+                [ "assignfloatingip" ]
                 []
 
         FloatingIpList _ ->
@@ -166,14 +156,9 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "floatingips" ]
                 []
 
-        FloatingIpAssign _ ->
+        ImageList _ ->
             buildUrlFunc
-                [ "assignfloatingip" ]
-                []
-
-        KeypairList _ ->
-            buildUrlFunc
-                [ "keypairs" ]
+                [ "images" ]
                 []
 
         KeypairCreate _ ->
@@ -181,27 +166,9 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "uploadkeypair" ]
                 []
 
-        ServerDetail model ->
+        KeypairList _ ->
             buildUrlFunc
-                [ "servers"
-                , model.serverUuid
-                ]
-                []
-
-        ServerCreateImage model ->
-            buildUrlFunc
-                [ "servers"
-                , model.serverUuid
-                , "image"
-                ]
-                [ UB.string "name" model.imageName
-                ]
-
-        VolumeDetail model ->
-            buildUrlFunc
-                [ "volumes"
-                , model.volumeUuid
-                ]
+                [ "keypairs" ]
                 []
 
         ServerCreate viewParams_ ->
@@ -227,10 +194,25 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                     )
                 ]
 
-        VolumeCreate _ ->
+        ServerCreateImage model ->
             buildUrlFunc
-                [ "createvolume"
+                [ "servers"
+                , model.serverUuid
+                , "image"
                 ]
+                [ UB.string "name" model.imageName
+                ]
+
+        ServerDetail model ->
+            buildUrlFunc
+                [ "servers"
+                , model.serverUuid
+                ]
+                []
+
+        ServerList _ ->
+            buildUrlFunc
+                [ "servers" ]
                 []
 
         VolumeAttach model ->
@@ -255,6 +237,24 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "attachvol"
                 ]
                 (List.concat [ volUuidQP, serverUuidQP ])
+
+        VolumeCreate _ ->
+            buildUrlFunc
+                [ "createvolume"
+                ]
+                []
+
+        VolumeDetail model ->
+            buildUrlFunc
+                [ "volumes"
+                , model.volumeUuid
+                ]
+                []
+
+        VolumeList _ ->
+            buildUrlFunc
+                [ "volumes" ]
+                []
 
         VolumeMountInstructions attachment ->
             buildUrlFunc

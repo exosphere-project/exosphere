@@ -53,21 +53,19 @@ type LoginView
     | LoginJetstream Page.LoginJetstream.Model
 
 
-type
-    ProjectViewConstructor
-    -- TODO order these
+type ProjectViewConstructor
     = AllResourcesList Page.AllResourcesList.Model
+    | FloatingIpAssign Page.FloatingIpAssign.Model
+    | FloatingIpList Page.FloatingIpList.Model
     | ImageList Page.ImageList.Model
-    | ServerList Page.ServerList.Model
-    | ServerDetail Page.ServerDetail.Model
+    | KeypairCreate Page.KeypairCreate.Model
+    | KeypairList Page.KeypairList.Model
     | ServerCreate HelperTypes.CreateServerPageModel
     | ServerCreateImage Page.ServerCreateImage.Model
+    | ServerDetail Page.ServerDetail.Model
+    | ServerList Page.ServerList.Model
     | VolumeList Page.VolumeList.Model
-    | VolumeDetail Page.VolumeDetail.Model
-    | VolumeCreate Page.VolumeCreate.Model
     | VolumeAttach Page.VolumeAttach.Model
+    | VolumeCreate Page.VolumeCreate.Model
+    | VolumeDetail Page.VolumeDetail.Model
     | VolumeMountInstructions OSTypes.VolumeAttachment
-    | FloatingIpList Page.FloatingIpList.Model
-    | FloatingIpAssign Page.FloatingIpAssign.Model
-    | KeypairList Page.KeypairList.Model
-    | KeypairCreate Page.KeypairCreate.Model

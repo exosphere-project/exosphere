@@ -141,9 +141,6 @@ updateUnderlying outerMsg outerModel =
             outerModel.sharedModel
     in
     case ( outerMsg, outerModel.viewState ) of
-        ( SharedMsg sharedMsg, _ ) ->
-            processSharedMsg sharedMsg outerModel
-
         ( SetNonProjectView nonProjectViewConstructor, _ ) ->
             ViewStateHelpers.setNonProjectView nonProjectViewConstructor outerModel
 
@@ -156,16 +153,19 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     ViewStateHelpers.setProjectView project projectViewConstructor outerModel
 
+        ( SharedMsg sharedMsg, _ ) ->
+            processSharedMsg sharedMsg outerModel
+
         -- TODO exact same structure for each page-specific case here. Is there a way to deduplicate or factor out?
-        ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
+        ( GetSupportMsg innerMsg, NonProjectView (GetSupport innerModel) ) ->
             let
                 ( newInnerModel, cmd, sharedMsg ) =
-                    Page.LoginOpenstack.update innerMsg sharedModel innerModel
+                    Page.GetSupport.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginOpenstack newInnerModel
+                | viewState = NonProjectView <| GetSupport newInnerModel
               }
-            , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
+            , Cmd.map (\msg -> GetSupportMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -183,41 +183,15 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( MessageLogMsg innerMsg, NonProjectView (MessageLog innerModel) ) ->
+        ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
             let
                 ( newInnerModel, cmd, sharedMsg ) =
-                    Page.MessageLog.update innerMsg sharedModel innerModel
+                    Page.LoginOpenstack.update innerMsg sharedModel innerModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| MessageLog newInnerModel
+                | viewState = NonProjectView <| Login <| LoginOpenstack newInnerModel
               }
-            , Cmd.map (\msg -> MessageLogMsg msg) cmd
-            )
-                |> pipelineCmdOuterModelMsg
-                    (processSharedMsg sharedMsg)
-
-        ( SettingsMsg innerMsg, NonProjectView Settings ) ->
-            let
-                ( _, cmd, sharedMsg ) =
-                    Page.Settings.update innerMsg sharedModel ()
-            in
-            ( { outerModel
-                | viewState = NonProjectView <| Settings
-              }
-            , Cmd.map (\msg -> SettingsMsg msg) cmd
-            )
-                |> pipelineCmdOuterModelMsg
-                    (processSharedMsg sharedMsg)
-
-        ( GetSupportMsg innerMsg, NonProjectView (GetSupport innerModel) ) ->
-            let
-                ( newInnerModel, cmd, sharedMsg ) =
-                    Page.GetSupport.update innerMsg sharedModel innerModel
-            in
-            ( { outerModel
-                | viewState = NonProjectView <| GetSupport newInnerModel
-              }
-            , Cmd.map (\msg -> GetSupportMsg msg) cmd
+            , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -235,6 +209,19 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
+        ( MessageLogMsg innerMsg, NonProjectView (MessageLog innerModel) ) ->
+            let
+                ( newInnerModel, cmd, sharedMsg ) =
+                    Page.MessageLog.update innerMsg sharedModel innerModel
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| MessageLog newInnerModel
+              }
+            , Cmd.map (\msg -> MessageLogMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
         ( SelectProjectsMsg innerMsg, NonProjectView (SelectProjects innerModel) ) ->
             let
                 ( newInnerModel, cmd, sharedMsg ) =
@@ -244,6 +231,19 @@ updateUnderlying outerMsg outerModel =
                 | viewState = NonProjectView <| SelectProjects newInnerModel
               }
             , Cmd.map (\msg -> SelectProjectsMsg msg) cmd
+            )
+                |> pipelineCmdOuterModelMsg
+                    (processSharedMsg sharedMsg)
+
+        ( SettingsMsg innerMsg, NonProjectView Settings ) ->
+            let
+                ( _, cmd, sharedMsg ) =
+                    Page.Settings.update innerMsg sharedModel ()
+            in
+            ( { outerModel
+                | viewState = NonProjectView <| Settings
+              }
+            , Cmd.map (\msg -> SettingsMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
@@ -268,17 +268,17 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ServerListMsg innerMsg, ServerList innerModel ) ->
+                        ( FloatingIpAssignMsg innerMsg, FloatingIpAssign innerModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerList.update innerMsg project innerModel
+                                    Page.FloatingIpAssign.update innerMsg project innerModel
                             in
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId projectViewParams <|
-                                        ServerList newSharedModel
+                                        FloatingIpAssign newSharedModel
                               }
-                            , Cmd.map (\msg -> ServerListMsg msg) cmd
+                            , Cmd.map (\msg -> FloatingIpAssignMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -298,36 +298,6 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( KeypairListMsg innerMsg, KeypairList innerModel ) ->
-                            let
-                                ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.KeypairList.update innerMsg project innerModel
-                            in
-                            ( { outerModel
-                                | viewState =
-                                    ProjectView projectId projectViewParams <|
-                                        KeypairList newSharedModel
-                              }
-                            , Cmd.map (\msg -> KeypairListMsg msg) cmd
-                            )
-                                |> pipelineCmdOuterModelMsg
-                                    (processSharedMsg sharedMsg)
-
-                        ( VolumeListMsg innerMsg, VolumeList innerModel ) ->
-                            let
-                                ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeList.update innerMsg project innerModel
-                            in
-                            ( { outerModel
-                                | viewState =
-                                    ProjectView projectId projectViewParams <|
-                                        VolumeList newSharedModel
-                              }
-                            , Cmd.map (\msg -> VolumeListMsg msg) cmd
-                            )
-                                |> pipelineCmdOuterModelMsg
-                                    (processSharedMsg sharedMsg)
-
                         ( ImageListMsg innerMsg, ImageList innerModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
@@ -339,51 +309,6 @@ updateUnderlying outerMsg outerModel =
                                         ImageList newSharedModel
                               }
                             , Cmd.map (\msg -> ImageListMsg msg) cmd
-                            )
-                                |> pipelineCmdOuterModelMsg
-                                    (processSharedMsg sharedMsg)
-
-                        ( ServerCreateMsg innerMsg, ServerCreate innerModel ) ->
-                            let
-                                ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreate.update innerMsg project innerModel
-                            in
-                            ( { outerModel
-                                | viewState =
-                                    ProjectView projectId projectViewParams <|
-                                        ServerCreate newSharedModel
-                              }
-                            , Cmd.map (\msg -> ServerCreateMsg msg) cmd
-                            )
-                                |> pipelineCmdOuterModelMsg
-                                    (processSharedMsg sharedMsg)
-
-                        ( ServerDetailMsg innerMsg, ServerDetail innerModel ) ->
-                            let
-                                ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerDetail.update innerMsg project innerModel
-                            in
-                            ( { outerModel
-                                | viewState =
-                                    ProjectView projectId projectViewParams <|
-                                        ServerDetail newSharedModel
-                              }
-                            , Cmd.map (\msg -> ServerDetailMsg msg) cmd
-                            )
-                                |> pipelineCmdOuterModelMsg
-                                    (processSharedMsg sharedMsg)
-
-                        ( ServerCreateImageMsg innerMsg, ServerCreateImage innerModel ) ->
-                            let
-                                ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreateImage.update innerMsg project innerModel
-                            in
-                            ( { outerModel
-                                | viewState =
-                                    ProjectView projectId projectViewParams <|
-                                        ServerCreateImage newSharedModel
-                              }
-                            , Cmd.map (\msg -> ServerCreateImageMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -403,17 +328,92 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( FloatingIpAssignMsg innerMsg, FloatingIpAssign innerModel ) ->
+                        ( KeypairListMsg innerMsg, KeypairList innerModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.FloatingIpAssign.update innerMsg project innerModel
+                                    Page.KeypairList.update innerMsg project innerModel
                             in
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId projectViewParams <|
-                                        FloatingIpAssign newSharedModel
+                                        KeypairList newSharedModel
                               }
-                            , Cmd.map (\msg -> FloatingIpAssignMsg msg) cmd
+                            , Cmd.map (\msg -> KeypairListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerCreateMsg innerMsg, ServerCreate innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerCreate.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerCreate newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerCreateMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerCreateImageMsg innerMsg, ServerCreateImage innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerCreateImage.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerCreateImage newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerCreateImageMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerDetailMsg innerMsg, ServerDetail innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerDetail.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerDetail newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerDetailMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( ServerListMsg innerMsg, ServerList innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerList.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerList newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
+
+                        ( VolumeAttachMsg innerMsg, VolumeAttach innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeAttach.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        VolumeAttach newSharedModel
+                              }
+                            , Cmd.map (\msg -> VolumeAttachMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -448,17 +448,17 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( VolumeAttachMsg innerMsg, VolumeAttach innerModel ) ->
+                        ( VolumeListMsg innerMsg, VolumeList innerModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeAttach.update innerMsg project innerModel
+                                    Page.VolumeList.update innerMsg project innerModel
                             in
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId projectViewParams <|
-                                        VolumeAttach newSharedModel
+                                        VolumeList newSharedModel
                               }
-                            , Cmd.map (\msg -> VolumeAttachMsg msg) cmd
+                            , Cmd.map (\msg -> VolumeListMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -739,78 +739,12 @@ processSharedMsg sharedMsg outerModel =
 
         NavigateToView navigableView ->
             case navigableView of
-                Types.SharedMsg.LoginPicker ->
-                    ViewStateHelpers.setNonProjectView LoginPicker outerModel
-
-                Types.SharedMsg.GetSupport maybeSupportableItemTuple ->
-                    let
-                        -- TODO clean this up once ViewStateHelpers is no longer needed
-                        ( pageModel, cmd ) =
-                            Page.GetSupport.init maybeSupportableItemTuple
-
-                        ( newOuterModel, otherCmd ) =
-                            ViewStateHelpers.setNonProjectView (GetSupport pageModel) outerModel
-                    in
-                    ( newOuterModel
-                    , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
-                    )
-
-                Types.SharedMsg.LoginOpenstack ->
-                    ViewStateHelpers.setNonProjectView (Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
-
-                Types.SharedMsg.LoginJetstream ->
-                    ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
-
-                Types.SharedMsg.HelpAbout ->
-                    let
-                        ( _, cmd ) =
-                            Page.HelpAbout.init
-
-                        ( newOuterModel, otherCmd ) =
-                            ViewStateHelpers.setNonProjectView HelpAbout outerModel
-                    in
-                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
-
-                Types.SharedMsg.ServerCreate projectId imageId imageName maybeDeployGuac ->
-                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
+                Types.SharedMsg.FloatingIpAssign projectId maybeIpUuid maybeServerUuid ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.ServerDetail projectId serverId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerDetail (Page.ServerDetail.init serverId))
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.ServerCreateImage projectId serverId maybeImageName ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.ServerList projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerList Page.ServerList.init)
+                                (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
                                 outerModel
 
                         Nothing ->
@@ -827,12 +761,35 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-                Types.SharedMsg.FloatingIpAssign projectId maybeIpUuid maybeServerUuid ->
+                Types.SharedMsg.GetSupport maybeSupportableItemTuple ->
+                    let
+                        -- TODO clean this up once ViewStateHelpers is no longer needed
+                        ( pageModel, cmd ) =
+                            Page.GetSupport.init maybeSupportableItemTuple
+
+                        ( newOuterModel, otherCmd ) =
+                            ViewStateHelpers.setNonProjectView (GetSupport pageModel) outerModel
+                    in
+                    ( newOuterModel
+                    , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
+                    )
+
+                Types.SharedMsg.HelpAbout ->
+                    let
+                        ( _, cmd ) =
+                            Page.HelpAbout.init
+
+                        ( newOuterModel, otherCmd ) =
+                            ViewStateHelpers.setNonProjectView HelpAbout outerModel
+                    in
+                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
+
+                Types.SharedMsg.KeypairCreate projectId ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
+                                (KeypairCreate Page.KeypairCreate.init)
                                 outerModel
 
                         Nothing ->
@@ -849,34 +806,55 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-                Types.SharedMsg.KeypairCreate projectId ->
+                Types.SharedMsg.LoginJetstream ->
+                    ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
+
+                Types.SharedMsg.LoginOpenstack ->
+                    ViewStateHelpers.setNonProjectView (Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
+
+                Types.SharedMsg.LoginPicker ->
+                    ViewStateHelpers.setNonProjectView LoginPicker outerModel
+
+                Types.SharedMsg.ServerCreate projectId imageId imageName maybeDeployGuac ->
+                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (KeypairCreate Page.KeypairCreate.init)
+                                (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
                                 outerModel
 
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-                Types.SharedMsg.VolumeList projectId ->
+                Types.SharedMsg.ServerCreateImage projectId serverId maybeImageName ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (VolumeList Page.VolumeList.init)
+                                (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
                                 outerModel
 
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-                Types.SharedMsg.VolumeCreate projectId ->
+                Types.SharedMsg.ServerDetail projectId serverId ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
-                                (VolumeCreate Page.VolumeCreate.init)
+                                (ServerDetail (Page.ServerDetail.init serverId))
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.ServerList projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (ServerList Page.ServerList.init)
                                 outerModel
 
                         Nothing ->
@@ -893,12 +871,34 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
+                Types.SharedMsg.VolumeCreate projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (VolumeCreate Page.VolumeCreate.init)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
                 Types.SharedMsg.VolumeDetail projectId volumeUuid ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
                                 (VolumeDetail <| Page.VolumeDetail.init volumeUuid)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.VolumeList projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (VolumeList Page.VolumeList.init)
                                 outerModel
 
                         Nothing ->
@@ -1050,9 +1050,6 @@ processTick outerModel interval time =
                                         _ ->
                                             ( outerModel.sharedModel, Cmd.none )
 
-                                VolumeList _ ->
-                                    pollVolumes
-
                                 VolumeDetail pageModel ->
                                     ( outerModel.sharedModel
                                     , case interval of
@@ -1074,6 +1071,9 @@ processTick outerModel interval time =
                                         _ ->
                                             Cmd.none
                                     )
+
+                                VolumeList _ ->
+                                    pollVolumes
 
                                 _ ->
                                     ( outerModel.sharedModel, Cmd.none )

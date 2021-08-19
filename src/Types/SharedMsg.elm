@@ -108,23 +108,21 @@ type ServerSpecificMsgConstructor
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
-type
-    NavigableView
-    -- TODO order these
-    = LoginPicker
-    | LoginOpenstack
-    | LoginJetstream
-    | HelpAbout
+type NavigableView
+    = FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
+    | FloatingIpList HelperTypes.ProjectIdentifier
     | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
-    | ServerList HelperTypes.ProjectIdentifier
-    | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
+    | HelpAbout
+    | KeypairCreate HelperTypes.ProjectIdentifier
+    | KeypairList HelperTypes.ProjectIdentifier
+    | LoginJetstream
+    | LoginOpenstack
+    | LoginPicker
     | ServerCreate HelperTypes.ProjectIdentifier OSTypes.ImageUuid String (Maybe Bool)
     | ServerCreateImage HelperTypes.ProjectIdentifier OSTypes.ServerUuid (Maybe String)
-    | FloatingIpList HelperTypes.ProjectIdentifier
-    | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
-    | KeypairList HelperTypes.ProjectIdentifier
-    | KeypairCreate HelperTypes.ProjectIdentifier
-    | VolumeList HelperTypes.ProjectIdentifier
-    | VolumeCreate HelperTypes.ProjectIdentifier
+    | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
+    | ServerList HelperTypes.ProjectIdentifier
     | VolumeAttach HelperTypes.ProjectIdentifier (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
+    | VolumeCreate HelperTypes.ProjectIdentifier
     | VolumeDetail HelperTypes.ProjectIdentifier OSTypes.VolumeUuid
+    | VolumeList HelperTypes.ProjectIdentifier
