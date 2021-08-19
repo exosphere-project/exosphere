@@ -1,13 +1,8 @@
 module Types.Defaults exposing
-    ( allResourcesListViewParams
-    , localization
+    ( localization
     , projectViewParams
     )
 
-import Page.FloatingIpList
-import Page.KeypairList
-import Page.ServerList
-import Page.VolumeList
 import Types.HelperTypes as HelperTypes
 import Types.View as ViewTypes
 
@@ -39,12 +34,3 @@ localization =
 projectViewParams : ViewTypes.ProjectViewParams
 projectViewParams =
     { createPopup = False }
-
-
-allResourcesListViewParams : ViewTypes.AllResourcesListViewParams
-allResourcesListViewParams =
-    { serverListViewParams = Page.ServerList.init
-    , volumeListViewParams = Page.VolumeList.init
-    , keypairListViewParams = Page.KeypairList.init
-    , floatingIpListViewParams = Page.FloatingIpList.init
-    }

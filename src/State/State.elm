@@ -18,6 +18,7 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
+import Page.AllResources
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -253,189 +254,80 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
                         -- TODO order these cases same as the Msg order, which itself should be re-ordered, possibly alphabetically
-                        ( ServerListMsg innerMsg, _ ) ->
+                        ( AllResourcesMsg innerMsg, AllResources innerModel ) ->
                             let
-                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
-                                maybeToViewAndInnerModel =
-                                    case projectViewConstructor of
-                                        ServerList innerModel ->
-                                            Just
-                                                ( ServerList
-                                                , innerModel
-                                                )
-
-                                        AllResources allResourcesViewParams ->
-                                            Just
-                                                ( \newInnerModel ->
-                                                    AllResources
-                                                        { allResourcesViewParams
-                                                            | serverListViewParams = newInnerModel
-                                                        }
-                                                , allResourcesViewParams.serverListViewParams
-                                                )
-
-                                        _ ->
-                                            Nothing
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.AllResources.update innerMsg project innerModel
                             in
-                            case maybeToViewAndInnerModel of
-                                Just ( projectView, innerModel ) ->
-                                    let
-                                        ( newInnerModel, cmd, sharedMsg ) =
-                                            Page.ServerList.update innerMsg project innerModel
-                                    in
-                                    ( { outerModel
-                                        | viewState =
-                                            ProjectView
-                                                projectId
-                                                projectViewParams
-                                            <|
-                                                projectView newInnerModel
-                                      }
-                                    , Cmd.map (\msg -> ServerListMsg msg) cmd
-                                    )
-                                        |> pipelineCmdOuterModelMsg
-                                            (processSharedMsg sharedMsg)
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        AllResources newSharedModel
+                              }
+                            , Cmd.map (\msg -> AllResourcesMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
-                                Nothing ->
-                                    ( outerModel, Cmd.none )
-
-                        ( FloatingIpListMsg innerMsg, _ ) ->
+                        ( ServerListMsg innerMsg, ServerList innerModel ) ->
                             let
-                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
-                                maybeToViewAndInnerModel =
-                                    case projectViewConstructor of
-                                        FloatingIpList innerModel ->
-                                            Just
-                                                ( FloatingIpList
-                                                , innerModel
-                                                )
-
-                                        AllResources allResourcesViewParams ->
-                                            Just
-                                                ( \newInnerModel ->
-                                                    AllResources
-                                                        { allResourcesViewParams
-                                                            | floatingIpListViewParams = newInnerModel
-                                                        }
-                                                , allResourcesViewParams.floatingIpListViewParams
-                                                )
-
-                                        _ ->
-                                            Nothing
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.ServerList.update innerMsg project innerModel
                             in
-                            case maybeToViewAndInnerModel of
-                                Just ( projectView, innerModel ) ->
-                                    let
-                                        ( newInnerModel, cmd, sharedMsg ) =
-                                            Page.FloatingIpList.update innerMsg project innerModel
-                                    in
-                                    ( { outerModel
-                                        | viewState =
-                                            ProjectView
-                                                projectId
-                                                projectViewParams
-                                            <|
-                                                projectView newInnerModel
-                                      }
-                                    , Cmd.map (\msg -> FloatingIpListMsg msg) cmd
-                                    )
-                                        |> pipelineCmdOuterModelMsg
-                                            (processSharedMsg sharedMsg)
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        ServerList newSharedModel
+                              }
+                            , Cmd.map (\msg -> ServerListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
-                                Nothing ->
-                                    ( outerModel, Cmd.none )
-
-                        ( KeypairListMsg innerMsg, _ ) ->
+                        ( FloatingIpListMsg innerMsg, FloatingIpList innerModel ) ->
                             let
-                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
-                                maybeToViewAndInnerModel =
-                                    case projectViewConstructor of
-                                        KeypairList innerModel ->
-                                            Just
-                                                ( KeypairList
-                                                , innerModel
-                                                )
-
-                                        AllResources allResourcesViewParams ->
-                                            Just
-                                                ( \newInnerModel ->
-                                                    AllResources
-                                                        { allResourcesViewParams
-                                                            | keypairListViewParams = newInnerModel
-                                                        }
-                                                , allResourcesViewParams.keypairListViewParams
-                                                )
-
-                                        _ ->
-                                            Nothing
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.FloatingIpList.update innerMsg project innerModel
                             in
-                            case maybeToViewAndInnerModel of
-                                Just ( projectView, innerModel ) ->
-                                    let
-                                        ( newInnerModel, cmd, sharedMsg ) =
-                                            Page.KeypairList.update innerMsg project innerModel
-                                    in
-                                    ( { outerModel
-                                        | viewState =
-                                            ProjectView
-                                                projectId
-                                                projectViewParams
-                                            <|
-                                                projectView newInnerModel
-                                      }
-                                    , Cmd.map (\msg -> KeypairListMsg msg) cmd
-                                    )
-                                        |> pipelineCmdOuterModelMsg
-                                            (processSharedMsg sharedMsg)
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        FloatingIpList newSharedModel
+                              }
+                            , Cmd.map (\msg -> FloatingIpListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
-                                Nothing ->
-                                    ( outerModel, Cmd.none )
-
-                        ( VolumeListMsg innerMsg, _ ) ->
+                        ( KeypairListMsg innerMsg, KeypairList innerModel ) ->
                             let
-                                -- TODO this factoring is sort of ugly, try to redo it when migrating the all resources view to a new page
-                                maybeToViewAndInnerModel =
-                                    case projectViewConstructor of
-                                        VolumeList innerModel ->
-                                            Just
-                                                ( VolumeList
-                                                , innerModel
-                                                )
-
-                                        AllResources allResourcesViewParams ->
-                                            Just
-                                                ( \newInnerModel ->
-                                                    AllResources
-                                                        { allResourcesViewParams
-                                                            | volumeListViewParams = newInnerModel
-                                                        }
-                                                , allResourcesViewParams.volumeListViewParams
-                                                )
-
-                                        _ ->
-                                            Nothing
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.KeypairList.update innerMsg project innerModel
                             in
-                            case maybeToViewAndInnerModel of
-                                Just ( projectView, innerModel ) ->
-                                    let
-                                        ( newInnerModel, cmd, sharedMsg ) =
-                                            Page.VolumeList.update innerMsg project innerModel
-                                    in
-                                    ( { outerModel
-                                        | viewState =
-                                            ProjectView
-                                                projectId
-                                                projectViewParams
-                                            <|
-                                                projectView newInnerModel
-                                      }
-                                    , Cmd.map (\msg -> VolumeListMsg msg) cmd
-                                    )
-                                        |> pipelineCmdOuterModelMsg
-                                            (processSharedMsg sharedMsg)
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        KeypairList newSharedModel
+                              }
+                            , Cmd.map (\msg -> KeypairListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
-                                Nothing ->
-                                    ( outerModel, Cmd.none )
+                        ( VolumeListMsg innerMsg, VolumeList innerModel ) ->
+                            let
+                                ( newSharedModel, cmd, sharedMsg ) =
+                                    Page.VolumeList.update innerMsg project innerModel
+                            in
+                            ( { outerModel
+                                | viewState =
+                                    ProjectView projectId projectViewParams <|
+                                        VolumeList newSharedModel
+                              }
+                            , Cmd.map (\msg -> VolumeListMsg msg) cmd
+                            )
+                                |> pipelineCmdOuterModelMsg
+                                    (processSharedMsg sharedMsg)
 
                         ( ImageListMsg innerMsg, ImageList innerModel ) ->
                             let
@@ -808,7 +700,7 @@ processSharedMsg sharedMsg outerModel =
                                             ViewStateHelpers.setProjectView
                                                 project
                                             <|
-                                                AllResources Defaults.allResourcesListViewParams
+                                                AllResources Page.AllResources.init
 
                                         Nothing ->
                                             ViewStateHelpers.setNonProjectView
@@ -893,7 +785,6 @@ processSharedMsg sharedMsg outerModel =
                             ( outerModel, Cmd.none )
 
                 Types.SharedMsg.ServerDetail projectId serverId ->
-                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
@@ -905,12 +796,22 @@ processSharedMsg sharedMsg outerModel =
                             ( outerModel, Cmd.none )
 
                 Types.SharedMsg.ServerCreateImage projectId serverId maybeImageName ->
-                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             ViewStateHelpers.setProjectView
                                 project
                                 (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.ServerList projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (ServerList Page.ServerList.init)
                                 outerModel
 
                         Nothing ->
@@ -955,6 +856,17 @@ processSharedMsg sharedMsg outerModel =
                             ViewStateHelpers.setProjectView
                                 project
                                 (KeypairCreate Page.KeypairCreate.init)
+                                outerModel
+
+                        Nothing ->
+                            ( outerModel, Cmd.none )
+
+                Types.SharedMsg.VolumeList projectId ->
+                    case GetterSetters.projectLookup sharedModel projectId of
+                        Just project ->
+                            ViewStateHelpers.setProjectView
+                                project
+                                (VolumeList Page.VolumeList.init)
                                 outerModel
 
                         Nothing ->
@@ -1271,8 +1183,7 @@ processProjectSpecificMsg outerModel project msg =
                                         p.auth.project.uuid
                                         Defaults.projectViewParams
                                     <|
-                                        AllResources
-                                            Defaults.allResourcesListViewParams
+                                        AllResources Page.AllResources.init
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -1622,8 +1533,7 @@ processProjectSpecificMsg outerModel project msg =
                         project.auth.project.uuid
                         Defaults.projectViewParams
                     <|
-                        AllResources
-                            Defaults.allResourcesListViewParams
+                        AllResources Page.AllResources.init
 
                 ( newSharedModel, newCmd ) =
                     ( sharedModel, Cmd.none )
@@ -1979,8 +1889,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         project.auth.project.uuid
                         { createPopup = False }
                     <|
-                        AllResources
-                            Defaults.allResourcesListViewParams
+                        AllResources Page.AllResources.init
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
@@ -2029,9 +1938,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (AllResources
-                                                Defaults.allResourcesListViewParams
-                                            )
+                                            (AllResources Page.AllResources.init)
 
                                     else
                                         outerModel.viewState
@@ -2549,11 +2456,11 @@ createProject outerModel authToken endpoints =
 
                 NonProjectView _ ->
                     ViewStateHelpers.setProjectView newProject <|
-                        AllResources Defaults.allResourcesListViewParams
+                        AllResources Page.AllResources.init
 
                 ProjectView _ _ _ ->
                     ViewStateHelpers.setProjectView newProject <|
-                        AllResources Defaults.allResourcesListViewParams
+                        AllResources Page.AllResources.init
 
         ( newSharedModel, newCmd ) =
             ( { sharedModel

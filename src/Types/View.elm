@@ -1,6 +1,5 @@
 module Types.View exposing
-    ( AllResourcesListViewParams
-    , LoginView(..)
+    ( LoginView(..)
     , NonProjectViewConstructor(..)
     , ProjectViewConstructor(..)
     , ProjectViewParams
@@ -8,6 +7,7 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
+import Page.AllResources
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -57,7 +57,7 @@ type LoginView
 type
     ProjectViewConstructor
     -- TODO order these
-    = AllResources AllResourcesListViewParams
+    = AllResources Page.AllResources.Model
     | ImageList Page.ImageList.Model
     | ServerList Page.ServerList.Model
     | ServerDetail Page.ServerDetail.Model
@@ -81,16 +81,4 @@ type
 
 type alias ProjectViewParams =
     { createPopup : Bool
-    }
-
-
-
--- Model for all resources view
-
-
-type alias AllResourcesListViewParams =
-    { serverListViewParams : Page.ServerList.Model
-    , volumeListViewParams : Page.VolumeList.Model
-    , keypairListViewParams : Page.KeypairList.Model
-    , floatingIpListViewParams : Page.FloatingIpList.Model
     }

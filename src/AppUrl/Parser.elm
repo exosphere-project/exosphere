@@ -4,6 +4,7 @@ module AppUrl.Parser exposing (urlToViewState)
 
 import Dict
 import OpenStack.Types as OSTypes
+import Page.AllResources
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -189,7 +190,7 @@ projectViewConstructorParsers =
         (ImageList Page.ImageList.init)
         (s "images")
     , map
-        (AllResources Defaults.allResourcesListViewParams)
+        (AllResources Page.AllResources.init)
         (s "resources")
     , map
         (\svrUuid imageName ->

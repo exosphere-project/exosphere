@@ -301,6 +301,8 @@ images context project model =
                         , context.localization.staticRepresentationOfBlockDeviceContents
                         , "visibility:"
                         ]
+
+                -- TODO duplication of logic in these checkboxes, factor out what is common
                 , Input.checkbox []
                     { checked = model.visibilityFilter.public
                     , onChange =

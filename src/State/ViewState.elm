@@ -16,6 +16,7 @@ import LegacyView.PageTitle
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Page.AllResources
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
@@ -463,9 +464,7 @@ defaultViewState model =
             ProjectView
                 firstProject.auth.project.uuid
                 Defaults.projectViewParams
-                (AllResources
-                    Defaults.allResourcesListViewParams
-                )
+                (AllResources Page.AllResources.init)
 
 
 defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor

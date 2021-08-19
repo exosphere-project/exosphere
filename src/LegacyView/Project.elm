@@ -6,7 +6,7 @@ import Element.Border as Border
 import FeatherIcons
 import Helpers.String
 import Helpers.Url as UrlHelpers
-import LegacyView.AllResources
+import Page.AllResources
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.ImageList
@@ -38,11 +38,12 @@ project model context p viewParams viewConstructor =
     let
         v =
             case viewConstructor of
-                AllResources allResourcesViewParams ->
-                    LegacyView.AllResources.allResources
+                AllResources model_ ->
+                    Page.AllResources.view
                         context
                         p
-                        allResourcesViewParams
+                        model_
+                        |> Element.map AllResourcesMsg
 
                 ImageList model_ ->
                     Page.ImageList.view context p model_

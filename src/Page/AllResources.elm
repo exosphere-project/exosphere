@@ -1,4 +1,4 @@
-module LegacyView.AllResources exposing (allResources)
+module Page.AllResources exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Events as Events
@@ -11,29 +11,77 @@ import Page.ServerList
 import Page.VolumeList
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
-import Types.View
-    exposing
-        ( AllResourcesListViewParams
-        , LoginView(..)
-        , NonProjectViewConstructor(..)
-        , ProjectViewConstructor(..)
-        , ViewState(..)
-        )
 import View.Helpers as VH
 import View.Types
 
 
-allResources :
-    View.Types.Context
-    -> Project
-    -> AllResourcesListViewParams
-    -> Element.Element OuterMsg
-allResources context p viewParams =
+type alias Model =
+    { serverListModel : Page.ServerList.Model
+    , volumeListModel : Page.VolumeList.Model
+    , keypairListModel : Page.KeypairList.Model
+    , floatingIpListModel : Page.FloatingIpList.Model
+    }
+
+
+init : Model
+init =
+    Model
+        Page.ServerList.init
+        Page.VolumeList.init
+        Page.KeypairList.init
+        Page.FloatingIpList.init
+
+
+type Msg
+    = ServerListMsg Page.ServerList.Msg
+    | VolumeListMsg Page.VolumeList.Msg
+    | KeypairListMsg Page.KeypairList.Msg
+    | FloatingIpListMsg Page.FloatingIpList.Msg
+    | SharedMsg SharedMsg.SharedMsg
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
+    case msg of
+        -- Repetitive dispatch code, unsure if there's a better way
+        ServerListMsg msg_ ->
+            let
+                ( pageModel, pageCmd, sharedMsg ) =
+                    Page.ServerList.update msg_ project model.serverListModel
+            in
+            ( { model | serverListModel = pageModel }, Cmd.map ServerListMsg pageCmd, sharedMsg )
+
+        VolumeListMsg msg_ ->
+            let
+                ( pageModel, pageCmd, sharedMsg ) =
+                    Page.VolumeList.update msg_ project model.volumeListModel
+            in
+            ( { model | volumeListModel = pageModel }, Cmd.map VolumeListMsg pageCmd, sharedMsg )
+
+        KeypairListMsg msg_ ->
+            let
+                ( pageModel, pageCmd, sharedMsg ) =
+                    Page.KeypairList.update msg_ project model.keypairListModel
+            in
+            ( { model | keypairListModel = pageModel }, Cmd.map KeypairListMsg pageCmd, sharedMsg )
+
+        FloatingIpListMsg msg_ ->
+            let
+                ( pageModel, pageCmd, sharedMsg ) =
+                    Page.FloatingIpList.update msg_ project model.floatingIpListModel
+            in
+            ( { model | floatingIpListModel = pageModel }, Cmd.map FloatingIpListMsg pageCmd, sharedMsg )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
+
+
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context p model =
     let
-        renderHeaderLink : Element.Element OuterMsg -> String -> OuterMsg -> Element.Element OuterMsg
+        renderHeaderLink : Element.Element Msg -> String -> Msg -> Element.Element Msg
         renderHeaderLink icon str msg =
             Element.row
                 (VH.heading3 context.palette
@@ -66,14 +114,11 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SetProjectView p.auth.project.uuid <|
-                    ServerList
-                        Page.ServerList.init
-                )
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ServerList <| p.auth.project.uuid)
             , Page.ServerList.view context
                 False
                 p
-                viewParams.serverListViewParams
+                model.serverListModel
                 |> Element.map ServerListMsg
             ]
         , Element.column
@@ -88,14 +133,11 @@ allResources context p viewParams =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SetProjectView p.auth.project.uuid <|
-                    VolumeList
-                        Page.VolumeList.init
-                )
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.VolumeList <| p.auth.project.uuid)
             , Page.VolumeList.view context
                 False
                 p
-                viewParams.volumeListViewParams
+                model.volumeListModel
                 |> Element.map VolumeListMsg
             ]
         , Element.column
@@ -109,7 +151,7 @@ allResources context p viewParams =
                 (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.FloatingIpList <| p.auth.project.uuid)
             , Page.FloatingIpList.view context
                 p
-                viewParams.floatingIpListViewParams
+                model.floatingIpListModel
                 False
                 |> Element.map FloatingIpListMsg
             ]
@@ -130,7 +172,7 @@ allResources context p viewParams =
                 (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.KeypairList <| p.auth.project.uuid)
             , Page.KeypairList.view context
                 p
-                viewParams.keypairListViewParams
+                model.keypairListModel
                 False
                 |> Element.map KeypairListMsg
             ]

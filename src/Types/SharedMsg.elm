@@ -116,6 +116,7 @@ type
     | LoginJetstream
     | HelpAbout
     | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
+    | ServerList HelperTypes.ProjectIdentifier
     | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
     | ServerCreate HelperTypes.ProjectIdentifier OSTypes.ImageUuid String (Maybe Bool)
     | ServerCreateImage HelperTypes.ProjectIdentifier OSTypes.ServerUuid (Maybe String)
@@ -123,6 +124,7 @@ type
     | FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | KeypairList HelperTypes.ProjectIdentifier
     | KeypairCreate HelperTypes.ProjectIdentifier
+    | VolumeList HelperTypes.ProjectIdentifier
     | VolumeCreate HelperTypes.ProjectIdentifier
     | VolumeAttach HelperTypes.ProjectIdentifier (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | VolumeDetail HelperTypes.ProjectIdentifier OSTypes.VolumeUuid
