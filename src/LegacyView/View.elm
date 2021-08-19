@@ -9,7 +9,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Html
 import LegacyView.Nav
-import LegacyView.PageTitle
 import LegacyView.Project
 import Page.GetSupport
 import Page.HelpAbout
@@ -29,6 +28,7 @@ import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
+import View.PageTitle
 import View.Types
 
 
@@ -39,7 +39,7 @@ view outerModel =
             VH.toViewContext outerModel.sharedModel
     in
     { title =
-        LegacyView.PageTitle.pageTitle outerModel context
+        View.PageTitle.pageTitle outerModel context
     , body =
         [ view_ outerModel context ]
     }
