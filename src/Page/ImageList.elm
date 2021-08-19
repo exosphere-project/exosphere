@@ -26,7 +26,6 @@ type alias Model =
     , onlyOwnImages : Bool
     , expandImageDetails : Set.Set OSTypes.ImageUuid
     , visibilityFilter : ImageListVisibilityFilter
-    , sortTableParams : SortTableParams
     }
 
 
@@ -38,16 +37,9 @@ type alias ImageListVisibilityFilter =
     }
 
 
-type alias SortTableParams =
-    -- TODO is this used at all?
-    { title : String
-    , asc : Bool
-    }
-
-
 init : Model
 init =
-    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True) (SortTableParams "" True)
+    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
 
 
 type Msg
