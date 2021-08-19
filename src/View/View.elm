@@ -10,7 +10,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import Html
-import LegacyView.Nav
 import Page.AllResources
 import Page.FloatingIpAssign
 import Page.FloatingIpList
@@ -46,6 +45,7 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
+import View.Nav
 import View.PageTitle
 import View.Types
 import Widget
@@ -86,7 +86,7 @@ elementView windowSize outerModel context =
                 [ Element.padding 10
                 , Element.alignTop
                 , Element.width <|
-                    Element.px (windowSize.width - LegacyView.Nav.navMenuWidth)
+                    Element.px (windowSize.width - View.Nav.navMenuWidth)
                 , Element.height Element.fill
                 , Element.scrollbars
                 ]
@@ -183,15 +183,15 @@ elementView windowSize outerModel context =
                 [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
                 , Element.width Element.fill
                 ]
-                (LegacyView.Nav.navBar outerModel context)
+                (View.Nav.navBar outerModel context)
             , Element.row
                 [ Element.padding 0
                 , Element.spacing 0
                 , Element.width Element.fill
                 , Element.height <|
-                    Element.px (windowSize.height - LegacyView.Nav.navBarHeight)
+                    Element.px (windowSize.height - View.Nav.navBarHeight)
                 ]
-                [ LegacyView.Nav.navMenu outerModel context
+                [ View.Nav.navMenu outerModel context
                 , mainContentContainerView
                 ]
             ]

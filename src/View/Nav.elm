@@ -1,4 +1,4 @@
-module LegacyView.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
+module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 
 import Element
 import Element.Background as Background
