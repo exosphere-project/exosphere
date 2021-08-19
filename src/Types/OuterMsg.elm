@@ -1,6 +1,6 @@
 module Types.OuterMsg exposing (OuterMsg(..))
 
-import Page.AllResources
+import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -52,4 +52,4 @@ type
     | ServerCreateMsg Page.ServerCreate.Msg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg
     | ImageListMsg Page.ImageList.Msg
-    | AllResourcesMsg Page.AllResources.Msg
+    | AllResourcesListMsg Page.AllResourcesList.Msg

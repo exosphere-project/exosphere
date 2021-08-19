@@ -1,4 +1,4 @@
-module Page.AllResources exposing (Model, Msg, init, update, view)
+module Page.AllResourcesList exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Events as Events

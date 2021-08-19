@@ -7,7 +7,7 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
-import Page.AllResources
+import Page.AllResourcesList
 import Page.MessageLog
 import State.ViewState
 import Style.Helpers as SH
@@ -59,7 +59,7 @@ navMenu outerModel context =
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
-                    (SetProjectView project.auth.project.uuid <| AllResources Page.AllResources.init)
+                    (SetProjectView project.auth.project.uuid <| AllResourcesList Page.AllResourcesList.init)
                 )
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)

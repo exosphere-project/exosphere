@@ -10,7 +10,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import Html
-import Page.AllResources
+import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -218,12 +218,12 @@ project model context p projectPageModel viewConstructor =
     let
         v =
             case viewConstructor of
-                AllResources model_ ->
-                    Page.AllResources.view
+                AllResourcesList model_ ->
+                    Page.AllResourcesList.view
                         context
                         p
                         model_
-                        |> Element.map AllResourcesMsg
+                        |> Element.map AllResourcesListMsg
 
                 ImageList model_ ->
                     Page.ImageList.view context p model_

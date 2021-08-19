@@ -18,7 +18,7 @@ import OpenStack.ServerVolumes as OSSvrVols
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Orchestration.Orchestration as Orchestration
-import Page.AllResources
+import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -253,17 +253,17 @@ updateUnderlying outerMsg outerModel =
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
                         -- TODO order these cases same as the Msg order, which itself should be re-ordered, possibly alphabetically
-                        ( AllResourcesMsg innerMsg, AllResources innerModel ) ->
+                        ( AllResourcesListMsg innerMsg, AllResourcesList innerModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.AllResources.update innerMsg project innerModel
+                                    Page.AllResourcesList.update innerMsg project innerModel
                             in
                             ( { outerModel
                                 | viewState =
                                     ProjectView projectId projectViewParams <|
-                                        AllResources newSharedModel
+                                        AllResourcesList newSharedModel
                               }
-                            , Cmd.map (\msg -> AllResourcesMsg msg) cmd
+                            , Cmd.map (\msg -> AllResourcesListMsg msg) cmd
                             )
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
@@ -699,7 +699,7 @@ processSharedMsg sharedMsg outerModel =
                                             ViewStateHelpers.setProjectView
                                                 project
                                             <|
-                                                AllResources Page.AllResources.init
+                                                AllResourcesList Page.AllResourcesList.init
 
                                         Nothing ->
                                             ViewStateHelpers.setNonProjectView
@@ -1021,7 +1021,7 @@ processTick outerModel interval time =
                                     )
                             in
                             case projectViewState of
-                                AllResources _ ->
+                                AllResourcesList _ ->
                                     pollVolumes
 
                                 ServerDetail model ->
@@ -1182,7 +1182,7 @@ processProjectSpecificMsg outerModel project msg =
                                         p.auth.project.uuid
                                         { createPopup = False }
                                     <|
-                                        AllResources Page.AllResources.init
+                                        AllResourcesList Page.AllResourcesList.init
 
                                 Nothing ->
                                     NonProjectView <| LoginPicker
@@ -1532,7 +1532,7 @@ processProjectSpecificMsg outerModel project msg =
                         project.auth.project.uuid
                         { createPopup = False }
                     <|
-                        AllResources Page.AllResources.init
+                        AllResourcesList Page.AllResourcesList.init
 
                 ( newSharedModel, newCmd ) =
                     ( sharedModel, Cmd.none )
@@ -1888,7 +1888,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         project.auth.project.uuid
                         { createPopup = False }
                     <|
-                        AllResources Page.AllResources.init
+                        AllResourcesList Page.AllResourcesList.init
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
@@ -1937,7 +1937,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                         ProjectView
                                             projectId
                                             viewParams
-                                            (AllResources Page.AllResources.init)
+                                            (AllResourcesList Page.AllResourcesList.init)
 
                                     else
                                         outerModel.viewState
@@ -2455,11 +2455,11 @@ createProject outerModel authToken endpoints =
 
                 NonProjectView _ ->
                     ViewStateHelpers.setProjectView newProject <|
-                        AllResources Page.AllResources.init
+                        AllResourcesList Page.AllResourcesList.init
 
                 ProjectView _ _ _ ->
                     ViewStateHelpers.setProjectView newProject <|
-                        AllResources Page.AllResources.init
+                        AllResourcesList Page.AllResourcesList.init
 
         ( newSharedModel, newCmd ) =
             ( { sharedModel

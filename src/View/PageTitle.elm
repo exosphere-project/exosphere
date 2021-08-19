@@ -81,7 +81,7 @@ pageTitle outerModel context =
                             )
             in
             case projectViewConstructor of
-                AllResources _ ->
+                AllResourcesList _ ->
                     String.join " "
                         [ "All resources for"
                         , projectName

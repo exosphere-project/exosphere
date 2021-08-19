@@ -17,8 +17,8 @@ import Helpers.Time
 import OpenStack.ServerActions as ServerActions
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
-import Page.InstanceResourceUsageAlerts
-import Page.InstanceResourceUsageCharts
+import Page.ServerResourceUsageAlerts
+import Page.ServerResourceUsageCharts
 import RemoteData
 import Style.Helpers as SH
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -1102,8 +1102,8 @@ resourceUsageCharts context chartsWidthPx currentTimeAndZone server =
 
                             else
                                 Element.column [ Element.width Element.fill ]
-                                    [ Page.InstanceResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) history.timeSeries
-                                    , Page.InstanceResourceUsageCharts.view context chartsWidthPx currentTimeAndZone history.timeSeries
+                                    [ Page.ServerResourceUsageAlerts.view context (Tuple.first currentTimeAndZone) history.timeSeries
+                                    , Page.ServerResourceUsageCharts.view context chartsWidthPx currentTimeAndZone history.timeSeries
                                     ]
 
                         _ ->

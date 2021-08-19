@@ -6,7 +6,7 @@ module Types.View exposing
     )
 
 import OpenStack.Types as OSTypes
-import Page.AllResources
+import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
@@ -56,7 +56,7 @@ type LoginView
 type
     ProjectViewConstructor
     -- TODO order these
-    = AllResources Page.AllResources.Model
+    = AllResourcesList Page.AllResourcesList.Model
     | ImageList Page.ImageList.Model
     | ServerList Page.ServerList.Model
     | ServerDetail Page.ServerDetail.Model

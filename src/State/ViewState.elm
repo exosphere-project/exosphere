@@ -15,7 +15,7 @@ import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
-import Page.AllResources
+import Page.AllResourcesList
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
@@ -128,10 +128,10 @@ setProjectView project projectViewConstructor outerModel =
 
         ( viewSpecificOuterModel, viewSpecificCmd ) =
             case projectViewConstructor of
-                AllResources _ ->
+                AllResourcesList _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (AllResources _) ->
+                        Just (AllResourcesList _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -463,7 +463,7 @@ defaultViewState model =
             ProjectView
                 firstProject.auth.project.uuid
                 { createPopup = False }
-                (AllResources Page.AllResources.init)
+                (AllResourcesList Page.AllResourcesList.init)
 
 
 defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor

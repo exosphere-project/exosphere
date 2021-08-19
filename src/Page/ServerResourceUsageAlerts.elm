@@ -1,4 +1,4 @@
-module Page.InstanceResourceUsageAlerts exposing (view)
+module Page.ServerResourceUsageAlerts exposing (view)
 
 import Dict
 import Element

@@ -1,4 +1,4 @@
-module Page.InstanceResourceUsageCharts exposing (view)
+module Page.ServerResourceUsageCharts exposing (view)
 
 import Dict
 import Element
