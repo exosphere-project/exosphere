@@ -27,7 +27,6 @@ import Rest.Nova
 import State.Error
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Time
-import Types.Defaults as Defaults
 import Types.Error as Error
 import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.OuterModel exposing (OuterModel)
@@ -125,7 +124,7 @@ setProjectView project projectViewConstructor outerModel =
                     Nothing
 
         newViewState =
-            ProjectView project.auth.project.uuid Defaults.projectViewParams projectViewConstructor
+            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
 
         ( viewSpecificOuterModel, viewSpecificCmd ) =
             case projectViewConstructor of
@@ -463,7 +462,7 @@ defaultViewState model =
         firstProject :: _ ->
             ProjectView
                 firstProject.auth.project.uuid
-                Defaults.projectViewParams
+                { createPopup = False }
                 (AllResources Page.AllResources.init)
 
 

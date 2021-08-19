@@ -1,40 +1,220 @@
-module LegacyView.Project exposing (project)
+module View.View exposing (view)
 
+import Browser
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import FeatherIcons
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
+import Html
+import LegacyView.Nav
 import Page.AllResources
 import Page.FloatingIpAssign
 import Page.FloatingIpList
+import Page.GetSupport
+import Page.HelpAbout
 import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
+import Page.LoginJetstream
+import Page.LoginOpenstack
+import Page.LoginPicker
+import Page.MessageLog
+import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.Settings
+import Page.Toast
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Style.Helpers as SH
-import Types.HelperTypes exposing (ProjectIdentifier)
+import Style.Toast
+import Toasty
+import Types.HelperTypes exposing (ProjectIdentifier, WindowSize)
+import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg as SharedMsg
-import Types.View exposing (NonProjectViewConstructor(..), ProjectViewConstructor(..), ProjectViewParams, ViewState(..))
+import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
+import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
+import View.PageTitle
 import View.Types
 import Widget
 
 
-project : SharedModel -> View.Types.Context -> Project -> ProjectViewParams -> ProjectViewConstructor -> Element.Element OuterMsg
-project model context p viewParams viewConstructor =
+view : OuterModel -> Browser.Document OuterMsg
+view outerModel =
+    let
+        context =
+            VH.toViewContext outerModel.sharedModel
+    in
+    { title =
+        View.PageTitle.pageTitle outerModel context
+    , body =
+        [ view_ outerModel context ]
+    }
+
+
+view_ : OuterModel -> View.Types.Context -> Html.Html OuterMsg
+view_ outerModel context =
+    Element.layout
+        [ Font.size 17
+        , Font.family
+            [ Font.typeface "Open Sans"
+            , Font.sansSerif
+            ]
+        , Font.color <| SH.toElementColor <| context.palette.on.background
+        , Background.color <| SH.toElementColor <| context.palette.background
+        ]
+        (elementView outerModel.sharedModel.windowSize outerModel context)
+
+
+elementView : WindowSize -> OuterModel -> View.Types.Context -> Element.Element OuterMsg
+elementView windowSize outerModel context =
+    let
+        mainContentContainerView =
+            Element.column
+                [ Element.padding 10
+                , Element.alignTop
+                , Element.width <|
+                    Element.px (windowSize.width - LegacyView.Nav.navMenuWidth)
+                , Element.height Element.fill
+                , Element.scrollbars
+                ]
+                [ case outerModel.viewState of
+                    NonProjectView viewConstructor ->
+                        case viewConstructor of
+                            LoginPicker ->
+                                Page.LoginPicker.view context outerModel.sharedModel
+                                    |> Element.map LoginPickerMsg
+
+                            Login loginView ->
+                                case loginView of
+                                    LoginOpenstack model ->
+                                        Page.LoginOpenstack.view context model
+                                            |> Element.map LoginOpenstackMsg
+
+                                    LoginJetstream model ->
+                                        Page.LoginJetstream.view context model
+                                            |> Element.map LoginJetstreamMsg
+
+                            LoadingUnscopedProjects _ ->
+                                -- TODO put a fidget spinner here
+                                Element.text <|
+                                    String.join " "
+                                        [ "Loading"
+                                        , context.localization.unitOfTenancy
+                                            |> Helpers.String.pluralize
+                                            |> Helpers.String.toTitleCase
+                                        ]
+
+                            SelectProjects model ->
+                                Page.SelectProjects.view context outerModel.sharedModel model
+                                    |> Element.map SelectProjectsMsg
+
+                            MessageLog model ->
+                                Page.MessageLog.view context outerModel.sharedModel model
+                                    |> Element.map MessageLogMsg
+
+                            Settings ->
+                                Page.Settings.view context outerModel.sharedModel ()
+                                    |> Element.map SettingsMsg
+
+                            GetSupport model ->
+                                Page.GetSupport.view context outerModel.sharedModel model
+                                    |> Element.map GetSupportMsg
+
+                            HelpAbout ->
+                                Page.HelpAbout.view outerModel.sharedModel context
+
+                            PageNotFound ->
+                                Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
+
+                    ProjectView projectName projectViewParams viewConstructor ->
+                        case GetterSetters.projectLookup outerModel.sharedModel projectName of
+                            Nothing ->
+                                Element.text <|
+                                    String.join " "
+                                        [ "Oops!"
+                                        , context.localization.unitOfTenancy
+                                            |> Helpers.String.toTitleCase
+                                        , "not found"
+                                        ]
+
+                            Just project_ ->
+                                project
+                                    outerModel.sharedModel
+                                    context
+                                    project_
+                                    projectViewParams
+                                    viewConstructor
+                , Element.html
+                    (Toasty.view Style.Toast.toastConfig
+                        (Page.Toast.view context outerModel.sharedModel)
+                        (\m -> SharedMsg <| ToastyMsg m)
+                        outerModel.sharedModel.toasties
+                    )
+                ]
+    in
+    Element.row
+        [ Element.padding 0
+        , Element.spacing 0
+        , Element.width Element.fill
+        , Element.height <|
+            Element.px windowSize.height
+        ]
+        [ Element.column
+            [ Element.padding 0
+            , Element.spacing 0
+            , Element.width Element.fill
+            , Element.height <|
+                Element.px windowSize.height
+            ]
+            [ Element.el
+                [ Border.shadow { offset = ( 0, 0 ), size = 1, blur = 5, color = Element.rgb 0.1 0.1 0.1 }
+                , Element.width Element.fill
+                ]
+                (LegacyView.Nav.navBar outerModel context)
+            , Element.row
+                [ Element.padding 0
+                , Element.spacing 0
+                , Element.width Element.fill
+                , Element.height <|
+                    Element.px (windowSize.height - LegacyView.Nav.navBarHeight)
+                ]
+                [ LegacyView.Nav.navMenu outerModel context
+                , mainContentContainerView
+                ]
+            ]
+        ]
+
+
+
+--
+
+
+type alias ProjectPageModel =
+    { createPopup : Bool
+    }
+
+
+project :
+    SharedModel
+    -> View.Types.Context
+    -> Project
+    -> ProjectPageModel
+    -> Types.View.ProjectViewConstructor
+    -> Element.Element OuterMsg
+project model context p projectPageModel viewConstructor =
     let
         v =
             case viewConstructor of
@@ -120,12 +300,12 @@ project model context p viewParams viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav context p viewParams
+        [ projectNav context p projectPageModel
         , v
         ]
 
 
-projectNav : View.Types.Context -> Project -> ProjectViewParams -> Element.Element OuterMsg
+projectNav : View.Types.Context -> Project -> ProjectPageModel -> Element.Element OuterMsg
 projectNav context p viewParams =
     let
         edges =

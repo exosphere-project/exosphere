@@ -56,7 +56,6 @@ import Style.Widgets.NumericTextInput.NumericTextInput
 import Task
 import Time
 import Toasty
-import Types.Defaults as Defaults
 import Types.Error as Error exposing (ErrorContext, ErrorLevel(..))
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes as HelperTypes exposing (HttpRequestMethod(..), UnscopedProviderProject)
@@ -1181,7 +1180,7 @@ processProjectSpecificMsg outerModel project msg =
                                 Just p ->
                                     ProjectView
                                         p.auth.project.uuid
-                                        Defaults.projectViewParams
+                                        { createPopup = False }
                                     <|
                                         AllResources Page.AllResources.init
 
@@ -1531,7 +1530,7 @@ processProjectSpecificMsg outerModel project msg =
                 newViewState =
                     ProjectView
                         project.auth.project.uuid
-                        Defaults.projectViewParams
+                        { createPopup = False }
                     <|
                         AllResources Page.AllResources.init
 

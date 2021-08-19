@@ -20,7 +20,6 @@ import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
-import Types.Defaults as Defaults
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Types.SharedMsg as SharedMsg
 import Types.View
@@ -179,7 +178,7 @@ pathParsers defaultViewState =
         ( NonProjectView PageNotFound, Cmd.none )
         (s "pagenotfound")
     , map
-        (\uuid projectViewConstructor -> ( ProjectView uuid Defaults.projectViewParams <| projectViewConstructor, Cmd.none ))
+        (\uuid projectViewConstructor -> ( ProjectView uuid { createPopup = False } <| projectViewConstructor, Cmd.none ))
         (s "projects" </> string </> oneOf projectViewConstructorParsers)
     ]
 

@@ -37,7 +37,6 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
-import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
@@ -891,7 +890,7 @@ receiveFlavors outerModel project flavors =
                                     Just smallestFlavor ->
                                         ProjectView
                                             project.auth.project.uuid
-                                            Defaults.projectViewParams
+                                            { createPopup = False }
                                             (ServerCreate
                                                 { viewParams
                                                     | flavorUuid = smallestFlavor.uuid

@@ -1,10 +1,6 @@
-module Types.Defaults exposing
-    ( localization
-    , projectViewParams
-    )
+module Types.Defaults exposing (localization)
 
 import Types.HelperTypes as HelperTypes
-import Types.View as ViewTypes
 
 
 localization : HelperTypes.Localization
@@ -25,12 +21,3 @@ localization =
     , publiclyRoutableIpAddress = "public IP address"
     , graphicalDesktopEnvironment = "graphical desktop"
     }
-
-
-
--- Most of the code below should become page-specific init functions as legacy views are migrated to pages
-
-
-projectViewParams : ViewTypes.ProjectViewParams
-projectViewParams =
-    { createPopup = False }

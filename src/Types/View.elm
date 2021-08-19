@@ -2,7 +2,6 @@ module Types.View exposing
     ( LoginView(..)
     , NonProjectViewConstructor(..)
     , ProjectViewConstructor(..)
-    , ProjectViewParams
     , ViewState(..)
     )
 
@@ -34,7 +33,7 @@ import Types.HelperTypes as HelperTypes
 
 type ViewState
     = NonProjectView NonProjectViewConstructor
-    | ProjectView HelperTypes.ProjectIdentifier ProjectViewParams ProjectViewConstructor
+    | ProjectView HelperTypes.ProjectIdentifier { createPopup : Bool } ProjectViewConstructor
 
 
 type NonProjectViewConstructor
@@ -73,12 +72,3 @@ type
     | FloatingIpAssign Page.FloatingIpAssign.Model
     | KeypairList Page.KeypairList.Model
     | KeypairCreate Page.KeypairCreate.Model
-
-
-
--- Model for any project-specific view
-
-
-type alias ProjectViewParams =
-    { createPopup : Bool
-    }
