@@ -418,13 +418,23 @@ createButton context projectId expanded =
                     (context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.VolumeCreate projectId)
+                    (Just <|
+                        SharedMsg <|
+                            SharedMsg.NavigateToView <|
+                                SharedMsg.ProjectPage projectId <|
+                                    SharedMsg.VolumeCreate
+                    )
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.KeypairCreate projectId)
+                    (Just <|
+                        SharedMsg <|
+                            SharedMsg.NavigateToView <|
+                                SharedMsg.ProjectPage projectId <|
+                                    SharedMsg.KeypairCreate
+                    )
                 ]
 
         ( attribs, icon ) =

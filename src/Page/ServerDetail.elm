@@ -430,9 +430,10 @@ serverDetail_ context project currentTimeAndZone model server =
                         Just <|
                             SharedMsg <|
                                 SharedMsg.NavigateToView <|
-                                    SharedMsg.VolumeAttach project.auth.project.uuid
-                                        (Just server.osProps.uuid)
-                                        Nothing
+                                    SharedMsg.ProjectPage project.auth.project.uuid <|
+                                        SharedMsg.VolumeAttach
+                                            (Just server.osProps.uuid)
+                                            Nothing
                     }
 
               else
@@ -1157,7 +1158,8 @@ renderIpAddresses context project server model =
                             Just <|
                                 (SharedMsg <|
                                     SharedMsg.NavigateToView <|
-                                        SharedMsg.FloatingIpAssign project.auth.project.uuid Nothing (Just server.osProps.uuid)
+                                        SharedMsg.ProjectPage project.auth.project.uuid <|
+                                            SharedMsg.FloatingIpAssign Nothing (Just server.osProps.uuid)
                                 )
                         }
                     ]
@@ -1265,7 +1267,12 @@ serverVolumes context project server =
             let
                 volDetailsButton v =
                     Style.Widgets.IconButton.goToButton context.palette
-                        (Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.VolumeDetail project.auth.project.uuid v.uuid)
+                        (Just <|
+                            SharedMsg <|
+                                SharedMsg.NavigateToView <|
+                                    SharedMsg.ProjectPage project.auth.project.uuid <|
+                                        SharedMsg.VolumeDetail v.uuid
+                        )
 
                 volumeRow v =
                     let

@@ -459,12 +459,13 @@ renderImage context project model image =
         chooseMsg =
             SharedMsg <|
                 SharedMsg.NavigateToView <|
-                    SharedMsg.ServerCreate project.auth.project.uuid
-                        image.uuid
-                        image.name
-                        (VH.userAppProxyLookup context project
-                            |> Maybe.map (\_ -> True)
-                        )
+                    SharedMsg.ProjectPage project.auth.project.uuid <|
+                        SharedMsg.ServerCreate
+                            image.uuid
+                            image.name
+                            (VH.userAppProxyLookup context project
+                                |> Maybe.map (\_ -> True)
+                            )
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]

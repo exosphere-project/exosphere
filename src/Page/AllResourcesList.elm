@@ -114,7 +114,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ServerList <| p.auth.project.uuid)
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.ServerList)
             , Page.ServerList.view context
                 False
                 p
@@ -133,7 +133,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.VolumeList <| p.auth.project.uuid)
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.VolumeList)
             , Page.VolumeList.view context
                 False
                 p
@@ -148,7 +148,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.FloatingIpList <| p.auth.project.uuid)
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.FloatingIpList)
             , Page.FloatingIpList.view context
                 p
                 model.floatingIpListModel
@@ -169,7 +169,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.KeypairList <| p.auth.project.uuid)
+                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.KeypairList)
             , Page.KeypairList.view context
                 p
                 model.keypairListModel

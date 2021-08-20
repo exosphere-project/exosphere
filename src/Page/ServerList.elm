@@ -362,7 +362,10 @@ renderServer context projectId model isMyServer server =
 
         serverNameClickEvent : Msg
         serverNameClickEvent =
-            SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ServerDetail projectId server.osProps.uuid
+            SharedMsg <|
+                SharedMsg.NavigateToView <|
+                    SharedMsg.ProjectPage projectId <|
+                        SharedMsg.ServerDetail server.osProps.uuid
 
         serverLabel : Server -> Element.Element Msg
         serverLabel aServer =

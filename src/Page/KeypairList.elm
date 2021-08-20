@@ -118,7 +118,10 @@ view context project model showHeading =
                                     )
                                 ]
                         , onPress =
-                            Just <| NavigateToView <| SharedMsg.KeypairCreate project.auth.project.uuid
+                            Just <|
+                                NavigateToView <|
+                                    SharedMsg.ProjectPage project.auth.project.uuid <|
+                                        SharedMsg.KeypairCreate
                         }
                     ]
 

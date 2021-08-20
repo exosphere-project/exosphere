@@ -67,7 +67,8 @@ view context project attachment =
                 , onPress =
                     Just <|
                         SharedMsg.NavigateToView <|
-                            SharedMsg.ServerDetail project.auth.project.uuid attachment.serverUuid
+                            SharedMsg.ProjectPage project.auth.project.uuid <|
+                                SharedMsg.ServerDetail attachment.serverUuid
                 }
             ]
         ]

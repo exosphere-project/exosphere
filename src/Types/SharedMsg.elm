@@ -1,5 +1,6 @@
 module Types.SharedMsg exposing
-    ( NavigableView(..)
+    ( NavigableProjectPage(..)
+    , NavigableView(..)
     , ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
     , SharedMsg(..)
@@ -108,21 +109,29 @@ type ServerSpecificMsgConstructor
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
+
+-- TODO rename to NavigablePage?
+
+
 type NavigableView
-    = FloatingIpAssign HelperTypes.ProjectIdentifier (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
-    | FloatingIpList HelperTypes.ProjectIdentifier
-    | GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
+    = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout
-    | KeypairCreate HelperTypes.ProjectIdentifier
-    | KeypairList HelperTypes.ProjectIdentifier
     | LoginJetstream
     | LoginOpenstack
     | LoginPicker
-    | ServerCreate HelperTypes.ProjectIdentifier OSTypes.ImageUuid String (Maybe Bool)
-    | ServerCreateImage HelperTypes.ProjectIdentifier OSTypes.ServerUuid (Maybe String)
-    | ServerDetail HelperTypes.ProjectIdentifier OSTypes.ServerUuid
-    | ServerList HelperTypes.ProjectIdentifier
-    | VolumeAttach HelperTypes.ProjectIdentifier (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
-    | VolumeCreate HelperTypes.ProjectIdentifier
-    | VolumeDetail HelperTypes.ProjectIdentifier OSTypes.VolumeUuid
-    | VolumeList HelperTypes.ProjectIdentifier
+    | ProjectPage HelperTypes.ProjectIdentifier NavigableProjectPage
+
+
+type NavigableProjectPage
+    = FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
+    | FloatingIpList
+    | KeypairCreate
+    | KeypairList
+    | ServerCreate OSTypes.ImageUuid String (Maybe Bool)
+    | ServerCreateImage OSTypes.ServerUuid (Maybe String)
+    | ServerDetail OSTypes.ServerUuid
+    | ServerList
+    | VolumeAttach (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
+    | VolumeCreate
+    | VolumeDetail OSTypes.VolumeUuid
+    | VolumeList

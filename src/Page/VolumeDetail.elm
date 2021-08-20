@@ -168,7 +168,11 @@ renderAttachment context project attachment =
         , Element.row [ Element.spacing 5 ]
             [ Element.text (serverName attachment.serverUuid)
             , Style.Widgets.IconButton.goToButton context.palette
-                (Just <| NavigateToView <| SharedMsg.ServerDetail project.auth.project.uuid attachment.serverUuid)
+                (Just <|
+                    NavigateToView <|
+                        SharedMsg.ProjectPage project.auth.project.uuid <|
+                            SharedMsg.ServerDetail attachment.serverUuid
+                )
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
         , Element.text attachment.device
@@ -239,7 +243,10 @@ volumeActionButtons context project model volume =
                         (SH.materialStyle context.palette).button
                         { text = "Attach"
                         , onPress =
-                            Just <| NavigateToView <| SharedMsg.VolumeAttach project.auth.project.uuid Nothing (Just volume.uuid)
+                            Just <|
+                                NavigateToView <|
+                                    SharedMsg.ProjectPage project.auth.project.uuid <|
+                                        SharedMsg.VolumeAttach Nothing (Just volume.uuid)
                         }
 
                 OSTypes.InUse ->

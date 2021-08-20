@@ -1173,7 +1173,11 @@ keypairPicker context project model =
                         )
                     ]
             , onPress =
-                Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.KeypairCreate project.auth.project.uuid
+                Just <|
+                    SharedMsg <|
+                        SharedMsg.NavigateToView <|
+                            SharedMsg.ProjectPage project.auth.project.uuid <|
+                                SharedMsg.KeypairCreate
             }
         ]
 

@@ -739,28 +739,6 @@ processSharedMsg sharedMsg outerModel =
 
         NavigateToView navigableView ->
             case navigableView of
-                Types.SharedMsg.FloatingIpAssign projectId maybeIpUuid maybeServerUuid ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.FloatingIpList projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (FloatingIpList Page.FloatingIpList.init)
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
                 Types.SharedMsg.GetSupport maybeSupportableItemTuple ->
                     let
                         -- TODO clean this up once ViewStateHelpers is no longer needed
@@ -784,28 +762,6 @@ processSharedMsg sharedMsg outerModel =
                     in
                     ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
 
-                Types.SharedMsg.KeypairCreate projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (KeypairCreate Page.KeypairCreate.init)
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.KeypairList projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (KeypairList Page.KeypairList.init)
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
                 Types.SharedMsg.LoginJetstream ->
                     ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
 
@@ -815,91 +771,81 @@ processSharedMsg sharedMsg outerModel =
                 Types.SharedMsg.LoginPicker ->
                     ViewStateHelpers.setNonProjectView LoginPicker outerModel
 
-                Types.SharedMsg.ServerCreate projectId imageId imageName maybeDeployGuac ->
-                    -- TODO this project lookup logic will be duplicated a bunch of times, there should be a ProjectView constructor of NavigableView so we only need to do it once
+                Types.SharedMsg.ProjectPage projectId projectPage ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
-                                outerModel
+                            case projectPage of
+                                Types.SharedMsg.FloatingIpAssign maybeIpUuid maybeServerUuid ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
+                                        outerModel
 
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+                                Types.SharedMsg.FloatingIpList ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (FloatingIpList Page.FloatingIpList.init)
+                                        outerModel
 
-                Types.SharedMsg.ServerCreateImage projectId serverId maybeImageName ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
-                                outerModel
+                                Types.SharedMsg.KeypairCreate ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (KeypairCreate Page.KeypairCreate.init)
+                                        outerModel
 
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+                                Types.SharedMsg.KeypairList ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (KeypairList Page.KeypairList.init)
+                                        outerModel
 
-                Types.SharedMsg.ServerDetail projectId serverId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerDetail (Page.ServerDetail.init serverId))
-                                outerModel
+                                Types.SharedMsg.ServerCreate imageId imageName maybeDeployGuac ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
+                                        outerModel
 
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+                                Types.SharedMsg.ServerCreateImage serverId maybeImageName ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
+                                        outerModel
 
-                Types.SharedMsg.ServerList projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (ServerList Page.ServerList.init)
-                                outerModel
+                                Types.SharedMsg.ServerDetail serverId ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (ServerDetail (Page.ServerDetail.init serverId))
+                                        outerModel
 
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+                                Types.SharedMsg.ServerList ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (ServerList Page.ServerList.init)
+                                        outerModel
 
-                Types.SharedMsg.VolumeAttach projectId maybeServerUuid maybeVolumeUuid ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
-                                outerModel
+                                Types.SharedMsg.VolumeAttach maybeServerUuid maybeVolumeUuid ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
+                                        outerModel
 
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+                                Types.SharedMsg.VolumeCreate ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (VolumeCreate Page.VolumeCreate.init)
+                                        outerModel
 
-                Types.SharedMsg.VolumeCreate projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (VolumeCreate Page.VolumeCreate.init)
-                                outerModel
+                                Types.SharedMsg.VolumeDetail volumeUuid ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (VolumeDetail <| Page.VolumeDetail.init volumeUuid)
+                                        outerModel
 
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.VolumeDetail projectId volumeUuid ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (VolumeDetail <| Page.VolumeDetail.init volumeUuid)
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
-
-                Types.SharedMsg.VolumeList projectId ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            ViewStateHelpers.setProjectView
-                                project
-                                (VolumeList Page.VolumeList.init)
-                                outerModel
+                                Types.SharedMsg.VolumeList ->
+                                    ViewStateHelpers.setProjectView
+                                        project
+                                        (VolumeList Page.VolumeList.init)
+                                        outerModel
 
                         Nothing ->
                             ( outerModel, Cmd.none )

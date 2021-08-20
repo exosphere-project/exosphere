@@ -190,9 +190,10 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             \projectId server _ ->
                 NavigateToView <|
-                    SharedMsg.ServerCreateImage projectId
-                        server.osProps.uuid
-                        (Just <| server.osProps.name ++ "-image")
+                    SharedMsg.ProjectPage projectId <|
+                        SharedMsg.ServerCreateImage
+                            server.osProps.uuid
+                            (Just <| server.osProps.name ++ "-image")
       , selectMod = NoMod
       , confirmable = False
       }
