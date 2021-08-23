@@ -918,8 +918,11 @@ receiveFlavors outerModel project flavors =
 receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )
 receiveKeypairs model project keypairs =
     let
+        sortedKeypairs =
+            List.sortBy .name keypairs
+
         newProject =
-            { project | keypairs = RemoteData.Success keypairs }
+            { project | keypairs = RemoteData.Success sortedKeypairs }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject
