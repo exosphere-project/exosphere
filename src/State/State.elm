@@ -252,7 +252,8 @@ updateUnderlying outerMsg outerModel =
             case GetterSetters.projectLookup sharedModel projectId of
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
-                        -- TODO order these cases same as the Msg order, which itself should be re-ordered, possibly alphabetically
+                        -- This is the repetitive dispatch code that people warn you about when you use the nested Elm architecture.
+                        -- Maybe there is a way to make it less repetitive (or at least more compact) in the future.
                         ( AllResourcesListMsg pageMsg, AllResourcesList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
