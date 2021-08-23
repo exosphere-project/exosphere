@@ -43,6 +43,25 @@ type alias Model =
     HelperTypes.CreateServerPageModel
 
 
+type Msg
+    = GotServerName String
+    | GotCount Int
+    | GotFlavorUuid OSTypes.FlavorUuid
+    | GotVolSizeTextInput (Maybe NumericTextInput)
+    | GotUserDataTemplate String
+    | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
+    | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
+    | GotShowCustomWorkflowOptions Bool
+    | GotShowAdvancedOptions Bool
+    | GotKeypairName (Maybe String)
+    | GotDeployGuacamole (Maybe Bool)
+    | GotDeployDesktopEnvironment Bool
+    | GotInstallOperatingSystemUpdates Bool
+    | GotFloatingIpCreationOption FloatingIpOption
+    | SharedMsg SharedMsg.SharedMsg
+    | NoOp
+
+
 init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
 init imageUuid imageName deployGuacamole =
     { serverName = imageName
@@ -63,25 +82,6 @@ init imageUuid imageName deployGuacamole =
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
     }
-
-
-type Msg
-    = GotServerName String
-    | GotCount Int
-    | GotFlavorUuid OSTypes.FlavorUuid
-    | GotVolSizeTextInput (Maybe NumericTextInput)
-    | GotUserDataTemplate String
-    | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
-    | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
-    | GotShowCustomWorkflowOptions Bool
-    | GotShowAdvancedOptions Bool
-    | GotKeypairName (Maybe String)
-    | GotDeployGuacamole (Maybe Bool)
-    | GotDeployDesktopEnvironment Bool
-    | GotInstallOperatingSystemUpdates Bool
-    | GotFloatingIpCreationOption FloatingIpOption
-    | SharedMsg SharedMsg.SharedMsg
-    | NoOp
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

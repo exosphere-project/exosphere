@@ -18,14 +18,14 @@ type alias Model =
     }
 
 
-init : OSTypes.ServerUuid -> Maybe String -> Model
-init serverUuid maybeImageName =
-    Model serverUuid (Maybe.withDefault "" maybeImageName)
-
-
 type Msg
     = GotImageName String
     | GotSubmit
+
+
+init : OSTypes.ServerUuid -> Maybe String -> Model
+init serverUuid maybeImageName =
+    Model serverUuid (Maybe.withDefault "" maybeImageName)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

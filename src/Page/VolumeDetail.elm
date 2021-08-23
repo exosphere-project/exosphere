@@ -25,17 +25,17 @@ type alias Model =
     }
 
 
-init : OSTypes.VolumeUuid -> Model
-init volumeId =
-    Model volumeId Set.empty
-
-
 type Msg
     = GotDeleteNeedsConfirm
     | GotDeleteConfirm
     | GotDeleteCancel
     | SharedMsg SharedMsg.SharedMsg
     | RequestDetachVolume
+
+
+init : OSTypes.VolumeUuid -> Model
+init volumeId =
+    Model volumeId Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

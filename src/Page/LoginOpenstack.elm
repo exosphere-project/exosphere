@@ -20,6 +20,11 @@ type alias Model =
     }
 
 
+type EntryType
+    = CredsEntry
+    | OpenRcEntry
+
+
 type Msg
     = InputAuthUrl String
     | InputUserDomain String
@@ -32,11 +37,6 @@ type Msg
     | RequestAuthToken
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
-
-
-type EntryType
-    = CredsEntry
-    | OpenRcEntry
 
 
 init : Model

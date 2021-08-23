@@ -38,11 +38,6 @@ type alias DeleteConfirmation =
     OSTypes.ServerUuid
 
 
-init : Model
-init =
-    Model True Set.empty Set.empty
-
-
 type Msg
     = GotShowOnlyOwnServers Bool (Set.Set ServerSelection)
     | GotSelectServer ServerSelection Bool
@@ -52,6 +47,11 @@ type Msg
     | GotDeleteCancel DeleteConfirmation
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
+
+
+init : Model
+init =
+    Model True Set.empty Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

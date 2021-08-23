@@ -22,15 +22,15 @@ type alias Model =
     }
 
 
-init : Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Model
-init maybeServerUuid maybeVolumeUuid =
-    Model maybeServerUuid maybeVolumeUuid
-
-
 type Msg
     = GotServerUuid OSTypes.ServerUuid
     | GotVolumeUuid OSTypes.VolumeUuid
     | GotSubmit OSTypes.ServerUuid OSTypes.VolumeUuid
+
+
+init : Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Model
+init maybeServerUuid maybeVolumeUuid =
+    Model maybeServerUuid maybeVolumeUuid
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

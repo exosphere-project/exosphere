@@ -25,6 +25,14 @@ type alias Model =
     }
 
 
+type Msg
+    = ServerListMsg Page.ServerList.Msg
+    | VolumeListMsg Page.VolumeList.Msg
+    | KeypairListMsg Page.KeypairList.Msg
+    | FloatingIpListMsg Page.FloatingIpList.Msg
+    | SharedMsg SharedMsg.SharedMsg
+
+
 init : Model
 init =
     Model
@@ -32,14 +40,6 @@ init =
         Page.VolumeList.init
         Page.KeypairList.init
         Page.FloatingIpList.init
-
-
-type Msg
-    = ServerListMsg Page.ServerList.Msg
-    | VolumeListMsg Page.VolumeList.Msg
-    | KeypairListMsg Page.KeypairList.Msg
-    | FloatingIpListMsg Page.FloatingIpList.Msg
-    | SharedMsg SharedMsg.SharedMsg
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

@@ -64,6 +64,19 @@ type PasswordVisibility
     | PasswordHidden
 
 
+type Msg
+    = GotShowCreatedTimeToggleTip Bool
+    | GotShowVerboseStatus Bool
+    | GotPasswordVisibility PasswordVisibility
+    | GotIpInfoLevel IpInfoLevel
+    | GotServerActionNamePendingConfirmation (Maybe String)
+    | GotServerNamePendingConfirmation (Maybe String)
+    | GotActiveInteractionToggleTip (Maybe Interaction)
+    | GotRetainFloatingIpsWhenDeleting Bool
+    | GotSetServerName String
+    | SharedMsg SharedMsg.SharedMsg
+
+
 init : OSTypes.ServerUuid -> Model
 init serverUuid =
     { serverUuid = serverUuid
@@ -76,19 +89,6 @@ init serverUuid =
     , activeInteractionToggleTip = Nothing
     , retainFloatingIpsWhenDeleting = False
     }
-
-
-type Msg
-    = GotShowCreatedTimeToggleTip Bool
-    | GotShowVerboseStatus Bool
-    | GotPasswordVisibility PasswordVisibility
-    | GotIpInfoLevel IpInfoLevel
-    | GotServerActionNamePendingConfirmation (Maybe String)
-    | GotServerNamePendingConfirmation (Maybe String)
-    | GotActiveInteractionToggleTip (Maybe Interaction)
-    | GotRetainFloatingIpsWhenDeleting Bool
-    | GotSetServerName String
-    | SharedMsg SharedMsg.SharedMsg
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

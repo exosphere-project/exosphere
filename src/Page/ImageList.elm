@@ -37,11 +37,6 @@ type alias ImageListVisibilityFilter =
     }
 
 
-init : Model
-init =
-    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
-
-
 type Msg
     = GotSearchText String
     | GotTagSelection String Bool
@@ -50,6 +45,11 @@ type Msg
     | GotVisibilityFilter ImageListVisibilityFilter
     | GotClearFilters
     | SharedMsg SharedMsg.SharedMsg
+
+
+init : Model
+init =
+    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
