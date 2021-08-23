@@ -41,7 +41,7 @@ type Msg
     = GotSearchText String
     | GotTagSelection String Bool
     | GotOnlyOwnImages Bool
-    | GotExpandImage OSTypes.ImageUuid
+    | GotExpandImage OSTypes.ImageUuid Bool
     | GotVisibilityFilter ImageListVisibilityFilter
     | GotClearFilters
     | SharedMsg SharedMsg.SharedMsg
@@ -72,8 +72,22 @@ update msg _ model =
         GotOnlyOwnImages onlyOwn ->
             ( { model | onlyOwnImages = onlyOwn }, Cmd.none, SharedMsg.NoOp )
 
-        GotExpandImage imageUuid ->
-            ( { model | expandImageDetails = Set.Extra.toggle imageUuid model.expandImageDetails }, Cmd.none, SharedMsg.NoOp )
+        GotExpandImage imageUuid expanded ->
+            ( { model
+                | expandImageDetails =
+                    let
+                        func =
+                            if expanded then
+                                Set.insert
+
+                            else
+                                Set.remove
+                    in
+                    func imageUuid model.expandImageDetails
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotVisibilityFilter filter ->
             ( { model | visibilityFilter = filter }, Cmd.none, SharedMsg.NoOp )
@@ -560,7 +574,7 @@ renderImage context project model image =
     ExoCard.expandoCard
         context.palette
         imageDetailsExpanded
-        (\_ -> GotExpandImage image.uuid)
+        (\expanded -> GotExpandImage image.uuid expanded)
         title
         subtitle
         imageDetailsView
