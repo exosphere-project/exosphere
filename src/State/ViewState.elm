@@ -45,7 +45,6 @@ setNonProjectView nonProjectViewConstructor outerModel =
         ( viewSpecificSharedModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
                 LoadingUnscopedProjects authTokenStr ->
-                    -- TODO revisit this
                     -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
                     case outerModel.sharedModel.openIdConnectLoginConfig of
                         Nothing ->
@@ -340,7 +339,6 @@ setProjectView project projectViewConstructor outerModel =
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 KeypairList _ ->
-                    -- TODO move stuff out of here
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view

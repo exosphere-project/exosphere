@@ -1,6 +1,6 @@
 module AppUrl.Parser exposing (urlToViewState)
 
--- TODO the Types.SharedMsg import is temporary. Perhaps in the future, this model should call the NavigateToView Msg instead of `init`ing pages directly?
+-- The Types.SharedMsg import is temporary. Depending on outcome of #558, this model will call the NavigateToView Msg instead of `init`ing pages directly.
 
 import Dict
 import OpenStack.Types as OSTypes

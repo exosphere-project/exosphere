@@ -109,10 +109,6 @@ type ServerSpecificMsgConstructor
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
-
--- TODO rename to NavigablePage?
-
-
 type NavigableView
     = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout

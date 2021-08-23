@@ -49,7 +49,6 @@ update msg project model =
 
         VolumeDetailMsg uuid subMsg ->
             -- This is an experiment
-            -- TODO handle this more like AllResources Page?
             case subMsg of
                 Page.VolumeDetail.GotDeleteNeedsConfirm ->
                     ( { model

@@ -11,8 +11,7 @@ import View.Types
 
 
 
--- No state or Msgs to keep track of, so there is no Model, Msg, init, or update here
--- TODO normalize argument order here, most other pages take a context and then a SharedModel
+-- No state or Msgs to keep track of, so there is no Model, Msg, or update here
 
 
 init : ( (), Cmd SharedMsg )

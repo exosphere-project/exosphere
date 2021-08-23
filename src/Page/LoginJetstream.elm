@@ -177,7 +177,6 @@ helpText context =
 
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
-    -- TODO deduplicate with same button on OpenStack login page
     Widget.textButton
         (SH.materialStyle context.palette).button
         { text = "Other Login Methods"
