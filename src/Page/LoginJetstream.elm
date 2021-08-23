@@ -52,8 +52,8 @@ update msg _ model =
             ( model, Cmd.none, sharedMsg )
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context _ model =
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.el (VH.heading2 context.palette)
             (Element.text "Add a Jetstream Cloud Account")

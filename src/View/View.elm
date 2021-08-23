@@ -113,11 +113,11 @@ elementView windowSize outerModel context =
                             Login loginView ->
                                 case loginView of
                                     LoginOpenstack pageModel ->
-                                        Page.LoginOpenstack.view context pageModel
+                                        Page.LoginOpenstack.view context outerModel.sharedModel pageModel
                                             |> Element.map LoginOpenstackMsg
 
                                     LoginJetstream pageModel ->
-                                        Page.LoginJetstream.view context pageModel
+                                        Page.LoginJetstream.view context outerModel.sharedModel pageModel
                                             |> Element.map LoginJetstreamMsg
 
                             LoginPicker ->

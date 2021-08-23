@@ -108,8 +108,8 @@ update msg _ model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context _ model =
     let
         allCredsEntered =
             -- These fields must be populated before login can be attempted
