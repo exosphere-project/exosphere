@@ -219,23 +219,15 @@ project model context p projectViewModel viewConstructor =
         v =
             case viewConstructor of
                 AllResourcesList pageModel ->
-                    Page.AllResourcesList.view
-                        context
-                        p
-                        pageModel
+                    Page.AllResourcesList.view context p pageModel
                         |> Element.map AllResourcesListMsg
 
                 FloatingIpAssign pageModel ->
-                    Page.FloatingIpAssign.view
-                        context
-                        p
-                        pageModel
+                    Page.FloatingIpAssign.view context p pageModel
                         |> Element.map FloatingIpAssignMsg
 
                 FloatingIpList pageModel ->
-                    Page.FloatingIpList.view context
-                        p
-                        pageModel
+                    Page.FloatingIpList.view context p pageModel
                         |> Element.map FloatingIpListMsg
 
                 ImageList pageModel ->
@@ -247,9 +239,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map KeypairCreateMsg
 
                 KeypairList pageModel ->
-                    Page.KeypairList.view context
-                        p
-                        pageModel
+                    Page.KeypairList.view context p pageModel
                         |> Element.map KeypairListMsg
 
                 ServerCreate pageModel ->
@@ -265,9 +255,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map ServerDetailMsg
 
                 ServerList pageModel ->
-                    Page.ServerList.view context
-                        p
-                        pageModel
+                    Page.ServerList.view context p pageModel
                         |> Element.map ServerListMsg
 
                 VolumeAttach pageModel ->
@@ -283,9 +271,7 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map VolumeDetailMsg
 
                 VolumeList pageModel ->
-                    Page.VolumeList.view context
-                        p
-                        pageModel
+                    Page.VolumeList.view context p pageModel
                         |> Element.map VolumeListMsg
 
                 VolumeMountInstructions pageModel ->
