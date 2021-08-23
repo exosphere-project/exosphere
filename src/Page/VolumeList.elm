@@ -23,7 +23,6 @@ type alias Model =
 type Msg
     = GotExpandCard OSTypes.VolumeUuid Bool
     | VolumeDetailMsg OSTypes.VolumeUuid Page.VolumeDetail.Msg
-    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Model
@@ -81,9 +80,6 @@ update msg project model =
 
                 Page.VolumeDetail.SharedMsg sharedMsg ->
                     ( model, Cmd.none, sharedMsg )
-
-        SharedMsg sharedMsg ->
-            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Bool -> Project -> Model -> Element.Element Msg

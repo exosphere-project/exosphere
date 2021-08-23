@@ -5,7 +5,6 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Style.Helpers as SH
-import Types.HelperTypes
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
