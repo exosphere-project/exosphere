@@ -35,7 +35,7 @@ type Msg
     | GotDeleteNeedsConfirm OSTypes.IpAddressUuid
     | GotDeleteConfirm OSTypes.IpAddressUuid
     | GotDeleteCancel OSTypes.IpAddressUuid
-    | NavigateToView SharedMsg.NavigableView
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Model
@@ -87,8 +87,8 @@ update msg project model =
             in
             ( newModel, Cmd.none, SharedMsg.NoOp )
 
-        NavigateToView view_ ->
-            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Project -> Model -> Bool -> Element.Element Msg
@@ -233,9 +233,10 @@ renderFloatingIpCard context project model ip =
                                 , Style.Widgets.IconButton.goToButton
                                     context.palette
                                     (Just <|
-                                        NavigateToView <|
-                                            SharedMsg.ProjectPage project.auth.project.uuid <|
-                                                SharedMsg.ServerDetail server.osProps.uuid
+                                        SharedMsg <|
+                                            SharedMsg.NavigateToView <|
+                                                SharedMsg.ProjectPage project.auth.project.uuid <|
+                                                    SharedMsg.ServerDetail server.osProps.uuid
                                     )
                                 ]
 

@@ -83,8 +83,8 @@ update msg project model =
                     , SharedMsg.NoOp
                     )
 
-                Page.VolumeDetail.NavigateToView view_ ->
-                    navigateToView view_
+                Page.VolumeDetail.SharedMsg sharedMsg ->
+                    ( model, Cmd.none, sharedMsg )
 
                 Page.VolumeDetail.RequestDetachVolume ->
                     ( model

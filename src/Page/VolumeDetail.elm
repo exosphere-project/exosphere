@@ -34,7 +34,7 @@ type Msg
     = GotDeleteNeedsConfirm
     | GotDeleteConfirm
     | GotDeleteCancel
-    | NavigateToView SharedMsg.NavigableView
+    | SharedMsg SharedMsg.SharedMsg
     | RequestDetachVolume
 
 
@@ -69,8 +69,8 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        NavigateToView view_ ->
-            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         RequestDetachVolume ->
             ( model
@@ -169,9 +169,10 @@ renderAttachment context project attachment =
             [ Element.text (serverName attachment.serverUuid)
             , Style.Widgets.IconButton.goToButton context.palette
                 (Just <|
-                    NavigateToView <|
-                        SharedMsg.ProjectPage project.auth.project.uuid <|
-                            SharedMsg.ServerDetail attachment.serverUuid
+                    SharedMsg <|
+                        NavigateToView <|
+                            SharedMsg.ProjectPage project.auth.project.uuid <|
+                                SharedMsg.ServerDetail attachment.serverUuid
                 )
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
@@ -244,9 +245,10 @@ volumeActionButtons context project model volume =
                         { text = "Attach"
                         , onPress =
                             Just <|
-                                NavigateToView <|
-                                    SharedMsg.ProjectPage project.auth.project.uuid <|
-                                        SharedMsg.VolumeAttach Nothing (Just volume.uuid)
+                                SharedMsg <|
+                                    NavigateToView <|
+                                        SharedMsg.ProjectPage project.auth.project.uuid <|
+                                            SharedMsg.VolumeAttach Nothing (Just volume.uuid)
                         }
 
                 OSTypes.InUse ->
@@ -262,8 +264,7 @@ volumeActionButtons context project model volume =
                             (SH.materialStyle context.palette).button
                             { text = "Detach"
                             , onPress =
-                                Just
-                                    RequestDetachVolume
+                                Just RequestDetachVolume
                             }
 
                 _ ->

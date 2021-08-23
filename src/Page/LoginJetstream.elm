@@ -21,7 +21,7 @@ type Msg
     | GotPassword String
     | GotProviderChoice JetstreamProvider
     | GotSubmit
-    | NavigateToView SharedMsg.NavigableView
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Model
@@ -52,8 +52,8 @@ update msg _ model =
         GotSubmit ->
             ( model, Cmd.none, SharedMsg.JetstreamLogin model )
 
-        NavigateToView view_ ->
-            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Model -> Element.Element Msg
@@ -186,5 +186,5 @@ loginPickerButton context =
         (SH.materialStyle context.palette).button
         { text = "Other Login Methods"
         , onPress =
-            Just <| NavigateToView SharedMsg.LoginPicker
+            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginPicker
         }

@@ -14,8 +14,7 @@ import Widget
 
 
 type Msg
-    = NavigateToView SharedMsg.NavigableView
-    | NavigateToUrl Types.HelperTypes.Url
+    = SharedMsg SharedMsg.SharedMsg
 
 
 type alias LoginMethod =
@@ -28,11 +27,8 @@ type alias LoginMethod =
 update : Msg -> ( (), Cmd Msg, SharedMsg.SharedMsg )
 update msg =
     case msg of
-        NavigateToView view_ ->
-            ( (), Cmd.none, SharedMsg.NavigateToView view_ )
-
-        NavigateToUrl url ->
-            ( (), Cmd.none, SharedMsg.NavigateToUrl url )
+        SharedMsg sharedMsg ->
+            ( (), Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> SharedModel -> Element.Element Msg
@@ -46,8 +42,7 @@ view context sharedModel =
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Add OpenStack Account"
                         , onPress =
-                            Just <|
-                                NavigateToView SharedMsg.LoginOpenstack
+                            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginOpenstack
                         }
               , description =
                     ""
@@ -59,8 +54,7 @@ view context sharedModel =
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Add Jetstream Account"
                         , onPress =
-                            Just <|
-                                NavigateToView SharedMsg.LoginJetstream
+                            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginJetstream
                         }
               , description =
                     "Recommended login method for Jetstream Cloud"
@@ -85,7 +79,7 @@ view context sharedModel =
                             url =
                                 oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
                         in
-                        Just <| NavigateToUrl url
+                        Just <| SharedMsg <| SharedMsg.NavigateToUrl url
                     }
             , description =
                 oidcLoginConfig.oidcLoginButtonDescription

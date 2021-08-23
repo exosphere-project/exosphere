@@ -30,7 +30,7 @@ type Msg
     | SelectCredsInput
     | ProcessOpenRc
     | RequestAuthToken
-    | NavigateToView SharedMsg.NavigableView
+    | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
@@ -105,8 +105,8 @@ update msg _ model =
         RequestAuthToken ->
             ( model, Cmd.none, SharedMsg.RequestUnscopedToken model.creds )
 
-        NavigateToView navigableView ->
-            ( model, Cmd.none, SharedMsg.NavigateToView navigableView )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
@@ -271,5 +271,5 @@ loginPickerButton context =
         (SH.materialStyle context.palette).button
         { text = "Other Login Methods"
         , onPress =
-            Just <| NavigateToView <| SharedMsg.LoginPicker
+            Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.LoginPicker
         }

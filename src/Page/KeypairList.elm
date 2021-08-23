@@ -29,7 +29,7 @@ type Msg
     | GotDeleteNeedsConfirm OSTypes.KeypairIdentifier
     | GotDeleteConfirm OSTypes.KeypairIdentifier
     | GotDeleteCancel OSTypes.KeypairIdentifier
-    | NavigateToView SharedMsg.NavigableView
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Model
@@ -81,8 +81,8 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        NavigateToView view_ ->
-            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Project -> Model -> Bool -> Element.Element Msg
@@ -119,9 +119,10 @@ view context project model showHeading =
                                 ]
                         , onPress =
                             Just <|
-                                NavigateToView <|
-                                    SharedMsg.ProjectPage project.auth.project.uuid <|
-                                        SharedMsg.KeypairCreate
+                                SharedMsg <|
+                                    NavigateToView <|
+                                        SharedMsg.ProjectPage project.auth.project.uuid <|
+                                            SharedMsg.KeypairCreate
                         }
                     ]
 
