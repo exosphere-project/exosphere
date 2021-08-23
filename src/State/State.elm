@@ -157,49 +157,49 @@ updateUnderlying outerMsg outerModel =
             processSharedMsg sharedMsg outerModel
 
         -- TODO exact same structure for each page-specific case here. Is there a way to deduplicate or factor out?
-        ( GetSupportMsg innerMsg, NonProjectView (GetSupport innerModel) ) ->
+        ( GetSupportMsg pageMsg, NonProjectView (GetSupport pageModel) ) ->
             let
-                ( newInnerModel, cmd, sharedMsg ) =
-                    Page.GetSupport.update innerMsg sharedModel innerModel
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.GetSupport.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| GetSupport newInnerModel
+                | viewState = NonProjectView <| GetSupport newPageModel
               }
             , Cmd.map (\msg -> GetSupportMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( LoginJetstreamMsg innerMsg, NonProjectView (Login (LoginJetstream innerModel)) ) ->
+        ( LoginJetstreamMsg pageMsg, NonProjectView (Login (LoginJetstream pageModel)) ) ->
             let
-                ( newInnerModel, cmd, sharedMsg ) =
-                    Page.LoginJetstream.update innerMsg sharedModel innerModel
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.LoginJetstream.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginJetstream newInnerModel
+                | viewState = NonProjectView <| Login <| LoginJetstream newPageModel
               }
             , Cmd.map (\msg -> LoginJetstreamMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( LoginOpenstackMsg innerMsg, NonProjectView (Login (LoginOpenstack innerModel)) ) ->
+        ( LoginOpenstackMsg pageMsg, NonProjectView (Login (LoginOpenstack pageModel)) ) ->
             let
-                ( newInnerModel, cmd, sharedMsg ) =
-                    Page.LoginOpenstack.update innerMsg sharedModel innerModel
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.LoginOpenstack.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Login <| LoginOpenstack newInnerModel
+                | viewState = NonProjectView <| Login <| LoginOpenstack newPageModel
               }
             , Cmd.map (\msg -> LoginOpenstackMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( LoginPickerMsg innerMsg, NonProjectView LoginPicker ) ->
+        ( LoginPickerMsg pageMsg, NonProjectView LoginPicker ) ->
             let
                 ( _, cmd, sharedMsg ) =
-                    Page.LoginPicker.update innerMsg
+                    Page.LoginPicker.update pageMsg
             in
             ( { outerModel
                 | viewState = NonProjectView <| LoginPicker
@@ -209,36 +209,36 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( MessageLogMsg innerMsg, NonProjectView (MessageLog innerModel) ) ->
+        ( MessageLogMsg pageMsg, NonProjectView (MessageLog pageModel) ) ->
             let
-                ( newInnerModel, cmd, sharedMsg ) =
-                    Page.MessageLog.update innerMsg sharedModel innerModel
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.MessageLog.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| MessageLog newInnerModel
+                | viewState = NonProjectView <| MessageLog newPageModel
               }
             , Cmd.map (\msg -> MessageLogMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( SelectProjectsMsg innerMsg, NonProjectView (SelectProjects innerModel) ) ->
+        ( SelectProjectsMsg pageMsg, NonProjectView (SelectProjects pageModel) ) ->
             let
-                ( newInnerModel, cmd, sharedMsg ) =
-                    Page.SelectProjects.update innerMsg sharedModel innerModel
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.SelectProjects.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| SelectProjects newInnerModel
+                | viewState = NonProjectView <| SelectProjects newPageModel
               }
             , Cmd.map (\msg -> SelectProjectsMsg msg) cmd
             )
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( SettingsMsg innerMsg, NonProjectView Settings ) ->
+        ( SettingsMsg pageMsg, NonProjectView Settings ) ->
             let
                 ( _, cmd, sharedMsg ) =
-                    Page.Settings.update innerMsg sharedModel ()
+                    Page.Settings.update pageMsg sharedModel ()
             in
             ( { outerModel
                 | viewState = NonProjectView <| Settings
@@ -248,19 +248,19 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( pageSpecificMsg, ProjectView projectId projectViewParams projectViewConstructor ) ->
+        ( pageSpecificMsg, ProjectView projectId projectViewModel projectViewConstructor ) ->
             case GetterSetters.projectLookup sharedModel projectId of
                 Just project ->
                     case ( pageSpecificMsg, projectViewConstructor ) of
                         -- TODO order these cases same as the Msg order, which itself should be re-ordered, possibly alphabetically
-                        ( AllResourcesListMsg innerMsg, AllResourcesList innerModel ) ->
+                        ( AllResourcesListMsg pageMsg, AllResourcesList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.AllResourcesList.update innerMsg project innerModel
+                                    Page.AllResourcesList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         AllResourcesList newSharedModel
                               }
                             , Cmd.map (\msg -> AllResourcesListMsg msg) cmd
@@ -268,14 +268,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( FloatingIpAssignMsg innerMsg, FloatingIpAssign innerModel ) ->
+                        ( FloatingIpAssignMsg pageMsg, FloatingIpAssign pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.FloatingIpAssign.update innerMsg project innerModel
+                                    Page.FloatingIpAssign.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         FloatingIpAssign newSharedModel
                               }
                             , Cmd.map (\msg -> FloatingIpAssignMsg msg) cmd
@@ -283,14 +283,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( FloatingIpListMsg innerMsg, FloatingIpList innerModel ) ->
+                        ( FloatingIpListMsg pageMsg, FloatingIpList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.FloatingIpList.update innerMsg project innerModel
+                                    Page.FloatingIpList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         FloatingIpList newSharedModel
                               }
                             , Cmd.map (\msg -> FloatingIpListMsg msg) cmd
@@ -298,14 +298,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ImageListMsg innerMsg, ImageList innerModel ) ->
+                        ( ImageListMsg pageMsg, ImageList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ImageList.update innerMsg project innerModel
+                                    Page.ImageList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         ImageList newSharedModel
                               }
                             , Cmd.map (\msg -> ImageListMsg msg) cmd
@@ -313,14 +313,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( KeypairCreateMsg innerMsg, KeypairCreate innerModel ) ->
+                        ( KeypairCreateMsg pageMsg, KeypairCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.KeypairCreate.update innerMsg project innerModel
+                                    Page.KeypairCreate.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         KeypairCreate newSharedModel
                               }
                             , Cmd.map (\msg -> KeypairCreateMsg msg) cmd
@@ -328,14 +328,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( KeypairListMsg innerMsg, KeypairList innerModel ) ->
+                        ( KeypairListMsg pageMsg, KeypairList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.KeypairList.update innerMsg project innerModel
+                                    Page.KeypairList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         KeypairList newSharedModel
                               }
                             , Cmd.map (\msg -> KeypairListMsg msg) cmd
@@ -343,14 +343,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ServerCreateMsg innerMsg, ServerCreate innerModel ) ->
+                        ( ServerCreateMsg pageMsg, ServerCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreate.update innerMsg project innerModel
+                                    Page.ServerCreate.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         ServerCreate newSharedModel
                               }
                             , Cmd.map (\msg -> ServerCreateMsg msg) cmd
@@ -358,14 +358,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ServerCreateImageMsg innerMsg, ServerCreateImage innerModel ) ->
+                        ( ServerCreateImageMsg pageMsg, ServerCreateImage pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreateImage.update innerMsg project innerModel
+                                    Page.ServerCreateImage.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         ServerCreateImage newSharedModel
                               }
                             , Cmd.map (\msg -> ServerCreateImageMsg msg) cmd
@@ -373,14 +373,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ServerDetailMsg innerMsg, ServerDetail innerModel ) ->
+                        ( ServerDetailMsg pageMsg, ServerDetail pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerDetail.update innerMsg project innerModel
+                                    Page.ServerDetail.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         ServerDetail newSharedModel
                               }
                             , Cmd.map (\msg -> ServerDetailMsg msg) cmd
@@ -388,14 +388,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( ServerListMsg innerMsg, ServerList innerModel ) ->
+                        ( ServerListMsg pageMsg, ServerList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerList.update innerMsg project innerModel
+                                    Page.ServerList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         ServerList newSharedModel
                               }
                             , Cmd.map (\msg -> ServerListMsg msg) cmd
@@ -403,14 +403,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( VolumeAttachMsg innerMsg, VolumeAttach innerModel ) ->
+                        ( VolumeAttachMsg pageMsg, VolumeAttach pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeAttach.update innerMsg project innerModel
+                                    Page.VolumeAttach.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         VolumeAttach newSharedModel
                               }
                             , Cmd.map (\msg -> VolumeAttachMsg msg) cmd
@@ -418,14 +418,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( VolumeCreateMsg innerMsg, VolumeCreate innerModel ) ->
+                        ( VolumeCreateMsg pageMsg, VolumeCreate pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeCreate.update innerMsg project innerModel
+                                    Page.VolumeCreate.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         VolumeCreate newSharedModel
                               }
                             , Cmd.map (\msg -> VolumeCreateMsg msg) cmd
@@ -433,14 +433,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( VolumeDetailMsg innerMsg, VolumeDetail innerModel ) ->
+                        ( VolumeDetailMsg pageMsg, VolumeDetail pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeDetail.update innerMsg project innerModel
+                                    Page.VolumeDetail.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         VolumeDetail newSharedModel
                               }
                             , Cmd.map (\msg -> VolumeDetailMsg msg) cmd
@@ -448,14 +448,14 @@ updateUnderlying outerMsg outerModel =
                                 |> pipelineCmdOuterModelMsg
                                     (processSharedMsg sharedMsg)
 
-                        ( VolumeListMsg innerMsg, VolumeList innerModel ) ->
+                        ( VolumeListMsg pageMsg, VolumeList pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeList.update innerMsg project innerModel
+                                    Page.VolumeList.update pageMsg project pageModel
                             in
                             ( { outerModel
                                 | viewState =
-                                    ProjectView projectId projectViewParams <|
+                                    ProjectView projectId projectViewModel <|
                                         VolumeList newSharedModel
                               }
                             , Cmd.map (\msg -> VolumeListMsg msg) cmd
@@ -1094,13 +1094,13 @@ processProjectSpecificMsg outerModel project msg =
 
         ToggleCreatePopup ->
             case outerModel.viewState of
-                ProjectView projectId viewParams viewConstructor ->
+                ProjectView projectId projectViewModel viewConstructor ->
                     let
                         newViewState =
                             ProjectView
                                 projectId
-                                { viewParams
-                                    | createPopup = not viewParams.createPopup
+                                { projectViewModel
+                                    | createPopup = not projectViewModel.createPopup
                                 }
                                 viewConstructor
                     in
@@ -1168,38 +1168,38 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
                 |> mapToOuterModel outerModel
 
-        RequestCreateServer viewParams networkUuid ->
+        RequestCreateServer pageModel networkUuid ->
             let
                 createServerRequest =
-                    { name = viewParams.serverName
-                    , count = viewParams.count
-                    , imageUuid = viewParams.imageUuid
-                    , flavorUuid = viewParams.flavorUuid
+                    { name = pageModel.serverName
+                    , count = pageModel.count
+                    , imageUuid = pageModel.imageUuid
+                    , flavorUuid = pageModel.flavorUuid
                     , volBackedSizeGb =
-                        viewParams.volSizeTextInput
+                        pageModel.volSizeTextInput
                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                     , networkUuid = networkUuid
-                    , keypairName = viewParams.keypairName
+                    , keypairName = pageModel.keypairName
                     , userData =
                         Helpers.renderUserDataTemplate
                             project
-                            viewParams.userDataTemplate
-                            viewParams.keypairName
-                            (viewParams.deployGuacamole |> Maybe.withDefault False)
-                            viewParams.deployDesktopEnvironment
-                            viewParams.customWorkflowSource
-                            viewParams.installOperatingSystemUpdates
+                            pageModel.userDataTemplate
+                            pageModel.keypairName
+                            (pageModel.deployGuacamole |> Maybe.withDefault False)
+                            pageModel.deployDesktopEnvironment
+                            pageModel.customWorkflowSource
+                            pageModel.installOperatingSystemUpdates
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
                     , metadata =
                         Helpers.newServerMetadata
                             currentExoServerVersion
                             sharedModel.clientUuid
-                            (viewParams.deployGuacamole |> Maybe.withDefault False)
-                            viewParams.deployDesktopEnvironment
+                            (pageModel.deployGuacamole |> Maybe.withDefault False)
+                            pageModel.deployDesktopEnvironment
                             project.auth.user.name
-                            viewParams.floatingIpCreationOption
-                            viewParams.customWorkflowSource
+                            pageModel.floatingIpCreationOption
+                            pageModel.customWorkflowSource
                     }
             in
             ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )
@@ -1548,17 +1548,17 @@ processProjectSpecificMsg outerModel project msg =
 
                 newViewState =
                     case outerModel.viewState of
-                        ProjectView _ viewParams projectViewConstructor ->
+                        ProjectView _ projectViewModel projectViewConstructor ->
                             case projectViewConstructor of
-                                ServerCreate createServerViewParams ->
-                                    if createServerViewParams.networkUuid == Nothing then
+                                ServerCreate pageModel ->
+                                    if pageModel.networkUuid == Nothing then
                                         case Helpers.newServerNetworkOptions newProject of
                                             AutoSelectedNetwork netUuid ->
                                                 ProjectView
                                                     project.auth.project.uuid
-                                                    viewParams
+                                                    projectViewModel
                                                     (ServerCreate
-                                                        { createServerViewParams
+                                                        { pageModel
                                                             | networkUuid = Just netUuid
                                                         }
                                                     )
@@ -1795,8 +1795,8 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveRandomServerName serverName ->
             case outerModel.viewState of
-                ProjectView _ _ (ServerCreate viewParams) ->
-                    ViewStateHelpers.setProjectView project (ServerCreate { viewParams | serverName = serverName }) outerModel
+                ProjectView _ _ (ServerCreate pageModel) ->
+                    ViewStateHelpers.setProjectView project (ServerCreate { pageModel | serverName = serverName }) outerModel
 
                 _ ->
                     ( outerModel, Cmd.none )
@@ -1878,11 +1878,11 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                     let
                         newViewState =
                             case outerModel.viewState of
-                                ProjectView projectId viewParams (ServerDetail model) ->
+                                ProjectView projectId projectViewModel (ServerDetail model) ->
                                     if model.serverUuid == server.osProps.uuid then
                                         ProjectView
                                             projectId
-                                            viewParams
+                                            projectViewModel
                                             (AllResourcesList Page.AllResourcesList.init)
 
                                     else
@@ -1987,7 +1987,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         -- Only update the view if we are on the server details view for the server we're interested in
                         updatedView =
                             case outerModel.viewState of
-                                ProjectView projectIdentifier projectViewParams (ServerDetail model) ->
+                                ProjectView projectIdentifier projectViewModel (ServerDetail model) ->
                                     if server.osProps.uuid == model.serverUuid then
                                         let
                                             newModel =
@@ -1996,7 +1996,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                                                 }
                                         in
                                         ProjectView projectIdentifier
-                                            projectViewParams
+                                            projectViewModel
                                             (ServerDetail newModel)
 
                                     else
@@ -2397,7 +2397,7 @@ createProject outerModel authToken endpoints =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
             case outerModel.viewState of
                 NonProjectView (SelectProjects _) ->
-                    \model_ -> ( model_, Cmd.none )
+                    \outerModel_ -> ( outerModel_, Cmd.none )
 
                 NonProjectView _ ->
                     ViewStateHelpers.setProjectView newProject <|

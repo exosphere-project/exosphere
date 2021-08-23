@@ -708,14 +708,14 @@ countPicker context model computeQuota volumeQuota flavor =
 
 
 customWorkflowInput : View.Types.Context -> Model -> Element.Element Msg
-customWorkflowInput context viewParams =
+customWorkflowInput context model =
     let
         clearButton =
             Widget.textButton
                 (SH.materialStyle context.palette).button
                 { text = "Remove workflow"
                 , onPress =
-                    viewParams.customWorkflowSource
+                    model.customWorkflowSource
                         |> Maybe.map (\_ -> GotCustomWorkflowSource Nothing Nothing)
                 }
 
@@ -735,7 +735,7 @@ customWorkflowInput context viewParams =
         workflowInput =
             Input.text
                 (VH.inputItemAttributes context.palette.background)
-                { text = viewParams.customWorkflowSourceInput |> Maybe.withDefault ""
+                { text = model.customWorkflowSourceInput |> Maybe.withDefault ""
                 , placeholder =
                     Just
                         (Input.placeholder
@@ -770,10 +770,10 @@ customWorkflowInput context viewParams =
                 [ Input.option False (Element.text "Hide")
                 , Input.option True (Element.text "Show")
                 ]
-            , selected = Just viewParams.showCustomWorkflowOptions
+            , selected = Just model.showCustomWorkflowOptions
             }
         ]
-            ++ (if not viewParams.showCustomWorkflowOptions then
+            ++ (if not model.showCustomWorkflowOptions then
                     [ Element.none ]
 
                 else

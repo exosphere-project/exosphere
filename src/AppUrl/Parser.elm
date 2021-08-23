@@ -231,9 +231,7 @@ projectViewConstructorParsers =
         (KeypairCreate Page.KeypairCreate.init)
         (s "uploadkeypair")
     , map
-        (\params ->
-            ServerCreate params
-        )
+        ServerCreate
         (let
             maybeBoolEnumDict =
                 Dict.fromList

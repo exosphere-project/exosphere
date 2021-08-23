@@ -93,8 +93,8 @@ elementView windowSize outerModel context =
                 [ case outerModel.viewState of
                     NonProjectView viewConstructor ->
                         case viewConstructor of
-                            GetSupport model ->
-                                Page.GetSupport.view context outerModel.sharedModel model
+                            GetSupport pageModel ->
+                                Page.GetSupport.view context outerModel.sharedModel pageModel
                                     |> Element.map GetSupportMsg
 
                             HelpAbout ->
@@ -112,34 +112,34 @@ elementView windowSize outerModel context =
 
                             Login loginView ->
                                 case loginView of
-                                    LoginOpenstack model ->
-                                        Page.LoginOpenstack.view context model
+                                    LoginOpenstack pageModel ->
+                                        Page.LoginOpenstack.view context pageModel
                                             |> Element.map LoginOpenstackMsg
 
-                                    LoginJetstream model ->
-                                        Page.LoginJetstream.view context model
+                                    LoginJetstream pageModel ->
+                                        Page.LoginJetstream.view context pageModel
                                             |> Element.map LoginJetstreamMsg
 
                             LoginPicker ->
                                 Page.LoginPicker.view context outerModel.sharedModel
                                     |> Element.map LoginPickerMsg
 
-                            MessageLog model ->
-                                Page.MessageLog.view context outerModel.sharedModel model
+                            MessageLog pageModel ->
+                                Page.MessageLog.view context outerModel.sharedModel pageModel
                                     |> Element.map MessageLogMsg
 
                             PageNotFound ->
                                 Element.text "Error: page not found. Perhaps you are trying to reach an invalid URL."
 
-                            SelectProjects model ->
-                                Page.SelectProjects.view context outerModel.sharedModel model
+                            SelectProjects pageModel ->
+                                Page.SelectProjects.view context outerModel.sharedModel pageModel
                                     |> Element.map SelectProjectsMsg
 
                             Settings ->
                                 Page.Settings.view context outerModel.sharedModel ()
                                     |> Element.map SettingsMsg
 
-                    ProjectView projectName projectViewParams viewConstructor ->
+                    ProjectView projectName projectViewModel viewConstructor ->
                         case GetterSetters.projectLookup outerModel.sharedModel projectName of
                             Nothing ->
                                 Element.text <|
@@ -155,7 +155,7 @@ elementView windowSize outerModel context =
                                     outerModel.sharedModel
                                     context
                                     project_
-                                    projectViewParams
+                                    projectViewModel
                                     viewConstructor
                 , Element.html
                     (Toasty.view Style.Toast.toastConfig
@@ -202,7 +202,7 @@ elementView windowSize outerModel context =
 --
 
 
-type alias ProjectPageModel =
+type alias ProjectViewModel =
     { createPopup : Bool
     }
 
@@ -211,85 +211,85 @@ project :
     SharedModel
     -> View.Types.Context
     -> Project
-    -> ProjectPageModel
+    -> ProjectViewModel
     -> Types.View.ProjectViewConstructor
     -> Element.Element OuterMsg
-project model context p projectPageModel viewConstructor =
+project model context p projectViewModel viewConstructor =
     let
         v =
             case viewConstructor of
-                AllResourcesList model_ ->
+                AllResourcesList pageModel ->
                     Page.AllResourcesList.view
                         context
                         p
-                        model_
+                        pageModel
                         |> Element.map AllResourcesListMsg
 
-                FloatingIpAssign model_ ->
+                FloatingIpAssign pageModel ->
                     Page.FloatingIpAssign.view
                         context
                         p
-                        model_
+                        pageModel
                         |> Element.map FloatingIpAssignMsg
 
-                FloatingIpList model_ ->
+                FloatingIpList pageModel ->
                     Page.FloatingIpList.view context
                         p
-                        model_
+                        pageModel
                         True
                         |> Element.map FloatingIpListMsg
 
-                ImageList model_ ->
-                    Page.ImageList.view context p model_
+                ImageList pageModel ->
+                    Page.ImageList.view context p pageModel
                         |> Element.map ImageListMsg
 
-                KeypairCreate model_ ->
-                    Page.KeypairCreate.view context model_
+                KeypairCreate pageModel ->
+                    Page.KeypairCreate.view context pageModel
                         |> Element.map KeypairCreateMsg
 
-                KeypairList model_ ->
+                KeypairList pageModel ->
                     Page.KeypairList.view context
                         p
-                        model_
+                        pageModel
                         True
                         |> Element.map KeypairListMsg
 
-                ServerCreate createServerViewParams ->
-                    Page.ServerCreate.view context p createServerViewParams
+                ServerCreate pageModel ->
+                    Page.ServerCreate.view context p pageModel
                         |> Element.map ServerCreateMsg
 
-                ServerCreateImage model_ ->
-                    Page.ServerCreateImage.view context model_
+                ServerCreateImage pageModel ->
+                    Page.ServerCreateImage.view context pageModel
                         |> Element.map ServerCreateImageMsg
 
-                ServerDetail model_ ->
-                    Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) model_
+                ServerDetail pageModel ->
+                    Page.ServerDetail.view context p ( model.clientCurrentTime, model.timeZone ) pageModel
                         |> Element.map ServerDetailMsg
 
-                ServerList model_ ->
+                ServerList pageModel ->
                     Page.ServerList.view context
                         True
                         p
-                        model_
+                        pageModel
                         |> Element.map ServerListMsg
 
-                VolumeAttach model_ ->
-                    Page.VolumeAttach.view context p model_
+                VolumeAttach pageModel ->
+                    Page.VolumeAttach.view context p pageModel
                         |> Element.map VolumeAttachMsg
 
-                VolumeCreate model_ ->
-                    Page.VolumeCreate.view context p model_
+                VolumeCreate pageModel ->
+                    Page.VolumeCreate.view context p pageModel
                         |> Element.map VolumeCreateMsg
 
-                VolumeDetail model_ ->
-                    Page.VolumeDetail.view context p model_ True
+                VolumeDetail pageModel ->
+                    Page.VolumeDetail.view context p pageModel True
                         |> Element.map VolumeDetailMsg
 
-                VolumeList model_ ->
+                VolumeList pageModel ->
                     Page.VolumeList.view context
                         True
                         p
-                        model_
+                        pageModel
                         |> Element.map VolumeListMsg
 
                 VolumeMountInstructions attachment ->
@@ -300,13 +300,13 @@ project model context p projectPageModel viewConstructor =
         (Element.width Element.fill
             :: VH.exoColumnAttributes
         )
-        [ projectNav context p projectPageModel
+        [ projectNav context p projectViewModel
         , v
         ]
 
 
-projectNav : View.Types.Context -> Project -> ProjectPageModel -> Element.Element OuterMsg
-projectNav context p viewParams =
+projectNav : View.Types.Context -> Project -> ProjectViewModel -> Element.Element OuterMsg
+projectNav context p projectViewModel =
     let
         edges =
             VH.edges
@@ -352,7 +352,7 @@ projectNav context p viewParams =
                 , left = 0
                 }
             ]
-            (createButton context p.auth.project.uuid viewParams.createPopup)
+            (createButton context p.auth.project.uuid projectViewModel.createPopup)
         ]
 
 

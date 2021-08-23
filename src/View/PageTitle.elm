@@ -45,10 +45,10 @@ pageTitle outerModel context =
                 PageNotFound ->
                     "Error: page not found"
 
-                SelectProjects model ->
+                SelectProjects pageModel ->
                     let
                         providerTitle =
-                            model.providerKeystoneUrl
+                            pageModel.providerKeystoneUrl
                                 |> UrlHelpers.hostnameFromUrl
                                 |> VH.titleFromHostname
                     in
@@ -138,20 +138,20 @@ pageTitle outerModel context =
                             |> Helpers.String.toTitleCase
                         ]
 
-                ServerCreateImage model ->
+                ServerCreateImage pageModel ->
                     String.join " "
                         [ "Create"
                         , context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.toTitleCase
                         , "for"
-                        , serverName maybeProject model.serverUuid
+                        , serverName maybeProject pageModel.serverUuid
                         ]
 
-                ServerDetail model ->
+                ServerDetail pageModel ->
                     String.join " "
                         [ context.localization.virtualComputer
                             |> Helpers.String.toTitleCase
-                        , serverName maybeProject model.serverUuid
+                        , serverName maybeProject pageModel.serverUuid
                         ]
 
                 ServerList _ ->
@@ -177,11 +177,11 @@ pageTitle outerModel context =
                             |> Helpers.String.toTitleCase
                         ]
 
-                VolumeDetail model ->
+                VolumeDetail pageModel ->
                     String.join " "
                         [ context.localization.blockDevice
                             |> Helpers.String.toTitleCase
-                        , volumeName maybeProject model.volumeUuid
+                        , volumeName maybeProject pageModel.volumeUuid
                         ]
 
                 VolumeList _ ->

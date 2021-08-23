@@ -62,14 +62,14 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
 
         Login loginView ->
             case loginView of
-                LoginOpenstack openstackLogin ->
+                LoginOpenstack pageModel ->
                     buildUrlFunc
                         [ "login"
                         , "openstack"
                         ]
-                        [ UB.string "authurl" openstackLogin.creds.authUrl
-                        , UB.string "udomain" openstackLogin.creds.userDomain
-                        , UB.string "uname" openstackLogin.creds.username
+                        [ UB.string "authurl" pageModel.creds.authUrl
+                        , UB.string "udomain" pageModel.creds.userDomain
+                        , UB.string "uname" pageModel.creds.username
 
                         -- Not encoding password!
                         ]
@@ -108,11 +108,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 []
 
-        MessageLog model ->
+        MessageLog pageModel ->
             buildUrlFunc
                 [ "msglog" ]
                 [ UB.string "showdebug"
-                    (if model.showDebugMsgs then
+                    (if pageModel.showDebugMsgs then
                         "true"
 
                      else
@@ -125,11 +125,11 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "pagenotfound" ]
                 []
 
-        SelectProjects model ->
+        SelectProjects pageModel ->
             buildUrlFunc
                 [ "selectprojs"
                 ]
-                [ UB.string "keystoneurl" model.providerKeystoneUrl
+                [ UB.string "keystoneurl" pageModel.providerKeystoneUrl
                 ]
 
         Settings ->
@@ -171,14 +171,14 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "keypairs" ]
                 []
 
-        ServerCreate viewParams_ ->
+        ServerCreate pageModel ->
             buildUrlFunc
                 [ "createserver"
                 ]
-                [ UB.string "imageuuid" viewParams_.imageUuid
-                , UB.string "imagename" viewParams_.imageName
+                [ UB.string "imageuuid" pageModel.imageUuid
+                , UB.string "imagename" pageModel.imageName
                 , UB.string "deployguac"
-                    (viewParams_.deployGuacamole
+                    (pageModel.deployGuacamole
                         |> (\maybeDeployGuac ->
                                 case maybeDeployGuac of
                                     Just bool ->
@@ -194,19 +194,19 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                     )
                 ]
 
-        ServerCreateImage model ->
+        ServerCreateImage pageModel ->
             buildUrlFunc
                 [ "servers"
-                , model.serverUuid
+                , pageModel.serverUuid
                 , "image"
                 ]
-                [ UB.string "name" model.imageName
+                [ UB.string "name" pageModel.imageName
                 ]
 
-        ServerDetail model ->
+        ServerDetail pageModel ->
             buildUrlFunc
                 [ "servers"
-                , model.serverUuid
+                , pageModel.serverUuid
                 ]
                 []
 
@@ -215,10 +215,10 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "servers" ]
                 []
 
-        VolumeAttach model ->
+        VolumeAttach pageModel ->
             let
                 volUuidQP =
-                    case model.maybeVolumeUuid of
+                    case pageModel.maybeVolumeUuid of
                         Just volUuid ->
                             [ UB.string "voluuid" volUuid ]
 
@@ -226,7 +226,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                             []
 
                 serverUuidQP =
-                    case model.maybeServerUuid of
+                    case pageModel.maybeServerUuid of
                         Just serverUuid ->
                             [ UB.string "serveruuid" serverUuid ]
 
@@ -244,10 +244,10 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 []
 
-        VolumeDetail model ->
+        VolumeDetail pageModel ->
             buildUrlFunc
                 [ "volumes"
-                , model.volumeUuid
+                , pageModel.volumeUuid
                 ]
                 []
 
@@ -256,10 +256,10 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 [ "volumes" ]
                 []
 
-        VolumeMountInstructions attachment ->
+        VolumeMountInstructions pageModel ->
             buildUrlFunc
                 [ "attachvolinstructions" ]
-                [ UB.string "serveruuid" attachment.serverUuid
-                , UB.string "attachmentuuid" attachment.attachmentUuid
-                , UB.string "device" attachment.device
+                [ UB.string "serveruuid" pageModel.serverUuid
+                , UB.string "attachmentuuid" pageModel.attachmentUuid
+                , UB.string "device" pageModel.device
                 ]

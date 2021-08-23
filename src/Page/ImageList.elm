@@ -423,6 +423,7 @@ images context project model =
                 { text = "Clear filters (show all)"
                 , onPress = Just GotClearFilters
 
+                -- TODO remove dead code
                 {-
                    Just <|
                        SetProjectView project.auth.project.uuid <|

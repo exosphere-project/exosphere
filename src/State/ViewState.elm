@@ -185,7 +185,7 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, cmd )
 
-                ServerDetail model ->
+                ServerDetail pageModel ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
                         Just (ServerDetail _) ->
@@ -208,23 +208,23 @@ setProjectView project projectViewConstructor outerModel =
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer project.auth.project.uuid model.serverUuid)
+                                            (ApiModelHelpers.requestServer project.auth.project.uuid pageModel.serverUuid)
                             in
                             ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
 
                 ServerCreateImage _ ->
                     ( outerModel, Cmd.none )
 
-                ServerCreate viewParams ->
+                ServerCreate pageModel ->
                     case outerModel.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         -- TODO double-check that this code still actually works.
                         ProjectView _ _ (ServerCreate _) ->
                             let
-                                newViewParams =
+                                newPageModel =
                                     case
-                                        ( GetterSetters.flavorLookup project viewParams.flavorUuid
+                                        ( GetterSetters.flavorLookup project pageModel.flavorUuid
                                         , project.computeQuota
                                         , project.volumeQuota
                                         )
@@ -233,36 +233,36 @@ setProjectView project projectViewConstructor outerModel =
                                             let
                                                 availServers =
                                                     OSQuotas.overallQuotaAvailServers
-                                                        (viewParams.volSizeTextInput
+                                                        (pageModel.volSizeTextInput
                                                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                                                         )
                                                         flavor
                                                         computeQuota
                                                         volumeQuota
                                             in
-                                            { viewParams
+                                            { pageModel
                                                 | count =
                                                     case availServers of
                                                         Just availServers_ ->
-                                                            if viewParams.count > availServers_ then
+                                                            if pageModel.count > availServers_ then
                                                                 availServers_
 
                                                             else
-                                                                viewParams.count
+                                                                pageModel.count
 
                                                         Nothing ->
-                                                            viewParams.count
+                                                            pageModel.count
                                             }
 
                                         ( _, _, _ ) ->
-                                            viewParams
+                                            pageModel
 
                                 newViewState_ =
                                     ProjectView
                                         project.auth.project.uuid
                                         { createPopup = False }
                                     <|
-                                        ServerCreate newViewParams
+                                        ServerCreate newPageModel
                             in
                             ( { outerModel | viewState = newViewState_ }
                             , Cmd.none
@@ -492,8 +492,8 @@ viewStateToSupportableItem viewState =
             -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
         supportableProjectItem projectUuid projectViewConstructor =
             case projectViewConstructor of
-                ServerCreate createServerViewParams ->
-                    ( HelperTypes.SupportableImage, Just createServerViewParams.imageUuid )
+                ServerCreate pageModel ->
+                    ( HelperTypes.SupportableImage, Just pageModel.imageUuid )
 
                 ServerDetail pageModel ->
                     ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
@@ -509,8 +509,8 @@ viewStateToSupportableItem viewState =
                         |> Maybe.map (\uuid -> ( HelperTypes.SupportableVolume, Just uuid ))
                         |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectUuid )
 
-                VolumeMountInstructions attachment ->
-                    ( HelperTypes.SupportableServer, Just attachment.serverUuid )
+                VolumeMountInstructions pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
 
                 _ ->
                     ( HelperTypes.SupportableProject, Just projectUuid )

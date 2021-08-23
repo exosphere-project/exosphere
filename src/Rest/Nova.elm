@@ -880,8 +880,8 @@ receiveFlavors outerModel project flavors =
             case outerModel.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
-                        ServerCreate viewParams ->
-                            if viewParams.flavorUuid == "" then
+                        ServerCreate pageModel ->
+                            if pageModel.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
                                         GetterSetters.sortedFlavors flavors |> List.head
@@ -892,7 +892,7 @@ receiveFlavors outerModel project flavors =
                                             project.auth.project.uuid
                                             { createPopup = False }
                                             (ServerCreate
-                                                { viewParams
+                                                { pageModel
                                                     | flavorUuid = smallestFlavor.uuid
                                                 }
                                             )
