@@ -24,7 +24,8 @@ import Widget
 
 
 type alias Model =
-    { onlyOwnServers : Bool
+    { showHeading : Bool
+    , onlyOwnServers : Bool
     , selectedServers : Set.Set ServerSelection
     , deleteConfirmations : Set.Set DeleteConfirmation
     }
@@ -49,9 +50,9 @@ type Msg
     | NoOp
 
 
-init : Model
-init =
-    Model True Set.empty Set.empty
+init : Bool -> Model
+init showHeading =
+    Model showHeading True Set.empty Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -115,13 +116,8 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view :
-    View.Types.Context
-    -> Bool
-    -> Project
-    -> Model
-    -> Element.Element Msg
-view context showHeading project model =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         serverListContents =
             {- Resolve whether we have a loaded list of servers to display; if so, call rendering function serverList_ -}
@@ -176,7 +172,7 @@ view context showHeading project model =
                             servers
     in
     Element.column [ Element.width Element.fill ]
-        [ if showHeading then
+        [ if model.showHeading then
             Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
                 [ FeatherIcons.server |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                 , Element.text <|

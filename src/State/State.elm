@@ -784,7 +784,7 @@ processSharedMsg sharedMsg outerModel =
                                 Types.SharedMsg.FloatingIpList ->
                                     ViewStateHelpers.setProjectView
                                         project
-                                        (FloatingIpList Page.FloatingIpList.init)
+                                        (FloatingIpList <| Page.FloatingIpList.init True)
                                         outerModel
 
                                 Types.SharedMsg.KeypairCreate ->
@@ -796,7 +796,7 @@ processSharedMsg sharedMsg outerModel =
                                 Types.SharedMsg.KeypairList ->
                                     ViewStateHelpers.setProjectView
                                         project
-                                        (KeypairList Page.KeypairList.init)
+                                        (KeypairList <| Page.KeypairList.init True)
                                         outerModel
 
                                 Types.SharedMsg.ServerCreate imageId imageName maybeDeployGuac ->
@@ -820,7 +820,7 @@ processSharedMsg sharedMsg outerModel =
                                 Types.SharedMsg.ServerList ->
                                     ViewStateHelpers.setProjectView
                                         project
-                                        (ServerList Page.ServerList.init)
+                                        (ServerList <| Page.ServerList.init True)
                                         outerModel
 
                                 Types.SharedMsg.VolumeAttach maybeServerUuid maybeVolumeUuid ->
@@ -838,13 +838,13 @@ processSharedMsg sharedMsg outerModel =
                                 Types.SharedMsg.VolumeDetail volumeUuid ->
                                     ViewStateHelpers.setProjectView
                                         project
-                                        (VolumeDetail <| Page.VolumeDetail.init volumeUuid)
+                                        (VolumeDetail <| Page.VolumeDetail.init True volumeUuid)
                                         outerModel
 
                                 Types.SharedMsg.VolumeList ->
                                     ViewStateHelpers.setProjectView
                                         project
-                                        (VolumeList Page.VolumeList.init)
+                                        (VolumeList <| Page.VolumeList.init True)
                                         outerModel
 
                         Nothing ->
@@ -1253,7 +1253,7 @@ processProjectSpecificMsg outerModel project msg =
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
                 ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.setProjectView project (FloatingIpList Page.FloatingIpList.init) outerModel
+                    ViewStateHelpers.setProjectView project (FloatingIpList <| Page.FloatingIpList.init True) outerModel
             in
             ( newOuterModel
             , Cmd.batch
@@ -1436,7 +1436,7 @@ processProjectSpecificMsg outerModel project msg =
             in
             ViewStateHelpers.setProjectView
                 newProject
-                (KeypairList Page.KeypairList.init)
+                (KeypairList <| Page.KeypairList.init True)
                 { outerModel | sharedModel = newSharedModel }
 
         RequestDeleteKeypair keypairId ->
@@ -1672,7 +1672,7 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView project (VolumeList Page.VolumeList.init) outerModel
+            ViewStateHelpers.setProjectView project (VolumeList <| Page.VolumeList.init True) outerModel
 
         ReceiveVolumes volumes ->
             let
@@ -1767,7 +1767,7 @@ processProjectSpecificMsg outerModel project msg =
             ViewStateHelpers.setProjectView project (VolumeMountInstructions attachment) outerModel
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView project (VolumeList Page.VolumeList.init) outerModel
+            ViewStateHelpers.setProjectView project (VolumeList <| Page.VolumeList.init True) outerModel
 
         ReceiveAppCredential appCredential ->
             let

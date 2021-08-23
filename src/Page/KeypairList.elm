@@ -19,7 +19,8 @@ import Widget
 
 
 type alias Model =
-    { expandedKeypairs : Set.Set OSTypes.KeypairIdentifier
+    { showHeading : Bool
+    , expandedKeypairs : Set.Set OSTypes.KeypairIdentifier
     , deleteConfirmations : Set.Set OSTypes.KeypairIdentifier
     }
 
@@ -32,9 +33,9 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
-init : Model
-init =
-    Model Set.empty Set.empty
+init : Bool -> Model
+init showHeading =
+    Model showHeading Set.empty Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -85,8 +86,8 @@ update msg project model =
             ( model, Cmd.none, sharedMsg )
 
 
-view : View.Types.Context -> Project -> Model -> Bool -> Element.Element Msg
-view context project model showHeading =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         renderKeypairs : List OSTypes.Keypair -> Element.Element Msg
         renderKeypairs keypairs_ =
@@ -136,7 +137,7 @@ view context project model showHeading =
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
-        [ if showHeading then
+        [ if model.showHeading then
             Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
                 [ FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                 , Element.text

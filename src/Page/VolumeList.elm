@@ -15,7 +15,8 @@ import View.Types
 
 
 type alias Model =
-    { expandedVols : Set.Set OSTypes.VolumeUuid
+    { showHeading : Bool
+    , expandedVols : Set.Set OSTypes.VolumeUuid
     , deleteConfirmations : Set.Set OSTypes.VolumeUuid
     }
 
@@ -25,9 +26,9 @@ type Msg
     | VolumeDetailMsg OSTypes.VolumeUuid Page.VolumeDetail.Msg
 
 
-init : Model
-init =
-    Model Set.empty Set.empty
+init : Bool -> Model
+init showHeading =
+    Model showHeading Set.empty Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -82,8 +83,8 @@ update msg project model =
                     ( model, Cmd.none, sharedMsg )
 
 
-view : View.Types.Context -> Bool -> Project -> Model -> Element.Element Msg
-view context showHeading project model =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         renderSuccessCase : List OSTypes.Volume -> Element.Element Msg
         renderSuccessCase volumes_ =
@@ -101,7 +102,7 @@ view context showHeading project model =
     in
     Element.column
         [ Element.spacing 20, Element.width Element.fill ]
-        [ if showHeading then
+        [ if model.showHeading then
             Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
                 [ FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
                 , Element.text
@@ -138,7 +139,6 @@ renderVolumeCard context project model volume =
         (Page.VolumeDetail.view
             context
             project
-            { volumeUuid = volume.uuid, deleteConfirmations = model.deleteConfirmations }
-            False
+            { showHeading = False, volumeUuid = volume.uuid, deleteConfirmations = model.deleteConfirmations }
             |> Element.map (VolumeDetailMsg volume.uuid)
         )

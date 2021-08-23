@@ -208,24 +208,24 @@ projectViewConstructorParsers =
         )
         (s "servers" </> string)
     , map
-        (ServerList Page.ServerList.init)
+        (ServerList <| Page.ServerList.init True)
         (s "servers")
     , map
         (\volUuid ->
-            VolumeDetail (Page.VolumeDetail.init volUuid)
+            VolumeDetail (Page.VolumeDetail.init True volUuid)
         )
         (s "volumes" </> string)
     , map
-        (VolumeList Page.VolumeList.init)
+        (VolumeList <| Page.VolumeList.init True)
         (s "volumes")
     , map
-        (FloatingIpList Page.FloatingIpList.init)
+        (FloatingIpList <| Page.FloatingIpList.init True)
         (s "floatingips")
     , map
         (FloatingIpAssign <| Page.FloatingIpAssign.init Nothing Nothing)
         (s "assignfloatingip")
     , map
-        (KeypairList Page.KeypairList.init)
+        (KeypairList <| Page.KeypairList.init True)
         (s "keypairs")
     , map
         (KeypairCreate Page.KeypairCreate.init)

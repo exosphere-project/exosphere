@@ -36,10 +36,10 @@ type Msg
 init : Model
 init =
     Model
-        Page.ServerList.init
-        Page.VolumeList.init
-        Page.KeypairList.init
-        Page.FloatingIpList.init
+        (Page.ServerList.init False)
+        (Page.VolumeList.init False)
+        (Page.KeypairList.init False)
+        (Page.FloatingIpList.init False)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -116,7 +116,6 @@ view context p model =
                 )
                 (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.ServerList)
             , Page.ServerList.view context
-                False
                 p
                 model.serverListModel
                 |> Element.map ServerListMsg
@@ -135,7 +134,6 @@ view context p model =
                 )
                 (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.VolumeList)
             , Page.VolumeList.view context
-                False
                 p
                 model.volumeListModel
                 |> Element.map VolumeListMsg
@@ -152,7 +150,6 @@ view context p model =
             , Page.FloatingIpList.view context
                 p
                 model.floatingIpListModel
-                False
                 |> Element.map FloatingIpListMsg
             ]
         , Element.column
@@ -173,7 +170,6 @@ view context p model =
             , Page.KeypairList.view context
                 p
                 model.keypairListModel
-                False
                 |> Element.map KeypairListMsg
             ]
         ]

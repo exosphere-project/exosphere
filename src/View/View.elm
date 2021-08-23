@@ -236,7 +236,6 @@ project model context p projectViewModel viewConstructor =
                     Page.FloatingIpList.view context
                         p
                         pageModel
-                        True
                         |> Element.map FloatingIpListMsg
 
                 ImageList pageModel ->
@@ -251,7 +250,6 @@ project model context p projectViewModel viewConstructor =
                     Page.KeypairList.view context
                         p
                         pageModel
-                        True
                         |> Element.map KeypairListMsg
 
                 ServerCreate pageModel ->
@@ -268,7 +266,6 @@ project model context p projectViewModel viewConstructor =
 
                 ServerList pageModel ->
                     Page.ServerList.view context
-                        True
                         p
                         pageModel
                         |> Element.map ServerListMsg
@@ -282,12 +279,11 @@ project model context p projectViewModel viewConstructor =
                         |> Element.map VolumeCreateMsg
 
                 VolumeDetail pageModel ->
-                    Page.VolumeDetail.view context p pageModel True
+                    Page.VolumeDetail.view context p pageModel
                         |> Element.map VolumeDetailMsg
 
                 VolumeList pageModel ->
                     Page.VolumeList.view context
-                        True
                         p
                         pageModel
                         |> Element.map VolumeListMsg

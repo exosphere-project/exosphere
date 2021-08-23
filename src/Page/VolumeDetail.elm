@@ -20,7 +20,8 @@ import Widget
 
 
 type alias Model =
-    { volumeUuid : OSTypes.VolumeUuid
+    { showHeading : Bool
+    , volumeUuid : OSTypes.VolumeUuid
     , deleteConfirmations : Set.Set OSTypes.VolumeUuid
     }
 
@@ -32,9 +33,9 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
-init : OSTypes.VolumeUuid -> Model
-init volumeId =
-    Model volumeId Set.empty
+init : Bool -> OSTypes.VolumeUuid -> Model
+init showHeading volumeId =
+    Model showHeading volumeId Set.empty
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -72,14 +73,9 @@ update msg project model =
             ( model, Cmd.none, sharedMsg )
 
 
-view :
-    View.Types.Context
-    -> Project
-    -> Model
-    -> Bool
-    -> Element.Element Msg
-view context project model showHeading =
-    if showHeading then
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
+    if model.showHeading then
         Element.column
             (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
             [ Element.el (VH.heading2 context.palette) <|

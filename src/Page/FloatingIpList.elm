@@ -23,7 +23,8 @@ import Widget
 
 
 type alias Model =
-    { deleteConfirmations : Set.Set OSTypes.IpAddressUuid
+    { showHeading : Bool
+    , deleteConfirmations : Set.Set OSTypes.IpAddressUuid
     , hideAssignedIps : Bool
     }
 
@@ -38,9 +39,10 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
-init : Model
-init =
-    { deleteConfirmations = Set.empty
+init : Bool -> Model
+init showHeading =
+    { showHeading = showHeading
+    , deleteConfirmations = Set.empty
     , hideAssignedIps = True
     }
 
@@ -91,8 +93,8 @@ update msg project model =
             ( model, Cmd.none, sharedMsg )
 
 
-view : View.Types.Context -> Project -> Model -> Bool -> Element.Element Msg
-view context project model showHeading =
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         renderFloatingIps : List OSTypes.FloatingIp -> Element.Element Msg
         renderFloatingIps ips =
@@ -164,7 +166,7 @@ view context project model showHeading =
     in
     Element.column
         [ Element.spacing 15, Element.width Element.fill ]
-        [ if showHeading then
+        [ if model.showHeading then
             Element.row (VH.heading2 context.palette ++ [ Element.spacing 15 ])
                 [ Icon.ipAddress (SH.toElementColor context.palette.on.background) 24
                 , Element.text
