@@ -422,15 +422,6 @@ images context project model =
                 (SH.materialStyle context.palette).button
                 { text = "Clear filters (show all)"
                 , onPress = Just GotClearFilters
-
-                -- TODO remove dead code
-                {-
-                   Just <|
-                       SetProjectView project.auth.project.uuid <|
-                           ListImages
-                               Defaults.imageListViewParams
-                               sortTableParams
-                -}
                 }
             , if noMatchWarning then
                 Element.text "No matches found. Broaden your search terms, or clear the search filter."
