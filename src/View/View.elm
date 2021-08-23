@@ -288,9 +288,9 @@ project model context p projectViewModel viewConstructor =
                         pageModel
                         |> Element.map VolumeListMsg
 
-                VolumeMountInstructions attachment ->
-                    Page.VolumeMountInstructions.view context p attachment
-                        |> Element.map SharedMsg
+                VolumeMountInstructions pageModel ->
+                    Page.VolumeMountInstructions.view context p pageModel
+                        |> Element.map VolumeMountInstructionsMsg
     in
     Element.column
         (Element.width Element.fill

@@ -21,6 +21,7 @@ import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
+import Page.VolumeMountInstructions
 import Types.HelperTypes as HelperTypes
 import Types.SharedMsg
 import Types.View as ViewTypes
@@ -47,6 +48,7 @@ type OuterMsg
     | VolumeCreateMsg Page.VolumeCreate.Msg
     | VolumeDetailMsg Page.VolumeDetail.Msg
     | VolumeListMsg Page.VolumeList.Msg
+    | VolumeMountInstructionsMsg Page.VolumeMountInstructions.Msg
     | ServerCreateMsg Page.ServerCreate.Msg
     | ServerCreateImageMsg Page.ServerCreateImage.Msg
     | ServerDetailMsg Page.ServerDetail.Msg

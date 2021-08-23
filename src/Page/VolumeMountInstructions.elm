@@ -1,4 +1,4 @@
-module Page.VolumeMountInstructions exposing (view)
+module Page.VolumeMountInstructions exposing (Model, Msg, init, update, view)
 
 import Element
 import Helpers.Helpers as Helpers
@@ -12,8 +12,28 @@ import View.Types
 import Widget
 
 
-view : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element SharedMsg.SharedMsg
-view context project attachment =
+type alias Model =
+    OSTypes.VolumeAttachment
+
+
+type Msg
+    = SharedMsg SharedMsg.SharedMsg
+
+
+init : OSTypes.VolumeAttachment -> ( Model, Cmd SharedMsg.SharedMsg )
+init attachment =
+    ( attachment, Cmd.none )
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
+
+
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     Element.column VH.exoColumnAttributes
         [ Element.el (VH.heading2 context.palette) <|
             Element.text <|
@@ -23,15 +43,15 @@ view context project attachment =
                     , "Attached"
                     ]
         , Element.column VH.contentContainer
-            [ Element.text ("Device: " ++ attachment.device)
-            , case Helpers.volDeviceToMountpoint attachment.device of
+            [ Element.text ("Device: " ++ model.device)
+            , case Helpers.volDeviceToMountpoint model.device of
                 Just mountpoint ->
                     Element.text ("Mount point: " ++ mountpoint)
 
                 Nothing ->
                     Element.none
             , Element.paragraph []
-                [ case Helpers.volDeviceToMountpoint attachment.device of
+                [ case Helpers.volDeviceToMountpoint model.device of
                     Just mountpoint ->
                         Element.text <|
                             String.join " "
@@ -66,9 +86,10 @@ view context project attachment =
                 { text = "Go to my " ++ context.localization.virtualComputer
                 , onPress =
                     Just <|
-                        SharedMsg.NavigateToView <|
-                            SharedMsg.ProjectPage project.auth.project.uuid <|
-                                SharedMsg.ServerDetail attachment.serverUuid
+                        SharedMsg <|
+                            SharedMsg.NavigateToView <|
+                                SharedMsg.ProjectPage project.auth.project.uuid <|
+                                    SharedMsg.ServerDetail model.serverUuid
                 }
             ]
         ]
