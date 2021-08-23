@@ -1,6 +1,6 @@
 module Types.SharedMsg exposing
-    ( NavigableProjectPage(..)
-    , NavigableView(..)
+    ( NavigablePage(..)
+    , NavigableProjectPage(..)
     , ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
     , SharedMsg(..)
@@ -31,7 +31,7 @@ type SharedMsg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
-    | NavigateToView NavigableView
+    | NavigateToView NavigablePage
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
@@ -109,7 +109,7 @@ type ServerSpecificMsgConstructor
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
-type NavigableView
+type NavigablePage
     = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout
     | LoginJetstream
