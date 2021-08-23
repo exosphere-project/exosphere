@@ -17,7 +17,7 @@ type alias Model =
 
 
 type Msg
-    = ShowDebugMsgs Bool
+    = GotShowDebugMsgs Bool
 
 
 init : Model
@@ -28,7 +28,7 @@ init =
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
-        ShowDebugMsgs new ->
+        GotShowDebugMsgs new ->
             ( { model | showDebugMsgs = new }, Cmd.none, SharedMsg.NoOp )
 
 
@@ -59,7 +59,7 @@ view context sharedModel model =
             { label = Input.labelRight [] (Element.text "Show low-level debug messages")
             , icon = Input.defaultCheckbox
             , checked = model.showDebugMsgs
-            , onChange = ShowDebugMsgs
+            , onChange = GotShowDebugMsgs
             }
         , if List.isEmpty shownMessages then
             Element.text "(No Messages)"

@@ -32,7 +32,7 @@ type Msg
     = GotResourceType (Maybe HelperTypes.SupportableItemType)
     | GotResourceUuid (Maybe HelperTypes.Uuid)
     | GotDescription String
-    | Submit
+    | GotSubmit
     | NoOp
 
 
@@ -73,7 +73,7 @@ update msg _ model =
         GotDescription desc ->
             ( { model | requestDescription = desc }, Cmd.none, SharedMsg.NoOp )
 
-        Submit ->
+        GotSubmit ->
             ( { model | isSubmitted = True }, Cmd.none, SharedMsg.NoOp )
 
         NoOp ->
@@ -258,7 +258,7 @@ view context sharedModel model =
                                 Nothing
 
                             else
-                                Just Submit
+                                Just GotSubmit
                         }
                 ]
             , if model.isSubmitted then

@@ -25,7 +25,7 @@ type Msg
     = GotIpUuid OSTypes.IpAddressUuid
     | GotServerUuid OSTypes.ServerUuid
       -- Maybe this should be a PortUuid, eh
-    | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Maybe OSTypes.IpAddressUuid -> Maybe OSTypes.ServerUuid -> Model
@@ -34,7 +34,7 @@ init =
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update msg _ model =
     case msg of
         GotIpUuid ipUuid ->
             ( { model | ipUuid = Just ipUuid }, Cmd.none, SharedMsg.NoOp )
@@ -42,11 +42,8 @@ update msg project model =
         GotServerUuid serverUuid ->
             ( { model | serverUuid = Just serverUuid }, Cmd.none, SharedMsg.NoOp )
 
-        RequestAssignFloatingIp port_ ipUuid ->
-            ( model
-            , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestAssignFloatingIp port_ ipUuid)
-            )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -193,7 +190,7 @@ view context project model =
                                         ( False, Just port_ ) ->
                                             -- Conditions are perfect
                                             { onPress =
-                                                Just <| RequestAssignFloatingIp port_ ipUuid
+                                                Just <| SharedMsg <| SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestAssignFloatingIp port_ ipUuid)
                                             , warnText = Nothing
                                             }
 

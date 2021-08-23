@@ -30,7 +30,6 @@ type Msg
     | GotDeleteConfirm
     | GotDeleteCancel
     | SharedMsg SharedMsg.SharedMsg
-    | RequestDetachVolume
 
 
 init : OSTypes.VolumeUuid -> Model
@@ -71,12 +70,6 @@ update msg project model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
-
-        RequestDetachVolume ->
-            ( model
-            , Cmd.none
-            , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestDetachVolume model.volumeUuid
-            )
 
 
 view :
@@ -264,7 +257,10 @@ volumeActionButtons context project model volume =
                             (SH.materialStyle context.palette).button
                             { text = "Detach"
                             , onPress =
-                                Just RequestDetachVolume
+                                Just <|
+                                    SharedMsg <|
+                                        SharedMsg.ProjectMsg project.auth.project.uuid <|
+                                            SharedMsg.RequestDetachVolume model.volumeUuid
                             }
 
                 _ ->

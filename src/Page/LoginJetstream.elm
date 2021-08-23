@@ -20,7 +20,6 @@ type Msg
     = GotUsername String
     | GotPassword String
     | GotProviderChoice JetstreamProvider
-    | GotSubmit
     | SharedMsg SharedMsg.SharedMsg
 
 
@@ -48,9 +47,6 @@ update msg _ model =
 
         GotProviderChoice choice ->
             ( { model | jetstreamProviderChoice = choice }, Cmd.none, SharedMsg.NoOp )
-
-        GotSubmit ->
-            ( model, Cmd.none, SharedMsg.JetstreamLogin model )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -96,7 +92,7 @@ view context model =
                             (SH.materialStyle context.palette).primaryButton
                             { text = "Log In"
                             , onPress =
-                                Just GotSubmit
+                                Just <| SharedMsg <| SharedMsg.JetstreamLogin model
                             }
                         )
                     ]

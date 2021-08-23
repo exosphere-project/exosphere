@@ -23,7 +23,7 @@ type alias Model =
 type Msg
     = GotExpandCard OSTypes.VolumeUuid Bool
     | VolumeDetailMsg OSTypes.VolumeUuid Page.VolumeDetail.Msg
-    | NavigateToView SharedMsg.NavigableView
+    | SharedMsg SharedMsg.SharedMsg
 
 
 init : Model
@@ -33,10 +33,6 @@ init =
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
-    let
-        navigateToView view_ =
-            ( model, Cmd.none, SharedMsg.NavigateToView view_ )
-    in
     case msg of
         GotExpandCard uuid bool ->
             ( { model
@@ -86,14 +82,8 @@ update msg project model =
                 Page.VolumeDetail.SharedMsg sharedMsg ->
                     ( model, Cmd.none, sharedMsg )
 
-                Page.VolumeDetail.RequestDetachVolume ->
-                    ( model
-                    , Cmd.none
-                    , SharedMsg.ProjectMsg project.auth.project.uuid <| SharedMsg.RequestDetachVolume uuid
-                    )
-
-        NavigateToView view_ ->
-            navigateToView view_
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
 
 view : View.Types.Context -> Bool -> Project -> Model -> Element.Element Msg
