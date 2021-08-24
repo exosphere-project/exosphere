@@ -1,4 +1,4 @@
-module LegacyView.Images exposing (imagesIfLoaded)
+module Page.ImageList exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Font as Font
@@ -13,17 +13,94 @@ import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
-import Types.Defaults as Defaults
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.View exposing (ImageListViewParams, ImageListVisibilityFilter, ProjectViewConstructor(..), SortTableParams)
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
 import Widget
 
 
-imagesIfLoaded : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element OuterMsg
-imagesIfLoaded context project imageListViewParams sortTableParams =
+type alias Model =
+    { searchText : String
+    , tags : Set.Set String
+    , onlyOwnImages : Bool
+    , expandImageDetails : Set.Set OSTypes.ImageUuid
+    , visibilityFilter : ImageListVisibilityFilter
+    }
+
+
+type alias ImageListVisibilityFilter =
+    { public : Bool
+    , community : Bool
+    , shared : Bool
+    , private : Bool
+    }
+
+
+type Msg
+    = GotSearchText String
+    | GotTagSelection String Bool
+    | GotOnlyOwnImages Bool
+    | GotExpandImage OSTypes.ImageUuid Bool
+    | GotVisibilityFilter ImageListVisibilityFilter
+    | GotClearFilters
+    | SharedMsg SharedMsg.SharedMsg
+
+
+init : Model
+init =
+    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotSearchText searchText ->
+            ( { model | searchText = searchText }, Cmd.none, SharedMsg.NoOp )
+
+        GotTagSelection tag selected ->
+            let
+                action =
+                    if selected then
+                        Set.insert
+
+                    else
+                        Set.remove
+            in
+            ( { model | tags = action tag model.tags }, Cmd.none, SharedMsg.NoOp )
+
+        GotOnlyOwnImages onlyOwn ->
+            ( { model | onlyOwnImages = onlyOwn }, Cmd.none, SharedMsg.NoOp )
+
+        GotExpandImage imageUuid expanded ->
+            ( { model
+                | expandImageDetails =
+                    let
+                        func =
+                            if expanded then
+                                Set.insert
+
+                            else
+                                Set.remove
+                    in
+                    func imageUuid model.expandImageDetails
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotVisibilityFilter filter ->
+            ( { model | visibilityFilter = filter }, Cmd.none, SharedMsg.NoOp )
+
+        GotClearFilters ->
+            ( init, Cmd.none, SharedMsg.NoOp )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
+
+
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     if List.isEmpty project.images then
         Element.row [ Element.spacing 15 ]
             [ Widget.circularProgressIndicator (SH.materialStyle context.palette).progressIndicator Nothing
@@ -37,7 +114,7 @@ imagesIfLoaded context project imageListViewParams sortTableParams =
             ]
 
     else
-        images context project imageListViewParams sortTableParams
+        images context project model
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -104,17 +181,17 @@ isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
             String.startsWith featuredImageNamePrefix image.name && image.visibility == OSTypes.ImagePublic
 
 
-filterImages : ImageListViewParams -> Project -> List OSTypes.Image -> List OSTypes.Image
-filterImages imageListViewParams project someImages =
+filterImages : Model -> Project -> List OSTypes.Image -> List OSTypes.Image
+filterImages model project someImages =
     someImages
-        |> filterByOwner imageListViewParams.onlyOwnImages project
-        |> filterByTags imageListViewParams.tags
-        |> filterBySearchText imageListViewParams.searchText
-        |> filterByVisibility imageListViewParams.visibilityFilter
+        |> filterByOwner model.onlyOwnImages project
+        |> filterByTags model.tags
+        |> filterBySearchText model.searchText
+        |> filterByVisibility model.visibilityFilter
 
 
-images : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> Element.Element OuterMsg
-images context project imageListViewParams sortTableParams =
+images : View.Types.Context -> Project -> Model -> Element.Element Msg
+images context project model =
     let
         generateAllTags : List OSTypes.Image -> List ImageTag
         generateAllTags someImages =
@@ -127,13 +204,13 @@ images context project imageListViewParams sortTableParams =
                 |> List.reverse
 
         filteredImages =
-            project.images |> filterImages imageListViewParams project
+            project.images |> filterImages model project
 
         tagsAfterFilteringImages =
             generateAllTags filteredImages
 
         noMatchWarning =
-            (imageListViewParams.tags /= Set.empty) && (List.length filteredImages == 0)
+            (model.tags /= Set.empty) && (List.length filteredImages == 0)
 
         featuredImageNamePrefix =
             VH.featuredImageNamePrefixLookup context project
@@ -147,7 +224,7 @@ images context project imageListViewParams sortTableParams =
         combinedImages =
             List.concat [ featuredImages, ownImages, otherImages ]
 
-        tagView : ImageTag -> Element.Element OuterMsg
+        tagView : ImageTag -> Element.Element Msg
         tagView tag =
             let
                 iconFunction checked =
@@ -158,7 +235,7 @@ images context project imageListViewParams sortTableParams =
                         Icon.plusCircle (SH.toElementColor context.palette.on.background) 12
 
                 tagChecked =
-                    Set.member tag.label imageListViewParams.tags
+                    Set.member tag.label model.tags
 
                 checkboxLabel =
                     tag.label ++ " (" ++ String.fromInt tag.frequency ++ ")"
@@ -169,30 +246,22 @@ images context project imageListViewParams sortTableParams =
             else
                 Input.checkbox [ Element.paddingXY 10 5 ]
                     { checked = tagChecked
-                    , onChange =
-                        \_ ->
-                            SetProjectView project.auth.project.uuid <|
-                                ListImages { imageListViewParams | tags = Set.Extra.toggle tag.label imageListViewParams.tags } sortTableParams
+                    , onChange = \_ -> GotTagSelection tag.label True
                     , icon = iconFunction
                     , label = Input.labelRight [] (Element.text checkboxLabel)
                     }
 
-        tagChipView : ImageTag -> Element.Element OuterMsg
+        tagChipView : ImageTag -> Element.Element Msg
         tagChipView tag =
             let
                 tagChecked =
-                    Set.member tag.label imageListViewParams.tags
+                    Set.member tag.label model.tags
 
                 chipLabel =
                     Element.text tag.label
 
                 unselectTag =
-                    SetProjectView project.auth.project.uuid <|
-                        ListImages
-                            { imageListViewParams
-                                | tags = Set.remove tag.label imageListViewParams.tags
-                            }
-                            sortTableParams
+                    GotTagSelection tag.label False
             in
             if tagChecked then
                 chip context.palette (Just unselectTag) chipLabel
@@ -246,77 +315,71 @@ images context project imageListViewParams sortTableParams =
                         , context.localization.staticRepresentationOfBlockDeviceContents
                         , "visibility:"
                         ]
+
+                -- TODO duplication of logic in these checkboxes, factor out what is common
                 , Input.checkbox []
-                    { checked = imageListViewParams.visibilityFilter.public
+                    { checked = model.visibilityFilter.public
                     , onChange =
                         \new ->
                             let
                                 oldVisibilityFilter =
-                                    imageListViewParams.visibilityFilter
+                                    model.visibilityFilter
 
                                 newVisibilityFilter =
                                     { oldVisibilityFilter | public = new }
                             in
-                            SetProjectView project.auth.project.uuid <|
-                                ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
-                                    sortTableParams
+                            GotVisibilityFilter newVisibilityFilter
                     , icon = Input.defaultCheckbox
                     , label =
                         Input.labelRight [] <|
                             Element.text "Public"
                     }
                 , Input.checkbox []
-                    { checked = imageListViewParams.visibilityFilter.community
+                    { checked = model.visibilityFilter.community
                     , onChange =
                         \new ->
                             let
                                 oldVisibilityFilter =
-                                    imageListViewParams.visibilityFilter
+                                    model.visibilityFilter
 
                                 newVisibilityFilter =
                                     { oldVisibilityFilter | community = new }
                             in
-                            SetProjectView project.auth.project.uuid <|
-                                ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
-                                    sortTableParams
+                            GotVisibilityFilter newVisibilityFilter
                     , icon = Input.defaultCheckbox
                     , label =
                         Input.labelRight [] <|
                             Element.text "Community"
                     }
                 , Input.checkbox []
-                    { checked = imageListViewParams.visibilityFilter.shared
+                    { checked = model.visibilityFilter.shared
                     , onChange =
                         \new ->
                             let
                                 oldVisibilityFilter =
-                                    imageListViewParams.visibilityFilter
+                                    model.visibilityFilter
 
                                 newVisibilityFilter =
                                     { oldVisibilityFilter | shared = new }
                             in
-                            SetProjectView project.auth.project.uuid <|
-                                ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
-                                    sortTableParams
+                            GotVisibilityFilter newVisibilityFilter
                     , icon = Input.defaultCheckbox
                     , label =
                         Input.labelRight [] <|
                             Element.text "Shared"
                     }
                 , Input.checkbox []
-                    { checked = imageListViewParams.visibilityFilter.private
+                    { checked = model.visibilityFilter.private
                     , onChange =
                         \new ->
                             let
                                 oldVisibilityFilter =
-                                    imageListViewParams.visibilityFilter
+                                    model.visibilityFilter
 
                                 newVisibilityFilter =
                                     { oldVisibilityFilter | private = new }
                             in
-                            SetProjectView project.auth.project.uuid <|
-                                ListImages { imageListViewParams | visibilityFilter = newVisibilityFilter }
-                                    sortTableParams
+                            GotVisibilityFilter newVisibilityFilter
                     , icon = Input.defaultCheckbox
                     , label =
                         Input.labelRight [] <|
@@ -338,14 +401,9 @@ images context project imageListViewParams sortTableParams =
             )
         , Element.column VH.contentContainer
             [ Input.text (VH.inputItemAttributes context.palette.background)
-                { text = imageListViewParams.searchText
+                { text = model.searchText
                 , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-                , onChange =
-                    \t ->
-                        SetProjectView project.auth.project.uuid <|
-                            ListImages
-                                { imageListViewParams | searchText = t }
-                                sortTableParams
+                , onChange = GotSearchText
                 , label =
                     Input.labelAbove []
                         (Element.text <|
@@ -359,12 +417,8 @@ images context project imageListViewParams sortTableParams =
             , visibilityFilters
             , tagsView
             , Input.checkbox []
-                { checked = imageListViewParams.onlyOwnImages
-                , onChange =
-                    \new ->
-                        SetProjectView project.auth.project.uuid <|
-                            ListImages { imageListViewParams | onlyOwnImages = new }
-                                sortTableParams
+                { checked = model.onlyOwnImages
+                , onChange = GotOnlyOwnImages
                 , icon = Input.defaultCheckbox
                 , label =
                     Input.labelRight [] <|
@@ -381,29 +435,24 @@ images context project imageListViewParams sortTableParams =
             , Widget.textButton
                 (SH.materialStyle context.palette).button
                 { text = "Clear filters (show all)"
-                , onPress =
-                    Just <|
-                        SetProjectView project.auth.project.uuid <|
-                            ListImages
-                                Defaults.imageListViewParams
-                                sortTableParams
+                , onPress = Just GotClearFilters
                 }
             , if noMatchWarning then
                 Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
               else
                 Element.none
-            , List.map (renderImage context project imageListViewParams sortTableParams) combinedImages
+            , List.map (renderImage context project model) combinedImages
                 |> imagesColumnView
             ]
         ]
 
 
-renderImage : View.Types.Context -> Project -> ImageListViewParams -> SortTableParams -> OSTypes.Image -> Element.Element OuterMsg
-renderImage context project imageListViewParams sortTableParams image =
+renderImage : View.Types.Context -> Project -> Model -> OSTypes.Image -> Element.Element Msg
+renderImage context project model image =
     let
         imageDetailsExpanded =
-            Set.member image.uuid imageListViewParams.expandImageDetails
+            Set.member image.uuid model.expandImageDetails
 
         size =
             case image.size of
@@ -414,14 +463,15 @@ renderImage context project imageListViewParams sortTableParams image =
                     "size unknown"
 
         chooseMsg =
-            SetProjectView project.auth.project.uuid <|
-                CreateServer <|
-                    Defaults.createServerViewParams
-                        image.uuid
-                        image.name
-                        (VH.userAppProxyLookup context project
-                            |> Maybe.map (\_ -> True)
-                        )
+            SharedMsg <|
+                SharedMsg.NavigateToView <|
+                    SharedMsg.ProjectPage project.auth.project.uuid <|
+                        SharedMsg.ServerCreate
+                            image.uuid
+                            image.name
+                            (VH.userAppProxyLookup context project
+                                |> Maybe.map (\_ -> True)
+                            )
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
@@ -524,15 +574,7 @@ renderImage context project imageListViewParams sortTableParams image =
     ExoCard.expandoCard
         context.palette
         imageDetailsExpanded
-        (\_ ->
-            SetProjectView project.auth.project.uuid <|
-                ListImages
-                    { imageListViewParams
-                        | expandImageDetails =
-                            Set.Extra.toggle image.uuid imageListViewParams.expandImageDetails
-                    }
-                    sortTableParams
-        )
+        (\expanded -> GotExpandImage image.uuid expanded)
         title
         subtitle
         imageDetailsView

@@ -1,30 +1,50 @@
-module LegacyView.Messages exposing (messageLog)
+module Page.MessageLog exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Input as Input
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
-import Types.OuterMsg exposing (OuterMsg(..))
-import Types.SharedModel exposing (LogMessage)
-import Types.View exposing (NonProjectViewConstructor(..))
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 
 
-messageLog : View.Types.Context -> List LogMessage -> Bool -> Element.Element OuterMsg
-messageLog context logMessages showDebugMsgs =
+type alias Model =
+    { showDebugMsgs : Bool
+    }
+
+
+type Msg
+    = GotShowDebugMsgs Bool
+
+
+init : Model
+init =
+    { showDebugMsgs = False }
+
+
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotShowDebugMsgs new ->
+            ( { model | showDebugMsgs = new }, Cmd.none, SharedMsg.NoOp )
+
+
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context sharedModel model =
     let
         shownMessages =
             let
                 filter =
-                    if showDebugMsgs then
+                    if model.showDebugMsgs then
                         \_ -> True
 
                     else
                         \message -> message.context.level /= ErrorDebug
             in
-            logMessages
+            sharedModel.logMessages
                 |> List.filter filter
     in
     Element.column
@@ -38,8 +58,8 @@ messageLog context logMessages showDebugMsgs =
             []
             { label = Input.labelRight [] (Element.text "Show low-level debug messages")
             , icon = Input.defaultCheckbox
-            , checked = showDebugMsgs
-            , onChange = \new -> SetNonProjectView <| MessageLog new
+            , checked = model.showDebugMsgs
+            , onChange = GotShowDebugMsgs
             }
         , if List.isEmpty shownMessages then
             Element.text "(No Messages)"

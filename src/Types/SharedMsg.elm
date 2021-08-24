@@ -1,5 +1,6 @@
 module Types.SharedMsg exposing
-    ( NavigableView(..)
+    ( NavigablePage(..)
+    , NavigableProjectPage(..)
     , ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
     , SharedMsg(..)
@@ -8,6 +9,7 @@ module Types.SharedMsg exposing
 
 import Http
 import OpenStack.Types as OSTypes
+import Set
 import Style.Types
 import Time
 import Toasty
@@ -26,10 +28,10 @@ type SharedMsg
     | ReceiveScopedAuthToken ( Http.Metadata, String )
     | ReceiveUnscopedAuthToken OSTypes.KeystoneUrl ( Http.Metadata, String )
     | ReceiveUnscopedProjects OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
-    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (List HelperTypes.UnscopedProviderProject)
+    | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
-    | NavigateToView NavigableView
+    | NavigateToView NavigablePage
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
@@ -49,14 +51,14 @@ type ProjectSpecificMsgConstructor
     | RemoveProject
     | ServerMsg OSTypes.ServerUuid ServerSpecificMsgConstructor
     | RequestServers
-    | RequestCreateServer HelperTypes.CreateServerViewParams OSTypes.NetworkUuid
+    | RequestCreateServer HelperTypes.CreateServerPageModel OSTypes.NetworkUuid
     | RequestDeleteServers (List OSTypes.ServerUuid)
     | RequestCreateVolume OSTypes.VolumeName OSTypes.VolumeSize
     | RequestDeleteVolume OSTypes.VolumeUuid
     | RequestDetachVolume OSTypes.VolumeUuid
     | RequestKeypairs
     | RequestCreateKeypair OSTypes.KeypairName OSTypes.PublicKey
-    | RequestDeleteKeypair OSTypes.KeypairName
+    | RequestDeleteKeypair OSTypes.KeypairIdentifier
     | RequestDeleteFloatingIp OSTypes.IpAddressUuid
     | RequestAssignFloatingIp OSTypes.Port OSTypes.IpAddressUuid
     | RequestUnassignFloatingIp OSTypes.IpAddressUuid
@@ -103,9 +105,29 @@ type ServerSpecificMsgConstructor
     | ReceiveSetServerMetadata OSTypes.MetadataItem ErrorContext (Result HttpErrorWithBody (List OSTypes.MetadataItem))
     | ReceiveDeleteServerMetadata OSTypes.MetadataKey ErrorContext (Result HttpErrorWithBody String)
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
-    | RequestServerAction (HelperTypes.ProjectIdentifier -> HelperTypes.Url -> OSTypes.ServerUuid -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus))
+    | RequestServerAction (HelperTypes.Url -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
 
 
-type NavigableView
-    = LoginPicker
+type NavigablePage
+    = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
+    | HelpAbout
+    | LoginJetstream
+    | LoginOpenstack
+    | LoginPicker
+    | ProjectPage HelperTypes.ProjectIdentifier NavigableProjectPage
+
+
+type NavigableProjectPage
+    = FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
+    | FloatingIpList
+    | KeypairCreate
+    | KeypairList
+    | ServerCreate OSTypes.ImageUuid String (Maybe Bool)
+    | ServerCreateImage OSTypes.ServerUuid (Maybe String)
+    | ServerDetail OSTypes.ServerUuid
+    | ServerList
+    | VolumeAttach (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
+    | VolumeCreate
+    | VolumeDetail OSTypes.VolumeUuid
+    | VolumeList

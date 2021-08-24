@@ -452,17 +452,17 @@ receiveNetworks outerModel project networks =
         -- Same comments above (in receiveFlavors) apply here.
         viewState =
             case outerModel.viewState of
-                ProjectView _ viewParams projectViewConstructor ->
+                ProjectView _ projectPageModel projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer createServerViewParams ->
-                            if createServerViewParams.networkUuid == Nothing then
+                        ServerCreate pageModel ->
+                            if pageModel.networkUuid == Nothing then
                                 case Helpers.newServerNetworkOptions newProject of
                                     AutoSelectedNetwork netUuid ->
                                         ProjectView
                                             project.auth.project.uuid
-                                            viewParams
-                                            (CreateServer
-                                                { createServerViewParams
+                                            projectPageModel
+                                            (ServerCreate
+                                                { pageModel
                                                     | networkUuid = Just netUuid
                                                 }
                                             )

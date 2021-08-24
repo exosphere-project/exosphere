@@ -1,32 +1,58 @@
-module LegacyView.AttachVolume exposing (attachVolume, mountVolInstructions)
+module Page.VolumeAttach exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
-import Types.Defaults as Defaults
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View
-    exposing
-        ( IPInfoLevel(..)
-        , PasswordVisibility(..)
-        , ProjectViewConstructor(..)
-        )
+import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-attachVolume : View.Types.Context -> Project -> Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Element.Element OuterMsg
-attachVolume context project maybeServerUuid maybeVolumeUuid =
+type alias Model =
+    { maybeServerUuid : Maybe OSTypes.ServerUuid
+    , maybeVolumeUuid : Maybe OSTypes.VolumeUuid
+    }
+
+
+type Msg
+    = GotServerUuid OSTypes.ServerUuid
+    | GotVolumeUuid OSTypes.VolumeUuid
+    | GotSubmit OSTypes.ServerUuid OSTypes.VolumeUuid
+
+
+init : Maybe OSTypes.ServerUuid -> Maybe OSTypes.VolumeUuid -> Model
+init maybeServerUuid maybeVolumeUuid =
+    Model maybeServerUuid maybeVolumeUuid
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg project model =
+    case msg of
+        GotServerUuid serverUuid ->
+            ( { model | maybeServerUuid = Just serverUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotVolumeUuid volumeUuid ->
+            ( { model | maybeVolumeUuid = Just volumeUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotSubmit serverUuid volumeUuid ->
+            ( model
+            , Cmd.none
+            , SharedMsg.ProjectMsg project.auth.project.uuid <|
+                ServerMsg serverUuid <|
+                    RequestAttachVolume volumeUuid
+            )
+
+
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         serverChoices =
             -- Future TODO instead of hiding servers that are ineligible to have a newly attached volume, show them grayed out with mouseover text like "volume cannot be attached to this server because X"
@@ -84,26 +110,22 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                                 , context.localization.virtualComputer
                                 ]
                         )
-                , onChange =
-                    \new ->
-                        SetProjectView project.auth.project.uuid (AttachVolumeModal (Just new) maybeVolumeUuid)
+                , onChange = GotServerUuid
                 , options = serverChoices
-                , selected = maybeServerUuid
+                , selected = model.maybeServerUuid
                 }
             , Input.radio []
                 -- TODO if no volumes in list, suggest user create a volume and provide link to that view
                 { label =
                     Input.labelAbove [ Element.paddingXY 0 12 ]
                         (Element.text ("Select a " ++ context.localization.blockDevice))
-                , onChange =
-                    \new ->
-                        SetProjectView project.auth.project.uuid (AttachVolumeModal maybeServerUuid (Just new))
+                , onChange = GotVolumeUuid
                 , options = volumeChoices
-                , selected = maybeVolumeUuid
+                , selected = model.maybeVolumeUuid
                 }
             , let
                 params =
-                    case ( maybeServerUuid, maybeVolumeUuid ) of
+                    case ( model.maybeServerUuid, model.maybeVolumeUuid ) of
                         ( Just serverUuid, Just volumeUuid ) ->
                             let
                                 volAttachedToServer =
@@ -124,12 +146,7 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                                 }
 
                             else
-                                { onPress =
-                                    Just <|
-                                        SharedMsg <|
-                                            ProjectMsg project.auth.project.uuid <|
-                                                ServerMsg serverUuid <|
-                                                    RequestAttachVolume volumeUuid
+                                { onPress = Just <| GotSubmit serverUuid volumeUuid
                                 , warnText = Nothing
                                 }
 
@@ -156,70 +173,5 @@ attachVolume context project maybeServerUuid maybeVolumeUuid =
                         Element.none
                 , button
                 ]
-            ]
-        ]
-
-
-mountVolInstructions : View.Types.Context -> Project -> OSTypes.VolumeAttachment -> Element.Element OuterMsg
-mountVolInstructions context project attachment =
-    Element.column VH.exoColumnAttributes
-        [ Element.el (VH.heading2 context.palette) <|
-            Element.text <|
-                String.join " "
-                    [ context.localization.blockDevice
-                        |> Helpers.String.toTitleCase
-                    , "Attached"
-                    ]
-        , Element.column VH.contentContainer
-            [ Element.text ("Device: " ++ attachment.device)
-            , case Helpers.volDeviceToMountpoint attachment.device of
-                Just mountpoint ->
-                    Element.text ("Mount point: " ++ mountpoint)
-
-                Nothing ->
-                    Element.none
-            , Element.paragraph []
-                [ case Helpers.volDeviceToMountpoint attachment.device of
-                    Just mountpoint ->
-                        Element.text <|
-                            String.join " "
-                                [ "We'll try to mount this"
-                                , context.localization.blockDevice
-                                , "at"
-                                , mountpoint
-                                , "on your instance's filesystem. You should be able to access the"
-                                , context.localization.blockDevice
-                                , "there."
-                                , "If it's a completely empty"
-                                , context.localization.blockDevice
-                                , "we'll also try to format it first."
-                                , "This may not work on older operating systems (like CentOS 7 or Ubuntu 16.04)."
-                                , "In that case, you may need to format and/or mount the"
-                                , context.localization.blockDevice
-                                , "manually."
-                                ]
-
-                    Nothing ->
-                        Element.text <|
-                            String.join " "
-                                [ "We attached the"
-                                , context.localization.blockDevice
-                                , "but couldn't determine a mountpoint from the device path. You may need to format and/or mount the"
-                                , context.localization.blockDevice
-                                , "manually."
-                                ]
-                ]
-            , Widget.textButton
-                (SH.materialStyle context.palette).primaryButton
-                { text = "Go to my " ++ context.localization.virtualComputer
-                , onPress =
-                    Just <|
-                        SetProjectView
-                            project.auth.project.uuid
-                        <|
-                            ServerDetail
-                                attachment.serverUuid
-                                Defaults.serverDetailViewParams
-                }
             ]
         ]

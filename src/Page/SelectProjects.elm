@@ -1,4 +1,4 @@
-module LegacyView.SelectProjects exposing (selectProjects)
+module Page.SelectProjects exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Input as Input
@@ -6,45 +6,78 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import Helpers.Url as UrlHelpers
 import OpenStack.Types as OSTypes
+import Set
 import Style.Helpers as SH
-import Types.HelperTypes exposing (UnscopedProviderProject)
-import Types.OuterMsg exposing (OuterMsg(..))
+import Types.HelperTypes exposing (ProjectIdentifier, UnscopedProviderProject)
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (SharedMsg(..))
-import Types.View exposing (NonProjectViewConstructor(..))
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-selectProjects :
-    SharedModel
-    -> View.Types.Context
-    -> OSTypes.KeystoneUrl
-    -> List UnscopedProviderProject
-    -> Element.Element OuterMsg
-selectProjects model context keystoneUrl selectedProjects =
-    case GetterSetters.providerLookup model keystoneUrl of
+type alias Model =
+    { providerKeystoneUrl : OSTypes.KeystoneUrl
+    , selectedProjects : Set.Set ProjectIdentifier
+    }
+
+
+type Msg
+    = GotBoxChecked ProjectIdentifier Bool
+    | GotSubmit
+
+
+init : OSTypes.KeystoneUrl -> Model
+init keystoneUrl =
+    { providerKeystoneUrl = keystoneUrl
+    , selectedProjects = Set.empty
+    }
+
+
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotBoxChecked projectId checked ->
+            let
+                newSelectedProjects =
+                    model.selectedProjects
+                        |> (if checked then
+                                Set.insert projectId
+
+                            else
+                                Set.remove projectId
+                           )
+            in
+            ( { model | selectedProjects = newSelectedProjects }, Cmd.none, SharedMsg.NoOp )
+
+        GotSubmit ->
+            ( model
+            , Cmd.none
+            , SharedMsg.RequestProjectLoginFromProvider model.providerKeystoneUrl model.selectedProjects
+            )
+
+
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context sharedModel model =
+    case GetterSetters.providerLookup sharedModel model.providerKeystoneUrl of
         Just provider ->
             let
                 urlLabel =
-                    UrlHelpers.hostnameFromUrl keystoneUrl
+                    UrlHelpers.hostnameFromUrl model.providerKeystoneUrl
 
-                renderSuccessCase : List UnscopedProviderProject -> Element.Element OuterMsg
+                renderSuccessCase : List UnscopedProviderProject -> Element.Element Msg
                 renderSuccessCase projects =
                     Element.column VH.formContainer <|
                         List.append
                             (List.map
-                                (renderProject keystoneUrl selectedProjects)
+                                (renderProject model.selectedProjects)
                                 (VH.sortProjects projects)
                             )
                             [ Widget.textButton
                                 (SH.materialStyle context.palette).primaryButton
                                 { text = "Choose"
                                 , onPress =
-                                    Just <|
-                                        SharedMsg <|
-                                            RequestProjectLoginFromProvider keystoneUrl selectedProjects
+                                    Just GotSubmit
                                 }
                             ]
             in
@@ -73,32 +106,13 @@ selectProjects model context keystoneUrl selectedProjects =
             Element.text "Provider not found"
 
 
-renderProject : OSTypes.KeystoneUrl -> List UnscopedProviderProject -> UnscopedProviderProject -> Element.Element OuterMsg
-renderProject keystoneUrl selectedProjects project =
+renderProject : Set.Set ProjectIdentifier -> UnscopedProviderProject -> Element.Element Msg
+renderProject selectedProjects project =
     let
-        onChange : Bool -> Bool -> OuterMsg
-        onChange projectEnabled enableDisable =
-            if projectEnabled then
-                if enableDisable then
-                    SetNonProjectView <|
-                        SelectProjects
-                            keystoneUrl
-                        <|
-                            (project :: selectedProjects)
+        selected =
+            Set.member project.project.uuid selectedProjects
 
-                else
-                    SetNonProjectView <|
-                        SelectProjects
-                            keystoneUrl
-                        <|
-                            List.filter
-                                (\p -> p.project.name /= project.project.name)
-                                selectedProjects
-
-            else
-                SharedMsg NoOp
-
-        renderProjectLabel : UnscopedProviderProject -> Element.Element OuterMsg
+        renderProjectLabel : UnscopedProviderProject -> Element.Element Msg
         renderProjectLabel p =
             let
                 disabledMsg =
@@ -119,8 +133,8 @@ renderProject keystoneUrl selectedProjects project =
             Element.text labelStr
     in
     Input.checkbox []
-        { checked = List.member project.project.name (List.map (\p -> p.project.name) selectedProjects)
-        , onChange = onChange project.enabled
+        { checked = selected
+        , onChange = GotBoxChecked project.project.uuid
         , icon =
             if project.enabled then
                 Input.defaultCheckbox

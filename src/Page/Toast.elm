@@ -1,4 +1,4 @@
-module LegacyView.Toast exposing (toast)
+module Page.Toast exposing (view)
 
 import Element
 import Element.Font as Font
@@ -7,12 +7,16 @@ import Html exposing (Html)
 import Html.Attributes
 import Style.Helpers as SH
 import Types.Error exposing (ErrorLevel(..), Toast)
-import Types.OuterMsg exposing (OuterMsg(..))
+import Types.SharedModel exposing (SharedModel)
 import View.Types
 
 
-toast : View.Types.Context -> Bool -> Toast -> Html OuterMsg
-toast context showDebugMsgs t =
+
+-- No state or Msgs to keep track of, so there is no Model, Msg, init, or update here
+
+
+view : View.Types.Context -> SharedModel -> Toast -> Html msg
+view context sharedModel t =
     let
         ( class, title ) =
             case t.context.level of
@@ -40,7 +44,7 @@ toast context showDebugMsgs t =
         show =
             case t.context.level of
                 ErrorDebug ->
-                    showDebugMsgs
+                    sharedModel.showDebugMsgs
 
                 _ ->
                     True
@@ -55,7 +59,7 @@ toast context showDebugMsgs t =
         layoutWith Element.none
 
 
-genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element OuterMsg
+genericToast : View.Types.Context -> String -> String -> String -> String -> Maybe String -> Element.Element msg
 genericToast context variantClass title actionContext error maybeRecoveryHint =
     Element.column
         [ Element.htmlAttribute (Html.Attributes.class "toasty-container")

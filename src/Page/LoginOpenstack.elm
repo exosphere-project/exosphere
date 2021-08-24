@@ -20,23 +20,22 @@ type alias Model =
     }
 
 
-type Msg
-    = InputAuthUrl String
-    | InputUserDomain String
-    | InputUsername String
-    | InputPassword String
-    | InputOpenRc String
-    | SelectOpenRcInput
-    | SelectCredsInput
-    | ProcessOpenRc
-    | RequestAuthToken
-    | NavigateToView SharedMsg.NavigableView
-    | NoOp
-
-
 type EntryType
     = CredsEntry
     | OpenRcEntry
+
+
+type Msg
+    = GotAuthUrl String
+    | GotUserDomain String
+    | GotUsername String
+    | GotPassword String
+    | GotOpenRc String
+    | GotSelectOpenRcInput
+    | GotSelectCredsInput
+    | GotProcessOpenRc
+    | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Model
@@ -68,28 +67,28 @@ update msg _ model =
             { model_ | creds = newCreds }
     in
     case msg of
-        InputAuthUrl authUrl ->
+        GotAuthUrl authUrl ->
             ( updateCreds model { oldCreds | authUrl = authUrl }, Cmd.none, SharedMsg.NoOp )
 
-        InputUserDomain userDomain ->
+        GotUserDomain userDomain ->
             ( updateCreds model { oldCreds | userDomain = userDomain }, Cmd.none, SharedMsg.NoOp )
 
-        InputUsername username ->
+        GotUsername username ->
             ( updateCreds model { oldCreds | username = username }, Cmd.none, SharedMsg.NoOp )
 
-        InputPassword password ->
+        GotPassword password ->
             ( updateCreds model { oldCreds | password = password }, Cmd.none, SharedMsg.NoOp )
 
-        InputOpenRc openRc ->
+        GotOpenRc openRc ->
             ( { model | openRc = openRc }, Cmd.none, SharedMsg.NoOp )
 
-        SelectOpenRcInput ->
+        GotSelectOpenRcInput ->
             ( { model | entryType = OpenRcEntry }, Cmd.none, SharedMsg.NoOp )
 
-        SelectCredsInput ->
+        GotSelectCredsInput ->
             ( { model | entryType = CredsEntry }, Cmd.none, SharedMsg.NoOp )
 
-        ProcessOpenRc ->
+        GotProcessOpenRc ->
             let
                 newCreds =
                     OpenStack.OpenRc.processOpenRc model.creds model.openRc
@@ -102,18 +101,15 @@ update msg _ model =
             , SharedMsg.NoOp
             )
 
-        RequestAuthToken ->
-            ( model, Cmd.none, SharedMsg.RequestUnscopedToken model.creds )
-
-        NavigateToView navigableView ->
-            ( model, Cmd.none, SharedMsg.NavigateToView navigableView )
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
-view : View.Types.Context -> Model -> Element.Element Msg
-view context model =
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context _ model =
     let
         allCredsEntered =
             -- These fields must be populated before login can be attempted
@@ -143,7 +139,7 @@ view context model =
                         , Widget.textButton
                             (SH.materialStyle context.palette).button
                             { text = "Use OpenRC File"
-                            , onPress = Just SelectOpenRcInput
+                            , onPress = Just GotSelectOpenRcInput
                             }
                         , Element.el [ Element.alignRight ]
                             (Widget.textButton
@@ -151,7 +147,7 @@ view context model =
                                 { text = "Log In"
                                 , onPress =
                                     if allCredsEntered then
-                                        Just RequestAuthToken
+                                        Just (SharedMsg <| SharedMsg.RequestUnscopedToken model.creds)
 
                                     else
                                         Nothing
@@ -164,14 +160,14 @@ view context model =
                             (Widget.textButton
                                 (SH.materialStyle context.palette).button
                                 { text = "Cancel"
-                                , onPress = Just SelectCredsInput
+                                , onPress = Just GotSelectCredsInput
                                 }
                             )
                         , Element.el (VH.exoPaddingSpacingAttributes ++ [ Element.alignRight ])
                             (Widget.textButton
                                 (SH.materialStyle context.palette).primaryButton
                                 { text = "Submit"
-                                , onPress = Just ProcessOpenRc
+                                , onPress = Just GotProcessOpenRc
                                 }
                             )
                         ]
@@ -201,24 +197,24 @@ loginOpenstackCredsEntry context model allCredsEntered =
         , textField
             creds.authUrl
             "OS_AUTH_URL e.g. https://mycloud.net:5000/v3"
-            InputAuthUrl
+            GotAuthUrl
             "Keystone auth URL"
         , textField
             creds.userDomain
             "User domain e.g. default"
-            InputUserDomain
+            GotUserDomain
             "User Domain (name or ID)"
         , textField
             creds.username
             "User name e.g. demo"
-            InputUsername
+            GotUsername
             "User Name"
         , Input.currentPassword
             (VH.inputItemAttributes context.palette.surface)
             { text = creds.password
             , placeholder = Just (Input.placeholder [] (Element.text "Password"))
             , show = False
-            , onChange = InputPassword
+            , onChange = GotPassword
             , label = Input.labelAbove [ Font.size 14 ] (Element.text "Password")
             }
         , if allCredsEntered then
@@ -255,7 +251,7 @@ loginOpenstackOpenRcEntry context model =
                    , Font.size 12
                    ]
             )
-            { onChange = InputOpenRc
+            { onChange = GotOpenRc
             , text = model.openRc
             , placeholder = Nothing
             , label = Input.labelLeft [] Element.none
@@ -270,5 +266,5 @@ loginPickerButton context =
         (SH.materialStyle context.palette).button
         { text = "Other Login Methods"
         , onPress =
-            Just <| NavigateToView <| SharedMsg.LoginPicker
+            Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.LoginPicker
         }

@@ -1,4 +1,4 @@
-module LegacyView.GetSupport exposing (getSupport, viewStateToSupportableItem)
+module Page.GetSupport exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
@@ -6,39 +6,82 @@ import Element.Input as Input
 import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
+import Ports
 import RemoteData
 import Set
 import Style.Helpers as SH
 import Style.Widgets.CopyableText
 import Style.Widgets.Select
-import Types.HelperTypes as HelperTypes exposing (ProjectIdentifier)
-import Types.OuterMsg exposing (OuterMsg(..))
-import Types.SharedModel
-    exposing
-        ( SharedModel
-        )
-import Types.SharedMsg exposing (SharedMsg(..))
-import Types.View
-    exposing
-        ( NonProjectViewConstructor(..)
-        , ProjectViewConstructor(..)
-        , SupportableItemType(..)
-        , ViewState(..)
-        )
+import Types.HelperTypes as HelperTypes
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg as SharedMsg exposing (SharedMsg(..))
 import UUID
 import View.Helpers as VH
 import View.Types
 import Widget
 
 
-getSupport :
-    SharedModel
-    -> View.Types.Context
-    -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
-    -> String
-    -> Bool
-    -> Element.Element OuterMsg
-getSupport model context maybeSupportableResource requestDescription isSubmitted =
+type alias Model =
+    { maybeSupportableResource : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
+    , requestDescription : String
+    , isSubmitted : Bool
+    }
+
+
+type Msg
+    = GotResourceType (Maybe HelperTypes.SupportableItemType)
+    | GotResourceUuid (Maybe HelperTypes.Uuid)
+    | GotDescription String
+    | GotSubmit
+    | NoOp
+
+
+init : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> ( Model, Cmd SharedMsg.SharedMsg )
+init maybeSupportableResource =
+    ( { maybeSupportableResource = maybeSupportableResource
+      , requestDescription = ""
+      , isSubmitted = False
+      }
+    , Ports.instantiateClipboardJs ()
+    )
+
+
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotResourceType maybeItemType ->
+            ( { model
+                | maybeSupportableResource =
+                    Maybe.andThen (\itemType -> Just ( itemType, Nothing )) maybeItemType
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotResourceUuid maybeUuid ->
+            let
+                newModel =
+                    case model.maybeSupportableResource of
+                        Nothing ->
+                            model
+
+                        Just ( resourceType, _ ) ->
+                            { model | maybeSupportableResource = Just ( resourceType, maybeUuid ) }
+            in
+            ( newModel, Cmd.none, SharedMsg.NoOp )
+
+        GotDescription desc ->
+            ( { model | requestDescription = desc }, Cmd.none, SharedMsg.NoOp )
+
+        GotSubmit ->
+            ( { model | isSubmitted = True }, Cmd.none, SharedMsg.NoOp )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context sharedModel model =
     Element.column
         (VH.exoColumnAttributes
             ++ [ Element.spacing 30
@@ -51,9 +94,9 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                 |> FeatherIcons.toHtml []
                 |> Element.html
                 |> Element.el []
-            , Element.text ("Get Support for " ++ model.style.appTitle)
+            , Element.text ("Get Support for " ++ sharedModel.style.appTitle)
             ]
-        , case model.style.supportInfoMarkdown of
+        , case sharedModel.style.supportInfoMarkdown of
             Just markdown ->
                 Element.column VH.contentContainer <|
                     VH.renderMarkdown context markdown
@@ -64,10 +107,9 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
             [ Input.radio
                 VH.exoColumnAttributes
                 { onChange =
-                    \option ->
-                        SetNonProjectView <| GetSupport (Maybe.map (\option_ -> ( option_, Nothing )) option) requestDescription False
+                    GotResourceType
                 , selected =
-                    maybeSupportableResource
+                    model.maybeSupportableResource
                         |> Maybe.map Tuple.first
                         |> Just
                 , label = Input.labelAbove [] (Element.text "What do you need help with?")
@@ -87,14 +129,14 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                             in
                             Input.option (Just itemType) (Element.text itemTypeStr)
                         )
-                        [ SupportableServer
-                        , SupportableVolume
-                        , SupportableImage
-                        , SupportableProject
+                        [ HelperTypes.SupportableServer
+                        , HelperTypes.SupportableVolume
+                        , HelperTypes.SupportableImage
+                        , HelperTypes.SupportableProject
                         ]
                         ++ [ Input.option Nothing (Element.text "None of these things") ]
                 }
-            , case maybeSupportableResource of
+            , case model.maybeSupportableResource of
                 Nothing ->
                     Element.none
 
@@ -105,7 +147,7 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                             , supportableItemTypeStr context supportableItemType
                             , "do you need help with?"
                             ]
-            , case maybeSupportableResource of
+            , case model.maybeSupportableResource of
                 Nothing ->
                     Element.none
 
@@ -120,25 +162,21 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                     else
                                         Just value
                             in
-                            SetNonProjectView <|
-                                GetSupport
-                                    (Just ( supportableItemType, newMaybeSupportableItemUuid ))
-                                    requestDescription
-                                    False
+                            GotResourceUuid newMaybeSupportableItemUuid
 
                         options =
                             case supportableItemType of
-                                SupportableProject ->
-                                    model.projects
+                                HelperTypes.SupportableProject ->
+                                    sharedModel.projects
                                         |> List.map
                                             (\proj ->
                                                 ( proj.auth.project.uuid
-                                                , VH.friendlyProjectTitle model proj
+                                                , VH.friendlyProjectTitle sharedModel proj
                                                 )
                                             )
 
-                                SupportableImage ->
-                                    model.projects
+                                HelperTypes.SupportableImage ->
+                                    sharedModel.projects
                                         |> List.map .images
                                         |> List.concat
                                         |> List.map
@@ -152,8 +190,8 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                         |> Set.toList
                                         |> List.sortBy Tuple.second
 
-                                SupportableServer ->
-                                    model.projects
+                                HelperTypes.SupportableServer ->
+                                    sharedModel.projects
                                         |> List.map .servers
                                         |> List.map (RDPP.withDefault [])
                                         |> List.concat
@@ -165,8 +203,8 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                             )
                                         |> List.sortBy Tuple.second
 
-                                SupportableVolume ->
-                                    model.projects
+                                HelperTypes.SupportableVolume ->
+                                    sharedModel.projects
                                         |> List.map .volumes
                                         |> List.map (RemoteData.withDefault [])
                                         |> List.concat
@@ -203,9 +241,8 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                        , Element.width Element.fill
                        ]
                 )
-                { onChange =
-                    \newVal -> SetNonProjectView <| GetSupport maybeSupportableResource newVal False
-                , text = requestDescription
+                { onChange = GotDescription
+                , text = model.requestDescription
                 , placeholder = Nothing
                 , label = Input.labelAbove [] (Element.text "Please describe exactly what you need help with.")
                 , spellcheck = True
@@ -217,21 +254,21 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Build Support Request"
                         , onPress =
-                            if String.isEmpty requestDescription then
+                            if String.isEmpty model.requestDescription then
                                 Nothing
 
                             else
-                                Just <| SetNonProjectView <| GetSupport maybeSupportableResource requestDescription True
+                                Just GotSubmit
                         }
                 ]
-            , if isSubmitted then
+            , if model.isSubmitted then
                 Element.column
                     [ Element.spacing 10, Element.width Element.fill ]
                     [ Element.paragraph
                         [ Element.spacing 10 ]
                         [ Element.text "Please copy all of the text below and paste it into an email message to: "
                         , Element.el [ Font.extraBold ] <|
-                            Style.Widgets.CopyableText.copyableText context.palette [] model.style.userSupportEmail
+                            Style.Widgets.CopyableText.copyableText context.palette [] sharedModel.style.userSupportEmail
                         , Element.text "Someone will respond and assist you."
                         ]
                     , Input.multiline
@@ -243,8 +280,8 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
                                , Font.size 10
                                ]
                         )
-                        { onChange = \_ -> SharedMsg NoOp
-                        , text = buildSupportRequest model context maybeSupportableResource requestDescription
+                        { onChange = \_ -> NoOp
+                        , text = buildSupportRequest sharedModel context model.maybeSupportableResource model.requestDescription
                         , placeholder = Nothing
                         , label = Input.labelHidden "Support request"
                         , spellcheck = False
@@ -257,63 +294,23 @@ getSupport model context maybeSupportableResource requestDescription isSubmitted
         ]
 
 
-supportableItemTypeStr : View.Types.Context -> SupportableItemType -> String
+supportableItemTypeStr : View.Types.Context -> HelperTypes.SupportableItemType -> String
 supportableItemTypeStr context supportableItemType =
     case supportableItemType of
-        SupportableProject ->
+        HelperTypes.SupportableProject ->
             context.localization.unitOfTenancy
 
-        SupportableImage ->
+        HelperTypes.SupportableImage ->
             context.localization.staticRepresentationOfBlockDeviceContents
 
-        SupportableServer ->
+        HelperTypes.SupportableServer ->
             context.localization.virtualComputer
 
-        SupportableVolume ->
+        HelperTypes.SupportableVolume ->
             context.localization.blockDevice
 
 
-viewStateToSupportableItem : ViewState -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid )
-viewStateToSupportableItem viewState =
-    let
-        supportableProjectItem :
-            ProjectIdentifier
-            -> ProjectViewConstructor
-            -> ( SupportableItemType, Maybe HelperTypes.Uuid )
-        supportableProjectItem projectUuid projectViewConstructor =
-            case projectViewConstructor of
-                CreateServer createServerViewParams ->
-                    ( SupportableImage, Just createServerViewParams.imageUuid )
-
-                ServerDetail serverUuid _ ->
-                    ( SupportableServer, Just serverUuid )
-
-                CreateServerImage serverUuid _ ->
-                    ( SupportableServer, Just serverUuid )
-
-                VolumeDetail volumeUuid _ ->
-                    ( SupportableVolume, Just volumeUuid )
-
-                AttachVolumeModal _ maybeVolumeUuid ->
-                    maybeVolumeUuid
-                        |> Maybe.map (\uuid -> ( SupportableVolume, Just uuid ))
-                        |> Maybe.withDefault ( SupportableProject, Just projectUuid )
-
-                MountVolInstructions attachment ->
-                    ( SupportableServer, Just attachment.serverUuid )
-
-                _ ->
-                    ( SupportableProject, Just projectUuid )
-    in
-    case viewState of
-        NonProjectView _ ->
-            Nothing
-
-        ProjectView projectUuid _ projectViewConstructor ->
-            Just <| supportableProjectItem projectUuid projectViewConstructor
-
-
-buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
+buildSupportRequest : SharedModel -> View.Types.Context -> Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> String -> String
 buildSupportRequest model context maybeSupportableResource requestDescription =
     String.concat
         [ "# Support Request From "

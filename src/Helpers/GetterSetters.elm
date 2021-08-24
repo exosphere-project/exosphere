@@ -28,6 +28,7 @@ module Helpers.GetterSetters exposing
     , serverLookup
     , serverPresentNotDeleting
     , sortedFlavors
+    , unscopedProjectLookup
     , volumeIsAttachedToServer
     , volumeLookup
     )
@@ -46,6 +47,14 @@ import Types.SharedModel exposing (SharedModel)
 
 -- Getters, i.e. lookup functions
 -- Primitive getters
+
+
+unscopedProjectLookup : HelperTypes.UnscopedProvider -> HelperTypes.ProjectIdentifier -> Maybe HelperTypes.UnscopedProviderProject
+unscopedProjectLookup provider projectIdentifier =
+    provider.projectsAvailable
+        |> RemoteData.withDefault []
+        |> List.filter (\project -> project.project.uuid == projectIdentifier)
+        |> List.head
 
 
 serverLookup : Project -> OSTypes.ServerUuid -> Maybe Server
@@ -425,6 +434,8 @@ projectUpdateKeypair project keypair =
                     )
 
         keypairs =
-            keypair :: otherKeypairs
+            keypair
+                :: otherKeypairs
+                |> List.sortBy .name
     in
     { project | keypairs = RemoteData.Success keypairs }

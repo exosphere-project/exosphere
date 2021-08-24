@@ -1,4 +1,4 @@
-module LegacyView.CreateServer exposing (createServer)
+module Page.ServerCreate exposing (Model, Msg, init, update, view)
 
 import Element
 import Element.Background as Background
@@ -15,21 +15,19 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
+import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
-import Types.HelperTypes
+import Types.HelperTypes as HelperTypes
     exposing
-        ( CreateServerViewParams
-        , FloatingIpAssignmentStatus(..)
+        ( FloatingIpAssignmentStatus(..)
         , FloatingIpOption(..)
         , FloatingIpReuseOption(..)
         )
-import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
-import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (ProjectViewConstructor(..))
+import Types.SharedMsg as SharedMsg
 import Types.Workflow
     exposing
         ( CustomWorkflowSource
@@ -41,17 +39,114 @@ import View.Types
 import Widget
 
 
-updateCreateServerRequest : Project -> CreateServerViewParams -> OuterMsg
-updateCreateServerRequest project viewParams =
-    SetProjectView project.auth.project.uuid <|
-        CreateServer viewParams
+type alias Model =
+    HelperTypes.CreateServerPageModel
 
 
-createServer : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-createServer context project viewParams =
+type Msg
+    = GotServerName String
+    | GotCount Int
+    | GotFlavorUuid OSTypes.FlavorUuid
+    | GotVolSizeTextInput (Maybe NumericTextInput)
+    | GotUserDataTemplate String
+    | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
+    | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
+    | GotShowCustomWorkflowOptions Bool
+    | GotShowAdvancedOptions Bool
+    | GotKeypairName (Maybe String)
+    | GotDeployGuacamole (Maybe Bool)
+    | GotDeployDesktopEnvironment Bool
+    | GotInstallOperatingSystemUpdates Bool
+    | GotFloatingIpCreationOption FloatingIpOption
+    | SharedMsg SharedMsg.SharedMsg
+    | NoOp
+
+
+init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
+init imageUuid imageName deployGuacamole =
+    { serverName = imageName
+    , imageUuid = imageUuid
+    , imageName = imageName
+    , count = 1
+    , flavorUuid = ""
+    , volSizeTextInput = Nothing
+    , userDataTemplate = cloudInitUserDataTemplate
+    , networkUuid = Nothing
+    , customWorkflowSource = Nothing
+    , customWorkflowSourceInput = Nothing
+    , showCustomWorkflowOptions = False
+    , showAdvancedOptions = False
+    , keypairName = Nothing
+    , deployGuacamole = deployGuacamole
+    , deployDesktopEnvironment = False
+    , installOperatingSystemUpdates = True
+    , floatingIpCreationOption = HelperTypes.Automatic
+    }
+
+
+update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotServerName name ->
+            ( { model | serverName = name }, Cmd.none, SharedMsg.NoOp )
+
+        GotCount count ->
+            ( { model | count = count }, Cmd.none, SharedMsg.NoOp )
+
+        GotFlavorUuid flavorUuid ->
+            ( { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotVolSizeTextInput maybeVolSizeInput ->
+            ( { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
+
+        GotUserDataTemplate userData ->
+            ( { model | userDataTemplate = userData }, Cmd.none, SharedMsg.NoOp )
+
+        GotNetworkUuid maybeNetworkUuid ->
+            ( { model | networkUuid = maybeNetworkUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotCustomWorkflowSource maybeCustomWorkflowSource maybeCustomWorkflowSourceInput ->
+            ( { model
+                | customWorkflowSource = maybeCustomWorkflowSource
+                , customWorkflowSourceInput = maybeCustomWorkflowSourceInput
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotShowCustomWorkflowOptions shown ->
+            ( { model | showCustomWorkflowOptions = shown }, Cmd.none, SharedMsg.NoOp )
+
+        GotShowAdvancedOptions showAdvancedOptions ->
+            ( { model | showAdvancedOptions = showAdvancedOptions }, Cmd.none, SharedMsg.NoOp )
+
+        GotKeypairName maybeKeypairName ->
+            ( { model | keypairName = maybeKeypairName }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeployGuacamole maybeDeployGuacamole ->
+            ( { model | deployGuacamole = maybeDeployGuacamole }, Cmd.none, SharedMsg.NoOp )
+
+        GotDeployDesktopEnvironment deployDesktopEnvironment ->
+            ( { model | deployDesktopEnvironment = deployDesktopEnvironment }, Cmd.none, SharedMsg.NoOp )
+
+        GotInstallOperatingSystemUpdates installUpdates ->
+            ( { model | installOperatingSystemUpdates = installUpdates }, Cmd.none, SharedMsg.NoOp )
+
+        GotFloatingIpCreationOption floatingIpOption ->
+            ( { model | floatingIpCreationOption = floatingIpOption }, Cmd.none, SharedMsg.NoOp )
+
+        SharedMsg sharedMsg ->
+            ( model, Cmd.none, sharedMsg )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+
+view : View.Types.Context -> Project -> Model -> Element.Element Msg
+view context project model =
     let
         invalidNameReasons =
-            serverNameValidator (Just context.localization.virtualComputer) viewParams.serverName
+            serverNameValidator (Just context.localization.virtualComputer) model.serverName
 
         renderInvalidNameReasons =
             case invalidNameReasons of
@@ -77,7 +172,7 @@ createServer context project viewParams =
                     Nothing
 
                 ManualNetworkSelection ->
-                    case viewParams.networkUuid of
+                    case model.networkUuid of
                         Just _ ->
                             Nothing
 
@@ -111,7 +206,7 @@ createServer context project viewParams =
         createOnPress =
             let
                 invalidVolSizeTextInput =
-                    case viewParams.volSizeTextInput of
+                    case model.volSizeTextInput of
                         Just input ->
                             case input of
                                 ValidNumericTextInput _ ->
@@ -124,7 +219,7 @@ createServer context project viewParams =
                             False
 
                 invalidWorkflowTextInput =
-                    case ( viewParams.customWorkflowSourceInput, viewParams.customWorkflowSource ) of
+                    case ( model.customWorkflowSourceInput, model.customWorkflowSource ) of
                         ( Just _, Nothing ) ->
                             True
 
@@ -134,9 +229,9 @@ createServer context project viewParams =
                 invalidInputs =
                     invalidVolSizeTextInput || invalidWorkflowTextInput
             in
-            case ( invalidNameReasons, invalidInputs, viewParams.networkUuid ) of
+            case ( invalidNameReasons, invalidInputs, model.networkUuid ) of
                 ( Nothing, False, Just netUuid ) ->
-                    Just <| SharedMsg (ProjectMsg project.auth.project.uuid (RequestCreateServer viewParams netUuid))
+                    Just <| SharedMsg (SharedMsg.ProjectMsg project.auth.project.uuid (SharedMsg.RequestCreateServer model netUuid))
 
                 ( _, _, _ ) ->
                     Nothing
@@ -144,7 +239,7 @@ createServer context project viewParams =
         contents flavor computeQuota volumeQuota =
             [ Input.text
                 (VH.inputItemAttributes context.palette.background)
-                { text = viewParams.serverName
+                { text = model.serverName
                 , placeholder =
                     Just
                         (Input.placeholder
@@ -157,7 +252,7 @@ createServer context project viewParams =
                                     ]
                             )
                         )
-                , onChange = \n -> updateCreateServerRequest project { viewParams | serverName = n }
+                , onChange = GotServerName
                 , label = Input.labelLeft [] (Element.text "Name")
                 }
             , renderInvalidNameReasons
@@ -168,38 +263,38 @@ createServer context project viewParams =
                             |> Helpers.String.toTitleCase
                         , ": "
                         ]
-                , Element.text viewParams.imageName
+                , Element.text model.imageName
                 ]
-            , flavorPicker context project viewParams computeQuota
-            , volBackedPrompt context project viewParams volumeQuota flavor
-            , countPicker context project viewParams computeQuota volumeQuota flavor
-            , desktopEnvironmentPicker context project viewParams
+            , flavorPicker context project model computeQuota
+            , volBackedPrompt context model volumeQuota flavor
+            , countPicker context model computeQuota volumeQuota flavor
+            , desktopEnvironmentPicker context project model
             , Element.column
                 VH.exoColumnAttributes
               <|
                 [ Input.radioRow [ Element.spacing 10 ]
                     { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Advanced Options")
-                    , onChange = \new -> updateCreateServerRequest project { viewParams | showAdvancedOptions = new }
+                    , onChange = GotShowAdvancedOptions
                     , options =
                         [ Input.option False (Element.text "Hide")
                         , Input.option True (Element.text "Show")
 
                         {- -}
                         ]
-                    , selected = Just viewParams.showAdvancedOptions
+                    , selected = Just model.showAdvancedOptions
                     }
                 ]
-                    ++ (if not viewParams.showAdvancedOptions then
+                    ++ (if not model.showAdvancedOptions then
                             [ Element.none ]
 
                         else
-                            [ skipOperatingSystemUpdatesPicker context project viewParams
-                            , guacamolePicker context project viewParams
-                            , networkPicker context project viewParams
-                            , floatingIpPicker context project viewParams
-                            , keypairPicker context project viewParams
-                            , userDataInput context project viewParams
-                            , customWorkflowInput context project viewParams
+                            [ skipOperatingSystemUpdatesPicker context model
+                            , guacamolePicker context model
+                            , networkPicker context project model
+                            , floatingIpPicker context project model
+                            , keypairPicker context project model
+                            , userDataInput context model
+                            , customWorkflowInput context model
                             ]
                        )
             , renderNetworkGuidance
@@ -225,7 +320,7 @@ createServer context project viewParams =
             )
         , Element.column VH.formContainer <|
             case
-                ( GetterSetters.flavorLookup project viewParams.flavorUuid
+                ( GetterSetters.flavorLookup project model.flavorUuid
                 , project.computeQuota
                 , project.volumeQuota
                 )
@@ -257,8 +352,8 @@ createServer context project viewParams =
         ]
 
 
-flavorPicker : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.ComputeQuota -> Element.Element OuterMsg
-flavorPicker context project viewParams computeQuota =
+flavorPicker : View.Types.Context -> Project -> Model -> OSTypes.ComputeQuota -> Element.Element Msg
+flavorPicker context project model computeQuota =
     let
         -- This is a kludge. Input.radio is intended to display a group of multiple radio buttons,
         -- but we want to embed a button in each table row, so we define several Input.radios,
@@ -270,10 +365,10 @@ flavorPicker context project viewParams computeQuota =
                     Input.radio
                         []
                         { label = Input.labelHidden flavor.name
-                        , onChange = \f -> updateCreateServerRequest project { viewParams | flavorUuid = f }
+                        , onChange = GotFlavorUuid
                         , options = [ Input.option flavor.uuid (Element.text " ") ]
                         , selected =
-                            if flavor.uuid == viewParams.flavorUuid then
+                            if flavor.uuid == model.flavorUuid then
                                 Just flavor.uuid
 
                             else
@@ -361,7 +456,7 @@ flavorPicker context project viewParams computeQuota =
                     ""
 
         flavorEmptyHint =
-            if viewParams.flavorUuid == "" then
+            if model.flavorUuid == "" then
                 [ VH.hint context <|
                     String.join
                         " "
@@ -406,8 +501,8 @@ flavorPicker context project viewParams computeQuota =
         ]
 
 
-volBackedPrompt : View.Types.Context -> Project -> CreateServerViewParams -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element OuterMsg
-volBackedPrompt context project viewParams volumeQuota flavor =
+volBackedPrompt : View.Types.Context -> Model -> OSTypes.VolumeQuota -> OSTypes.Flavor -> Element.Element Msg
+volBackedPrompt context model volumeQuota flavor =
     let
         ( volumeCountAvail, volumeSizeGbAvail ) =
             OSQuotas.volumeQuotaAvail volumeQuota
@@ -466,11 +561,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                                 else
                                     Nothing
                         in
-                        updateCreateServerRequest project
-                            { viewParams
-                                | volSizeTextInput =
-                                    newVolSizeTextInput
-                            }
+                        GotVolSizeTextInput newVolSizeTextInput
                 , options =
                     [ Input.option False (Element.text nonVolBackedOptionText)
                     , Input.option True
@@ -483,7 +574,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                         )
                     ]
                 , selected =
-                    case viewParams.volSizeTextInput of
+                    case model.volSizeTextInput of
                         Just _ ->
                             Just True
 
@@ -507,7 +598,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                     , context.localization.blockDevice
                     , "-backed instance)"
                     ]
-        , case viewParams.volSizeTextInput of
+        , case model.volSizeTextInput of
             Nothing ->
                 Element.none
 
@@ -518,7 +609,7 @@ volBackedPrompt context project viewParams volumeQuota flavor =
                         (VH.inputItemAttributes context.palette.background)
                         volSizeTextInput
                         defaultVolNumericInputParams
-                        (\newInput -> updateCreateServerRequest project { viewParams | volSizeTextInput = Just newInput })
+                        (\newInput -> GotVolSizeTextInput <| Just newInput)
                     , case ( volumeSizeGbAvail, volSizeTextInput ) of
                         ( Just volumeSizeAvail_, ValidNumericTextInput i ) ->
                             if i == volumeSizeAvail_ then
@@ -535,17 +626,16 @@ volBackedPrompt context project viewParams volumeQuota flavor =
 
 countPicker :
     View.Types.Context
-    -> Project
-    -> CreateServerViewParams
+    -> Model
     -> OSTypes.ComputeQuota
     -> OSTypes.VolumeQuota
     -> OSTypes.Flavor
-    -> Element.Element OuterMsg
-countPicker context project viewParams computeQuota volumeQuota flavor =
+    -> Element.Element Msg
+countPicker context model computeQuota volumeQuota flavor =
     let
         countAvail =
             OSQuotas.overallQuotaAvailServers
-                (viewParams.volSizeTextInput
+                (model.volSizeTextInput
                     |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                 )
                 flavor
@@ -591,21 +681,21 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
                         Element.none
                     )
                 ]
-                { onChange = \c -> updateCreateServerRequest project { viewParams | count = round c }
+                { onChange = \c -> GotCount <| round c
                 , label = Input.labelHidden "How many?"
                 , min = 1
                 , max = countAvail |> Maybe.withDefault 20 |> toFloat
                 , step = Just 1
-                , value = toFloat viewParams.count
+                , value = toFloat model.count
                 , thumb =
                     Input.defaultThumb
                 }
             , Element.el
                 [ Element.width Element.shrink ]
-                (Element.text <| String.fromInt viewParams.count)
+                (Element.text <| String.fromInt model.count)
             , case countAvail of
                 Just countAvail_ ->
-                    if viewParams.count == countAvail_ then
+                    if model.count == countAvail_ then
                         Element.text ("(" ++ context.localization.maxResourcesPerProject ++ " max)")
 
                     else
@@ -617,23 +707,16 @@ countPicker context project viewParams computeQuota volumeQuota flavor =
         ]
 
 
-customWorkflowInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-customWorkflowInput context project viewParams =
+customWorkflowInput : View.Types.Context -> Model -> Element.Element Msg
+customWorkflowInput context model =
     let
         clearButton =
             Widget.textButton
                 (SH.materialStyle context.palette).button
                 { text = "Remove workflow"
                 , onPress =
-                    viewParams.customWorkflowSource
-                        |> Maybe.map
-                            (\_ ->
-                                updateCreateServerRequest project
-                                    { viewParams
-                                        | customWorkflowSourceInput = Nothing
-                                        , customWorkflowSource = Nothing
-                                    }
-                            )
+                    model.customWorkflowSource
+                        |> Maybe.map (\_ -> GotCustomWorkflowSource Nothing Nothing)
                 }
 
         workFlowInputToWorkflow : String -> Maybe CustomWorkflowSource
@@ -652,7 +735,7 @@ customWorkflowInput context project viewParams =
         workflowInput =
             Input.text
                 (VH.inputItemAttributes context.palette.background)
-                { text = viewParams.customWorkflowSourceInput |> Maybe.withDefault ""
+                { text = model.customWorkflowSourceInput |> Maybe.withDefault ""
                 , placeholder =
                     Just
                         (Input.placeholder
@@ -662,18 +745,10 @@ customWorkflowInput context project viewParams =
                 , onChange =
                     \n ->
                         if n == "" then
-                            updateCreateServerRequest project
-                                { viewParams
-                                    | customWorkflowSourceInput = Nothing
-                                    , customWorkflowSource = Nothing
-                                }
+                            GotCustomWorkflowSource Nothing Nothing
 
                         else
-                            updateCreateServerRequest project
-                                { viewParams
-                                    | customWorkflowSourceInput = Just n
-                                    , customWorkflowSource = workFlowInputToWorkflow n
-                                }
+                            GotCustomWorkflowSource (workFlowInputToWorkflow n) (Just n)
                 , label = Input.labelLeft [] (Element.text "Git repository URL")
                 }
 
@@ -690,15 +765,15 @@ customWorkflowInput context project viewParams =
     <|
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Build and launch a workflow")
-            , onChange = \new -> updateCreateServerRequest project { viewParams | showCustomWorkflowOptions = new }
+            , onChange = GotShowCustomWorkflowOptions
             , options =
                 [ Input.option False (Element.text "Hide")
                 , Input.option True (Element.text "Show")
                 ]
-            , selected = Just viewParams.showCustomWorkflowOptions
+            , selected = Just model.showCustomWorkflowOptions
             }
         ]
-            ++ (if not viewParams.showCustomWorkflowOptions then
+            ++ (if not model.showCustomWorkflowOptions then
                     [ Element.none ]
 
                 else
@@ -709,10 +784,10 @@ customWorkflowInput context project viewParams =
                )
 
 
-desktopEnvironmentPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-desktopEnvironmentPicker context project createServerViewParams =
+desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+desktopEnvironmentPicker context project model =
     let
-        warnings : List (Element.Element OuterMsg)
+        warnings : List (Element.Element Msg)
         warnings =
             [ Just <|
                 Element.text <|
@@ -742,9 +817,9 @@ desktopEnvironmentPicker context project createServerViewParams =
                         , "GB in size."
                         ]
               in
-              case createServerViewParams.volSizeTextInput of
+              case model.volSizeTextInput of
                 Nothing ->
-                    case GetterSetters.flavorLookup project createServerViewParams.flavorUuid of
+                    case GetterSetters.flavorLookup project model.flavorUuid of
                         Just flavor ->
                             if flavor.disk_root < warningMaxGB then
                                 Just <| Element.text rootDiskWarnText
@@ -766,7 +841,7 @@ desktopEnvironmentPicker context project createServerViewParams =
 
                         _ ->
                             Nothing
-            , if createServerViewParams.deployDesktopEnvironment then
+            , if model.deployDesktopEnvironment then
                 Just <|
                     Element.text <|
                         String.join " "
@@ -793,14 +868,14 @@ desktopEnvironmentPicker context project createServerViewParams =
                             , "?"
                             ]
                     )
-            , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployDesktopEnvironment = new }
+            , onChange = GotDeployDesktopEnvironment
             , options =
                 [ Input.option False (Element.text "No")
                 , Input.option True (Element.text "Yes")
                 ]
-            , selected = Just createServerViewParams.deployDesktopEnvironment
+            , selected = Just model.deployDesktopEnvironment
             }
-        , if createServerViewParams.deployDesktopEnvironment then
+        , if model.deployDesktopEnvironment then
             Element.column
                 ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes
@@ -812,9 +887,9 @@ desktopEnvironmentPicker context project createServerViewParams =
         ]
 
 
-guacamolePicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-guacamolePicker context project createServerViewParams =
-    case createServerViewParams.deployGuacamole of
+guacamolePicker : View.Types.Context -> Model -> Element.Element Msg
+guacamolePicker context model =
+    case model.deployGuacamole of
         Nothing ->
             Element.text <|
                 String.concat
@@ -827,7 +902,7 @@ guacamolePicker context project createServerViewParams =
             Element.column VH.exoColumnAttributes
                 [ Input.radioRow [ Element.spacing 10 ]
                     { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Deploy Guacamole for easy remote access?")
-                    , onChange = \new -> updateCreateServerRequest project { createServerViewParams | deployGuacamole = Just new }
+                    , onChange = \new -> GotDeployGuacamole <| Just new
                     , options =
                         [ Input.option True (Element.text "Yes")
                         , Input.option False (Element.text "No")
@@ -839,21 +914,21 @@ guacamolePicker context project createServerViewParams =
                 ]
 
 
-skipOperatingSystemUpdatesPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-skipOperatingSystemUpdatesPicker context project createServerViewParams =
+skipOperatingSystemUpdatesPicker : View.Types.Context -> Model -> Element.Element Msg
+skipOperatingSystemUpdatesPicker context model =
     Element.column VH.exoColumnAttributes
         [ Input.radioRow [ Element.spacing 10 ]
             { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Install operating system updates?")
-            , onChange = \new -> updateCreateServerRequest project { createServerViewParams | installOperatingSystemUpdates = new }
+            , onChange = GotInstallOperatingSystemUpdates
             , options =
                 [ Input.option True (Element.text "Yes")
                 , Input.option False (Element.text "No")
 
                 {- -}
                 ]
-            , selected = Just createServerViewParams.installOperatingSystemUpdates
+            , selected = Just model.installOperatingSystemUpdates
             }
-        , if not createServerViewParams.installOperatingSystemUpdates then
+        , if not model.installOperatingSystemUpdates then
             Element.paragraph
                 ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
                     ++ VH.exoElementAttributes
@@ -877,8 +952,8 @@ skipOperatingSystemUpdatesPicker context project createServerViewParams =
         ]
 
 
-networkPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-networkPicker context project viewParams =
+networkPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+networkPicker context project model =
     let
         networkOptions =
             Helpers.newServerNetworkOptions project
@@ -886,7 +961,7 @@ networkPicker context project viewParams =
         guidance =
             let
                 maybeStr =
-                    if networkOptions == ManualNetworkSelection && viewParams.networkUuid == Nothing then
+                    if networkOptions == ManualNetworkSelection && model.networkUuid == Nothing then
                         Just "Please choose a network."
 
                     else
@@ -908,7 +983,7 @@ networkPicker context project viewParams =
             in
             Input.radio []
                 { label = Input.labelHidden "Choose a Network"
-                , onChange = \networkUuid -> updateCreateServerRequest project { viewParams | networkUuid = Just networkUuid }
+                , onChange = \networkUuid -> GotNetworkUuid <| Just networkUuid
                 , options =
                     case project.networks.data of
                         RDPP.DoHave networks _ ->
@@ -916,7 +991,7 @@ networkPicker context project viewParams =
 
                         RDPP.DontHave ->
                             []
-                , selected = viewParams.networkUuid
+                , selected = model.networkUuid
                 }
     in
     Element.column
@@ -927,8 +1002,8 @@ networkPicker context project viewParams =
         ]
 
 
-floatingIpPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-floatingIpPicker context project viewParams =
+floatingIpPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+floatingIpPicker context project model =
     let
         optionPicker =
             let
@@ -960,14 +1035,14 @@ floatingIpPicker context project viewParams =
                             , context.localization.floatingIpAddress
                             , "option"
                             ]
-                , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = option }
+                , onChange = GotFloatingIpCreationOption
                 , options =
                     options
-                , selected = Just viewParams.floatingIpCreationOption
+                , selected = Just model.floatingIpCreationOption
                 }
 
         reuseOptionPicker =
-            case viewParams.floatingIpCreationOption of
+            case model.floatingIpCreationOption of
                 UseFloatingIp reuseOption _ ->
                     let
                         unassignedFloatingIpOptions =
@@ -1008,7 +1083,7 @@ floatingIpPicker context project viewParams =
                                         , context.localization.floatingIpAddress
                                         , "or re-use an existing one"
                                         ]
-                            , onChange = \option -> updateCreateServerRequest project { viewParams | floatingIpCreationOption = UseFloatingIp option Unknown }
+                            , onChange = \option -> GotFloatingIpCreationOption <| UseFloatingIp option Unknown
                             , options = options
                             , selected =
                                 Just reuseOption
@@ -1028,8 +1103,8 @@ floatingIpPicker context project viewParams =
         ]
 
 
-keypairPicker : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-keypairPicker context project viewParams =
+keypairPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
+keypairPicker context project model =
     let
         keypairAsOption keypair =
             Input.option keypair.name (Element.text keypair.name)
@@ -1063,9 +1138,9 @@ keypairPicker context project viewParams =
                                     , "(this is optional, skip if unsure)"
                                     ]
                             )
-                    , onChange = \keypairName -> updateCreateServerRequest project { viewParams | keypairName = Just keypairName }
+                    , onChange = \keypairName -> GotKeypairName <| Just keypairName
                     , options = List.map keypairAsOption keypairs
-                    , selected = Just (Maybe.withDefault "" viewParams.keypairName)
+                    , selected = Just (Maybe.withDefault "" model.keypairName)
                     }
     in
     Element.column
@@ -1099,14 +1174,16 @@ keypairPicker context project viewParams =
                     ]
             , onPress =
                 Just <|
-                    SetProjectView project.auth.project.uuid <|
-                        CreateKeypair "" ""
+                    SharedMsg <|
+                        SharedMsg.NavigateToView <|
+                            SharedMsg.ProjectPage project.auth.project.uuid <|
+                                SharedMsg.KeypairCreate
             }
         ]
 
 
-userDataInput : View.Types.Context -> Project -> CreateServerViewParams -> Element.Element OuterMsg
-userDataInput context project viewParams =
+userDataInput : View.Types.Context -> Model -> Element.Element Msg
+userDataInput context model =
     Element.column
         VH.exoColumnAttributes
         [ Element.el
@@ -1122,8 +1199,8 @@ userDataInput context project viewParams =
                    , Font.family [ Font.monospace ]
                    ]
             )
-            { onChange = \u -> updateCreateServerRequest project { viewParams | userDataTemplate = u }
-            , text = viewParams.userDataTemplate
+            { onChange = GotUserDataTemplate
+            , text = model.userDataTemplate
             , placeholder =
                 Just
                     (Input.placeholder []

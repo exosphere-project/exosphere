@@ -1,10 +1,27 @@
 module AppUrl.Parser exposing (urlToViewState)
 
+-- The Types.SharedMsg import is temporary. Depending on outcome of #558, this model will call the NavigateToView Msg instead of `init`ing pages directly.
+
 import Dict
 import OpenStack.Types as OSTypes
+import Page.AllResourcesList
+import Page.FloatingIpAssign
+import Page.FloatingIpList
+import Page.GetSupport
+import Page.ImageList
+import Page.KeypairCreate
+import Page.KeypairList
 import Page.LoginOpenstack
-import Types.Defaults as Defaults
+import Page.ServerCreate
+import Page.ServerCreateImage
+import Page.ServerDetail
+import Page.ServerList
+import Page.VolumeAttach
+import Page.VolumeCreate
+import Page.VolumeDetail
+import Page.VolumeList
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
+import Types.SharedMsg as SharedMsg
 import Types.View
     exposing
         ( LoginView(..)
@@ -28,7 +45,7 @@ import Url.Parser
 import Url.Parser.Query as Query
 
 
-urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ViewState
+urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ( ViewState, Cmd SharedMsg.SharedMsg )
 urlToViewState maybePathPrefix defaultViewState url =
     case maybePathPrefix of
         Nothing ->
@@ -48,17 +65,17 @@ urlToViewState maybePathPrefix defaultViewState url =
                 url
 
 
-pathParsers : ViewState -> List (Parser (ViewState -> b) b)
+pathParsers : ViewState -> List (Parser (( ViewState, Cmd SharedMsg.SharedMsg ) -> b) b)
 pathParsers defaultViewState =
     [ -- Non-project-specific views
-      map defaultViewState top
+      map ( defaultViewState, Cmd.none ) top
     , map
         (\creds ->
             let
                 init =
                     Page.LoginOpenstack.init
             in
-            NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }
+            ( NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }, Cmd.none )
         )
         (let
             queryParser =
@@ -81,7 +98,7 @@ pathParsers defaultViewState =
          s "login" </> s "openstack" <?> queryParser
         )
     , map
-        (\creds -> NonProjectView <| Login <| LoginJetstream creds)
+        (\creds -> ( NonProjectView <| Login <| LoginJetstream creds, Cmd.none ))
         (let
             providerEnumDict =
                 Dict.fromList
@@ -107,16 +124,16 @@ pathParsers defaultViewState =
          s "login" </> s "jetstream" <?> queryParser
         )
     , map
-        (NonProjectView LoginPicker)
+        ( NonProjectView LoginPicker, Cmd.none )
         (s "loginpicker")
     , map
         (\maybeTokenValue ->
             case maybeTokenValue of
                 Just tokenValue ->
-                    NonProjectView <| LoadingUnscopedProjects tokenValue
+                    ( NonProjectView <| LoadingUnscopedProjects tokenValue, Cmd.none )
 
                 Nothing ->
-                    NonProjectView PageNotFound
+                    ( NonProjectView PageNotFound, Cmd.none )
         )
         (s "auth" </> s "oidc-login" <?> Query.string "token")
 
@@ -140,23 +157,28 @@ pathParsers defaultViewState =
                         Nothing ->
                             False
             in
-            NonProjectView <| MessageLog showDebugMsgs
+            ( NonProjectView <| MessageLog { showDebugMsgs = showDebugMsgs }, Cmd.none )
         )
         (s "msglog" <?> Query.string "showdebug")
     , map
-        (NonProjectView Settings)
+        ( NonProjectView Settings, Cmd.none )
         (s "settings")
     , map
-        (NonProjectView <| GetSupport Nothing "" False)
+        (let
+            ( pageModel, cmd ) =
+                Page.GetSupport.init Nothing
+         in
+         ( NonProjectView <| GetSupport pageModel, cmd )
+        )
         (s "getsupport")
     , map
-        (NonProjectView HelpAbout)
+        ( NonProjectView HelpAbout, Cmd.none )
         (s "helpabout")
     , map
-        (NonProjectView PageNotFound)
+        ( NonProjectView PageNotFound, Cmd.none )
         (s "pagenotfound")
     , map
-        (\uuid projectViewConstructor -> ProjectView uuid Defaults.projectViewParams <| projectViewConstructor)
+        (\uuid projectViewConstructor -> ( ProjectView uuid { createPopup = False } <| projectViewConstructor, Cmd.none ))
         (s "projects" </> string </> oneOf projectViewConstructorParsers)
     ]
 
@@ -164,14 +186,14 @@ pathParsers defaultViewState =
 projectViewConstructorParsers : List (Parser (ProjectViewConstructor -> b) b)
 projectViewConstructorParsers =
     [ map
-        (ListImages Defaults.imageListViewParams Defaults.sortTableParams)
+        (ImageList Page.ImageList.init)
         (s "images")
     , map
-        (AllResources Defaults.allResourcesListViewParams)
+        (AllResourcesList Page.AllResourcesList.init)
         (s "resources")
     , map
         (\svrUuid imageName ->
-            CreateServerImage svrUuid imageName
+            ServerCreateImage (Page.ServerCreateImage.init svrUuid (Just imageName))
         )
         (let
             queryParser =
@@ -182,36 +204,34 @@ projectViewConstructorParsers =
         )
     , map
         (\svrUuid ->
-            ServerDetail svrUuid Defaults.serverDetailViewParams
+            ServerDetail (Page.ServerDetail.init svrUuid)
         )
         (s "servers" </> string)
     , map
-        (ListProjectServers Defaults.serverListViewParams)
+        (ServerList <| Page.ServerList.init True)
         (s "servers")
     , map
         (\volUuid ->
-            VolumeDetail volUuid []
+            VolumeDetail (Page.VolumeDetail.init True volUuid)
         )
         (s "volumes" </> string)
     , map
-        (ListProjectVolumes Defaults.volumeListViewParams)
+        (VolumeList <| Page.VolumeList.init True)
         (s "volumes")
     , map
-        (ListFloatingIps Defaults.floatingIpListViewParams)
+        (FloatingIpList <| Page.FloatingIpList.init True)
         (s "floatingips")
     , map
-        (AssignFloatingIp Defaults.assignFloatingIpViewParams)
+        (FloatingIpAssign <| Page.FloatingIpAssign.init Nothing Nothing)
         (s "assignfloatingip")
     , map
-        (ListKeypairs Defaults.keypairListViewParams)
+        (KeypairList <| Page.KeypairList.init True)
         (s "keypairs")
     , map
-        (CreateKeypair "" "")
+        (KeypairCreate Page.KeypairCreate.init)
         (s "uploadkeypair")
     , map
-        (\params ->
-            CreateServer params
-        )
+        ServerCreate
         (let
             maybeBoolEnumDict =
                 Dict.fromList
@@ -222,7 +242,7 @@ projectViewConstructorParsers =
 
             queryParser =
                 Query.map3
-                    Defaults.createServerViewParams
+                    Page.ServerCreate.init
                     (Query.string "imageuuid"
                         |> Query.map (Maybe.withDefault "")
                     )
@@ -236,11 +256,11 @@ projectViewConstructorParsers =
          s "createserver" <?> queryParser
         )
     , map
-        Defaults.createVolumeView
+        (VolumeCreate Page.VolumeCreate.init)
         (s "createvolume")
     , map
         (\( maybeServerUuid, maybeVolUuid ) ->
-            AttachVolumeModal maybeServerUuid maybeVolUuid
+            VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolUuid)
         )
         (let
             queryParser =
@@ -253,7 +273,7 @@ projectViewConstructorParsers =
         )
     , map
         (\attachment ->
-            MountVolInstructions attachment
+            VolumeMountInstructions attachment
         )
         (let
             queryParser =

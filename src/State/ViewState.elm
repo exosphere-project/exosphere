@@ -4,6 +4,7 @@ module State.ViewState exposing
     , modelUpdateViewState
     , setNonProjectView
     , setProjectView
+    , viewStateToSupportableItem
     )
 
 import AppUrl.Builder
@@ -11,10 +12,11 @@ import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
-import LegacyView.PageTitle
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
+import Page.AllResourcesList
+import Page.LoginJetstream
 import Page.LoginOpenstack
 import Ports
 import RemoteData
@@ -25,9 +27,8 @@ import Rest.Nova
 import State.Error
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Time
-import Types.Defaults as Defaults
 import Types.Error as Error
-import Types.HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
+import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
@@ -35,41 +36,14 @@ import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
+import View.PageTitle
 
 
 setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 setNonProjectView nonProjectViewConstructor outerModel =
     let
-        prevNonProjectViewConstructor =
-            case outerModel.viewState of
-                NonProjectView nonProjectViewConstructor_ ->
-                    if nonProjectViewConstructor == nonProjectViewConstructor_ then
-                        Nothing
-
-                    else
-                        Just nonProjectViewConstructor_
-
-                _ ->
-                    Nothing
-
         ( viewSpecificSharedModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
-                GetSupport _ _ _ ->
-                    case prevNonProjectViewConstructor of
-                        Just (GetSupport _ _ _) ->
-                            ( outerModel.sharedModel, Cmd.none )
-
-                        _ ->
-                            ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
-
-                HelpAbout ->
-                    case prevNonProjectViewConstructor of
-                        Just HelpAbout ->
-                            ( outerModel.sharedModel, Cmd.none )
-
-                        _ ->
-                            ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
-
                 LoadingUnscopedProjects authTokenStr ->
                     -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
                     case outerModel.sharedModel.openIdConnectLoginConfig of
@@ -149,14 +123,14 @@ setProjectView project projectViewConstructor outerModel =
                     Nothing
 
         newViewState =
-            ProjectView project.auth.project.uuid Defaults.projectViewParams projectViewConstructor
+            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
 
         ( viewSpecificOuterModel, viewSpecificCmd ) =
             case projectViewConstructor of
-                AllResources _ ->
+                AllResourcesList _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (AllResources _) ->
+                        Just (AllResourcesList _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -178,12 +152,12 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                ListImages _ _ ->
+                ImageList _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListImages _ _) ->
+                                Just (ImageList _) ->
                                     Cmd.none
 
                                 _ ->
@@ -191,10 +165,10 @@ setProjectView project projectViewConstructor outerModel =
                     in
                     ( outerModel, cmd )
 
-                ListProjectServers _ ->
+                ServerList _ ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (ListProjectServers _) ->
+                        Just (ServerList _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -210,10 +184,10 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, cmd )
 
-                ServerDetail serverUuid _ ->
+                ServerDetail pageModel ->
                     -- Don't fire cmds if we're already in this view
                     case prevProjectViewConstructor of
-                        Just (ServerDetail _ _) ->
+                        Just (ServerDetail _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -233,23 +207,23 @@ setProjectView project projectViewConstructor outerModel =
                                 ( newNewSharedModel, newCmd ) =
                                     ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer project.auth.project.uuid serverUuid)
+                                            (ApiModelHelpers.requestServer project.auth.project.uuid pageModel.serverUuid)
                             in
                             ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
 
-                CreateServerImage _ _ ->
+                ServerCreateImage _ ->
                     ( outerModel, Cmd.none )
 
-                CreateServer viewParams ->
+                ServerCreate pageModel ->
                     case outerModel.viewState of
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         -- TODO double-check that this code still actually works.
-                        ProjectView _ _ (CreateServer _) ->
+                        ProjectView _ _ (ServerCreate _) ->
                             let
-                                newViewParams =
+                                newPageModel =
                                     case
-                                        ( GetterSetters.flavorLookup project viewParams.flavorUuid
+                                        ( GetterSetters.flavorLookup project pageModel.flavorUuid
                                         , project.computeQuota
                                         , project.volumeQuota
                                         )
@@ -258,36 +232,36 @@ setProjectView project projectViewConstructor outerModel =
                                             let
                                                 availServers =
                                                     OSQuotas.overallQuotaAvailServers
-                                                        (viewParams.volSizeTextInput
+                                                        (pageModel.volSizeTextInput
                                                             |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
                                                         )
                                                         flavor
                                                         computeQuota
                                                         volumeQuota
                                             in
-                                            { viewParams
+                                            { pageModel
                                                 | count =
                                                     case availServers of
                                                         Just availServers_ ->
-                                                            if viewParams.count > availServers_ then
+                                                            if pageModel.count > availServers_ then
                                                                 availServers_
 
                                                             else
-                                                                viewParams.count
+                                                                pageModel.count
 
                                                         Nothing ->
-                                                            viewParams.count
+                                                            pageModel.count
                                             }
 
                                         ( _, _, _ ) ->
-                                            viewParams
+                                            pageModel
 
                                 newViewState_ =
                                     ProjectView
                                         project.auth.project.uuid
                                         { createPopup = False }
                                     <|
-                                        CreateServer newViewParams
+                                        ServerCreate newPageModel
                             in
                             ( { outerModel | viewState = newViewState_ }
                             , Cmd.none
@@ -315,12 +289,12 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                ListProjectVolumes _ ->
+                VolumeList _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListProjectVolumes _) ->
+                                Just (VolumeList _) ->
                                     Cmd.none
 
                                 _ ->
@@ -331,9 +305,9 @@ setProjectView project projectViewConstructor outerModel =
                     in
                     ( outerModel, cmd )
 
-                ListFloatingIps _ ->
+                FloatingIpList _ ->
                     case prevProjectViewConstructor of
-                        Just (ListFloatingIps _) ->
+                        Just (FloatingIpList _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -349,9 +323,9 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                AssignFloatingIp _ ->
+                FloatingIpAssign _ ->
                     case prevProjectViewConstructor of
-                        Just (AssignFloatingIp _) ->
+                        Just (FloatingIpAssign _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -364,12 +338,12 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                ListKeypairs _ ->
+                KeypairList _ ->
                     let
                         cmd =
                             -- Don't fire cmds if we're already in this view
                             case prevProjectViewConstructor of
-                                Just (ListKeypairs _) ->
+                                Just (KeypairList _) ->
                                     Cmd.none
 
                                 _ ->
@@ -380,15 +354,15 @@ setProjectView project projectViewConstructor outerModel =
                     in
                     ( outerModel, cmd )
 
-                CreateKeypair _ _ ->
+                KeypairCreate _ ->
                     ( outerModel, Cmd.none )
 
-                VolumeDetail _ _ ->
+                VolumeDetail _ ->
                     ( outerModel, Cmd.none )
 
-                AttachVolumeModal _ _ ->
+                VolumeAttach _ ->
                     case prevProjectViewConstructor of
-                        Just (AttachVolumeModal _ _) ->
+                        Just (VolumeAttach _) ->
                             ( outerModel, Cmd.none )
 
                         _ ->
@@ -399,15 +373,15 @@ setProjectView project projectViewConstructor outerModel =
                             in
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
-                MountVolInstructions _ ->
+                VolumeMountInstructions _ ->
                     ( outerModel, Cmd.none )
 
-                CreateVolume _ _ ->
+                VolumeCreate _ ->
                     let
                         cmd =
                             -- If just entering this view, get volume quota
                             case outerModel.viewState of
-                                ProjectView _ _ (CreateVolume _ _) ->
+                                ProjectView _ _ (VolumeCreate _) ->
                                     Cmd.none
 
                                 _ ->
@@ -457,7 +431,7 @@ modelUpdateViewState viewState outerModel =
             View.Helpers.toViewContext newOuterModel.sharedModel
 
         newPageTitle =
-            LegacyView.PageTitle.pageTitle newOuterModel newViewContext
+            View.PageTitle.pageTitle newOuterModel newViewContext
 
         ( updateUrlFunc, updateMatomoCmd ) =
             if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then
@@ -486,10 +460,8 @@ defaultViewState model =
         firstProject :: _ ->
             ProjectView
                 firstProject.auth.project.uuid
-                Defaults.projectViewParams
-                (AllResources
-                    Defaults.allResourcesListViewParams
-                )
+                { createPopup = False }
+                (AllResourcesList Page.AllResourcesList.init)
 
 
 defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor
@@ -504,4 +476,46 @@ defaultLoginViewState maybeDefaultLoginView =
                     Login <| LoginOpenstack Page.LoginOpenstack.init
 
                 DefaultLoginJetstream ->
-                    Login <| LoginJetstream Defaults.jetstreamCreds
+                    Login <| LoginJetstream Page.LoginJetstream.init
+
+
+viewStateToSupportableItem :
+    Types.View.ViewState
+    -> Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
+viewStateToSupportableItem viewState =
+    let
+        supportableProjectItem :
+            HelperTypes.ProjectIdentifier
+            -> ProjectViewConstructor
+            -> ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid )
+        supportableProjectItem projectUuid projectViewConstructor =
+            case projectViewConstructor of
+                ServerCreate pageModel ->
+                    ( HelperTypes.SupportableImage, Just pageModel.imageUuid )
+
+                ServerDetail pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
+
+                ServerCreateImage pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
+
+                VolumeDetail pageModel ->
+                    ( HelperTypes.SupportableVolume, Just pageModel.volumeUuid )
+
+                VolumeAttach pageModel ->
+                    pageModel.maybeVolumeUuid
+                        |> Maybe.map (\uuid -> ( HelperTypes.SupportableVolume, Just uuid ))
+                        |> Maybe.withDefault ( HelperTypes.SupportableProject, Just projectUuid )
+
+                VolumeMountInstructions pageModel ->
+                    ( HelperTypes.SupportableServer, Just pageModel.serverUuid )
+
+                _ ->
+                    ( HelperTypes.SupportableProject, Just projectUuid )
+    in
+    case viewState of
+        NonProjectView _ ->
+            Nothing
+
+        ProjectView projectUuid _ projectViewConstructor ->
+            Just <| supportableProjectItem projectUuid projectViewConstructor

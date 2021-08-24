@@ -1,17 +1,37 @@
-module LegacyView.Settings exposing (settings)
+module Page.Settings exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Input as Input
 import FeatherIcons
 import Style.Types
-import Types.OuterMsg exposing (OuterMsg(..))
-import Types.SharedMsg exposing (SharedMsg(..))
+import Types.SharedModel exposing (SharedModel)
+import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
 
 
-settings : View.Types.Context -> Style.Types.StyleMode -> Element.Element OuterMsg
-settings context styleMode =
+type alias Model =
+    ()
+
+
+type Msg
+    = GotStyleMode Style.Types.StyleMode
+
+
+init : Model
+init =
+    ()
+
+
+update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg _ model =
+    case msg of
+        GotStyleMode mode ->
+            ( model, Cmd.none, SharedMsg.SetStyle mode )
+
+
+view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
+view context sharedModel _ =
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
@@ -26,13 +46,13 @@ settings context styleMode =
                 VH.exoColumnAttributes
                 { onChange =
                     \newStyleMode ->
-                        SharedMsg <| SetStyle newStyleMode
+                        GotStyleMode newStyleMode
                 , options =
                     [ Input.option Style.Types.LightMode (Element.text "Light")
                     , Input.option Style.Types.DarkMode (Element.text "Dark")
                     ]
                 , selected =
-                    Just styleMode
+                    Just sharedModel.style.styleMode
                 , label = Input.labelAbove [] (Element.text "Color theme")
                 }
             ]

@@ -37,7 +37,6 @@ import Rest.Helpers
         , openstackCredentialedRequest
         , resultToMsgErrorBody
         )
-import Types.Defaults as Defaults
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
@@ -272,12 +271,12 @@ requestCreateKeypair project keypairName publicKey =
         )
 
 
-requestDeleteKeypair : Project -> OSTypes.KeypairName -> Cmd SharedMsg
-requestDeleteKeypair project keypairName =
+requestDeleteKeypair : Project -> OSTypes.KeypairIdentifier -> Cmd SharedMsg
+requestDeleteKeypair project keypairId =
     let
         errorContext =
             ErrorContext
-                ("delete keypair with name \"" ++ keypairName ++ "\"")
+                ("delete keypair with name \"" ++ Tuple.first keypairId ++ "\"")
                 ErrorCrit
                 Nothing
     in
@@ -285,10 +284,10 @@ requestDeleteKeypair project keypairName =
         project.auth.project.uuid
         Delete
         Nothing
-        (project.endpoints.nova ++ "/os-keypairs/" ++ keypairName)
+        (project.endpoints.nova ++ "/os-keypairs/" ++ Tuple.first keypairId)
         Http.emptyBody
         (Http.expectWhatever
-            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext keypairName result)
+            (\result -> ProjectMsg project.auth.project.uuid <| ReceiveDeleteKeypair errorContext (Tuple.first keypairId) result)
         )
 
 
@@ -881,8 +880,8 @@ receiveFlavors outerModel project flavors =
             case outerModel.viewState of
                 ProjectView _ _ projectViewConstructor ->
                     case projectViewConstructor of
-                        CreateServer viewParams ->
-                            if viewParams.flavorUuid == "" then
+                        ServerCreate pageModel ->
+                            if pageModel.flavorUuid == "" then
                                 let
                                     maybeSmallestFlavor =
                                         GetterSetters.sortedFlavors flavors |> List.head
@@ -891,9 +890,9 @@ receiveFlavors outerModel project flavors =
                                     Just smallestFlavor ->
                                         ProjectView
                                             project.auth.project.uuid
-                                            Defaults.projectViewParams
-                                            (CreateServer
-                                                { viewParams
+                                            { createPopup = False }
+                                            (ServerCreate
+                                                { pageModel
                                                     | flavorUuid = smallestFlavor.uuid
                                                 }
                                             )
@@ -919,8 +918,11 @@ receiveFlavors outerModel project flavors =
 receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )
 receiveKeypairs model project keypairs =
     let
+        sortedKeypairs =
+            List.sortBy .name keypairs
+
         newProject =
-            { project | keypairs = RemoteData.Success keypairs }
+            { project | keypairs = RemoteData.Success sortedKeypairs }
 
         newModel =
             GetterSetters.modelUpdateProject model newProject

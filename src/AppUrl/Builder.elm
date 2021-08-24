@@ -50,21 +50,26 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
 projectNonspecificUrlPart : (List String -> List UB.QueryParameter -> String) -> NonProjectViewConstructor -> String
 projectNonspecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
-        LoginPicker ->
+        GetSupport _ ->
             buildUrlFunc
-                [ "loginpicker" ]
+                [ "getsupport" ]
+                []
+
+        HelpAbout ->
+            buildUrlFunc
+                [ "helpabout" ]
                 []
 
         Login loginView ->
             case loginView of
-                LoginOpenstack openstackLogin ->
+                LoginOpenstack pageModel ->
                     buildUrlFunc
                         [ "login"
                         , "openstack"
                         ]
-                        [ UB.string "authurl" openstackLogin.creds.authUrl
-                        , UB.string "udomain" openstackLogin.creds.userDomain
-                        , UB.string "uname" openstackLogin.creds.username
+                        [ UB.string "authurl" pageModel.creds.authUrl
+                        , UB.string "udomain" pageModel.creds.userDomain
+                        , UB.string "uname" pageModel.creds.username
 
                         -- Not encoding password!
                         ]
@@ -92,24 +97,22 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         -- Not encoding password!
                         ]
 
+        LoginPicker ->
+            buildUrlFunc
+                [ "loginpicker" ]
+                []
+
         LoadingUnscopedProjects _ ->
             buildUrlFunc
                 [ "loadingprojs"
                 ]
                 []
 
-        SelectProjects keystoneUrl _ ->
-            buildUrlFunc
-                [ "selectprojs"
-                ]
-                [ UB.string "keystoneurl" keystoneUrl
-                ]
-
-        MessageLog showDebugMsgs ->
+        MessageLog pageModel ->
             buildUrlFunc
                 [ "msglog" ]
                 [ UB.string "showdebug"
-                    (if showDebugMsgs then
+                    (if pageModel.showDebugMsgs then
                         "true"
 
                      else
@@ -117,101 +120,65 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                     )
                 ]
 
-        Settings ->
-            buildUrlFunc
-                [ "settings" ]
-                []
-
-        GetSupport _ _ _ ->
-            buildUrlFunc
-                [ "getsupport" ]
-                []
-
-        HelpAbout ->
-            buildUrlFunc
-                [ "helpabout" ]
-                []
-
         PageNotFound ->
             buildUrlFunc
                 [ "pagenotfound" ]
+                []
+
+        SelectProjects pageModel ->
+            buildUrlFunc
+                [ "selectprojs"
+                ]
+                [ UB.string "keystoneurl" pageModel.providerKeystoneUrl
+                ]
+
+        Settings ->
+            buildUrlFunc
+                [ "settings" ]
                 []
 
 
 projectSpecificUrlPart : (List String -> List UB.QueryParameter -> String) -> ProjectViewConstructor -> String
 projectSpecificUrlPart buildUrlFunc viewConstructor =
     case viewConstructor of
-        AllResources _ ->
+        AllResourcesList _ ->
             buildUrlFunc
                 [ "resources" ]
                 []
 
-        ListImages _ _ ->
-            buildUrlFunc
-                [ "images" ]
-                []
-
-        ListProjectServers _ ->
-            buildUrlFunc
-                [ "servers" ]
-                []
-
-        ListProjectVolumes _ ->
-            buildUrlFunc
-                [ "volumes" ]
-                []
-
-        ListFloatingIps _ ->
-            buildUrlFunc
-                [ "floatingips" ]
-                []
-
-        AssignFloatingIp _ ->
+        FloatingIpAssign _ ->
             buildUrlFunc
                 [ "assignfloatingip" ]
                 []
 
-        ListKeypairs _ ->
+        FloatingIpList _ ->
             buildUrlFunc
-                [ "keypairs" ]
+                [ "floatingips" ]
                 []
 
-        CreateKeypair _ _ ->
+        ImageList _ ->
+            buildUrlFunc
+                [ "images" ]
+                []
+
+        KeypairCreate _ ->
             buildUrlFunc
                 [ "uploadkeypair" ]
                 []
 
-        ServerDetail serverUuid _ ->
+        KeypairList _ ->
             buildUrlFunc
-                [ "servers"
-                , serverUuid
-                ]
+                [ "keypairs" ]
                 []
 
-        CreateServerImage serverUuid imageName ->
-            buildUrlFunc
-                [ "servers"
-                , serverUuid
-                , "image"
-                ]
-                [ UB.string "name" imageName
-                ]
-
-        VolumeDetail volumeUuid _ ->
-            buildUrlFunc
-                [ "volumes"
-                , volumeUuid
-                ]
-                []
-
-        CreateServer viewParams_ ->
+        ServerCreate pageModel ->
             buildUrlFunc
                 [ "createserver"
                 ]
-                [ UB.string "imageuuid" viewParams_.imageUuid
-                , UB.string "imagename" viewParams_.imageName
+                [ UB.string "imageuuid" pageModel.imageUuid
+                , UB.string "imagename" pageModel.imageName
                 , UB.string "deployguac"
-                    (viewParams_.deployGuacamole
+                    (pageModel.deployGuacamole
                         |> (\maybeDeployGuac ->
                                 case maybeDeployGuac of
                                     Just bool ->
@@ -227,16 +194,31 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                     )
                 ]
 
-        CreateVolume _ _ ->
+        ServerCreateImage pageModel ->
             buildUrlFunc
-                [ "createvolume"
+                [ "servers"
+                , pageModel.serverUuid
+                , "image"
+                ]
+                [ UB.string "name" pageModel.imageName
+                ]
+
+        ServerDetail pageModel ->
+            buildUrlFunc
+                [ "servers"
+                , pageModel.serverUuid
                 ]
                 []
 
-        AttachVolumeModal maybeServerUuid maybeVolUuid ->
+        ServerList _ ->
+            buildUrlFunc
+                [ "servers" ]
+                []
+
+        VolumeAttach pageModel ->
             let
                 volUuidQP =
-                    case maybeVolUuid of
+                    case pageModel.maybeVolumeUuid of
                         Just volUuid ->
                             [ UB.string "voluuid" volUuid ]
 
@@ -244,7 +226,7 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                             []
 
                 serverUuidQP =
-                    case maybeServerUuid of
+                    case pageModel.maybeServerUuid of
                         Just serverUuid ->
                             [ UB.string "serveruuid" serverUuid ]
 
@@ -256,10 +238,28 @@ projectSpecificUrlPart buildUrlFunc viewConstructor =
                 ]
                 (List.concat [ volUuidQP, serverUuidQP ])
 
-        MountVolInstructions attachment ->
+        VolumeCreate _ ->
+            buildUrlFunc
+                [ "createvolume"
+                ]
+                []
+
+        VolumeDetail pageModel ->
+            buildUrlFunc
+                [ "volumes"
+                , pageModel.volumeUuid
+                ]
+                []
+
+        VolumeList _ ->
+            buildUrlFunc
+                [ "volumes" ]
+                []
+
+        VolumeMountInstructions pageModel ->
             buildUrlFunc
                 [ "attachvolinstructions" ]
-                [ UB.string "serveruuid" attachment.serverUuid
-                , UB.string "attachmentuuid" attachment.attachmentUuid
-                , UB.string "device" attachment.device
+                [ UB.string "serveruuid" pageModel.serverUuid
+                , UB.string "attachmentuuid" pageModel.attachmentUuid
+                , UB.string "device" pageModel.device
                 ]

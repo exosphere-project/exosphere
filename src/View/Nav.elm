@@ -1,4 +1,4 @@
-module LegacyView.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
+module View.Nav exposing (navBar, navBarHeight, navMenu, navMenuWidth)
 
 import Element
 import Element.Background as Background
@@ -7,15 +7,16 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
-import LegacyView.GetSupport
+import Page.AllResourcesList
+import Page.MessageLog
 import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Style.Widgets.MenuItem as MenuItem
-import Types.Defaults as Defaults
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
+import Types.SharedMsg as SharedMsg
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers as VH
 import View.Types
@@ -58,9 +59,7 @@ navMenu outerModel context =
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
-                    (SetProjectView project.auth.project.uuid <|
-                        AllResources Defaults.allResourcesListViewParams
-                    )
+                    (SetProjectView project.auth.project.uuid <| AllResourcesList Page.AllResourcesList.init)
                 )
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)
@@ -147,7 +146,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView <| MessageLog False)
+                        { onPress = Just (SetNonProjectView <| MessageLog Page.MessageLog.init)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
@@ -180,11 +179,10 @@ navBar outerModel context =
                         []
                         { onPress =
                             Just
-                                (SetNonProjectView <|
-                                    GetSupport
-                                        (LegacyView.GetSupport.viewStateToSupportableItem outerModel.viewState)
-                                        ""
-                                        False
+                                (SharedMsg <|
+                                    SharedMsg.NavigateToView <|
+                                        SharedMsg.GetSupport
+                                            (State.ViewState.viewStateToSupportableItem outerModel.viewState)
                                 )
                         , label =
                             Element.row
@@ -202,7 +200,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView HelpAbout)
+                        { onPress = Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.HelpAbout
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
