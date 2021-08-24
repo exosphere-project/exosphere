@@ -709,6 +709,15 @@ countPicker context model computeQuota volumeQuota flavor =
 
 customWorkflowInput : View.Types.Context -> Model -> Element.Element Msg
 customWorkflowInput context model =
+    if context.experimentalFeaturesEnabled then
+        customWorkflowInputExperimental context model
+
+    else
+        Element.none
+
+
+customWorkflowInputExperimental : View.Types.Context -> Model -> Element.Element Msg
+customWorkflowInputExperimental context model =
     let
         clearButton =
             Widget.textButton
