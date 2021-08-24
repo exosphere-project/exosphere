@@ -905,6 +905,10 @@ processSharedMsg sharedMsg outerModel =
         NoOp ->
             ( outerModel, Cmd.none )
 
+        SetExperimentalFeaturesEnabled choice ->
+            ( { sharedModel | experimentalFeaturesEnabled = choice }, Cmd.none )
+                |> mapToOuterModel outerModel
+
 
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )
 processTick outerModel interval time =

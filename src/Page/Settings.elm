@@ -16,6 +16,7 @@ type alias Model =
 
 type Msg
     = GotStyleMode Style.Types.StyleMode
+    | GotEnableExperimentalFeatures Bool
 
 
 init : Model
@@ -28,6 +29,9 @@ update msg _ model =
     case msg of
         GotStyleMode mode ->
             ( model, Cmd.none, SharedMsg.SetStyle mode )
+
+        GotEnableExperimentalFeatures choice ->
+            ( model, Cmd.none, SharedMsg.SetExperimentalFeaturesEnabled choice )
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
@@ -54,6 +58,19 @@ view context sharedModel _ =
                 , selected =
                     Just sharedModel.style.styleMode
                 , label = Input.labelAbove [] (Element.text "Color theme")
+                }
+            , Input.radio
+                VH.exoColumnAttributes
+                { onChange =
+                    \newChoice ->
+                        GotEnableExperimentalFeatures newChoice
+                , options =
+                    [ Input.option False (Element.text "Disabled")
+                    , Input.option True (Element.text "Enabled")
+                    ]
+                , selected =
+                    Just sharedModel.experimentalFeaturesEnabled
+                , label = Input.labelAbove [] (Element.text "Experimental features")
                 }
             ]
         ]

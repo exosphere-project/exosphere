@@ -34,6 +34,7 @@ type alias SharedModel =
     , cloudSpecificConfigs : Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig
     , instanceConfigMgtRepoUrl : HelperTypes.Url
     , instanceConfigMgtRepoCheckout : String
+    , experimentalFeaturesEnabled : Bool
     }
 
 

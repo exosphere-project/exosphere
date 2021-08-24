@@ -130,6 +130,7 @@ init flags urlKey =
             , instanceConfigMgtRepoCheckout =
                 flags.instanceConfigMgtRepoCheckout
                     |> Maybe.withDefault "master"
+            , experimentalFeaturesEnabled = False
             }
 
         -- This only gets used if we do not find a client UUID in stored state
