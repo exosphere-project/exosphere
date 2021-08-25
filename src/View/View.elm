@@ -135,8 +135,8 @@ elementView windowSize outerModel context =
                                 Page.SelectProjects.view context outerModel.sharedModel pageModel
                                     |> Element.map SelectProjectsMsg
 
-                            Settings ->
-                                Page.Settings.view context outerModel.sharedModel ()
+                            Settings pageModel ->
+                                Page.Settings.view context outerModel.sharedModel pageModel
                                     |> Element.map SettingsMsg
 
                     ProjectView projectName projectViewModel viewConstructor ->

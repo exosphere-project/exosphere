@@ -132,7 +132,7 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ UB.string "keystoneurl" pageModel.providerKeystoneUrl
                 ]
 
-        Settings ->
+        Settings _ ->
             buildUrlFunc
                 [ "settings" ]
                 []

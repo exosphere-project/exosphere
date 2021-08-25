@@ -20,6 +20,7 @@ import Page.SelectProjects
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -42,7 +43,7 @@ type NonProjectViewConstructor
     | LoadingUnscopedProjects OSTypes.AuthTokenString
     | SelectProjects Page.SelectProjects.Model
     | MessageLog Page.MessageLog.Model
-    | Settings
+    | Settings Page.Settings.Model
     | GetSupport Page.GetSupport.Model
     | HelpAbout
     | PageNotFound

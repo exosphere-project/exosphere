@@ -16,6 +16,7 @@ import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
 import Page.ServerList
+import Page.Settings
 import Page.VolumeAttach
 import Page.VolumeCreate
 import Page.VolumeDetail
@@ -161,7 +162,12 @@ pathParsers defaultViewState =
         )
         (s "msglog" <?> Query.string "showdebug")
     , map
-        ( NonProjectView Settings, Cmd.none )
+        (let
+            pageModel =
+                Page.Settings.init
+         in
+         ( NonProjectView <| Settings pageModel, Cmd.none )
+        )
         (s "settings")
     , map
         (let
