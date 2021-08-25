@@ -40,12 +40,10 @@ import Rest.Helpers
 import Types.Error exposing (ErrorContext, ErrorLevel(..), HttpErrorWithBody)
 import Types.Guacamole as GuacTypes
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
-import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (ExoServerProps, NewServerNetworkOptions(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 
@@ -863,56 +861,16 @@ receiveConsoleUrl model project server result =
             ( newModel, Cmd.none )
 
 
-receiveFlavors : OuterModel -> Project -> List OSTypes.Flavor -> ( OuterModel, Cmd SharedMsg )
-receiveFlavors outerModel project flavors =
-    -- TODO this code should not care about view state
+receiveFlavors : SharedModel -> Project -> List OSTypes.Flavor -> ( SharedModel, Cmd SharedMsg )
+receiveFlavors model project flavors =
     let
         newProject =
             { project | flavors = flavors }
 
-        -- If we have a CreateServerRequest with no flavor UUID, populate it with the smallest flavor.
-        -- This is the start of a code smell because we need to reach way into the viewState to update
-        -- the createServerRequest. Good candidate for future refactoring to bring CreateServerRequest
-        -- outside of model.viewState.
-        -- This could also benefit from some "railway-oriented programming" to avoid repetition of
-        -- "otherwise just model.viewState" statments.
-        viewState =
-            case outerModel.viewState of
-                ProjectView _ _ projectViewConstructor ->
-                    case projectViewConstructor of
-                        ServerCreate pageModel ->
-                            if pageModel.flavorUuid == "" then
-                                let
-                                    maybeSmallestFlavor =
-                                        GetterSetters.sortedFlavors flavors |> List.head
-                                in
-                                case maybeSmallestFlavor of
-                                    Just smallestFlavor ->
-                                        ProjectView
-                                            project.auth.project.uuid
-                                            { createPopup = False }
-                                            (ServerCreate
-                                                { pageModel
-                                                    | flavorUuid = smallestFlavor.uuid
-                                                }
-                                            )
-
-                                    Nothing ->
-                                        outerModel.viewState
-
-                            else
-                                outerModel.viewState
-
-                        _ ->
-                            outerModel.viewState
-
-                _ ->
-                    outerModel.viewState
-
-        newSharedModel =
-            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
+        newModel =
+            GetterSetters.modelUpdateProject model newProject
     in
-    ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
+    ( newModel, Cmd.none )
 
 
 receiveKeypairs : SharedModel -> Project -> List OSTypes.Keypair -> ( SharedModel, Cmd SharedMsg )

@@ -1393,8 +1393,45 @@ processProjectSpecificMsg outerModel project msg =
                             non404
 
         ReceiveFlavors flavors ->
-            Rest.Nova.receiveFlavors outerModel project flavors
+            let
+                -- If we are creating a server and no flavor is selected, select the smallest flavor
+                viewState =
+                    case outerModel.viewState of
+                        ProjectView _ _ projectViewConstructor ->
+                            case projectViewConstructor of
+                                ServerCreate pageModel ->
+                                    if pageModel.flavorUuid == "" then
+                                        let
+                                            maybeSmallestFlavor =
+                                                GetterSetters.sortedFlavors flavors |> List.head
+                                        in
+                                        case maybeSmallestFlavor of
+                                            Just smallestFlavor ->
+                                                ProjectView
+                                                    project.auth.project.uuid
+                                                    { createPopup = False }
+                                                    (ServerCreate
+                                                        { pageModel
+                                                            | flavorUuid = smallestFlavor.uuid
+                                                        }
+                                                    )
+
+                                            Nothing ->
+                                                outerModel.viewState
+
+                                    else
+                                        outerModel.viewState
+
+                                _ ->
+                                    outerModel.viewState
+
+                        _ ->
+                            outerModel.viewState
+            in
+            Rest.Nova.receiveFlavors sharedModel project flavors
                 |> mapToOuterMsg
+                |> mapToOuterModel outerModel
+                |> pipelineCmdOuterModelMsg (ViewStateHelpers.modelUpdateViewState viewState)
 
         RequestKeypairs ->
             let
