@@ -77,6 +77,7 @@ toViewContext model =
     , localization = model.style.localization
     , windowSize = model.windowSize
     , cloudSpecificConfigs = model.cloudSpecificConfigs
+    , experimentalFeaturesEnabled = model.experimentalFeaturesEnabled
     }
 
 

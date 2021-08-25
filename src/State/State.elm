@@ -235,13 +235,13 @@ updateUnderlying outerMsg outerModel =
                 |> pipelineCmdOuterModelMsg
                     (processSharedMsg sharedMsg)
 
-        ( SettingsMsg pageMsg, NonProjectView Settings ) ->
+        ( SettingsMsg pageMsg, NonProjectView (Settings pageModel) ) ->
             let
-                ( _, cmd, sharedMsg ) =
-                    Page.Settings.update pageMsg sharedModel ()
+                ( newPageModel, cmd, sharedMsg ) =
+                    Page.Settings.update pageMsg sharedModel pageModel
             in
             ( { outerModel
-                | viewState = NonProjectView <| Settings
+                | viewState = NonProjectView <| Settings newPageModel
               }
             , Cmd.map (\msg -> SettingsMsg msg) cmd
             )
@@ -904,6 +904,10 @@ processSharedMsg sharedMsg outerModel =
 
         NoOp ->
             ( outerModel, Cmd.none )
+
+        SetExperimentalFeaturesEnabled choice ->
+            ( { sharedModel | experimentalFeaturesEnabled = choice }, Cmd.none )
+                |> mapToOuterModel outerModel
 
 
 processTick : OuterModel -> TickInterval -> Time.Posix -> ( SharedModel, Cmd OuterMsg )

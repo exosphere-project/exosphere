@@ -15,6 +15,7 @@ type alias Context =
     , localization : Localization
     , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     , windowSize : WindowSize
+    , experimentalFeaturesEnabled : Bool
     }
 
 

@@ -9,6 +9,7 @@ import FeatherIcons
 import Helpers.String
 import Page.AllResourcesList
 import Page.MessageLog
+import Page.Settings
 import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
@@ -160,7 +161,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView Settings)
+                        { onPress = Just (SetNonProjectView <| Settings Page.Settings.init)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])

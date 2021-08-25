@@ -37,6 +37,7 @@ type SharedMsg
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url
     | SetStyle Style.Types.StyleMode
+    | SetExperimentalFeaturesEnabled Bool
     | NoOp
 
 

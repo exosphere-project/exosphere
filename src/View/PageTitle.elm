@@ -61,7 +61,7 @@ pageTitle outerModel context =
                         , providerTitle
                         ]
 
-                Settings ->
+                Settings _ ->
                     "Settings"
 
         ProjectView projectIdentifier _ projectViewConstructor ->

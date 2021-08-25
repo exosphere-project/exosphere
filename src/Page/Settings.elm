@@ -4,6 +4,7 @@ import Element
 import Element.Input as Input
 import FeatherIcons
 import Style.Types
+import Style.Widgets.ToggleTip
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -11,16 +12,20 @@ import View.Types
 
 
 type alias Model =
-    ()
+    { showExperimentalFeaturesToggleTip : Bool
+    }
 
 
 type Msg
     = GotStyleMode Style.Types.StyleMode
+    | GotEnableExperimentalFeatures Bool
+    | GotShowExperimentalFeaturesToggleTip
 
 
 init : Model
 init =
-    ()
+    { showExperimentalFeaturesToggleTip = False
+    }
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -29,9 +34,35 @@ update msg _ model =
         GotStyleMode mode ->
             ( model, Cmd.none, SharedMsg.SetStyle mode )
 
+        GotEnableExperimentalFeatures choice ->
+            ( model, Cmd.none, SharedMsg.SetExperimentalFeaturesEnabled choice )
+
+        GotShowExperimentalFeaturesToggleTip ->
+            ( { model | showExperimentalFeaturesToggleTip = not model.showExperimentalFeaturesToggleTip }, Cmd.none, SharedMsg.NoOp )
+
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg
-view context sharedModel _ =
+view context sharedModel model =
+    let
+        experimentalFeatureToggleTip =
+            Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.column
+                    [ Element.width
+                        (Element.fill
+                            |> Element.minimum 100
+                            |> Element.maximum 300
+                        )
+                    , Element.spacing 7
+                    ]
+                    [ Element.text "New features in development. An "
+                    , Element.text "example is adding a custom workflow "
+                    , Element.text "when you launch a server."
+                    ]
+                )
+                model.showExperimentalFeaturesToggleTip
+                GotShowExperimentalFeaturesToggleTip
+    in
     Element.column
         (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
         [ Element.row (VH.heading2 context.palette ++ [ Element.spacing 12 ])
@@ -53,7 +84,26 @@ view context sharedModel _ =
                     ]
                 , selected =
                     Just sharedModel.style.styleMode
-                , label = Input.labelAbove [] (Element.text "Color theme")
+                , label = Input.labelAbove VH.heading4 (Element.text "Color theme")
+                }
+            , Input.radio
+                VH.exoColumnAttributes
+                { onChange =
+                    \newChoice ->
+                        GotEnableExperimentalFeatures newChoice
+                , options =
+                    [ Input.option False (Element.text "Disabled")
+                    , Input.option True (Element.text "Enabled")
+                    ]
+                , selected =
+                    Just sharedModel.experimentalFeaturesEnabled
+                , label =
+                    Input.labelAbove VH.heading4
+                        (Element.el
+                            [ Element.onRight experimentalFeatureToggleTip
+                            ]
+                            (Element.text "Experimental features")
+                        )
                 }
             ]
         ]

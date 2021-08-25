@@ -32,6 +32,14 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
 
         customWorkflowInteraction : ITypes.InteractionStatus
         customWorkflowInteraction =
+            if context.experimentalFeaturesEnabled then
+                customWorkflowInteractionExperimental
+
+            else
+                ITypes.Hidden
+
+        customWorkflowInteractionExperimental : ITypes.InteractionStatus
+        customWorkflowInteractionExperimental =
             case server.exoProps.serverOrigin of
                 ServerNotFromExo ->
                     ITypes.Unavailable <|
