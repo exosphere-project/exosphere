@@ -55,10 +55,11 @@ select attributes { onChange, options, selected, label } =
         ([ Border.width 1
          , Border.rounded 8
          , Element.paddingXY 5 0
+         , Element.width Element.fill
          ]
             ++ attributes
         )
-        [ Element.el [] <| Element.html select_
+        [ Element.el [ Element.width Element.fill ] <| Element.html select_
         , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
         ]
 
