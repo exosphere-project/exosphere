@@ -207,7 +207,6 @@ type alias CreateServerPageModel =
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
-    , showCustomWorkflowOptions : Bool
     , customWorkflowSource : Maybe CustomWorkflowSource
     , customWorkflowSourceInput : Maybe String
     , keypairName : Maybe String

@@ -51,7 +51,6 @@ type Msg
     | GotUserDataTemplate String
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
-    | GotShowCustomWorkflowOptions Bool
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
     | GotDeployGuacamole (Maybe Bool)
@@ -74,7 +73,6 @@ init imageUuid imageName deployGuacamole =
     , networkUuid = Nothing
     , customWorkflowSource = Nothing
     , customWorkflowSourceInput = Nothing
-    , showCustomWorkflowOptions = False
     , showAdvancedOptions = False
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
@@ -113,9 +111,6 @@ update msg _ model =
             , Cmd.none
             , SharedMsg.NoOp
             )
-
-        GotShowCustomWorkflowOptions shown ->
-            ( { model | showCustomWorkflowOptions = shown }, Cmd.none, SharedMsg.NoOp )
 
         GotShowAdvancedOptions showAdvancedOptions ->
             ( { model | showAdvancedOptions = showAdvancedOptions }, Cmd.none, SharedMsg.NoOp )
@@ -269,6 +264,7 @@ view context project model =
             , volBackedPrompt context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
+            , customWorkflowInput context model
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -294,7 +290,6 @@ view context project model =
                             , floatingIpPicker context project model
                             , keypairPicker context project model
                             , userDataInput context model
-                            , customWorkflowInput context model
                             ]
                        )
             , renderNetworkGuidance
@@ -770,27 +765,22 @@ customWorkflowInputExperimental context model =
                 ]
     in
     Element.column
-        (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
+        (VH.exoColumnAttributes
+            ++ [ Element.width Element.fill
+               , Element.spacingXY 0 12
+               ]
+        )
     <|
-        [ Input.radioRow [ Element.spacing 10 ]
-            { label = Input.labelAbove [ Element.paddingXY 0 12, Font.bold ] (Element.text "Build and launch a workflow")
-            , onChange = GotShowCustomWorkflowOptions
-            , options =
-                [ Input.option False (Element.text "Hide")
-                , Input.option True (Element.text "Show")
-                ]
-            , selected = Just model.showCustomWorkflowOptions
-            }
+        [ Element.el
+            (VH.heading4
+                ++ [ Font.size 17
+                   ]
+            )
+            (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
+        , warning
+        , workflowInput
+        , clearButton
         ]
-            ++ (if not model.showCustomWorkflowOptions then
-                    [ Element.none ]
-
-                else
-                    [ warning
-                    , workflowInput
-                    , clearButton
-                    ]
-               )
 
 
 desktopEnvironmentPicker : View.Types.Context -> Project -> Model -> Element.Element Msg
