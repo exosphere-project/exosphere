@@ -1535,8 +1535,47 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveNetworks errorContext result ->
             case result of
                 Ok networks ->
-                    Rest.Neutron.receiveNetworks outerModel project networks
+                    let
+                        newProject =
+                            Rest.Neutron.receiveNetworks sharedModel project networks
+
+                        newSharedModel =
+                            GetterSetters.modelUpdateProject sharedModel newProject
+
+                        -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
+                        viewState =
+                            case outerModel.viewState of
+                                ProjectView _ projectPageModel projectViewConstructor ->
+                                    case projectViewConstructor of
+                                        ServerCreate pageModel ->
+                                            if pageModel.networkUuid == Nothing then
+                                                case Helpers.newServerNetworkOptions newProject of
+                                                    AutoSelectedNetwork netUuid ->
+                                                        ProjectView
+                                                            project.auth.project.uuid
+                                                            projectPageModel
+                                                            (ServerCreate
+                                                                { pageModel
+                                                                    | networkUuid = Just netUuid
+                                                                }
+                                                            )
+
+                                                    _ ->
+                                                        outerModel.viewState
+
+                                            else
+                                                outerModel.viewState
+
+                                        _ ->
+                                            outerModel.viewState
+
+                                _ ->
+                                    outerModel.viewState
+                    in
+                    ( newSharedModel, Cmd.none )
                         |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
+                        |> pipelineCmdOuterModelMsg (ViewStateHelpers.modelUpdateViewState viewState)
 
                 Err httpError ->
                     let
