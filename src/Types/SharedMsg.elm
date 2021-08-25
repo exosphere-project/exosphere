@@ -1,7 +1,5 @@
 module Types.SharedMsg exposing
-    ( NavigablePage(..)
-    , NavigableProjectPage(..)
-    , ProjectSpecificMsgConstructor(..)
+    ( ProjectSpecificMsgConstructor(..)
     , ServerSpecificMsgConstructor(..)
     , SharedMsg(..)
     , TickInterval
@@ -9,6 +7,7 @@ module Types.SharedMsg exposing
 
 import Http
 import OpenStack.Types as OSTypes
+import Route
 import Set
 import Style.Types
 import Time
@@ -31,7 +30,7 @@ type SharedMsg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
-    | NavigateToView NavigablePage
+    | NavigateToView Route.NavigablePage
     | NavigateToUrl String
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
@@ -108,27 +107,3 @@ type ServerSpecificMsgConstructor
     | ReceiveGuacamoleAuthToken (Result Http.Error GuacTypes.GuacamoleAuthToken)
     | RequestServerAction (HelperTypes.Url -> Cmd SharedMsg) (Maybe (List OSTypes.ServerStatus))
     | ReceiveConsoleLog ErrorContext (Result HttpErrorWithBody String)
-
-
-type NavigablePage
-    = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
-    | HelpAbout
-    | LoginJetstream
-    | LoginOpenstack
-    | LoginPicker
-    | ProjectPage HelperTypes.ProjectIdentifier NavigableProjectPage
-
-
-type NavigableProjectPage
-    = FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
-    | FloatingIpList
-    | KeypairCreate
-    | KeypairList
-    | ServerCreate OSTypes.ImageUuid String (Maybe Bool)
-    | ServerCreateImage OSTypes.ServerUuid (Maybe String)
-    | ServerDetail OSTypes.ServerUuid
-    | ServerList
-    | VolumeAttach (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
-    | VolumeCreate
-    | VolumeDetail OSTypes.VolumeUuid
-    | VolumeList

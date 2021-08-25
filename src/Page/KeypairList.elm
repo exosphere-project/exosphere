@@ -6,6 +6,7 @@ import FeatherIcons
 import Helpers.String
 import Html.Attributes
 import OpenStack.Types as OSTypes
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card as Card
@@ -122,8 +123,8 @@ view context project model =
                             Just <|
                                 SharedMsg <|
                                     NavigateToView <|
-                                        SharedMsg.ProjectPage project.auth.project.uuid <|
-                                            SharedMsg.KeypairCreate
+                                        Route.ProjectPage project.auth.project.uuid <|
+                                            Route.KeypairCreate
                         }
                     ]
 

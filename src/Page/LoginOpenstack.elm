@@ -5,6 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -266,5 +267,5 @@ loginPickerButton context =
         (SH.materialStyle context.palette).button
         { text = "Other Login Methods"
         , onPress =
-            Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.LoginPicker
+            Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.LoginPicker
         }

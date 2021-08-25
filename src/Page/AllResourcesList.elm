@@ -9,6 +9,7 @@ import Page.FloatingIpList
 import Page.KeypairList
 import Page.ServerList
 import Page.VolumeList
+import Route
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Project exposing (Project)
@@ -114,7 +115,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.ServerList)
+                (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage p.auth.project.uuid Route.ServerList)
             , Page.ServerList.view context
                 p
                 model.serverListModel
@@ -132,7 +133,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.VolumeList)
+                (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage p.auth.project.uuid Route.VolumeList)
             , Page.VolumeList.view context
                 p
                 model.volumeListModel
@@ -146,7 +147,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.FloatingIpList)
+                (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage p.auth.project.uuid Route.FloatingIpList)
             , Page.FloatingIpList.view context
                 p
                 model.floatingIpListModel
@@ -166,7 +167,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.KeypairList)
+                (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage p.auth.project.uuid Route.KeypairList)
             , Page.KeypairList.view context
                 p
                 model.keypairListModel

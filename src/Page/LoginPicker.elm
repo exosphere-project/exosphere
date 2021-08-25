@@ -4,6 +4,7 @@ import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Route
 import Style.Helpers as SH
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -41,7 +42,7 @@ view context sharedModel =
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Add OpenStack Account"
                         , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginOpenstack
+                            Just <| SharedMsg <| SharedMsg.NavigateToView Route.LoginOpenstack
                         }
               , description =
                     ""
@@ -53,7 +54,7 @@ view context sharedModel =
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Add Jetstream Account"
                         , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginJetstream
+                            Just <| SharedMsg <| SharedMsg.NavigateToView Route.LoginJetstream
                         }
               , description =
                     "Recommended login method for Jetstream Cloud"

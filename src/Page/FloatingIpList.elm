@@ -9,6 +9,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -60,7 +61,7 @@ update msg project model =
         GotAssign ipUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.NavigateToView <| SharedMsg.ProjectPage project.auth.project.uuid <| SharedMsg.FloatingIpAssign (Just ipUuid) Nothing
+            , SharedMsg.NavigateToView <| Route.ProjectPage project.auth.project.uuid <| Route.FloatingIpAssign (Just ipUuid) Nothing
             )
 
         GotUnassign ipUuid ->
@@ -237,8 +238,8 @@ renderFloatingIpCard context project model ip =
                                     (Just <|
                                         SharedMsg <|
                                             SharedMsg.NavigateToView <|
-                                                SharedMsg.ProjectPage project.auth.project.uuid <|
-                                                    SharedMsg.ServerDetail server.osProps.uuid
+                                                Route.ProjectPage project.auth.project.uuid <|
+                                                    Route.ServerDetail server.osProps.uuid
                                     )
                                 ]
 

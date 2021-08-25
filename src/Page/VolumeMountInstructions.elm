@@ -4,6 +4,7 @@ import Element
 import Helpers.Helpers as Helpers
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -88,8 +89,8 @@ view context project model =
                     Just <|
                         SharedMsg <|
                             SharedMsg.NavigateToView <|
-                                SharedMsg.ProjectPage project.auth.project.uuid <|
-                                    SharedMsg.ServerDetail model.serverUuid
+                                Route.ProjectPage project.auth.project.uuid <|
+                                    Route.ServerDetail model.serverUuid
                 }
             ]
         ]

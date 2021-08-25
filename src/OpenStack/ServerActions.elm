@@ -9,6 +9,7 @@ import Http
 import Json.Encode
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectStringWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
+import Route
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (HttpRequestMethod(..), ProjectIdentifier, Url)
 import Types.Server exposing (Server)
@@ -190,8 +191,8 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             \projectId server _ ->
                 NavigateToView <|
-                    SharedMsg.ProjectPage projectId <|
-                        SharedMsg.ServerCreateImage
+                    Route.ProjectPage projectId <|
+                        Route.ServerCreateImage
                             server.osProps.uuid
                             (Just <| server.osProps.name ++ "-image")
       , selectMod = NoMod

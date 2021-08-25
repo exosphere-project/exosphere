@@ -7,6 +7,7 @@ import Helpers.Helpers as Helpers
 import Helpers.String
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.CopyableText exposing (copyableText)
@@ -160,8 +161,8 @@ renderAttachment context project attachment =
                 (Just <|
                     SharedMsg <|
                         NavigateToView <|
-                            SharedMsg.ProjectPage project.auth.project.uuid <|
-                                SharedMsg.ServerDetail attachment.serverUuid
+                            Route.ProjectPage project.auth.project.uuid <|
+                                Route.ServerDetail attachment.serverUuid
                 )
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
@@ -236,8 +237,8 @@ volumeActionButtons context project model volume =
                             Just <|
                                 SharedMsg <|
                                     NavigateToView <|
-                                        SharedMsg.ProjectPage project.auth.project.uuid <|
-                                            SharedMsg.VolumeAttach Nothing (Just volume.uuid)
+                                        Route.ProjectPage project.auth.project.uuid <|
+                                            Route.VolumeAttach Nothing (Just volume.uuid)
                         }
 
                 OSTypes.InUse ->
