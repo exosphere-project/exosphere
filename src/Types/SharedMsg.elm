@@ -5,6 +5,7 @@ module Types.SharedMsg exposing
     , TickInterval
     )
 
+import Browser
 import Http
 import OpenStack.Types as OSTypes
 import Route
@@ -31,7 +32,7 @@ type SharedMsg
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
     | NavigateToView Route.NavigablePage
-    | NavigateToUrl String
+    | NavigateToUrl Browser.UrlRequest
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
     | UrlChange Url.Url

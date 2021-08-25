@@ -2,6 +2,7 @@ module State.State exposing (update)
 
 import AppUrl.Builder
 import AppUrl.Parser
+import Browser
 import Browser.Navigation
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -80,6 +81,7 @@ import Types.Workflow
         , CustomWorkflowTokenRDPP
         , ServerCustomWorkflowStatus(..)
         )
+import Url
 
 
 update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -852,8 +854,13 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-        NavigateToUrl url ->
-            ( outerModel, Browser.Navigation.load url )
+        NavigateToUrl urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( outerModel, Browser.Navigation.pushUrl sharedModel.navigationKey (Url.toString url) )
+
+                Browser.External url ->
+                    ( outerModel, Browser.Navigation.load url )
 
         UrlChange url ->
             -- This handles presses of the browser back/forward button

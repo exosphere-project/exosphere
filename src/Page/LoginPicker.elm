@@ -1,5 +1,6 @@
 module Page.LoginPicker exposing (Msg(..), update, view)
 
+import Browser
 import Color
 import Element
 import Element.Background as Background
@@ -79,7 +80,7 @@ view context sharedModel =
                             url =
                                 oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
                         in
-                        Just <| SharedMsg <| SharedMsg.NavigateToUrl url
+                        Just <| SharedMsg <| SharedMsg.NavigateToUrl <| Browser.External url
                     }
             , description =
                 oidcLoginConfig.oidcLoginButtonDescription

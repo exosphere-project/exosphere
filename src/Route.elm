@@ -1,4 +1,4 @@
-module Route exposing (NavigablePage(..), NavigableProjectPage(..))
+module Route exposing (NavigablePage(..), NavigableProjectPage(..), routeToUrl)
 
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
@@ -26,3 +26,13 @@ type NavigableProjectPage
     | VolumeCreate
     | VolumeDetail OSTypes.VolumeUuid
     | VolumeList
+
+
+routeToUrl : Maybe String -> NavigablePage -> String
+routeToUrl maybePathPrefix page =
+    case page of
+        HelpAbout ->
+            "TODO"
+
+        _ ->
+            "TODO"
