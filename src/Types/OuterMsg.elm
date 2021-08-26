@@ -23,14 +23,10 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Types.SharedMsg
-import Types.View as ViewTypes
 
 
-type
-    OuterMsg
-    -- TODO remove this
-    = SetNonProjectView ViewTypes.NonProjectViewConstructor
-    | SharedMsg Types.SharedMsg.SharedMsg
+type OuterMsg
+    = SharedMsg Types.SharedMsg.SharedMsg
     | AllResourcesListMsg Page.AllResourcesList.Msg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg

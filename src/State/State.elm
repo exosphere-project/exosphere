@@ -141,9 +141,6 @@ updateUnderlying outerMsg outerModel =
             outerModel.sharedModel
     in
     case ( outerMsg, outerModel.viewState ) of
-        ( SetNonProjectView nonProjectViewConstructor, _ ) ->
-            ViewStateHelpers.modelUpdateViewState (NonProjectView nonProjectViewConstructor) outerModel
-
         ( SharedMsg sharedMsg, _ ) ->
             processSharedMsg sharedMsg outerModel
 

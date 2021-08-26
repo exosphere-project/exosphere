@@ -7,7 +7,6 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Helpers.String
-import Page.Settings
 import Route
 import State.ViewState
 import Style.Helpers as SH
@@ -160,7 +159,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView <| Settings Page.Settings.init)
+                        { onPress = Just (SharedMsg <| SharedMsg.NavigateToView <| Route.Settings)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])
