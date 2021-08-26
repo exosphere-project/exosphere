@@ -395,7 +395,7 @@ createButton context projectId expanded =
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage projectId <| Route.ImageList)
+                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectRoute projectId <| Route.ImageList)
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice
@@ -404,7 +404,7 @@ createButton context projectId expanded =
                     (Just <|
                         SharedMsg <|
                             SharedMsg.NavigateToView <|
-                                Route.ProjectPage projectId <|
+                                Route.ProjectRoute projectId <|
                                     Route.VolumeCreate
                     )
                 , renderButton
@@ -415,7 +415,7 @@ createButton context projectId expanded =
                     (Just <|
                         SharedMsg <|
                             SharedMsg.NavigateToView <|
-                                Route.ProjectPage projectId <|
+                                Route.ProjectRoute projectId <|
                                     Route.KeypairCreate
                     )
                 ]

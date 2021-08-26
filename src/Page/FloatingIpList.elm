@@ -61,7 +61,7 @@ update msg project model =
         GotAssign ipUuid ->
             ( model
             , Cmd.none
-            , SharedMsg.NavigateToView <| Route.ProjectPage project.auth.project.uuid <| Route.FloatingIpAssign (Just ipUuid) Nothing
+            , SharedMsg.NavigateToView <| Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpAssign (Just ipUuid) Nothing
             )
 
         GotUnassign ipUuid ->
@@ -238,7 +238,7 @@ renderFloatingIpCard context project model ip =
                                     (Just <|
                                         SharedMsg <|
                                             SharedMsg.NavigateToView <|
-                                                Route.ProjectPage project.auth.project.uuid <|
+                                                Route.ProjectRoute project.auth.project.uuid <|
                                                     Route.ServerDetail server.osProps.uuid
                                     )
                                 ]

@@ -683,7 +683,7 @@ processSharedMsg sharedMsg outerModel =
                                     case List.head sharedModel.projects of
                                         Just project ->
                                             ViewStateHelpers.navigateToPage <|
-                                                Route.ProjectPage project.auth.project.uuid <|
+                                                Route.ProjectRoute project.auth.project.uuid <|
                                                     Route.AllResourcesList
 
                                         Nothing ->
@@ -1004,7 +1004,7 @@ processProjectSpecificMsg outerModel project msg =
                         route =
                             case List.head newProjects of
                                 Just p ->
-                                    Route.ProjectPage p.auth.project.uuid Route.AllResourcesList
+                                    Route.ProjectRoute p.auth.project.uuid Route.AllResourcesList
 
                                 Nothing ->
                                     Route.LoginPicker
@@ -1127,7 +1127,7 @@ processProjectSpecificMsg outerModel project msg =
             let
                 ( newOuterModel, setViewCmd ) =
                     ViewStateHelpers.navigateToPage
-                        (Route.ProjectPage project.auth.project.uuid <| Route.FloatingIpList)
+                        (Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpList)
                         outerModel
             in
             ( newOuterModel
@@ -1310,7 +1310,7 @@ processProjectSpecificMsg outerModel project msg =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
             ViewStateHelpers.navigateToPage
-                (Route.ProjectPage newProject.auth.project.uuid <| Route.KeypairList)
+                (Route.ProjectRoute newProject.auth.project.uuid <| Route.KeypairList)
                 { outerModel | sharedModel = newSharedModel }
 
         RequestDeleteKeypair keypairId ->
@@ -1348,7 +1348,7 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveCreateServer _ ->
             let
                 newRoute =
-                    Route.ProjectPage
+                    Route.ProjectRoute
                         project.auth.project.uuid
                         Route.AllResourcesList
 
@@ -1522,7 +1522,7 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.navigateToPage (Route.ProjectPage project.auth.project.uuid <| Route.VolumeList) outerModel
+            ViewStateHelpers.navigateToPage (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList) outerModel
 
         ReceiveVolumes volumes ->
             let
@@ -1614,10 +1614,10 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
 
         ReceiveAttachVolume attachment ->
-            ViewStateHelpers.navigateToPage (Route.ProjectPage project.auth.project.uuid <| Route.VolumeMountInstructions attachment) outerModel
+            ViewStateHelpers.navigateToPage (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment) outerModel
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.navigateToPage (Route.ProjectPage project.auth.project.uuid <| Route.VolumeList) outerModel
+            ViewStateHelpers.navigateToPage (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList) outerModel
 
         ReceiveAppCredential appCredential ->
             let
@@ -1675,7 +1675,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
         RequestCreateServerImage imageName ->
             let
                 newRoute =
-                    Route.ProjectPage
+                    Route.ProjectRoute
                         project.auth.project.uuid
                         Route.AllResourcesList
 
@@ -1736,7 +1736,7 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
             case outerModel.viewState of
                 ProjectView projectId _ (ServerDetail pageModel) ->
                     if pageModel.serverUuid == server.osProps.uuid then
-                        ViewStateHelpers.navigateToPage (Route.ProjectPage projectId <| Route.AllResourcesList)
+                        ViewStateHelpers.navigateToPage (Route.ProjectRoute projectId <| Route.AllResourcesList)
                             newOuterModel
 
                     else
@@ -2211,7 +2211,7 @@ createProject outerModel authToken endpoints =
 
                 _ ->
                     ViewStateHelpers.navigateToPage <|
-                        Route.ProjectPage newProject.auth.project.uuid <|
+                        Route.ProjectRoute newProject.auth.project.uuid <|
                             Route.AllResourcesList
 
         ( newSharedModel, newCmd ) =

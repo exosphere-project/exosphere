@@ -58,7 +58,7 @@ navMenu outerModel context =
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
                 (Just
-                    (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage project.auth.project.uuid Route.AllResourcesList)
+                    (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectRoute project.auth.project.uuid Route.AllResourcesList)
                 )
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)

@@ -53,7 +53,7 @@ import View.Helpers
 import View.PageTitle
 
 
-navigateToPage : Route.NavigablePage -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+navigateToPage : Route.Route -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 navigateToPage route outerModel =
     let
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
@@ -116,7 +116,7 @@ modelUpdateViewState viewState outerModel =
     ( newOuterModel, urlCmd )
 
 
-routeToViewStateModelCmd : SharedModel -> Route.NavigablePage -> ( ViewState, SharedModel, Cmd SharedMsg )
+routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
 routeToViewStateModelCmd sharedModel route =
     case route of
         Route.GetSupport maybeSupportableItemTuple ->
@@ -201,7 +201,7 @@ routeToViewStateModelCmd sharedModel route =
             , Cmd.none
             )
 
-        Route.ProjectPage projectId projectPage ->
+        Route.ProjectRoute projectId projectPage ->
             case GetterSetters.projectLookup sharedModel projectId of
                 Just project ->
                     let
@@ -407,7 +407,7 @@ routeToViewStateModelCmd sharedModel route =
             )
 
 
-defaultRoute : SharedModel -> Route.NavigablePage
+defaultRoute : SharedModel -> Route.Route
 defaultRoute sharedModel =
     -- TODO move this
     case sharedModel.projects of
@@ -415,12 +415,12 @@ defaultRoute sharedModel =
             defaultLoginPage sharedModel.style.defaultLoginView
 
         firstProject :: _ ->
-            Route.ProjectPage
+            Route.ProjectRoute
                 firstProject.auth.project.uuid
                 Route.AllResourcesList
 
 
-defaultLoginPage : Maybe DefaultLoginView -> Route.NavigablePage
+defaultLoginPage : Maybe DefaultLoginView -> Route.Route
 defaultLoginPage maybeDefaultLoginView =
     case maybeDefaultLoginView of
         Nothing ->

@@ -31,7 +31,7 @@ type SharedMsg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
-    | NavigateToView Route.NavigablePage
+    | NavigateToView Route.Route
     | NavigateToUrl Browser.UrlRequest
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int

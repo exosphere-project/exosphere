@@ -7,7 +7,6 @@ import Filesize
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
-import Rest.Glance
 import Route
 import Set
 import Set.Extra
@@ -16,7 +15,6 @@ import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
 import Types.Project exposing (Project)
-import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
@@ -468,7 +466,7 @@ renderImage context project model image =
         chooseMsg =
             SharedMsg <|
                 SharedMsg.NavigateToView <|
-                    Route.ProjectPage project.auth.project.uuid <|
+                    Route.ProjectRoute project.auth.project.uuid <|
                         Route.ServerCreate
                             image.uuid
                             image.name

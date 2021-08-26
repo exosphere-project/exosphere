@@ -161,7 +161,7 @@ renderAttachment context project attachment =
                 (Just <|
                     SharedMsg <|
                         NavigateToView <|
-                            Route.ProjectPage project.auth.project.uuid <|
+                            Route.ProjectRoute project.auth.project.uuid <|
                                 Route.ServerDetail attachment.serverUuid
                 )
             ]
@@ -237,7 +237,7 @@ volumeActionButtons context project model volume =
                             Just <|
                                 SharedMsg <|
                                     NavigateToView <|
-                                        Route.ProjectPage project.auth.project.uuid <|
+                                        Route.ProjectRoute project.auth.project.uuid <|
                                             Route.VolumeAttach Nothing (Just volume.uuid)
                         }
 

@@ -1,10 +1,10 @@
-module Route exposing (NavigablePage(..), NavigableProjectPage(..), routeToUrl)
+module Route exposing (ProjectRouteConstructor(..), Route(..), routeToUrl)
 
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
 
 
-type NavigablePage
+type Route
     = GetSupport (Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ))
     | HelpAbout
     | LoadingUnscopedProjects OSTypes.AuthTokenString
@@ -13,12 +13,12 @@ type NavigablePage
     | LoginPicker
     | MessageLog Bool
     | PageNotFound
-    | ProjectPage HelperTypes.ProjectIdentifier NavigableProjectPage
+    | ProjectRoute HelperTypes.ProjectIdentifier ProjectRouteConstructor
     | SelectProjects OSTypes.KeystoneUrl
     | Settings
 
 
-type NavigableProjectPage
+type ProjectRouteConstructor
     = AllResourcesList
     | FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | FloatingIpList
@@ -36,7 +36,7 @@ type NavigableProjectPage
     | VolumeList
 
 
-routeToUrl : Maybe String -> NavigablePage -> String
+routeToUrl : Maybe String -> Route -> String
 routeToUrl maybePathPrefix page =
     case page of
         HelpAbout ->

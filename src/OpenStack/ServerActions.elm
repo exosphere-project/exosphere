@@ -191,7 +191,7 @@ actions maybeWordForServer maybeWordForImage =
       , action =
             \projectId server _ ->
                 NavigateToView <|
-                    Route.ProjectPage projectId <|
+                    Route.ProjectRoute projectId <|
                         Route.ServerCreateImage
                             server.osProps.uuid
                             (Just <| server.osProps.name ++ "-image")

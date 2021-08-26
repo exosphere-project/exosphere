@@ -431,7 +431,7 @@ serverDetail_ context project currentTimeAndZone model server =
                         Just <|
                             SharedMsg <|
                                 SharedMsg.NavigateToView <|
-                                    Route.ProjectPage project.auth.project.uuid <|
+                                    Route.ProjectRoute project.auth.project.uuid <|
                                         Route.VolumeAttach
                                             (Just server.osProps.uuid)
                                             Nothing
@@ -1159,7 +1159,7 @@ renderIpAddresses context project server model =
                             Just <|
                                 (SharedMsg <|
                                     SharedMsg.NavigateToView <|
-                                        Route.ProjectPage project.auth.project.uuid <|
+                                        Route.ProjectRoute project.auth.project.uuid <|
                                             Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
                                 )
                         }
@@ -1271,7 +1271,7 @@ serverVolumes context project server =
                         (Just <|
                             SharedMsg <|
                                 SharedMsg.NavigateToView <|
-                                    Route.ProjectPage project.auth.project.uuid <|
+                                    Route.ProjectRoute project.auth.project.uuid <|
                                         Route.VolumeDetail v.uuid
                         )
 

@@ -1229,7 +1229,7 @@ keypairPicker context project model =
                 Just <|
                     SharedMsg <|
                         SharedMsg.NavigateToView <|
-                            Route.ProjectPage project.auth.project.uuid <|
+                            Route.ProjectRoute project.auth.project.uuid <|
                                 Route.KeypairCreate
             }
         ]

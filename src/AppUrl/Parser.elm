@@ -2,7 +2,7 @@ module AppUrl.Parser exposing (urlToRoute)
 
 import Dict
 import OpenStack.Types as OSTypes
-import Route exposing (NavigablePage(..), NavigableProjectPage(..))
+import Route exposing (ProjectRouteConstructor(..), Route(..))
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
 import Url
 import Url.Parser
@@ -20,7 +20,7 @@ import Url.Parser
 import Url.Parser.Query as Query
 
 
-urlToRoute : Maybe String -> NavigablePage -> Url.Url -> Maybe NavigablePage
+urlToRoute : Maybe String -> Route -> Url.Url -> Maybe Route
 urlToRoute maybePathPrefix defaultRoute url =
     case maybePathPrefix of
         Nothing ->
@@ -40,7 +40,7 @@ urlToRoute maybePathPrefix defaultRoute url =
                 url
 
 
-pathParsers : NavigablePage -> List (Parser (NavigablePage -> b) b)
+pathParsers : Route -> List (Parser (Route -> b) b)
 pathParsers defaultRoute =
     [ -- Non-project-specific pages
       map defaultRoute top
@@ -144,12 +144,12 @@ pathParsers defaultRoute =
         PageNotFound
         (s "pagenotfound")
     , map
-        (\uuid projectRoute -> ProjectPage uuid <| projectRoute)
+        (\uuid projectRoute -> ProjectRoute uuid <| projectRoute)
         (s "projects" </> string </> oneOf projectRouteParsers)
     ]
 
 
-projectRouteParsers : List (Parser (NavigableProjectPage -> b) b)
+projectRouteParsers : List (Parser (ProjectRouteConstructor -> b) b)
 projectRouteParsers =
     [ map
         ImageList
