@@ -728,6 +728,7 @@ processSharedMsg sharedMsg outerModel =
         NavigateToUrl urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
+                    -- TODO update view state based on new internal URL? Using State.ViewState.NavigateToPage?
                     ( outerModel, Browser.Navigation.pushUrl sharedModel.navigationKey (Url.toString url) )
 
                 Browser.External url ->

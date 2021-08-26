@@ -1,4 +1,4 @@
-module Page.HelpAbout exposing (init, view)
+module Page.HelpAbout exposing (view)
 
 import Element
 import FeatherIcons
@@ -12,13 +12,6 @@ import View.Types
 
 
 -- No state or Msgs to keep track of, so there is no Model, Msg, or update here
-
-
-init : ( (), Cmd SharedMsg )
-init =
-    ( ()
-    , Ports.instantiateClipboardJs ()
-    )
 
 
 view : SharedModel -> View.Types.Context -> Element.Element msg

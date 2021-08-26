@@ -50,16 +50,9 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
-initModel : Model
-initModel =
+init : Model
+init =
     Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
-
-
-init : SharedModel -> Project -> ( Model, Cmd SharedMsg.SharedMsg )
-init sharedModel project =
-    ( initModel
-    , Rest.Glance.requestImages sharedModel project
-    )
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -103,7 +96,7 @@ update msg _ model =
             ( { model | visibilityFilter = filter }, Cmd.none, SharedMsg.NoOp )
 
         GotClearFilters ->
-            ( initModel, Cmd.none, SharedMsg.NoOp )
+            ( init, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )

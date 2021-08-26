@@ -16,7 +16,6 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
-import Page.HelpAbout
 import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
@@ -117,24 +116,15 @@ routeToViewStateModelCmd : SharedModel -> Route.NavigablePage -> ( ViewState, Sh
 routeToViewStateModelCmd sharedModel route =
     case route of
         Route.GetSupport maybeSupportableItemTuple ->
-            let
-                -- TODO clean this up once ViewStateHelpers is no longer needed
-                ( pageModel, cmd ) =
-                    Page.GetSupport.init maybeSupportableItemTuple
-            in
-            ( NonProjectView <| GetSupport pageModel
+            ( NonProjectView <| GetSupport <| Page.GetSupport.init maybeSupportableItemTuple
             , sharedModel
-            , cmd
+            , Ports.instantiateClipboardJs ()
             )
 
         Route.HelpAbout ->
-            let
-                ( _, cmd ) =
-                    Page.HelpAbout.init
-            in
             ( NonProjectView <| HelpAbout
             , sharedModel
-            , cmd
+            , Ports.instantiateClipboardJs ()
             )
 
         Route.LoadingUnscopedProjects authTokenString ->
@@ -234,13 +224,9 @@ routeToViewStateModelCmd sharedModel route =
                             )
 
                         Route.ImageList ->
-                            let
-                                ( pageModel, pageCmd ) =
-                                    Page.ImageList.init sharedModel project
-                            in
-                            ( projectViewProto <| ImageList pageModel
+                            ( projectViewProto <| ImageList <| Page.ImageList.init
                             , sharedModel
-                            , pageCmd
+                            , Rest.Glance.requestImages sharedModel project
                             )
 
                         Route.KeypairCreate ->

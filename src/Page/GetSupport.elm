@@ -36,14 +36,12 @@ type Msg
     | NoOp
 
 
-init : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> ( Model, Cmd SharedMsg.SharedMsg )
+init : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> Model
 init maybeSupportableResource =
-    ( { maybeSupportableResource = maybeSupportableResource
-      , requestDescription = ""
-      , isSubmitted = False
-      }
-    , Ports.instantiateClipboardJs ()
-    )
+    { maybeSupportableResource = maybeSupportableResource
+    , requestDescription = ""
+    , isSubmitted = False
+    }
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
