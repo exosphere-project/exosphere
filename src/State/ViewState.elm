@@ -11,6 +11,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
+import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Page.AllResourcesList
 import Page.FloatingIpAssign
@@ -34,10 +35,13 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Ports
+import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
+import Rest.Keystone
 import Rest.Nova
 import Route
+import Time
 import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -128,10 +132,43 @@ routeToViewStateModelCmd sharedModel route =
             )
 
         Route.LoadingUnscopedProjects authTokenString ->
-            -- TODO move stuff from State.init here to request projects from unscoped provider?
+            let
+                -- If we have just received an OpenID Connect auth token, store it as an unscoped provider and get projects
+                ( newSharedModel, cmd ) =
+                    case sharedModel.openIdConnectLoginConfig of
+                        Nothing ->
+                            ( sharedModel, Cmd.none )
+
+                        Just openIdConnectLoginConfig ->
+                            let
+                                oneHourMillis =
+                                    1000 * 60 * 60
+
+                                tokenExpiry =
+                                    -- One hour later? This should never matter
+                                    Time.posixToMillis sharedModel.clientCurrentTime
+                                        + oneHourMillis
+                                        |> Time.millisToPosix
+
+                                unscopedProvider =
+                                    HelperTypes.UnscopedProvider
+                                        openIdConnectLoginConfig.keystoneAuthUrl
+                                        (OSTypes.UnscopedAuthToken
+                                            tokenExpiry
+                                            authTokenString
+                                        )
+                                        RemoteData.NotAsked
+
+                                newUnscopedProviders =
+                                    unscopedProvider :: sharedModel.unscopedProviders
+                            in
+                            ( { sharedModel | unscopedProviders = newUnscopedProviders }
+                            , Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
+                            )
+            in
             ( NonProjectView <| LoadingUnscopedProjects authTokenString
-            , sharedModel
-            , Cmd.none
+            , newSharedModel
+            , cmd
             )
 
         Route.LoginJetstream maybeCreds ->
