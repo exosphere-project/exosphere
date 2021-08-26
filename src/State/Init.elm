@@ -10,8 +10,10 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.Types as OSTypes
 import Ports
 import Random
+import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
 import State.ViewState exposing (setNonProjectView, setProjectView)
@@ -175,6 +177,44 @@ init flags urlKey =
             AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
                 |> Maybe.withDefault ( NonProjectView PageNotFound, Cmd.none )
 
+        -- If we have just received an OpenID Connect auth token, store it as an unscoped provider and get projects
+        ( unscopedProvidersModel, getUnscopedProjectsCmd ) =
+            case viewStateFromUrl of
+                NonProjectView (LoadingUnscopedProjects authTokenStr) ->
+                    case hydratedModel.openIdConnectLoginConfig of
+                        Nothing ->
+                            ( hydratedModel, Cmd.none )
+
+                        Just openIdConnectLoginConfig ->
+                            let
+                                oneHourMillis =
+                                    1000 * 60 * 60
+
+                                tokenExpiry =
+                                    -- One hour later? This should never matter
+                                    Time.posixToMillis hydratedModel.clientCurrentTime
+                                        + oneHourMillis
+                                        |> Time.millisToPosix
+
+                                unscopedProvider =
+                                    Types.HelperTypes.UnscopedProvider
+                                        openIdConnectLoginConfig.keystoneAuthUrl
+                                        (OSTypes.UnscopedAuthToken
+                                            tokenExpiry
+                                            authTokenStr
+                                        )
+                                        RemoteData.NotAsked
+
+                                newUnscopedProviders =
+                                    unscopedProvider :: hydratedModel.unscopedProviders
+                            in
+                            ( { hydratedModel | unscopedProviders = newUnscopedProviders }
+                            , Rest.Keystone.requestUnscopedProjects unscopedProvider hydratedModel.cloudCorsProxyUrl
+                            )
+
+                _ ->
+                    ( hydratedModel, Cmd.none )
+
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
         projectsNeedingAppCredentials =
@@ -187,7 +227,7 @@ init flags urlKey =
                         _ ->
                             True
             in
-            List.filter projectNeedsAppCredential hydratedModel.projects
+            List.filter projectNeedsAppCredential unscopedProvidersModel.projects
 
         setFaviconCmd =
             flags.favicon
@@ -195,10 +235,11 @@ init flags urlKey =
                 |> Maybe.withDefault Cmd.none
 
         otherCmds =
-            [ List.map
+            [ getUnscopedProjectsCmd
+            , List.map
                 (Rest.Keystone.requestAppCredential
-                    hydratedModel.clientUuid
-                    hydratedModel.clientCurrentTime
+                    unscopedProvidersModel.clientUuid
+                    unscopedProvidersModel.clientCurrentTime
                 )
                 projectsNeedingAppCredentials
                 |> Cmd.batch
@@ -216,13 +257,13 @@ init flags urlKey =
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestFloatingIps projectId)
                         |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts projectId)
             in
-            hydratedModel.projects
+            unscopedProvidersModel.projects
                 |> List.map (\p -> p.auth.project.uuid)
                 |> List.foldl
                     (\uuid modelCmdTuple ->
                         Helpers.pipelineCmd (applyRequestsToProject uuid) modelCmdTuple
                     )
-                    ( hydratedModel, Cmd.none )
+                    ( unscopedProvidersModel, Cmd.none )
 
         outerModel =
             { sharedModel = requestResourcesModel

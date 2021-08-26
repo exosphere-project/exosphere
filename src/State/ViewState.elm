@@ -13,7 +13,7 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
-import OpenStack.Types as OSTypes
+import OpenStack.Types
 import OpenStack.Volumes as OSVolumes
 import Page.AllResourcesList
 import Page.LoginJetstream
@@ -22,12 +22,8 @@ import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
-import Rest.Keystone
 import Rest.Nova
-import State.Error
 import Style.Widgets.NumericTextInput.NumericTextInput
-import Time
-import Types.Error as Error
 import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -41,55 +37,10 @@ import View.PageTitle
 
 setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 setNonProjectView nonProjectViewConstructor outerModel =
+    -- TODO remove this function
     let
         ( viewSpecificSharedModel, viewSpecificCmd ) =
             case nonProjectViewConstructor of
-                LoadingUnscopedProjects authTokenStr ->
-                    -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
-                    case outerModel.sharedModel.openIdConnectLoginConfig of
-                        Nothing ->
-                            let
-                                errorContext =
-                                    Error.ErrorContext
-                                        "Load projects for provider authenticated via OpenID Connect"
-                                        Error.ErrorCrit
-                                        Nothing
-                            in
-                            State.Error.processStringError
-                                outerModel.sharedModel
-                                errorContext
-                                "This deployment of Exosphere is not configured to use OpenID Connect."
-
-                        Just openIdConnectLoginConfig ->
-                            let
-                                oneHourMillis =
-                                    1000 * 60 * 60
-
-                                tokenExpiry =
-                                    -- One hour later? This should never matter
-                                    Time.posixToMillis outerModel.sharedModel.clientCurrentTime
-                                        + oneHourMillis
-                                        |> Time.millisToPosix
-
-                                unscopedProvider =
-                                    UnscopedProvider
-                                        openIdConnectLoginConfig.keystoneAuthUrl
-                                        (OSTypes.UnscopedAuthToken
-                                            tokenExpiry
-                                            authTokenStr
-                                        )
-                                        RemoteData.NotAsked
-
-                                newUnscopedProviders =
-                                    unscopedProvider :: outerModel.sharedModel.unscopedProviders
-
-                                oldSharedModel =
-                                    outerModel.sharedModel
-                            in
-                            ( { oldSharedModel | unscopedProviders = newUnscopedProviders }
-                            , Rest.Keystone.requestUnscopedProjects unscopedProvider oldSharedModel.cloudCorsProxyUrl
-                            )
-
                 _ ->
                     ( outerModel.sharedModel, Cmd.none )
 
