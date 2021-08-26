@@ -5,7 +5,6 @@ module State.ViewState exposing
     , viewStateToSupportableItem
     )
 
-import AppUrl.Builder
 import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
@@ -68,7 +67,7 @@ navigateToPage route outerModel =
             outerModel.sharedModel.prevUrl
 
         newUrl =
-            AppUrl.Builder.viewStateToUrl outerModel.sharedModel.urlPathPrefix newViewState
+            Route.routeToUrl outerModel.sharedModel.urlPathPrefix route
 
         newSharedModel =
             { pageSpecificSharedModel | prevUrl = newUrl }
