@@ -55,6 +55,11 @@ navigateToPage navigableView outerModel =
     let
         sharedModel =
             outerModel.sharedModel
+
+        pipelineCmd : Cmd OuterMsg -> ( OuterModel, Cmd OuterMsg ) -> ( OuterModel, Cmd OuterMsg )
+        pipelineCmd cmd__ ( outerModel_, cmd_ ) =
+            -- This is sort of ugly and temporary
+            ( outerModel_, Cmd.batch [ cmd_, cmd__ ] )
     in
     case navigableView of
         Route.GetSupport maybeSupportableItemTuple ->
@@ -116,22 +121,55 @@ navigateToPage navigableView outerModel =
                     in
                     case projectPage of
                         Route.AllResourcesList ->
-                            setProjectView
-                                project
-                                (AllResourcesList <| Page.AllResourcesList.init)
-                                outerModel
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel
+                                    , Cmd.batch
+                                        [ OSVolumes.requestVolumes project
+                                        , Rest.Nova.requestKeypairs project
+                                        , OSQuotas.requestComputeQuota project
+                                        , OSQuotas.requestVolumeQuota project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                                    )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            in
+                            modelUpdateViewState
+                                (projectViewProto <| AllResourcesList <| Page.AllResourcesList.init)
+                                { outerModel | sharedModel = newSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg newCmd)
 
                         Route.FloatingIpAssign maybeIpUuid maybeServerUuid ->
-                            setProjectView
-                                project
-                                (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
-                                outerModel
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel, Cmd.none )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                            in
+                            modelUpdateViewState
+                                (projectViewProto <| FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
+                                { outerModel | sharedModel = newSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg newCmd)
 
                         Route.FloatingIpList ->
-                            setProjectView
-                                project
-                                (FloatingIpList <| Page.FloatingIpList.init True)
-                                outerModel
+                            let
+                                ( newSharedModel, newCmd ) =
+                                    ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                            in
+                            modelUpdateViewState
+                                (projectViewProto <| FloatingIpList <| Page.FloatingIpList.init True)
+                                { outerModel | sharedModel = newSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg newCmd)
 
                         Route.ImageList ->
                             let
@@ -146,184 +184,24 @@ navigateToPage navigableView outerModel =
                             ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg pageCmd, setViewCmd ] )
 
                         Route.KeypairCreate ->
-                            setProjectView
-                                project
-                                (KeypairCreate Page.KeypairCreate.init)
+                            modelUpdateViewState
+                                (projectViewProto <| KeypairCreate Page.KeypairCreate.init)
                                 outerModel
 
                         Route.KeypairList ->
-                            setProjectView
-                                project
-                                (KeypairList <| Page.KeypairList.init True)
-                                outerModel
-
-                        Route.ServerCreate imageId imageName maybeDeployGuac ->
-                            setProjectView
-                                project
-                                (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
-                                outerModel
-
-                        Route.ServerCreateImage serverId maybeImageName ->
-                            setProjectView
-                                project
-                                (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
-                                outerModel
-
-                        Route.ServerDetail serverId ->
-                            setProjectView
-                                project
-                                (ServerDetail (Page.ServerDetail.init serverId))
-                                outerModel
-
-                        Route.ServerList ->
-                            setProjectView
-                                project
-                                (ServerList <| Page.ServerList.init True)
-                                outerModel
-
-                        Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
-                            setProjectView
-                                project
-                                (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
-                                outerModel
-
-                        Route.VolumeCreate ->
-                            setProjectView
-                                project
-                                (VolumeCreate Page.VolumeCreate.init)
-                                outerModel
-
-                        Route.VolumeDetail volumeUuid ->
-                            setProjectView
-                                project
-                                (VolumeDetail <| Page.VolumeDetail.init True volumeUuid)
-                                outerModel
-
-                        Route.VolumeList ->
-                            setProjectView
-                                project
-                                (VolumeList <| Page.VolumeList.init True)
-                                outerModel
-
-                        Route.VolumeMountInstructions attachment ->
-                            setProjectView
-                                project
-                                (VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment)
-                                outerModel
-
-                Nothing ->
-                    ( outerModel, Cmd.none )
-
-        Route.Settings ->
-            modelUpdateViewState
-                (NonProjectView <| Settings <| Page.Settings.init)
-                outerModel
-
-
-setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-setProjectView project projectViewConstructor outerModel =
-    let
-        prevProjectViewConstructor =
-            case outerModel.viewState of
-                ProjectView projectId _ projectViewConstructor_ ->
-                    if projectId == project.auth.project.uuid then
-                        Just projectViewConstructor_
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
-
-        newViewState =
-            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
-
-        ( viewSpecificOuterModel, viewSpecificCmd ) =
-            case projectViewConstructor of
-                AllResourcesList _ ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (AllResourcesList _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
                             let
-                                ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel
-                                    , Cmd.batch
-                                        [ OSVolumes.requestVolumes project
-                                        , Rest.Nova.requestKeypairs project
-                                        , OSQuotas.requestComputeQuota project
-                                        , OSQuotas.requestVolumeQuota project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-                                    )
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
-                            in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
-
-                ImageList _ ->
-                    ( outerModel, Cmd.none )
-
-                ServerList _ ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (ServerList _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
-                            let
-                                ( newSharedModel, cmd ) =
-                                    ApiModelHelpers.requestServers
-                                        project.auth.project.uuid
-                                        outerModel.sharedModel
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps
-                                                project.auth.project.uuid
-                                            )
-                            in
-                            ( { outerModel | sharedModel = newSharedModel }, cmd )
-
-                ServerDetail pageModel ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (ServerDetail _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
-                            let
-                                newSharedModel =
-                                    project
-                                        |> GetterSetters.modelUpdateProject outerModel.sharedModel
-
                                 cmd =
                                     Cmd.batch
-                                        [ Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages outerModel.sharedModel project
-                                        , OSVolumes.requestVolumes project
+                                        [ Rest.Nova.requestKeypairs project
                                         , Ports.instantiateClipboardJs ()
                                         ]
-
-                                ( newNewSharedModel, newCmd ) =
-                                    ( newSharedModel, cmd )
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer project.auth.project.uuid pageModel.serverUuid)
                             in
-                            ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
+                            modelUpdateViewState
+                                (projectViewProto <| KeypairList <| Page.KeypairList.init True)
+                                outerModel
+                                |> pipelineCmd (Cmd.map SharedMsg cmd)
 
-                ServerCreateImage _ ->
-                    ( outerModel, Cmd.none )
-
-                ServerCreate _ ->
-                    case outerModel.viewState of
-                        ProjectView _ _ (ServerCreate _) ->
-                            ( outerModel, Cmd.none )
-
-                        -- If we are just entering this view then gather everything we need
-                        _ ->
+                        Route.ServerCreate imageId imageName maybeDeployGuac ->
                             let
                                 cmd =
                                     Cmd.batch
@@ -342,117 +220,105 @@ setProjectView project projectViewConstructor outerModel =
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            modelUpdateViewState
+                                (projectViewProto <| ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
+                                { outerModel | sharedModel = newSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg newCmd)
 
-                VolumeList _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (VolumeList _) ->
-                                    Cmd.none
+                        Route.ServerCreateImage serverId maybeImageName ->
+                            modelUpdateViewState
+                                (projectViewProto <| ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
+                                outerModel
 
-                                _ ->
+                        Route.ServerDetail serverId ->
+                            let
+                                newSharedModel =
+                                    project
+                                        |> GetterSetters.modelUpdateProject outerModel.sharedModel
+
+                                cmd =
                                     Cmd.batch
-                                        [ OSVolumes.requestVolumes project
+                                        [ Rest.Nova.requestFlavors project
+                                        , Rest.Glance.requestImages outerModel.sharedModel project
+                                        , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
-                    in
-                    ( outerModel, cmd )
 
-                FloatingIpList _ ->
-                    case prevProjectViewConstructor of
-                        Just (FloatingIpList _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
-                            let
-                                ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
+                                ( newNewSharedModel, newCmd ) =
+                                    ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                                            (ApiModelHelpers.requestServer project.auth.project.uuid serverId)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            modelUpdateViewState
+                                (projectViewProto <| ServerDetail (Page.ServerDetail.init serverId))
+                                { outerModel | sharedModel = newNewSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg newCmd)
 
-                FloatingIpAssign _ ->
-                    case prevProjectViewConstructor of
-                        Just (FloatingIpAssign _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+                        Route.ServerList ->
                             let
-                                ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel, Cmd.none )
+                                ( newSharedModel, cmd ) =
+                                    ApiModelHelpers.requestServers
+                                        project.auth.project.uuid
+                                        outerModel.sharedModel
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                                            (ApiModelHelpers.requestFloatingIps
+                                                project.auth.project.uuid
+                                            )
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            modelUpdateViewState
+                                (projectViewProto <| ServerList <| Page.ServerList.init True)
+                                { outerModel | sharedModel = newSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg cmd)
 
-                KeypairList _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (KeypairList _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    Cmd.batch
-                                        [ Rest.Nova.requestKeypairs project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-                    in
-                    ( outerModel, cmd )
-
-                KeypairCreate _ ->
-                    ( outerModel, Cmd.none )
-
-                VolumeDetail _ ->
-                    ( outerModel, Cmd.none )
-
-                VolumeAttach _ ->
-                    case prevProjectViewConstructor of
-                        Just (VolumeAttach _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+                        Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
                             let
                                 ( newSharedModel, newCmd ) =
                                     ( outerModel.sharedModel, OSVolumes.requestVolumes project )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            modelUpdateViewState
+                                (projectViewProto <|
+                                    VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid)
+                                )
+                                { outerModel | sharedModel = newSharedModel }
+                                |> pipelineCmd (Cmd.map SharedMsg newCmd)
 
-                VolumeMountInstructions _ ->
+                        Route.VolumeCreate ->
+                            modelUpdateViewState
+                                (projectViewProto <| VolumeCreate Page.VolumeCreate.init)
+                                outerModel
+                                |> pipelineCmd (Cmd.map SharedMsg <| OSQuotas.requestComputeQuota project)
+
+                        Route.VolumeDetail volumeUuid ->
+                            modelUpdateViewState
+                                (projectViewProto <| VolumeDetail <| Page.VolumeDetail.init True volumeUuid)
+                                outerModel
+
+                        Route.VolumeList ->
+                            let
+                                cmd =
+                                    Cmd.batch
+                                        [ OSVolumes.requestVolumes project
+                                        , Ports.instantiateClipboardJs ()
+                                        ]
+                            in
+                            modelUpdateViewState
+                                (projectViewProto <| VolumeList <| Page.VolumeList.init True)
+                                outerModel
+                                |> pipelineCmd (Cmd.map SharedMsg cmd)
+
+                        Route.VolumeMountInstructions attachment ->
+                            modelUpdateViewState
+                                (projectViewProto <| VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment)
+                                outerModel
+
+                Nothing ->
                     ( outerModel, Cmd.none )
 
-                VolumeCreate _ ->
-                    let
-                        cmd =
-                            -- If just entering this view, get volume quota
-                            case outerModel.viewState of
-                                ProjectView _ _ (VolumeCreate _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    OSQuotas.requestVolumeQuota project
-                    in
-                    ( outerModel, cmd )
-
-        ( newOuterModel, viewStateCmd ) =
-            modelUpdateViewState newViewState viewSpecificOuterModel
-    in
-    ( newOuterModel
-    , Cmd.batch
-        [ viewStateCmd
-        , Cmd.map SharedMsg viewSpecificCmd
-        ]
-    )
+        Route.Settings ->
+            modelUpdateViewState
+                (NonProjectView <| Settings <| Page.Settings.init)
+                outerModel
 
 
 modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd OuterMsg )
