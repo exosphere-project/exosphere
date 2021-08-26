@@ -142,7 +142,7 @@ updateUnderlying outerMsg outerModel =
     in
     case ( outerMsg, outerModel.viewState ) of
         ( SetNonProjectView nonProjectViewConstructor, _ ) ->
-            ViewStateHelpers.setNonProjectView nonProjectViewConstructor outerModel
+            ViewStateHelpers.modelUpdateViewState (NonProjectView nonProjectViewConstructor) outerModel
 
         ( SetProjectView projectIdentifier projectViewConstructor, _ ) ->
             case GetterSetters.projectLookup sharedModel projectIdentifier of
@@ -690,8 +690,8 @@ processSharedMsg sharedMsg outerModel =
                         newViewStateFunc =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
-                                    ViewStateHelpers.setNonProjectView
-                                        (SelectProjects <| Page.SelectProjects.init unscopedProvider.authUrl)
+                                    ViewStateHelpers.modelUpdateViewState
+                                        (NonProjectView <| SelectProjects <| Page.SelectProjects.init unscopedProvider.authUrl)
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
@@ -703,8 +703,8 @@ processSharedMsg sharedMsg outerModel =
                                                 AllResourcesList Page.AllResourcesList.init
 
                                         Nothing ->
-                                            ViewStateHelpers.setNonProjectView
-                                                LoginPicker
+                                            ViewStateHelpers.modelUpdateViewState
+                                                (NonProjectView LoginPicker)
 
                         sharedModelUpdatedUnscopedProviders =
                             { sharedModel | unscopedProviders = newUnscopedProviders }
@@ -747,7 +747,7 @@ processSharedMsg sharedMsg outerModel =
                             Page.GetSupport.init maybeSupportableItemTuple
 
                         ( newOuterModel, otherCmd ) =
-                            ViewStateHelpers.setNonProjectView (GetSupport pageModel) outerModel
+                            ViewStateHelpers.modelUpdateViewState (NonProjectView <| GetSupport pageModel) outerModel
                     in
                     ( newOuterModel
                     , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
@@ -759,18 +759,18 @@ processSharedMsg sharedMsg outerModel =
                             Page.HelpAbout.init
 
                         ( newOuterModel, otherCmd ) =
-                            ViewStateHelpers.setNonProjectView HelpAbout outerModel
+                            ViewStateHelpers.modelUpdateViewState (NonProjectView <| HelpAbout) outerModel
                     in
                     ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
 
                 Types.SharedMsg.LoginJetstream ->
-                    ViewStateHelpers.setNonProjectView (Login <| LoginJetstream Page.LoginJetstream.init) outerModel
+                    ViewStateHelpers.modelUpdateViewState (NonProjectView <| Login <| LoginJetstream Page.LoginJetstream.init) outerModel
 
                 Types.SharedMsg.LoginOpenstack ->
-                    ViewStateHelpers.setNonProjectView (Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
+                    ViewStateHelpers.modelUpdateViewState (NonProjectView <| Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
 
                 Types.SharedMsg.LoginPicker ->
-                    ViewStateHelpers.setNonProjectView LoginPicker outerModel
+                    ViewStateHelpers.modelUpdateViewState (NonProjectView LoginPicker) outerModel
 
                 Types.SharedMsg.ProjectPage projectId projectPage ->
                     case GetterSetters.projectLookup sharedModel projectId of

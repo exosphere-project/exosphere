@@ -2,7 +2,6 @@ module State.ViewState exposing
     ( defaultLoginViewState
     , defaultViewState
     , modelUpdateViewState
-    , setNonProjectView
     , setProjectView
     , viewStateToSupportableItem
     )
@@ -32,29 +31,6 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
 import View.PageTitle
-
-
-setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-setNonProjectView nonProjectViewConstructor outerModel =
-    -- TODO remove this function
-    let
-        ( viewSpecificSharedModel, viewSpecificCmd ) =
-            case nonProjectViewConstructor of
-                _ ->
-                    ( outerModel.sharedModel, Cmd.none )
-
-        newViewState =
-            NonProjectView nonProjectViewConstructor
-
-        ( newOuterModel, viewStateCmd ) =
-            modelUpdateViewState newViewState { outerModel | sharedModel = viewSpecificSharedModel }
-    in
-    ( newOuterModel
-    , Cmd.batch
-        [ viewStateCmd
-        , Cmd.map SharedMsg viewSpecificCmd
-        ]
-    )
 
 
 setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )

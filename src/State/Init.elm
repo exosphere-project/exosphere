@@ -16,7 +16,7 @@ import Random
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
-import State.ViewState exposing (setNonProjectView, setProjectView)
+import State.ViewState exposing (setProjectView)
 import Style.Types
 import Time
 import Toasty
@@ -276,8 +276,8 @@ init flags urlKey =
         ( setViewModel, setViewCmd ) =
             case viewStateFromUrl of
                 NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView
-                        nonProjectViewConstructor
+                    State.ViewState.modelUpdateViewState
+                        (NonProjectView nonProjectViewConstructor)
                         outerModel
 
                 ProjectView projectId _ projectViewConstructor ->
