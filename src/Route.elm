@@ -29,11 +29,11 @@ type ProjectRouteConstructor
     | ServerCreateImage OSTypes.ServerUuid (Maybe String)
     | ServerDetail OSTypes.ServerUuid
     | ServerList
-    | VolumeMountInstructions OSTypes.VolumeAttachment
     | VolumeAttach (Maybe OSTypes.ServerUuid) (Maybe OSTypes.VolumeUuid)
     | VolumeCreate
     | VolumeDetail OSTypes.VolumeUuid
     | VolumeList
+    | VolumeMountInstructions OSTypes.VolumeAttachment
 
 
 routeToUrl : Maybe String -> Route -> String

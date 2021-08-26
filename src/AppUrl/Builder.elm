@@ -60,20 +60,14 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                 [ "helpabout" ]
                 []
 
+        LoadingUnscopedProjects _ ->
+            buildUrlFunc
+                [ "loadingprojs"
+                ]
+                []
+
         Login loginView ->
             case loginView of
-                LoginOpenstack pageModel ->
-                    buildUrlFunc
-                        [ "login"
-                        , "openstack"
-                        ]
-                        [ UB.string "authurl" pageModel.creds.authUrl
-                        , UB.string "udomain" pageModel.creds.userDomain
-                        , UB.string "uname" pageModel.creds.username
-
-                        -- Not encoding password!
-                        ]
-
                 LoginJetstream jsLogin ->
                     let
                         jsProvider =
@@ -97,15 +91,21 @@ projectNonspecificUrlPart buildUrlFunc viewConstructor =
                         -- Not encoding password!
                         ]
 
+                LoginOpenstack pageModel ->
+                    buildUrlFunc
+                        [ "login"
+                        , "openstack"
+                        ]
+                        [ UB.string "authurl" pageModel.creds.authUrl
+                        , UB.string "udomain" pageModel.creds.userDomain
+                        , UB.string "uname" pageModel.creds.username
+
+                        -- Not encoding password!
+                        ]
+
         LoginPicker ->
             buildUrlFunc
                 [ "loginpicker" ]
-                []
-
-        LoadingUnscopedProjects _ ->
-            buildUrlFunc
-                [ "loadingprojs"
-                ]
                 []
 
         MessageLog pageModel ->
