@@ -53,8 +53,8 @@ import View.Helpers
 import View.PageTitle
 
 
-navigateToPage : OuterModel -> Route.NavigablePage -> ( OuterModel, Cmd OuterMsg )
-navigateToPage outerModel navigableView =
+navigateToPage : Route.NavigablePage -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+navigateToPage navigableView outerModel =
     let
         sharedModel =
             outerModel.sharedModel
@@ -322,6 +322,7 @@ setProjectView project projectViewConstructor outerModel =
 
                 ServerCreate pageModel ->
                     case outerModel.viewState of
+                        -- TODO migrate this logic to page
                         -- If we are already in this view state then ensure user isn't trying to choose a server count
                         -- that would exceed quota; if so, reduce server count to comply with quota.
                         -- TODO double-check that this code still actually works.

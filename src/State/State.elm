@@ -727,7 +727,7 @@ processSharedMsg sharedMsg outerModel =
             ( outerModel, Ports.openNewWindow url )
 
         NavigateToView navigablePage ->
-            ViewStateHelpers.navigateToPage outerModel navigablePage
+            ViewStateHelpers.navigateToPage navigablePage outerModel
 
         NavigateToUrl urlRequest ->
             case urlRequest of
@@ -756,7 +756,7 @@ processSharedMsg sharedMsg outerModel =
                         url
                 of
                     Just route ->
-                        ViewStateHelpers.navigateToPage outerModel route
+                        ViewStateHelpers.navigateToPage route outerModel
 
                     Nothing ->
                         ( { outerModel

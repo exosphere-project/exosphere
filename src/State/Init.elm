@@ -270,7 +270,7 @@ init flags urlKey =
             }
 
         ( setViewModel, setViewCmd ) =
-            State.ViewState.navigateToPage outerModel route
+            State.ViewState.navigateToPage route outerModel
     in
     ( setViewModel
     , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]
