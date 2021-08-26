@@ -46,7 +46,6 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
-import Route
 import Set
 import State.Auth
 import State.Error
@@ -144,15 +143,6 @@ updateUnderlying outerMsg outerModel =
     case ( outerMsg, outerModel.viewState ) of
         ( SetNonProjectView nonProjectViewConstructor, _ ) ->
             ViewStateHelpers.modelUpdateViewState (NonProjectView nonProjectViewConstructor) outerModel
-
-        ( SetProjectView projectIdentifier projectViewConstructor, _ ) ->
-            case GetterSetters.projectLookup sharedModel projectIdentifier of
-                Nothing ->
-                    -- Project not found, may have been removed, nothing to do
-                    ( outerModel, Cmd.none )
-
-                Just project ->
-                    ViewStateHelpers.setProjectView project projectViewConstructor outerModel
 
         ( SharedMsg sharedMsg, _ ) ->
             processSharedMsg sharedMsg outerModel

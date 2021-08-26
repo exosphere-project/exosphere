@@ -22,14 +22,14 @@ import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
-import Types.HelperTypes as HelperTypes
 import Types.SharedMsg
 import Types.View as ViewTypes
 
 
-type OuterMsg
+type
+    OuterMsg
+    -- TODO remove this
     = SetNonProjectView ViewTypes.NonProjectViewConstructor
-    | SetProjectView HelperTypes.ProjectIdentifier ViewTypes.ProjectViewConstructor
     | SharedMsg Types.SharedMsg.SharedMsg
     | AllResourcesListMsg Page.AllResourcesList.Msg
     | FloatingIpAssignMsg Page.FloatingIpAssign.Msg

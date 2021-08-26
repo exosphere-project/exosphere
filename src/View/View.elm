@@ -395,7 +395,7 @@ createButton context projectId expanded =
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <| SetProjectView projectId <| ImageList Page.ImageList.init)
+                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectPage projectId <| Route.ImageList)
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice

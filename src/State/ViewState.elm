@@ -113,6 +113,10 @@ navigateToPage outerModel navigableView =
         Route.ProjectPage projectId projectPage ->
             case GetterSetters.projectLookup sharedModel projectId of
                 Just project ->
+                    let
+                        projectViewProto =
+                            ProjectView projectId { createPopup = False }
+                    in
                     case projectPage of
                         Route.AllResourcesList ->
                             setProjectView
@@ -133,10 +137,16 @@ navigateToPage outerModel navigableView =
                                 outerModel
 
                         Route.ImageList ->
-                            setProjectView
-                                project
-                                (ImageList Page.ImageList.init)
-                                outerModel
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Page.ImageList.init sharedModel project
+
+                                ( newOuterModel, setViewCmd ) =
+                                    modelUpdateViewState
+                                        (projectViewProto <| ImageList pageModel)
+                                        outerModel
+                            in
+                            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg pageCmd, setViewCmd ] )
 
                         Route.KeypairCreate ->
                             setProjectView
@@ -259,17 +269,7 @@ setProjectView project projectViewConstructor outerModel =
                             ( { outerModel | sharedModel = newSharedModel }, newCmd )
 
                 ImageList _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ImageList _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    Rest.Glance.requestImages outerModel.sharedModel project
-                    in
-                    ( outerModel, cmd )
+                    ( outerModel, Cmd.none )
 
                 ServerList _ ->
                     -- Don't fire cmds if we're already in this view

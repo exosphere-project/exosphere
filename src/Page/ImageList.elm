@@ -7,6 +7,7 @@ import Filesize
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
+import Rest.Glance
 import Route
 import Set
 import Set.Extra
@@ -15,6 +16,7 @@ import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types exposing (ImageTag)
@@ -48,9 +50,16 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
-init : Model
-init =
+initModel : Model
+initModel =
     Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
+
+
+init : SharedModel -> Project -> ( Model, Cmd SharedMsg.SharedMsg )
+init sharedModel project =
+    ( initModel
+    , Rest.Glance.requestImages sharedModel project
+    )
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -94,7 +103,7 @@ update msg _ model =
             ( { model | visibilityFilter = filter }, Cmd.none, SharedMsg.NoOp )
 
         GotClearFilters ->
-            ( init, Cmd.none, SharedMsg.NoOp )
+            ( initModel, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
