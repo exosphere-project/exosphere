@@ -59,16 +59,6 @@ navigateToPage route outerModel =
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
 
-        ( newOuterModel, newCmd ) =
-            modelUpdateViewState newViewState { outerModel | sharedModel = pageSpecificSharedModel }
-    in
-    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg pageSpecificCmd, newCmd ] )
-
-
-modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-modelUpdateViewState viewState outerModel =
-    -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
-    let
         urlWithoutQuery url =
             String.split "?" url
                 |> List.head
@@ -78,17 +68,14 @@ modelUpdateViewState viewState outerModel =
             outerModel.sharedModel.prevUrl
 
         newUrl =
-            AppUrl.Builder.viewStateToUrl outerModel.sharedModel.urlPathPrefix viewState
-
-        oldSharedModel =
-            outerModel.sharedModel
+            AppUrl.Builder.viewStateToUrl outerModel.sharedModel.urlPathPrefix newViewState
 
         newSharedModel =
-            { oldSharedModel | prevUrl = newUrl }
+            { pageSpecificSharedModel | prevUrl = newUrl }
 
         newOuterModel =
             { outerModel
-                | viewState = viewState
+                | viewState = newViewState
                 , sharedModel = newSharedModel
             }
 
@@ -106,14 +93,14 @@ modelUpdateViewState viewState outerModel =
             else
                 -- We should `pushUrl` and update Matomo when modifying the path (moving between views)
                 ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
-
-        urlCmd =
-            Cmd.batch
-                [ updateUrlFunc newOuterModel.sharedModel.navigationKey newUrl
-                , updateMatomoCmd
-                ]
     in
-    ( newOuterModel, urlCmd )
+    ( newOuterModel
+    , Cmd.batch
+        [ Cmd.map SharedMsg pageSpecificCmd
+        , updateUrlFunc newOuterModel.sharedModel.navigationKey newUrl
+        , updateMatomoCmd
+        ]
+    )
 
 
 routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
