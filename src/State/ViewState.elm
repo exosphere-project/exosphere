@@ -3,7 +3,6 @@ module State.ViewState exposing
     , defaultRoute
     , modelUpdateViewState
     , navigateToPage
-    , setProjectView
     , viewStateToSupportableItem
     )
 

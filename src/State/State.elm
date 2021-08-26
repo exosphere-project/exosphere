@@ -46,6 +46,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Route
 import Set
 import State.Auth
 import State.Error
@@ -685,10 +686,9 @@ processSharedMsg sharedMsg outerModel =
                                     -- If we have at least one project then show it, else show the login page
                                     case List.head sharedModel.projects of
                                         Just project ->
-                                            ViewStateHelpers.setProjectView
-                                                project
-                                            <|
-                                                AllResourcesList Page.AllResourcesList.init
+                                            ViewStateHelpers.navigateToPage <|
+                                                Route.ProjectPage project.auth.project.uuid <|
+                                                    Route.AllResourcesList
 
                                         Nothing ->
                                             ViewStateHelpers.modelUpdateViewState
@@ -1132,7 +1132,9 @@ processProjectSpecificMsg outerModel project msg =
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
                 ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.setProjectView project (FloatingIpList <| Page.FloatingIpList.init True) outerModel
+                    ViewStateHelpers.navigateToPage
+                        (Route.ProjectPage project.auth.project.uuid <| Route.FloatingIpList)
+                        outerModel
             in
             ( newOuterModel
             , Cmd.batch
@@ -1313,9 +1315,8 @@ processProjectSpecificMsg outerModel project msg =
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ViewStateHelpers.setProjectView
-                newProject
-                (KeypairList <| Page.KeypairList.init True)
+            ViewStateHelpers.navigateToPage
+                (Route.ProjectPage newProject.auth.project.uuid <| Route.KeypairList)
                 { outerModel | sharedModel = newSharedModel }
 
         RequestDeleteKeypair keypairId ->
@@ -1551,7 +1552,7 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.setProjectView project (VolumeList <| Page.VolumeList.init True) outerModel
+            ViewStateHelpers.navigateToPage (Route.ProjectPage project.auth.project.uuid <| Route.VolumeList) outerModel
 
         ReceiveVolumes volumes ->
             let
@@ -1643,10 +1644,10 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
 
         ReceiveAttachVolume attachment ->
-            ViewStateHelpers.setProjectView project (VolumeMountInstructions attachment) outerModel
+            ViewStateHelpers.navigateToPage (Route.ProjectPage project.auth.project.uuid <| Route.VolumeMountInstructions attachment) outerModel
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.setProjectView project (VolumeList <| Page.VolumeList.init True) outerModel
+            ViewStateHelpers.navigateToPage (Route.ProjectPage project.auth.project.uuid <| Route.VolumeList) outerModel
 
         ReceiveAppCredential appCredential ->
             let
@@ -1673,12 +1674,7 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterModel outerModel
 
         ReceiveRandomServerName serverName ->
-            case outerModel.viewState of
-                ProjectView _ _ (ServerCreate pageModel) ->
-                    ViewStateHelpers.setProjectView project (ServerCreate { pageModel | serverName = serverName }) outerModel
-
-                _ ->
-                    ( outerModel, Cmd.none )
+            updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotServerName serverName) outerModel
 
 
 processServerSpecificMsg : OuterModel -> Project -> Server -> ServerSpecificMsgConstructor -> ( OuterModel, Cmd OuterMsg )
@@ -2278,13 +2274,10 @@ createProject outerModel authToken endpoints =
                 NonProjectView (SelectProjects _) ->
                     \outerModel_ -> ( outerModel_, Cmd.none )
 
-                NonProjectView _ ->
-                    ViewStateHelpers.setProjectView newProject <|
-                        AllResourcesList Page.AllResourcesList.init
-
-                ProjectView _ _ _ ->
-                    ViewStateHelpers.setProjectView newProject <|
-                        AllResourcesList Page.AllResourcesList.init
+                _ ->
+                    ViewStateHelpers.navigateToPage <|
+                        Route.ProjectPage newProject.auth.project.uuid <|
+                            Route.AllResourcesList
 
         ( newSharedModel, newCmd ) =
             ( { sharedModel

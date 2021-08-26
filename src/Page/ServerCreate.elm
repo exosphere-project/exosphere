@@ -1,4 +1,4 @@
-module Page.ServerCreate exposing (Model, Msg, init, update, view)
+module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Background as Background
