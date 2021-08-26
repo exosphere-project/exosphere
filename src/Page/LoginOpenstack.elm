@@ -39,10 +39,10 @@ type Msg
     | NoOp
 
 
-init : Model
-init =
+init : Maybe OSTypes.OpenstackLogin -> Model
+init maybeCreds =
     { creds =
-        defaultCreds
+        Maybe.withDefault defaultCreds maybeCreds
     , openRc = ""
     , entryType = CredsEntry
     }

@@ -43,7 +43,7 @@ view context sharedModel =
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Add OpenStack Account"
                         , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView Route.LoginOpenstack
+                            Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.LoginOpenstack Nothing
                         }
               , description =
                     ""
@@ -55,7 +55,7 @@ view context sharedModel =
                         (SH.materialStyle context.palette).primaryButton
                         { text = "Add Jetstream Account"
                         , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView Route.LoginJetstream
+                            Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.LoginJetstream Nothing
                         }
               , description =
                     "Recommended login method for Jetstream Cloud"

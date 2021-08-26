@@ -24,9 +24,11 @@ type Msg
     | SharedMsg SharedMsg.SharedMsg
 
 
-init : Model
-init =
-    defaultJetstreamCreds
+init : Maybe JetstreamCreds -> Model
+init maybeCreds =
+    Maybe.withDefault
+        defaultJetstreamCreds
+        maybeCreds
 
 
 defaultJetstreamCreds : JetstreamCreds

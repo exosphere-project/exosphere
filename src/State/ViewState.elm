@@ -1,7 +1,8 @@
 module State.ViewState exposing
-    ( defaultLoginViewState
-    , defaultViewState
+    ( defaultLoginPage
+    , defaultRoute
     , modelUpdateViewState
+    , navigateToPage
     , setProjectView
     , viewStateToSupportableItem
     )
@@ -14,13 +15,32 @@ import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
 import OpenStack.Volumes as OSVolumes
 import Page.AllResourcesList
+import Page.FloatingIpAssign
+import Page.FloatingIpList
+import Page.GetSupport
+import Page.HelpAbout
+import Page.ImageList
+import Page.KeypairCreate
+import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.MessageLog
+import Page.ServerCreate
+import Page.ServerCreateImage
+import Page.ServerDetail
+import Page.ServerList
+import Page.Settings
+import Page.VolumeAttach
+import Page.VolumeCreate
+import Page.VolumeDetail
+import Page.VolumeList
+import Page.VolumeMountInstructions
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Nova
+import Route
 import Style.Widgets.NumericTextInput.NumericTextInput
 import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..))
 import Types.OuterModel exposing (OuterModel)
@@ -31,6 +51,166 @@ import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
 import View.Helpers
 import View.PageTitle
+
+
+navigateToPage : OuterModel -> Route.NavigablePage -> ( OuterModel, Cmd OuterMsg )
+navigateToPage outerModel navigableView =
+    let
+        sharedModel =
+            outerModel.sharedModel
+    in
+    case navigableView of
+        Route.GetSupport maybeSupportableItemTuple ->
+            let
+                -- TODO clean this up once ViewStateHelpers is no longer needed
+                ( pageModel, cmd ) =
+                    Page.GetSupport.init maybeSupportableItemTuple
+
+                ( newOuterModel, otherCmd ) =
+                    modelUpdateViewState (NonProjectView <| GetSupport pageModel) outerModel
+            in
+            ( newOuterModel
+            , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
+            )
+
+        Route.HelpAbout ->
+            let
+                ( _, cmd ) =
+                    Page.HelpAbout.init
+
+                ( newOuterModel, otherCmd ) =
+                    modelUpdateViewState (NonProjectView <| HelpAbout) outerModel
+            in
+            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
+
+        Route.LoadingUnscopedProjects authTokenString ->
+            -- TODO move stuff from State.init here to request projects from unscoped provider?
+            modelUpdateViewState
+                (NonProjectView <| LoadingUnscopedProjects authTokenString)
+                outerModel
+
+        Route.LoginJetstream maybeCreds ->
+            modelUpdateViewState
+                (NonProjectView <| Login <| LoginJetstream <| Page.LoginJetstream.init maybeCreds)
+                outerModel
+
+        Route.LoginOpenstack maybeCreds ->
+            modelUpdateViewState
+                (NonProjectView <| Login <| LoginOpenstack <| Page.LoginOpenstack.init maybeCreds)
+                outerModel
+
+        Route.LoginPicker ->
+            modelUpdateViewState (NonProjectView LoginPicker) outerModel
+
+        Route.MessageLog showDebugMsgs ->
+            modelUpdateViewState
+                (NonProjectView <| MessageLog <| Page.MessageLog.init (Just showDebugMsgs))
+                outerModel
+
+        Route.PageNotFound ->
+            modelUpdateViewState (NonProjectView <| PageNotFound) outerModel
+
+        Route.ProjectPage projectId projectPage ->
+            case GetterSetters.projectLookup sharedModel projectId of
+                Just project ->
+                    case projectPage of
+                        Route.AllResourcesList ->
+                            setProjectView
+                                project
+                                (AllResourcesList <| Page.AllResourcesList.init)
+                                outerModel
+
+                        Route.FloatingIpAssign maybeIpUuid maybeServerUuid ->
+                            setProjectView
+                                project
+                                (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
+                                outerModel
+
+                        Route.FloatingIpList ->
+                            setProjectView
+                                project
+                                (FloatingIpList <| Page.FloatingIpList.init True)
+                                outerModel
+
+                        Route.ImageList ->
+                            setProjectView
+                                project
+                                (ImageList Page.ImageList.init)
+                                outerModel
+
+                        Route.KeypairCreate ->
+                            setProjectView
+                                project
+                                (KeypairCreate Page.KeypairCreate.init)
+                                outerModel
+
+                        Route.KeypairList ->
+                            setProjectView
+                                project
+                                (KeypairList <| Page.KeypairList.init True)
+                                outerModel
+
+                        Route.ServerCreate imageId imageName maybeDeployGuac ->
+                            setProjectView
+                                project
+                                (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
+                                outerModel
+
+                        Route.ServerCreateImage serverId maybeImageName ->
+                            setProjectView
+                                project
+                                (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
+                                outerModel
+
+                        Route.ServerDetail serverId ->
+                            setProjectView
+                                project
+                                (ServerDetail (Page.ServerDetail.init serverId))
+                                outerModel
+
+                        Route.ServerList ->
+                            setProjectView
+                                project
+                                (ServerList <| Page.ServerList.init True)
+                                outerModel
+
+                        Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
+                            setProjectView
+                                project
+                                (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
+                                outerModel
+
+                        Route.VolumeCreate ->
+                            setProjectView
+                                project
+                                (VolumeCreate Page.VolumeCreate.init)
+                                outerModel
+
+                        Route.VolumeDetail volumeUuid ->
+                            setProjectView
+                                project
+                                (VolumeDetail <| Page.VolumeDetail.init True volumeUuid)
+                                outerModel
+
+                        Route.VolumeList ->
+                            setProjectView
+                                project
+                                (VolumeList <| Page.VolumeList.init True)
+                                outerModel
+
+                        Route.VolumeMountInstructions attachment ->
+                            setProjectView
+                                project
+                                (VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment)
+                                outerModel
+
+                Nothing ->
+                    ( outerModel, Cmd.none )
+
+        Route.Settings ->
+            modelUpdateViewState
+                (NonProjectView <| Settings <| Page.Settings.init)
+                outerModel
 
 
 setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -377,32 +557,32 @@ modelUpdateViewState viewState outerModel =
     ( newOuterModel, urlCmd )
 
 
-defaultViewState : SharedModel -> ViewState
-defaultViewState model =
-    case model.projects of
+defaultRoute : SharedModel -> Route.NavigablePage
+defaultRoute sharedModel =
+    -- TODO move this
+    case sharedModel.projects of
         [] ->
-            NonProjectView <| defaultLoginViewState model.style.defaultLoginView
+            defaultLoginPage sharedModel.style.defaultLoginView
 
         firstProject :: _ ->
-            ProjectView
+            Route.ProjectPage
                 firstProject.auth.project.uuid
-                { createPopup = False }
-                (AllResourcesList Page.AllResourcesList.init)
+                Route.AllResourcesList
 
 
-defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor
-defaultLoginViewState maybeDefaultLoginView =
+defaultLoginPage : Maybe DefaultLoginView -> Route.NavigablePage
+defaultLoginPage maybeDefaultLoginView =
     case maybeDefaultLoginView of
         Nothing ->
-            LoginPicker
+            Route.LoginPicker
 
         Just defaultLoginView ->
             case defaultLoginView of
                 DefaultLoginOpenstack ->
-                    Login <| LoginOpenstack Page.LoginOpenstack.init
+                    Route.LoginOpenstack Nothing
 
                 DefaultLoginJetstream ->
-                    Login <| LoginJetstream Page.LoginJetstream.init
+                    Route.LoginJetstream Nothing
 
 
 viewStateToSupportableItem :

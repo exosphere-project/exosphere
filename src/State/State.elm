@@ -1,6 +1,5 @@
 module State.State exposing (update)
 
-import AppUrl.Builder
 import AppUrl.Parser
 import Browser
 import Browser.Navigation
@@ -23,7 +22,6 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
-import Page.HelpAbout
 import Page.ImageList
 import Page.KeypairCreate
 import Page.KeypairList
@@ -741,118 +739,8 @@ processSharedMsg sharedMsg outerModel =
         OpenNewWindow url ->
             ( outerModel, Ports.openNewWindow url )
 
-        NavigateToView navigableView ->
-            case navigableView of
-                Route.GetSupport maybeSupportableItemTuple ->
-                    let
-                        -- TODO clean this up once ViewStateHelpers is no longer needed
-                        ( pageModel, cmd ) =
-                            Page.GetSupport.init maybeSupportableItemTuple
-
-                        ( newOuterModel, otherCmd ) =
-                            ViewStateHelpers.modelUpdateViewState (NonProjectView <| GetSupport pageModel) outerModel
-                    in
-                    ( newOuterModel
-                    , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
-                    )
-
-                Route.HelpAbout ->
-                    let
-                        ( _, cmd ) =
-                            Page.HelpAbout.init
-
-                        ( newOuterModel, otherCmd ) =
-                            ViewStateHelpers.modelUpdateViewState (NonProjectView <| HelpAbout) outerModel
-                    in
-                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
-
-                Route.LoginJetstream ->
-                    ViewStateHelpers.modelUpdateViewState (NonProjectView <| Login <| LoginJetstream Page.LoginJetstream.init) outerModel
-
-                Route.LoginOpenstack ->
-                    ViewStateHelpers.modelUpdateViewState (NonProjectView <| Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
-
-                Route.LoginPicker ->
-                    ViewStateHelpers.modelUpdateViewState (NonProjectView LoginPicker) outerModel
-
-                Route.ProjectPage projectId projectPage ->
-                    case GetterSetters.projectLookup sharedModel projectId of
-                        Just project ->
-                            case projectPage of
-                                Route.FloatingIpAssign maybeIpUuid maybeServerUuid ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
-                                        outerModel
-
-                                Route.FloatingIpList ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (FloatingIpList <| Page.FloatingIpList.init True)
-                                        outerModel
-
-                                Route.KeypairCreate ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (KeypairCreate Page.KeypairCreate.init)
-                                        outerModel
-
-                                Route.KeypairList ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (KeypairList <| Page.KeypairList.init True)
-                                        outerModel
-
-                                Route.ServerCreate imageId imageName maybeDeployGuac ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
-                                        outerModel
-
-                                Route.ServerCreateImage serverId maybeImageName ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
-                                        outerModel
-
-                                Route.ServerDetail serverId ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (ServerDetail (Page.ServerDetail.init serverId))
-                                        outerModel
-
-                                Route.ServerList ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (ServerList <| Page.ServerList.init True)
-                                        outerModel
-
-                                Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
-                                        outerModel
-
-                                Route.VolumeCreate ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (VolumeCreate Page.VolumeCreate.init)
-                                        outerModel
-
-                                Route.VolumeDetail volumeUuid ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (VolumeDetail <| Page.VolumeDetail.init True volumeUuid)
-                                        outerModel
-
-                                Route.VolumeList ->
-                                    ViewStateHelpers.setProjectView
-                                        project
-                                        (VolumeList <| Page.VolumeList.init True)
-                                        outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+        NavigateToView navigablePage ->
+            ViewStateHelpers.navigateToPage outerModel navigablePage
 
         NavigateToUrl urlRequest ->
             case urlRequest of
@@ -875,22 +763,13 @@ processSharedMsg sharedMsg outerModel =
 
             else
                 case
-                    AppUrl.Parser.urlToViewState
+                    AppUrl.Parser.urlToRoute
                         sharedModel.urlPathPrefix
-                        (ViewStateHelpers.defaultViewState sharedModel)
+                        (ViewStateHelpers.defaultRoute sharedModel)
                         url
                 of
-                    Just ( newViewState, cmd ) ->
-                        ( { outerModel
-                            | viewState = newViewState
-                            , sharedModel =
-                                { sharedModel
-                                    | prevUrl = AppUrl.Builder.viewStateToUrl sharedModel.urlPathPrefix newViewState
-                                }
-                          }
-                        , cmd
-                            |> Cmd.map SharedMsg
-                        )
+                    Just route ->
+                        ViewStateHelpers.navigateToPage outerModel route
 
                     Nothing ->
                         ( { outerModel

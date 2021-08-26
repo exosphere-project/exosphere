@@ -20,9 +20,9 @@ type Msg
     = GotShowDebugMsgs Bool
 
 
-init : Model
-init =
-    { showDebugMsgs = False }
+init : Maybe Bool -> Model
+init maybeShowDebugMsgs =
+    { showDebugMsgs = Maybe.withDefault False maybeShowDebugMsgs }
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

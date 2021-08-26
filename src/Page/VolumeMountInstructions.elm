@@ -21,9 +21,9 @@ type Msg
     = SharedMsg SharedMsg.SharedMsg
 
 
-init : OSTypes.VolumeAttachment -> ( Model, Cmd SharedMsg.SharedMsg )
-init attachment =
-    ( attachment, Cmd.none )
+init : OSTypes.VolumeAttachment -> Model
+init =
+    identity
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )

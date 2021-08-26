@@ -1,35 +1,9 @@
-module AppUrl.Parser exposing (urlToViewState)
-
--- The Types.SharedMsg import is temporary. Depending on outcome of #558, this model will call the NavigateToView Msg instead of `init`ing pages directly.
+module AppUrl.Parser exposing (urlToRoute)
 
 import Dict
 import OpenStack.Types as OSTypes
-import Page.AllResourcesList
-import Page.FloatingIpAssign
-import Page.FloatingIpList
-import Page.GetSupport
-import Page.ImageList
-import Page.KeypairCreate
-import Page.KeypairList
-import Page.LoginOpenstack
-import Page.ServerCreate
-import Page.ServerCreateImage
-import Page.ServerDetail
-import Page.ServerList
-import Page.Settings
-import Page.VolumeAttach
-import Page.VolumeCreate
-import Page.VolumeDetail
-import Page.VolumeList
+import Route exposing (NavigablePage(..), NavigableProjectPage(..))
 import Types.HelperTypes exposing (JetstreamCreds, JetstreamProvider(..))
-import Types.SharedMsg as SharedMsg
-import Types.View
-    exposing
-        ( LoginView(..)
-        , NonProjectViewConstructor(..)
-        , ProjectViewConstructor(..)
-        , ViewState(..)
-        )
 import Url
 import Url.Parser
     exposing
@@ -46,13 +20,13 @@ import Url.Parser
 import Url.Parser.Query as Query
 
 
-urlToViewState : Maybe String -> ViewState -> Url.Url -> Maybe ( ViewState, Cmd SharedMsg.SharedMsg )
-urlToViewState maybePathPrefix defaultViewState url =
+urlToRoute : Maybe String -> NavigablePage -> Url.Url -> Maybe NavigablePage
+urlToRoute maybePathPrefix defaultRoute url =
     case maybePathPrefix of
         Nothing ->
             parse
                 (oneOf
-                    (pathParsers defaultViewState)
+                    (pathParsers defaultRoute)
                 )
                 url
 
@@ -61,22 +35,18 @@ urlToViewState maybePathPrefix defaultViewState url =
                 (s
                     pathPrefix
                     </> oneOf
-                            (pathParsers defaultViewState)
+                            (pathParsers defaultRoute)
                 )
                 url
 
 
-pathParsers : ViewState -> List (Parser (( ViewState, Cmd SharedMsg.SharedMsg ) -> b) b)
-pathParsers defaultViewState =
-    [ -- Non-project-specific views
-      map ( defaultViewState, Cmd.none ) top
+pathParsers : NavigablePage -> List (Parser (NavigablePage -> b) b)
+pathParsers defaultRoute =
+    [ -- Non-project-specific pages
+      map defaultRoute top
     , map
         (\creds ->
-            let
-                init =
-                    Page.LoginOpenstack.init
-            in
-            ( NonProjectView <| Login <| LoginOpenstack <| { init | creds = creds }, Cmd.none )
+            LoginOpenstack (Just creds)
         )
         (let
             queryParser =
@@ -99,7 +69,7 @@ pathParsers defaultViewState =
          s "login" </> s "openstack" <?> queryParser
         )
     , map
-        (\creds -> ( NonProjectView <| Login <| LoginJetstream creds, Cmd.none ))
+        (\creds -> LoginJetstream (Just creds))
         (let
             providerEnumDict =
                 Dict.fromList
@@ -125,20 +95,20 @@ pathParsers defaultViewState =
          s "login" </> s "jetstream" <?> queryParser
         )
     , map
-        ( NonProjectView LoginPicker, Cmd.none )
+        LoginPicker
         (s "loginpicker")
     , map
         (\maybeTokenValue ->
             case maybeTokenValue of
                 Just tokenValue ->
-                    ( NonProjectView <| LoadingUnscopedProjects tokenValue, Cmd.none )
+                    LoadingUnscopedProjects tokenValue
 
                 Nothing ->
-                    ( NonProjectView PageNotFound, Cmd.none )
+                    PageNotFound
         )
         (s "auth" </> s "oidc-login" <?> Query.string "token")
 
-    -- Not bothering to decode the SelectProjects view, because you can't currently navigate there on a fresh page load and see anything useful
+    -- Not bothering to decode the SelectProjects page, because you can't currently navigate there on a fresh page load and see anything useful
     , map
         (\maybeShowDebugMsgs ->
             let
@@ -158,48 +128,38 @@ pathParsers defaultViewState =
                         Nothing ->
                             False
             in
-            ( NonProjectView <| MessageLog { showDebugMsgs = showDebugMsgs }, Cmd.none )
+            MessageLog showDebugMsgs
         )
         (s "msglog" <?> Query.string "showdebug")
     , map
-        (let
-            pageModel =
-                Page.Settings.init
-         in
-         ( NonProjectView <| Settings pageModel, Cmd.none )
-        )
+        Settings
         (s "settings")
     , map
-        (let
-            ( pageModel, cmd ) =
-                Page.GetSupport.init Nothing
-         in
-         ( NonProjectView <| GetSupport pageModel, cmd )
-        )
+        (GetSupport Nothing)
         (s "getsupport")
     , map
-        ( NonProjectView HelpAbout, Cmd.none )
+        HelpAbout
         (s "helpabout")
     , map
-        ( NonProjectView PageNotFound, Cmd.none )
+        PageNotFound
         (s "pagenotfound")
     , map
-        (\uuid projectViewConstructor -> ( ProjectView uuid { createPopup = False } <| projectViewConstructor, Cmd.none ))
-        (s "projects" </> string </> oneOf projectViewConstructorParsers)
+        (\uuid projectRoute -> ProjectPage uuid <| projectRoute)
+        (s "projects" </> string </> oneOf projectRouteParsers)
     ]
 
 
-projectViewConstructorParsers : List (Parser (ProjectViewConstructor -> b) b)
-projectViewConstructorParsers =
+projectRouteParsers : List (Parser (NavigableProjectPage -> b) b)
+projectRouteParsers =
     [ map
-        (ImageList Page.ImageList.init)
+        ImageList
         (s "images")
     , map
-        (AllResourcesList Page.AllResourcesList.init)
+        AllResourcesList
         (s "resources")
     , map
         (\svrUuid imageName ->
-            ServerCreateImage (Page.ServerCreateImage.init svrUuid (Just imageName))
+            ServerCreateImage svrUuid (Just imageName)
         )
         (let
             queryParser =
@@ -210,34 +170,34 @@ projectViewConstructorParsers =
         )
     , map
         (\svrUuid ->
-            ServerDetail (Page.ServerDetail.init svrUuid)
+            ServerDetail svrUuid
         )
         (s "servers" </> string)
     , map
-        (ServerList <| Page.ServerList.init True)
+        ServerList
         (s "servers")
     , map
         (\volUuid ->
-            VolumeDetail (Page.VolumeDetail.init True volUuid)
+            VolumeDetail volUuid
         )
         (s "volumes" </> string)
     , map
-        (VolumeList <| Page.VolumeList.init True)
+        VolumeList
         (s "volumes")
     , map
-        (FloatingIpList <| Page.FloatingIpList.init True)
+        FloatingIpList
         (s "floatingips")
     , map
-        (FloatingIpAssign <| Page.FloatingIpAssign.init Nothing Nothing)
+        (FloatingIpAssign Nothing Nothing)
         (s "assignfloatingip")
     , map
-        (KeypairList <| Page.KeypairList.init True)
+        KeypairList
         (s "keypairs")
     , map
-        (KeypairCreate Page.KeypairCreate.init)
+        KeypairCreate
         (s "uploadkeypair")
     , map
-        ServerCreate
+        identity
         (let
             maybeBoolEnumDict =
                 Dict.fromList
@@ -248,7 +208,7 @@ projectViewConstructorParsers =
 
             queryParser =
                 Query.map3
-                    Page.ServerCreate.init
+                    ServerCreate
                     (Query.string "imageuuid"
                         |> Query.map (Maybe.withDefault "")
                     )
@@ -262,11 +222,11 @@ projectViewConstructorParsers =
          s "createserver" <?> queryParser
         )
     , map
-        (VolumeCreate Page.VolumeCreate.init)
+        VolumeCreate
         (s "createvolume")
     , map
         (\( maybeServerUuid, maybeVolUuid ) ->
-            VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolUuid)
+            VolumeAttach maybeServerUuid maybeVolUuid
         )
         (let
             queryParser =

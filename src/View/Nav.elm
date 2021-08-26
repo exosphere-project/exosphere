@@ -8,7 +8,6 @@ import Element.Region as Region
 import FeatherIcons
 import Helpers.String
 import Page.AllResourcesList
-import Page.MessageLog
 import Page.Settings
 import Route
 import State.ViewState
@@ -82,7 +81,7 @@ navMenu outerModel context =
                             MenuItem.Inactive
 
                 destination =
-                    SetNonProjectView <| State.ViewState.defaultLoginViewState outerModel.sharedModel.style.defaultLoginView
+                    SharedMsg <| SharedMsg.NavigateToView <| State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView
             in
             MenuItem.menuItem context.palette
                 active
@@ -148,7 +147,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just (SetNonProjectView <| MessageLog Page.MessageLog.init)
+                        { onPress = Just (SharedMsg <| SharedMsg.NavigateToView <| Route.MessageLog False)
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])

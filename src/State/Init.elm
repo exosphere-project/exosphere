@@ -4,7 +4,6 @@ import AppUrl.Parser
 import Browser.Navigation
 import Color
 import Dict
-import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -16,7 +15,8 @@ import Random
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
-import State.ViewState exposing (setProjectView)
+import Route
+import State.ViewState
 import Style.Types
 import Time
 import Toasty
@@ -170,17 +170,14 @@ init flags urlKey =
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
-        defaultViewState =
-            State.ViewState.defaultViewState hydratedModel
-
-        ( viewStateFromUrl, cmdFromPageInit ) =
-            AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
-                |> Maybe.withDefault ( NonProjectView PageNotFound, Cmd.none )
+        route =
+            AppUrl.Parser.urlToRoute flags.urlPathPrefix (State.ViewState.defaultRoute hydratedModel) (Tuple.first urlKey)
+                |> Maybe.withDefault Route.PageNotFound
 
         -- If we have just received an OpenID Connect auth token, store it as an unscoped provider and get projects
         ( unscopedProvidersModel, getUnscopedProjectsCmd ) =
-            case viewStateFromUrl of
-                NonProjectView (LoadingUnscopedProjects authTokenStr) ->
+            case route of
+                Route.LoadingUnscopedProjects authTokenStr ->
                     case hydratedModel.openIdConnectLoginConfig of
                         Nothing ->
                             ( hydratedModel, Cmd.none )
@@ -244,7 +241,6 @@ init flags urlKey =
                 projectsNeedingAppCredentials
                 |> Cmd.batch
             , setFaviconCmd
-            , cmdFromPageInit
             ]
                 |> Cmd.batch
 
@@ -274,23 +270,7 @@ init flags urlKey =
             }
 
         ( setViewModel, setViewCmd ) =
-            case viewStateFromUrl of
-                NonProjectView nonProjectViewConstructor ->
-                    State.ViewState.modelUpdateViewState
-                        (NonProjectView nonProjectViewConstructor)
-                        outerModel
-
-                ProjectView projectId _ projectViewConstructor ->
-                    -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-                    case GetterSetters.projectLookup requestResourcesModel projectId of
-                        Just project ->
-                            setProjectView
-                                project
-                                projectViewConstructor
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+            State.ViewState.navigateToPage outerModel route
     in
     ( setViewModel
     , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]
