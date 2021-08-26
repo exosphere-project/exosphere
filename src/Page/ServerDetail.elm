@@ -1,4 +1,4 @@
-module Page.ServerDetail exposing (Model, Msg, init, update, view)
+module Page.ServerDetail exposing (Model, Msg(..), init, update, view)
 
 import DateFormat.Relative
 import Dict

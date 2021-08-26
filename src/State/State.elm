@@ -635,11 +635,7 @@ processSharedMsg sharedMsg outerModel =
                             ( newOuterModel, Cmd.none )
 
                         _ ->
-                            ViewStateHelpers.modelUpdateViewState
-                                (NonProjectView <|
-                                    SelectProjects <|
-                                        Page.SelectProjects.init newProvider.authUrl
-                                )
+                            ViewStateHelpers.navigateToPage (Route.SelectProjects keystoneUrl)
                                 newOuterModel
 
                 Nothing ->
@@ -679,8 +675,8 @@ processSharedMsg sharedMsg outerModel =
                         newViewStateFunc =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
-                                    ViewStateHelpers.modelUpdateViewState
-                                        (NonProjectView <| SelectProjects <| Page.SelectProjects.init unscopedProvider.authUrl)
+                                    ViewStateHelpers.navigateToPage
+                                        (Route.SelectProjects unscopedProvider.authUrl)
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
@@ -691,8 +687,8 @@ processSharedMsg sharedMsg outerModel =
                                                     Route.AllResourcesList
 
                                         Nothing ->
-                                            ViewStateHelpers.modelUpdateViewState
-                                                (NonProjectView LoginPicker)
+                                            ViewStateHelpers.navigateToPage
+                                                Route.LoginPicker
 
                         sharedModelUpdatedUnscopedProviders =
                             { sharedModel | unscopedProviders = newUnscopedProviders }
@@ -983,7 +979,7 @@ processProjectSpecificMsg outerModel project msg =
                                 }
                                 viewConstructor
                     in
-                    ViewStateHelpers.modelUpdateViewState newViewState outerModel
+                    ( { outerModel | viewState = newViewState }, Cmd.none )
 
                 _ ->
                     ( outerModel, Cmd.none )
@@ -993,29 +989,26 @@ processProjectSpecificMsg outerModel project msg =
                 newProjects =
                     List.filter (\p -> p.auth.project.uuid /= project.auth.project.uuid) sharedModel.projects
 
-                newViewState =
-                    case outerModel.viewState of
-                        NonProjectView _ ->
-                            -- If we are not in a project-specific view then stay there
-                            outerModel.viewState
+                newOuterModel =
+                    { outerModel | sharedModel = { sharedModel | projects = newProjects } }
+            in
+            case outerModel.viewState of
+                NonProjectView _ ->
+                    -- If we are not in a project-specific view then stay there
+                    ( newOuterModel, Cmd.none )
 
-                        ProjectView _ _ _ ->
-                            -- If we have any projects switch to the first one in the list, otherwise switch to login view
+                ProjectView _ _ _ ->
+                    -- If we have any projects switch to the first one in the list, otherwise switch to login view
+                    let
+                        route =
                             case List.head newProjects of
                                 Just p ->
-                                    ProjectView
-                                        p.auth.project.uuid
-                                        { createPopup = False }
-                                    <|
-                                        AllResourcesList Page.AllResourcesList.init
+                                    Route.ProjectPage p.auth.project.uuid Route.AllResourcesList
 
                                 Nothing ->
-                                    NonProjectView <| LoginPicker
-
-                sharedModelUpdatedProjects =
-                    { sharedModel | projects = newProjects }
-            in
-            ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = sharedModelUpdatedProjects }
+                                    Route.LoginPicker
+                    in
+                    ViewStateHelpers.navigateToPage route newOuterModel
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -1353,12 +1346,10 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveCreateServer _ ->
             let
-                newViewState =
-                    ProjectView
+                newRoute =
+                    Route.ProjectPage
                         project.auth.project.uuid
-                        { createPopup = False }
-                    <|
-                        AllResourcesList Page.AllResourcesList.init
+                        Route.AllResourcesList
 
                 ( newSharedModel, newCmd ) =
                     ( sharedModel, Cmd.none )
@@ -1370,7 +1361,7 @@ processProjectSpecificMsg outerModel project msg =
                             (ApiModelHelpers.requestPorts project.auth.project.uuid)
 
                 ( newOuterModel, changedViewCmd ) =
-                    ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = newSharedModel }
+                    ViewStateHelpers.navigateToPage newRoute { outerModel | sharedModel = newSharedModel }
             in
             ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, changedViewCmd ] )
 
@@ -1426,35 +1417,6 @@ processProjectSpecificMsg outerModel project msg =
                                         )
                             }
 
-                newViewState =
-                    case outerModel.viewState of
-                        ProjectView _ projectViewModel projectViewConstructor ->
-                            case projectViewConstructor of
-                                ServerCreate pageModel ->
-                                    if pageModel.networkUuid == Nothing then
-                                        case Helpers.newServerNetworkOptions newProject of
-                                            AutoSelectedNetwork netUuid ->
-                                                ProjectView
-                                                    project.auth.project.uuid
-                                                    projectViewModel
-                                                    (ServerCreate
-                                                        { pageModel
-                                                            | networkUuid = Just netUuid
-                                                        }
-                                                    )
-
-                                            _ ->
-                                                outerModel.viewState
-
-                                    else
-                                        outerModel.viewState
-
-                                _ ->
-                                    outerModel.viewState
-
-                        _ ->
-                            outerModel.viewState
-
                 newSharedModel =
                     GetterSetters.modelUpdateProject
                         sharedModel
@@ -1469,10 +1431,17 @@ processProjectSpecificMsg outerModel project msg =
                             State.Error.processSynchronousApiError newSharedModel errorContext httpError
                                 |> Helpers.pipelineCmd (ApiModelHelpers.requestNetworks project.auth.project.uuid)
 
-                ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.modelUpdateViewState newViewState { outerModel | sharedModel = newNewSharedModel }
+                ( newOuterModel, underlyingCmd ) =
+                    case Helpers.newServerNetworkOptions newProject of
+                        AutoSelectedNetwork netUuid ->
+                            updateUnderlying
+                                (ServerCreateMsg <| Page.ServerCreate.GotAutoAllocatedNetwork netUuid)
+                                { outerModel | sharedModel = newNewSharedModel }
+
+                        _ ->
+                            ( { outerModel | sharedModel = newNewSharedModel }, Cmd.none )
             in
-            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, setViewCmd ] )
+            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, underlyingCmd ] )
 
         ReceiveFloatingIps ips ->
             Rest.Neutron.receiveFloatingIps sharedModel project ips
@@ -1704,18 +1673,16 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         RequestCreateServerImage imageName ->
             let
-                newViewState =
-                    ProjectView
+                newRoute =
+                    Route.ProjectPage
                         project.auth.project.uuid
-                        { createPopup = False }
-                    <|
-                        AllResourcesList Page.AllResourcesList.init
+                        Route.AllResourcesList
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
 
                 ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.modelUpdateViewState newViewState outerModel
+                    ViewStateHelpers.navigateToPage newRoute outerModel
             in
             ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg createImageCmd, setViewCmd ] )
 
@@ -1749,44 +1716,33 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
         ReceiveDeleteServer ->
             let
-                ( serverDeletedModel, urlCmd ) =
+                newProject =
                     let
-                        newViewState =
-                            case outerModel.viewState of
-                                ProjectView projectId projectViewModel (ServerDetail model) ->
-                                    if model.serverUuid == server.osProps.uuid then
-                                        ProjectView
-                                            projectId
-                                            projectViewModel
-                                            (AllResourcesList Page.AllResourcesList.init)
+                        oldExoProps =
+                            server.exoProps
 
-                                    else
-                                        outerModel.viewState
+                        newExoProps =
+                            { oldExoProps | deletionAttempted = True }
 
-                                _ ->
-                                    outerModel.viewState
-
-                        newProject =
-                            let
-                                oldExoProps =
-                                    server.exoProps
-
-                                newExoProps =
-                                    { oldExoProps | deletionAttempted = True }
-
-                                newServer =
-                                    { server | exoProps = newExoProps }
-                            in
-                            GetterSetters.projectUpdateServer project newServer
-
-                        sharedModelUpdatedProject =
-                            GetterSetters.modelUpdateProject sharedModel newProject
+                        newServer =
+                            { server | exoProps = newExoProps }
                     in
-                    ViewStateHelpers.modelUpdateViewState
-                        newViewState
-                        { outerModel | sharedModel = sharedModelUpdatedProject }
+                    GetterSetters.projectUpdateServer project newServer
+
+                newOuterModel =
+                    { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }
             in
-            ( serverDeletedModel, urlCmd )
+            case outerModel.viewState of
+                ProjectView projectId _ (ServerDetail pageModel) ->
+                    if pageModel.serverUuid == server.osProps.uuid then
+                        ViewStateHelpers.navigateToPage (Route.ProjectPage projectId <| Route.AllResourcesList)
+                            newOuterModel
+
+                    else
+                        ( newOuterModel, Cmd.none )
+
+                _ ->
+                    ( newOuterModel, Cmd.none )
 
         ReceiveCreateFloatingIp errorContext result ->
             case result of
@@ -1856,35 +1812,13 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                         newProject =
                             GetterSetters.projectUpdateServer project newServer
 
-                        sharedModelWithUpdatedProject =
-                            GetterSetters.modelUpdateProject sharedModel newProject
-
-                        -- Only update the view if we are on the server details view for the server we're interested in
-                        updatedView =
-                            case outerModel.viewState of
-                                ProjectView projectIdentifier projectViewModel (ServerDetail model) ->
-                                    if server.osProps.uuid == model.serverUuid then
-                                        let
-                                            newModel =
-                                                { model
-                                                    | serverNamePendingConfirmation = Nothing
-                                                }
-                                        in
-                                        ProjectView projectIdentifier
-                                            projectViewModel
-                                            (ServerDetail newModel)
-
-                                    else
-                                        outerModel.viewState
-
-                                _ ->
-                                    outerModel.viewState
+                        newOuterModel =
+                            { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }
 
                         -- Later, maybe: Check that newServerName == actualNewServerName
                     in
-                    ViewStateHelpers.modelUpdateViewState
-                        updatedView
-                        { outerModel | sharedModel = sharedModelWithUpdatedProject }
+                    updateUnderlying (ServerDetailMsg <| Page.ServerDetail.GotServerNamePendingConfirmation Nothing)
+                        newOuterModel
 
         ReceiveSetServerMetadata intendedMetadataItem errorContext result ->
             case result of

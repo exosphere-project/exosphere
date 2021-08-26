@@ -1,7 +1,6 @@
 module State.ViewState exposing
     ( defaultLoginPage
     , defaultRoute
-    , modelUpdateViewState
     , navigateToPage
     , viewStateToSupportableItem
     )
@@ -24,6 +23,7 @@ import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
 import Page.MessageLog
+import Page.SelectProjects
 import Page.ServerCreate
 import Page.ServerCreateImage
 import Page.ServerDetail
@@ -314,6 +314,10 @@ navigateToPage navigableView outerModel =
 
                 Nothing ->
                     ( outerModel, Cmd.none )
+
+        Route.SelectProjects keystoneUrl ->
+            modelUpdateViewState (NonProjectView <| SelectProjects <| Page.SelectProjects.init keystoneUrl)
+                outerModel
 
         Route.Settings ->
             modelUpdateViewState

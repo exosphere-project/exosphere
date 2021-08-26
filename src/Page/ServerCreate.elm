@@ -51,6 +51,7 @@ type Msg
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
+    | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
@@ -103,6 +104,19 @@ update msg project model =
 
         GotNetworkUuid maybeNetworkUuid ->
             ( { model | networkUuid = maybeNetworkUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotAutoAllocatedNetwork autoAllocatedNetworkUuid ->
+            ( { model
+                | networkUuid =
+                    if model.networkUuid == Nothing then
+                        Just autoAllocatedNetworkUuid
+
+                    else
+                        model.networkUuid
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotCustomWorkflowSource maybeCustomWorkflowSource maybeCustomWorkflowSourceInput ->
             ( { model

@@ -14,6 +14,7 @@ type NavigablePage
     | MessageLog Bool
     | PageNotFound
     | ProjectPage HelperTypes.ProjectIdentifier NavigableProjectPage
+    | SelectProjects OSTypes.KeystoneUrl
     | Settings
 
 
