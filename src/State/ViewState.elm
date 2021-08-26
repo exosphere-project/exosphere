@@ -13,7 +13,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
 import OpenStack.Quotas as OSQuotas
-import OpenStack.Types
 import OpenStack.Volumes as OSVolumes
 import Page.AllResourcesList
 import Page.LoginJetstream
@@ -24,7 +23,7 @@ import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Nova
 import Style.Widgets.NumericTextInput.NumericTextInput
-import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
+import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
 import Types.Project exposing (Project)
