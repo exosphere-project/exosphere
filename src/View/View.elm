@@ -34,6 +34,7 @@ import Page.VolumeCreate
 import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
+import Route
 import Style.Helpers as SH
 import Style.Toast
 import Toasty
@@ -403,8 +404,8 @@ createButton context projectId expanded =
                     (Just <|
                         SharedMsg <|
                             SharedMsg.NavigateToView <|
-                                SharedMsg.ProjectPage projectId <|
-                                    SharedMsg.VolumeCreate
+                                Route.ProjectPage projectId <|
+                                    Route.VolumeCreate
                     )
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
@@ -414,8 +415,8 @@ createButton context projectId expanded =
                     (Just <|
                         SharedMsg <|
                             SharedMsg.NavigateToView <|
-                                SharedMsg.ProjectPage projectId <|
-                                    SharedMsg.KeypairCreate
+                                Route.ProjectPage projectId <|
+                                    Route.KeypairCreate
                     )
                 ]
 

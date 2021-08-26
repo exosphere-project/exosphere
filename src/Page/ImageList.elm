@@ -7,6 +7,7 @@ import Filesize
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
+import Route
 import Set
 import Set.Extra
 import Style.Helpers as SH
@@ -465,8 +466,8 @@ renderImage context project model image =
         chooseMsg =
             SharedMsg <|
                 SharedMsg.NavigateToView <|
-                    SharedMsg.ProjectPage project.auth.project.uuid <|
-                        SharedMsg.ServerCreate
+                    Route.ProjectPage project.auth.project.uuid <|
+                        Route.ServerCreate
                             image.uuid
                             image.name
                             (VH.userAppProxyLookup context project

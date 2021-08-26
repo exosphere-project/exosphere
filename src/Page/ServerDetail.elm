@@ -20,6 +20,7 @@ import OpenStack.Types as OSTypes
 import Page.ServerResourceUsageAlerts
 import Page.ServerResourceUsageCharts
 import RemoteData
+import Route
 import Style.Helpers as SH
 import Style.Widgets.CopyableText exposing (copyableText)
 import Style.Widgets.Icon as Icon
@@ -430,8 +431,8 @@ serverDetail_ context project currentTimeAndZone model server =
                         Just <|
                             SharedMsg <|
                                 SharedMsg.NavigateToView <|
-                                    SharedMsg.ProjectPage project.auth.project.uuid <|
-                                        SharedMsg.VolumeAttach
+                                    Route.ProjectPage project.auth.project.uuid <|
+                                        Route.VolumeAttach
                                             (Just server.osProps.uuid)
                                             Nothing
                     }
@@ -1158,8 +1159,8 @@ renderIpAddresses context project server model =
                             Just <|
                                 (SharedMsg <|
                                     SharedMsg.NavigateToView <|
-                                        SharedMsg.ProjectPage project.auth.project.uuid <|
-                                            SharedMsg.FloatingIpAssign Nothing (Just server.osProps.uuid)
+                                        Route.ProjectPage project.auth.project.uuid <|
+                                            Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
                                 )
                         }
                     ]
@@ -1270,8 +1271,8 @@ serverVolumes context project server =
                         (Just <|
                             SharedMsg <|
                                 SharedMsg.NavigateToView <|
-                                    SharedMsg.ProjectPage project.auth.project.uuid <|
-                                        SharedMsg.VolumeDetail v.uuid
+                                    Route.ProjectPage project.auth.project.uuid <|
+                                        Route.VolumeDetail v.uuid
                         )
 
                 volumeRow v =

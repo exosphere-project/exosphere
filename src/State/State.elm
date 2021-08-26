@@ -2,6 +2,7 @@ module State.State exposing (update)
 
 import AppUrl.Builder
 import AppUrl.Parser
+import Browser
 import Browser.Navigation
 import Helpers.ExoSetupStatus
 import Helpers.GetterSetters as GetterSetters
@@ -47,6 +48,7 @@ import Rest.Glance
 import Rest.Keystone
 import Rest.Neutron
 import Rest.Nova
+import Route
 import Set
 import State.Auth
 import State.Error
@@ -79,6 +81,7 @@ import Types.Workflow
         , CustomWorkflowTokenRDPP
         , ServerCustomWorkflowStatus(..)
         )
+import Url
 
 
 update : OuterMsg -> OuterModel -> ( OuterModel, Cmd OuterMsg )
@@ -740,7 +743,7 @@ processSharedMsg sharedMsg outerModel =
 
         NavigateToView navigableView ->
             case navigableView of
-                Types.SharedMsg.GetSupport maybeSupportableItemTuple ->
+                Route.GetSupport maybeSupportableItemTuple ->
                     let
                         -- TODO clean this up once ViewStateHelpers is no longer needed
                         ( pageModel, cmd ) =
@@ -753,7 +756,7 @@ processSharedMsg sharedMsg outerModel =
                     , Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ]
                     )
 
-                Types.SharedMsg.HelpAbout ->
+                Route.HelpAbout ->
                     let
                         ( _, cmd ) =
                             Page.HelpAbout.init
@@ -763,86 +766,86 @@ processSharedMsg sharedMsg outerModel =
                     in
                     ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg cmd, otherCmd ] )
 
-                Types.SharedMsg.LoginJetstream ->
+                Route.LoginJetstream ->
                     ViewStateHelpers.modelUpdateViewState (NonProjectView <| Login <| LoginJetstream Page.LoginJetstream.init) outerModel
 
-                Types.SharedMsg.LoginOpenstack ->
+                Route.LoginOpenstack ->
                     ViewStateHelpers.modelUpdateViewState (NonProjectView <| Login <| LoginOpenstack Page.LoginOpenstack.init) outerModel
 
-                Types.SharedMsg.LoginPicker ->
+                Route.LoginPicker ->
                     ViewStateHelpers.modelUpdateViewState (NonProjectView LoginPicker) outerModel
 
-                Types.SharedMsg.ProjectPage projectId projectPage ->
+                Route.ProjectPage projectId projectPage ->
                     case GetterSetters.projectLookup sharedModel projectId of
                         Just project ->
                             case projectPage of
-                                Types.SharedMsg.FloatingIpAssign maybeIpUuid maybeServerUuid ->
+                                Route.FloatingIpAssign maybeIpUuid maybeServerUuid ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid)
                                         outerModel
 
-                                Types.SharedMsg.FloatingIpList ->
+                                Route.FloatingIpList ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (FloatingIpList <| Page.FloatingIpList.init True)
                                         outerModel
 
-                                Types.SharedMsg.KeypairCreate ->
+                                Route.KeypairCreate ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (KeypairCreate Page.KeypairCreate.init)
                                         outerModel
 
-                                Types.SharedMsg.KeypairList ->
+                                Route.KeypairList ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (KeypairList <| Page.KeypairList.init True)
                                         outerModel
 
-                                Types.SharedMsg.ServerCreate imageId imageName maybeDeployGuac ->
+                                Route.ServerCreate imageId imageName maybeDeployGuac ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac))
                                         outerModel
 
-                                Types.SharedMsg.ServerCreateImage serverId maybeImageName ->
+                                Route.ServerCreateImage serverId maybeImageName ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName))
                                         outerModel
 
-                                Types.SharedMsg.ServerDetail serverId ->
+                                Route.ServerDetail serverId ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (ServerDetail (Page.ServerDetail.init serverId))
                                         outerModel
 
-                                Types.SharedMsg.ServerList ->
+                                Route.ServerList ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (ServerList <| Page.ServerList.init True)
                                         outerModel
 
-                                Types.SharedMsg.VolumeAttach maybeServerUuid maybeVolumeUuid ->
+                                Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid))
                                         outerModel
 
-                                Types.SharedMsg.VolumeCreate ->
+                                Route.VolumeCreate ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (VolumeCreate Page.VolumeCreate.init)
                                         outerModel
 
-                                Types.SharedMsg.VolumeDetail volumeUuid ->
+                                Route.VolumeDetail volumeUuid ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (VolumeDetail <| Page.VolumeDetail.init True volumeUuid)
                                         outerModel
 
-                                Types.SharedMsg.VolumeList ->
+                                Route.VolumeList ->
                                     ViewStateHelpers.setProjectView
                                         project
                                         (VolumeList <| Page.VolumeList.init True)
@@ -851,8 +854,13 @@ processSharedMsg sharedMsg outerModel =
                         Nothing ->
                             ( outerModel, Cmd.none )
 
-        NavigateToUrl url ->
-            ( outerModel, Browser.Navigation.load url )
+        NavigateToUrl urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( outerModel, Browser.Navigation.pushUrl sharedModel.navigationKey (Url.toString url) )
+
+                Browser.External url ->
+                    ( outerModel, Browser.Navigation.load url )
 
         UrlChange url ->
             -- This handles presses of the browser back/forward button

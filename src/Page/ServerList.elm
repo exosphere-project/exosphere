@@ -10,6 +10,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -360,8 +361,8 @@ renderServer context projectId model isMyServer server =
         serverNameClickEvent =
             SharedMsg <|
                 SharedMsg.NavigateToView <|
-                    SharedMsg.ProjectPage projectId <|
-                        SharedMsg.ServerDetail server.osProps.uuid
+                    Route.ProjectPage projectId <|
+                        Route.ServerDetail server.osProps.uuid
 
         serverLabel : Server -> Element.Element Msg
         serverLabel aServer =

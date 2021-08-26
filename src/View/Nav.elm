@@ -10,6 +10,7 @@ import Helpers.String
 import Page.AllResourcesList
 import Page.MessageLog
 import Page.Settings
+import Route
 import State.ViewState
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
@@ -182,7 +183,7 @@ navBar outerModel context =
                             Just
                                 (SharedMsg <|
                                     SharedMsg.NavigateToView <|
-                                        SharedMsg.GetSupport
+                                        Route.GetSupport
                                             (State.ViewState.viewStateToSupportableItem outerModel.viewState)
                                 )
                         , label =
@@ -201,7 +202,7 @@ navBar outerModel context =
                     ]
                     (Input.button
                         []
-                        { onPress = Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.HelpAbout
+                        { onPress = Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.HelpAbout
                         , label =
                             Element.row
                                 (VH.exoRowAttributes ++ [ Element.spacing 8 ])

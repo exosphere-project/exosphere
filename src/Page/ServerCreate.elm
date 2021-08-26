@@ -15,6 +15,7 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
+import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -1175,8 +1176,8 @@ keypairPicker context project model =
                 Just <|
                     SharedMsg <|
                         SharedMsg.NavigateToView <|
-                            SharedMsg.ProjectPage project.auth.project.uuid <|
-                                SharedMsg.KeypairCreate
+                            Route.ProjectPage project.auth.project.uuid <|
+                                Route.KeypairCreate
             }
         ]
 
