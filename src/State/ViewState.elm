@@ -35,12 +35,10 @@ import Page.VolumeDetail
 import Page.VolumeList
 import Page.VolumeMountInstructions
 import Ports
-import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Nova
 import Route
-import Style.Widgets.NumericTextInput.NumericTextInput
 import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
@@ -319,59 +317,10 @@ setProjectView project projectViewConstructor outerModel =
                 ServerCreateImage _ ->
                     ( outerModel, Cmd.none )
 
-                ServerCreate pageModel ->
+                ServerCreate _ ->
                     case outerModel.viewState of
-                        -- TODO migrate this logic to page
-                        -- If we are already in this view state then ensure user isn't trying to choose a server count
-                        -- that would exceed quota; if so, reduce server count to comply with quota.
-                        -- TODO double-check that this code still actually works.
                         ProjectView _ _ (ServerCreate _) ->
-                            let
-                                newPageModel =
-                                    case
-                                        ( GetterSetters.flavorLookup project pageModel.flavorUuid
-                                        , project.computeQuota
-                                        , project.volumeQuota
-                                        )
-                                    of
-                                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
-                                            let
-                                                availServers =
-                                                    OSQuotas.overallQuotaAvailServers
-                                                        (pageModel.volSizeTextInput
-                                                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
-                                                        )
-                                                        flavor
-                                                        computeQuota
-                                                        volumeQuota
-                                            in
-                                            { pageModel
-                                                | count =
-                                                    case availServers of
-                                                        Just availServers_ ->
-                                                            if pageModel.count > availServers_ then
-                                                                availServers_
-
-                                                            else
-                                                                pageModel.count
-
-                                                        Nothing ->
-                                                            pageModel.count
-                                            }
-
-                                        ( _, _, _ ) ->
-                                            pageModel
-
-                                newViewState_ =
-                                    ProjectView
-                                        project.auth.project.uuid
-                                        { createPopup = False }
-                                    <|
-                                        ServerCreate newPageModel
-                            in
-                            ( { outerModel | viewState = newViewState_ }
-                            , Cmd.none
-                            )
+                            ( outerModel, Cmd.none )
 
                         -- If we are just entering this view then gather everything we need
                         _ ->

@@ -84,19 +84,19 @@ init imageUuid imageName deployGuacamole =
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         GotServerName name ->
             ( { model | serverName = name }, Cmd.none, SharedMsg.NoOp )
 
         GotCount count ->
-            ( { model | count = count }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
 
         GotFlavorUuid flavorUuid ->
-            ( { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
 
         GotVolSizeTextInput maybeVolSizeInput ->
-            ( { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
 
         GotUserDataTemplate userData ->
             ( { model | userDataTemplate = userData }, Cmd.none, SharedMsg.NoOp )
@@ -136,6 +136,45 @@ update msg _ model =
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
+
+
+enforceQuotaCompliance : Project -> Model -> Model
+enforceQuotaCompliance project model =
+    -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
+    -- that would exceed quota, reduce count to comply with quota.
+    case
+        ( GetterSetters.flavorLookup project model.flavorUuid
+        , project.computeQuota
+        , project.volumeQuota
+        )
+    of
+        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+            let
+                availServers =
+                    OSQuotas.overallQuotaAvailServers
+                        (model.volSizeTextInput
+                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                        )
+                        flavor
+                        computeQuota
+                        volumeQuota
+            in
+            { model
+                | count =
+                    case availServers of
+                        Just availServers_ ->
+                            if model.count > availServers_ then
+                                availServers_
+
+                            else
+                                model.count
+
+                        Nothing ->
+                            model.count
+            }
+
+        ( _, _, _ ) ->
+            model
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
