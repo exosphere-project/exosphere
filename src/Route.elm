@@ -126,6 +126,7 @@ routeToUrl maybePathPrefix route =
                             )
 
                         FloatingIpAssign _ _ ->
+                            -- TODO perhaps pass floating IP and/or to be assigned through the URL
                             ( [ "assignfloatingip" ]
                             , []
                             )

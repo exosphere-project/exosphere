@@ -263,9 +263,13 @@ loginOpenstackOpenRcEntry context model =
 
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
-    Widget.textButton
-        (SH.materialStyle context.palette).button
-        { text = "Other Login Methods"
-        , onPress =
-            Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.LoginPicker
+    Element.link []
+        { url = Route.routeToUrl context.urlPathPrefix Route.LoginPicker
+        , label =
+            Widget.textButton
+                (SH.materialStyle context.palette).button
+                { text = "Other Login Methods"
+                , onPress =
+                    Just <| SharedMsg <| SharedMsg.NoOp
+                }
         }

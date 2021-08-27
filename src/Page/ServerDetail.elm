@@ -76,6 +76,7 @@ type Msg
     | GotRetainFloatingIpsWhenDeleting Bool
     | GotSetServerName String
     | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : OSTypes.ServerUuid -> Model
@@ -130,6 +131,9 @@ update msg project model =
         SharedMsg msg_ ->
             -- TODO convert other pages to use this style
             ( model, Cmd.none, msg_ )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> ( Time.Posix, Time.Zone ) -> Model -> Element.Element Msg
@@ -424,17 +428,18 @@ serverDetail_ context project currentTimeAndZone model server =
                         , OSTypes.ServerBuilding
                         ]
               then
-                Widget.textButton
-                    (SH.materialStyle context.palette).button
-                    { text = "Attach " ++ context.localization.blockDevice
-                    , onPress =
-                        Just <|
-                            SharedMsg <|
-                                SharedMsg.NavigateToView <|
-                                    Route.ProjectRoute project.auth.project.uuid <|
-                                        Route.VolumeAttach
-                                            (Just server.osProps.uuid)
-                                            Nothing
+                Element.link []
+                    { url =
+                        Route.routeToUrl context.urlPathPrefix
+                            (Route.ProjectRoute project.auth.project.uuid <|
+                                Route.VolumeAttach (Just server.osProps.uuid) Nothing
+                            )
+                    , label =
+                        Widget.textButton
+                            (SH.materialStyle context.palette).button
+                            { text = "Attach " ++ context.localization.blockDevice
+                            , onPress = Just NoOp
+                            }
                     }
 
               else
@@ -997,14 +1002,35 @@ renderServerActionButton context project model server serverAction =
                     ]
 
         ( _, _ ) ->
-            let
-                actionMsg =
-                    Just <| SharedMsg <| serverAction.action project.auth.project.uuid server model.retainFloatingIpsWhenDeleting
+            -- This is ugly, we should have an explicit custom type for server actions and match on that
+            if String.toLower serverAction.name == String.toLower context.localization.staticRepresentationOfBlockDeviceContents then
+                -- Overriding button for image, because we just want to navigate to another page
+                Element.link []
+                    { url =
+                        Route.routeToUrl context.urlPathPrefix
+                            (Route.ProjectRoute project.auth.project.uuid <|
+                                Route.ServerCreateImage server.osProps.uuid <|
+                                    Just <|
+                                        server.osProps.name
+                                            ++ "-image"
+                            )
+                    , label =
+                        renderActionButton
+                            context
+                            serverAction
+                            (Just NoOp)
+                            (Helpers.String.toTitleCase context.localization.staticRepresentationOfBlockDeviceContents)
+                    }
 
-                title =
-                    serverAction.name
-            in
-            renderActionButton context serverAction actionMsg title
+            else
+                let
+                    actionMsg =
+                        Just <| SharedMsg <| serverAction.action project.auth.project.uuid server model.retainFloatingIpsWhenDeleting
+
+                    title =
+                        serverAction.name
+                in
+                renderActionButton context serverAction actionMsg title
 
 
 confirmationMessage : ServerActions.ServerAction -> String
@@ -1150,18 +1176,19 @@ renderIpAddresses context project server model =
                             , context.localization.floatingIpAddress
                             , "assigned."
                             ]
-                    , Widget.textButton
-                        (SH.materialStyle context.palette).button
-                        { text =
-                            String.join " "
-                                [ "Assign a", context.localization.floatingIpAddress ]
-                        , onPress =
-                            Just <|
-                                (SharedMsg <|
-                                    SharedMsg.NavigateToView <|
-                                        Route.ProjectRoute project.auth.project.uuid <|
-                                            Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
-                                )
+                    , Element.link []
+                        { url =
+                            Route.routeToUrl context.urlPathPrefix <|
+                                Route.ProjectRoute project.auth.project.uuid <|
+                                    Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
+                        , label =
+                            Widget.textButton
+                                (SH.materialStyle context.palette).button
+                                { text =
+                                    String.join " "
+                                        [ "Assign a", context.localization.floatingIpAddress ]
+                                , onPress = Just NoOp
+                                }
                         }
                     ]
 
@@ -1267,13 +1294,14 @@ serverVolumes context project server =
         _ ->
             let
                 volDetailsButton v =
-                    Style.Widgets.IconButton.goToButton context.palette
-                        (Just <|
-                            SharedMsg <|
-                                SharedMsg.NavigateToView <|
-                                    Route.ProjectRoute project.auth.project.uuid <|
-                                        Route.VolumeDetail v.uuid
-                        )
+                    Element.link []
+                        { url =
+                            Route.routeToUrl context.urlPathPrefix <|
+                                Route.ProjectRoute project.auth.project.uuid <|
+                                    Route.VolumeDetail v.uuid
+                        , label =
+                            Style.Widgets.IconButton.goToButton context.palette (Just NoOp)
+                        }
 
                 volumeRow v =
                     let

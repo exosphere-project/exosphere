@@ -8,7 +8,6 @@ module Types.SharedMsg exposing
 import Browser
 import Http
 import OpenStack.Types as OSTypes
-import Route
 import Set
 import Style.Types
 import Time
@@ -31,7 +30,6 @@ type SharedMsg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
-    | NavigateToView Route.Route
     | NavigateToUrl Browser.UrlRequest
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int

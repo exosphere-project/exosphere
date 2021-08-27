@@ -721,9 +721,6 @@ processSharedMsg sharedMsg outerModel =
         OpenNewWindow url ->
             ( outerModel, Ports.openNewWindow url )
 
-        NavigateToView navigablePage ->
-            ViewStateHelpers.navigateToPage navigablePage outerModel
-
         NavigateToUrl urlRequest ->
             case urlRequest of
                 Browser.Internal url ->

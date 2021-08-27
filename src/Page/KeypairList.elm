@@ -32,6 +32,7 @@ type Msg
     | GotDeleteConfirm OSTypes.KeypairIdentifier
     | GotDeleteCancel OSTypes.KeypairIdentifier
     | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Bool -> Model
@@ -86,6 +87,9 @@ update msg project model =
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
 
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =
@@ -106,25 +110,28 @@ view context project model =
                         text =
                             String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
                       in
-                      Widget.iconButton
-                        (SH.materialStyle context.palette).button
-                        { text = text
-                        , icon =
-                            Element.row
-                                [ Element.spacing 5 ]
-                                [ Element.text text
-                                , Element.el []
-                                    (FeatherIcons.chevronRight
-                                        |> FeatherIcons.toHtml []
-                                        |> Element.html
-                                    )
-                                ]
-                        , onPress =
-                            Just <|
-                                SharedMsg <|
-                                    NavigateToView <|
-                                        Route.ProjectRoute project.auth.project.uuid <|
-                                            Route.KeypairCreate
+                      Element.link []
+                        { url =
+                            Route.routeToUrl context.urlPathPrefix <|
+                                Route.ProjectRoute project.auth.project.uuid <|
+                                    Route.KeypairCreate
+                        , label =
+                            Widget.iconButton
+                                (SH.materialStyle context.palette).button
+                                { text = text
+                                , icon =
+                                    Element.row
+                                        [ Element.spacing 5 ]
+                                        [ Element.text text
+                                        , Element.el []
+                                            (FeatherIcons.chevronRight
+                                                |> FeatherIcons.toHtml []
+                                                |> Element.html
+                                            )
+                                        ]
+                                , onPress =
+                                    Just <| NoOp
+                                }
                         }
                     ]
 

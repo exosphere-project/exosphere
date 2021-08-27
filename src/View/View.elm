@@ -350,22 +350,26 @@ createButton context projectId expanded =
                 | container = Element.width Element.fill :: materialStyle.container
             }
 
-        renderButton : Element.Element Never -> String -> Maybe OuterMsg -> Element.Element OuterMsg
-        renderButton icon_ text onPress =
-            Widget.iconButton
-                buttonStyle
-                { icon =
-                    Element.row
-                        [ Element.spacing 10
-                        , Element.width Element.fill
-                        ]
-                        [ Element.el [] icon_
-                        , Element.text text
-                        ]
-                , text =
-                    text
-                , onPress =
-                    onPress
+        renderButton : Element.Element Never -> String -> Route.Route -> Element.Element OuterMsg
+        renderButton icon_ text route =
+            Element.link []
+                { url = Route.routeToUrl context.urlPathPrefix route
+                , label =
+                    Widget.iconButton
+                        buttonStyle
+                        { icon =
+                            Element.row
+                                [ Element.spacing 10
+                                , Element.width Element.fill
+                                ]
+                                [ Element.el [] icon_
+                                , Element.text text
+                                ]
+                        , text =
+                            text
+                        , onPress =
+                            Just <| SharedMsg <| SharedMsg.NoOp
+                        }
                 }
 
         dropdown =
@@ -395,29 +399,19 @@ createButton context projectId expanded =
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectRoute projectId <| Route.ImageList)
+                    (Route.ProjectRoute projectId <| Route.ImageList)
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <|
-                        SharedMsg <|
-                            SharedMsg.NavigateToView <|
-                                Route.ProjectRoute projectId <|
-                                    Route.VolumeCreate
-                    )
+                    (Route.ProjectRoute projectId <| Route.VolumeCreate)
                 , renderButton
                     (FeatherIcons.key |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.pkiPublicKeyForSsh
                         |> Helpers.String.toTitleCase
                     )
-                    (Just <|
-                        SharedMsg <|
-                            SharedMsg.NavigateToView <|
-                                Route.ProjectRoute projectId <|
-                                    Route.KeypairCreate
-                    )
+                    (Route.ProjectRoute projectId <| Route.KeypairCreate)
                 ]
 
         ( attribs, icon ) =

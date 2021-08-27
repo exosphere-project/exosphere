@@ -82,15 +82,18 @@ view context project model =
                                 , "manually."
                                 ]
                 ]
-            , Widget.textButton
-                (SH.materialStyle context.palette).primaryButton
-                { text = "Go to my " ++ context.localization.virtualComputer
-                , onPress =
-                    Just <|
-                        SharedMsg <|
-                            SharedMsg.NavigateToView <|
-                                Route.ProjectRoute project.auth.project.uuid <|
-                                    Route.ServerDetail model.serverUuid
+            , Element.link []
+                { url =
+                    Route.routeToUrl context.urlPathPrefix
+                        (Route.ProjectRoute project.auth.project.uuid <|
+                            Route.ServerDetail model.serverUuid
+                        )
+                , label =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = "Go to my " ++ context.localization.virtualComputer
+                        , onPress = Just <| SharedMsg <| SharedMsg.NoOp
+                        }
                 }
             ]
         ]

@@ -32,6 +32,7 @@ type Msg
     | GotDeleteConfirm
     | GotDeleteCancel
     | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Bool -> OSTypes.VolumeUuid -> Model
@@ -72,6 +73,9 @@ update msg project model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -157,13 +161,15 @@ renderAttachment context project attachment =
         [ Element.el [ Font.bold ] <| Element.text "Server:"
         , Element.row [ Element.spacing 5 ]
             [ Element.text (serverName attachment.serverUuid)
-            , Style.Widgets.IconButton.goToButton context.palette
-                (Just <|
-                    SharedMsg <|
-                        NavigateToView <|
-                            Route.ProjectRoute project.auth.project.uuid <|
-                                Route.ServerDetail attachment.serverUuid
-                )
+            , Element.link []
+                { url =
+                    Route.routeToUrl context.urlPathPrefix <|
+                        Route.ProjectRoute project.auth.project.uuid <|
+                            Route.ServerDetail attachment.serverUuid
+                , label =
+                    Style.Widgets.IconButton.goToButton context.palette
+                        (Just NoOp)
+                }
             ]
         , Element.el [ Font.bold ] <| Element.text "Device:"
         , Element.text attachment.device
@@ -230,15 +236,18 @@ volumeActionButtons context project model volume =
         attachDetachButton =
             case volume.status of
                 OSTypes.Available ->
-                    Widget.textButton
-                        (SH.materialStyle context.palette).button
-                        { text = "Attach"
-                        , onPress =
-                            Just <|
-                                SharedMsg <|
-                                    NavigateToView <|
-                                        Route.ProjectRoute project.auth.project.uuid <|
-                                            Route.VolumeAttach Nothing (Just volume.uuid)
+                    Element.link []
+                        { url =
+                            Route.routeToUrl context.urlPathPrefix
+                                (Route.ProjectRoute project.auth.project.uuid <|
+                                    Route.VolumeAttach Nothing (Just volume.uuid)
+                                )
+                        , label =
+                            Widget.textButton
+                                (SH.materialStyle context.palette).button
+                                { text = "Attach"
+                                , onPress = Just NoOp
+                                }
                         }
 
                 OSTypes.InUse ->

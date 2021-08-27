@@ -8,7 +8,6 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
-import OpenStack.Types
 import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers

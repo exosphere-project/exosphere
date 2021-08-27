@@ -35,28 +35,28 @@ update msg =
 view : View.Types.Context -> SharedModel -> Element.Element Msg
 view context sharedModel =
     let
+        renderLinkButton route text =
+            Element.link []
+                { url = Route.routeToUrl context.urlPathPrefix route
+                , label =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = text
+                        , onPress =
+                            Just <| SharedMsg <| SharedMsg.NoOp
+                        }
+                }
+
         defaultLoginMethods =
             [ { logo =
                     Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
-              , button =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
-                        { text = "Add OpenStack Account"
-                        , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.LoginOpenstack Nothing
-                        }
+              , button = renderLinkButton (Route.LoginOpenstack Nothing) "Add OpenStack Account"
               , description =
                     ""
               }
             , { logo =
                     Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
-              , button =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
-                        { text = "Add Jetstream Account"
-                        , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.LoginJetstream Nothing
-                        }
+              , button = renderLinkButton (Route.LoginJetstream Nothing) "Add Jetstream Account"
               , description =
                     "Recommended login method for Jetstream Cloud"
               }
