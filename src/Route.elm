@@ -60,45 +60,19 @@ routeToUrl maybePathPrefix route =
                 ]
                 []
 
-        LoginJetstream maybeJsLogin ->
-            let
-                jsProvider =
-                    case maybeJsLogin of
-                        Just jsLogin ->
-                            case jsLogin.jetstreamProviderChoice of
-                                HelperTypes.IUCloud ->
-                                    "iu"
-
-                                HelperTypes.TACCCloud ->
-                                    "tacc"
-
-                                HelperTypes.BothJetstreamClouds ->
-                                    "both"
-
-                        Nothing ->
-                            "both"
-            in
+        LoginJetstream _ ->
             buildUrlFunc
                 [ "login"
                 , "jetstream"
                 ]
-                [ UB.string "provider" jsProvider
-                , UB.string "taccuname" (maybeJsLogin |> Maybe.map .taccUsername |> Maybe.withDefault "")
+                []
 
-                -- Not encoding password!
-                ]
-
-        LoginOpenstack maybeOsLogin ->
+        LoginOpenstack _ ->
             buildUrlFunc
                 [ "login"
                 , "openstack"
                 ]
-                [ UB.string "authurl" (maybeOsLogin |> Maybe.map .authUrl |> Maybe.withDefault "")
-                , UB.string "udomain" (maybeOsLogin |> Maybe.map .userDomain |> Maybe.withDefault "")
-                , UB.string "uname" (maybeOsLogin |> Maybe.map .username |> Maybe.withDefault "")
-
-                -- Not encoding password!
-                ]
+                []
 
         LoginPicker ->
             buildUrlFunc
