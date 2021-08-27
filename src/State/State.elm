@@ -1,6 +1,5 @@
 module State.State exposing (update)
 
-import AppUrl.Parser
 import Browser
 import Browser.Navigation
 import Helpers.ExoSetupStatus
@@ -747,7 +746,7 @@ processSharedMsg sharedMsg outerModel =
 
             else
                 case
-                    AppUrl.Parser.urlToRoute
+                    Route.urlToRoute
                         sharedModel.urlPathPrefix
                         (ViewStateHelpers.defaultRoute sharedModel)
                         url

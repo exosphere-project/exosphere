@@ -1,6 +1,5 @@
 module State.Init exposing (init)
 
-import AppUrl.Parser
 import Browser.Navigation
 import Color
 import Dict
@@ -170,7 +169,7 @@ init flags urlKey =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
         route =
-            AppUrl.Parser.urlToRoute flags.urlPathPrefix (State.ViewState.defaultRoute hydratedModel) (Tuple.first urlKey)
+            Route.urlToRoute flags.urlPathPrefix (State.ViewState.defaultRoute hydratedModel) (Tuple.first urlKey)
                 |> Maybe.withDefault Route.PageNotFound
 
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
