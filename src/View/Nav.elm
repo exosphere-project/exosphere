@@ -157,18 +157,22 @@ navBar outerModel context =
                 , Element.el
                     [ Font.color (SH.toElementColor context.palette.menu.on.surface)
                     ]
-                    (Input.button
-                        []
-                        { onPress = Just (SharedMsg <| SharedMsg.NavigateToView <| Route.Settings)
+                    (Element.link []
+                        { url = Route.routeToUrl outerModel.sharedModel.urlPathPrefix Route.Settings
                         , label =
-                            Element.row
-                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ FeatherIcons.settings
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                    |> Element.el []
-                                , Element.text "Settings"
-                                ]
+                            Input.button
+                                []
+                                { onPress = Just (SharedMsg SharedMsg.NoOp)
+                                , label =
+                                    Element.row
+                                        (VH.exoRowAttributes ++ [ Element.spacing 8 ])
+                                        [ FeatherIcons.settings
+                                            |> FeatherIcons.toHtml []
+                                            |> Element.html
+                                            |> Element.el []
+                                        , Element.text "Settings"
+                                        ]
+                                }
                         }
                     )
                 , Element.el
