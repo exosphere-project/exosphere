@@ -2,9 +2,7 @@ module Page.HelpAbout exposing (view)
 
 import Element
 import FeatherIcons
-import Ports
 import Types.SharedModel exposing (SharedModel)
-import Types.SharedMsg exposing (SharedMsg)
 import UUID
 import View.Helpers as VH
 import View.Types
