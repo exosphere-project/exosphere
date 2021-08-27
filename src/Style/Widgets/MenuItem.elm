@@ -19,8 +19,8 @@ type MenuItemState
     menuItem Active "Add Provider" Nothing
 
 -}
-menuItem : Style.Types.ExoPalette -> MenuItemState -> Maybe (Element msg) -> String -> Maybe msg -> Element msg
-menuItem palette state icon itemLabel onPress =
+menuItem : Style.Types.ExoPalette -> MenuItemState -> Maybe (Element msg) -> String -> String -> Element msg
+menuItem palette state icon itemLabel url =
     let
         ( fontWeight, iconColor, backgroundColor ) =
             case state of
@@ -84,11 +84,13 @@ menuItem palette state icon itemLabel onPress =
                     ]
                 ]
     in
-    Element.el
+    Element.link
         menuItemElementAttrs
-        (Input.button
-            menuItemButtonAttrs
-            { onPress = onPress
-            , label = label
-            }
-        )
+        { url = url
+        , label =
+            Input.button
+                menuItemButtonAttrs
+                { onPress = Nothing
+                , label = label
+                }
+        }

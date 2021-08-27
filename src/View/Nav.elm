@@ -57,9 +57,7 @@ navMenu outerModel context =
                 status
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
-                (Just
-                    (SharedMsg <| SharedMsg.NavigateToView <| Route.ProjectRoute project.auth.project.uuid Route.AllResourcesList)
-                )
+                (Route.routeToUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid Route.AllResourcesList))
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)
         projectMenuItems projects =
@@ -78,14 +76,14 @@ navMenu outerModel context =
                         _ ->
                             MenuItem.Inactive
 
-                destination =
-                    SharedMsg <| SharedMsg.NavigateToView <| State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView
+                destUrl =
+                    Route.routeToUrl context.urlPathPrefix (State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView)
             in
             MenuItem.menuItem context.palette
                 active
                 (FeatherIcons.plusCircle |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 ("Add " ++ Helpers.String.toTitleCase context.localization.unitOfTenancy)
-                (Just destination)
+                destUrl
     in
     Element.column
         [ Background.color (SH.toElementColor context.palette.menu.background)
@@ -134,87 +132,43 @@ navBar outerModel context =
                 ]
 
         navBarRight =
-            Element.row
-                [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
-                [ Element.el
-                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
-                    ]
-                    (Element.text "")
-                , Element.el
-                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
-                    ]
-                    (Input.button
-                        []
-                        { onPress = Just (SharedMsg <| SharedMsg.NavigateToView <| Route.MessageLog False)
+            let
+                renderButton : Route.Route -> List (Element.Element OuterMsg) -> Element.Element OuterMsg
+                renderButton route buttonLabelRowContents =
+                    Element.link
+                        [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
+                        { url = Route.routeToUrl context.urlPathPrefix route
                         , label =
-                            Element.row
-                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ Icon.bell (SH.toElementColor context.palette.menu.on.surface) 20
-                                , Element.text "Messages"
-                                ]
-                        }
-                    )
-                , Element.el
-                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
-                    ]
-                    (Element.link []
-                        { url = Route.routeToUrl outerModel.sharedModel.urlPathPrefix Route.Settings
-                        , label =
-                            Input.button
-                                []
-                                { onPress = Just (SharedMsg SharedMsg.NoOp)
+                            Input.button []
+                                { onPress = Just (SharedMsg <| SharedMsg.NoOp)
                                 , label =
                                     Element.row
                                         (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                        [ FeatherIcons.settings
-                                            |> FeatherIcons.toHtml []
-                                            |> Element.html
-                                            |> Element.el []
-                                        , Element.text "Settings"
-                                        ]
+                                        buttonLabelRowContents
                                 }
                         }
-                    )
-                , Element.el
-                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
+            in
+            Element.row
+                [ Element.alignRight, Element.paddingXY 20 0, Element.spacing 15 ]
+                [ Element.el
+                    [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
+                    (Element.text "")
+                , renderButton (Route.MessageLog False)
+                    [ Icon.bell (SH.toElementColor context.palette.menu.on.surface) 20
+                    , Element.text "Messages"
                     ]
-                    (Input.button
-                        []
-                        { onPress =
-                            Just
-                                (SharedMsg <|
-                                    SharedMsg.NavigateToView <|
-                                        Route.GetSupport
-                                            (State.ViewState.viewStateToSupportableItem outerModel.viewState)
-                                )
-                        , label =
-                            Element.row
-                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ FeatherIcons.helpCircle
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                    |> Element.el []
-                                , Element.text "Get Support"
-                                ]
-                        }
-                    )
-                , Element.el
-                    [ Font.color (SH.toElementColor context.palette.menu.on.surface)
+                , renderButton Route.Settings
+                    [ FeatherIcons.settings |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                    , Element.text "Settings"
                     ]
-                    (Input.button
-                        []
-                        { onPress = Just <| SharedMsg <| SharedMsg.NavigateToView <| Route.HelpAbout
-                        , label =
-                            Element.row
-                                (VH.exoRowAttributes ++ [ Element.spacing 8 ])
-                                [ FeatherIcons.info
-                                    |> FeatherIcons.toHtml []
-                                    |> Element.html
-                                    |> Element.el []
-                                , Element.text "About"
-                                ]
-                        }
-                    )
+                , renderButton (Route.GetSupport (State.ViewState.viewStateToSupportableItem outerModel.viewState))
+                    [ FeatherIcons.helpCircle |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                    , Element.text "Get Support"
+                    ]
+                , renderButton Route.HelpAbout
+                    [ FeatherIcons.info |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
+                    , Element.text "About"
+                    ]
 
                 -- This is where the right-hand side menu would go
                 ]
