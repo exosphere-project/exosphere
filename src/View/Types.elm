@@ -16,6 +16,7 @@ type alias Context =
     , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     , windowSize : WindowSize
     , experimentalFeaturesEnabled : Bool
+    , urlPathPrefix : Maybe String
     }
 
 
