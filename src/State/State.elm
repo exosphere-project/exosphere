@@ -1022,6 +1022,19 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestCreateServer pageModel networkUuid ->
             let
+                customWorkFlowSource =
+                    case pageModel.customWorkflowSource of
+                        Maybe.Just result ->
+                            case result of
+                                Types.Workflow.Success cs ->
+                                    Just cs
+
+                                _ ->
+                                    Nothing
+
+                        Maybe.Nothing ->
+                            Nothing
+
                 createServerRequest =
                     { name = pageModel.serverName
                     , count = pageModel.count
@@ -1039,7 +1052,7 @@ processProjectSpecificMsg outerModel project msg =
                             pageModel.keypairName
                             (pageModel.deployGuacamole |> Maybe.withDefault False)
                             pageModel.deployDesktopEnvironment
-                            pageModel.customWorkflowSource
+                            customWorkFlowSource
                             pageModel.installOperatingSystemUpdates
                             sharedModel.instanceConfigMgtRepoUrl
                             sharedModel.instanceConfigMgtRepoCheckout
@@ -1051,7 +1064,7 @@ processProjectSpecificMsg outerModel project msg =
                             pageModel.deployDesktopEnvironment
                             project.auth.user.name
                             pageModel.floatingIpCreationOption
-                            pageModel.customWorkflowSource
+                            customWorkFlowSource
                     }
             in
             ( outerModel, Rest.Nova.requestCreateServer project createServerRequest )

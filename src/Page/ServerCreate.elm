@@ -1,5 +1,6 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -30,11 +31,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg as SharedMsg
-import Types.Workflow
-    exposing
-        ( CustomWorkflowSource
-        , CustomWorkflowSourceRepository(..)
-        )
+import Types.Workflow exposing (CustomWorkflowSource, CustomWorkflowSourceRepository(..), SourceInput, SourceProvider)
 import Url
 import View.Helpers as VH exposing (edges)
 import View.Types
@@ -55,19 +52,29 @@ type Msg
     | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
-    | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
+    | GotCustomWorkflowSource String
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
+    | GotWorkflowSourceProvider String
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
 
 init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
 init imageUuid imageName deployGuacamole =
+    let
+        defaultSourceInput =
+            { providerPrefix = "gh"
+            , repository = ""
+            , reference = ""
+            , path = ""
+            , pathType = Types.Workflow.InputFilePath
+            }
+    in
     { serverName = imageName
     , imageUuid = imageUuid
     , imageName = imageName
@@ -77,7 +84,7 @@ init imageUuid imageName deployGuacamole =
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
     , customWorkflowSource = Nothing
-    , customWorkflowSourceInput = Nothing
+    , customWorkflowSourceInput = defaultSourceInput
     , showAdvancedOptions = False
     , keypairName = Nothing
     , deployGuacamole = deployGuacamole
@@ -148,10 +155,16 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        GotCustomWorkflowSource maybeCustomWorkflowSource maybeCustomWorkflowSourceInput ->
+        GotCustomWorkflowSource repository ->
+            let
+                oldCustomWorkflowSourceInput =
+                    model.customWorkflowSourceInput
+
+                newCustomWorkflowSourceInput =
+                    { oldCustomWorkflowSourceInput | repository = repository }
+            in
             ( { model
-                | customWorkflowSource = maybeCustomWorkflowSource
-                , customWorkflowSourceInput = maybeCustomWorkflowSourceInput
+                | customWorkflowSourceInput = newCustomWorkflowSourceInput
               }
             , Cmd.none
             , SharedMsg.NoOp
@@ -179,6 +192,9 @@ update msg project model =
             ( model, Cmd.none, sharedMsg )
 
         NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
+
+        GotWorkflowSourceProvider sourceProvider ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
 
@@ -298,11 +314,11 @@ view context project model =
                             False
 
                 invalidWorkflowTextInput =
-                    case ( model.customWorkflowSourceInput, model.customWorkflowSource ) of
-                        ( Just _, Nothing ) ->
+                    case model.customWorkflowSource of
+                        Just Types.Workflow.InvalidSource ->
                             True
 
-                        ( _, _ ) ->
+                        _ ->
                             False
 
                 invalidInputs =
@@ -344,11 +360,13 @@ view context project model =
                         ]
                 , Element.text model.imageName
                 ]
+            , customWorkflowInput context model
             , flavorPicker context project model computeQuota
             , volBackedPrompt context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
-            , customWorkflowInput context model
+
+            --, customWorkflowInput context model
             , Element.column
                 VH.exoColumnAttributes
               <|
@@ -804,7 +822,7 @@ customWorkflowInputExperimental context model =
                 { text = "Remove workflow"
                 , onPress =
                     model.customWorkflowSource
-                        |> Maybe.map (\_ -> GotCustomWorkflowSource Nothing Nothing)
+                        |> Maybe.map (\_ -> GotCustomWorkflowSource "")
                 }
 
         workFlowInputToWorkflow : String -> Maybe CustomWorkflowSource
@@ -821,24 +839,52 @@ customWorkflowInputExperimental context model =
                     )
 
         workflowInput =
-            Input.text
-                (VH.inputItemAttributes context.palette.background)
-                { text = model.customWorkflowSourceInput |> Maybe.withDefault ""
-                , placeholder =
-                    Just
-                        (Input.placeholder
-                            []
-                            (Element.text "https://github.com/binder-examples/minimal-dockerfile")
-                        )
-                , onChange =
-                    \n ->
-                        if n == "" then
-                            GotCustomWorkflowSource Nothing Nothing
+            let
+                options =
+                    Dict.toList Types.Workflow.providers
+                        |> List.map (\( prefix, provider ) -> ( prefix, provider.text ))
 
-                        else
-                            GotCustomWorkflowSource (workFlowInputToWorkflow n) (Just n)
-                , label = Input.labelLeft [] (Element.text "Git repository URL")
-                }
+                --[ Input.option False (Element.text "No")
+                --, Input.option True (Element.text "Yes")
+                --]
+            in
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
+                )
+                [ Style.Widgets.Select.select []
+                    { onChange = GotWorkflowSourceProvider
+                    , options = options
+                    , selected = Just model.customWorkflowSourceInput.providerPrefix
+                    , label = "Specify source of repository"
+                    }
+                , Input.text
+                    (VH.inputItemAttributes context.palette.background)
+                    { text = model.customWorkflowSourceInput.repository
+                    , placeholder =
+                        Just
+                            (Input.placeholder
+                                []
+                                (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                            )
+                    , onChange =
+                        GotCustomWorkflowSource
+                    , label = Input.labelAbove [] (Element.text "Git repository URL")
+                    }
+                , Input.text
+                    (VH.inputItemAttributes context.palette.background)
+                    { text = model.customWorkflowSourceInput.reference
+                    , placeholder =
+                        Just
+                            (Input.placeholder
+                                []
+                                (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                            )
+                    , onChange =
+                        GotCustomWorkflowSource
+                    , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit)")
+                    }
+                ]
 
         warning =
             Element.paragraph
