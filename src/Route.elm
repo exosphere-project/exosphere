@@ -125,10 +125,26 @@ routeToUrl maybePathPrefix route =
                             , []
                             )
 
-                        FloatingIpAssign _ _ ->
-                            -- TODO perhaps pass floating IP and/or to be assigned through the URL
+                        FloatingIpAssign maybeIpUuid maybeServerUuid ->
+                            let
+                                ipUuidQP =
+                                    case maybeIpUuid of
+                                        Just ipUuid ->
+                                            [ UB.string "ipuuid" ipUuid ]
+
+                                        Nothing ->
+                                            []
+
+                                serverUuidQP =
+                                    case maybeServerUuid of
+                                        Just serverUuid ->
+                                            [ UB.string "serveruuid" serverUuid ]
+
+                                        Nothing ->
+                                            []
+                            in
                             ( [ "assignfloatingip" ]
-                            , []
+                            , List.concat [ ipUuidQP, serverUuidQP ]
                             )
 
                         FloatingIpList ->
@@ -443,8 +459,16 @@ projectRouteParsers =
         FloatingIpList
         (s "floatingips")
     , map
-        (FloatingIpAssign Nothing Nothing)
-        (s "assignfloatingip")
+        (\( maybeIpUuid, maybeServerUuid ) -> FloatingIpAssign maybeIpUuid maybeServerUuid)
+        (let
+            queryparser =
+                Query.map2
+                    Tuple.pair
+                    (Query.string "ipuuid")
+                    (Query.string "serveruuid")
+         in
+         s "assignfloatingip" <?> queryparser
+        )
     , map
         KeypairList
         (s "keypairs")
