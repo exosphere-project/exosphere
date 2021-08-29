@@ -724,17 +724,12 @@ processSharedMsg sharedMsg outerModel =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    -- TODO update view state based on new internal URL? Using State.ViewState.NavigateToPage?
                     ( outerModel, Browser.Navigation.pushUrl sharedModel.navigationKey (Url.toString url) )
 
                 Browser.External url ->
                     ( outerModel, Browser.Navigation.load url )
 
         UrlChanged url ->
-            -- This handles presses of the browser back/forward button
-            -- It also handles internal links clicked by the user
-            -- TODO does it?
-            -- TODO rework this code
             let
                 exoJustSetThisUrl =
                     -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
