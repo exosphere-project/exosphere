@@ -17,7 +17,6 @@ module Rest.Neutron exposing
     )
 
 import Helpers.GetterSetters as GetterSetters
-import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Http
 import Json.Decode as Decode
@@ -33,12 +32,10 @@ import Rest.Helpers
         )
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
 import Types.HelperTypes exposing (FloatingIpOption(..), HttpRequestMethod(..))
-import Types.OuterModel exposing (OuterModel)
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..), Server, ServerOrigin(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..), SharedMsg(..))
-import Types.View exposing (ProjectViewConstructor(..), ViewState(..))
 
 
 
@@ -437,52 +434,13 @@ requestCreateSecurityGroupRules project group rules errorMessage =
 {- HTTP Response Handling -}
 
 
-receiveNetworks : OuterModel -> Project -> List OSTypes.Network -> ( OuterModel, Cmd SharedMsg )
-receiveNetworks outerModel project networks =
-    -- TODO this code should not care about view state
+receiveNetworks : SharedModel -> Project -> List OSTypes.Network -> Project
+receiveNetworks sharedModel project networks =
     let
-        newProject =
-            let
-                newNetsRDPP =
-                    RDPP.RemoteDataPlusPlus (RDPP.DoHave networks outerModel.sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing)
-            in
-            { project | networks = newNetsRDPP }
-
-        -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
-        -- Same comments above (in receiveFlavors) apply here.
-        viewState =
-            case outerModel.viewState of
-                ProjectView _ projectPageModel projectViewConstructor ->
-                    case projectViewConstructor of
-                        ServerCreate pageModel ->
-                            if pageModel.networkUuid == Nothing then
-                                case Helpers.newServerNetworkOptions newProject of
-                                    AutoSelectedNetwork netUuid ->
-                                        ProjectView
-                                            project.auth.project.uuid
-                                            projectPageModel
-                                            (ServerCreate
-                                                { pageModel
-                                                    | networkUuid = Just netUuid
-                                                }
-                                            )
-
-                                    _ ->
-                                        outerModel.viewState
-
-                            else
-                                outerModel.viewState
-
-                        _ ->
-                            outerModel.viewState
-
-                _ ->
-                    outerModel.viewState
-
-        newSharedModel =
-            GetterSetters.modelUpdateProject outerModel.sharedModel newProject
+        newNetsRDPP =
+            RDPP.RemoteDataPlusPlus (RDPP.DoHave networks sharedModel.clientCurrentTime) (RDPP.NotLoading Nothing)
     in
-    ( { outerModel | viewState = viewState, sharedModel = newSharedModel }, Cmd.none )
+    { project | networks = newNetsRDPP }
 
 
 receiveFloatingIps : SharedModel -> Project -> List OSTypes.FloatingIp -> ( SharedModel, Cmd SharedMsg )
