@@ -1267,43 +1267,22 @@ processProjectSpecificMsg outerModel project msg =
         ReceiveFlavors flavors ->
             let
                 -- If we are creating a server and no flavor is selected, select the smallest flavor
-                viewState =
-                    case outerModel.viewState of
-                        ProjectView _ _ projectViewConstructor ->
-                            case projectViewConstructor of
-                                ServerCreate pageModel ->
-                                    if pageModel.flavorUuid == "" then
-                                        let
-                                            maybeSmallestFlavor =
-                                                GetterSetters.sortedFlavors flavors |> List.head
-                                        in
-                                        case maybeSmallestFlavor of
-                                            Just smallestFlavor ->
-                                                ProjectView
-                                                    project.auth.project.uuid
-                                                    { createPopup = False }
-                                                    (ServerCreate
-                                                        { pageModel
-                                                            | flavorUuid = smallestFlavor.uuid
-                                                        }
-                                                    )
+                maybeSmallestFlavor =
+                    GetterSetters.sortedFlavors flavors |> List.head
 
-                                            Nothing ->
-                                                outerModel.viewState
-
-                                    else
-                                        outerModel.viewState
-
-                                _ ->
-                                    outerModel.viewState
-
-                        _ ->
-                            outerModel.viewState
+                ( newOuterModel, newCmd ) =
+                    Rest.Nova.receiveFlavors sharedModel project flavors
+                        |> mapToOuterMsg
+                        |> mapToOuterModel outerModel
             in
-            Rest.Nova.receiveFlavors sharedModel project flavors
-                |> mapToOuterMsg
-                |> mapToOuterModel outerModel
-                |> pipelineCmdOuterModelMsg (ViewStateHelpers.modelUpdateViewState viewState)
+            case maybeSmallestFlavor of
+                Just smallestFlavor ->
+                    ( newOuterModel, newCmd )
+                        |> pipelineCmdOuterModelMsg
+                            (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotDefaultFlavor smallestFlavor.uuid))
+
+                Nothing ->
+                    ( newOuterModel, newCmd )
 
         RequestKeypairs ->
             let
@@ -1410,41 +1389,11 @@ processProjectSpecificMsg outerModel project msg =
 
                         newSharedModel =
                             GetterSetters.modelUpdateProject sharedModel newProject
-
-                        -- If we have a CreateServerRequest with no network UUID, populate it with a reasonable guess of a private network.
-                        viewState =
-                            case outerModel.viewState of
-                                ProjectView _ projectPageModel projectViewConstructor ->
-                                    case projectViewConstructor of
-                                        ServerCreate pageModel ->
-                                            if pageModel.networkUuid == Nothing then
-                                                case Helpers.newServerNetworkOptions newProject of
-                                                    AutoSelectedNetwork netUuid ->
-                                                        ProjectView
-                                                            project.auth.project.uuid
-                                                            projectPageModel
-                                                            (ServerCreate
-                                                                { pageModel
-                                                                    | networkUuid = Just netUuid
-                                                                }
-                                                            )
-
-                                                    _ ->
-                                                        outerModel.viewState
-
-                                            else
-                                                outerModel.viewState
-
-                                        _ ->
-                                            outerModel.viewState
-
-                                _ ->
-                                    outerModel.viewState
                     in
                     ( newSharedModel, Cmd.none )
                         |> mapToOuterMsg
                         |> mapToOuterModel outerModel
-                        |> pipelineCmdOuterModelMsg (ViewStateHelpers.modelUpdateViewState viewState)
+                        |> pipelineCmdOuterModelMsg (updateUnderlying (ServerCreateMsg <| Page.ServerCreate.GotNetworks))
 
                 Err httpError ->
                     let

@@ -48,8 +48,10 @@ type Msg
     = GotServerName String
     | GotCount Int
     | GotFlavorUuid OSTypes.FlavorUuid
+    | GotDefaultFlavor OSTypes.FlavorUuid
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
+    | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
@@ -96,11 +98,38 @@ update msg project model =
         GotFlavorUuid flavorUuid ->
             ( enforceQuotaCompliance project { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
 
+        GotDefaultFlavor flavorUuid ->
+            ( enforceQuotaCompliance project
+                { model
+                    | flavorUuid =
+                        if model.flavorUuid == "" then
+                            flavorUuid
+
+                        else
+                            model.flavorUuid
+                }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
         GotVolSizeTextInput maybeVolSizeInput ->
             ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
 
         GotUserDataTemplate userData ->
             ( { model | userDataTemplate = userData }, Cmd.none, SharedMsg.NoOp )
+
+        GotNetworks ->
+            -- SharedModel just updated with new networks, choose a default if haven't done so already
+            if model.networkUuid == Nothing then
+                case Helpers.newServerNetworkOptions project of
+                    AutoSelectedNetwork netUuid ->
+                        ( { model | networkUuid = Just netUuid }, Cmd.none, SharedMsg.NoOp )
+
+                    _ ->
+                        ( model, Cmd.none, SharedMsg.NoOp )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
 
         GotNetworkUuid maybeNetworkUuid ->
             ( { model | networkUuid = maybeNetworkUuid }, Cmd.none, SharedMsg.NoOp )
