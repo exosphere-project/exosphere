@@ -34,8 +34,8 @@ type Msg
 widgets : (Msg -> msg) -> Style.Types.ExoPalette -> Model -> List (Element.Element msg)
 widgets msgMapper palette model =
     [ Element.text "Style.Widgets.MenuItem.menuItem"
-    , menuItem palette Active Nothing "Active menu item" Nothing
-    , menuItem palette Inactive Nothing "Inactive menu item" Nothing
+    , menuItem palette Active Nothing "Active menu item" "https://try.exosphere.app"
+    , menuItem palette Inactive Nothing "Inactive menu item" "https://try.exosphere.app"
     , Element.text "Style.Widgets.Icon.roundRect"
     , roundRect (palette.on.background |> SH.toElementColor) 40
     , Element.text "Style.Widgets.Icon.bell"
