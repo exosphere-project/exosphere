@@ -375,7 +375,6 @@ routeToViewStateModelCmd sharedModel route =
 
 defaultRoute : SharedModel -> Route.Route
 defaultRoute sharedModel =
-    -- TODO move this
     case sharedModel.projects of
         [] ->
             defaultLoginPage sharedModel.style.defaultLoginView
