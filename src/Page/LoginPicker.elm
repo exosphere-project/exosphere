@@ -80,7 +80,7 @@ view context sharedModel =
                             url =
                                 oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
                         in
-                        Just <| SharedMsg <| SharedMsg.NavigateToUrl <| Browser.External url
+                        Just <| SharedMsg <| SharedMsg.LinkClicked <| Browser.External url
                     }
             , description =
                 oidcLoginConfig.oidcLoginButtonDescription

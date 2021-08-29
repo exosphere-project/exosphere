@@ -22,6 +22,6 @@ main =
         , view = view
         , update = State.update
         , subscriptions = State.Subscriptions.subscriptions
-        , onUrlRequest = \u -> SharedMsg <| NavigateToUrl u
-        , onUrlChange = \u -> SharedMsg <| UrlChange u
+        , onUrlRequest = \u -> SharedMsg <| LinkClicked u
+        , onUrlChange = \u -> SharedMsg <| UrlChanged u
         }

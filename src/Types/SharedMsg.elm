@@ -30,10 +30,10 @@ type SharedMsg
     | RequestProjectLoginFromProvider OSTypes.KeystoneUrl (Set.Set HelperTypes.ProjectIdentifier)
     | ProjectMsg HelperTypes.ProjectIdentifier ProjectSpecificMsgConstructor
     | OpenNewWindow String
-    | NavigateToUrl Browser.UrlRequest
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
     | ToastyMsg (Toasty.Msg Toast)
     | MsgChangeWindowSize Int Int
-    | UrlChange Url.Url
     | SetStyle Style.Types.StyleMode
     | SetExperimentalFeaturesEnabled Bool
     | NoOp
