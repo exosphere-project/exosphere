@@ -5,6 +5,7 @@ module State.ViewState exposing
     , viewStateToSupportableItem
     )
 
+import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
@@ -56,13 +57,24 @@ navigateToPage route outerModel =
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
 
+        urlWithoutQuery url =
+            String.split "?" url
+                |> List.head
+                |> Maybe.withDefault ""
+
+        prevUrl =
+            outerModel.sharedModel.prevUrl
+
         newUrl =
             Route.routeToUrl outerModel.sharedModel.urlPathPrefix route
+
+        newSharedModel =
+            { pageSpecificSharedModel | prevUrl = newUrl }
 
         newOuterModel =
             { outerModel
                 | viewState = newViewState
-                , sharedModel = pageSpecificSharedModel
+                , sharedModel = newSharedModel
             }
 
         newViewContext =
@@ -71,12 +83,19 @@ navigateToPage route outerModel =
         newPageTitle =
             View.PageTitle.pageTitle newOuterModel newViewContext
 
-        updateMatomoCmd =
-            Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle }
+        ( updateUrlFunc, updateMatomoCmd ) =
+            if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then
+                -- We should `replaceUrl` and not update Matomo when just modifying the query string (setting parameters of views)
+                ( Browser.Navigation.replaceUrl, Cmd.none )
+
+            else
+                -- We should `pushUrl` and update Matomo when modifying the path (moving between views)
+                ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
     in
     ( newOuterModel
     , Cmd.batch
         [ Cmd.map SharedMsg pageSpecificCmd
+        , updateUrlFunc newOuterModel.sharedModel.navigationKey newUrl
         , updateMatomoCmd
         ]
     )
