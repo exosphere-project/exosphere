@@ -8,6 +8,7 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
+import OpenStack.ImageFilter
 import OpenStack.Types as OSTypes
 import Ports
 import Random
@@ -285,11 +286,11 @@ operatingSystemChoiceVersionDecoder =
         (Decode.field "filters" (Decode.list imageFilterDecoder))
 
 
-imageFilterDecoder : Decode.Decoder HelperTypes.ImageFilter
+imageFilterDecoder : Decode.Decoder OpenStack.ImageFilter.ImageFilter
 imageFilterDecoder =
     Decode.oneOf
         [ Decode.field "uuid" Decode.string
-            |> Decode.map HelperTypes.ImageUuidFilter
+            |> Decode.map OpenStack.ImageFilter.ImageUuidFilter
         , Decode.field "visibility" Decode.string
             |> Decode.andThen
                 (\v ->
@@ -309,11 +310,11 @@ imageFilterDecoder =
                         _ ->
                             Decode.fail "unrecognized value for image visibility"
                 )
-            |> Decode.map HelperTypes.ImageVisibilityFilter
+            |> Decode.map OpenStack.ImageFilter.ImageVisibilityFilter
         , Decode.field "name" Decode.string
-            |> Decode.map HelperTypes.ImageNameFilter
+            |> Decode.map OpenStack.ImageFilter.ImageNameFilter
         , Decode.field "osDistro" Decode.string
-            |> Decode.map HelperTypes.ImageOsDistroFilter
+            |> Decode.map OpenStack.ImageFilter.ImageOsDistroFilter
         , Decode.field "osVersion" Decode.string
-            |> Decode.map HelperTypes.ImageOSVersionFilter
+            |> Decode.map OpenStack.ImageFilter.ImageOsVersionFilter
         ]

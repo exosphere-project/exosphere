@@ -9,7 +9,6 @@ module Types.HelperTypes exposing
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
-    , ImageFilter(..)
     , JetstreamCreds
     , JetstreamProvider(..)
     , KeystoneHostname
@@ -28,6 +27,7 @@ module Types.HelperTypes exposing
     , WindowSize
     )
 
+import OpenStack.ImageFilter
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
@@ -131,16 +131,8 @@ type alias OperatingSystemChoice =
 
 type alias OperatingSystemChoiceVersion =
     { friendlyName : String
-    , filters : List ImageFilter
+    , filters : List OpenStack.ImageFilter.ImageFilter
     }
-
-
-type ImageFilter
-    = ImageUuidFilter OSTypes.ImageUuid
-    | ImageVisibilityFilter OSTypes.ImageVisibility
-    | ImageNameFilter String
-    | ImageOsDistroFilter String
-    | ImageOSVersionFilter String
 
 
 type alias UnscopedProvider =
