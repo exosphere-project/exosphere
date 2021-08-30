@@ -985,7 +985,7 @@ networkPicker context project model =
             Style.Widgets.Select.select
                 []
                 { label = "Choose a Network"
-                , onChange = \networkUuid -> GotNetworkUuid <| Just networkUuid
+                , onChange = \networkUuid -> GotNetworkUuid networkUuid
                 , options =
                     case project.networks.data of
                         RDPP.DoHave networks _ ->

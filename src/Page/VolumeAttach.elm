@@ -23,8 +23,8 @@ type alias Model =
 
 
 type Msg
-    = GotServerUuid OSTypes.ServerUuid
-    | GotVolumeUuid OSTypes.VolumeUuid
+    = GotServerUuid (Maybe OSTypes.ServerUuid)
+    | GotVolumeUuid (Maybe OSTypes.VolumeUuid)
     | GotSubmit OSTypes.ServerUuid OSTypes.VolumeUuid
 
 
@@ -36,11 +36,11 @@ init maybeServerUuid maybeVolumeUuid =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotServerUuid serverUuid ->
-            ( { model | maybeServerUuid = Just serverUuid }, Cmd.none, SharedMsg.NoOp )
+        GotServerUuid maybeServerUuid ->
+            ( { model | maybeServerUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
 
-        GotVolumeUuid volumeUuid ->
-            ( { model | maybeVolumeUuid = Just volumeUuid }, Cmd.none, SharedMsg.NoOp )
+        GotVolumeUuid maybeVolumeUuid ->
+            ( { model | maybeVolumeUuid = maybeVolumeUuid }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit serverUuid volumeUuid ->
             ( model

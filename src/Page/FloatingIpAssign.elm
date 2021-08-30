@@ -22,8 +22,8 @@ type alias Model =
 
 
 type Msg
-    = GotIpUuid OSTypes.IpAddressUuid
-    | GotServerUuid OSTypes.ServerUuid
+    = GotIpUuid (Maybe OSTypes.IpAddressUuid)
+    | GotServerUuid (Maybe OSTypes.ServerUuid)
       -- Maybe this should be a PortUuid, eh
     | SharedMsg SharedMsg.SharedMsg
 
@@ -36,11 +36,11 @@ init =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
-        GotIpUuid ipUuid ->
-            ( { model | ipUuid = Just ipUuid }, Cmd.none, SharedMsg.NoOp )
+        GotIpUuid maybeIpUuid ->
+            ( { model | ipUuid = maybeIpUuid }, Cmd.none, SharedMsg.NoOp )
 
-        GotServerUuid serverUuid ->
-            ( { model | serverUuid = Just serverUuid }, Cmd.none, SharedMsg.NoOp )
+        GotServerUuid maybeServerUuid ->
+            ( { model | serverUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
