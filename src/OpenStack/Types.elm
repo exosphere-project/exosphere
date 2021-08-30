@@ -219,6 +219,8 @@ type alias Image =
     , visibility : ImageVisibility
     , additionalProperties : Dict.Dict String String
     , createdAt : Time.Posix
+    , osDistro : Maybe String
+    , osVersion : Maybe String
     }
 
 
