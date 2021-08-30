@@ -115,7 +115,29 @@ type alias CloudSpecificConfig =
     { userAppProxy : Maybe UserAppProxyHostname
     , imageExcludeFilter : Maybe ExcludeFilter
     , featuredImageNamePrefix : Maybe String
+    , operatingSystemChoices : Maybe (List OperatingSystem)
     }
+
+
+type alias OperatingSystem =
+    { friendlyName : String
+    , logo : Url
+    , versions : List OperatingSystemVersion
+    }
+
+
+type alias OperatingSystemVersion =
+    { friendlyName : String
+    , filters : List ImageFilter
+    }
+
+
+type ImageFilter
+    = ImageUuidFilter OSTypes.ImageUuid
+    | ImageVisibilityFilter OSTypes.ImageVisibility
+    | ImageNameFilter String
+    | ImageOsDistroFilter String
+    | ImageOSVersionFilter String
 
 
 type alias UnscopedProvider =

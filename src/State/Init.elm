@@ -118,6 +118,7 @@ init flags urlKey =
                             , { userAppProxy = c.userAppProxy
                               , imageExcludeFilter = c.imageExcludeFilter
                               , featuredImageNamePrefix = c.featuredImageNamePrefix
+                              , operatingSystemChoices = Nothing
                               }
                             )
                         )
