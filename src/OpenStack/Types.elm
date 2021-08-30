@@ -218,6 +218,7 @@ type alias Image =
     , projectUuid : HelperTypes.Uuid
     , visibility : ImageVisibility
     , additionalProperties : Dict.Dict String String
+    , createdAt : Time.Posix
     }
 
 

@@ -187,6 +187,7 @@ imageDecoderHelper =
         |> Pipeline.required "owner" Decode.string
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
         |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
+        |> Pipeline.required "createdAt" (Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
 
 
 imageVisibilityDecoder : String -> Decode.Decoder OSTypes.ImageVisibility
