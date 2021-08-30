@@ -46,7 +46,8 @@ var config = {
         filterKey: "atmo_image_include",
         filterValue: "true"
       },
-      featuredImageNamePrefix: "JS-API-Featured"
+      featuredImageNamePrefix: "JS-API-Featured",
+      operatingSystemChoices: []
     },
     {
       keystoneHostname: "tacc.jetstream-cloud.org",
@@ -55,7 +56,8 @@ var config = {
         filterKey: "atmo_image_include",
         filterValue: "true"
       },
-      featuredImageNamePrefix: "JS-API-Featured"
+      featuredImageNamePrefix: "JS-API-Featured",
+      operatingSystemChoices: []
     }
   ],
   instanceConfigMgtRepoUrl: null,

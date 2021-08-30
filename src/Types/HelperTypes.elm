@@ -9,11 +9,14 @@ module Types.HelperTypes exposing
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
+    , ImageFilter(..)
     , JetstreamCreds
     , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
     , OpenIdConnectLoginConfig
+    , OperatingSystemChoice
+    , OperatingSystemChoiceVersion
     , Password
     , ProjectIdentifier
     , SupportableItemType(..)
@@ -115,18 +118,18 @@ type alias CloudSpecificConfig =
     { userAppProxy : Maybe UserAppProxyHostname
     , imageExcludeFilter : Maybe ExcludeFilter
     , featuredImageNamePrefix : Maybe String
-    , operatingSystemChoices : Maybe (List OperatingSystem)
+    , operatingSystemChoices : List OperatingSystemChoice
     }
 
 
-type alias OperatingSystem =
+type alias OperatingSystemChoice =
     { friendlyName : String
     , logo : Url
-    , versions : List OperatingSystemVersion
+    , versions : List OperatingSystemChoiceVersion
     }
 
 
-type alias OperatingSystemVersion =
+type alias OperatingSystemChoiceVersion =
     { friendlyName : String
     , filters : List ImageFilter
     }
