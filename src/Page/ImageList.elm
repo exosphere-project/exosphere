@@ -4,6 +4,7 @@ import Element
 import Element.Font as Font
 import Element.Input as Input
 import Filesize
+import Helpers.GetterSetters as GetterSetters
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
@@ -14,6 +15,7 @@ import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
+import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -115,7 +117,22 @@ view context project model =
             ]
 
     else
-        images context project model
+        -- TODO make a tabbed interface if we have choices
+        let
+            operatingSystemChoices =
+                GetterSetters.cloudConfigLookup context.cloudSpecificConfigs project
+                    |> Maybe.map .operatingSystemChoices
+                    |> Maybe.withDefault []
+        in
+        if List.isEmpty operatingSystemChoices then
+            images context project model
+
+        else
+            operatingSystems context project operatingSystemChoices model
+
+
+
+-- Helper functions
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -184,11 +201,107 @@ isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
 
 filterImages : Model -> Project -> List OSTypes.Image -> List OSTypes.Image
 filterImages model project someImages =
+    -- TODO use the new OpenStack.ImageFilter stuff here?
     someImages
         |> filterByOwner model.onlyOwnImages project
         |> filterByTags model.tags
         |> filterBySearchText model.searchText
         |> filterByVisibility model.visibilityFilter
+
+
+getImageforOpSysChoiceVersion : List OSTypes.Image -> HelperTypes.ImageFilters -> Maybe OSTypes.Image
+getImageforOpSysChoiceVersion images_ filters =
+    let
+        applyUuidFilter : OSTypes.Image -> Bool
+        applyUuidFilter image =
+            case filters.uuidFilter of
+                Just uuid ->
+                    image.uuid == uuid
+
+                Nothing ->
+                    True
+
+        applyVisibilityFilter : OSTypes.Image -> Bool
+        applyVisibilityFilter image =
+            case filters.visibilityFilter of
+                Just visibility ->
+                    image.visibility == visibility
+
+                Nothing ->
+                    True
+
+        applyNameFilter : OSTypes.Image -> Bool
+        applyNameFilter image =
+            case filters.nameFilter of
+                Just name ->
+                    image.name == name
+
+                Nothing ->
+                    True
+
+        applyOsDistroFilter : OSTypes.Image -> Bool
+        applyOsDistroFilter image =
+            case filters.osDistroFilter of
+                Just filterOsDistro ->
+                    case image.osDistro of
+                        Just imageOsDistro ->
+                            imageOsDistro == filterOsDistro
+
+                        Nothing ->
+                            False
+
+                Nothing ->
+                    True
+
+        applyOsVersionFilter : OSTypes.Image -> Bool
+        applyOsVersionFilter image =
+            case filters.osVersionFilter of
+                Just filterOsVersion ->
+                    case image.osVersion of
+                        Just imageOsVersion ->
+                            imageOsVersion == filterOsVersion
+
+                        Nothing ->
+                            False
+
+                Nothing ->
+                    True
+    in
+    images_
+        |> List.filter applyUuidFilter
+        |> List.filter applyVisibilityFilter
+        |> List.filter applyNameFilter
+        |> List.filter applyOsDistroFilter
+        |> List.filter applyOsVersionFilter
+        |> List.head
+
+
+
+-- "Tabs"
+
+
+operatingSystems : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Model -> Element.Element Msg
+operatingSystems context project opSysChoices model =
+    let
+        renderOpSysChoiceVersion : HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
+        renderOpSysChoiceVersion opSysChoiceVersion =
+            getImageforOpSysChoiceVersion project.images opSysChoiceVersion.filters
+                |> Maybe.map (Element.text << Debug.toString)
+                |> Maybe.withDefault Element.none
+
+        renderOpSysChoice : HelperTypes.OperatingSystemChoice -> Element.Element Msg
+        renderOpSysChoice opSysChoice =
+            Element.column [] <|
+                List.concat
+                    [ [ Element.text opSysChoice.friendlyName
+                      , Element.text opSysChoice.logo
+                      ]
+                    , opSysChoice.versions
+                        |> List.map renderOpSysChoiceVersion
+                    ]
+    in
+    Element.column []
+        (List.map renderOpSysChoice opSysChoices)
 
 
 images : View.Types.Context -> Project -> Model -> Element.Element Msg

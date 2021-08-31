@@ -26,7 +26,50 @@ var config = {
         filterValue: "true"
       },
       featuredImageNamePrefix: "JS-API-Featured",
-      operatingSystemChoices: []
+      operatingSystemChoices: [
+                                  {
+                                    "friendlyName":"Ubuntu Linux",
+                                    "logo":"assets/ubuntu.png",
+                                    "versions":[
+                                      {
+                                        "friendlyName":"20.04 (Latest)",
+                                        "filters":{
+                                          "name":"JS-API-Featured-Ubuntu20-Latest",
+                                          "visibility": "public"
+                                        }
+                                      },
+                                      {
+                                        "friendlyName":"18.04",
+                                        "filters":{
+                                          "osDistro":"ubuntu",
+                                          "osVersion":"18.04",
+                                          "visibility": "public"
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "friendlyName":"CentOS Linux",
+                                    "logo":"assets/centos.png",
+                                    "versions":[
+                                      {
+                                        "friendlyName":"8 (Latest)",
+                                        "filters":{
+                                          "name":"JS-API-Featured-CentOS8-Latest",
+                                          "visibility": "public"
+                                        }
+                                      },
+                                      {
+                                        "friendlyName":"7",
+                                        "filters":{
+                                          "name":"JS-API-Featured-CentOS7-Latest",
+                                          "visibility": "public"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+
 
     },
     {

@@ -8,7 +8,6 @@ import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
 import LocalStorage.Types as LocalStorageTypes
 import Maybe
-import OpenStack.ImageFilter
 import OpenStack.Types as OSTypes
 import Ports
 import Random
@@ -283,38 +282,35 @@ operatingSystemChoiceVersionDecoder : Decode.Decoder HelperTypes.OperatingSystem
 operatingSystemChoiceVersionDecoder =
     Decode.map2 HelperTypes.OperatingSystemChoiceVersion
         (Decode.field "friendlyName" Decode.string)
-        (Decode.field "filters" (Decode.list imageFilterDecoder))
+        (Decode.field "filters" imageFiltersDecoder)
 
 
-imageFilterDecoder : Decode.Decoder OpenStack.ImageFilter.ImageFilter
-imageFilterDecoder =
-    Decode.oneOf
-        [ Decode.field "uuid" Decode.string
-            |> Decode.map OpenStack.ImageFilter.ImageUuidFilter
-        , Decode.field "visibility" Decode.string
-            |> Decode.andThen
-                (\v ->
-                    case v of
-                        "private" ->
-                            Decode.succeed OSTypes.ImagePrivate
+imageFiltersDecoder : Decode.Decoder HelperTypes.ImageFilters
+imageFiltersDecoder =
+    Decode.map5 HelperTypes.ImageFilters
+        (Decode.maybe (Decode.field "uuid" Decode.string))
+        (Decode.maybe
+            (Decode.field "visibility" Decode.string
+                |> Decode.andThen
+                    (\v ->
+                        case v of
+                            "private" ->
+                                Decode.succeed OSTypes.ImagePrivate
 
-                        "shared" ->
-                            Decode.succeed OSTypes.ImageShared
+                            "shared" ->
+                                Decode.succeed OSTypes.ImageShared
 
-                        "community" ->
-                            Decode.succeed OSTypes.ImageCommunity
+                            "community" ->
+                                Decode.succeed OSTypes.ImageCommunity
 
-                        "public" ->
-                            Decode.succeed OSTypes.ImagePublic
+                            "public" ->
+                                Decode.succeed OSTypes.ImagePublic
 
-                        _ ->
-                            Decode.fail "unrecognized value for image visibility"
-                )
-            |> Decode.map OpenStack.ImageFilter.ImageVisibilityFilter
-        , Decode.field "name" Decode.string
-            |> Decode.map OpenStack.ImageFilter.ImageNameFilter
-        , Decode.field "osDistro" Decode.string
-            |> Decode.map OpenStack.ImageFilter.ImageOsDistroFilter
-        , Decode.field "osVersion" Decode.string
-            |> Decode.map OpenStack.ImageFilter.ImageOsVersionFilter
-        ]
+                            _ ->
+                                Decode.fail "unrecognized value for image visibility"
+                    )
+            )
+        )
+        (Decode.maybe (Decode.field "name" Decode.string))
+        (Decode.maybe (Decode.field "osDistro" Decode.string))
+        (Decode.maybe (Decode.field "osVersion" Decode.string))
