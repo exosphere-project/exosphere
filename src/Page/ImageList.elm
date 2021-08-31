@@ -6,6 +6,7 @@ import Element.Input as Input
 import Filesize
 import Helpers.GetterSetters as GetterSetters
 import Helpers.String
+import Html.Attributes as HtmlA
 import List.Extra
 import OpenStack.Types as OSTypes
 import Route
@@ -285,22 +286,40 @@ operatingSystems context project opSysChoices model =
     let
         renderOpSysChoiceVersion : HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
         renderOpSysChoiceVersion opSysChoiceVersion =
-            getImageforOpSysChoiceVersion project.images opSysChoiceVersion.filters
-                |> Maybe.map (Element.text << Debug.toString)
-                |> Maybe.withDefault Element.none
+            case getImageforOpSysChoiceVersion project.images opSysChoiceVersion.filters of
+                Nothing ->
+                    Element.none
+
+                Just image ->
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text =
+                            opSysChoiceVersion.friendlyName
+                        , onPress =
+                            Nothing
+                        }
 
         renderOpSysChoice : HelperTypes.OperatingSystemChoice -> Element.Element Msg
         renderOpSysChoice opSysChoice =
-            Element.column [] <|
+            Element.column [ Element.spacing 10 ] <|
                 List.concat
-                    [ [ Element.text opSysChoice.friendlyName
-                      , Element.text opSysChoice.logo
+                    [ [ Element.image
+                            [ Element.width (Element.px 80)
+                            , Element.height (Element.px 80)
+                            , Element.htmlAttribute <| HtmlA.style "color" "blue"
+                            , Font.color <| SH.toElementColor context.palette.primary
+                            ]
+                            -- TODO get URL path prefix from view context after rebase, rather than hard-coding it?
+                            { src = opSysChoice.logo
+                            , description = opSysChoice.friendlyName ++ " logo"
+                            }
+                      , Element.text opSysChoice.friendlyName
                       ]
                     , opSysChoice.versions
                         |> List.map renderOpSysChoiceVersion
                     ]
     in
-    Element.column []
+    Element.wrappedRow [ Element.spacing 10 ]
         (List.map renderOpSysChoice opSysChoices)
 
 
