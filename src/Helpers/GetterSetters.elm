@@ -410,13 +410,20 @@ modelUpdateUnscopedProvider model newProvider =
     { model | unscopedProviders = newProvidersSorted }
 
 
-cloudConfigLookup : SharedModel -> Project -> Maybe HelperTypes.CloudSpecificConfig
-cloudConfigLookup model project =
+
+-- TODO rename to cloudSpecificConfigLookup
+
+
+cloudConfigLookup :
+    Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig
+    -> Project
+    -> Maybe HelperTypes.CloudSpecificConfig
+cloudConfigLookup cloudSpecificConfigs project =
     let
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
     in
-    Dict.get projectKeystoneHostname model.cloudSpecificConfigs
+    Dict.get projectKeystoneHostname cloudSpecificConfigs
 
 
 projectUpdateKeypair : Project -> OSTypes.Keypair -> Project
