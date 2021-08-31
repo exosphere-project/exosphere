@@ -187,7 +187,7 @@ imageDecoderHelper =
         |> Pipeline.required "owner" Decode.string
         |> Pipeline.required "visibility" (Decode.string |> Decode.andThen imageVisibilityDecoder)
         |> Pipeline.custom (decodeAdditionalProperties basePropertyNames)
-        |> Pipeline.required "createdAt" (Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
+        |> Pipeline.required "created_at" (Decode.string |> Decode.andThen Rest.Helpers.iso8601StringToPosixDecodeError)
         |> Pipeline.optional "osDistro" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
         |> Pipeline.optional "osVersion" (Decode.string |> Decode.andThen (\s -> Decode.succeed <| Just s)) Nothing
 
