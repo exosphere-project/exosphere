@@ -2,12 +2,12 @@ module Page.FloatingIpAssign exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
-import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Style.Helpers as SH
+import Style.Widgets.Select
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -22,8 +22,8 @@ type alias Model =
 
 
 type Msg
-    = GotIpUuid OSTypes.IpAddressUuid
-    | GotServerUuid OSTypes.ServerUuid
+    = GotIpUuid (Maybe OSTypes.IpAddressUuid)
+    | GotServerUuid (Maybe OSTypes.ServerUuid)
       -- Maybe this should be a PortUuid, eh
     | SharedMsg SharedMsg.SharedMsg
 
@@ -36,11 +36,11 @@ init =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
-        GotIpUuid ipUuid ->
-            ( { model | ipUuid = Just ipUuid }, Cmd.none, SharedMsg.NoOp )
+        GotIpUuid maybeIpUuid ->
+            ( { model | ipUuid = maybeIpUuid }, Cmd.none, SharedMsg.NoOp )
 
-        GotServerUuid serverUuid ->
-            ( { model | serverUuid = Just serverUuid }, Cmd.none, SharedMsg.NoOp )
+        GotServerUuid maybeServerUuid ->
+            ( { model | serverUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
@@ -68,8 +68,9 @@ view context project model =
                     )
                 |> List.map
                     (\s ->
-                        Input.option s.osProps.uuid
-                            (Element.text <| VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer)
+                        ( s.osProps.uuid
+                        , VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer
+                        )
                     )
 
         ipChoices =
@@ -81,10 +82,9 @@ view context project model =
                 |> List.filter (\ip -> GetterSetters.getFloatingIpServer project ip == Nothing)
                 |> List.map
                     (\ip ->
-                        Input.option ip.uuid
-                            (Element.el [ Font.family [ Font.monospace ] ] <|
-                                Element.text ip.address
-                            )
+                        ( ip.uuid
+                        , ip.address
+                        )
                     )
 
         selectIpText =
@@ -123,9 +123,8 @@ view context project model =
                         ]
 
               else
-                Input.radio []
-                    { label =
-                        Input.labelHidden selectServerText
+                Style.Widgets.Select.select []
+                    { label = selectServerText
                     , onChange = GotServerUuid
                     , options = serverChoices
                     , selected = model.serverUuid
@@ -144,8 +143,8 @@ view context project model =
                         ]
 
               else
-                Input.radio []
-                    { label = Input.labelHidden selectIpText
+                Style.Widgets.Select.select []
+                    { label = selectIpText
                     , onChange = GotIpUuid
                     , options = ipChoices
                     , selected = model.ipUuid

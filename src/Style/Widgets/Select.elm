@@ -11,7 +11,7 @@ import Html.Events as HtmlE
 select :
     List (Element.Attribute msg)
     ->
-        { onChange : Value -> msg
+        { onChange : Maybe Value -> msg
         , options : List ( Value, Label )
         , selected : Maybe Value
         , label : String
@@ -23,7 +23,13 @@ select attributes { onChange, options, selected, label } =
         select_ =
             Html.select
                 [ HtmlE.onInput
-                    onChange
+                    (\input ->
+                        if String.isEmpty input then
+                            onChange Nothing
+
+                        else
+                            onChange (Just input)
+                    )
                 , HtmlA.style "appearance" "none"
                 , HtmlA.style "-webkit-appearance" "none"
                 , HtmlA.style "-moz-appearance" "none"
@@ -55,10 +61,11 @@ select attributes { onChange, options, selected, label } =
         ([ Border.width 1
          , Border.rounded 8
          , Element.paddingXY 5 0
+         , Element.width Element.fill
          ]
             ++ attributes
         )
-        [ Element.el [] <| Element.html select_
+        [ Element.el [ Element.width Element.fill ] <| Element.html select_
         , FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html |> Element.el []
         ]
 

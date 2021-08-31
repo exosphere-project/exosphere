@@ -2,13 +2,13 @@ module Page.VolumeAttach exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Font as Font
-import Element.Input as Input
 import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
 import Style.Helpers as SH
+import Style.Widgets.Select
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import View.Helpers as VH
@@ -23,8 +23,8 @@ type alias Model =
 
 
 type Msg
-    = GotServerUuid OSTypes.ServerUuid
-    | GotVolumeUuid OSTypes.VolumeUuid
+    = GotServerUuid (Maybe OSTypes.ServerUuid)
+    | GotVolumeUuid (Maybe OSTypes.VolumeUuid)
     | GotSubmit OSTypes.ServerUuid OSTypes.VolumeUuid
 
 
@@ -36,11 +36,11 @@ init maybeServerUuid maybeVolumeUuid =
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg project model =
     case msg of
-        GotServerUuid serverUuid ->
-            ( { model | maybeServerUuid = Just serverUuid }, Cmd.none, SharedMsg.NoOp )
+        GotServerUuid maybeServerUuid ->
+            ( { model | maybeServerUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
 
-        GotVolumeUuid volumeUuid ->
-            ( { model | maybeVolumeUuid = Just volumeUuid }, Cmd.none, SharedMsg.NoOp )
+        GotVolumeUuid maybeVolumeUuid ->
+            ( { model | maybeVolumeUuid = maybeVolumeUuid }, Cmd.none, SharedMsg.NoOp )
 
         GotSubmit serverUuid volumeUuid ->
             ( model
@@ -71,8 +71,7 @@ view context project model =
                     )
                 |> List.map
                     (\s ->
-                        Input.option s.osProps.uuid
-                            (Element.text <| VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer)
+                        ( s.osProps.uuid, VH.possiblyUntitledResource s.osProps.name context.localization.virtualComputer )
                     )
 
         volumeChoices =
@@ -80,14 +79,13 @@ view context project model =
                 |> List.filter (\v -> v.status == OSTypes.Available)
                 |> List.map
                     (\v ->
-                        Input.option
-                            v.uuid
-                            (Element.row VH.exoRowAttributes
-                                [ Element.text <| VH.possiblyUntitledResource v.name context.localization.blockDevice
-                                , Element.text " - "
-                                , Element.text <| String.fromInt v.size ++ " GB"
-                                ]
-                            )
+                        ( v.uuid
+                        , String.concat
+                            [ VH.possiblyUntitledResource v.name context.localization.blockDevice
+                            , " - "
+                            , String.fromInt v.size ++ " GB"
+                            ]
+                        )
                     )
     in
     Element.column (VH.exoColumnAttributes ++ [ Element.width Element.fill ])
@@ -99,26 +97,20 @@ view context project model =
                         |> Helpers.String.toTitleCase
                     ]
         , Element.column VH.formContainer
-            [ Input.radio []
+            [ Style.Widgets.Select.select []
                 { label =
-                    Input.labelAbove
-                        [ Element.paddingXY 0 12 ]
-                        (Element.text <|
-                            String.join " "
-                                [ "Select"
-                                , Helpers.String.indefiniteArticle context.localization.virtualComputer
-                                , context.localization.virtualComputer
-                                ]
-                        )
+                    String.join " "
+                        [ "Select"
+                        , Helpers.String.indefiniteArticle context.localization.virtualComputer
+                        , context.localization.virtualComputer
+                        ]
                 , onChange = GotServerUuid
                 , options = serverChoices
                 , selected = model.maybeServerUuid
                 }
-            , Input.radio []
+            , Style.Widgets.Select.select []
                 -- TODO if no volumes in list, suggest user create a volume and provide link to that view
-                { label =
-                    Input.labelAbove [ Element.paddingXY 0 12 ]
-                        (Element.text ("Select a " ++ context.localization.blockDevice))
+                { label = "Select a " ++ context.localization.blockDevice
                 , onChange = GotVolumeUuid
                 , options = volumeChoices
                 , selected = model.maybeVolumeUuid

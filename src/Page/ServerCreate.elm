@@ -20,6 +20,7 @@ import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
+import Style.Widgets.Select
 import Types.HelperTypes as HelperTypes
     exposing
         ( FloatingIpAssignmentStatus(..)
@@ -1061,11 +1062,12 @@ networkPicker context project model =
         picker =
             let
                 networkAsInputOption network =
-                    Input.option network.uuid (Element.text network.name)
+                    ( network.uuid, network.name )
             in
-            Input.radio []
-                { label = Input.labelHidden "Choose a Network"
-                , onChange = \networkUuid -> GotNetworkUuid <| Just networkUuid
+            Style.Widgets.Select.select
+                []
+                { label = "Choose a Network"
+                , onChange = \networkUuid -> GotNetworkUuid networkUuid
                 , options =
                     case project.networks.data of
                         RDPP.DoHave networks _ ->
