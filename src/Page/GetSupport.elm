@@ -153,17 +153,6 @@ view context sharedModel model =
 
                 Just ( supportableItemType, maybeSupportableItemUuid ) ->
                     let
-                        onChange value =
-                            let
-                                newMaybeSupportableItemUuid =
-                                    if value == "" then
-                                        Nothing
-
-                                    else
-                                        Just value
-                            in
-                            GotResourceUuid newMaybeSupportableItemUuid
-
                         options =
                             case supportableItemType of
                                 HelperTypes.SupportableProject ->
@@ -229,8 +218,7 @@ view context sharedModel model =
                     in
                     Style.Widgets.Select.select
                         []
-                        { onChange =
-                            onChange
+                        { onChange = GotResourceUuid
                         , options = options
                         , selected = maybeSupportableItemUuid
                         , label = label
