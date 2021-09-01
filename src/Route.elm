@@ -1,5 +1,6 @@
-module Route exposing (ProjectRouteConstructor(..), Route(..), routeToUrl, urlToRoute)
+module Route exposing (ProjectRouteConstructor(..), Route(..), replaceUrl, routeToUrl, urlToRoute)
 
+import Browser.Navigation
 import Dict
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
@@ -289,6 +290,11 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
                     pathParts
     in
     UB.absolute prefixedPathParts queryParams
+
+
+replaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
+replaceUrl key maybePathPrefix route =
+    Browser.Navigation.replaceUrl key (routeToUrl maybePathPrefix route)
 
 
 urlToRoute : Maybe String -> Route -> Url.Url -> Maybe Route
