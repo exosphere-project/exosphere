@@ -7,9 +7,11 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import RemoteData
+import Route
 import Style.Helpers as SH
 import Style.Widgets.Select
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import View.Helpers as VH
 import View.Types
@@ -33,14 +35,30 @@ init maybeServerUuid maybeVolumeUuid =
     Model maybeServerUuid maybeVolumeUuid
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
+    let
+        withReplaceUrl ( model_, cmd, sharedMsg ) =
+            Route.withReplaceUrl
+                sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.ProjectRoute
+                    project.auth.project.uuid
+                    (Route.VolumeAttach
+                        model_.maybeServerUuid
+                        model_.maybeVolumeUuid
+                    )
+                )
+                ( model, cmd, sharedMsg )
+    in
     case msg of
         GotServerUuid maybeServerUuid ->
             ( { model | maybeServerUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
+                |> withReplaceUrl
 
         GotVolumeUuid maybeVolumeUuid ->
             ( { model | maybeVolumeUuid = maybeVolumeUuid }, Cmd.none, SharedMsg.NoOp )
+                |> withReplaceUrl
 
         GotSubmit serverUuid volumeUuid ->
             ( model

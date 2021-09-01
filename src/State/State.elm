@@ -260,7 +260,7 @@ updateUnderlying outerMsg outerModel =
                         ( FloatingIpAssignMsg pageMsg, FloatingIpAssign pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.FloatingIpAssign.update pageMsg project pageModel
+                                    Page.FloatingIpAssign.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -350,7 +350,7 @@ updateUnderlying outerMsg outerModel =
                         ( ServerCreateImageMsg pageMsg, ServerCreateImage pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.ServerCreateImage.update pageMsg project pageModel
+                                    Page.ServerCreateImage.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =
@@ -395,7 +395,7 @@ updateUnderlying outerMsg outerModel =
                         ( VolumeAttachMsg pageMsg, VolumeAttach pageModel ) ->
                             let
                                 ( newSharedModel, cmd, sharedMsg ) =
-                                    Page.VolumeAttach.update pageMsg project pageModel
+                                    Page.VolumeAttach.update pageMsg sharedModel project pageModel
                             in
                             ( { outerModel
                                 | viewState =

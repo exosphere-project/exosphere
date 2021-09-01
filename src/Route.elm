@@ -1,4 +1,4 @@
-module Route exposing (ProjectRouteConstructor(..), Route(..), replaceUrl, routeToUrl, urlToRoute)
+module Route exposing (ProjectRouteConstructor(..), Route(..), replaceUrl, routeToUrl, urlToRoute, withReplaceUrl)
 
 import Browser.Navigation
 import Dict
@@ -295,6 +295,18 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
 replaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
 replaceUrl key maybePathPrefix route =
     Browser.Navigation.replaceUrl key (routeToUrl maybePathPrefix route)
+
+
+withReplaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> ( model, Cmd msg, sharedMsg ) -> ( model, Cmd msg, sharedMsg )
+withReplaceUrl key maybePathPrefix route ( model, cmd, sharedMsg ) =
+    -- Helper for use in pages
+    ( model
+    , Cmd.batch
+        [ cmd
+        , replaceUrl key maybePathPrefix route
+        ]
+    , sharedMsg
+    )
 
 
 urlToRoute : Maybe String -> Route -> Url.Url -> Maybe Route

@@ -6,9 +6,11 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Style.Widgets.Select
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
 import View.Types
@@ -33,14 +35,27 @@ init =
     Model
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
+    let
+        withReplaceUrl ( model_, cmd, sharedMsg ) =
+            Route.withReplaceUrl
+                sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.ProjectRoute
+                    project.auth.project.uuid
+                    (Route.FloatingIpAssign model_.ipUuid model_.serverUuid)
+                )
+                ( model, cmd, sharedMsg )
+    in
     case msg of
         GotIpUuid maybeIpUuid ->
             ( { model | ipUuid = maybeIpUuid }, Cmd.none, SharedMsg.NoOp )
+                |> withReplaceUrl
 
         GotServerUuid maybeServerUuid ->
             ( { model | serverUuid = maybeServerUuid }, Cmd.none, SharedMsg.NoOp )
+                |> withReplaceUrl
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
