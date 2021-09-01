@@ -59,7 +59,7 @@ type Msg
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
-    | GotWorkflowSourceProvider String
+    | GotWorkflowSourceProvider (Maybe String)
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
