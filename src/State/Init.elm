@@ -78,7 +78,6 @@ init flags urlKey =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
             , navigationKey = Tuple.second urlKey
-            , prevUrl = ""
             , windowSize = { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []

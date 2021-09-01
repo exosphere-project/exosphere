@@ -7,7 +7,6 @@ import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.ServerResourceUsage
-import Helpers.Url as UrlHelpers
 import Http
 import LocalStorage.LocalStorage as LocalStorage
 import Maybe
@@ -730,30 +729,21 @@ processSharedMsg sharedMsg outerModel =
                     ( outerModel, Browser.Navigation.load url )
 
         UrlChanged url ->
-            let
-                exoJustSetThisUrl =
-                    -- If this is a URL that Exosphere just set via StateHelpers.updateViewState, then ignore it
-                    UrlHelpers.urlPathQueryMatches url sharedModel.prevUrl
-            in
-            if exoJustSetThisUrl then
-                ( outerModel, Cmd.none )
+            case
+                Route.urlToRoute
+                    sharedModel.urlPathPrefix
+                    (ViewStateHelpers.defaultRoute sharedModel)
+                    url
+            of
+                Just route ->
+                    ViewStateHelpers.navigateToPage route outerModel
 
-            else
-                case
-                    Route.urlToRoute
-                        sharedModel.urlPathPrefix
-                        (ViewStateHelpers.defaultRoute sharedModel)
-                        url
-                of
-                    Just route ->
-                        ViewStateHelpers.navigateToPage route outerModel
-
-                    Nothing ->
-                        ( { outerModel
-                            | viewState = NonProjectView PageNotFound
-                          }
-                        , Cmd.none
-                        )
+                Nothing ->
+                    ( { outerModel
+                        | viewState = NonProjectView PageNotFound
+                      }
+                    , Cmd.none
+                    )
 
         SetStyle styleMode ->
             let
