@@ -79,6 +79,7 @@ toViewContext model =
     , cloudSpecificConfigs = model.cloudSpecificConfigs
     , experimentalFeaturesEnabled = model.experimentalFeaturesEnabled
     , urlPathPrefix = model.urlPathPrefix
+    , navigationKey = model.navigationKey
     }
 
 
