@@ -892,7 +892,7 @@ customWorkflowInputExperimental context model =
                                         )
                                 , onChange =
                                     GotCustomWorkflowSource
-                                , label = Input.labelHidden "TODO: Git repository URL or whatever"
+                                , label = Input.labelHidden selectedSourceProvider.text
                                 }
                             ]
                         ]
