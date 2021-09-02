@@ -132,6 +132,7 @@ type alias OperatingSystemChoice =
 
 type alias OperatingSystemChoiceVersion =
     { friendlyName : String
+    , isPrimary : Bool
     , filters : ImageFilters
     }
 

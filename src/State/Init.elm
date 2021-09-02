@@ -281,8 +281,9 @@ operatingSystemChoiceDecoder =
 
 operatingSystemChoiceVersionDecoder : Decode.Decoder HelperTypes.OperatingSystemChoiceVersion
 operatingSystemChoiceVersionDecoder =
-    Decode.map2 HelperTypes.OperatingSystemChoiceVersion
+    Decode.map3 HelperTypes.OperatingSystemChoiceVersion
         (Decode.field "friendlyName" Decode.string)
+        (Decode.field "isPrimary" Decode.bool)
         (Decode.field "filters" imageFiltersDecoder)
 
 

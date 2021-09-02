@@ -34,6 +34,7 @@ var config = {
         "versions":[
           {
             "friendlyName":"20.04 (Latest)",
+            "isPrimary":true,
             "filters":{
               "name":"JS-API-Featured-Ubuntu20-Latest",
               "visibility": "public"
@@ -41,6 +42,7 @@ var config = {
           },
           {
             "friendlyName":"18.04",
+            "isPrimary":false,
             "filters":{
               "osDistro":"ubuntu",
               "osVersion":"18.04",
@@ -56,6 +58,7 @@ var config = {
         "versions":[
           {
             "friendlyName":"8 (Latest)",
+            "isPrimary":true,
             "filters":{
               "name":"JS-API-Featured-CentOS8-Latest",
               "visibility": "public"
@@ -63,6 +66,7 @@ var config = {
           },
           {
             "friendlyName":"7",
+            "isPrimary":false,
             "filters":{
               "name":"JS-API-Featured-CentOS7-Latest",
               "visibility": "public"

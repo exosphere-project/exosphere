@@ -305,7 +305,12 @@ operatingSystems context project opSysChoices model =
                         { url = Route.toUrl context.urlPathPrefix chooseRoute
                         , label =
                             Widget.textButton
-                                (SH.materialStyle context.palette).primaryButton
+                                (if opSysChoiceVersion.isPrimary then
+                                    (SH.materialStyle context.palette).primaryButton
+
+                                 else
+                                    (SH.materialStyle context.palette).button
+                                )
                                 { text =
                                     name ++ " " ++ opSysChoiceVersion.friendlyName
                                 , onPress =
