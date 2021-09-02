@@ -46,6 +46,7 @@ init flags urlKey =
             { projects = []
             , clientUuid = Nothing
             , styleMode = Nothing
+            , experimentalFeaturesEnabled = Nothing
             }
 
         ( primaryColor, secondaryColor ) =
