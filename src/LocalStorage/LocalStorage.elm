@@ -24,7 +24,7 @@ generateStoredState model =
         strippedProjects =
             List.map generateStoredProject model.projects
     in
-    encodeStoredState strippedProjects model.clientUuid model.style.styleMode
+    encodeStoredState strippedProjects model.clientUuid model.style.styleMode model.experimentalFeaturesEnabled
 
 
 generateStoredProject : Types.Project.Project -> StoredProject
@@ -63,10 +63,15 @@ hydrateModelFromStoredState emptyModel newClientUuid storedState =
 
         newStyle =
             { oldStyle | styleMode = styleMode }
+
+        experimentalFeaturesEnabled =
+            storedState.experimentalFeaturesEnabled
+                |> Maybe.withDefault False
     in
     { model
         | projects = projects
         , style = newStyle
+        , experimentalFeaturesEnabled = experimentalFeaturesEnabled
     }
 
 
@@ -94,8 +99,8 @@ hydrateProjectFromStoredProject storedProject =
 -- Encoders
 
 
-encodeStoredState : List StoredProject -> UUID.UUID -> Style.Types.StyleMode -> Encode.Value
-encodeStoredState projects clientUuid styleMode =
+encodeStoredState : List StoredProject -> UUID.UUID -> Style.Types.StyleMode -> Bool -> Encode.Value
+encodeStoredState projects clientUuid styleMode experimentalFeaturesEnabled =
     let
         secretEncode : Types.Project.ProjectSecret -> Encode.Value
         secretEncode secret =
@@ -120,11 +125,12 @@ encodeStoredState projects clientUuid styleMode =
                 ]
     in
     Encode.object
-        [ ( "5"
+        [ ( "6"
           , Encode.object
                 [ ( "projects", Encode.list storedProjectEncode projects )
                 , ( "clientUuid", Encode.string (UUID.toString clientUuid) )
                 , ( "styleMode", encodeStyleMode styleMode )
+                , ( "experimentalFeaturesEnabled", Encode.bool experimentalFeaturesEnabled )
                 ]
           )
         ]
@@ -247,6 +253,9 @@ decodeStoredState =
 
                 -- Added StyleMode
                 , Decode.at [ "5", "projects" ] (Decode.list storedProjectDecode)
+
+                -- Added ExperimentalFeaturesEnabled
+                , Decode.at [ "6", "projects" ] (Decode.list storedProjectDecode)
                 ]
 
         clientUuid =
@@ -256,6 +265,7 @@ decodeStoredState =
                 (Decode.oneOf
                     [ Decode.at [ "4", "clientUuid" ] Decode.string
                     , Decode.at [ "5", "clientUuid" ] Decode.string
+                    , Decode.at [ "6", "clientUuid" ] Decode.string
                     ]
                     |> Decode.map UUID.fromString
                     |> Decode.andThen
@@ -271,11 +281,18 @@ decodeStoredState =
 
         styleMode =
             Decode.maybe
-                (Decode.at [ "5", "styleMode" ] Decode.string
+                (Decode.oneOf
+                    [ Decode.at [ "5", "styleMode" ] Decode.string
+                    , Decode.at [ "6", "styleMode" ] Decode.string
+                    ]
                     |> Decode.andThen decodeStyleMode
                 )
+
+        experimentalFeaturesEnabled =
+            Decode.maybe
+                (Decode.at [ "6", "experimentalFeaturesEnabled" ] Decode.bool)
     in
-    Decode.map3 StoredState projects clientUuid styleMode
+    Decode.map4 StoredState projects clientUuid styleMode experimentalFeaturesEnabled
 
 
 storedProjectDecode1 : Decode.Decoder StoredProject

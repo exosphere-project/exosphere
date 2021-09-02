@@ -27,4 +27,5 @@ type alias StoredState =
     { projects : List StoredProject
     , clientUuid : Maybe UUID.UUID
     , styleMode : Maybe Style.Types.StyleMode
+    , experimentalFeaturesEnabled : Maybe Bool
     }
