@@ -896,25 +896,28 @@ customWorkflowInputExperimental context model =
                                 }
                             ]
                         ]
+
+                referenceInput =
+                    Input.text
+                        (VH.inputItemAttributes context.palette.background)
+                        { text = model.customWorkflowSourceInput.reference
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text "https://github.com/binder-examples/minimal-dockerfile")
+                                )
+                        , onChange =
+                            GotCustomWorkflowSource
+                        , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit)")
+                        }
             in
             Element.column
                 (VH.exoColumnAttributes
                     ++ [ Element.width Element.fill ]
                 )
                 [ repoTypeAndTextInput
-                , Input.text
-                    (VH.inputItemAttributes context.palette.background)
-                    { text = model.customWorkflowSourceInput.reference
-                    , placeholder =
-                        Just
-                            (Input.placeholder
-                                []
-                                (Element.text "https://github.com/binder-examples/minimal-dockerfile")
-                            )
-                    , onChange =
-                        GotCustomWorkflowSource
-                    , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit)")
-                    }
+                , referenceInput
                 ]
 
         warning =
