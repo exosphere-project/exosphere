@@ -869,9 +869,7 @@ customWorkflowInputExperimental context model =
                                , Element.padding 0
                                ]
                         )
-                        [ Element.el
-                            VH.heading4
-                            (Element.text selectedSourceProvider.text)
+                        [ Element.text selectedSourceProvider.text
                         , Element.row
                             (VH.exoRowAttributes
                                 ++ [ Element.width Element.fill
