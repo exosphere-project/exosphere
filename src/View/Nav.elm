@@ -57,7 +57,7 @@ navMenu outerModel context =
                 status
                 (FeatherIcons.cloud |> FeatherIcons.toHtml [] |> Element.html |> Element.el [] |> Just)
                 projectTitle
-                (Route.routeToUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid Route.AllResourcesList))
+                (Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid Route.AllResourcesList))
 
         projectMenuItems : List Project -> List (Element.Element OuterMsg)
         projectMenuItems projects =
@@ -77,7 +77,7 @@ navMenu outerModel context =
                             MenuItem.Inactive
 
                 destUrl =
-                    Route.routeToUrl context.urlPathPrefix (State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView)
+                    Route.toUrl context.urlPathPrefix (State.ViewState.defaultLoginPage outerModel.sharedModel.style.defaultLoginView)
             in
             MenuItem.menuItem context.palette
                 active
@@ -137,7 +137,7 @@ navBar outerModel context =
                 renderButton route buttonLabelRowContents =
                     Element.link
                         [ Font.color (SH.toElementColor context.palette.menu.on.surface) ]
-                        { url = Route.routeToUrl context.urlPathPrefix route
+                        { url = Route.toUrl context.urlPathPrefix route
                         , label =
                             Input.button []
                                 { onPress = Just (SharedMsg <| SharedMsg.NoOp)

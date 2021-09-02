@@ -360,7 +360,7 @@ renderServer context projectId model isMyServer server =
         serverLabel aServer =
             Element.link []
                 { url =
-                    Route.routeToUrl context.urlPathPrefix
+                    Route.toUrl context.urlPathPrefix
                         (Route.ProjectRoute projectId <| Route.ServerDetail server.osProps.uuid)
                 , label =
                     Element.row

@@ -163,7 +163,7 @@ renderAttachment context project attachment =
             [ Element.text (serverName attachment.serverUuid)
             , Element.link []
                 { url =
-                    Route.routeToUrl context.urlPathPrefix <|
+                    Route.toUrl context.urlPathPrefix <|
                         Route.ProjectRoute project.auth.project.uuid <|
                             Route.ServerDetail attachment.serverUuid
                 , label =
@@ -238,7 +238,7 @@ volumeActionButtons context project model volume =
                 OSTypes.Available ->
                     Element.link []
                         { url =
-                            Route.routeToUrl context.urlPathPrefix
+                            Route.toUrl context.urlPathPrefix
                                 (Route.ProjectRoute project.auth.project.uuid <|
                                     Route.VolumeAttach Nothing (Just volume.uuid)
                                 )

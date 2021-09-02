@@ -264,7 +264,7 @@ loginOpenstackOpenRcEntry context model =
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
     Element.link []
-        { url = Route.routeToUrl context.urlPathPrefix Route.LoginPicker
+        { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
         , label =
             Widget.textButton
                 (SH.materialStyle context.palette).button

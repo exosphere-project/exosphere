@@ -232,7 +232,7 @@ renderFloatingIpCard context project model ip =
                                         ]
                                 , Element.link []
                                     { url =
-                                        Route.routeToUrl context.urlPathPrefix
+                                        Route.toUrl context.urlPathPrefix
                                             (Route.ProjectRoute project.auth.project.uuid <|
                                                 Route.ServerDetail server.osProps.uuid
                                             )
@@ -268,7 +268,7 @@ actionButtons context project model ip =
                 Nothing ->
                     Element.link []
                         { url =
-                            Route.routeToUrl context.urlPathPrefix
+                            Route.toUrl context.urlPathPrefix
                                 (Route.ProjectRoute project.auth.project.uuid <|
                                     Route.FloatingIpAssign (Just ip.uuid) Nothing
                                 )

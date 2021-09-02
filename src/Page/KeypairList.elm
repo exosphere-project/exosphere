@@ -112,7 +112,7 @@ view context project model =
                       in
                       Element.link []
                         { url =
-                            Route.routeToUrl context.urlPathPrefix <|
+                            Route.toUrl context.urlPathPrefix <|
                                 Route.ProjectRoute project.auth.project.uuid <|
                                     Route.KeypairCreate
                         , label =

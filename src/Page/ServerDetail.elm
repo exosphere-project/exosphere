@@ -430,7 +430,7 @@ serverDetail_ context project currentTimeAndZone model server =
               then
                 Element.link []
                     { url =
-                        Route.routeToUrl context.urlPathPrefix
+                        Route.toUrl context.urlPathPrefix
                             (Route.ProjectRoute project.auth.project.uuid <|
                                 Route.VolumeAttach (Just server.osProps.uuid) Nothing
                             )
@@ -1007,7 +1007,7 @@ renderServerActionButton context project model server serverAction =
                 -- Overriding button for image, because we just want to navigate to another page
                 Element.link []
                     { url =
-                        Route.routeToUrl context.urlPathPrefix
+                        Route.toUrl context.urlPathPrefix
                             (Route.ProjectRoute project.auth.project.uuid <|
                                 Route.ServerCreateImage server.osProps.uuid <|
                                     Just <|
@@ -1178,7 +1178,7 @@ renderIpAddresses context project server model =
                             ]
                     , Element.link []
                         { url =
-                            Route.routeToUrl context.urlPathPrefix <|
+                            Route.toUrl context.urlPathPrefix <|
                                 Route.ProjectRoute project.auth.project.uuid <|
                                     Route.FloatingIpAssign Nothing (Just server.osProps.uuid)
                         , label =
@@ -1296,7 +1296,7 @@ serverVolumes context project server =
                 volDetailsButton v =
                     Element.link []
                         { url =
-                            Route.routeToUrl context.urlPathPrefix <|
+                            Route.toUrl context.urlPathPrefix <|
                                 Route.ProjectRoute project.auth.project.uuid <|
                                     Route.VolumeDetail v.uuid
                         , label =

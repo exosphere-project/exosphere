@@ -484,7 +484,7 @@ renderImage context project model image =
 
         chooseButton =
             Element.link []
-                { url = Route.routeToUrl context.urlPathPrefix chooseRoute
+                { url = Route.toUrl context.urlPathPrefix chooseRoute
                 , label =
                     Widget.textButton
                         (SH.materialStyle context.palette).primaryButton

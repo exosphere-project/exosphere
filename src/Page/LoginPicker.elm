@@ -37,7 +37,7 @@ view context sharedModel =
     let
         renderLinkButton route text =
             Element.link []
-                { url = Route.routeToUrl context.urlPathPrefix route
+                { url = Route.toUrl context.urlPathPrefix route
                 , label =
                     Widget.textButton
                         (SH.materialStyle context.palette).primaryButton

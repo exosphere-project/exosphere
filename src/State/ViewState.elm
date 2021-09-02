@@ -54,13 +54,13 @@ navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
 navigateToPage url outerModel =
     let
         route =
-            Route.urlToRoute outerModel.sharedModel.urlPathPrefix (defaultRoute outerModel.sharedModel) url
+            Route.fromUrl outerModel.sharedModel.urlPathPrefix (defaultRoute outerModel.sharedModel) url
 
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
 
         newUrl =
-            Route.routeToUrl outerModel.sharedModel.urlPathPrefix route
+            Route.toUrl outerModel.sharedModel.urlPathPrefix route
 
         newOuterModel =
             { outerModel

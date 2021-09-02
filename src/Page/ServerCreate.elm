@@ -1244,7 +1244,7 @@ keypairPicker context project model =
                 String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
           in
           Element.link []
-            { url = Route.routeToUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid <| Route.KeypairCreate)
+            { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid <| Route.KeypairCreate)
             , label =
                 Widget.iconButton
                     (SH.materialStyle context.palette).button

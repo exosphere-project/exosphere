@@ -1,10 +1,10 @@
 module Route exposing
     ( ProjectRouteConstructor(..)
     , Route(..)
+    , fromUrl
     , pushUrl
     , replaceUrl
-    , routeToUrl
-    , urlToRoute
+    , toUrl
     , withReplaceUrl
     )
 
@@ -61,8 +61,8 @@ type ProjectRouteConstructor
     | VolumeMountInstructions OSTypes.VolumeAttachment
 
 
-routeToUrl : Maybe String -> Route -> String
-routeToUrl maybePathPrefix route =
+toUrl : Maybe String -> Route -> String
+toUrl maybePathPrefix route =
     let
         buildUrlFunc =
             buildPrefixedUrl maybePathPrefix
@@ -302,12 +302,12 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
 
 pushUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
 pushUrl key maybePathPrefix route =
-    Browser.Navigation.pushUrl key (routeToUrl maybePathPrefix route)
+    Browser.Navigation.pushUrl key (toUrl maybePathPrefix route)
 
 
 replaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
 replaceUrl key maybePathPrefix route =
-    Browser.Navigation.replaceUrl key (routeToUrl maybePathPrefix route)
+    Browser.Navigation.replaceUrl key (toUrl maybePathPrefix route)
 
 
 withReplaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> ( model, Cmd msg, sharedMsg ) -> ( model, Cmd msg, sharedMsg )
@@ -322,8 +322,8 @@ withReplaceUrl key maybePathPrefix route ( model, cmd, sharedMsg ) =
     )
 
 
-urlToRoute : Maybe String -> Route -> Url.Url -> Route
-urlToRoute maybePathPrefix defaultRoute url =
+fromUrl : Maybe String -> Route -> Url.Url -> Route
+fromUrl maybePathPrefix defaultRoute url =
     (case maybePathPrefix of
         Nothing ->
             parse

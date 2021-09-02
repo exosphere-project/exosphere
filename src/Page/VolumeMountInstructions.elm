@@ -84,7 +84,7 @@ view context project model =
                 ]
             , Element.link []
                 { url =
-                    Route.routeToUrl context.urlPathPrefix
+                    Route.toUrl context.urlPathPrefix
                         (Route.ProjectRoute project.auth.project.uuid <|
                             Route.ServerDetail model.serverUuid
                         )
