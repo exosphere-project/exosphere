@@ -847,11 +847,10 @@ customWorkflowInputExperimental context model =
                 (VH.exoColumnAttributes
                     ++ [ Element.width Element.fill ]
                 )
-                [ Style.Widgets.Select.select []
+                [ Style.Widgets.Select.selectNoLabel []
                     { onChange = GotWorkflowSourceProvider
                     , options = options
                     , selected = Just model.customWorkflowSourceInput.providerPrefix
-                    , label = "Repository source"
                     }
                 , Input.text
                     (VH.inputItemAttributes context.palette.background)
