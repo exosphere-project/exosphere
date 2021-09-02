@@ -61,6 +61,8 @@ type Msg
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
     | GotWorkflowSourceProvider (Maybe String)
+    | GotCustomWorkflowSourcePath String
+    | GotWorkflowSourcePathType (Maybe String)
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -212,6 +214,31 @@ update msg project model =
 
                 newSourceInput =
                     { oldSourceInput | reference = repositoryReference }
+            in
+            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
+
+        GotCustomWorkflowSourcePath repositoryPath ->
+            let
+                oldSourceInput =
+                    model.customWorkflowSourceInput
+
+                newSourceInput =
+                    { oldSourceInput | path = repositoryPath }
+            in
+            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
+
+        GotWorkflowSourcePathType maybePathTypeString ->
+            let
+                oldSourceInput =
+                    model.customWorkflowSourceInput
+
+                newSourceInput =
+                    { oldSourceInput
+                        | pathType =
+                            maybePathTypeString
+                                |> Maybe.withDefault "file"
+                                |> Types.Workflow.stringToSourcePathType
+                    }
             in
             ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
 
@@ -926,6 +953,47 @@ customWorkflowInputExperimental context model =
                                 GotCustomWorkflowSourceReference
                             , label = Input.labelAbove [] (Element.text selectedSourceProvider.tagText)
                             }
+
+                sourcePathInput =
+                    let
+                        pathInputLabel =
+                            Types.Workflow.sourcePathTypeInputToLabel model.customWorkflowSourceInput.pathType
+                    in
+                    Element.column
+                        (VH.exoColumnAttributes
+                            ++ [ Element.width Element.fill
+                               , Element.padding 0
+                               ]
+                        )
+                        [ Element.text pathInputLabel
+                        , Element.row
+                            (VH.exoRowAttributes
+                                ++ [ Element.width Element.fill
+                                   , Element.padding 0
+                                   ]
+                            )
+                            [ Input.text
+                                (VH.inputItemAttributes context.palette.background)
+                                { text = model.customWorkflowSourceInput.path
+                                , placeholder =
+                                    Just
+                                        (Input.placeholder
+                                            []
+                                            (Element.text pathInputLabel)
+                                        )
+                                , onChange =
+                                    GotCustomWorkflowSourcePath
+                                , label = Input.labelHidden pathInputLabel
+                                }
+                            , Style.Widgets.Select.selectNoLabel [ Element.width Element.shrink ]
+                                { onChange = GotWorkflowSourcePathType
+                                , options = Types.Workflow.sourcePathTypeInputOptions
+                                , selected =
+                                    Just
+                                        (Types.Workflow.sourcePathTypeInputToValue model.customWorkflowSourceInput.pathType)
+                                }
+                            ]
+                        ]
             in
             Element.column
                 (VH.exoColumnAttributes
@@ -933,6 +1001,7 @@ customWorkflowInputExperimental context model =
                 )
                 [ repoTypeAndTextInput
                 , referenceInput
+                , sourcePathInput
                 ]
 
         warning =
