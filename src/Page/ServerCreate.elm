@@ -858,7 +858,7 @@ customWorkflowInputExperimental context model =
                 _ =
                     Debug.log "selectedSourceProvider" selectedSourceProvider
 
-                options =
+                sourceProviderOptions =
                     Types.Workflow.providers
                         |> List.map (\( sourceType, _ ) -> ( sourceType, sourceType ))
 
@@ -880,7 +880,7 @@ customWorkflowInputExperimental context model =
                             )
                             [ Style.Widgets.Select.selectNoLabel [ Element.width Element.shrink ]
                                 { onChange = GotWorkflowSourceProvider
-                                , options = options
+                                , options = sourceProviderOptions
                                 , selected = Just model.customWorkflowSourceInput.providerPrefix
                                 }
                             , Input.text
