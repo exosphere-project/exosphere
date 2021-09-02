@@ -842,11 +842,7 @@ customWorkflowInputExperimental context model =
             let
                 options =
                     Dict.toList Types.Workflow.providers
-                        |> List.map (\( prefix, provider ) -> ( prefix, provider.text ))
-
-                --[ Input.option False (Element.text "No")
-                --, Input.option True (Element.text "Yes")
-                --]
+                        |> List.map (\( sourceType, _ ) -> ( sourceType, sourceType ))
             in
             Element.column
                 (VH.exoColumnAttributes
@@ -856,7 +852,7 @@ customWorkflowInputExperimental context model =
                     { onChange = GotWorkflowSourceProvider
                     , options = options
                     , selected = Just model.customWorkflowSourceInput.providerPrefix
-                    , label = "Specify source of repository"
+                    , label = "Repository source"
                     }
                 , Input.text
                     (VH.inputItemAttributes context.palette.background)
