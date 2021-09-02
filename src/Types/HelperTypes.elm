@@ -124,6 +124,7 @@ type alias CloudSpecificConfig =
 
 type alias OperatingSystemChoice =
     { friendlyName : String
+    , description : String
     , logo : Url
     , versions : List OperatingSystemChoiceVersion
     }

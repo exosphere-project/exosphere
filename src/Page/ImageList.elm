@@ -284,28 +284,52 @@ getImageforOpSysChoiceVersion images_ filters =
 operatingSystems : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Model -> Element.Element Msg
 operatingSystems context project opSysChoices model =
     let
-        renderOpSysChoiceVersion : HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
-        renderOpSysChoiceVersion opSysChoiceVersion =
+        renderOpSysChoiceVersion : String -> HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
+        renderOpSysChoiceVersion name opSysChoiceVersion =
             case getImageforOpSysChoiceVersion project.images opSysChoiceVersion.filters of
                 Nothing ->
                     Element.none
 
                 Just image ->
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
-                        { text =
-                            opSysChoiceVersion.friendlyName
-                        , onPress =
-                            Nothing
+                    let
+                        chooseRoute =
+                            Route.ProjectRoute project.auth.project.uuid <|
+                                Route.ServerCreate
+                                    image.uuid
+                                    image.name
+                                    (VH.userAppProxyLookup context project
+                                        |> Maybe.map (\_ -> True)
+                                    )
+                    in
+                    Element.link [ Element.centerX ]
+                        { url = Route.toUrl context.urlPathPrefix chooseRoute
+                        , label =
+                            Widget.textButton
+                                (SH.materialStyle context.palette).primaryButton
+                                { text =
+                                    name ++ " " ++ opSysChoiceVersion.friendlyName
+                                , onPress =
+                                    Just NoOp
+                                }
                         }
 
         renderOpSysChoice : HelperTypes.OperatingSystemChoice -> Element.Element Msg
         renderOpSysChoice opSysChoice =
-            Element.column [ Element.spacing 10 ] <|
-                List.concat
-                    [ [ Element.image
+            Element.el
+                [ Element.width <| Element.px 350 ]
+            <|
+                Widget.column
+                    (SH.materialStyle context.palette).cardColumn
+                    [ Element.column
+                        [ Element.centerX
+                        , Element.paddingXY 10 15
+                        , Element.spacing 15
+                        ]
+                      <|
+                        [ Element.image
                             [ Element.width (Element.px 80)
                             , Element.height (Element.px 80)
+                            , Element.centerX
                             , Element.htmlAttribute <| HtmlA.style "color" "blue"
                             , Font.color <| SH.toElementColor context.palette.primary
                             ]
@@ -313,14 +337,34 @@ operatingSystems context project opSysChoices model =
                             { src = opSysChoice.logo
                             , description = opSysChoice.friendlyName ++ " logo"
                             }
-                      , Element.text opSysChoice.friendlyName
-                      ]
-                    , opSysChoice.versions
-                        |> List.map renderOpSysChoiceVersion
+                        , Element.el
+                            [ Element.centerX
+                            , Font.bold
+                            ]
+                          <|
+                            Element.text opSysChoice.friendlyName
+                        , Element.paragraph [] [ Element.text opSysChoice.description ]
+                        ]
+                    , Element.column
+                        [ Element.padding 10
+                        , Element.spacing 10
+                        , Element.centerX
+                        ]
+                        (opSysChoice.versions
+                            |> List.map (renderOpSysChoiceVersion opSysChoice.friendlyName)
+                        )
                     ]
     in
-    Element.wrappedRow [ Element.spacing 10 ]
-        (List.map renderOpSysChoice opSysChoices)
+    Element.column
+        (VH.exoColumnAttributes
+            ++ [ Element.width Element.fill ]
+        )
+        [ Element.el (VH.heading2 context.palette) <| Element.text "Choose an Operating System"
+        , Element.column VH.contentContainer
+            [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40 ]
+                (List.map renderOpSysChoice opSysChoices)
+            ]
+        ]
 
 
 images : View.Types.Context -> Project -> Model -> Element.Element Msg

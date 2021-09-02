@@ -272,8 +272,9 @@ imageExcludeFilterDecoder =
 
 operatingSystemChoiceDecoder : Decode.Decoder HelperTypes.OperatingSystemChoice
 operatingSystemChoiceDecoder =
-    Decode.map3 HelperTypes.OperatingSystemChoice
+    Decode.map4 HelperTypes.OperatingSystemChoice
         (Decode.field "friendlyName" Decode.string)
+        (Decode.field "description" Decode.string)
         (Decode.field "logo" Decode.string)
         (Decode.field "versions" (Decode.list operatingSystemChoiceVersionDecoder))
 
