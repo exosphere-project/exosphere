@@ -53,6 +53,7 @@ type Msg
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotCustomWorkflowSource String
+    | GotCustomWorkflowSourceReference String
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
     | GotDeployGuacamole (Maybe Bool)
@@ -201,6 +202,16 @@ update msg project model =
 
                 newSourceInput =
                     { oldSourceInput | providerPrefix = sourceProvider |> Maybe.withDefault "" }
+            in
+            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
+
+        GotCustomWorkflowSourceReference repositoryReference ->
+            let
+                oldSourceInput =
+                    model.customWorkflowSourceInput
+
+                newSourceInput =
+                    { oldSourceInput | reference = repositoryReference }
             in
             ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
 
@@ -898,19 +909,23 @@ customWorkflowInputExperimental context model =
                         ]
 
                 referenceInput =
-                    Input.text
-                        (VH.inputItemAttributes context.palette.background)
-                        { text = model.customWorkflowSourceInput.reference
-                        , placeholder =
-                            Just
-                                (Input.placeholder
-                                    []
-                                    (Element.text "https://github.com/binder-examples/minimal-dockerfile")
-                                )
-                        , onChange =
-                            GotCustomWorkflowSource
-                        , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit)")
-                        }
+                    if selectedSourceProvider.refPropDisabled then
+                        Element.none
+
+                    else
+                        Input.text
+                            (VH.inputItemAttributes context.palette.background)
+                            { text = model.customWorkflowSourceInput.reference
+                            , placeholder =
+                                Just
+                                    (Input.placeholder
+                                        []
+                                        (Element.text "HEAD")
+                                    )
+                            , onChange =
+                                GotCustomWorkflowSourceReference
+                            , label = Input.labelAbove [] (Element.text selectedSourceProvider.tagText)
+                            }
             in
             Element.column
                 (VH.exoColumnAttributes
