@@ -1,4 +1,4 @@
-module Helpers.Url exposing (buildProxyUrl, hostnameFromUrl, urlPathQueryMatches)
+module Helpers.Url exposing (buildProxyUrl, hostnameFromUrl)
 
 import OpenStack.Types as OSTypes
 import Types.HelperTypes as HelperTypes
@@ -17,20 +17,6 @@ hostnameFromUrl urlStr =
 
         Nothing ->
             "placeholder-url-unparseable"
-
-
-urlPathQueryMatches : Url.Url -> String -> Bool
-urlPathQueryMatches urlType urlStr =
-    let
-        urlTypeQueryStr =
-            case urlType.query of
-                Just q ->
-                    "?" ++ q
-
-                Nothing ->
-                    ""
-    in
-    (urlType.path ++ urlTypeQueryStr) == urlStr
 
 
 buildProxyUrl : HelperTypes.UserAppProxyHostname -> OSTypes.IpAddressValue -> Int -> String -> Bool -> String
