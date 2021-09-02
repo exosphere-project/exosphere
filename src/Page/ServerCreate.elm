@@ -1,5 +1,6 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -67,7 +68,7 @@ init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
 init imageUuid imageName deployGuacamole =
     let
         defaultSourceInput =
-            { providerPrefix = "gh"
+            { providerPrefix = "GitHub"
             , repository = ""
             , reference = ""
             , path = ""
@@ -194,7 +195,14 @@ update msg project model =
             ( model, Cmd.none, SharedMsg.NoOp )
 
         GotWorkflowSourceProvider sourceProvider ->
-            ( model, Cmd.none, SharedMsg.NoOp )
+            let
+                oldSourceInput =
+                    model.customWorkflowSourceInput
+
+                newSourceInput =
+                    { oldSourceInput | providerPrefix = sourceProvider |> Maybe.withDefault "" }
+            in
+            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
 
 
 enforceQuotaCompliance : Project -> Model -> Model
@@ -839,32 +847,63 @@ customWorkflowInputExperimental context model =
 
         workflowInput =
             let
+                _ =
+                    Debug.log "model.customWorkflowSourceInput" model.customWorkflowSourceInput
+
+                selectedSourceProvider =
+                    Dict.fromList Types.Workflow.providers
+                        |> Dict.get model.customWorkflowSourceInput.providerPrefix
+                        |> Maybe.withDefault Types.Workflow.defaultProvider
+
+                _ =
+                    Debug.log "selectedSourceProvider" selectedSourceProvider
+
                 options =
                     Types.Workflow.providers
                         |> List.map (\( sourceType, _ ) -> ( sourceType, sourceType ))
+
+                repoTypeAndTextInput =
+                    Element.column
+                        (VH.exoColumnAttributes
+                            ++ [ Element.width Element.fill
+                               , Element.padding 0
+                               ]
+                        )
+                        [ Element.el
+                            VH.heading4
+                            (Element.text selectedSourceProvider.text)
+                        , Element.row
+                            (VH.exoRowAttributes
+                                ++ [ Element.width Element.fill
+                                   , Element.padding 0
+                                   ]
+                            )
+                            [ Style.Widgets.Select.selectNoLabel [ Element.width Element.shrink ]
+                                { onChange = GotWorkflowSourceProvider
+                                , options = options
+                                , selected = Just model.customWorkflowSourceInput.providerPrefix
+                                }
+                            , Input.text
+                                (VH.inputItemAttributes context.palette.background)
+                                { text = model.customWorkflowSourceInput.repository
+                                , placeholder =
+                                    Just
+                                        (Input.placeholder
+                                            []
+                                            (Element.text selectedSourceProvider.text)
+                                        )
+                                , onChange =
+                                    GotCustomWorkflowSource
+                                , label = Input.labelHidden "TODO: Git repository URL or whatever"
+                                }
+                            ]
+                        ]
             in
             Element.column
                 (VH.exoColumnAttributes
                     ++ [ Element.width Element.fill ]
                 )
-                [ Style.Widgets.Select.selectNoLabel []
-                    { onChange = GotWorkflowSourceProvider
-                    , options = options
-                    , selected = Just model.customWorkflowSourceInput.providerPrefix
-                    }
-                , Input.text
-                    (VH.inputItemAttributes context.palette.background)
-                    { text = model.customWorkflowSourceInput.repository
-                    , placeholder =
-                        Just
-                            (Input.placeholder
-                                []
-                                (Element.text "https://github.com/binder-examples/minimal-dockerfile")
-                            )
-                    , onChange =
-                        GotCustomWorkflowSource
-                    , label = Input.labelAbove [] (Element.text "Git repository URL")
-                    }
+                [ repoTypeAndTextInput
                 , Input.text
                     (VH.inputItemAttributes context.palette.background)
                     { text = model.customWorkflowSourceInput.reference

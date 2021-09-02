@@ -95,12 +95,12 @@ defaultProvider =
 providers =
     [ ( "GitHub", defaultProvider )
     , ( "Gist", SourceProvider "Gist ID (username/gistId) or URL" "Git commit SHA" False )
-    , ( "Git", SourceProvider "Arbitrary git repository URL (http://git.example.com/repo)" "Git ref (branch, tag, or commit)" False )
-    , ( "GitLab", SourceProvider "GitLab.com repository or URL" "Git ref (branch, tag, or commit)" False )
-    , ( "Zenodo", SourceProvider "Zenodo DOI (10.5281/zenodo.3242074)" "Git ref (branch, tag, or commit)" True )
-    , ( "Figshare", SourceProvider "Figshare DOI (10.6084/m9.figshare.9782777.v1)" "Git ref (branch, tag, or commit)" True )
-    , ( "Hydroshare", SourceProvider "Hydroshare resource id or URL" "Git ref (branch, tag, or commit)" True )
-    , ( "Dataverse", SourceProvider "Dataverse DOI (10.7910/DVN/TJCLKP)" "Git ref (branch, tag, or commit)" True )
+    , ( "Git repository", SourceProvider "Arbitrary git repository URL (http://git.example.com/repo)" "Git ref (branch, tag, or commit)" False )
+    , ( "GitLab.com", SourceProvider "GitLab.com repository or URL" "Git ref (branch, tag, or commit)" False )
+    , ( "Zenodo DOI", SourceProvider "Zenodo DOI (10.5281/zenodo.3242074)" "Git ref (branch, tag, or commit)" True )
+    , ( "Figshare DOI", SourceProvider "Figshare DOI (10.6084/m9.figshare.9782777.v1)" "Git ref (branch, tag, or commit)" True )
+    , ( "Hydroshare resource", SourceProvider "Hydroshare resource id or URL" "Git ref (branch, tag, or commit)" True )
+    , ( "Dataverse DOI", SourceProvider "Dataverse DOI (10.7910/DVN/TJCLKP)" "Git ref (branch, tag, or commit)" True )
     ]
 
 
