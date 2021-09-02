@@ -1,4 +1,9 @@
-module Style.Widgets.Select exposing (Label, Value, select)
+module Style.Widgets.Select exposing
+    ( Label
+    , Value
+    , select
+    , selectNoLabel
+    )
 
 import Element
 import Element.Border as Border
@@ -6,6 +11,23 @@ import FeatherIcons
 import Html exposing (Html)
 import Html.Attributes as HtmlA
 import Html.Events as HtmlE
+
+
+selectNoLabel :
+    List (Element.Attribute msg)
+    ->
+        { onChange : Maybe Value -> msg
+        , options : List ( Value, Label )
+        , selected : Maybe Value
+        }
+    -> Element.Element msg
+selectNoLabel attributes { onChange, options, selected } =
+    selectMaybeLabel attributes
+        { onChange = onChange
+        , options = options
+        , selected = selected
+        , label = Nothing
+        }
 
 
 select :
@@ -18,7 +40,34 @@ select :
         }
     -> Element.Element msg
 select attributes { onChange, options, selected, label } =
+    selectMaybeLabel attributes
+        { onChange = onChange
+        , options = options
+        , selected = selected
+        , label = Just label
+        }
+
+
+selectMaybeLabel :
+    List (Element.Attribute msg)
+    ->
+        { onChange : Maybe Value -> msg
+        , options : List ( Value, Label )
+        , selected : Maybe Value
+        , label : Maybe String
+        }
+    -> Element.Element msg
+selectMaybeLabel attributes { onChange, options, selected, label } =
     let
+        htmlOptions =
+            case label of
+                Just labelString ->
+                    Html.option [ HtmlA.value "" ] [ Html.text labelString ]
+                        :: List.map (option selected) options
+
+                Nothing ->
+                    List.map (option selected) options
+
         select_ : Html msg
         select_ =
             Html.select
@@ -39,9 +88,7 @@ select attributes { onChange, options, selected, label } =
                 , HtmlA.style "font-size" "18px"
                 , HtmlA.style "background-color" "transparent"
                 ]
-                (Html.option [ HtmlA.value "" ] [ Html.text label ]
-                    :: List.map (option selected) options
-                )
+                htmlOptions
 
         option : Maybe Value -> ( Value, Label ) -> Html msg
         option maybeSelectedVal item =
