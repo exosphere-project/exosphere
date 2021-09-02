@@ -1,6 +1,5 @@
 module State.ViewState exposing
     ( defaultLoginPage
-    , defaultRoute
     , navigateToPage
     , viewStateToSupportableItem
     )
@@ -46,13 +45,17 @@ import Types.OuterMsg exposing (OuterMsg(..))
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import Url
 import View.Helpers
 import View.PageTitle
 
 
-navigateToPage : Route.Route -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-navigateToPage route outerModel =
+navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+navigateToPage url outerModel =
     let
+        route =
+            Route.urlToRoute outerModel.sharedModel.urlPathPrefix (defaultRoute outerModel.sharedModel) url
+
         ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
             routeToViewStateModelCmd outerModel.sharedModel route
 

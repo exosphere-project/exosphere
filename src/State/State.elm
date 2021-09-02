@@ -739,21 +739,7 @@ processSharedMsg sharedMsg outerModel =
                     ( outerModel, Browser.Navigation.load url )
 
         UrlChanged url ->
-            case
-                Route.urlToRoute
-                    sharedModel.urlPathPrefix
-                    (ViewStateHelpers.defaultRoute sharedModel)
-                    url
-            of
-                Just route ->
-                    ViewStateHelpers.navigateToPage route outerModel
-
-                Nothing ->
-                    ( { outerModel
-                        | viewState = NonProjectView PageNotFound
-                      }
-                    , Cmd.none
-                    )
+            ViewStateHelpers.navigateToPage url outerModel
 
         SetStyle styleMode ->
             let

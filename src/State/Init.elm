@@ -12,7 +12,6 @@ import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
-import Route
 import State.ViewState
 import Style.Types
 import Time
@@ -166,10 +165,6 @@ init flags urlKey =
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
-        route =
-            Route.urlToRoute flags.urlPathPrefix (State.ViewState.defaultRoute hydratedModel) (Tuple.first urlKey)
-                |> Maybe.withDefault Route.PageNotFound
-
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
         projectsNeedingAppCredentials =
@@ -227,7 +222,7 @@ init flags urlKey =
             }
 
         ( setViewModel, setViewCmd ) =
-            State.ViewState.navigateToPage route outerModel
+            State.ViewState.navigateToPage (Tuple.first urlKey) outerModel
     in
     ( setViewModel
     , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]

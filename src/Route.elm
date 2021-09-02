@@ -322,9 +322,9 @@ withReplaceUrl key maybePathPrefix route ( model, cmd, sharedMsg ) =
     )
 
 
-urlToRoute : Maybe String -> Route -> Url.Url -> Maybe Route
+urlToRoute : Maybe String -> Route -> Url.Url -> Route
 urlToRoute maybePathPrefix defaultRoute url =
-    case maybePathPrefix of
+    (case maybePathPrefix of
         Nothing ->
             parse
                 (oneOf
@@ -340,6 +340,8 @@ urlToRoute maybePathPrefix defaultRoute url =
                             (pathParsers defaultRoute)
                 )
                 url
+    )
+        |> Maybe.withDefault defaultRoute
 
 
 pathParsers : Route -> List (Parser (Route -> b) b)
