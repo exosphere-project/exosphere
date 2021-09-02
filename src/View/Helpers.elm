@@ -20,7 +20,6 @@ module View.Helpers exposing
     , heading3
     , heading4
     , hint
-    , imageExcludeFilterLookup
     , inputItemAttributes
     , possiblyUntitledResource
     , renderMarkdown
@@ -974,16 +973,6 @@ createdAgoByFrom context currentTime createdTime maybeWhoCreatedTuple maybeFromT
             Nothing ->
                 Element.none
         ]
-
-
-imageExcludeFilterLookup : View.Types.Context -> Project -> Maybe Types.HelperTypes.ExcludeFilter
-imageExcludeFilterLookup context project =
-    let
-        projectKeystoneHostname =
-            UrlHelpers.hostnameFromUrl project.endpoints.keystone
-    in
-    Dict.get projectKeystoneHostname context.cloudSpecificConfigs
-        |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
 
 
 featuredImageNamePrefixLookup : View.Types.Context -> Project -> Maybe String
