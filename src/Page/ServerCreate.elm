@@ -1,6 +1,5 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
-import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -841,7 +840,7 @@ customWorkflowInputExperimental context model =
         workflowInput =
             let
                 options =
-                    Dict.toList Types.Workflow.providers
+                    Types.Workflow.providers
                         |> List.map (\( sourceType, _ ) -> ( sourceType, sourceType ))
             in
             Element.column

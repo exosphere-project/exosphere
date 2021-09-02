@@ -15,7 +15,6 @@ module Types.Workflow exposing
     , providers
     )
 
-import Dict
 import Helpers.RemoteDataPlusPlus as RDPP
 import Types.Error exposing (HttpErrorWithBody)
 import Url
@@ -94,16 +93,15 @@ defaultProvider =
 
 
 providers =
-    Dict.fromList
-        [ ( "GitHub", defaultProvider )
-        , ( "Gist", SourceProvider "Gist ID (username/gistId) or URL" "Git commit SHA" False )
-        , ( "Git", SourceProvider "Arbitrary git repository URL (http://git.example.com/repo)" "Git ref (branch, tag, or commit)" False )
-        , ( "GitLab", SourceProvider "GitLab.com repository or URL" "Git ref (branch, tag, or commit)" False )
-        , ( "Zenodo", SourceProvider "Zenodo DOI (10.5281/zenodo.3242074)" "Git ref (branch, tag, or commit)" True )
-        , ( "Figshare", SourceProvider "Figshare DOI (10.6084/m9.figshare.9782777.v1)" "Git ref (branch, tag, or commit)" True )
-        , ( "Hydroshare", SourceProvider "Hydroshare resource id or URL" "Git ref (branch, tag, or commit)" True )
-        , ( "Dataverse", SourceProvider "Dataverse DOI (10.7910/DVN/TJCLKP)" "Git ref (branch, tag, or commit)" True )
-        ]
+    [ ( "GitHub", defaultProvider )
+    , ( "Gist", SourceProvider "Gist ID (username/gistId) or URL" "Git commit SHA" False )
+    , ( "Git", SourceProvider "Arbitrary git repository URL (http://git.example.com/repo)" "Git ref (branch, tag, or commit)" False )
+    , ( "GitLab", SourceProvider "GitLab.com repository or URL" "Git ref (branch, tag, or commit)" False )
+    , ( "Zenodo", SourceProvider "Zenodo DOI (10.5281/zenodo.3242074)" "Git ref (branch, tag, or commit)" True )
+    , ( "Figshare", SourceProvider "Figshare DOI (10.6084/m9.figshare.9782777.v1)" "Git ref (branch, tag, or commit)" True )
+    , ( "Hydroshare", SourceProvider "Hydroshare resource id or URL" "Git ref (branch, tag, or commit)" True )
+    , ( "Dataverse", SourceProvider "Dataverse DOI (10.7910/DVN/TJCLKP)" "Git ref (branch, tag, or commit)" True )
+    ]
 
 
 type alias SourceInput =
