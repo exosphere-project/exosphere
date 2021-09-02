@@ -348,7 +348,8 @@ operatingSystems context project opSysChoices model =
                             ]
                           <|
                             Element.text opSysChoice.friendlyName
-                        , Element.paragraph [] [ Element.text opSysChoice.description ]
+                        , Element.paragraph [ Element.width Element.fill ] <|
+                            VH.renderMarkdown context opSysChoice.description
                         ]
                     , Element.column
                         [ Element.padding 10
