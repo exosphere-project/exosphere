@@ -1,4 +1,12 @@
-module Route exposing (ProjectRouteConstructor(..), Route(..), replaceUrl, routeToUrl, urlToRoute, withReplaceUrl)
+module Route exposing
+    ( ProjectRouteConstructor(..)
+    , Route(..)
+    , pushUrl
+    , replaceUrl
+    , routeToUrl
+    , urlToRoute
+    , withReplaceUrl
+    )
 
 import Browser.Navigation
 import Dict
@@ -292,6 +300,11 @@ buildPrefixedUrl maybePathPrefix pathParts queryParams =
     UB.absolute prefixedPathParts queryParams
 
 
+pushUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
+pushUrl key maybePathPrefix route =
+    Browser.Navigation.pushUrl key (routeToUrl maybePathPrefix route)
+
+
 replaceUrl : Browser.Navigation.Key -> Maybe String -> Route -> Cmd msg
 replaceUrl key maybePathPrefix route =
     Browser.Navigation.replaceUrl key (routeToUrl maybePathPrefix route)
@@ -396,8 +409,16 @@ pathParsers defaultRoute =
                     PageNotFound
         )
         (s "auth" </> s "oidc-login" <?> Query.string "token")
+    , map
+        (\maybeKeystoneUrl ->
+            case maybeKeystoneUrl of
+                Just keystoneUrl ->
+                    SelectProjects keystoneUrl
 
-    -- Not bothering to decode the SelectProjects page, because you can't currently navigate there on a fresh page load and see anything useful
+                Nothing ->
+                    PageNotFound
+        )
+        (s "selectprojs" <?> Query.string "keystoneurl")
     , map
         (\maybeShowDebugMsgs ->
             let

@@ -585,7 +585,7 @@ processSharedMsg sharedMsg outerModel =
                     State.Error.processStringError
                         sharedModel
                         (ErrorContext
-                            "decode scoped auth token"
+                            "decode unscoped auth token"
                             ErrorCrit
                             Nothing
                         )
@@ -633,8 +633,12 @@ processSharedMsg sharedMsg outerModel =
                             ( newOuterModel, Cmd.none )
 
                         _ ->
-                            ViewStateHelpers.navigateToPage (Route.SelectProjects keystoneUrl)
-                                newOuterModel
+                            ( newOuterModel
+                            , Route.pushUrl
+                                sharedModel.navigationKey
+                                sharedModel.urlPathPrefix
+                                (Route.SelectProjects keystoneUrl)
+                            )
 
                 Nothing ->
                     -- Provider not found, may have been removed, nothing to do
@@ -670,31 +674,37 @@ processSharedMsg sharedMsg outerModel =
                                 sharedModel.unscopedProviders
 
                         -- If we still have at least one unscoped provider in the model then ask the user to choose projects from it
-                        newViewStateFunc =
+                        newViewStateCmd =
                             case List.head newUnscopedProviders of
                                 Just unscopedProvider ->
-                                    ViewStateHelpers.navigateToPage
+                                    Route.pushUrl
+                                        sharedModel.navigationKey
+                                        sharedModel.urlPathPrefix
                                         (Route.SelectProjects unscopedProvider.authUrl)
 
                                 Nothing ->
                                     -- If we have at least one project then show it, else show the login page
                                     case List.head sharedModel.projects of
                                         Just project ->
-                                            ViewStateHelpers.navigateToPage <|
+                                            Route.pushUrl
+                                                sharedModel.navigationKey
+                                                sharedModel.urlPathPrefix
+                                            <|
                                                 Route.ProjectRoute project.auth.project.uuid <|
                                                     Route.AllResourcesList
 
                                         Nothing ->
-                                            ViewStateHelpers.navigateToPage
+                                            Route.pushUrl
+                                                sharedModel.navigationKey
+                                                sharedModel.urlPathPrefix
                                                 Route.LoginPicker
 
                         sharedModelUpdatedUnscopedProviders =
                             { sharedModel | unscopedProviders = newUnscopedProviders }
-
-                        ( newOuterModel, viewStateCmds ) =
-                            newViewStateFunc { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
                     in
-                    ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg loginRequests, viewStateCmds ] )
+                    ( { outerModel | sharedModel = sharedModelUpdatedUnscopedProviders }
+                    , Cmd.batch [ Cmd.map SharedMsg loginRequests, newViewStateCmd ]
+                    )
 
                 Nothing ->
                     State.Error.processStringError
@@ -992,7 +1002,7 @@ processProjectSpecificMsg outerModel project msg =
                                 Nothing ->
                                     Route.LoginPicker
                     in
-                    ViewStateHelpers.navigateToPage route newOuterModel
+                    ( newOuterModel, Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix route )
 
         ServerMsg serverUuid serverMsgConstructor ->
             case GetterSetters.serverLookup project serverUuid of
@@ -1108,12 +1118,13 @@ processProjectSpecificMsg outerModel project msg =
 
         RequestAssignFloatingIp port_ floatingIpUuid ->
             let
-                ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.navigateToPage
+                setViewCmd =
+                    Route.pushUrl
+                        sharedModel.navigationKey
+                        sharedModel.urlPathPrefix
                         (Route.ProjectRoute project.auth.project.uuid <| Route.FloatingIpList)
-                        outerModel
             in
-            ( newOuterModel
+            ( outerModel
             , Cmd.batch
                 [ setViewCmd
                 , Cmd.map SharedMsg <| Rest.Neutron.requestAssignFloatingIp project port_ floatingIpUuid
@@ -1308,9 +1319,11 @@ processProjectSpecificMsg outerModel project msg =
                 newSharedModel =
                     GetterSetters.modelUpdateProject sharedModel newProject
             in
-            ViewStateHelpers.navigateToPage
+            ( { outerModel | sharedModel = newSharedModel }
+            , Route.pushUrl sharedModel.navigationKey
+                sharedModel.urlPathPrefix
                 (Route.ProjectRoute newProject.auth.project.uuid <| Route.KeypairList)
-                { outerModel | sharedModel = newSharedModel }
+            )
 
         RequestDeleteKeypair keypairId ->
             ( outerModel, Rest.Nova.requestDeleteKeypair project keypairId )
@@ -1359,11 +1372,13 @@ processProjectSpecificMsg outerModel project msg =
                             (ApiModelHelpers.requestNetworks project.auth.project.uuid)
                         |> Helpers.pipelineCmd
                             (ApiModelHelpers.requestPorts project.auth.project.uuid)
-
-                ( newOuterModel, changedViewCmd ) =
-                    ViewStateHelpers.navigateToPage newRoute { outerModel | sharedModel = newSharedModel }
             in
-            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg newCmd, changedViewCmd ] )
+            ( { outerModel | sharedModel = newSharedModel }
+            , Cmd.batch
+                [ Cmd.map SharedMsg newCmd
+                , Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix newRoute
+                ]
+            )
 
         ReceiveNetworks errorContext result ->
             case result of
@@ -1530,7 +1545,11 @@ processProjectSpecificMsg outerModel project msg =
 
         ReceiveCreateVolume ->
             {- Should we add new volume to model now? -}
-            ViewStateHelpers.navigateToPage (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList) outerModel
+            ( outerModel
+            , Route.pushUrl sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList)
+            )
 
         ReceiveVolumes volumes ->
             let
@@ -1622,10 +1641,19 @@ processProjectSpecificMsg outerModel project msg =
                 |> mapToOuterMsg
 
         ReceiveAttachVolume attachment ->
-            ViewStateHelpers.navigateToPage (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment) outerModel
+            ( outerModel
+            , Route.pushUrl sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeMountInstructions attachment)
+            )
 
         ReceiveDetachVolume ->
-            ViewStateHelpers.navigateToPage (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList) outerModel
+            ( outerModel
+            , Route.pushUrl
+                sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.ProjectRoute project.auth.project.uuid <| Route.VolumeList)
+            )
 
         ReceiveAppCredential appCredential ->
             let
@@ -1689,11 +1717,13 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
 
                 createImageCmd =
                     Rest.Nova.requestCreateServerImage project server.osProps.uuid imageName
-
-                ( newOuterModel, setViewCmd ) =
-                    ViewStateHelpers.navigateToPage newRoute outerModel
             in
-            ( newOuterModel, Cmd.batch [ Cmd.map SharedMsg createImageCmd, setViewCmd ] )
+            ( outerModel
+            , Cmd.batch
+                [ Cmd.map SharedMsg createImageCmd
+                , Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix newRoute
+                ]
+            )
 
         RequestSetServerName newServerName ->
             ( outerModel, Rest.Nova.requestSetServerName project server.osProps.uuid newServerName )
@@ -1741,17 +1771,21 @@ processServerSpecificMsg outerModel project server serverMsgConstructor =
                 newOuterModel =
                     { outerModel | sharedModel = GetterSetters.modelUpdateProject sharedModel newProject }
             in
-            case outerModel.viewState of
+            ( newOuterModel
+            , case outerModel.viewState of
                 ProjectView projectId _ (ServerDetail pageModel) ->
                     if pageModel.serverUuid == server.osProps.uuid then
-                        ViewStateHelpers.navigateToPage (Route.ProjectRoute projectId <| Route.AllResourcesList)
-                            newOuterModel
+                        Route.pushUrl
+                            sharedModel.navigationKey
+                            sharedModel.urlPathPrefix
+                            (Route.ProjectRoute projectId <| Route.AllResourcesList)
 
                     else
-                        ( newOuterModel, Cmd.none )
+                        Cmd.none
 
                 _ ->
-                    ( newOuterModel, Cmd.none )
+                    Cmd.none
+            )
 
         ReceiveCreateFloatingIp errorContext result ->
             case result of
@@ -2211,14 +2245,14 @@ createProject outerModel authToken endpoints =
         newProjects =
             newProject :: outerModel.sharedModel.projects
 
-        newViewStateFunc =
+        newViewStateCmd =
             -- If the user is selecting projects from an unscoped provider then don't interrupt them
             case outerModel.viewState of
                 NonProjectView (SelectProjects _) ->
-                    \outerModel_ -> ( outerModel_, Cmd.none )
+                    Cmd.none
 
                 _ ->
-                    ViewStateHelpers.navigateToPage <|
+                    Route.pushUrl sharedModel.navigationKey sharedModel.urlPathPrefix <|
                         Route.ProjectRoute newProject.auth.project.uuid <|
                             Route.AllResourcesList
 
@@ -2237,11 +2271,10 @@ createProject outerModel authToken endpoints =
                     (ApiModelHelpers.requestFloatingIps newProject.auth.project.uuid)
                 |> Helpers.pipelineCmd
                     (ApiModelHelpers.requestPorts newProject.auth.project.uuid)
-
-        ( newOuterModel, viewStateCmd ) =
-            newViewStateFunc { outerModel | sharedModel = newSharedModel }
     in
-    ( newOuterModel, Cmd.batch [ viewStateCmd, Cmd.map SharedMsg newCmd ] )
+    ( { outerModel | sharedModel = newSharedModel }
+    , Cmd.batch [ newViewStateCmd, Cmd.map SharedMsg newCmd ]
+    )
 
 
 createUnscopedProvider : SharedModel -> OSTypes.UnscopedAuthToken -> HelperTypes.Url -> ( SharedModel, Cmd SharedMsg )
