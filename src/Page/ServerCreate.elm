@@ -1,4 +1,4 @@
-module Page.ServerCreate exposing (Model, Msg, init, update, view)
+module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Background as Background
@@ -15,6 +15,7 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.ServerNameValidator exposing (serverNameValidator)
 import OpenStack.Types as OSTypes
 import RemoteData
+import Route
 import ServerDeploy exposing (cloudInitUserDataTemplate)
 import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
@@ -48,9 +49,12 @@ type Msg
     = GotServerName String
     | GotCount Int
     | GotFlavorUuid OSTypes.FlavorUuid
+    | GotDefaultFlavor OSTypes.FlavorUuid
     | GotVolSizeTextInput (Maybe NumericTextInput)
     | GotUserDataTemplate String
+    | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
+    | GotAutoAllocatedNetwork OSTypes.NetworkUuid
     | GotCustomWorkflowSource (Maybe CustomWorkflowSource) (Maybe String)
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
@@ -84,25 +88,65 @@ init imageUuid imageName deployGuacamole =
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg project model =
     case msg of
         GotServerName name ->
             ( { model | serverName = name }, Cmd.none, SharedMsg.NoOp )
 
         GotCount count ->
-            ( { model | count = count }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | count = count }, Cmd.none, SharedMsg.NoOp )
 
         GotFlavorUuid flavorUuid ->
-            ( { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | flavorUuid = flavorUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotDefaultFlavor flavorUuid ->
+            ( enforceQuotaCompliance project
+                { model
+                    | flavorUuid =
+                        if model.flavorUuid == "" then
+                            flavorUuid
+
+                        else
+                            model.flavorUuid
+                }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotVolSizeTextInput maybeVolSizeInput ->
-            ( { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
+            ( enforceQuotaCompliance project { model | volSizeTextInput = maybeVolSizeInput }, Cmd.none, SharedMsg.NoOp )
 
         GotUserDataTemplate userData ->
             ( { model | userDataTemplate = userData }, Cmd.none, SharedMsg.NoOp )
 
+        GotNetworks ->
+            -- SharedModel just updated with new networks, choose a default if haven't done so already
+            if model.networkUuid == Nothing then
+                case Helpers.newServerNetworkOptions project of
+                    AutoSelectedNetwork netUuid ->
+                        ( { model | networkUuid = Just netUuid }, Cmd.none, SharedMsg.NoOp )
+
+                    _ ->
+                        ( model, Cmd.none, SharedMsg.NoOp )
+
+            else
+                ( model, Cmd.none, SharedMsg.NoOp )
+
         GotNetworkUuid maybeNetworkUuid ->
             ( { model | networkUuid = maybeNetworkUuid }, Cmd.none, SharedMsg.NoOp )
+
+        GotAutoAllocatedNetwork autoAllocatedNetworkUuid ->
+            ( { model
+                | networkUuid =
+                    if model.networkUuid == Nothing then
+                        Just autoAllocatedNetworkUuid
+
+                    else
+                        model.networkUuid
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotCustomWorkflowSource maybeCustomWorkflowSource maybeCustomWorkflowSourceInput ->
             ( { model
@@ -136,6 +180,45 @@ update msg _ model =
 
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
+
+
+enforceQuotaCompliance : Project -> Model -> Model
+enforceQuotaCompliance project model =
+    -- If user is trying to choose a combination of flavor, volume-backed disk size, and count
+    -- that would exceed quota, reduce count to comply with quota.
+    case
+        ( GetterSetters.flavorLookup project model.flavorUuid
+        , project.computeQuota
+        , project.volumeQuota
+        )
+    of
+        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
+            let
+                availServers =
+                    OSQuotas.overallQuotaAvailServers
+                        (model.volSizeTextInput
+                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
+                        )
+                        flavor
+                        computeQuota
+                        volumeQuota
+            in
+            { model
+                | count =
+                    case availServers of
+                        Just availServers_ ->
+                            if model.count > availServers_ then
+                                availServers_
+
+                            else
+                                model.count
+
+                        Nothing ->
+                            model.count
+            }
+
+        ( _, _, _ ) ->
+            model
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -1160,25 +1243,25 @@ keypairPicker context project model =
             text =
                 String.concat [ "Upload a new ", context.localization.pkiPublicKeyForSsh ]
           in
-          Widget.iconButton
-            (SH.materialStyle context.palette).button
-            { text = text
-            , icon =
-                Element.row
-                    [ Element.spacing 5 ]
-                    [ Element.text text
-                    , Element.el []
-                        (FeatherIcons.chevronRight
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                        )
-                    ]
-            , onPress =
-                Just <|
-                    SharedMsg <|
-                        SharedMsg.NavigateToView <|
-                            SharedMsg.ProjectPage project.auth.project.uuid <|
-                                SharedMsg.KeypairCreate
+          Element.link []
+            { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute project.auth.project.uuid <| Route.KeypairCreate)
+            , label =
+                Widget.iconButton
+                    (SH.materialStyle context.palette).button
+                    { text = text
+                    , icon =
+                        Element.row
+                            [ Element.spacing 5 ]
+                            [ Element.text text
+                            , Element.el []
+                                (FeatherIcons.chevronRight
+                                    |> FeatherIcons.toHtml []
+                                    |> Element.html
+                                )
+                            ]
+                    , onPress =
+                        Just <| NoOp
+                    }
             }
         ]
 

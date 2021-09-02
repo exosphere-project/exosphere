@@ -16,9 +16,6 @@ type alias SharedModel =
     { logMessages : List LogMessage
     , urlPathPrefix : Maybe String
     , navigationKey : Browser.Navigation.Key
-
-    -- Used to determine whether to pushUrl (change of view) or replaceUrl (just change of view parameters)
-    , prevUrl : String
     , windowSize : HelperTypes.WindowSize
     , unscopedProviders : List HelperTypes.UnscopedProvider
     , projects : List Project

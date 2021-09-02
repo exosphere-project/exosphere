@@ -2,6 +2,7 @@ module Page.MessageLog exposing (Model, Msg(..), init, update, view)
 
 import Element
 import Element.Input as Input
+import Route
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Error exposing (ErrorLevel(..))
@@ -20,16 +21,22 @@ type Msg
     = GotShowDebugMsgs Bool
 
 
-init : Model
-init =
-    { showDebugMsgs = False }
+init : Maybe Bool -> Model
+init maybeShowDebugMsgs =
+    { showDebugMsgs = Maybe.withDefault False maybeShowDebugMsgs }
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg _ model =
+update msg sharedModel model =
     case msg of
         GotShowDebugMsgs new ->
-            ( { model | showDebugMsgs = new }, Cmd.none, SharedMsg.NoOp )
+            ( { model | showDebugMsgs = new }
+            , Route.replaceUrl
+                sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.MessageLog new)
+            , SharedMsg.NoOp
+            )
 
 
 view : View.Types.Context -> SharedModel -> Model -> Element.Element Msg

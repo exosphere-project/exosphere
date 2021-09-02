@@ -1,10 +1,8 @@
 module State.Init exposing (init)
 
-import AppUrl.Parser
 import Browser.Navigation
 import Color
 import Dict
-import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Json.Decode as Decode
 import LocalStorage.LocalStorage as LocalStorage
@@ -14,7 +12,7 @@ import Ports
 import Random
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Keystone
-import State.ViewState exposing (setNonProjectView, setProjectView)
+import State.ViewState
 import Style.Types
 import Time
 import Toasty
@@ -80,7 +78,6 @@ init flags urlKey =
             { logMessages = []
             , urlPathPrefix = flags.urlPathPrefix
             , navigationKey = Tuple.second urlKey
-            , prevUrl = ""
             , windowSize = { width = flags.width, height = flags.height }
             , unscopedProviders = []
             , projects = []
@@ -169,13 +166,6 @@ init flags urlKey =
         hydratedModel =
             LocalStorage.hydrateModelFromStoredState (emptyModel flags.showDebugMsgs) newClientUuid storedState
 
-        defaultViewState =
-            State.ViewState.defaultViewState hydratedModel
-
-        ( viewStateFromUrl, cmdFromPageInit ) =
-            AppUrl.Parser.urlToViewState flags.urlPathPrefix defaultViewState (Tuple.first urlKey)
-                |> Maybe.withDefault ( NonProjectView PageNotFound, Cmd.none )
-
         -- If any projects are password-authenticated, get Application Credentials for them so we can forget the passwords
         projectsNeedingAppCredentials : List Project
         projectsNeedingAppCredentials =
@@ -204,7 +194,6 @@ init flags urlKey =
                 projectsNeedingAppCredentials
                 |> Cmd.batch
             , setFaviconCmd
-            , cmdFromPageInit
             ]
                 |> Cmd.batch
 
@@ -234,23 +223,7 @@ init flags urlKey =
             }
 
         ( setViewModel, setViewCmd ) =
-            case viewStateFromUrl of
-                NonProjectView nonProjectViewConstructor ->
-                    setNonProjectView
-                        nonProjectViewConstructor
-                        outerModel
-
-                ProjectView projectId _ projectViewConstructor ->
-                    -- If initial view is a project-specific view then we call setProjectView to fire any needed API calls
-                    case GetterSetters.projectLookup requestResourcesModel projectId of
-                        Just project ->
-                            setProjectView
-                                project
-                                projectViewConstructor
-                                outerModel
-
-                        Nothing ->
-                            ( outerModel, Cmd.none )
+            State.ViewState.navigateToPage (Tuple.first urlKey) outerModel
     in
     ( setViewModel
     , Cmd.batch [ Cmd.map SharedMsg requestResourcesCmd, setViewCmd ]

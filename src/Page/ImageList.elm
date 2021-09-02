@@ -7,6 +7,7 @@ import Filesize
 import Helpers.String
 import List.Extra
 import OpenStack.Types as OSTypes
+import Route
 import Set
 import Set.Extra
 import Style.Helpers as SH
@@ -44,7 +45,7 @@ type Msg
     | GotExpandImage OSTypes.ImageUuid Bool
     | GotVisibilityFilter ImageListVisibilityFilter
     | GotClearFilters
-    | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Model
@@ -95,8 +96,8 @@ update msg _ model =
         GotClearFilters ->
             ( init, Cmd.none, SharedMsg.NoOp )
 
-        SharedMsg sharedMsg ->
-            ( model, Cmd.none, sharedMsg )
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -462,16 +463,14 @@ renderImage context project model image =
                 Nothing ->
                     "size unknown"
 
-        chooseMsg =
-            SharedMsg <|
-                SharedMsg.NavigateToView <|
-                    SharedMsg.ProjectPage project.auth.project.uuid <|
-                        SharedMsg.ServerCreate
-                            image.uuid
-                            image.name
-                            (VH.userAppProxyLookup context project
-                                |> Maybe.map (\_ -> True)
-                            )
+        chooseRoute =
+            Route.ProjectRoute project.auth.project.uuid <|
+                Route.ServerCreate
+                    image.uuid
+                    image.name
+                    (VH.userAppProxyLookup context project
+                        |> Maybe.map (\_ -> True)
+                    )
 
         tagChip tag =
             Element.el [ Element.paddingXY 5 0 ]
@@ -484,16 +483,20 @@ renderImage context project model image =
                 )
 
         chooseButton =
-            Widget.textButton
-                (SH.materialStyle context.palette).primaryButton
-                { text = "Choose"
-                , onPress =
-                    case image.status of
-                        OSTypes.ImageActive ->
-                            Just chooseMsg
+            Element.link []
+                { url = Route.toUrl context.urlPathPrefix chooseRoute
+                , label =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = "Choose"
+                        , onPress =
+                            case image.status of
+                                OSTypes.ImageActive ->
+                                    Just NoOp
 
-                        _ ->
-                            Nothing
+                                _ ->
+                                    Nothing
+                        }
                 }
 
         featuredImageNamePrefix =

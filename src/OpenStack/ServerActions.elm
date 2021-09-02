@@ -188,12 +188,8 @@ actions maybeWordForServer maybeWordForImage =
       , allowedStatuses = Just [ OSTypes.ServerActive, OSTypes.ServerShutoff, OSTypes.ServerPaused, OSTypes.ServerSuspended ]
       , allowedLockStatus = Nothing
       , action =
-            \projectId server _ ->
-                NavigateToView <|
-                    SharedMsg.ProjectPage projectId <|
-                        SharedMsg.ServerCreateImage
-                            server.osProps.uuid
-                            (Just <| server.osProps.name ++ "-image")
+            -- This must be overridden in the Page to do anything
+            \_ _ _ -> NoOp
       , selectMod = NoMod
       , confirmable = False
       }

@@ -1,14 +1,9 @@
 module State.ViewState exposing
-    ( defaultLoginViewState
-    , defaultViewState
-    , modelUpdateViewState
-    , setNonProjectView
-    , setProjectView
+    ( defaultLoginPage
+    , navigateToPage
     , viewStateToSupportableItem
     )
 
-import AppUrl.Builder
-import Browser.Navigation
 import Helpers.GetterSetters as GetterSetters
 import Helpers.Helpers as Helpers
 import Helpers.Random as RandomHelpers
@@ -16,49 +11,102 @@ import OpenStack.Quotas as OSQuotas
 import OpenStack.Types as OSTypes
 import OpenStack.Volumes as OSVolumes
 import Page.AllResourcesList
+import Page.FloatingIpAssign
+import Page.FloatingIpList
+import Page.GetSupport
+import Page.ImageList
+import Page.KeypairCreate
+import Page.KeypairList
 import Page.LoginJetstream
 import Page.LoginOpenstack
+import Page.MessageLog
+import Page.SelectProjects
+import Page.ServerCreate
+import Page.ServerCreateImage
+import Page.ServerDetail
+import Page.ServerList
+import Page.Settings
+import Page.VolumeAttach
+import Page.VolumeCreate
+import Page.VolumeDetail
+import Page.VolumeList
+import Page.VolumeMountInstructions
 import Ports
 import RemoteData
 import Rest.ApiModelHelpers as ApiModelHelpers
 import Rest.Glance
 import Rest.Keystone
 import Rest.Nova
-import State.Error
-import Style.Widgets.NumericTextInput.NumericTextInput
+import Route
 import Time
-import Types.Error as Error
-import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..), UnscopedProvider)
+import Types.HelperTypes as HelperTypes exposing (DefaultLoginView(..))
 import Types.OuterModel exposing (OuterModel)
 import Types.OuterMsg exposing (OuterMsg(..))
-import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
 import Types.View exposing (LoginView(..), NonProjectViewConstructor(..), ProjectViewConstructor(..), ViewState(..))
+import Url
 import View.Helpers
 import View.PageTitle
 
 
-setNonProjectView : NonProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-setNonProjectView nonProjectViewConstructor outerModel =
+navigateToPage : Url.Url -> OuterModel -> ( OuterModel, Cmd OuterMsg )
+navigateToPage url outerModel =
     let
-        ( viewSpecificSharedModel, viewSpecificCmd ) =
-            case nonProjectViewConstructor of
-                LoadingUnscopedProjects authTokenStr ->
-                    -- This is a smell. We're using view state solely to pass information for an XHR, and we're figuring out here whether we can actually make that XHR. This logic should probably live somewhere else.
-                    case outerModel.sharedModel.openIdConnectLoginConfig of
+        route =
+            Route.fromUrl outerModel.sharedModel.urlPathPrefix (defaultRoute outerModel.sharedModel) url
+
+        ( newViewState, pageSpecificSharedModel, pageSpecificCmd ) =
+            routeToViewStateModelCmd outerModel.sharedModel route
+
+        newUrl =
+            Route.toUrl outerModel.sharedModel.urlPathPrefix route
+
+        newOuterModel =
+            { outerModel
+                | viewState = newViewState
+                , sharedModel = pageSpecificSharedModel
+            }
+
+        newViewContext =
+            View.Helpers.toViewContext newOuterModel.sharedModel
+
+        newPageTitle =
+            View.PageTitle.pageTitle newOuterModel newViewContext
+
+        updateMatomoCmd =
+            Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle }
+    in
+    ( newOuterModel
+    , Cmd.batch
+        [ Cmd.map SharedMsg pageSpecificCmd
+        , updateMatomoCmd
+        ]
+    )
+
+
+routeToViewStateModelCmd : SharedModel -> Route.Route -> ( ViewState, SharedModel, Cmd SharedMsg )
+routeToViewStateModelCmd sharedModel route =
+    case route of
+        Route.GetSupport maybeSupportableItemTuple ->
+            ( NonProjectView <| GetSupport <| Page.GetSupport.init maybeSupportableItemTuple
+            , sharedModel
+            , Ports.instantiateClipboardJs ()
+            )
+
+        Route.HelpAbout ->
+            ( NonProjectView <| HelpAbout
+            , sharedModel
+            , Ports.instantiateClipboardJs ()
+            )
+
+        Route.LoadingUnscopedProjects authTokenString ->
+            let
+                -- If we have just received an OpenID Connect auth token, store it as an unscoped provider and get projects
+                ( newSharedModel, cmd ) =
+                    case sharedModel.openIdConnectLoginConfig of
                         Nothing ->
-                            let
-                                errorContext =
-                                    Error.ErrorContext
-                                        "Load projects for provider authenticated via OpenID Connect"
-                                        Error.ErrorCrit
-                                        Nothing
-                            in
-                            State.Error.processStringError
-                                outerModel.sharedModel
-                                errorContext
-                                "This deployment of Exosphere is not configured to use OpenID Connect."
+                            ( sharedModel, Cmd.none )
 
                         Just openIdConnectLoginConfig ->
                             let
@@ -67,76 +115,73 @@ setNonProjectView nonProjectViewConstructor outerModel =
 
                                 tokenExpiry =
                                     -- One hour later? This should never matter
-                                    Time.posixToMillis outerModel.sharedModel.clientCurrentTime
+                                    Time.posixToMillis sharedModel.clientCurrentTime
                                         + oneHourMillis
                                         |> Time.millisToPosix
 
                                 unscopedProvider =
-                                    UnscopedProvider
+                                    HelperTypes.UnscopedProvider
                                         openIdConnectLoginConfig.keystoneAuthUrl
                                         (OSTypes.UnscopedAuthToken
                                             tokenExpiry
-                                            authTokenStr
+                                            authTokenString
                                         )
                                         RemoteData.NotAsked
 
                                 newUnscopedProviders =
-                                    unscopedProvider :: outerModel.sharedModel.unscopedProviders
-
-                                oldSharedModel =
-                                    outerModel.sharedModel
+                                    unscopedProvider :: sharedModel.unscopedProviders
                             in
-                            ( { oldSharedModel | unscopedProviders = newUnscopedProviders }
-                            , Rest.Keystone.requestUnscopedProjects unscopedProvider oldSharedModel.cloudCorsProxyUrl
+                            ( { sharedModel | unscopedProviders = newUnscopedProviders }
+                            , Rest.Keystone.requestUnscopedProjects unscopedProvider sharedModel.cloudCorsProxyUrl
                             )
+            in
+            ( NonProjectView <| LoadingUnscopedProjects authTokenString
+            , newSharedModel
+            , cmd
+            )
 
-                _ ->
-                    ( outerModel.sharedModel, Cmd.none )
+        Route.LoginJetstream maybeCreds ->
+            ( NonProjectView <| Login <| LoginJetstream <| Page.LoginJetstream.init maybeCreds
+            , sharedModel
+            , Cmd.none
+            )
 
-        newViewState =
-            NonProjectView nonProjectViewConstructor
+        Route.LoginOpenstack maybeCreds ->
+            ( NonProjectView <| Login <| LoginOpenstack <| Page.LoginOpenstack.init maybeCreds
+            , sharedModel
+            , Cmd.none
+            )
 
-        ( newOuterModel, viewStateCmd ) =
-            modelUpdateViewState newViewState { outerModel | sharedModel = viewSpecificSharedModel }
-    in
-    ( newOuterModel
-    , Cmd.batch
-        [ viewStateCmd
-        , Cmd.map SharedMsg viewSpecificCmd
-        ]
-    )
+        Route.LoginPicker ->
+            ( NonProjectView LoginPicker
+            , sharedModel
+            , Cmd.none
+            )
 
+        Route.MessageLog showDebugMsgs ->
+            ( NonProjectView <| MessageLog <| Page.MessageLog.init (Just showDebugMsgs)
+            , sharedModel
+            , Cmd.none
+            )
 
-setProjectView : Project -> ProjectViewConstructor -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-setProjectView project projectViewConstructor outerModel =
-    let
-        prevProjectViewConstructor =
-            case outerModel.viewState of
-                ProjectView projectId _ projectViewConstructor_ ->
-                    if projectId == project.auth.project.uuid then
-                        Just projectViewConstructor_
+        Route.PageNotFound ->
+            ( NonProjectView <| PageNotFound
+            , sharedModel
+            , Cmd.none
+            )
 
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
-
-        newViewState =
-            ProjectView project.auth.project.uuid { createPopup = False } projectViewConstructor
-
-        ( viewSpecificOuterModel, viewSpecificCmd ) =
-            case projectViewConstructor of
-                AllResourcesList _ ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (AllResourcesList _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+        Route.ProjectRoute projectId projectPage ->
+            case GetterSetters.projectLookup sharedModel projectId of
+                Just project ->
+                    let
+                        projectViewProto =
+                            ProjectView projectId { createPopup = False }
+                    in
+                    case projectPage of
+                        Route.AllResourcesList ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel
+                                    ( sharedModel
                                     , Cmd.batch
                                         [ OSVolumes.requestVolumes project
                                         , Rest.Nova.requestKeypairs project
@@ -150,125 +195,62 @@ setProjectView project projectViewConstructor outerModel =
                                         |> Helpers.pipelineCmd
                                             (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            ( projectViewProto <| AllResourcesList <| Page.AllResourcesList.init
+                            , newSharedModel
+                            , newCmd
+                            )
 
-                ImageList _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (ImageList _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    Rest.Glance.requestImages outerModel.sharedModel project
-                    in
-                    ( outerModel, cmd )
-
-                ServerList _ ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (ServerList _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+                        Route.FloatingIpAssign maybeIpUuid maybeServerUuid ->
                             let
-                                ( newSharedModel, cmd ) =
-                                    ApiModelHelpers.requestServers
-                                        project.auth.project.uuid
-                                        outerModel.sharedModel
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel, Cmd.none )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps
-                                                project.auth.project.uuid
-                                            )
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, cmd )
+                            ( projectViewProto <| FloatingIpAssign <| Page.FloatingIpAssign.init maybeIpUuid maybeServerUuid
+                            , newSharedModel
+                            , newCmd
+                            )
 
-                ServerDetail pageModel ->
-                    -- Don't fire cmds if we're already in this view
-                    case prevProjectViewConstructor of
-                        Just (ServerDetail _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+                        Route.FloatingIpList ->
                             let
-                                newSharedModel =
-                                    project
-                                        |> GetterSetters.modelUpdateProject outerModel.sharedModel
-
-                                cmd =
-                                    Cmd.batch
-                                        [ Rest.Nova.requestFlavors project
-                                        , Rest.Glance.requestImages outerModel.sharedModel project
-                                        , OSVolumes.requestVolumes project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-
-                                ( newNewSharedModel, newCmd ) =
-                                    ( newSharedModel, cmd )
+                                ( newSharedModel, newCmd ) =
+                                    ( sharedModel, Ports.instantiateClipboardJs () )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServer project.auth.project.uuid pageModel.serverUuid)
+                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
+                                        |> Helpers.pipelineCmd
+                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newNewSharedModel }, newCmd )
+                            ( projectViewProto <| FloatingIpList <| Page.FloatingIpList.init True
+                            , newSharedModel
+                            , newCmd
+                            )
 
-                ServerCreateImage _ ->
-                    ( outerModel, Cmd.none )
+                        Route.ImageList ->
+                            ( projectViewProto <| ImageList <| Page.ImageList.init
+                            , sharedModel
+                            , Rest.Glance.requestImages sharedModel project
+                            )
 
-                ServerCreate pageModel ->
-                    case outerModel.viewState of
-                        -- If we are already in this view state then ensure user isn't trying to choose a server count
-                        -- that would exceed quota; if so, reduce server count to comply with quota.
-                        -- TODO double-check that this code still actually works.
-                        ProjectView _ _ (ServerCreate _) ->
-                            let
-                                newPageModel =
-                                    case
-                                        ( GetterSetters.flavorLookup project pageModel.flavorUuid
-                                        , project.computeQuota
-                                        , project.volumeQuota
-                                        )
-                                    of
-                                        ( Just flavor, RemoteData.Success computeQuota, RemoteData.Success volumeQuota ) ->
-                                            let
-                                                availServers =
-                                                    OSQuotas.overallQuotaAvailServers
-                                                        (pageModel.volSizeTextInput
-                                                            |> Maybe.andThen Style.Widgets.NumericTextInput.NumericTextInput.toMaybe
-                                                        )
-                                                        flavor
-                                                        computeQuota
-                                                        volumeQuota
-                                            in
-                                            { pageModel
-                                                | count =
-                                                    case availServers of
-                                                        Just availServers_ ->
-                                                            if pageModel.count > availServers_ then
-                                                                availServers_
-
-                                                            else
-                                                                pageModel.count
-
-                                                        Nothing ->
-                                                            pageModel.count
-                                            }
-
-                                        ( _, _, _ ) ->
-                                            pageModel
-
-                                newViewState_ =
-                                    ProjectView
-                                        project.auth.project.uuid
-                                        { createPopup = False }
-                                    <|
-                                        ServerCreate newPageModel
-                            in
-                            ( { outerModel | viewState = newViewState_ }
+                        Route.KeypairCreate ->
+                            ( projectViewProto <| KeypairCreate Page.KeypairCreate.init
+                            , sharedModel
                             , Cmd.none
                             )
 
-                        -- If we are just entering this view then gather everything we need
-                        _ ->
+                        Route.KeypairList ->
+                            ( projectViewProto <| KeypairList <| Page.KeypairList.init True
+                            , sharedModel
+                            , Cmd.batch
+                                [ Rest.Nova.requestKeypairs project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                            )
+
+                        Route.ServerCreate imageId imageName maybeDeployGuac ->
                             let
                                 cmd =
                                     Cmd.batch
@@ -282,201 +264,143 @@ setProjectView project projectViewConstructor outerModel =
                                         ]
 
                                 ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel, cmd )
+                                    ( sharedModel, cmd )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestAutoAllocatedNetwork project.auth.project.uuid)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestVolumeQuota project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            ( projectViewProto <| ServerCreate (Page.ServerCreate.init imageId imageName maybeDeployGuac)
+                            , newSharedModel
+                            , newCmd
+                            )
 
-                VolumeList _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (VolumeList _) ->
-                                    Cmd.none
+                        Route.ServerCreateImage serverId maybeImageName ->
+                            ( projectViewProto <| ServerCreateImage (Page.ServerCreateImage.init serverId maybeImageName)
+                            , sharedModel
+                            , Cmd.none
+                            )
 
-                                _ ->
+                        Route.ServerDetail serverId ->
+                            let
+                                newSharedModel =
+                                    project
+                                        |> GetterSetters.modelUpdateProject sharedModel
+
+                                cmd =
                                     Cmd.batch
-                                        [ OSVolumes.requestVolumes project
+                                        [ Rest.Nova.requestFlavors project
+                                        , Rest.Glance.requestImages sharedModel project
+                                        , OSVolumes.requestVolumes project
                                         , Ports.instantiateClipboardJs ()
                                         ]
-                    in
-                    ( outerModel, cmd )
 
-                FloatingIpList _ ->
-                    case prevProjectViewConstructor of
-                        Just (FloatingIpList _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
-                            let
-                                ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel, Ports.instantiateClipboardJs () )
+                                ( newNewSharedModel, newCmd ) =
+                                    ( newSharedModel, cmd )
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestComputeQuota project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestServers project.auth.project.uuid)
+                                            (ApiModelHelpers.requestServer project.auth.project.uuid serverId)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            ( projectViewProto <| ServerDetail (Page.ServerDetail.init serverId)
+                            , newNewSharedModel
+                            , newCmd
+                            )
 
-                FloatingIpAssign _ ->
-                    case prevProjectViewConstructor of
-                        Just (FloatingIpAssign _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+                        Route.ServerList ->
                             let
-                                ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel, Cmd.none )
+                                ( newSharedModel, cmd ) =
+                                    ApiModelHelpers.requestServers
+                                        project.auth.project.uuid
+                                        sharedModel
                                         |> Helpers.pipelineCmd
-                                            (ApiModelHelpers.requestFloatingIps project.auth.project.uuid)
-                                        |> Helpers.pipelineCmd (ApiModelHelpers.requestPorts project.auth.project.uuid)
+                                            (ApiModelHelpers.requestFloatingIps
+                                                project.auth.project.uuid
+                                            )
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            ( projectViewProto <| ServerList <| Page.ServerList.init True
+                            , newSharedModel
+                            , cmd
+                            )
 
-                KeypairList _ ->
-                    let
-                        cmd =
-                            -- Don't fire cmds if we're already in this view
-                            case prevProjectViewConstructor of
-                                Just (KeypairList _) ->
-                                    Cmd.none
-
-                                _ ->
-                                    Cmd.batch
-                                        [ Rest.Nova.requestKeypairs project
-                                        , Ports.instantiateClipboardJs ()
-                                        ]
-                    in
-                    ( outerModel, cmd )
-
-                KeypairCreate _ ->
-                    ( outerModel, Cmd.none )
-
-                VolumeDetail _ ->
-                    ( outerModel, Cmd.none )
-
-                VolumeAttach _ ->
-                    case prevProjectViewConstructor of
-                        Just (VolumeAttach _) ->
-                            ( outerModel, Cmd.none )
-
-                        _ ->
+                        Route.VolumeAttach maybeServerUuid maybeVolumeUuid ->
                             let
                                 ( newSharedModel, newCmd ) =
-                                    ( outerModel.sharedModel, OSVolumes.requestVolumes project )
+                                    ( sharedModel, OSVolumes.requestVolumes project )
                                         |> Helpers.pipelineCmd (ApiModelHelpers.requestServers project.auth.project.uuid)
                             in
-                            ( { outerModel | sharedModel = newSharedModel }, newCmd )
+                            ( projectViewProto <|
+                                VolumeAttach (Page.VolumeAttach.init maybeServerUuid maybeVolumeUuid)
+                            , newSharedModel
+                            , newCmd
+                            )
 
-                VolumeMountInstructions _ ->
-                    ( outerModel, Cmd.none )
+                        Route.VolumeCreate ->
+                            ( projectViewProto <| VolumeCreate Page.VolumeCreate.init
+                            , sharedModel
+                            , OSQuotas.requestComputeQuota project
+                            )
 
-                VolumeCreate _ ->
-                    let
-                        cmd =
-                            -- If just entering this view, get volume quota
-                            case outerModel.viewState of
-                                ProjectView _ _ (VolumeCreate _) ->
-                                    Cmd.none
+                        Route.VolumeDetail volumeUuid ->
+                            ( projectViewProto <| VolumeDetail <| Page.VolumeDetail.init True volumeUuid
+                            , sharedModel
+                            , Cmd.none
+                            )
 
-                                _ ->
-                                    OSQuotas.requestVolumeQuota project
-                    in
-                    ( outerModel, cmd )
+                        Route.VolumeList ->
+                            ( projectViewProto <| VolumeList <| Page.VolumeList.init True
+                            , sharedModel
+                            , Cmd.batch
+                                [ OSVolumes.requestVolumes project
+                                , Ports.instantiateClipboardJs ()
+                                ]
+                            )
 
-        ( newOuterModel, viewStateCmd ) =
-            modelUpdateViewState newViewState viewSpecificOuterModel
-    in
-    ( newOuterModel
-    , Cmd.batch
-        [ viewStateCmd
-        , Cmd.map SharedMsg viewSpecificCmd
-        ]
-    )
+                        Route.VolumeMountInstructions attachment ->
+                            ( projectViewProto <| VolumeMountInstructions <| Page.VolumeMountInstructions.init attachment
+                            , sharedModel
+                            , Cmd.none
+                            )
 
+                Nothing ->
+                    -- Default view for non-matching project
+                    ( NonProjectView <| LoginPicker, sharedModel, Cmd.none )
 
-modelUpdateViewState : ViewState -> OuterModel -> ( OuterModel, Cmd OuterMsg )
-modelUpdateViewState viewState outerModel =
-    -- the cmd argument is just a "passthrough", added to the Cmd that sets new URL
-    let
-        urlWithoutQuery url =
-            String.split "?" url
-                |> List.head
-                |> Maybe.withDefault ""
+        Route.SelectProjects keystoneUrl ->
+            ( NonProjectView <| SelectProjects <| Page.SelectProjects.init keystoneUrl
+            , sharedModel
+            , Cmd.none
+            )
 
-        prevUrl =
-            outerModel.sharedModel.prevUrl
-
-        newUrl =
-            AppUrl.Builder.viewStateToUrl outerModel.sharedModel.urlPathPrefix viewState
-
-        oldSharedModel =
-            outerModel.sharedModel
-
-        newSharedModel =
-            { oldSharedModel | prevUrl = newUrl }
-
-        newOuterModel =
-            { outerModel
-                | viewState = viewState
-                , sharedModel = newSharedModel
-            }
-
-        newViewContext =
-            View.Helpers.toViewContext newOuterModel.sharedModel
-
-        newPageTitle =
-            View.PageTitle.pageTitle newOuterModel newViewContext
-
-        ( updateUrlFunc, updateMatomoCmd ) =
-            if urlWithoutQuery newUrl == urlWithoutQuery prevUrl then
-                -- We should `replaceUrl` and not update Matomo when just modifying the query string (setting parameters of views)
-                ( Browser.Navigation.replaceUrl, Cmd.none )
-
-            else
-                -- We should `pushUrl` and update Matomo when modifying the path (moving between views)
-                ( Browser.Navigation.pushUrl, Ports.pushUrlAndTitleToMatomo { newUrl = newUrl, pageTitle = newPageTitle } )
-
-        urlCmd =
-            Cmd.batch
-                [ updateUrlFunc newOuterModel.sharedModel.navigationKey newUrl
-                , updateMatomoCmd
-                ]
-    in
-    ( newOuterModel, urlCmd )
+        Route.Settings ->
+            ( NonProjectView <| Settings <| Page.Settings.init
+            , sharedModel
+            , Cmd.none
+            )
 
 
-defaultViewState : SharedModel -> ViewState
-defaultViewState model =
-    case model.projects of
+defaultRoute : SharedModel -> Route.Route
+defaultRoute sharedModel =
+    case sharedModel.projects of
         [] ->
-            NonProjectView <| defaultLoginViewState model.style.defaultLoginView
+            defaultLoginPage sharedModel.style.defaultLoginView
 
         firstProject :: _ ->
-            ProjectView
+            Route.ProjectRoute
                 firstProject.auth.project.uuid
-                { createPopup = False }
-                (AllResourcesList Page.AllResourcesList.init)
+                Route.AllResourcesList
 
 
-defaultLoginViewState : Maybe DefaultLoginView -> NonProjectViewConstructor
-defaultLoginViewState maybeDefaultLoginView =
+defaultLoginPage : Maybe DefaultLoginView -> Route.Route
+defaultLoginPage maybeDefaultLoginView =
     case maybeDefaultLoginView of
         Nothing ->
-            LoginPicker
+            Route.LoginPicker
 
         Just defaultLoginView ->
             case defaultLoginView of
                 DefaultLoginOpenstack ->
-                    Login <| LoginOpenstack Page.LoginOpenstack.init
+                    Route.LoginOpenstack Nothing
 
                 DefaultLoginJetstream ->
-                    Login <| LoginJetstream Page.LoginJetstream.init
+                    Route.LoginJetstream Nothing
 
 
 viewStateToSupportableItem :

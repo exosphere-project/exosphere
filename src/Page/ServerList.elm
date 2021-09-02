@@ -1,7 +1,6 @@
 module Page.ServerList exposing (Model, Msg, init, update, view)
 
 import Element
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
@@ -10,6 +9,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -356,24 +356,22 @@ renderServer context projectId model isMyServer server =
                 , Element.el [ Font.bold ] (Element.text aServer.osProps.name)
                 ]
 
-        serverNameClickEvent : Msg
-        serverNameClickEvent =
-            SharedMsg <|
-                SharedMsg.NavigateToView <|
-                    SharedMsg.ProjectPage projectId <|
-                        SharedMsg.ServerDetail server.osProps.uuid
-
         serverLabel : Server -> Element.Element Msg
         serverLabel aServer =
-            Element.row
-                [ Element.width Element.fill
-                , Events.onClick serverNameClickEvent
-                , Element.pointer
-                , Element.spacing 10
-                ]
-                [ serverLabelName aServer
-                , creatorNameView
-                ]
+            Element.link []
+                { url =
+                    Route.toUrl context.urlPathPrefix
+                        (Route.ProjectRoute projectId <| Route.ServerDetail server.osProps.uuid)
+                , label =
+                    Element.row
+                        [ Element.width Element.fill
+                        , Element.pointer
+                        , Element.spacing 10
+                        ]
+                        [ serverLabelName aServer
+                        , creatorNameView
+                        ]
+                }
 
         deletionAttempted =
             server.exoProps.deletionAttempted

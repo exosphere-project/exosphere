@@ -22,9 +22,6 @@ main =
         , view = view
         , update = State.update
         , subscriptions = State.Subscriptions.subscriptions
-        , onUrlRequest =
-            \_ ->
-                -- We don't need this right now, because all of our <a hrefs load another domain in a new window
-                SharedMsg NoOp
-        , onUrlChange = \u -> SharedMsg <| UrlChange u
+        , onUrlRequest = \u -> SharedMsg <| LinkClicked u
+        , onUrlChange = \u -> SharedMsg <| UrlChanged u
         }

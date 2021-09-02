@@ -1,7 +1,6 @@
 module Page.AllResourcesList exposing (Model, Msg, init, update, view)
 
 import Element
-import Element.Events as Events
 import Element.Font as Font
 import FeatherIcons
 import Helpers.String
@@ -9,6 +8,7 @@ import Page.FloatingIpList
 import Page.KeypairList
 import Page.ServerList
 import Page.VolumeList
+import Route
 import Style.Helpers as SH
 import Style.Widgets.Icon as Icon
 import Types.Project exposing (Project)
@@ -30,7 +30,7 @@ type Msg
     | VolumeListMsg Page.VolumeList.Msg
     | KeypairListMsg Page.KeypairList.Msg
     | FloatingIpListMsg Page.FloatingIpList.Msg
-    | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Model
@@ -74,31 +74,34 @@ update msg project model =
             in
             ( { model | floatingIpListModel = pageModel }, Cmd.map FloatingIpListMsg pageCmd, sharedMsg )
 
-        SharedMsg sharedMsg ->
-            ( model, Cmd.none, sharedMsg )
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context p model =
     let
-        renderHeaderLink : Element.Element Msg -> String -> Msg -> Element.Element Msg
-        renderHeaderLink icon str msg =
-            Element.row
-                (VH.heading3 context.palette
-                    ++ [ Element.spacing 12
-                       , Events.onClick msg
-                       , Element.mouseOver
-                            [ Font.color
-                                (context.palette.primary
-                                    |> SH.toElementColor
-                                )
-                            ]
-                       , Element.pointer
-                       ]
-                )
-                [ icon
-                , Element.text str
-                ]
+        renderHeaderLink : Element.Element Msg -> String -> Route.ProjectRouteConstructor -> Element.Element Msg
+        renderHeaderLink icon str projRouteConstructor =
+            Element.link []
+                { url = Route.toUrl context.urlPathPrefix (Route.ProjectRoute p.auth.project.uuid projRouteConstructor)
+                , label =
+                    Element.row
+                        (VH.heading3 context.palette
+                            ++ [ Element.spacing 12
+                               , Element.mouseOver
+                                    [ Font.color
+                                        (context.palette.primary
+                                            |> SH.toElementColor
+                                        )
+                                    ]
+                               , Element.pointer
+                               ]
+                        )
+                        [ icon
+                        , Element.text str
+                        ]
+                }
     in
     Element.column
         [ Element.spacing 25, Element.width Element.fill ]
@@ -114,7 +117,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.ServerList)
+                Route.ServerList
             , Page.ServerList.view context
                 p
                 model.serverListModel
@@ -132,7 +135,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.VolumeList)
+                Route.VolumeList
             , Page.VolumeList.view context
                 p
                 model.volumeListModel
@@ -146,7 +149,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.FloatingIpList)
+                Route.FloatingIpList
             , Page.FloatingIpList.view context
                 p
                 model.floatingIpListModel
@@ -166,7 +169,7 @@ view context p model =
                     |> Helpers.String.pluralize
                     |> Helpers.String.toTitleCase
                 )
-                (SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.ProjectPage p.auth.project.uuid SharedMsg.KeypairList)
+                Route.KeypairList
             , Page.KeypairList.view context
                 p
                 model.keypairListModel

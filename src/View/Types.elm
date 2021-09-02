@@ -4,6 +4,7 @@ module View.Types exposing
     , ImageTag
     )
 
+import Browser.Navigation
 import Dict
 import Element
 import Style.Types exposing (ExoPalette)
@@ -16,6 +17,8 @@ type alias Context =
     , cloudSpecificConfigs : Dict.Dict KeystoneHostname CloudSpecificConfig
     , windowSize : WindowSize
     , experimentalFeaturesEnabled : Bool
+    , urlPathPrefix : Maybe String
+    , navigationKey : Browser.Navigation.Key
     }
 
 

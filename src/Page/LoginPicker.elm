@@ -1,9 +1,11 @@
 module Page.LoginPicker exposing (Msg(..), update, view)
 
+import Browser
 import Color
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Route
 import Style.Helpers as SH
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -33,28 +35,28 @@ update msg =
 view : View.Types.Context -> SharedModel -> Element.Element Msg
 view context sharedModel =
     let
+        renderLinkButton route text =
+            Element.link []
+                { url = Route.toUrl context.urlPathPrefix route
+                , label =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = text
+                        , onPress =
+                            Just <| SharedMsg <| SharedMsg.NoOp
+                        }
+                }
+
         defaultLoginMethods =
             [ { logo =
                     Element.image [ Element.centerX, Element.width (Element.px 180), Element.height (Element.px 100) ] { src = "assets/img/openstack-logo.svg", description = "" }
-              , button =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
-                        { text = "Add OpenStack Account"
-                        , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginOpenstack
-                        }
+              , button = renderLinkButton (Route.LoginOpenstack Nothing) "Add OpenStack Account"
               , description =
                     ""
               }
             , { logo =
                     Element.image [ Element.centerX, Element.width (Element.px 150), Element.height (Element.px 100) ] { src = "assets/img/jetstream-logo.svg", description = "" }
-              , button =
-                    Widget.textButton
-                        (SH.materialStyle context.palette).primaryButton
-                        { text = "Add Jetstream Account"
-                        , onPress =
-                            Just <| SharedMsg <| SharedMsg.NavigateToView SharedMsg.LoginJetstream
-                        }
+              , button = renderLinkButton (Route.LoginJetstream Nothing) "Add Jetstream Account"
               , description =
                     "Recommended login method for Jetstream Cloud"
               }
@@ -78,7 +80,7 @@ view context sharedModel =
                             url =
                                 oidcLoginConfig.keystoneAuthUrl ++ oidcLoginConfig.webssoKeystoneEndpoint
                         in
-                        Just <| SharedMsg <| SharedMsg.NavigateToUrl url
+                        Just <| SharedMsg <| SharedMsg.LinkClicked <| Browser.External url
                     }
             , description =
                 oidcLoginConfig.oidcLoginButtonDescription

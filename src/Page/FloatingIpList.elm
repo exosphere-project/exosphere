@@ -9,6 +9,7 @@ import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
 import OpenStack.Types as OSTypes
 import Page.QuotaUsage
+import Route
 import Set
 import Style.Helpers as SH
 import Style.Widgets.Card
@@ -31,12 +32,12 @@ type alias Model =
 
 type Msg
     = GotHideAssignedIps Bool
-    | GotAssign OSTypes.IpAddressUuid
     | GotUnassign OSTypes.IpAddressUuid
     | GotDeleteNeedsConfirm OSTypes.IpAddressUuid
     | GotDeleteConfirm OSTypes.IpAddressUuid
     | GotDeleteCancel OSTypes.IpAddressUuid
     | SharedMsg SharedMsg.SharedMsg
+    | NoOp
 
 
 init : Bool -> Model
@@ -56,12 +57,6 @@ update msg project model =
                     { model | hideAssignedIps = hidden }
             in
             ( newModel, Cmd.none, SharedMsg.NoOp )
-
-        GotAssign ipUuid ->
-            ( model
-            , Cmd.none
-            , SharedMsg.NavigateToView <| SharedMsg.ProjectPage project.auth.project.uuid <| SharedMsg.FloatingIpAssign (Just ipUuid) Nothing
-            )
 
         GotUnassign ipUuid ->
             ( model
@@ -91,6 +86,9 @@ update msg project model =
 
         SharedMsg sharedMsg ->
             ( model, Cmd.none, sharedMsg )
+
+        NoOp ->
+            ( model, Cmd.none, SharedMsg.NoOp )
 
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
@@ -218,7 +216,7 @@ renderFloatingIpCard :
 renderFloatingIpCard context project model ip =
     let
         subtitle =
-            actionButtons context model ip
+            actionButtons context project model ip
 
         cardBody =
             case ip.portUuid of
@@ -232,14 +230,17 @@ renderFloatingIpCard context project model ip =
                                         , context.localization.virtualComputer
                                         , server.osProps.name
                                         ]
-                                , Style.Widgets.IconButton.goToButton
-                                    context.palette
-                                    (Just <|
-                                        SharedMsg <|
-                                            SharedMsg.NavigateToView <|
-                                                SharedMsg.ProjectPage project.auth.project.uuid <|
-                                                    SharedMsg.ServerDetail server.osProps.uuid
-                                    )
+                                , Element.link []
+                                    { url =
+                                        Route.toUrl context.urlPathPrefix
+                                            (Route.ProjectRoute project.auth.project.uuid <|
+                                                Route.ServerDetail server.osProps.uuid
+                                            )
+                                    , label =
+                                        Style.Widgets.IconButton.goToButton
+                                            context.palette
+                                            (Just <| SharedMsg <| SharedMsg.NoOp)
+                                    }
                                 ]
 
                         Nothing ->
@@ -259,27 +260,32 @@ renderFloatingIpCard context project model ip =
         cardBody
 
 
-actionButtons : View.Types.Context -> Model -> OSTypes.FloatingIp -> Element.Element Msg
-actionButtons context model ip =
+actionButtons : View.Types.Context -> Project -> Model -> OSTypes.FloatingIp -> Element.Element Msg
+actionButtons context project model ip =
     let
         assignUnassignButton =
-            let
-                ( text, onPress ) =
-                    case ip.portUuid of
-                        Nothing ->
-                            ( "Assign"
-                            , Just <|
-                                GotAssign ip.uuid
-                            )
+            case ip.portUuid of
+                Nothing ->
+                    Element.link []
+                        { url =
+                            Route.toUrl context.urlPathPrefix
+                                (Route.ProjectRoute project.auth.project.uuid <|
+                                    Route.FloatingIpAssign (Just ip.uuid) Nothing
+                                )
+                        , label =
+                            Widget.textButton
+                                (SH.materialStyle context.palette).button
+                                { text = "Assign"
+                                , onPress = Just NoOp
+                                }
+                        }
 
-                        Just _ ->
-                            ( "Unassign", Just <| GotUnassign ip.uuid )
-            in
-            Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = text
-                , onPress = onPress
-                }
+                Just _ ->
+                    Widget.textButton
+                        (SH.materialStyle context.palette).button
+                        { text = "Unassign"
+                        , onPress = Just <| GotUnassign ip.uuid
+                        }
 
         confirmationNeeded =
             Set.member ip.uuid model.deleteConfirmations

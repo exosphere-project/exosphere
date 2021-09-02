@@ -5,6 +5,7 @@ import Element.Font as Font
 import Element.Input as Input
 import OpenStack.OpenRc
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg
@@ -38,10 +39,10 @@ type Msg
     | NoOp
 
 
-init : Model
-init =
+init : Maybe OSTypes.OpenstackLogin -> Model
+init maybeCreds =
     { creds =
-        defaultCreds
+        Maybe.withDefault defaultCreds maybeCreds
     , openRc = ""
     , entryType = CredsEntry
     }
@@ -262,9 +263,13 @@ loginOpenstackOpenRcEntry context model =
 
 loginPickerButton : View.Types.Context -> Element.Element Msg
 loginPickerButton context =
-    Widget.textButton
-        (SH.materialStyle context.palette).button
-        { text = "Other Login Methods"
-        , onPress =
-            Just <| SharedMsg <| SharedMsg.NavigateToView <| SharedMsg.LoginPicker
+    Element.link []
+        { url = Route.toUrl context.urlPathPrefix Route.LoginPicker
+        , label =
+            Widget.textButton
+                (SH.materialStyle context.palette).button
+                { text = "Other Login Methods"
+                , onPress =
+                    Just <| SharedMsg <| SharedMsg.NoOp
+                }
         }

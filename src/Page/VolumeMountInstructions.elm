@@ -4,6 +4,7 @@ import Element
 import Helpers.Helpers as Helpers
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -20,9 +21,9 @@ type Msg
     = SharedMsg SharedMsg.SharedMsg
 
 
-init : OSTypes.VolumeAttachment -> ( Model, Cmd SharedMsg.SharedMsg )
-init attachment =
-    ( attachment, Cmd.none )
+init : OSTypes.VolumeAttachment -> Model
+init =
+    identity
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
@@ -81,15 +82,18 @@ view context project model =
                                 , "manually."
                                 ]
                 ]
-            , Widget.textButton
-                (SH.materialStyle context.palette).primaryButton
-                { text = "Go to my " ++ context.localization.virtualComputer
-                , onPress =
-                    Just <|
-                        SharedMsg <|
-                            SharedMsg.NavigateToView <|
-                                SharedMsg.ProjectPage project.auth.project.uuid <|
-                                    SharedMsg.ServerDetail model.serverUuid
+            , Element.link []
+                { url =
+                    Route.toUrl context.urlPathPrefix
+                        (Route.ProjectRoute project.auth.project.uuid <|
+                            Route.ServerDetail model.serverUuid
+                        )
+                , label =
+                    Widget.textButton
+                        (SH.materialStyle context.palette).primaryButton
+                        { text = "Go to my " ++ context.localization.virtualComputer
+                        , onPress = Just <| SharedMsg <| SharedMsg.NoOp
+                        }
                 }
             ]
         ]

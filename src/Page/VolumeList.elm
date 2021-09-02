@@ -81,6 +81,9 @@ update msg project model =
                 Page.VolumeDetail.SharedMsg sharedMsg ->
                     ( model, Cmd.none, sharedMsg )
 
+                Page.VolumeDetail.NoOp ->
+                    ( model, Cmd.none, SharedMsg.NoOp )
+
 
 view : View.Types.Context -> Project -> Model -> Element.Element Msg
 view context project model =

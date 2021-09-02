@@ -4,8 +4,10 @@ import Element
 import Element.Input as Input
 import Helpers.String
 import OpenStack.Types as OSTypes
+import Route
 import Style.Helpers as SH
 import Types.Project exposing (Project)
+import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg as SharedMsg exposing (ProjectSpecificMsgConstructor(..), ServerSpecificMsgConstructor(..))
 import View.Helpers as VH
 import View.Types
@@ -28,11 +30,25 @@ init serverUuid maybeImageName =
     Model serverUuid (Maybe.withDefault "" maybeImageName)
 
 
-update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
-update msg project model =
+update : Msg -> SharedModel -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
+update msg sharedModel project model =
     case msg of
         GotImageName imageName ->
-            ( { model | imageName = imageName }, Cmd.none, SharedMsg.NoOp )
+            let
+                newModel =
+                    { model | imageName = imageName }
+            in
+            ( newModel
+            , Route.replaceUrl
+                sharedModel.navigationKey
+                sharedModel.urlPathPrefix
+                (Route.ProjectRoute project.auth.project.uuid
+                    (Route.ServerCreateImage newModel.serverUuid
+                        (Just newModel.imageName)
+                    )
+                )
+            , SharedMsg.NoOp
+            )
 
         GotSubmit ->
             ( model

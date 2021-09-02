@@ -6,7 +6,6 @@ import Element.Input as Input
 import FeatherIcons
 import Helpers.RemoteDataPlusPlus as RDPP
 import Helpers.String
-import Ports
 import RemoteData
 import Set
 import Style.Helpers as SH
@@ -36,14 +35,12 @@ type Msg
     | NoOp
 
 
-init : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> ( Model, Cmd SharedMsg.SharedMsg )
+init : Maybe ( HelperTypes.SupportableItemType, Maybe HelperTypes.Uuid ) -> Model
 init maybeSupportableResource =
-    ( { maybeSupportableResource = maybeSupportableResource
-      , requestDescription = ""
-      , isSubmitted = False
-      }
-    , Ports.instantiateClipboardJs ()
-    )
+    { maybeSupportableResource = maybeSupportableResource
+    , requestDescription = ""
+    , isSubmitted = False
+    }
 
 
 update : Msg -> SharedModel -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
