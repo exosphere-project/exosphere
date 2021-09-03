@@ -33,10 +33,18 @@ var config = {
         "logo":"assets/img/ubuntu.svg",
         "versions":[
           {
-            "friendlyName":"20.04 (Latest)",
+            "friendlyName":"20.04 (latest)",
             "isPrimary":true,
             "filters":{
               "name":"JS-API-Featured-Ubuntu20-Latest",
+              "visibility": "public"
+            }
+          },
+          {
+            "friendlyName":"20.04 with NVIDIA drivers",
+            "isPrimary":false,
+            "filters":{
+              "name":"JS-API-Featured-Ubuntu20-NVIDIA-Latest",
               "visibility": "public"
             }
           },
@@ -48,6 +56,14 @@ var config = {
               "osVersion":"18.04",
               "visibility": "public"
             }
+          },
+          {
+            "friendlyName":"18.04 with MATLAB",
+            "isPrimary":false,
+            "filters":{
+              "name":"JS-API-Featured-Ubuntu18-MATLAB-Latest",
+              "visibility": "public"
+            }
           }
         ]
       },
@@ -57,7 +73,7 @@ var config = {
         "logo":"assets/img/centos.svg",
         "versions":[
           {
-            "friendlyName":"8 (Latest)",
+            "friendlyName":"8 (latest)",
             "isPrimary":true,
             "filters":{
               "name":"JS-API-Featured-CentOS8-Latest",
@@ -69,6 +85,22 @@ var config = {
             "isPrimary":false,
             "filters":{
               "name":"JS-API-Featured-CentOS7-Latest",
+              "visibility": "public"
+            }
+          },
+          {
+            "friendlyName":"7 with NVIDIA drivers",
+            "isPrimary":false,
+            "filters":{
+              "name":"JS-API-Featured-CentOS7-NVIDIA-Latest",
+              "visibility": "public"
+            }
+          },
+          {
+            "friendlyName":"7 with Intel compiler",
+            "isPrimary":false,
+            "filters":{
+              "name":"JS-API-Featured-CentOS7-Intel-Developer-Latest",
               "visibility": "public"
             }
           }

@@ -300,19 +300,33 @@ operatingSystems context project opSysChoices model =
                                     (VH.userAppProxyLookup context project
                                         |> Maybe.map (\_ -> True)
                                     )
+
+                        buttonStyleProto =
+                            if opSysChoiceVersion.isPrimary then
+                                (SH.materialStyle context.palette).primaryButton
+
+                            else
+                                (SH.materialStyle context.palette).button
+
+                        buttonStyle =
+                            { buttonStyleProto
+                                | container =
+                                    buttonStyleProto.container
+                                        ++ [ Element.width Element.fill
+                                           , Element.centerX
+                                           ]
+                                , labelRow =
+                                    buttonStyleProto.labelRow
+                                        ++ [ Element.centerX ]
+                            }
                     in
-                    Element.link [ Element.centerX ]
+                    Element.link [ Element.centerX, Element.width Element.fill ]
                         { url = Route.toUrl context.urlPathPrefix chooseRoute
                         , label =
                             Widget.textButton
-                                (if opSysChoiceVersion.isPrimary then
-                                    (SH.materialStyle context.palette).primaryButton
-
-                                 else
-                                    (SH.materialStyle context.palette).button
-                                )
+                                buttonStyle
                                 { text =
-                                    name ++ " " ++ opSysChoiceVersion.friendlyName
+                                    opSysChoiceVersion.friendlyName
                                 , onPress =
                                     Just NoOp
                                 }
