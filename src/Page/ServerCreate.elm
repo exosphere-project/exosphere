@@ -1,6 +1,5 @@
 module Page.ServerCreate exposing (Model, Msg(..), init, update, view)
 
-import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -31,7 +30,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg as SharedMsg
-import Types.Workflow exposing (CustomWorkflowSource, CustomWorkflowSourceRepository(..), SourceInput, SourceProvider)
+import Types.Workflow exposing (CustomWorkflowSource, CustomWorkflowSourceRepository(..))
 import Url
 import View.Helpers as VH exposing (edges)
 import View.Types
@@ -888,18 +887,6 @@ customWorkflowInputExperimental context model =
                 _ =
                     Debug.log "model.customWorkflowSourceInput" model.customWorkflowSourceInput
 
-                selectedSourceProvider =
-                    Dict.fromList Types.Workflow.providers
-                        |> Dict.get model.customWorkflowSourceInput.providerPrefix
-                        |> Maybe.withDefault Types.Workflow.defaultProvider
-
-                _ =
-                    Debug.log "selectedSourceProvider" selectedSourceProvider
-
-                sourceProviderOptions =
-                    Types.Workflow.providers
-                        |> List.map (\( sourceType, _ ) -> ( sourceType, sourceType ))
-
                 repoTypeAndTextInput =
                     Element.column
                         (VH.exoColumnAttributes
@@ -907,52 +894,36 @@ customWorkflowInputExperimental context model =
                                , Element.padding 0
                                ]
                         )
-                        [ Element.text selectedSourceProvider.text
-                        , Element.row
-                            (VH.exoRowAttributes
-                                ++ [ Element.width Element.fill
-                                   , Element.padding 0
-                                   ]
-                            )
-                            [ Style.Widgets.Select.selectNoLabel [ Element.width Element.shrink ]
-                                { onChange = GotWorkflowSourceProvider
-                                , options = sourceProviderOptions
-                                , selected = Just model.customWorkflowSourceInput.providerPrefix
-                                }
-                            , Input.text
-                                (VH.inputItemAttributes context.palette.background)
-                                { text = model.customWorkflowSourceInput.repository
-                                , placeholder =
-                                    Just
-                                        (Input.placeholder
-                                            []
-                                            (Element.text selectedSourceProvider.text)
-                                        )
-                                , onChange =
-                                    GotCustomWorkflowSource
-                                , label = Input.labelHidden selectedSourceProvider.text
-                                }
-                            ]
-                        ]
-
-                referenceInput =
-                    if selectedSourceProvider.refPropDisabled then
-                        Element.none
-
-                    else
-                        Input.text
+                        [ Element.text "Git repository URL or DOI"
+                        , Input.text
                             (VH.inputItemAttributes context.palette.background)
-                            { text = model.customWorkflowSourceInput.reference
+                            { text = model.customWorkflowSourceInput.repository
                             , placeholder =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text "HEAD")
+                                        (Element.text "Git repository URL or DOI")
                                     )
                             , onChange =
-                                GotCustomWorkflowSourceReference
-                            , label = Input.labelAbove [] (Element.text selectedSourceProvider.tagText)
+                                GotCustomWorkflowSource
+                            , label = Input.labelHidden "Git repository URL or DOI"
                             }
+                        ]
+
+                referenceInput =
+                    Input.text
+                        (VH.inputItemAttributes context.palette.background)
+                        { text = model.customWorkflowSourceInput.reference
+                        , placeholder =
+                            Just
+                                (Input.placeholder
+                                    []
+                                    (Element.text "HEAD")
+                                )
+                        , onChange =
+                            GotCustomWorkflowSourceReference
+                        , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit)")
+                        }
 
                 sourcePathInput =
                     let
