@@ -50,15 +50,15 @@ type Msg
     | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
-    | GotCustomWorkflowSourceRepository String
-    | GotCustomWorkflowSourceReference String
+    | GotCustomWorkflowSourceRepository Types.Workflow.SourceRepositoryIdentifier
+    | GotCustomWorkflowSourceReference Types.Workflow.SourceRepositoryReference
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
     | GotDeployGuacamole (Maybe Bool)
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
-    | GotCustomWorkflowSourcePath String
+    | GotCustomWorkflowSourcePath Types.Workflow.SourceRepositoryPath
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
