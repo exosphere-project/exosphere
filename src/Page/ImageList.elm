@@ -16,6 +16,7 @@ import Style.Helpers as SH
 import Style.Widgets.Card as ExoCard
 import Style.Widgets.Icon as Icon
 import Style.Widgets.IconButton exposing (chip)
+import Time
 import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
@@ -274,6 +275,8 @@ getImageforOpSysChoiceVersion images_ filters =
         |> List.filter applyNameFilter
         |> List.filter applyOsDistroFilter
         |> List.filter applyOsVersionFilter
+        |> List.sortBy (.createdAt >> Time.posixToMillis)
+        |> List.reverse
         |> List.head
 
 
