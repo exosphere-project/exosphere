@@ -7,7 +7,6 @@ module Types.Workflow exposing
     , ServerCustomWorkflowStatus(..)
     , SourceInput
     , SourcePathTypeInput(..)
-    , SourceProvider
     , SourceRepositoryPath(..)
     , SourceRepositoryReference
     , WorkflowSourceResult(..)
@@ -77,13 +76,6 @@ type ServerCustomWorkflowStatus
 type WorkflowSourceResult
     = Success CustomWorkflowSource
     | InvalidSource
-
-
-type alias SourceProvider =
-    { text : String
-    , tagText : String
-    , refPropDisabled : Bool
-    }
 
 
 type SourcePathTypeInput
