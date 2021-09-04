@@ -9,15 +9,11 @@ module Types.Workflow exposing
     , SourceRepositoryPath
     , SourceRepositoryReference
     , WorkflowSourceResult(..)
+    , sourceInputToWorkflowSource
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import Types.Error exposing (HttpErrorWithBody)
-
-
-
--- Note: Some of the types below are not used. Will be used when implementing:
--- https://gitlab.com/exosphere/exosphere/-/issues/564
 
 
 type alias SourceRepositoryIdentifier =
@@ -65,6 +61,7 @@ type ServerCustomWorkflowStatus
 type WorkflowSourceResult
     = Success CustomWorkflowSource
     | InvalidSource
+    | EmptySource
 
 
 type alias SourceInput =
@@ -72,3 +69,50 @@ type alias SourceInput =
     , reference : SourceRepositoryReference
     , path : SourceRepositoryPath
     }
+
+
+sourceInputToWorkflowSource : SourceInput -> WorkflowSourceResult
+sourceInputToWorkflowSource sourceInput =
+    let
+        repository =
+            if sourceInput.repository /= "" then
+                Just sourceInput.repository
+
+            else
+                Nothing
+
+        reference =
+            if sourceInput.reference /= "" then
+                Just sourceInput.reference
+
+            else
+                Nothing
+
+        path =
+            if sourceInput.path /= "" then
+                Just sourceInput.path
+
+            else
+                Nothing
+
+        eitherReferenceOrPathSpecified =
+            case ( reference, path ) of
+                ( Nothing, Nothing ) ->
+                    False
+
+                ( _, _ ) ->
+                    True
+    in
+    case ( repository, eitherReferenceOrPathSpecified ) of
+        ( Nothing, True ) ->
+            InvalidSource
+
+        ( Nothing, False ) ->
+            EmptySource
+
+        ( Just repo, _ ) ->
+            Success
+                { repository = repo
+                , reference = reference
+                , path = path
+                }

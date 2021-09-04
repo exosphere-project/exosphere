@@ -50,6 +50,7 @@ type Msg
     | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
+    | GotClearCustomWorkflowSource
     | GotCustomWorkflowSourceRepository Types.Workflow.SourceRepositoryIdentifier
     | GotCustomWorkflowSourceReference Types.Workflow.SourceRepositoryReference
     | GotShowAdvancedOptions Bool
@@ -63,15 +64,15 @@ type Msg
     | NoOp
 
 
+defaultSourceInput =
+    { repository = ""
+    , reference = ""
+    , path = ""
+    }
+
+
 init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
 init imageUuid imageName deployGuacamole =
-    let
-        defaultSourceInput =
-            { repository = ""
-            , reference = ""
-            , path = ""
-            }
-    in
     { serverName = imageName
     , imageUuid = imageUuid
     , imageName = imageName
@@ -80,7 +81,7 @@ init imageUuid imageName deployGuacamole =
     , volSizeTextInput = Nothing
     , userDataTemplate = cloudInitUserDataTemplate
     , networkUuid = Nothing
-    , customWorkflowSource = Nothing
+    , customWorkflowSource = Types.Workflow.EmptySource
     , customWorkflowSourceInput = defaultSourceInput
     , showAdvancedOptions = False
     , keypairName = Nothing
@@ -152,21 +153,6 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        GotCustomWorkflowSourceRepository repository ->
-            let
-                oldCustomWorkflowSourceInput =
-                    model.customWorkflowSourceInput
-
-                newCustomWorkflowSourceInput =
-                    { oldCustomWorkflowSourceInput | repository = repository }
-            in
-            ( { model
-                | customWorkflowSourceInput = newCustomWorkflowSourceInput
-              }
-            , Cmd.none
-            , SharedMsg.NoOp
-            )
-
         GotShowAdvancedOptions showAdvancedOptions ->
             ( { model | showAdvancedOptions = showAdvancedOptions }, Cmd.none, SharedMsg.NoOp )
 
@@ -191,25 +177,71 @@ update msg project model =
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
-        GotCustomWorkflowSourceReference repositoryReference ->
+        GotCustomWorkflowSourceRepository repository ->
             let
-                oldSourceInput =
+                oldCustomWorkflowSourceInput =
                     model.customWorkflowSourceInput
 
-                newSourceInput =
-                    { oldSourceInput | reference = repositoryReference }
+                newCustomWorkflowSourceInput =
+                    { oldCustomWorkflowSourceInput | repository = repository }
+
+                customWorkflowSource =
+                    Types.Workflow.sourceInputToWorkflowSource newCustomWorkflowSourceInput
             in
-            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
+            ( { model
+                | customWorkflowSourceInput = newCustomWorkflowSourceInput
+                , customWorkflowSource = customWorkflowSource
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotCustomWorkflowSourceReference repositoryReference ->
+            let
+                oldCustomWorkflowSourceInput =
+                    model.customWorkflowSourceInput
+
+                newCustomWorkflowSourceInput =
+                    { oldCustomWorkflowSourceInput | reference = repositoryReference }
+
+                customWorkflowSource =
+                    Types.Workflow.sourceInputToWorkflowSource newCustomWorkflowSourceInput
+            in
+            ( { model
+                | customWorkflowSourceInput = newCustomWorkflowSourceInput
+                , customWorkflowSource = customWorkflowSource
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
         GotCustomWorkflowSourcePath repositoryPath ->
             let
-                oldSourceInput =
+                oldCustomWorkflowSourceInput =
                     model.customWorkflowSourceInput
 
-                newSourceInput =
-                    { oldSourceInput | path = repositoryPath }
+                newCustomWorkflowSourceInput =
+                    { oldCustomWorkflowSourceInput | path = repositoryPath }
+
+                customWorkflowSource =
+                    Types.Workflow.sourceInputToWorkflowSource newCustomWorkflowSourceInput
             in
-            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
+            ( { model
+                | customWorkflowSourceInput = newCustomWorkflowSourceInput
+                , customWorkflowSource = customWorkflowSource
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
+
+        GotClearCustomWorkflowSource ->
+            ( { model
+                | customWorkflowSourceInput = defaultSourceInput
+                , customWorkflowSource = Types.Workflow.EmptySource
+              }
+            , Cmd.none
+            , SharedMsg.NoOp
+            )
 
 
 enforceQuotaCompliance : Project -> Model -> Model
@@ -329,7 +361,7 @@ view context project model =
 
                 invalidWorkflowTextInput =
                     case model.customWorkflowSource of
-                        Just Types.Workflow.InvalidSource ->
+                        Types.Workflow.InvalidSource ->
                             True
 
                         _ ->
@@ -835,8 +867,11 @@ customWorkflowInputExperimental context model =
                 (SH.materialStyle context.palette).button
                 { text = "Remove workflow"
                 , onPress =
-                    model.customWorkflowSource
-                        |> Maybe.map (\_ -> GotCustomWorkflowSourceRepository "")
+                    if model.customWorkflowSource == Types.Workflow.EmptySource then
+                        Nothing
+
+                    else
+                        Just GotClearCustomWorkflowSource
                 }
 
         workflowInput =

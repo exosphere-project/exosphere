@@ -236,7 +236,7 @@ type alias CreateServerPageModel =
     , userDataTemplate : String
     , networkUuid : Maybe OSTypes.NetworkUuid
     , showAdvancedOptions : Bool
-    , customWorkflowSource : Maybe WorkflowSourceResult
+    , customWorkflowSource : WorkflowSourceResult
     , customWorkflowSourceInput : SourceInput
     , keypairName : Maybe String
     , deployGuacamole : Maybe Bool -- Nothing when cloud doesn't support Guacamole

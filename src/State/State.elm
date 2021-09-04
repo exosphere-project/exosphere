@@ -1024,15 +1024,10 @@ processProjectSpecificMsg outerModel project msg =
             let
                 customWorkFlowSource =
                     case pageModel.customWorkflowSource of
-                        Maybe.Just result ->
-                            case result of
-                                Types.Workflow.Success cs ->
-                                    Just cs
+                        Types.Workflow.Success cs ->
+                            Just cs
 
-                                _ ->
-                                    Nothing
-
-                        Maybe.Nothing ->
+                        _ ->
                             Nothing
 
                 createServerRequest =
