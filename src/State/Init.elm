@@ -253,7 +253,7 @@ decodeCloudSpecificConfig : Decode.Decoder ( HelperTypes.KeystoneHostname, Helpe
 decodeCloudSpecificConfig =
     Decode.map4 HelperTypes.CloudSpecificConfig
         (Decode.field "userAppProxy" (Decode.nullable Decode.string))
-        (Decode.field "imageExcludeFilter" (Decode.nullable imageExcludeFilterDecoder))
+        (Decode.field "imageExcludeFilter" (Decode.nullable metadataFilterDecoder))
         (Decode.field "featuredImageNamePrefix" (Decode.nullable Decode.string))
         (Decode.field "operatingSystemChoices" (Decode.list operatingSystemChoiceDecoder))
         |> Decode.andThen
@@ -263,8 +263,8 @@ decodeCloudSpecificConfig =
             )
 
 
-imageExcludeFilterDecoder : Decode.Decoder HelperTypes.MetdataFilter
-imageExcludeFilterDecoder =
+metadataFilterDecoder : Decode.Decoder HelperTypes.MetdataFilter
+metadataFilterDecoder =
     Decode.map2 HelperTypes.MetdataFilter
         (Decode.field "filterKey" Decode.string)
         (Decode.field "filterValue" Decode.string)
@@ -289,7 +289,7 @@ operatingSystemChoiceVersionDecoder =
 
 imageFiltersDecoder : Decode.Decoder HelperTypes.ImageFilters
 imageFiltersDecoder =
-    Decode.map5 HelperTypes.ImageFilters
+    Decode.map6 HelperTypes.ImageFilters
         (Decode.maybe (Decode.field "uuid" Decode.string))
         (Decode.maybe
             (Decode.field "visibility" Decode.string
@@ -316,3 +316,4 @@ imageFiltersDecoder =
         (Decode.maybe (Decode.field "name" Decode.string))
         (Decode.maybe (Decode.field "osDistro" Decode.string))
         (Decode.maybe (Decode.field "osVersion" Decode.string))
+        (Decode.maybe (Decode.field "metadata" metadataFilterDecoder))

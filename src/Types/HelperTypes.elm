@@ -143,6 +143,7 @@ type alias ImageFilters =
     , nameFilter : Maybe String
     , osDistroFilter : Maybe String
     , osVersionFilter : Maybe String
+    , metadataFilter : Maybe MetdataFilter
     }
 
 

@@ -1,5 +1,6 @@
 module Page.ImageList exposing (Model, Msg, init, update, view)
 
+import Dict
 import Element
 import Element.Font as Font
 import Element.Input as Input
@@ -320,6 +321,20 @@ getImageforOpSysChoiceVersion images_ filters =
 
                 Nothing ->
                     True
+
+        applyMetadataFilter : OSTypes.Image -> Bool
+        applyMetadataFilter image =
+            case filters.metadataFilter of
+                Just filterMetadata ->
+                    case Dict.get filterMetadata.filterKey image.additionalProperties of
+                        Just val ->
+                            filterMetadata.filterValue == val
+
+                        Nothing ->
+                            False
+
+                Nothing ->
+                    True
     in
     images_
         |> List.filter applyUuidFilter
@@ -327,6 +342,7 @@ getImageforOpSysChoiceVersion images_ filters =
         |> List.filter applyNameFilter
         |> List.filter applyOsDistroFilter
         |> List.filter applyOsVersionFilter
+        |> List.filter applyMetadataFilter
         |> List.sortBy (.createdAt >> Time.posixToMillis)
         |> List.reverse
         |> List.head
