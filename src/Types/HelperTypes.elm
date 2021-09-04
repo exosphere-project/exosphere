@@ -2,7 +2,6 @@ module Types.HelperTypes exposing
     ( CloudSpecificConfig
     , CreateServerPageModel
     , DefaultLoginView(..)
-    , ExcludeFilter
     , FloatingIpAssignmentStatus(..)
     , FloatingIpOption(..)
     , FloatingIpReuseOption(..)
@@ -14,6 +13,7 @@ module Types.HelperTypes exposing
     , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
+    , MetdataFilter
     , OpenIdConnectLoginConfig
     , OperatingSystemChoice
     , OperatingSystemChoiceVersion
@@ -108,7 +108,7 @@ type alias WindowSize =
     }
 
 
-type alias ExcludeFilter =
+type alias MetdataFilter =
     { filterKey : String
     , filterValue : String
     }
@@ -116,7 +116,7 @@ type alias ExcludeFilter =
 
 type alias CloudSpecificConfig =
     { userAppProxy : Maybe UserAppProxyHostname
-    , imageExcludeFilter : Maybe ExcludeFilter
+    , imageExcludeFilter : Maybe MetdataFilter
     , featuredImageNamePrefix : Maybe String
     , operatingSystemChoices : List OperatingSystemChoice
     }

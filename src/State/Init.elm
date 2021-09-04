@@ -263,9 +263,9 @@ decodeCloudSpecificConfig =
             )
 
 
-imageExcludeFilterDecoder : Decode.Decoder HelperTypes.ExcludeFilter
+imageExcludeFilterDecoder : Decode.Decoder HelperTypes.MetdataFilter
 imageExcludeFilterDecoder =
-    Decode.map2 HelperTypes.ExcludeFilter
+    Decode.map2 HelperTypes.MetdataFilter
         (Decode.field "filterKey" Decode.string)
         (Decode.field "filterValue" Decode.string)
 
