@@ -6,6 +6,7 @@ module Types.Workflow exposing
     , CustomWorkflowTokenRDPP
     , ServerCustomWorkflowStatus(..)
     , SourceInput
+    , SourceRepositoryIdentifier
     , SourceRepositoryPath
     , SourceRepositoryReference
     , WorkflowSourceResult(..)
@@ -19,6 +20,10 @@ import Url
 
 -- Note: Some of the types below are not used. Will be used when implementing:
 -- https://gitlab.com/exosphere/exosphere/-/issues/564
+
+
+type alias SourceRepositoryIdentifier =
+    String
 
 
 type alias SourceRepositoryReference =
@@ -69,7 +74,7 @@ type WorkflowSourceResult
 
 
 type alias SourceInput =
-    { repository : String
-    , reference : String
-    , path : String
+    { repository : SourceRepositoryIdentifier
+    , reference : SourceRepositoryReference
+    , path : SourceRepositoryPath
     }
