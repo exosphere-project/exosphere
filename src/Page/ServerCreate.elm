@@ -879,7 +879,7 @@ customWorkflowInputExperimental context model =
                                 )
                         , onChange =
                             GotCustomWorkflowSourceReference
-                        , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit)")
+                        , label = Input.labelAbove [] (Element.text "Git ref (optional - branch, tag, or commit)")
                         }
 
                 sourcePathInput =
@@ -918,13 +918,12 @@ customWorkflowInputExperimental context model =
                 , sourcePathInput
                 ]
 
-        warning =
-            Element.paragraph
-                ([ Background.color (SH.toElementColor context.palette.warn), Font.color (SH.toElementColor context.palette.on.warn) ]
-                    ++ VH.exoElementAttributes
-                )
-                [ Element.text "Note: Workflows is an experimental feature"
+        betaMessage =
+            Element.el
+                [ Font.color (SH.toElementColor context.palette.warn)
+                , Font.size 10
                 ]
+                (Element.text "BETA")
     in
     Element.column
         (VH.exoColumnAttributes
@@ -933,13 +932,12 @@ customWorkflowInputExperimental context model =
                ]
         )
     <|
-        [ Element.el
-            (VH.heading4
-                ++ [ Font.size 17
-                   ]
-            )
-            (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
-        , warning
+        [ Element.row [ Element.spacingXY 5 0, Element.alignTop ]
+            [ Element.el
+                (VH.heading4 ++ [ Font.size 17 ])
+                (Element.text ("Launch a workflow in the " ++ context.localization.virtualComputer))
+            , betaMessage
+            ]
         , workflowInput
         , clearButton
         ]
