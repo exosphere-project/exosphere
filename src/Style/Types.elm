@@ -13,6 +13,7 @@ import Widget.Style
         , ColumnStyle
         , ProgressIndicatorStyle
         , RowStyle
+        , TabStyle
         , TextInputStyle
         )
 
@@ -29,6 +30,7 @@ type alias ElmUiWidgetStyle style msg =
         , chipButton : ButtonStyle msg
         , row : RowStyle msg
         , progressIndicator : ProgressIndicatorStyle msg
+        , tab : TabStyle msg
     }
 
 

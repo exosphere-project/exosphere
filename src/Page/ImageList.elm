@@ -31,6 +31,7 @@ type alias Model =
     , onlyOwnImages : Bool
     , expandImageDetails : Set.Set OSTypes.ImageUuid
     , visibilityFilter : ImageListVisibilityFilter
+    , tab : Maybe Int
     }
 
 
@@ -43,7 +44,8 @@ type alias ImageListVisibilityFilter =
 
 
 type Msg
-    = GotSearchText String
+    = SetTab Int
+    | GotSearchText String
     | GotTagSelection String Bool
     | GotOnlyOwnImages Bool
     | GotExpandImage OSTypes.ImageUuid Bool
@@ -54,12 +56,15 @@ type Msg
 
 init : Model
 init =
-    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True)
+    Model "" Set.empty False Set.empty (ImageListVisibilityFilter True True True True) (Just 0)
 
 
 update : Msg -> Project -> Model -> ( Model, Cmd Msg, SharedMsg.SharedMsg )
 update msg _ model =
     case msg of
+        SetTab tab ->
+            ( { model | tab = Just tab }, Cmd.none, SharedMsg.NoOp )
+
         GotSearchText searchText ->
             ( { model | searchText = searchText }, Cmd.none, SharedMsg.NoOp )
 
@@ -127,10 +132,57 @@ view context project model =
                     |> Maybe.withDefault []
         in
         if List.isEmpty operatingSystemChoices then
-            images context project model
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
+                )
+                [ Element.el (VH.heading2 context.palette)
+                    (Element.text <|
+                        String.join " "
+                            [ "Choose"
+                            , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            ]
+                    )
+                , images context project model
+                ]
 
         else
-            operatingSystems context project operatingSystemChoices model
+            Element.column
+                (VH.exoColumnAttributes
+                    ++ [ Element.width Element.fill ]
+                )
+                [ Element.el (VH.heading2 context.palette) <|
+                    Element.text <|
+                        Helpers.String.toTitleCase <|
+                            String.join " "
+                                [ "Choose"
+                                , context.localization.virtualComputer
+                                    |> Helpers.String.indefiniteArticle
+                                , context.localization.virtualComputer
+                                , "Source"
+                                ]
+                , Widget.tab (SH.materialStyle context.palette).tab
+                    { tabs =
+                        Widget.Select
+                            model.tab
+                            [ { text = "By Operating System", icon = Element.none }
+                            , { text = "By Image", icon = Element.none }
+                            ]
+                            (\i -> Just <| SetTab i)
+                    , content =
+                        \maybeTabInt ->
+                            case maybeTabInt of
+                                Just 0 ->
+                                    operatingSystems context project operatingSystemChoices model
+
+                                Just 1 ->
+                                    images context project model
+
+                                _ ->
+                                    Element.none
+                    }
+                ]
 
 
 
@@ -378,15 +430,9 @@ operatingSystems context project opSysChoices model =
                         )
                     ]
     in
-    Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.width Element.fill ]
-        )
-        [ Element.el (VH.heading2 context.palette) <| Element.text "Choose an Operating System"
-        , Element.column VH.contentContainer
-            [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40 ]
-                (List.map renderOpSysChoice opSysChoices)
-            ]
+    Element.column VH.contentContainer
+        [ Element.wrappedRow [ Element.width Element.fill, Element.spacing 40 ]
+            (List.map renderOpSysChoice opSysChoices)
         ]
 
 
@@ -587,64 +633,51 @@ images context project model =
                     }
                 ]
     in
-    Element.column
-        (VH.exoColumnAttributes
-            ++ [ Element.width Element.fill ]
-        )
-        [ Element.el (VH.heading2 context.palette)
-            (Element.text <|
-                String.join " "
-                    [ "Choose"
-                    , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
-                    , context.localization.staticRepresentationOfBlockDeviceContents
-                    ]
-            )
-        , Element.column VH.contentContainer
-            [ Input.text (VH.inputItemAttributes context.palette.background)
-                { text = model.searchText
-                , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
-                , onChange = GotSearchText
-                , label =
-                    Input.labelAbove []
-                        (Element.text <|
-                            String.join " "
-                                [ "Filter on"
-                                , context.localization.staticRepresentationOfBlockDeviceContents
-                                , "name:"
-                                ]
-                        )
-                }
-            , visibilityFilters
-            , tagsView
-            , Input.checkbox []
-                { checked = model.onlyOwnImages
-                , onChange = GotOnlyOwnImages
-                , icon = Input.defaultCheckbox
-                , label =
-                    Input.labelRight [] <|
-                        Element.text <|
-                            String.join
-                                " "
-                                [ "Show only"
-                                , context.localization.staticRepresentationOfBlockDeviceContents
-                                    |> Helpers.String.pluralize
-                                , "owned by this"
-                                , context.localization.unitOfTenancy
-                                ]
-                }
-            , Widget.textButton
-                (SH.materialStyle context.palette).button
-                { text = "Clear filters (show all)"
-                , onPress = Just GotClearFilters
-                }
-            , if noMatchWarning then
-                Element.text "No matches found. Broaden your search terms, or clear the search filter."
+    Element.column VH.contentContainer
+        [ Input.text (VH.inputItemAttributes context.palette.background)
+            { text = model.searchText
+            , placeholder = Just (Input.placeholder [] (Element.text "try \"Ubuntu\""))
+            , onChange = GotSearchText
+            , label =
+                Input.labelAbove []
+                    (Element.text <|
+                        String.join " "
+                            [ "Filter on"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                            , "name:"
+                            ]
+                    )
+            }
+        , visibilityFilters
+        , tagsView
+        , Input.checkbox []
+            { checked = model.onlyOwnImages
+            , onChange = GotOnlyOwnImages
+            , icon = Input.defaultCheckbox
+            , label =
+                Input.labelRight [] <|
+                    Element.text <|
+                        String.join
+                            " "
+                            [ "Show only"
+                            , context.localization.staticRepresentationOfBlockDeviceContents
+                                |> Helpers.String.pluralize
+                            , "owned by this"
+                            , context.localization.unitOfTenancy
+                            ]
+            }
+        , Widget.textButton
+            (SH.materialStyle context.palette).button
+            { text = "Clear filters (show all)"
+            , onPress = Just GotClearFilters
+            }
+        , if noMatchWarning then
+            Element.text "No matches found. Broaden your search terms, or clear the search filter."
 
-              else
-                Element.none
-            , List.map (renderImage context project model) combinedImages
-                |> imagesColumnView
-            ]
+          else
+            Element.none
+        , List.map (renderImage context project model) combinedImages
+            |> imagesColumnView
         ]
 
 
