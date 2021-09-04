@@ -187,7 +187,7 @@ view context project model =
 
 
 
--- Helper functions
+-- Helper functions for Images tab
 
 
 projectOwnsImage : Project -> OSTypes.Image -> Bool
@@ -256,7 +256,6 @@ isImageFeaturedByDeployer maybeFeaturedImageNamePrefix image =
 
 filterImages : Model -> Project -> List OSTypes.Image -> List OSTypes.Image
 filterImages model project someImages =
-    -- TODO use the new OpenStack.ImageFilter stuff here?
     someImages
         |> filterByOwner model.onlyOwnImages project
         |> filterByTags model.tags
@@ -264,7 +263,11 @@ filterImages model project someImages =
         |> filterByVisibility model.visibilityFilter
 
 
-getImageforOpSysChoiceVersion : List OSTypes.Image -> HelperTypes.ImageFilters -> Maybe OSTypes.Image
+
+-- Helper functions for Operating Systems tab
+
+
+getImageforOpSysChoiceVersion : List OSTypes.Image -> HelperTypes.OperatingSystemImageFilters -> Maybe OSTypes.Image
 getImageforOpSysChoiceVersion images_ filters =
     let
         applyUuidFilter : OSTypes.Image -> Bool
@@ -349,7 +352,7 @@ getImageforOpSysChoiceVersion images_ filters =
 
 
 
--- "Tabs"
+-- Tabs
 
 
 operatingSystems : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Model -> Element.Element Msg

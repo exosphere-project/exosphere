@@ -8,7 +8,6 @@ module Types.HelperTypes exposing
     , Hostname
     , HttpRequestMethod(..)
     , IPv4AddressPublicRoutability(..)
-    , ImageFilters
     , JetstreamCreds
     , JetstreamProvider(..)
     , KeystoneHostname
@@ -17,6 +16,7 @@ module Types.HelperTypes exposing
     , OpenIdConnectLoginConfig
     , OperatingSystemChoice
     , OperatingSystemChoiceVersion
+    , OperatingSystemImageFilters
     , Password
     , ProjectIdentifier
     , SupportableItemType(..)
@@ -133,11 +133,11 @@ type alias OperatingSystemChoice =
 type alias OperatingSystemChoiceVersion =
     { friendlyName : String
     , isPrimary : Bool
-    , filters : ImageFilters
+    , filters : OperatingSystemImageFilters
     }
 
 
-type alias ImageFilters =
+type alias OperatingSystemImageFilters =
     { uuidFilter : Maybe OSTypes.ImageUuid
     , visibilityFilter : Maybe OSTypes.ImageVisibility
     , nameFilter : Maybe String
