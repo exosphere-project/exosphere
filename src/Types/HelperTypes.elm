@@ -31,7 +31,7 @@ module Types.HelperTypes exposing
 import OpenStack.Types as OSTypes
 import RemoteData exposing (WebData)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput)
-import Types.Workflow exposing (CustomWorkflowSource, SourceInput, WorkflowSourceResult)
+import Types.Workflow exposing (SourceInput, WorkflowSourceResult)
 
 
 

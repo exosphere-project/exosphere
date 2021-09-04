@@ -63,7 +63,6 @@ import Types.Workflow
         , CustomWorkflowSource
         , CustomWorkflowSourceRepository(..)
         , ServerCustomWorkflowStatus(..)
-        , SourceRepositoryPath
         )
 import UUID
 import Url

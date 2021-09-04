@@ -6,15 +6,9 @@ module Types.Workflow exposing
     , CustomWorkflowTokenRDPP
     , ServerCustomWorkflowStatus(..)
     , SourceInput
-    , SourcePathTypeInput(..)
     , SourceRepositoryPath
     , SourceRepositoryReference
     , WorkflowSourceResult(..)
-    , sourcePathTypeInputOptions
-    , sourcePathTypeInputToLabel
-    , sourcePathTypeInputToOptions
-    , sourcePathTypeInputToValue
-    , stringToSourcePathType
     )
 
 import Helpers.RemoteDataPlusPlus as RDPP
@@ -74,67 +68,8 @@ type WorkflowSourceResult
     | InvalidSource
 
 
-type SourcePathTypeInput
-    = InputFilePath
-    | InputUrlPath
-
-
-sourcePathTypeInputs =
-    [ InputFilePath, InputUrlPath ]
-
-
-sourcePathTypeInputToLabel : SourcePathTypeInput -> String
-sourcePathTypeInputToLabel sourcePathType =
-    case sourcePathType of
-        InputFilePath ->
-            "Path to a notebook file (optional)"
-
-        InputUrlPath ->
-            "URL to open (optional)"
-
-
-sourcePathTypeInputToValue : SourcePathTypeInput -> String
-sourcePathTypeInputToValue sourcePathType =
-    case sourcePathType of
-        InputFilePath ->
-            "file"
-
-        InputUrlPath ->
-            "url"
-
-
-sourcePathTypeInputToOptions : SourcePathTypeInput -> ( String, String )
-sourcePathTypeInputToOptions sourcePathType =
-    let
-        sourcePathTypeString =
-            sourcePathTypeInputToValue sourcePathType
-    in
-    case sourcePathType of
-        InputFilePath ->
-            ( sourcePathTypeString, "File" )
-
-        InputUrlPath ->
-            ( sourcePathTypeString, "URL" )
-
-
-sourcePathTypeInputOptions : List ( String, String )
-sourcePathTypeInputOptions =
-    List.map sourcePathTypeInputToOptions sourcePathTypeInputs
-
-
-stringToSourcePathType : String -> SourcePathTypeInput
-stringToSourcePathType sourcePathTypeString =
-    if (sourcePathTypeString |> String.toLower |> String.trim) == "url" then
-        InputUrlPath
-
-    else
-        InputFilePath
-
-
 type alias SourceInput =
-    { providerPrefix : String
-    , repository : String
+    { repository : String
     , reference : String
     , path : String
-    , pathType : SourcePathTypeInput
     }

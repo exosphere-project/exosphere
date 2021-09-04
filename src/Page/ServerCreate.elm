@@ -59,9 +59,7 @@ type Msg
     | GotDeployDesktopEnvironment Bool
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
-    | GotWorkflowSourceProvider (Maybe String)
     | GotCustomWorkflowSourcePath String
-    | GotWorkflowSourcePathType (Maybe String)
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -70,11 +68,9 @@ init : OSTypes.ImageUuid -> String -> Maybe Bool -> Model
 init imageUuid imageName deployGuacamole =
     let
         defaultSourceInput =
-            { providerPrefix = "GitHub"
-            , repository = ""
+            { repository = ""
             , reference = ""
             , path = ""
-            , pathType = Types.Workflow.InputFilePath
             }
     in
     { serverName = imageName
@@ -196,16 +192,6 @@ update msg project model =
         NoOp ->
             ( model, Cmd.none, SharedMsg.NoOp )
 
-        GotWorkflowSourceProvider sourceProvider ->
-            let
-                oldSourceInput =
-                    model.customWorkflowSourceInput
-
-                newSourceInput =
-                    { oldSourceInput | providerPrefix = sourceProvider |> Maybe.withDefault "" }
-            in
-            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
-
         GotCustomWorkflowSourceReference repositoryReference ->
             let
                 oldSourceInput =
@@ -223,21 +209,6 @@ update msg project model =
 
                 newSourceInput =
                     { oldSourceInput | path = repositoryPath }
-            in
-            ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
-
-        GotWorkflowSourcePathType maybePathTypeString ->
-            let
-                oldSourceInput =
-                    model.customWorkflowSourceInput
-
-                newSourceInput =
-                    { oldSourceInput
-                        | pathType =
-                            maybePathTypeString
-                                |> Maybe.withDefault "file"
-                                |> Types.Workflow.stringToSourcePathType
-                    }
             in
             ( { model | customWorkflowSourceInput = newSourceInput }, Cmd.none, SharedMsg.NoOp )
 
@@ -928,7 +899,7 @@ customWorkflowInputExperimental context model =
                 sourcePathInput =
                     let
                         pathInputLabel =
-                            Types.Workflow.sourcePathTypeInputToLabel model.customWorkflowSourceInput.pathType
+                            "Path to a notebook file, or URL to open (optional)"
                     in
                     Element.column
                         (VH.exoColumnAttributes
@@ -937,33 +908,19 @@ customWorkflowInputExperimental context model =
                                ]
                         )
                         [ Element.text pathInputLabel
-                        , Element.row
-                            (VH.exoRowAttributes
-                                ++ [ Element.width Element.fill
-                                   , Element.padding 0
-                                   ]
-                            )
-                            [ Input.text
-                                (VH.inputItemAttributes context.palette.background)
-                                { text = model.customWorkflowSourceInput.path
-                                , placeholder =
-                                    Just
-                                        (Input.placeholder
-                                            []
-                                            (Element.text pathInputLabel)
-                                        )
-                                , onChange =
-                                    GotCustomWorkflowSourcePath
-                                , label = Input.labelHidden pathInputLabel
-                                }
-                            , Style.Widgets.Select.selectNoLabel [ Element.width Element.shrink ]
-                                { onChange = GotWorkflowSourcePathType
-                                , options = Types.Workflow.sourcePathTypeInputOptions
-                                , selected =
-                                    Just
-                                        (Types.Workflow.sourcePathTypeInputToValue model.customWorkflowSourceInput.pathType)
-                                }
-                            ]
+                        , Input.text
+                            (VH.inputItemAttributes context.palette.background)
+                            { text = model.customWorkflowSourceInput.path
+                            , placeholder =
+                                Just
+                                    (Input.placeholder
+                                        []
+                                        (Element.text pathInputLabel)
+                                    )
+                            , onChange =
+                                GotCustomWorkflowSourcePath
+                            , label = Input.labelHidden pathInputLabel
+                            }
                         ]
             in
             Element.column
