@@ -50,7 +50,7 @@ type Msg
     | GotNetworks
     | GotNetworkUuid (Maybe OSTypes.NetworkUuid)
     | GotAutoAllocatedNetwork OSTypes.NetworkUuid
-    | GotCustomWorkflowSource String
+    | GotCustomWorkflowSourceRepository String
     | GotCustomWorkflowSourceReference String
     | GotShowAdvancedOptions Bool
     | GotKeypairName (Maybe String)
@@ -152,7 +152,7 @@ update msg project model =
             , SharedMsg.NoOp
             )
 
-        GotCustomWorkflowSource repository ->
+        GotCustomWorkflowSourceRepository repository ->
             let
                 oldCustomWorkflowSourceInput =
                     model.customWorkflowSourceInput
@@ -836,7 +836,7 @@ customWorkflowInputExperimental context model =
                 { text = "Remove workflow"
                 , onPress =
                     model.customWorkflowSource
-                        |> Maybe.map (\_ -> GotCustomWorkflowSource "")
+                        |> Maybe.map (\_ -> GotCustomWorkflowSourceRepository "")
                 }
 
         workflowInput =
@@ -862,7 +862,7 @@ customWorkflowInputExperimental context model =
                                         (Element.text "Git repository URL or DOI")
                                     )
                             , onChange =
-                                GotCustomWorkflowSource
+                                GotCustomWorkflowSourceRepository
                             , label = Input.labelHidden "Git repository URL or DOI"
                             }
                         ]
