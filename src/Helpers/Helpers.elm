@@ -63,7 +63,7 @@ import Types.Workflow
         , CustomWorkflowSource
         , CustomWorkflowSourceRepository(..)
         , ServerCustomWorkflowStatus(..)
-        , SourceRepositoryPath(..)
+        , SourceRepositoryPath
         )
 import UUID
 import Url
@@ -639,13 +639,7 @@ serverOrigin serverDetails =
             Decode.map2
                 CustomWorkflowSource
                 (Decode.oneOf [ gitRepoDecoder, doiRepoDecoder ])
-                (Decode.maybe
-                    (Decode.oneOf
-                        [ Decode.map FilePath (Decode.field "filePath" Decode.string)
-                        , Decode.map UrlPath (Decode.field "urlPath" Decode.string)
-                        ]
-                    )
-                )
+                (Decode.maybe (Decode.field "path" Decode.string))
 
         customWorkflowStatus =
             case
@@ -707,12 +701,7 @@ encodeCustomWorkflowSource customWorkflowSource =
                     []
 
                 Just workflowSourcePath ->
-                    case workflowSourcePath of
-                        FilePath filePath ->
-                            [ ( "filePath", Json.Encode.string filePath ) ]
-
-                        UrlPath urlPath ->
-                            [ ( "urlPath", Json.Encode.string urlPath ) ]
+                    [ ( "path", Json.Encode.string workflowSourcePath ) ]
     in
     [ ( "exoCustomWorkflow"
       , Json.Encode.string <|

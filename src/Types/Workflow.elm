@@ -7,7 +7,7 @@ module Types.Workflow exposing
     , ServerCustomWorkflowStatus(..)
     , SourceInput
     , SourcePathTypeInput(..)
-    , SourceRepositoryPath(..)
+    , SourceRepositoryPath
     , SourceRepositoryReference
     , WorkflowSourceResult(..)
     , sourcePathTypeInputOptions
@@ -31,12 +31,8 @@ type alias SourceRepositoryReference =
     String
 
 
-type
-    SourceRepositoryPath
-    -- This is an optional field. It captures the URL or file path which repo2docker uses as the default notebook/URL to
-    -- show when launching the container.
-    = FilePath String
-    | UrlPath String
+type alias SourceRepositoryPath =
+    String
 
 
 type CustomWorkflowSourceRepository
