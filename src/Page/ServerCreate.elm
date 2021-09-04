@@ -30,7 +30,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg as SharedMsg
-import Types.Workflow exposing (CustomWorkflowSource)
+import Types.Workflow
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
@@ -64,6 +64,7 @@ type Msg
     | NoOp
 
 
+defaultSourceInput : Types.Workflow.SourceInput
 defaultSourceInput =
     { repository = ""
     , reference = ""
@@ -406,13 +407,11 @@ view context project model =
                         ]
                 , Element.text model.imageName
                 ]
-            , customWorkflowInput context model
             , flavorPicker context project model computeQuota
             , volBackedPrompt context model volumeQuota flavor
             , countPicker context model computeQuota volumeQuota flavor
             , desktopEnvironmentPicker context project model
-
-            --, customWorkflowInput context model
+            , customWorkflowInput context model
             , Element.column
                 VH.exoColumnAttributes
               <|
