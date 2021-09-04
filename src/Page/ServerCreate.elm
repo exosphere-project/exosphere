@@ -30,8 +30,7 @@ import Types.HelperTypes as HelperTypes
 import Types.Project exposing (Project)
 import Types.Server exposing (NewServerNetworkOptions(..))
 import Types.SharedMsg as SharedMsg
-import Types.Workflow exposing (CustomWorkflowSource, CustomWorkflowSourceRepository(..))
-import Url
+import Types.Workflow exposing (CustomWorkflowSource)
 import View.Helpers as VH exposing (edges)
 import View.Types
 import Widget
@@ -839,19 +838,6 @@ customWorkflowInputExperimental context model =
                     model.customWorkflowSource
                         |> Maybe.map (\_ -> GotCustomWorkflowSource "")
                 }
-
-        workFlowInputToWorkflow : String -> Maybe CustomWorkflowSource
-        workFlowInputToWorkflow workflowInputString =
-            Url.fromString workflowInputString
-                |> Maybe.map
-                    (\url ->
-                        { repository =
-                            GitRepository
-                                url
-                                Nothing
-                        , path = Nothing
-                        }
-                    )
 
         workflowInput =
             let

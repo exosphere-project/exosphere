@@ -1,6 +1,5 @@
 module Helpers.Helpers exposing
     ( alwaysRegex
-    , customWorkflowSourceRepoToAnsibleVarString
     , decodeFloatingIpOption
     , getBootVol
     , getNewFloatingIpOption
@@ -61,11 +60,9 @@ import Types.Workflow
     exposing
         ( CustomWorkflowAuthToken
         , CustomWorkflowSource
-        , CustomWorkflowSourceRepository(..)
         , ServerCustomWorkflowStatus(..)
         )
 import UUID
-import Url
 
 
 alwaysRegex : String -> Regex.Regex
@@ -353,10 +350,10 @@ renderUserDataTemplate project userDataTemplate maybeKeypairName deployGuacamole
                     Just customWorkflowSource ->
                         """,\\"workflow_source_repository\\":"""
                             ++ """\\\""""
-                            ++ customWorkflowSourceRepoToAnsibleVarString customWorkflowSource.repository
+                            ++ customWorkflowSource.repository
                             ++ """\\\""""
-                            ++ (case customWorkflowSource.repository of
-                                    GitRepository _ (Just sourceRepositoryReference) ->
+                            ++ (case customWorkflowSource.reference of
+                                    Just sourceRepositoryReference ->
                                         """,\\"workflow_repo_version\\":""" ++ """\\\"""" ++ sourceRepositoryReference ++ """\\\""""
 
                                     _ ->
@@ -613,31 +610,12 @@ serverOrigin serverDetails =
                         Err _ ->
                             GuacTypes.NotLaunchedWithGuacamole
 
-        fromMaybe : Maybe a -> Decode.Decoder a
-        fromMaybe result =
-            case result of
-                Just a ->
-                    Decode.succeed a
-
-                Nothing ->
-                    Decode.fail "Not a valid URL"
-
         decodeCustomWorkflowProps : Decode.Decoder CustomWorkflowSource
         decodeCustomWorkflowProps =
-            let
-                -- Note: Some of the logic paths below are not active. Will be used when implementing:
-                -- https://gitlab.com/exosphere/exosphere/-/issues/564
-                gitRepoDecoder : Decode.Decoder CustomWorkflowSourceRepository
-                gitRepoDecoder =
-                    Decode.map2 GitRepository (Decode.field "gitRepo" Decode.string |> Decode.andThen (fromMaybe << Url.fromString)) (Decode.maybe (Decode.field "ref" Decode.string))
-
-                doiRepoDecoder : Decode.Decoder CustomWorkflowSourceRepository
-                doiRepoDecoder =
-                    Decode.map Doi (Decode.field "doiRepo" Decode.string)
-            in
-            Decode.map2
+            Decode.map3
                 CustomWorkflowSource
-                (Decode.oneOf [ gitRepoDecoder, doiRepoDecoder ])
+                (Decode.field "repo" Decode.string)
+                (Decode.maybe (Decode.field "ref" Decode.string))
                 (Decode.maybe (Decode.field "path" Decode.string))
 
         customWorkflowStatus =
@@ -676,19 +654,9 @@ serverOrigin serverDetails =
 encodeCustomWorkflowSource : CustomWorkflowSource -> List ( String, Json.Encode.Value )
 encodeCustomWorkflowSource customWorkflowSource =
     let
-        -- Note: Some of the logic paths below are not active. Will be used when implementing:
-        -- https://gitlab.com/exosphere/exosphere/-/issues/564
-        ( repoTypeString, workflowRepository ) =
-            case customWorkflowSource.repository of
-                GitRepository url _ ->
-                    ( "gitRepo", Url.toString url )
-
-                Doi repoDoi ->
-                    ( "doiRepo", repoDoi )
-
         workflowRef =
-            case customWorkflowSource.repository of
-                GitRepository _ (Just sourceRepositoryReference) ->
+            case customWorkflowSource.reference of
+                Just sourceRepositoryReference ->
                     [ ( "ref", Json.Encode.string sourceRepositoryReference ) ]
 
                 _ ->
@@ -708,7 +676,7 @@ encodeCustomWorkflowSource customWorkflowSource =
                 Json.Encode.object
                     (List.concat
                         [ [ ( "v", Json.Encode.int 1 )
-                          , ( repoTypeString, Json.Encode.string workflowRepository )
+                          , ( "repo", Json.Encode.string customWorkflowSource.repository )
                           ]
                         , workflowRef
                         , workflowPath
@@ -832,15 +800,3 @@ httpErrorToString httpError =
 
         Http.BadBody string ->
             "BadBody: " ++ string
-
-
-customWorkflowSourceRepoToAnsibleVarString : CustomWorkflowSourceRepository -> String
-customWorkflowSourceRepoToAnsibleVarString customWorkflowSourceRepo =
-    case customWorkflowSourceRepo of
-        GitRepository url _ ->
-            Url.toString url
-
-        Doi doi ->
-            -- Note: Doi type not currently used. Will be used when implementing:
-            -- https://gitlab.com/exosphere/exosphere/-/issues/564
-            doi

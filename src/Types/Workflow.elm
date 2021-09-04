@@ -2,7 +2,6 @@ module Types.Workflow exposing
     ( CustomWorkflow
     , CustomWorkflowAuthToken
     , CustomWorkflowSource
-    , CustomWorkflowSourceRepository(..)
     , CustomWorkflowTokenRDPP
     , ServerCustomWorkflowStatus(..)
     , SourceInput
@@ -14,7 +13,6 @@ module Types.Workflow exposing
 
 import Helpers.RemoteDataPlusPlus as RDPP
 import Types.Error exposing (HttpErrorWithBody)
-import Url
 
 
 
@@ -34,11 +32,6 @@ type alias SourceRepositoryPath =
     String
 
 
-type CustomWorkflowSourceRepository
-    = GitRepository Url.Url (Maybe SourceRepositoryReference) -- e.g. "https://github.com/binder-examples/requirements" "main"
-    | Doi String -- e.g. "10.5281/zenodo.3242074"
-
-
 type alias CustomWorkflowAuthToken =
     String
 
@@ -48,7 +41,8 @@ type alias CustomWorkflowTokenRDPP =
 
 
 type alias CustomWorkflowSource =
-    { repository : CustomWorkflowSourceRepository
+    { repository : SourceRepositoryIdentifier
+    , reference : Maybe SourceRepositoryReference
     , path : Maybe SourceRepositoryPath
     }
 
