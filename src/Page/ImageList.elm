@@ -287,8 +287,8 @@ getImageforOpSysChoiceVersion images_ filters =
 operatingSystems : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Model -> Element.Element Msg
 operatingSystems context project opSysChoices model =
     let
-        renderOpSysChoiceVersion : String -> HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
-        renderOpSysChoiceVersion name opSysChoiceVersion =
+        renderOpSysChoiceVersion : HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
+        renderOpSysChoiceVersion opSysChoiceVersion =
             case getImageforOpSysChoiceVersion project.images opSysChoiceVersion.filters of
                 Nothing ->
                     Element.none
@@ -374,7 +374,7 @@ operatingSystems context project opSysChoices model =
                         , Element.centerX
                         ]
                         (opSysChoice.versions
-                            |> List.map (renderOpSysChoiceVersion opSysChoice.friendlyName)
+                            |> List.map renderOpSysChoiceVersion
                         )
                     ]
     in
