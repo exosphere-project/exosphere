@@ -125,7 +125,6 @@ view context project model =
             ]
 
     else
-        -- TODO make a tabbed interface if we have choices
         let
             operatingSystemChoices =
                 GetterSetters.cloudConfigLookup context.cloudSpecificConfigs project
@@ -175,7 +174,7 @@ view context project model =
                         \maybeTabInt ->
                             case maybeTabInt of
                                 Just 0 ->
-                                    operatingSystems context project operatingSystemChoices model
+                                    operatingSystems context project operatingSystemChoices
 
                                 Just 1 ->
                                     images context project model
@@ -355,8 +354,8 @@ getImageforOpSysChoiceVersion images_ filters =
 -- Tabs
 
 
-operatingSystems : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Model -> Element.Element Msg
-operatingSystems context project opSysChoices model =
+operatingSystems : View.Types.Context -> Project -> List HelperTypes.OperatingSystemChoice -> Element.Element Msg
+operatingSystems context project opSysChoices =
     let
         renderOpSysChoiceVersion : HelperTypes.OperatingSystemChoiceVersion -> Element.Element Msg
         renderOpSysChoiceVersion opSysChoiceVersion =
@@ -426,7 +425,6 @@ operatingSystems context project opSysChoices model =
                             , Element.htmlAttribute <| HtmlA.style "color" "blue"
                             , Font.color <| SH.toElementColor context.palette.primary
                             ]
-                            -- TODO get URL path prefix from view context after rebase, rather than hard-coding it?
                             { src = opSysChoice.logo
                             , description = opSysChoice.friendlyName ++ " logo"
                             }
