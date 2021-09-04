@@ -83,7 +83,7 @@ init flags urlKey =
 
                 Err error ->
                     ( Dict.empty
-                    , [ { message = Debug.toString error
+                    , [ { message = Decode.errorToString error
                         , context =
                             Types.Error.ErrorContext
                                 "decode cloud-specific configs from Flags JSON"
