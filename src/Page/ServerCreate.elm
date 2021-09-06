@@ -21,6 +21,7 @@ import Style.Helpers as SH
 import Style.Widgets.NumericTextInput.NumericTextInput exposing (numericTextInput)
 import Style.Widgets.NumericTextInput.Types exposing (NumericTextInput(..))
 import Style.Widgets.Select
+import Style.Widgets.ToggleTip
 import Types.HelperTypes as HelperTypes
     exposing
         ( FloatingIpAssignmentStatus(..)
@@ -60,6 +61,7 @@ type Msg
     | GotInstallOperatingSystemUpdates Bool
     | GotFloatingIpCreationOption FloatingIpOption
     | GotCustomWorkflowSourcePath Types.Workflow.SourceRepositoryPath
+    | GotShowWorkFlowExplanationToggleTip
     | SharedMsg SharedMsg.SharedMsg
     | NoOp
 
@@ -90,6 +92,7 @@ init imageUuid imageName deployGuacamole =
     , deployDesktopEnvironment = False
     , installOperatingSystemUpdates = True
     , floatingIpCreationOption = HelperTypes.Automatic
+    , showWorkflowExplanationToggleTip = False
     }
 
 
@@ -243,6 +246,9 @@ update msg project model =
             , Cmd.none
             , SharedMsg.NoOp
             )
+
+        GotShowWorkFlowExplanationToggleTip ->
+            ( { model | showWorkflowExplanationToggleTip = not model.showWorkflowExplanationToggleTip }, Cmd.none, SharedMsg.NoOp )
 
 
 enforceQuotaCompliance : Project -> Model -> Model
@@ -875,8 +881,8 @@ customWorkflowInputExperimental context model =
 
         workflowInput =
             let
-                _ =
-                    Debug.log "model.customWorkflowSourceInput" model.customWorkflowSourceInput
+                repoInputLabel =
+                    "Git repository URL or DOI"
 
                 repoTypeAndTextInput =
                     Element.column
@@ -885,7 +891,7 @@ customWorkflowInputExperimental context model =
                                , Element.padding 0
                                ]
                         )
-                        [ Element.text "Git repository URL or DOI"
+                        [ Element.text repoInputLabel
                         , Input.text
                             (VH.inputItemAttributes context.palette.background)
                             { text = model.customWorkflowSourceInput.repository
@@ -893,11 +899,11 @@ customWorkflowInputExperimental context model =
                                 Just
                                     (Input.placeholder
                                         []
-                                        (Element.text "Git repository URL or DOI")
+                                        (Element.text repoInputLabel)
                                     )
                             , onChange =
                                 GotCustomWorkflowSourceRepository
-                            , label = Input.labelHidden "Git repository URL or DOI"
+                            , label = Input.labelHidden repoInputLabel
                             }
                         ]
 
@@ -913,13 +919,13 @@ customWorkflowInputExperimental context model =
                                 )
                         , onChange =
                             GotCustomWorkflowSourceReference
-                        , label = Input.labelAbove [] (Element.text "Git ref (optional - branch, tag, or commit)")
+                        , label = Input.labelAbove [] (Element.text "Git ref (branch, tag, or commit) (optional)")
                         }
 
                 sourcePathInput =
                     let
                         pathInputLabel =
-                            "Path to a notebook file, or URL to open (optional)"
+                            "URL to open e.g. /rstudio (optional)"
                     in
                     Element.column
                         (VH.exoColumnAttributes
@@ -952,10 +958,31 @@ customWorkflowInputExperimental context model =
                 , sourcePathInput
                 ]
 
+        workflowExplanationToggleTip =
+            Style.Widgets.ToggleTip.toggleTip
+                context.palette
+                (Element.column
+                    [ Element.width
+                        (Element.fill
+                            |> Element.minimum 100
+                            |> Element.maximum 300
+                        )
+                    , Element.spacing 7
+                    ]
+                    [ Element.text "Any Binder™-compatible repository can be launched."
+                    , Element.paragraph []
+                        [ Element.text "See mybinder.org for more information"
+                        ]
+                    ]
+                )
+                model.showWorkflowExplanationToggleTip
+                GotShowWorkFlowExplanationToggleTip
+
         betaMessage =
             Element.el
                 [ Font.color (SH.toElementColor context.palette.warn)
                 , Font.size 10
+                , Element.onRight workflowExplanationToggleTip
                 ]
                 (Element.text "BETA")
     in

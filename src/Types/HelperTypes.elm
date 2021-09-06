@@ -243,4 +243,5 @@ type alias CreateServerPageModel =
     , deployDesktopEnvironment : Bool
     , installOperatingSystemUpdates : Bool
     , floatingIpCreationOption : FloatingIpOption
+    , showWorkflowExplanationToggleTip : Bool
     }
