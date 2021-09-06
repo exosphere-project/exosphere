@@ -290,6 +290,7 @@ operatingSystemChoiceVersionDecoder =
 imageFiltersDecoder : Decode.Decoder HelperTypes.OperatingSystemImageFilters
 imageFiltersDecoder =
     Decode.map6 HelperTypes.OperatingSystemImageFilters
+        (Decode.maybe (Decode.field "name" Decode.string))
         (Decode.maybe (Decode.field "uuid" Decode.string))
         (Decode.maybe
             (Decode.field "visibility" Decode.string
@@ -313,7 +314,6 @@ imageFiltersDecoder =
                     )
             )
         )
-        (Decode.maybe (Decode.field "name" Decode.string))
         (Decode.maybe (Decode.field "osDistro" Decode.string))
         (Decode.maybe (Decode.field "osVersion" Decode.string))
         (Decode.maybe (Decode.field "metadata" metadataFilterDecoder))

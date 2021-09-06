@@ -121,6 +121,15 @@ view context project opSysChoices =
 getImageforOpSysChoiceVersion : List OSTypes.Image -> HelperTypes.OperatingSystemImageFilters -> Maybe OSTypes.Image
 getImageforOpSysChoiceVersion images_ filters =
     let
+        applyNameFilter : OSTypes.Image -> Bool
+        applyNameFilter image =
+            case filters.nameFilter of
+                Just name ->
+                    image.name == name
+
+                Nothing ->
+                    True
+
         applyUuidFilter : OSTypes.Image -> Bool
         applyUuidFilter image =
             case filters.uuidFilter of
@@ -135,15 +144,6 @@ getImageforOpSysChoiceVersion images_ filters =
             case filters.visibilityFilter of
                 Just visibility ->
                     image.visibility == visibility
-
-                Nothing ->
-                    True
-
-        applyNameFilter : OSTypes.Image -> Bool
-        applyNameFilter image =
-            case filters.nameFilter of
-                Just name ->
-                    image.name == name
 
                 Nothing ->
                     True
@@ -191,9 +191,9 @@ getImageforOpSysChoiceVersion images_ filters =
                     True
     in
     images_
+        |> List.filter applyNameFilter
         |> List.filter applyUuidFilter
         |> List.filter applyVisibilityFilter
-        |> List.filter applyNameFilter
         |> List.filter applyOsDistroFilter
         |> List.filter applyOsVersionFilter
         |> List.filter applyMetadataFilter
