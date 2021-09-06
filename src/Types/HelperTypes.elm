@@ -138,6 +138,7 @@ type alias OperatingSystemChoiceVersion =
 
 
 type alias OperatingSystemImageFilters =
+    -- TODO re-order these to match doc operating-system-choices.md
     { uuidFilter : Maybe OSTypes.ImageUuid
     , visibilityFilter : Maybe OSTypes.ImageVisibility
     , nameFilter : Maybe String
