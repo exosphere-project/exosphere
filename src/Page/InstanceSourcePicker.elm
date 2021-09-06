@@ -1,4 +1,4 @@
-module Page.ImageList exposing (Model, Msg, init, update, view)
+module Page.InstanceSourcePicker exposing (Model, Msg, init, update, view)
 
 import Dict
 import Element

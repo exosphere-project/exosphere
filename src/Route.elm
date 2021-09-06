@@ -47,7 +47,7 @@ type ProjectRouteConstructor
     = AllResourcesList
     | FloatingIpAssign (Maybe OSTypes.IpAddressUuid) (Maybe OSTypes.ServerUuid)
     | FloatingIpList
-    | ImageList
+    | InstanceSourcePicker
     | KeypairCreate
     | KeypairList
     | ServerCreate OSTypes.ImageUuid String (Maybe Bool)
@@ -161,8 +161,8 @@ toUrl maybePathPrefix route =
                             , []
                             )
 
-                        ImageList ->
-                            ( [ "images" ]
+                        InstanceSourcePicker ->
+                            ( [ "instancesource" ]
                             , []
                             )
 
@@ -464,7 +464,12 @@ pathParsers defaultRoute =
 projectRouteParsers : List (Parser (ProjectRouteConstructor -> b) b)
 projectRouteParsers =
     [ map
-        ImageList
+        InstanceSourcePicker
+        (s "instancesource")
+
+    -- Legacy URL, keeping parser around to handle any old links
+    , map
+        InstanceSourcePicker
         (s "images")
     , map
         AllResourcesList

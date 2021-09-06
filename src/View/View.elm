@@ -15,7 +15,7 @@ import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
 import Page.HelpAbout
-import Page.ImageList
+import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -231,9 +231,9 @@ project model context p projectViewModel viewConstructor =
                     Page.FloatingIpList.view context p pageModel
                         |> Element.map FloatingIpListMsg
 
-                ImageList pageModel ->
-                    Page.ImageList.view context p pageModel
-                        |> Element.map ImageListMsg
+                InstanceSourcePicker pageModel ->
+                    Page.InstanceSourcePicker.view context p pageModel
+                        |> Element.map InstanceSourcePickerMsg
 
                 KeypairCreate pageModel ->
                     Page.KeypairCreate.view context pageModel
@@ -399,7 +399,7 @@ createButton context projectId expanded =
                     (context.localization.virtualComputer
                         |> Helpers.String.toTitleCase
                     )
-                    (Route.ProjectRoute projectId <| Route.ImageList)
+                    (Route.ProjectRoute projectId <| Route.InstanceSourcePicker)
                 , renderButton
                     (FeatherIcons.hardDrive |> FeatherIcons.toHtml [] |> Element.html)
                     (context.localization.blockDevice

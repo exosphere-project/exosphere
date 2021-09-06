@@ -14,7 +14,7 @@ import Page.AllResourcesList
 import Page.FloatingIpAssign
 import Page.FloatingIpList
 import Page.GetSupport
-import Page.ImageList
+import Page.InstanceSourcePicker
 import Page.KeypairCreate
 import Page.KeypairList
 import Page.LoginJetstream
@@ -229,8 +229,8 @@ routeToViewStateModelCmd sharedModel route =
                             , newCmd
                             )
 
-                        Route.ImageList ->
-                            ( projectViewProto <| ImageList <| Page.ImageList.init
+                        Route.InstanceSourcePicker ->
+                            ( projectViewProto <| InstanceSourcePicker <| Page.InstanceSourcePicker.init
                             , sharedModel
                             , Rest.Glance.requestImages sharedModel project
                             )

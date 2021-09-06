@@ -105,7 +105,7 @@ pageTitle outerModel context =
                         , projectName
                         ]
 
-                ImageList _ ->
+                InstanceSourcePicker _ ->
                     String.join " "
                         [ context.localization.staticRepresentationOfBlockDeviceContents
                             |> Helpers.String.pluralize
