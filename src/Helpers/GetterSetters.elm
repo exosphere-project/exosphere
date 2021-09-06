@@ -1,5 +1,5 @@
 module Helpers.GetterSetters exposing
-    ( cloudConfigLookup
+    ( cloudSpecificConfigLookup
     , flavorLookup
     , floatingIpLookup
     , getExternalNetwork
@@ -410,15 +410,11 @@ modelUpdateUnscopedProvider model newProvider =
     { model | unscopedProviders = newProvidersSorted }
 
 
-
--- TODO rename to cloudSpecificConfigLookup
-
-
-cloudConfigLookup :
+cloudSpecificConfigLookup :
     Dict.Dict HelperTypes.KeystoneHostname HelperTypes.CloudSpecificConfig
     -> Project
     -> Maybe HelperTypes.CloudSpecificConfig
-cloudConfigLookup cloudSpecificConfigs project =
+cloudSpecificConfigLookup cloudSpecificConfigs project =
     let
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone

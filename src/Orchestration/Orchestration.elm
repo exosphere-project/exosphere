@@ -17,7 +17,7 @@ orchModel model time =
     let
         ( newProjects, newCmds ) =
             model.projects
-                |> List.map (\proj -> ( Helpers.GetterSetters.cloudConfigLookup model.cloudSpecificConfigs proj, proj ))
+                |> List.map (\proj -> ( Helpers.GetterSetters.cloudSpecificConfigLookup model.cloudSpecificConfigs proj, proj ))
                 |> List.map (\( cloudConfig, proj ) -> orchProject model.clientUuid time cloudConfig proj)
                 |> List.unzip
     in

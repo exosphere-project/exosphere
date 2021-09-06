@@ -127,7 +127,7 @@ view context project model =
     else
         let
             operatingSystemChoices =
-                GetterSetters.cloudConfigLookup context.cloudSpecificConfigs project
+                GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
                     |> Maybe.map .operatingSystemChoices
                     |> Maybe.withDefault []
         in
