@@ -107,9 +107,9 @@ pageTitle outerModel context =
 
                 InstanceSourcePicker _ ->
                     String.join " "
-                        [ context.localization.staticRepresentationOfBlockDeviceContents
-                            |> Helpers.String.pluralize
+                        [ context.localization.virtualComputer
                             |> Helpers.String.toTitleCase
+                        , "sources"
                         , "for"
                         , projectName
                         ]
