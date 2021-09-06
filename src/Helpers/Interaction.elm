@@ -65,12 +65,16 @@ interactionStatus project server interaction context currentTime tlsReverseProxy
                                 RDPP.DoHave token _ ->
                                     case ( tlsReverseProxyHostname, maybeFloatingIpAddress ) of
                                         ( Just proxyHostname, Just floatingIp ) ->
+                                            let
+                                                workflowPath =
+                                                    customWorkflow.source.path |> Maybe.withDefault ""
+                                            in
                                             ITypes.Ready <|
                                                 UrlHelpers.buildProxyUrl
                                                     proxyHostname
                                                     floatingIp
                                                     8888
-                                                    ("/?token=" ++ token)
+                                                    (workflowPath ++ "/?token=" ++ token)
                                                     False
 
                                         ( Nothing, _ ) ->
