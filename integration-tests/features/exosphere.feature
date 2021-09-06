@@ -29,9 +29,10 @@ Feature: Text presence
         And I should not see the unique instance name within 30 seconds
         When I click the "Create" button
         And I click the "Instance" button
-        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/images"
+        Then the browser's URL should contain "/projects/285529556e524028aae29f9c8b0f8017/instancesource"
         And I should see "Images loading..."
-        And I should see an element with xpath "//h2[contains(string(),'Choose an image')]" within 120 seconds
+        And I should see an element with xpath "//h2[contains(string(),'Choose an Instance Source')]" within 120 seconds
+        When I click the "By Image" button
         When I fill input labeled "Filter on image name:" with "JS-API-Featured-Ubuntu20-Latest"
         And I click the "expand" checkbox
         And I click the "Choose" button

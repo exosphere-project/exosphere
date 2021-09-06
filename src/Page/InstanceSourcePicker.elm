@@ -106,14 +106,14 @@ view context project model =
                     )
                     [ Element.el (VH.heading2 context.palette) <|
                         Element.text <|
-                            Helpers.String.toTitleCase <|
-                                String.join " "
-                                    [ "Choose"
-                                    , context.localization.virtualComputer
-                                        |> Helpers.String.indefiniteArticle
-                                    , context.localization.virtualComputer
-                                    , "Source"
-                                    ]
+                            String.join " "
+                                [ "Choose"
+                                , context.localization.virtualComputer
+                                    |> Helpers.String.indefiniteArticle
+                                , context.localization.virtualComputer
+                                    |> Helpers.String.toTitleCase
+                                , "Source"
+                                ]
                     , Widget.tab (SH.materialStyle context.palette).tab
                         { tabs =
                             Widget.Select
