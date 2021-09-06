@@ -6,6 +6,7 @@ import Helpers.String
 import Page.ImageList
 import Page.OperatingSystemList
 import Style.Helpers as SH
+import Types.HelperTypes
 import Types.Project exposing (Project)
 import Types.SharedMsg as SharedMsg
 import View.Helpers as VH
@@ -72,65 +73,82 @@ view context project model =
 
     else
         let
-            operatingSystemChoices =
+            maybeOperatingSystemChoices =
                 GetterSetters.cloudSpecificConfigLookup context.cloudSpecificConfigs project
                     |> Maybe.map .operatingSystemChoices
-                    |> Maybe.withDefault []
 
             viewImageList =
                 Page.ImageList.view context project model.imageListModel
                     |> Element.map ImageListMsg
-        in
-        if List.isEmpty operatingSystemChoices then
-            Element.column
-                (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill ]
-                )
-                [ Element.el (VH.heading2 context.palette)
-                    (Element.text <|
-                        String.join " "
-                            [ "Choose"
-                            , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
-                            , context.localization.staticRepresentationOfBlockDeviceContents
-                            ]
-                    )
-                , viewImageList
-                ]
 
-        else
-            Element.column
-                (VH.exoColumnAttributes
-                    ++ [ Element.width Element.fill ]
-                )
-                [ Element.el (VH.heading2 context.palette) <|
-                    Element.text <|
-                        Helpers.String.toTitleCase <|
+            imageListOnlyView : Element.Element Msg
+            imageListOnlyView =
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.width Element.fill ]
+                    )
+                    [ Element.el (VH.heading2 context.palette)
+                        (Element.text <|
                             String.join " "
                                 [ "Choose"
-                                , context.localization.virtualComputer
-                                    |> Helpers.String.indefiniteArticle
-                                , context.localization.virtualComputer
-                                , "Source"
+                                , Helpers.String.indefiniteArticle context.localization.staticRepresentationOfBlockDeviceContents
+                                , context.localization.staticRepresentationOfBlockDeviceContents
                                 ]
-                , Widget.tab (SH.materialStyle context.palette).tab
-                    { tabs =
-                        Widget.Select
-                            model.tab
-                            [ { text = "By Operating System", icon = Element.none }
-                            , { text = "By Image", icon = Element.none }
-                            ]
-                            (\i -> Just <| SetTab i)
-                    , content =
-                        \maybeTabInt ->
-                            case maybeTabInt of
-                                Just 0 ->
-                                    Page.OperatingSystemList.view context project operatingSystemChoices
-                                        |> Element.map OperatingSystemListMsg
+                        )
+                    , viewImageList
+                    ]
 
-                                Just 1 ->
-                                    viewImageList
+            tabbedView : List Types.HelperTypes.OperatingSystemChoice -> Element.Element Msg
+            tabbedView opSysChoices =
+                Element.column
+                    (VH.exoColumnAttributes
+                        ++ [ Element.width Element.fill ]
+                    )
+                    [ Element.el (VH.heading2 context.palette) <|
+                        Element.text <|
+                            Helpers.String.toTitleCase <|
+                                String.join " "
+                                    [ "Choose"
+                                    , context.localization.virtualComputer
+                                        |> Helpers.String.indefiniteArticle
+                                    , context.localization.virtualComputer
+                                    , "Source"
+                                    ]
+                    , Widget.tab (SH.materialStyle context.palette).tab
+                        { tabs =
+                            Widget.Select
+                                model.tab
+                                [ { text = "By Operating System", icon = Element.none }
+                                , { text = "By Image", icon = Element.none }
+                                ]
+                                (\i -> Just <| SetTab i)
+                        , content =
+                            \maybeTabInt ->
+                                case maybeTabInt of
+                                    Just 0 ->
+                                        Page.OperatingSystemList.view context project opSysChoices
+                                            |> Element.map OperatingSystemListMsg
 
-                                _ ->
-                                    Element.none
-                    }
-                ]
+                                    Just 1 ->
+                                        viewImageList
+
+                                    _ ->
+                                        Element.none
+                        }
+                    ]
+        in
+        -- At least one operating system choice + version must be defined to show the operating system choices tab.
+        -- Otherwise we just show a list of images.
+        case maybeOperatingSystemChoices of
+            Just choices ->
+                if List.isEmpty choices then
+                    imageListOnlyView
+
+                else if List.map .versions choices |> List.concat |> List.isEmpty then
+                    imageListOnlyView
+
+                else
+                    tabbedView choices
+
+            Nothing ->
+                imageListOnlyView
