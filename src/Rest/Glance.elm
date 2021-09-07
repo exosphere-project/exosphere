@@ -12,7 +12,7 @@ import Json.Decode.Pipeline as Pipeline
 import OpenStack.Types as OSTypes
 import Rest.Helpers exposing (expectJsonWithErrorBody, openstackCredentialedRequest, resultToMsgErrorBody)
 import Types.Error exposing (ErrorContext, ErrorLevel(..))
-import Types.HelperTypes exposing (HttpRequestMethod(..), MetdataFilter)
+import Types.HelperTypes exposing (HttpRequestMethod(..), MetadataFilter)
 import Types.Project exposing (Project)
 import Types.SharedModel exposing (SharedModel)
 import Types.SharedMsg exposing (ProjectSpecificMsgConstructor(..), SharedMsg(..))
@@ -28,7 +28,7 @@ requestImages model project =
         projectKeystoneHostname =
             UrlHelpers.hostnameFromUrl project.endpoints.keystone
 
-        maybeExcludeFilter : Maybe MetdataFilter
+        maybeExcludeFilter : Maybe MetadataFilter
         maybeExcludeFilter =
             Dict.get projectKeystoneHostname model.cloudSpecificConfigs
                 |> Maybe.andThen (\csc -> csc.imageExcludeFilter)
@@ -81,7 +81,7 @@ catMaybes =
     List.filterMap identity
 
 
-decodeImages : Maybe MetdataFilter -> Decode.Decoder (List OSTypes.Image)
+decodeImages : Maybe MetadataFilter -> Decode.Decoder (List OSTypes.Image)
 decodeImages maybeExcludeFilter =
     Decode.field "images" (Decode.map catMaybes (Decode.list <| imageDecoder maybeExcludeFilter))
 
@@ -113,7 +113,7 @@ decodeAdditionalProperties basePropertyNames =
             )
 
 
-imageDecoder : Maybe MetdataFilter -> Decode.Decoder (Maybe OSTypes.Image)
+imageDecoder : Maybe MetadataFilter -> Decode.Decoder (Maybe OSTypes.Image)
 imageDecoder maybeExcludeFilter =
     case maybeExcludeFilter of
         Nothing ->

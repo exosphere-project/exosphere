@@ -263,9 +263,9 @@ decodeCloudSpecificConfig =
             )
 
 
-metadataFilterDecoder : Decode.Decoder HelperTypes.MetdataFilter
+metadataFilterDecoder : Decode.Decoder HelperTypes.MetadataFilter
 metadataFilterDecoder =
-    Decode.map2 HelperTypes.MetdataFilter
+    Decode.map2 HelperTypes.MetadataFilter
         (Decode.field "filterKey" Decode.string)
         (Decode.field "filterValue" Decode.string)
 

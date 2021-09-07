@@ -12,7 +12,7 @@ module Types.HelperTypes exposing
     , JetstreamProvider(..)
     , KeystoneHostname
     , Localization
-    , MetdataFilter
+    , MetadataFilter
     , OpenIdConnectLoginConfig
     , OperatingSystemChoice
     , OperatingSystemChoiceVersion
@@ -108,7 +108,7 @@ type alias WindowSize =
     }
 
 
-type alias MetdataFilter =
+type alias MetadataFilter =
     { filterKey : String
     , filterValue : String
     }
@@ -116,7 +116,7 @@ type alias MetdataFilter =
 
 type alias CloudSpecificConfig =
     { userAppProxy : Maybe UserAppProxyHostname
-    , imageExcludeFilter : Maybe MetdataFilter
+    , imageExcludeFilter : Maybe MetadataFilter
     , featuredImageNamePrefix : Maybe String
     , operatingSystemChoices : List OperatingSystemChoice
     }
@@ -143,7 +143,7 @@ type alias OperatingSystemImageFilters =
     , visibilityFilter : Maybe OSTypes.ImageVisibility
     , osDistroFilter : Maybe String
     , osVersionFilter : Maybe String
-    , metadataFilter : Maybe MetdataFilter
+    , metadataFilter : Maybe MetadataFilter
     }
 
 
